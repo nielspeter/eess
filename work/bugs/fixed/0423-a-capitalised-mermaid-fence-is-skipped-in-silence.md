@@ -37,7 +37,7 @@ fences or make authors retag. `isMermaidTag()` in `packages/crossvalidate/src/sh
 of `md-mermaid`'s selectors, the comparison and `embeddedDiagramStats`.
 
 The ER binding has the same defect on its own path, measured and recorded as
-[bug 0424](../0424-a-capitalised-mermaid-er-fence-is-skipped-in-silence.md) rather than folded in.
+[bug 0424](./0424-a-capitalised-mermaid-er-fence-is-skipped-in-silence.md) rather than folded in.
 
 ## Verification
 
