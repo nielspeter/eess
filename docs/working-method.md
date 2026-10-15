@@ -37,17 +37,16 @@ people and a design tool entered; a "support" lane appeared when real customers
 did). If the work in front of you wants a shape that isn't here, invent it, use it,
 and — if it proves out — write it down. A self-amending method is the whole point.
 
-## The three firm things (and only these)
+## The four firm things (and only these)
 
-Everything in this document is a soft default _except_ these three, and each of
+Everything in this document is a soft default _except_ these four, and each of
 them exists to **serve** the discovery, not to fence it in:
 
 1. **Honesty at close.** When an item is finished, every part of it ends as
    _done_, _done-otherwise_ (what actually happened, told straight — not what was
    hoped), _deferred to a named home_, or _dropped on purpose_. Nothing vanishes
    silently. This is firm because a corpus that quietly loses scope stops being
-   trustworthy, and an untrustworthy memory is worse than none. For a plan it is
-   sharpened into six rules, under _Plans close whole_ below.
+   trustworthy, and an untrustworthy memory is worse than none.
 
 2. **Point, don't duplicate — but freeze what you commit to.** A source that is
    _still live authority and still moving_ — the code, a design still being argued
@@ -66,7 +65,14 @@ them exists to **serve** the discovery, not to fence it in:
    This is firm because the accumulated corpus is only useful if you can still
    navigate it.
 
-If you ever feel these three fighting the work rather than serving it, that's a
+4. **A plan closes whole.** A plan is built in one PR, finishes with nothing
+   undisposed, never defers an acceptance criterion, and is closed in the PR that
+   builds it — six rules, under _Plans close whole_ below. This is firm because
+   unfinished scope otherwise goes missing in three places no one looks: a
+   half-built phase, a footnote in a finished plan, and a close left for after the
+   merge. _(Added 2026-10-15, when the maintainer stated the rules.)_
+
+If you ever feel these four fighting the work rather than serving it, that's a
 signal to revisit _them_ — not a licence to skip them quietly.
 
 ## The corpus
@@ -153,8 +159,8 @@ because it's where the first firm principle lives. Walk the item's own list and
 mark each part _done / done-otherwise / deferred-with-a-home / dropped-on-purpose_,
 and say the deferral count _out loud_ — "deferred: none," or the list with where
 each went. Silence is not "nothing deferred." Re-home every deferral to a real
-place (a plan, a bug, an explicit accept-the-risk decision), never a footnote in a
-nearly-done item.
+place (a plan or a bug), never a footnote in a nearly-done item. Accepting a risk
+instead of doing the work is _dropped on purpose_, with the risk named.
 
 ## Draft, ready, and the freeze between them
 
@@ -197,7 +203,8 @@ A good, boring definition — easier than waiting for someone to bless productio
 change is merged.** A green-but-unmerged change is _ready_, not done. Anything that
 breaks _later_ is a new item (usually a bug), not a reopening.
 
-One habit makes this clean: **author the "move to done" inside the same change/PR**
+One rule makes this clean, and for a plan it is firm (rule 6 below): **author the
+"move to done" inside the same change/PR**
 — set the status and move the file as part of the diff. Why in the PR rather than
 after the merge? A post-merge move is a step no one owns and nothing triggers, so
 it's forgotten, and the item sits looking active while it's actually done — a new,
@@ -212,31 +219,36 @@ mark it "validation owed" — rather than letting a green checkmark overstate it
 
 ## Plans close whole
 
-Honesty at close says nothing may vanish. For a plan it is sharpened into six rules (stated
-2026-10-15). They are firm, because each one closes a way a plan's unfinished scope goes missing:
-into a half-built phase, into a footnote of a finished plan, or into a merge that nobody comes back to.
+The fourth firm thing, in six rules. The maintainer stated them on 2026-10-15; they apply from
+then on, and records closed before it are not rewritten. Each closes a way a plan's unfinished
+scope goes missing: into a half-built phase, into a footnote of a finished plan, or into a merge
+that nobody comes back to.
 
 1. **A plan is done whole, in one PR.** If it cannot be done in one PR, split it before building it.
    There are no half plans: a phase that could still be unbuilt when the rest has merged is not a
    phase, it is another plan.
-2. **A finished plan holds nothing open.** Whatever is deferred moves to a new plan or bug, named in
-   the ledger as its home. A finished plan is never where deferred work waits, because nobody goes
-   back to a finished plan to look for it.
+2. **A finished plan holds nothing undisposed.** Whatever is deferred moves to another plan or bug
+   that is still open — usually a new one — named in the ledger as its home. A finished plan is
+   never where deferred work waits, because nobody goes back to a finished plan to look for it.
 3. **An acceptance criterion is never deferred.** It closes ticked, `done-otherwise` or
    `validation-owed`, never `deferred→` or `dropped-on-purpose`. If a criterion is not met, the plan
-   is not done. This follows from 1 and 2: deferring a criterion would finish half a plan.
+   is not done. Rule 2 lets work be deferred; this rule says a criterion is not such work, because
+   deferring one would finish half a plan.
 4. **What you find while building is a new plan or bug,** never part of the running plan. The
    running plan keeps the scope it was frozen with.
 5. **A plan that turns out too big while building is split then.** Record the split in both plans
    (the date and what moved), keep building the smaller plan without a new review round, and send
-   only the new plan through the freeze.
-6. **A plan is closed in its own PR.** By the time it merges, its review and testing are done, so it
+   only the new plan through the freeze. What moves leaves the first plan's scope, criteria
+   included: its box there says `deferred→<the new plan>` as the record of the split, and the
+   criterion is the new plan's to meet, so rule 3 is not broken.
+6. **A plan is closed in the PR that builds it.** By the time it merges, its review and testing are done, so it
    is closed as part of the diff (see _When is it done?_). A close left for after the merge is a step
    nobody comes back to, and two PRs to close one plan is one too many.
 
-Rule 3 can be checked mechanically, and should be where the corpus can carry it: in a done plan, an
-open box under the plan's acceptance criteria may carry only `done-otherwise` or `validation-owed`.
-Plans dropped as a whole (`Won't-do`) are exempt, since none of their criteria were meant to be met.
+Rule 2's mechanical half is checked today by eess-md's `honestyAtClose` (an open box must carry a
+disposition, and `deferred→` must name a home). Rule 3 could be checked too, wherever a corpus marks
+which boxes are criteria; [plan 0430](../work/plans/0430-an-acceptance-criterion-is-never-deferred.md)
+records that question. A plan dropped as a whole (`Won't-do`) has no criteria to meet.
 
 ## Trust a measurement less than it invites
 
@@ -293,7 +305,7 @@ This method is one layer of three, and knowing which layer a thing belongs to is
 what keeps each of them honest:
 
 - **The method (this document)** — the _guidelines_. How the work moves, what the
-  lanes are, the three firm things. Read by humans and agents alike; it teaches
+  lanes are, the four firm things. Read by humans and agents alike; it teaches
   judgment, it doesn't police it.
 - **The skills** — thin, agent-callable _nudges_ that carry the method's
   **repetitive mechanics** (author a plan the house way, walk the close-out ledger)
@@ -323,7 +335,7 @@ unchecked, is itself part of the discipline.
 
 Promotion runs one way only: a guideline may grow a gate beneath it; a gate may
 never quietly widen into policing judgment. When in doubt, it stays a habit — the
-same test as the three firm things: a mechanism earns its place only if it protects
+same test as the four firm things: a mechanism earns its place only if it protects
 the discovery, never if it starts policing it.
 
 ## Core vs per-project configuration
@@ -332,7 +344,7 @@ What makes the method _portable_ is the line between what you carry unchanged an
 what you tailor:
 
 - **Carry unchanged (the method):** self-contained items in a corpus; lanes as a
-  toolkit; a board and a done-folder per lane; the three firm principles; the
+  toolkit; a board and a done-folder per lane; the four firm principles; the
   draft→ready freeze (point live authority, record settled decisions by value); the
   close-out honesty ritual; the merged-and-green definition of done; human-gated
   authoring/review with optionally-autonomous implementation; the corpus as
@@ -350,7 +362,7 @@ what you tailor:
   needed yet; they'd be cargo-cult. Discovery is fast because the loop is short.
 - **Multi-stakeholder, with real users.** The same skeleton, plus a _refinement_
   lane (design churn and open questions before a plan is stable) and a _support_
-  lane (customer cases, with raw email kept by pointer). Same three firm
+  lane (customer cases, with raw email kept by pointer). Same four firm
   principles, same close-out honesty — more lanes because more of the world is
   involved.
 
@@ -360,7 +372,7 @@ then pick the lanes the work actually calls for.
 
 ---
 
-_In the intended voice: a colleague's habits, not a compliance regime. Three things
+_In the intended voice: a colleague's habits, not a compliance regime. Four things
 firm because they protect the discovery; everything else a default to bend when the
 work is better for it; and explicit room for a smarter agent to invent structure
 this document doesn't yet have. Current, not finished — the honest open edge above
