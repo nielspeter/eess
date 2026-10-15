@@ -1,5 +1,85 @@
 # @nielspeter/eess-md
 
+## 0.10.0
+
+### Minor Changes
+
+- b32426a: Add `parseCodeBlocks()` and `codeBlocks()`: every fenced block of one language is checked with a
+  parser you name.
+
+  `parseCodeBlocks(corpus, { language, parser, budget })` parses the language's blocks in one batch and
+  returns a frozen `ParsedCodeBlocks`. `codeBlocks(parsed)` returns a `CodeBlockRuleBuilder`, and its
+  `.should().parse()` is an ordinary synchronous rule over what was parsed. `.that()` narrows it with
+  `resideInFile` or `resideInFolder`. eess-md loads no parser itself.
+  - **The port.** A `CodeBlockParser` is `{ name, version, canaries, parse(texts, { signal, budgetMs }) }`.
+    It returns one `CodeBlockVerdict` per text, `valid`, `invalid` or `unrecognised`, synchronously or
+    as a promise. Its `CodeBlockCanary` entries are blocks it must reject.
+  - **Failures are never a pass.** Each of these is one unsuppressable finding per rule, with the rule
+    id `eess-md: code-block parser`, exported as `CODE_BLOCK_PARSER_INSTRUMENT`:
+    - the parser throws;
+    - it runs past its `CodeBlockBudget`;
+    - it returns a malformed or missing verdict;
+    - it answers one of its own canaries wrongly.
+  - **Configuration errors throw `ArchConfigError`:**
+    - a parser with no name, no version or no canaries;
+    - a canary that allows a pass;
+    - an empty `language`;
+    - a budget a timer cannot hold.
+  - **`summary()`** gives "N json blocks parsed with …". After a failure it gives "0 of N … checked"
+    with the cause. A tag that matches only when case-folded (`Json` for `json`) is not read. It is
+    named there, and in the zero-examined finding when it is why nothing was examined.
+  - **The default budget** is `DEFAULT_CODE_BLOCK_BUDGET`: 10 s plus 250 ms a block.
+  - **Also exported:** the types `ParseCodeBlocksOptions`, `ParsedCodeBlock`,
+    `CodeBlockInstrumentFailure` and `NearMissTag`.
+
+  Additive: nothing that exists changes.
+
+- 9287323: `codeBlocks` holds every code block at any depth, a block in a list item or a blockquote included
+
+  **Breaking (@nielspeter/eess-md) — a check that missed a diagram now reads it.** Fixes
+  [bug 0290](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md).
+
+  `MdDocument.codeBlocks` held the document's top-level code blocks only. A `mermaid` diagram inside
+  a list item or a blockquote never reached `eess-crossvalidate`'s `embeddedDiagramsMatchCode` or
+  `tableErAgree`: a diagram naming a class the code does not have passed, and the document did not
+  count in `embeddedDiagramStats`.
+
+  Now `codeBlocks` lists every code block, in document order, with its fence line. A nested block's
+  `value` has the container's markers (`> `, the list indent) removed. If you use the md↔mermaid
+  bindings, you may see findings on nested diagrams you were not seeing before; they are real. If you
+  read `codeBlocks` yourself, expect the nested blocks too.
+
+  An illustrative diagram you put in a list now counts too. Nesting does not mark a diagram as an
+  example. For `tableErAgree`, an earlier `erDiagram` in the document can supply the entity match or
+  the line a finding is reported at, as a top-level one already could.
+
+  `@nielspeter/eess-crossvalidate` is named so its changelog records the break: its rules are where
+  the new findings appear. Its own code does not change.
+
+- 16a5aec: **Breaking (@nielspeter/eess):** an exclusion comment (`eess-exclude`, `eess-exclude-start` /
+  `-end`) is now read only in files the kernel can lex: JavaScript and TypeScript (including Vue and
+  Svelte) and Markdown. In any other file, such as `.feature`, `.yml`, `.py`, `.mmd` or `.graphql`, no
+  directive is read.
+
+  This fixes a false green (bug 0419). Such files used to be read as if they were JavaScript, so `//`
+  text inside a Gherkin doc string or a YAML block scalar, which is data and not a comment, was taken as
+  a waiver and suppressed a real finding. Gherkin's own `#` comment was never read either.
+
+  If a build relied on a waiver in one of these files, written with `//` or as `<!-- eess-exclude … -->`, its
+  finding now reports again. There is no
+  supported waiver syntax for these file types yet. Fix the finding, or narrow the rule's selection.
+
+  Every dialect that reads exclusion comments through the kernel ships this break to its adopters,
+  so each takes a minor bump: `@nielspeter/eess-ts` (for findings in files other than code), `@nielspeter/eess-gherkin`
+  (findings in `.feature` files, fixed by this), `@nielspeter/eess-mermaid` (`.mmd` files) and
+  `@nielspeter/eess-crossvalidate`. `@nielspeter/eess-md` reads only Markdown, which is unaffected; it
+  is bumped only because it depends on the kernel.
+
+### Patch Changes
+
+- Updated dependencies [16a5aec]
+  - @nielspeter/eess@0.7.0
+
 ## 0.9.0
 
 ### Minor Changes

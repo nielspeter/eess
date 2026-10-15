@@ -1,5 +1,50 @@
 # @nielspeter/eess-mermaid
 
+## 0.7.0
+
+### Minor Changes
+
+- 8fc6953: `diagramKind(text)` is exported from `@nielspeter/eess-mermaid`. It returns a Mermaid diagram's declared
+  kind token (`erDiagram`, `graph`, `stateDiagram-v2`, …), reading past `%%` comments, `%%{init}%%`
+  directives and `---` frontmatter, or `''` when none is declared. It is the one lexer for that question
+  in the family; `eess-crossvalidate` used to keep its own copy.
+
+  `tableErAgree` (`@nielspeter/eess-crossvalidate/md-mermaid-er`) now selects an `erDiagram` by its
+  declared kind instead of the fence's first line. An ER diagram behind a `%%{init}%%` theme directive
+  or `---` frontmatter used to be skipped without a word, so its drift from the property table passed.
+  It is now selected, so a build that was green can go red with no change of yours. A themed diagram
+  with a one-line `%%{init}%%` is compared. Two known gaps: the ER parser does not yet accept a
+  multi-line `%%{init}%%` block or `---` frontmatter, so such a diagram is reported as not parsing
+  instead of being compared.
+
+  `@nielspeter/eess-crossvalidate` now requires `@nielspeter/eess-mermaid` `>=0.7.0`, the release that
+  adds `diagramKind`. With an older eess-mermaid, its `md-mermaid` and `md-mermaid-er` entry points
+  would fail to load.
+
+- 16a5aec: **Breaking (@nielspeter/eess):** an exclusion comment (`eess-exclude`, `eess-exclude-start` /
+  `-end`) is now read only in files the kernel can lex: JavaScript and TypeScript (including Vue and
+  Svelte) and Markdown. In any other file, such as `.feature`, `.yml`, `.py`, `.mmd` or `.graphql`, no
+  directive is read.
+
+  This fixes a false green (bug 0419). Such files used to be read as if they were JavaScript, so `//`
+  text inside a Gherkin doc string or a YAML block scalar, which is data and not a comment, was taken as
+  a waiver and suppressed a real finding. Gherkin's own `#` comment was never read either.
+
+  If a build relied on a waiver in one of these files, written with `//` or as `<!-- eess-exclude … -->`, its
+  finding now reports again. There is no
+  supported waiver syntax for these file types yet. Fix the finding, or narrow the rule's selection.
+
+  Every dialect that reads exclusion comments through the kernel ships this break to its adopters,
+  so each takes a minor bump: `@nielspeter/eess-ts` (for findings in files other than code), `@nielspeter/eess-gherkin`
+  (findings in `.feature` files, fixed by this), `@nielspeter/eess-mermaid` (`.mmd` files) and
+  `@nielspeter/eess-crossvalidate`. `@nielspeter/eess-md` reads only Markdown, which is unaffected; it
+  is bumped only because it depends on the kernel.
+
+### Patch Changes
+
+- Updated dependencies [16a5aec]
+  - @nielspeter/eess@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes

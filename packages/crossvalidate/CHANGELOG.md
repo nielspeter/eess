@@ -1,5 +1,102 @@
 # @nielspeter/eess-crossvalidate
 
+## 0.8.0
+
+### Minor Changes
+
+- 8fc6953: `diagramKind(text)` is exported from `@nielspeter/eess-mermaid`. It returns a Mermaid diagram's declared
+  kind token (`erDiagram`, `graph`, `stateDiagram-v2`, …), reading past `%%` comments, `%%{init}%%`
+  directives and `---` frontmatter, or `''` when none is declared. It is the one lexer for that question
+  in the family; `eess-crossvalidate` used to keep its own copy.
+
+  `tableErAgree` (`@nielspeter/eess-crossvalidate/md-mermaid-er`) now selects an `erDiagram` by its
+  declared kind instead of the fence's first line. An ER diagram behind a `%%{init}%%` theme directive
+  or `---` frontmatter used to be skipped without a word, so its drift from the property table passed.
+  It is now selected, so a build that was green can go red with no change of yours. A themed diagram
+  with a one-line `%%{init}%%` is compared. Two known gaps: the ER parser does not yet accept a
+  multi-line `%%{init}%%` block or `---` frontmatter, so such a diagram is reported as not parsing
+  instead of being compared.
+
+  `@nielspeter/eess-crossvalidate` now requires `@nielspeter/eess-mermaid` `>=0.7.0`, the release that
+  adds `diagramKind`. With an older eess-mermaid, its `md-mermaid` and `md-mermaid-er` entry points
+  would fail to load.
+
+- 9287323: `codeBlocks` holds every code block at any depth, a block in a list item or a blockquote included
+
+  **Breaking (@nielspeter/eess-md) — a check that missed a diagram now reads it.** Fixes
+  [bug 0290](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md).
+
+  `MdDocument.codeBlocks` held the document's top-level code blocks only. A `mermaid` diagram inside
+  a list item or a blockquote never reached `eess-crossvalidate`'s `embeddedDiagramsMatchCode` or
+  `tableErAgree`: a diagram naming a class the code does not have passed, and the document did not
+  count in `embeddedDiagramStats`.
+
+  Now `codeBlocks` lists every code block, in document order, with its fence line. A nested block's
+  `value` has the container's markers (`> `, the list indent) removed. If you use the md↔mermaid
+  bindings, you may see findings on nested diagrams you were not seeing before; they are real. If you
+  read `codeBlocks` yourself, expect the nested blocks too.
+
+  An illustrative diagram you put in a list now counts too. Nesting does not mark a diagram as an
+  example. For `tableErAgree`, an earlier `erDiagram` in the document can supply the entity match or
+  the line a finding is reported at, as a top-level one already could.
+
+  `@nielspeter/eess-crossvalidate` is named so its changelog records the break: its rules are where
+  the new findings appear. Its own code does not change.
+
+- f182daf: **Breaking (@nielspeter/eess-crossvalidate):** a build that was green can go red with no change of yours.
+
+  `tableErAgree` now reads an `erDiagram` in a fence tagged `Mermaid` (any letter case), as
+  `embeddedDiagramsMatchCode` does since bug 0423. Before, it compared the tag exactly, so such a
+  diagram was neither compared with its property table nor counted, and its drift passed beside any
+  other ER diagram (bug 0424).
+
+- ea569fb: **Breaking (@nielspeter/eess-crossvalidate):** a build that was green can go red with no change of yours.
+
+  `embeddedDiagramsMatchCode` now reads a fence tagged `Mermaid` (any letter case) like one tagged
+  `mermaid`. Before, it compared the tag exactly, so a diagram in a ` ```Mermaid ` fence was neither
+  compared with the code nor counted, and its drift passed in any corpus that held another class diagram
+  (bug 0423). Such diagrams are now checked, so a build that was green can go red with no change of
+  yours. `tableErAgree` gets the same fix in bug 0424.
+
+- 16a5aec: **Breaking (@nielspeter/eess):** an exclusion comment (`eess-exclude`, `eess-exclude-start` /
+  `-end`) is now read only in files the kernel can lex: JavaScript and TypeScript (including Vue and
+  Svelte) and Markdown. In any other file, such as `.feature`, `.yml`, `.py`, `.mmd` or `.graphql`, no
+  directive is read.
+
+  This fixes a false green (bug 0419). Such files used to be read as if they were JavaScript, so `//`
+  text inside a Gherkin doc string or a YAML block scalar, which is data and not a comment, was taken as
+  a waiver and suppressed a real finding. Gherkin's own `#` comment was never read either.
+
+  If a build relied on a waiver in one of these files, written with `//` or as `<!-- eess-exclude … -->`, its
+  finding now reports again. There is no
+  supported waiver syntax for these file types yet. Fix the finding, or narrow the rule's selection.
+
+  Every dialect that reads exclusion comments through the kernel ships this break to its adopters,
+  so each takes a minor bump: `@nielspeter/eess-ts` (for findings in files other than code), `@nielspeter/eess-gherkin`
+  (findings in `.feature` files, fixed by this), `@nielspeter/eess-mermaid` (`.mmd` files) and
+  `@nielspeter/eess-crossvalidate`. `@nielspeter/eess-md` reads only Markdown, which is unaffected; it
+  is bumped only because it depends on the kernel.
+
+### Patch Changes
+
+- 6f40ecc: `embeddedDiagramsMatchCode` and `tableErAgree` no longer tell an author their diagram has a syntax
+  error when eess-mermaid's grammar cannot read it. eess cannot yet tell a syntax error from valid
+  Mermaid that eess-mermaid does not model, so the finding now says it may be either.
+
+  Its fix line is to check the fence in the Mermaid Live Editor; fix it if Mermaid reports a parse error;
+  if Mermaid accepts it, keep it and report the construct to eess. The finding stays until eess-mermaid
+  models the construct, and no `eess-exclude` comment silences it yet. To be green meanwhile, move only
+  that fence into its own document and leave that document out, so the other diagrams are still checked.
+  A `classDiagram-v2` fence is told to change its header to `classDiagram`. The ER finding now has a fix
+  line; before, its remedy printed as its reason.
+
+  Only the wording changes, and the same fences are reported. Rule ids are unchanged, so a test that
+  asserts on these findings should match `ruleId` (`crossval/embedded-diagram`,
+  `crossval/table-er-agree`), not the message text.
+
+- Updated dependencies [16a5aec]
+  - @nielspeter/eess@0.7.0
+
 ## 0.7.0
 
 ### Minor Changes
