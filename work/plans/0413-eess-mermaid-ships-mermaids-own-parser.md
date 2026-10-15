@@ -12,9 +12,8 @@
   conditions cited by number below are that review's.
 - **Priority:** Medium — the consumer's ask itself; plan 0412 alone gives them a loop with no parser.
 - **Effort:** Medium — one PR. A worker, its classifier, canaries, line recovery and a conformance
-  test; no kernel change. The dogfood gate is plan 0427's. Additive,
-  eess-mermaid `minor`. crossvalidate gains tests only, declared `none` in the changeset; its
-  release moves with bug 0409.
+  test; no kernel change. The dogfood gate is plan 0427's. Additive, eess-mermaid `minor`.
+  crossvalidate gains tests only, declared `none` in the changeset.
 - **Created:** 2026-10-14
 - **Depends on**, in order:
   - [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) — the port.
@@ -22,8 +21,9 @@
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
     0214 is Done (PR #212); this plan does not take it over.
   - [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md) —
-    `parseCodeBlocks` reads the tag case-insensitively, the family rule this freeze settled. Fixed
-    **before** this plan, so this PR carries no other package's change.
+    `parseCodeBlocks` reads the tag case-insensitively, the family rule this freeze settled. Sequenced
+    **before** this plan so this PR carries no other package's change; nothing in this plan needs it
+    technically.
   - [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
     plan (condition 12 allowed "before or with"; "before" keeps this PR from carrying another
     record's fix and close). Otherwise a block Mermaid accepts can still be reported by md-mermaid as
@@ -84,10 +84,12 @@ codeBlocks(parsed).should().parse().check()
 | thrown inside the worker                           | outcome        | remedy                                                                           |
 | -------------------------------------------------- | -------------- | -------------------------------------------------------------------------------- |
 | an `Error` carrying `hash` (the jison kinds)       | `invalid`      | "fix the syntax at this line; Mermaid's message is above", at the recovered line |
-| a `MermaidParseError` (the Langium kinds)          | `invalid`      | the same; the line read from its text (`line 2, column 9`) or unknown            |
+| a `MermaidParseError` (the Langium kinds)          | `invalid`      | the same; the line read from its text (`line 2, column 8`) or unknown            |
 | `UnknownDiagramError`, block has a kind line       | `unrecognised` | "check the spelling, or this kind needs a newer `mermaid` or a plugin"           |
 | `UnknownDiagramError`, block empty                 | `unrecognised` | "the block is empty"                                                             |
 | `UnknownDiagramError`, only directives or comments | `unrecognised` | "the block declares no diagram after its directives / comments"                  |
+| `UnknownDiagramError`, only frontmatter            | `unrecognised` | "the block declares no diagram after its frontmatter"                            |
+| `UnknownDiagramError`, a directive never closed    | `unrecognised` | "a `%%{` directive is never closed with `}%%`"                                   |
 | anything else                                      | the instrument | —                                                                                |
 | a resolved value that is not a parse result        | the instrument | covers `suppressErrors`'s `false`                                                |
 
@@ -103,9 +105,16 @@ codeBlocks(parsed).should().parse().check()
 directives, blank lines) and counts its error line from the kind line. So the verdict's `line`, counted
 from the block's first body line as plan 0412's port requires, is Mermaid's line plus the number of
 lines before the kind line. It held for frontmatter, a directive and blank leading lines, for both
-error families. Mermaid's line comes from `hash.loc.first_line` for the jison kinds (their message
-names the end of input, one line too far) and from the message's "line N" for the Langium kinds.
-eess-md then adds the block's own line.
+error families, and for lexical errors. Mermaid's line, by error shape:
+
+- **jison, with `hash.loc`** (parse errors): `hash.loc.first_line`. At the end of input the message
+  names the line after the last one, so the message is not used.
+- **jison, without `hash.loc`** (lexical errors): `hash.line + 1`; `hash.line` is 0-based.
+- **Langium** (`MermaidParseError`): the message's "line N"; nothing else carries it.
+
+eess-md then adds the block's own line. _(Corrected after PR #217's review: the first freeze took every
+jison line from `hash.loc.first_line`, which a lexical error does not have. Spike 0425 records the
+correction.)_
 
 ### A forged verdict, and an instrument that fails (conditions 4 and 5)
 
@@ -182,7 +191,8 @@ Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) 
 - one valid block of each kind spike 0411 measured — the labelled flowchart, class, state and
   mindmap that fail in plain Node among them — is `valid`;
 - each row of the outcome table, one block each;
-- the line rows: plain, frontmatter, directive, blank lead — the parser's verdict line is right in
+- the line rows: plain, frontmatter, directive, blank lead, a parse error mid-block, and a lexical
+  error with and without frontmatter — the parser's verdict line is right in
   eess-mermaid's tests, and lands on the exact Markdown line through plan 0412's builder in
   crossvalidate's;
 - a missing peer, an early exit, a hang and an out-of-range version: one finding each, naming the
@@ -194,13 +204,13 @@ Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) 
 
 ## Non-vacuity rows (plan B's share of the review's table)
 
-| row                                                                                     | breaks      |
-| --------------------------------------------------------------------------------------- | ----------- |
-| a syntax error at the exact Markdown line, plus frontmatter, directive, blank-lead rows | condition 7 |
-| the false red: a labelled flowchart passes in the worker                                | condition 8 |
-| a missing peer; a worker that exits early; a version out of range                       | condition 5 |
-| a `mermaid` that stops throwing fails on the canaries                                   | condition 4 |
-| empty, directive-only, misspelt and `zenuml`, each with its own remedy                  | condition 6 |
+| row                                                                                                            | breaks      |
+| -------------------------------------------------------------------------------------------------------------- | ----------- |
+| a syntax error at the exact Markdown line, plus frontmatter, directive, blank-lead, mid-block and lexical rows | condition 7 |
+| the false red: a labelled flowchart passes in the worker                                                       | condition 8 |
+| a missing peer; a worker that exits early; a version out of range                                              | condition 5 |
+| a `mermaid` that stops throwing fails on the canaries                                                          | condition 4 |
+| empty, directive-only, misspelt and `zenuml`, each with its own remedy                                         | condition 6 |
 
 ## Decided at the freeze (2026-10-15)
 
@@ -248,5 +258,7 @@ Each is overrulable.
 - [ ] Phase 3 — canaries, budget, version range, terminate on every path
 - [ ] Phase 4 — conformance test, docs
 - [ ] changeset: eess-mermaid `minor`
+- [ ] the dogfood gate (proposal 006's "Dogfood is not optional") — deferred→plan 0427 at the
+      freeze, so the parser and the gate are each one reviewable PR
 
-Deferred: none
+Deferred: plan 0427

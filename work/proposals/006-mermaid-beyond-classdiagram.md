@@ -668,7 +668,7 @@ review of this record followed, and its corrections are applied here.
    - Any finding passes through.
    - No block of the language in loaded files is the zero-examined configuration finding, unless
      `.expectEmpty()` is declared.
-10. **The language tag** is matched exactly as `mermaid` _(ruled)_. A near-miss tag is disclosed as
+10. **The language tag** is matched exactly as `mermaid` _(ruled; superseded 2026-10-15 — see the note at the end)_. A near-miss tag is disclosed as
     unread beside the count (ADR-016 rule 7). _(Note, 2026-10-15: bug 0423's fix made eess-crossvalidate's
     md-mermaid read the tag case-insensitively, so a fence tagged `Mermaid` is read there while eess-md's
     `parseCodeBlocks` reports it as unread. Neither is a false green, but the family has two rules for one
@@ -707,7 +707,7 @@ review of this record followed, and its corrections are applied here.
 | zero blocks without `.expectEmpty()`; no Markdown loaded                                | A    |
 | a parser with no identity                                                               | A    |
 | a parser that hangs (budget); a parser that throws; a batch that drops a block          | A    |
-| a near-miss language tag disclosed                                                      | A    |
+| a near-miss language tag disclosed _(superseded 2026-10-15: bug 0426)_                  | A    |
 | a syntax error at the exact Markdown line, plus frontmatter, directive, blank-lead rows | B    |
 | the false red: a labelled flowchart passes in the worker                                | B    |
 | a missing peer; a worker that exits early; a version out of range                       | B    |
@@ -802,3 +802,17 @@ the corrected text. This amendment records what changed, so the conditions above
   - validation of each verdict's line, message and remedy;
   - two plan A rows: an `invalid` verdict reds, and a malformed verdict reds as the instrument;
   - a production-tier row for plan B's dogfood gate.
+
+### Note, 2026-10-15: the tag rule, and plan B's dogfood row
+
+Plan 0413's freeze (PR #217) changed two things ruled above, on its own authority; either can be
+overruled.
+
+- **Condition 10's tag rule is now case-insensitive, family-wide.** eess-crossvalidate already read the
+  tag that way (bugs 0423, 0424); [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)
+  brings `parseCodeBlocks` to the same rule and removes the near-miss disclosure. It is a matching
+  convention recorded here and in that bug, not an ADR.
+- **Plan B's dogfood row ("Dogfood is not optional" above) moved, unchanged, to
+  [plan 0427](../plans/0427-this-repository-checks-its-mermaid-blocks-parse.md)**, so the parser and the
+  gate are each one reviewable PR. It is deferred, not dropped: plan 0413's ledger carries it as a
+  `deferred→plan 0427` box, and 0427 depends on 0413.

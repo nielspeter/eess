@@ -49,7 +49,7 @@ The labelled flowchart, class, state and mindmap blocks, the four that fail in p
 | a misspelt kind (`flowchrt`), `zenuml`             | `UnknownDiagramError`                      | —                                       |
 | an empty block, comments only, a directive only    | `UnknownDiagramError`, one message for all | —                                       |
 
-For the jison kinds, **the message's line is wrong**: a missing target at the end of body line 3
+For the jison kinds, **the message's line is wrong** _(only at end of input; corrected below)_: a missing target at the end of body line 3
 reads "Parse error on line 4" (the end of input), while `hash.loc.first_line` is 3. The line is taken
 from `hash`, never the message. An empty block, comments only and a directive only cannot be told
 apart from the error; the preamble walk has to.
@@ -84,6 +84,28 @@ Plan 0413's design holds as written; nothing here sends it back. The freeze reco
 - the line rule: Mermaid's line plus the lines before the kind line, from `hash.loc.first_line` for
   jison and the message for Langium;
 - the install cost, 179 MB.
+
+## Corrections after review (2026-10-15)
+
+PR #217's method review re-ran the probes and added errors before the end of input; the coordinator
+reproduced them. Every jison fixture above was a dangling arrow on the last line, so only end-of-input
+parse errors had been measured, and the line rule was stated for the whole family from them.
+
+| block                                                           | `hash.loc`     | `hash.line` | message                   |
+| --------------------------------------------------------------- | -------------- | ----------- | ------------------------- |
+| `flowchart TD` / `A --> --> B` / … (parse error, body line 2)   | `first_line` 2 | 1           | "Parse error on line 2"   |
+| `flowchart TD` / `A --> B ]]] x` / … (lexical, body line 2)     | **none**       | 1           | "Lexical error on line 2" |
+| frontmatter, kind, `A --> B`, `C --> D ]]] x` (lexical, body 6) | **none**       | 2           | "Lexical error on line 3" |
+
+- **A lexical error carries no `hash.loc`.** Its `hash.line` is 0-based, and its message's line is
+  right. "Take the line from `hash.loc.first_line`" would give every lexical error no line.
+- **The message is wrong only at the end of input**, where it names the line after the last one. Before
+  the end, parse errors' message and `hash.loc.first_line` agree.
+- **The offset rule holds for lexical errors too:** 3 + 3 preamble lines = body line 6.
+
+So the jison line is `hash.loc.first_line` when `loc` exists, else `hash.line + 1`, and then the lines
+before the kind line are added. Also: the 14-block run's "all parsed" meant "all answered"; 10 of the
+14 were rejected on purpose. The 485 ms is a single run; the review's re-run took 853 ms.
 
 ## Not measured
 

@@ -27,8 +27,10 @@ family-wide.** A fence tagged `Mermaid` (or `JSON`) is plainly meant as that lan
 needs nothing from the author. So `parseCodeBlocks` reads a tag equal to the language when case-folded.
 The near-miss disclosure then has nothing left to disclose for a case difference, and goes, with its
 tests, its non-vacuity row (`near-miss` in `scripts/nonvacuity/bad-code-block-parse.mjs`) and the docs'
-"Which blocks" paragraph rewritten. eess-md takes a minor: a block that was disclosed is now parsed,
-so a green build can go red. Proposal 006's condition 10 gets a dated note.
+"Which blocks" paragraph rewritten. That removes public API: the `NearMissTag` export and the
+`ParsedCodeBlocks.nearMisses` field, unless a reason to keep them is recorded. eess-md takes a minor
+whose changeset carries a `**Breaking**` line: an export goes, and a block that was disclosed is now
+parsed, so a green build can go red. Proposal 006's condition 10 gets a dated note.
 
 ## Verification
 
