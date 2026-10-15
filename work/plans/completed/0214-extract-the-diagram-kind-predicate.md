@@ -2,14 +2,10 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-15. Its premises were re-checked against `main` at `16a5aec9`:
-  `declaredKind()` still lives in `md-mermaid.ts`, `md-mermaid-er` still tests `ER_HEADER` against
-  the raw body, and bug 0210 is still open. The code pointers below were moved to the lines the
-  code has today. Two build details were decided at the freeze (see "Decided at the freeze"). The
-  fourth and smallest shape: three earlier drafts each designed a mechanism the next round removed;
-  the fourth review found that the fix for
-  [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md) needs no new mechanism at all. See
-  "What four drafts got wrong", kept because the falsifiers bound any future attempt.
+- **State:** Done — built 2026-10-15 in one PR, which also closes
+  [bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md). Frozen to Ready the same day,
+  after re-checking its premises against `main` at `16a5aec9` and moving its pointers to the lines
+  the code has now. One verification row held only in part: the frontmatter case, recorded below.
 - **Implements:** proposal 006
 - **Priority:** Medium — closes a live fail-open defect.
 - **Effort:** Small. One function moves; one call site changes what it tests.
@@ -20,7 +16,7 @@
 `md-mermaid-er` selects ER fences with `ER_HEADER = /^\s*erDiagram\b/` tested against the
 **raw fence body** (`packages/crossvalidate/src/md-mermaid-er.ts:59`). Mermaid permits `%%`
 comments, `%%{init}%%` directives and `---` frontmatter before the keyword, so a themed ER
-diagram parses fine and is **silently not selected** — [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md).
+diagram parses fine and is **silently not selected** — [bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md).
 
 The defect is not that the selector is an allowlist. It is that the allowlist is anchored to
 the raw body instead of to the **declared kind**.
@@ -142,18 +138,27 @@ it have each been wrong somewhere else, so it is recorded rather than half-built
 **This plan ships bug 0210's fix; 0210 closes `done-otherwise → 0214`** — and 0210 itself is
 updated in the same PR, so the coupling is not one-directional.
 
-- [ ] Red first: a themed `erDiagram` fixture is not selected today.
-- [ ] After the fix it is selected and compared, and `tableErStats` counts it.
-- [ ] A `---` frontmatter'd ER diagram likewise.
-- [ ] A non-ER fence is still skipped, **and the document is not skipped with it**.
-- [ ] An untagged (`lang === null`) non-ER fence is still not selected — the property that
-      makes keeping the allowlist sound, and the one a denylist would have broken.
-- [ ] A break class in `scripts/nonvacuity/`, registered in the gates array, driving the
-      harness. Note honestly: `tableErAgree` has **no production consumer** in this repo —
-      `scripts/check-crossval.mjs` imports `md-mermaid` only — which is itself why bug 0210
-      sat undetected. Wiring one is out of scope; the fixture is the gate.
-- [ ] `check:family` green — the export is dialect-local and `eess-crossvalidate` already
-      peer-depends on `eess-mermaid`.
+- [x] Red first: a themed `erDiagram` fixture is not selected today. Two tests in
+      `packages/crossvalidate/tests/md-mermaid-er.test.ts` failed before the change.
+- [x] After the fix it is selected and compared, and `tableErStats` counts it.
+- [x] A `---` frontmatter'd ER diagram likewise. done-otherwise: it is now **selected**, so it is no
+      longer skipped in silence, but eess-mermaid's `parseErDiagram` rejects frontmatter, so it is
+      reported as not parsing instead of being compared. The grammar gap and the message blaming the
+      author are recorded in [bug 0409](../../bugs/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md),
+      the next item in proposal 006's Ask C.
+- [x] A non-ER fence is still skipped, **and the document is not skipped with it.**
+- [x] An untagged (`lang === null`) non-ER fence is still not selected.
+- [x] A break class in `scripts/nonvacuity/`, registered in the gates array and claimed by
+      `check:crossval` as fixture tier: `bad-md-mermaid-er.mjs` (`crossval/md-mermaid-er`). It
+      reports with the fix and goes vacuous (exit 0) with the raw-body selector restored. As the
+      plan said, `tableErAgree` still has no production consumer here.
+- [x] `check:family` green.
+- [x] `diagramKind()` tests (`packages/mermaid/tests/parser/diagram-kind.test.ts`, 12): each prefix
+      shape, an empty fence, comments only, an unclosed init, and the header regexes reading the
+      token exactly as they read the line.
+- [x] The sabotage: restoring the raw-body test in `md-mermaid-er` turns both bug 0210 tests red.
+
+Deferred: none
 
 ## Out of Scope
 
@@ -164,7 +169,7 @@ updated in the same PR, so the coupling is not one-directional.
   went unnoticed.
 - **The language-tag divergence** — `md-mermaid-er` accepts `lang === null`, `md-mermaid`
   requires `'mermaid'`. Untouched, and this plan's approach is chosen so it stays inert.
-- `diagram()`'s sniff — [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md).
+- `diagram()`'s sniff — [bug 0211](../../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md).
   Merge-order coupling only (both touch `packages/mermaid/src/index.ts` and both need an
   `eess-mermaid` changeset). An earlier draft claimed a soundness dependency; review measured
   that `parseErDiagram` touches no filesystem and this plan widens nothing reaching `diagram()`.

@@ -54,6 +54,9 @@
  *                 PARSE-FAILURE path; nested-diagram.md is the DOCUMENT MODEL
  *                 (a diagram in a list item, bug 0290). clean-diagram.md is the
  *                 sanity direction.
+ *   crossval/md-mermaid-er (plan 0214, fixture tier) scripts/nonvacuity/bad-md-mermaid-er/
+ *                 themed-er.md holds an erDiagram behind a %%{init}%% directive with an
+ *                 attribute its table lacks → crossval/table-er-agree (bug 0210).
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
  *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,
@@ -2571,6 +2574,8 @@ const gates = [
     () => gateNode('bad-md-gherkin.mjs', 'crossval/scenario-citations-resolve'),
   ],
   ['crossval/md-mermaid', () => gateNode('bad-md-mermaid.mjs', 'crossval/embedded-diagram')],
+  // Plan 0214 / bug 0210: fixture tier; tableErAgree has no production consumer here.
+  ['crossval/md-mermaid-er', () => gateNode('bad-md-mermaid-er.mjs', 'crossval/table-er-agree')],
   // Plan 0145 (proposal 005): strong tier from day one — drives the real
   // check-crossval.mjs via EESS_CROSSVAL_GHERKIN_ROOT, not a rebuilt copy.
   // One fixture, three rule ids (its own row count below matches).
@@ -3219,6 +3224,8 @@ const GATE_FOR = {
     'crossval/scenarios-covered-e2e',
     'crossval/md-gherkin',
     'crossval/md-mermaid',
+    // Plan 0214 — FIXTURE tier: no production rule calls tableErAgree.
+    'crossval/md-mermaid-er',
   ],
   'check:corpus': [
     'corpus/undocumented-waiver',

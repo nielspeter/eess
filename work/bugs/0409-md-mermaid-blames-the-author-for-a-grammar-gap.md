@@ -40,7 +40,11 @@ Five valid constructs are reported as the author's syntax error. Only `classDiag
 added clause "this is legal Mermaid that eess-mermaid does not model yet"
 (`KNOWN_UNMODELLED`, `md-mermaid.ts:39`), and its suggestion still says to fix the syntax.
 
-The ER binding has the same shape. `md-mermaid-er` reports a fence its parser rejects as
+The ER binding has the same shape. **Measured again 2026-10-15, once plan 0214 made `md-mermaid-er`
+select an `erDiagram` behind `---` frontmatter:** eess-mermaid's `parseErDiagram` rejects the
+frontmatter (`lexer:1:1 unexpected character: ->-<-`), which Mermaid accepts, and the finding says the
+diagram "does not parse as standard Mermaid ER syntax". Fixture:
+`packages/crossvalidate/tests/fixtures/table-er/bad-frontmatter-extra-attribute.md`. `md-mermaid-er` reports a fence its parser rejects as
 `erDiagram does not parse as standard Mermaid ER syntax: …` with "fix the syntax"
 (`packages/crossvalidate/src/md-mermaid-er.ts:104-105`). This repository's own fixture for that
 path, `packages/crossvalidate/tests/fixtures/table-er/bad-unparseable.md`, whose one relation is

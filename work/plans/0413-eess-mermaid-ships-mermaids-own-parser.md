@@ -15,7 +15,7 @@
 - **Created:** 2026-10-14
 - **Depends on**, in order:
   - [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) — the port.
-  - [plan 0214](./0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
+  - [plan 0214](completed/0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
     0214 is a Draft and must reach Ready and land first; this plan does not take it over.
   - [bug 0409](../bugs/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
