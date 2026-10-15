@@ -2,11 +2,14 @@
 
 ## Status
 
-- **State:** Draft — the fourth and smallest shape. Three earlier drafts each designed a
-  mechanism the next round removed; the fourth review found that the fix for
-  [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md) needs no new mechanism at
-  all. See "What four drafts got wrong" — kept because the falsifiers bound any future
-  attempt.
+- **State:** Ready — frozen 2026-10-15. Its premises were re-checked against `main` at `16a5aec9`:
+  `declaredKind()` still lives in `md-mermaid.ts`, `md-mermaid-er` still tests `ER_HEADER` against
+  the raw body, and bug 0210 is still open. The code pointers below were moved to the lines the
+  code has today. Two build details were decided at the freeze (see "Decided at the freeze"). The
+  fourth and smallest shape: three earlier drafts each designed a mechanism the next round removed;
+  the fourth review found that the fix for
+  [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md) needs no new mechanism at all. See
+  "What four drafts got wrong", kept because the falsifiers bound any future attempt.
 - **Implements:** proposal 006
 - **Priority:** Medium — closes a live fail-open defect.
 - **Effort:** Small. One function moves; one call site changes what it tests.
@@ -15,7 +18,7 @@
 ## Problem
 
 `md-mermaid-er` selects ER fences with `ER_HEADER = /^\s*erDiagram\b/` tested against the
-**raw fence body** (`packages/crossvalidate/src/md-mermaid-er.ts:53`). Mermaid permits `%%`
+**raw fence body** (`packages/crossvalidate/src/md-mermaid-er.ts:59`). Mermaid permits `%%`
 comments, `%%{init}%%` directives and `---` frontmatter before the keyword, so a themed ER
 diagram parses fine and is **silently not selected** — [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md).
 
@@ -61,7 +64,7 @@ falsified that, twice over:
 - **It is unsound here.** `md-mermaid` gates `b.lang === 'mermaid'` first; `md-mermaid-er`
   also accepts `b.lang === null`. Today that is harmless because the allowlist asks a
   positive one-token question. Under exclusion, every untagged fence — **789 of them in this
-  corpus** — would reach `parseErDiagram`.
+  corpus, measured 2026-08-22** — would reach `parseErDiagram`.
 
 The allowlist/denylist asymmetry does not transfer, because the two selectors ask different
 questions: _"is this an `erDiagram`?"_ versus _"is this **not** something else?"_ Bug 0210's
@@ -73,7 +76,7 @@ escalated past it.
 Kept because each names a falsifier, and together they are the floor a future lockstep
 attempt has to clear:
 
-1. **Move the lexer, call it a registry.** `md-mermaid.ts:186` already calls `declaredKind()`,
+1. **Move the lexer, call it a registry.** `packages/crossvalidate/src/md-mermaid.ts:190` already calls `declaredKind()`,
    so relocating it changes one import and leaves `FOREIGN_HEADER` — the list that actually
    goes stale — untouched.
 2. **`denylist = MERMAID_KINDS − consumed`.** Puts `classDiagram-v2` in the denylist, turning
@@ -98,19 +101,32 @@ across two packages:
 | restatement              | where                                            |
 | ------------------------ | ------------------------------------------------ |
 | `HEADER_PATTERN`         | `packages/mermaid/src/core/diagram.ts:5`         |
-| `KNOWN_UNMODELLED`       | `packages/crossvalidate/src/md-mermaid.ts:32`    |
-| `FOREIGN_HEADER`         | `packages/crossvalidate/src/md-mermaid.ts:34`    |
-| `kindOf` (normalisation) | `packages/crossvalidate/src/md-mermaid.ts:166`   |
-| `ER_HEADER`              | `packages/crossvalidate/src/md-mermaid-er.ts:32` |
+| `KNOWN_UNMODELLED`       | `packages/crossvalidate/src/md-mermaid.ts:39`    |
+| `FOREIGN_HEADER`         | `packages/crossvalidate/src/md-mermaid.ts:41`    |
+| `kindOf` (normalisation) | `packages/crossvalidate/src/md-mermaid.ts:170`   |
+| `ER_HEADER`              | `packages/crossvalidate/src/md-mermaid-er.ts:42` |
 
 **What this plan leaves undone, stated rather than gated.** Nothing keeps the grammar set and
 the selectors in lockstep. That risk is pre-existing and this plan neither closes it nor
 enlarges it — the count of stale-able lists is the same after as before. Four attempts to gate
 it have each been wrong somewhere else, so it is recorded rather than half-built.
 
+## Decided at the freeze (2026-10-15)
+
+- **Where it lives:** `packages/mermaid/src/parser/diagram-kind.ts`, exported from the eess-mermaid
+  root as `diagramKind(body: string): string`.
+- **What it returns:** the first token of the declared line, split on whitespace and `{` (exactly
+  what `kindOf` computes today), or `''` when the fence declares no kind. `md-mermaid` keeps one
+  line that phrases `''` as "diagram" in a finding; nothing else in it changes.
+- **The regexes keep working on the token.** `FOREIGN_HEADER`, `KNOWN_UNMODELLED` and `ER_HEADER` are
+  anchored at the start with `\b`, so a token matches exactly where its line did. A test pins it for
+  every kind `FOREIGN_HEADER` names.
+- **Plan 0413 extends this function** (an emptiness reason, skipped offsets). This plan ships the
+  token only, so 0413's additions are 0413's to test.
+
 ## Files Changed
 
-- `packages/mermaid/src/parser/` + `index.ts` — the exported, normalised `diagramKind()`
+- `packages/mermaid/src/parser/diagram-kind.ts` + `index.ts` — the exported, normalised `diagramKind()`
 - `packages/crossvalidate/src/md-mermaid.ts` — import instead of declare; drop `kindOf`
 - `packages/crossvalidate/src/md-mermaid-er.ts` — test `diagramKind(b.value)`, allowlist intact
 - `scripts/nonvacuity/bad-md-mermaid-er/` **and** `bad-md-mermaid-er.mjs`, **and** its row in
