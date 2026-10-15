@@ -172,4 +172,17 @@ describe('tableErAgree() — non-standard syntax', () => {
     expect(violations[0]?.message).toContain("'capitalisedGhost' of 'JobSchedule' is not a row")
     expect(tableErStats(docs, OPTS).docs).toBe(1)
   })
+
+  // PR #215's review: the selector's other two branches were unpinned. An untagged erDiagram is read
+  // (dropping that case would bring back a silent skip), and a fence tagged as another language is not.
+  it('still reads an untagged erDiagram', () => {
+    const violations = violationsOf(() =>
+      tableErAgree(c(['bad-untagged-extra-attribute.md']), OPTS),
+    )
+    expect(violations[0]?.message).toContain("'untaggedGhost' of 'JobSchedule' is not a row")
+  })
+
+  it('does not read an erDiagram in a fence tagged as another language', () => {
+    expect(tableErStats(c(['sql-tagged-er.md']), OPTS).docs).toBe(0)
+  })
 })

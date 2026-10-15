@@ -37,6 +37,9 @@ Use the case-insensitive `isMermaidTag()` that bug 0423's fix added to
 - [x] A non-vacuity case: `scripts/nonvacuity/bad-md-mermaid-er.mjs` now also requires
       `bad-md-mermaid-er/capitalised-er.md`'s attribute. It fires with the fix and goes vacuous (exit 0)
       with the exact comparison restored, naming the skipped fence.
+- [x] The selector's other branches pinned too (PR #215's review): an untagged `erDiagram` is still read
+      (`bad-untagged-extra-attribute.md`), and one in a `sql` fence is not (`sql-tagged-er.md`).
+      Dropping the untagged case, or accepting every tag, now turns a test red.
 - [x] `npm run validate` green on this branch.
 
 Deferred: none
