@@ -9,8 +9,12 @@
 // what is here (checked by `scripts/lib/internal-not-reexported.test.mjs`), and a subpath export is
 // resolvable by anyone.
 //
+// `tagIsLanguage` is the family's one comparison of a fence's language tag (ADR-019): eess-crossvalidate's
+// Mermaid bindings call it rather than comparing `.lang` themselves.
+//
 // `unterminatedFence` rides along with `proseText` on purpose: a caller that sets aside only closed
 // fences is choosing to read past an unclosed one, and ADR-010's line is that a verdict is built from
 // evidence. A caller that can report should be able to reach the fact, not just the reading.
 
 export { proseText, unclosedFences, unterminatedFence, type SetAside } from './model/prose.js'
+export { tagIsLanguage } from './model/code-block-tag.js'

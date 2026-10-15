@@ -23,7 +23,7 @@
   - [plan 0214](completed/0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
     0214 is Done (PR #212); this plan does not take it over.
-  - [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md) —
+  - [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md) —
     `parseCodeBlocks` reads the tag case-insensitively, the family rule this freeze settled. Sequenced
     **before** this plan so this PR carries no other package's change; nothing in this plan needs it
     technically.
@@ -354,7 +354,7 @@ row passes when the gate goes red on the valid block.
 Each is overrulable.
 
 - **One rule for the tag: any letter case.** md-mermaid reads `Mermaid` since bug 0423; `parseCodeBlocks`
-  matched exactly. eess-md's side is [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
+  matched exactly. eess-md's side is [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
   fixed before this plan. The architect review asked for an ADR, since the rule reverses a ruled
   condition, removes public API and claims the family; it is written before bug 0426, outside this plan.
 - **A missing peer is a finding, never a throw at construction.** `mermaidParser()` never throws: its

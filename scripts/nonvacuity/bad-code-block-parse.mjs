@@ -17,7 +17,8 @@
  *   parser-hangs        the parser never resolves → the instrument, naming the budget.
  *   parser-throws       the parser throws → the instrument, with its message.
  *   dropped-block       the parser returns one verdict too few → the instrument.
- *   near-miss           near/ holds only a `Mermaid` block → the zero-examined finding names it.
+ *   capitalised-tag     capitalised/ holds only a `Mermaid` block, broken on body line 2 → it is
+ *                       read in any letter case (ADR-019), so a finding at Markdown line 5.
  *   unrecognised-verdict unknown/unknown.md has a block the stub cannot classify → a finding
  *                       with the parser's remedy, never worded as a syntax error.
  *   forged-facts        a hand-built fact object passed to codeBlocks() → ArchConfigError.
@@ -119,9 +120,15 @@ const SCENARIOS = {
     parser: { parse: (texts) => texts.slice(1).map(judge) },
     found: instrument('3 texts, 2 verdicts'),
   },
-  'near-miss': {
-    dir: 'near',
-    found: (vs) => vs.some((v) => v.message.includes('`Mermaid` at ')),
+  'capitalised-tag': {
+    dir: 'capitalised',
+    found: (vs) =>
+      vs.some(
+        (v) =>
+          v.message.includes('does not parse with stub 1.0.0') &&
+          v.file.endsWith('capitalised/capitalised.md') &&
+          v.line === 5,
+      ),
   },
   'unrecognised-verdict': {
     dir: 'unknown',

@@ -98,7 +98,6 @@ export type {
   ParsedCodeBlock,
   ParsedCodeBlocks,
   CodeBlockInstrumentFailure,
-  NearMissTag,
 } from './model/code-block-parse.js'
 export {
   codeBlocks,

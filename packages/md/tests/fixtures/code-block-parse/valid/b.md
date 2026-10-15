@@ -1,6 +1,6 @@
 # B
 
-```Mermaid
+```mmd
 graph TD
   C --> D
 ```

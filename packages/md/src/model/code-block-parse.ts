@@ -1,6 +1,7 @@
 import { ArchConfigError } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdCodeBlock, MdDocument } from './document.js'
+import { tagIsLanguage } from './code-block-tag.js'
 
 /**
  * Plan 0412: a code block parses with the parser the caller names.
@@ -90,24 +91,16 @@ export interface CodeBlockInstrumentFailure {
   readonly remedy: string
 }
 
-/** A block whose tag equals the language only when case-folded. Disclosed, never read. */
-export interface NearMissTag {
-  readonly tag: string
-  readonly file: string
-  readonly line: number
-}
-
 /** The facts a rule reads. Built only by `parseCodeBlocks`; `codeBlocks()` refuses any other. */
 export interface ParsedCodeBlocks {
   readonly language: string
   readonly parser: { readonly name: string; readonly version: string }
   readonly blocks: readonly ParsedCodeBlock[]
   readonly failure: CodeBlockInstrumentFailure | null
-  readonly nearMisses: readonly NearMissTag[]
   readonly documentsLoaded: number
   /**
-   * "N mermaid blocks parsed with mermaid 11.17.2", plus any near-miss tags left unread. When the
-   * parser failed, it says so and gives the cause: no block was checked.
+   * "N mermaid blocks parsed with mermaid 11.17.2". When the parser failed, it says so and gives the
+   * cause: no block was checked.
    */
   summary(): string
 }
@@ -289,14 +282,9 @@ export async function parseCodeBlocks(
 
   const documents = corpus.documents()
   const located: Located[] = []
-  const nearMisses: NearMissTag[] = []
-  const folded = language.toLowerCase()
   for (const doc of documents) {
     for (const block of doc.codeBlocks) {
-      if (block.lang === language) located.push({ doc, block })
-      else if (block.lang?.toLowerCase() === folded) {
-        nearMisses.push(Object.freeze({ tag: block.lang, file: doc.relPath, line: block.line }))
-      }
+      if (tagIsLanguage(block.lang, language)) located.push({ doc, block })
     }
   }
 
@@ -361,15 +349,13 @@ export async function parseCodeBlocks(
   // failure, and the other two outcomes are failures. No block is left without either.
   const finalFailure = failure === null ? null : Object.freeze({ ...failure })
   const identity = Object.freeze({ name, version })
-  const frozenNearMisses = Object.freeze(nearMisses)
   const parsed: ParsedCodeBlocks = Object.freeze({
     language,
     parser: identity,
     blocks: Object.freeze(blocks),
     failure: finalFailure,
-    nearMisses: frozenNearMisses,
     documentsLoaded: documents.length,
-    summary: () => summarise(language, identity, blocks, finalFailure, frozenNearMisses),
+    summary: () => summarise(language, identity, blocks, finalFailure),
   })
   REGISTERED.add(parsed)
   return parsed
@@ -380,22 +366,13 @@ function summarise(
   identity: { readonly name: string; readonly version: string },
   blocks: readonly ParsedCodeBlock[],
   failure: CodeBlockInstrumentFailure | null,
-  nearMisses: readonly NearMissTag[],
 ): string {
   const n = blocks.length
   const noun = `${language} block${n === 1 ? '' : 's'}`
   const by = `${identity.name} ${identity.version}`
-  const head =
-    failure === null
-      ? `${String(n)} ${noun} parsed with ${by}`
-      : `0 of ${String(n)} ${noun} checked: ${by} failed — ${failure.cause}`
-  if (nearMisses.length === 0) return head
-  return `${head}; not read, tagged ${describeNearMisses(nearMisses)}`
-}
-
-/** `Mermaid` at docs/a.md:3, … */
-export function describeNearMisses(nearMisses: readonly NearMissTag[]): string {
-  return nearMisses.map((n) => `\`${n.tag}\` at ${n.file}:${String(n.line)}`).join(', ')
+  return failure === null
+    ? `${String(n)} ${noun} parsed with ${by}`
+    : `0 of ${String(n)} ${noun} checked: ${by} failed — ${failure.cause}`
 }
 
 function readAll(

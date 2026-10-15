@@ -35,10 +35,12 @@ const p = workspace([
 const SIBLING_INDEXES = '**/packages/{ts,md,mermaid,gherkin}/src/index.ts'
 // crossvalidate ships NO index.ts (verified at plan 0089's freeze: 8 flat
 // files, no subfolders) — one file per package.json `exports` subpath
-// instead, each independently a public entry point. `it-title.ts` is the
-// one file NOT in that exports map (an internal helper the others import).
+// instead, each independently a public entry point. `it-title.ts` and
+// `mermaid-tag.ts` (bug 0426) are internal helpers the others import, not in
+// that exports map, and left out here. `shared.ts` is not in the map either; it
+// stays selected, and passes.
 const CROSSVALIDATE_ENTRIES = '**/packages/crossvalidate/src/*.ts'
-const CROSSVALIDATE_INTERNAL = '**/packages/crossvalidate/src/it-title.ts'
+const CROSSVALIDATE_INTERNAL = '**/packages/crossvalidate/src/{it-title,mermaid-tag}.ts'
 
 export default [
   // Each dialect's public entry point(s) re-export what their own bodies

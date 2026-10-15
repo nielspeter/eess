@@ -584,17 +584,17 @@ what was parsed. No rule surface becomes async; an async `check()` would need an
 
 **What each failure reports.**
 
-| what happened                                    | reported as                                                                 |
-| ------------------------------------------------ | --------------------------------------------------------------------------- |
-| no Markdown file loaded                          | a finding, even with `.expectEmpty()`                                       |
-| files loaded, no block of the language           | the zero-examined finding, unless `.expectEmpty()`; it names near-miss tags |
-| `invalid`                                        | a finding at the block's Markdown line plus the verdict's line              |
-| `invalid` with no line, or one outside the body  | a finding at the fence line, saying so                                      |
-| `unrecognised`                                   | a finding with the parser's remedy                                          |
-| `parse` throws or rejects                        | the instrument                                                              |
-| `parse` runs past its budget                     | the instrument, naming the budget                                           |
-| the wrong number of verdicts, or a malformed one | the instrument                                                              |
-| a canary answered wrongly                        | the instrument                                                              |
+| what happened                                    | reported as                                                    |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| no Markdown file loaded                          | a finding, even with `.expectEmpty()`                          |
+| files loaded, no block of the language           | the zero-examined finding, unless `.expectEmpty()`             |
+| `invalid`                                        | a finding at the block's Markdown line plus the verdict's line |
+| `invalid` with no line, or one outside the body  | a finding at the fence line, saying so                         |
+| `unrecognised`                                   | a finding with the parser's remedy                             |
+| `parse` throws or rejects                        | the instrument                                                 |
+| `parse` runs past its budget                     | the instrument, naming the budget                              |
+| the wrong number of verdicts, or a malformed one | the instrument                                                 |
+| a canary answered wrongly                        | the instrument                                                 |
 
 **The instrument** is one unsuppressable finding per rule. Its rule id is
 `eess-md: code-block parser` (exported as `CODE_BLOCK_PARSER_INSTRUMENT`), and its element
@@ -612,12 +612,11 @@ parser failed it says "0 of N … checked" and gives the cause, never "parsed".
 it passed, and stopping is the parser's job. **A synchronous parser cannot be interrupted.** Its
 overrun is reported after it returns, and one that never returns is never reported.
 
-**Which blocks.** The language tag is matched exactly. A tag equal to it only when case-folded
-(`Json` for `json`) is not read.
-
-- **When it is why nothing was examined**, the zero-examined finding names it.
-- **Beside blocks that are read**, it is disclosed only in `summary()`. No finding names it, so a
-  gate that does not print the summary does not show it.
+**Which blocks.** The language tag is matched in any letter case, and nothing else is normalised
+([ADR-019](../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)): ` ```JSON ` is
+read as `json`, and so is `language: 'JSON'`, but ` ```json5 ` is not, and ` ```mmd ` is not
+`mermaid`. A corpus whose every block carries such a tag gets the zero-examined finding, which
+does not name the tag.
 
 A block that is broken on purpose, such as an example of an error, is kept out by its tag: write it
 ` ```text `. Narrowing the corpus globs also works. There is no skip comment.

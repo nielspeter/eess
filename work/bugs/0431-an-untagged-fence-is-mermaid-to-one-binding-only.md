@@ -14,7 +14,7 @@ An untagged fence whose diagram is an `erDiagram` is read by `tableErAgree`
 (`packages/crossvalidate/src/md-mermaid-er.ts:65`, pinned by `it('still reads an untagged erDiagram')`).
 An untagged `classDiagram` is not read by `embeddedDiagramsMatchCode`
 (`packages/crossvalidate/src/md-mermaid.ts:161`), and eess-md's `parseCodeBlocks` reads no untagged
-block (`packages/md/src/model/code-block-parse.ts:296`).
+block (`packages/md/src/model/code-block-parse.ts:287`).
 
 ## Root cause
 
