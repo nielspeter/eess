@@ -5,7 +5,7 @@
 - **State:** Fixed — 2026-10-15, in the PR that closes it. Recorded the same day at plan 0413's
   freeze, which settled the rule.
 - **Severity:** Medium — an honesty gap between two parts of the family (`BUGS.md`'s Medium row). No
-  false green: `parseCodeBlocks` discloses the tag it does not read, as a near miss.
+  false green: before the fix, `parseCodeBlocks` disclosed the tag it did not read, as a near miss.
 - **Origin:** self-found · the review of PR #214 (bug 0423), and plan 0413's freeze, 2026-10-15.
 - **Reported:** 2026-10-15
 
@@ -45,20 +45,25 @@ ADR-019's Consequences.
 - The owner is `tagIsLanguage(lang, language)` in `packages/md/src/model/code-block-tag.ts`, exported
   from `@nielspeter/eess-md/internal`.
 - `isMermaidTag` moved out of `packages/crossvalidate/src/shared.ts` into a module of its own,
-  `packages/crossvalidate/src/mermaid-tag.ts`, which delegates. Every crossvalidate entry point loads
-  `shared.ts`, and eess-md is an optional peer, so importing it there would have made `./mermaid-ts`
-  and `./gherkin-ts` need eess-md. The first draft did exactly that, and nothing here went red; that
+  `packages/crossvalidate/src/mermaid-tag.ts`, which delegates. Five of crossvalidate's seven entry
+  points load `shared.ts`, `./mermaid-ts` and `./gherkin-ts` among them, and eess-md is an optional
+  peer, so importing it there would have made those two need eess-md. The first draft did exactly that, and nothing here went red; that
   gap is [bug 0432](../0432-nothing-checks-a-crossvalidate-entry-loads-only-its-own-peers.md).
-- So crossvalidate's peer floor on eess-md rises to `>=0.11.0`, the release that adds the export.
-  ADR-019 had said the delegation ships nothing an adopter can observe; its Consequences carry a
-  dated correction.
+- So crossvalidate's peer floor on eess-md must rise to `>=0.11.0`, the release that adds the
+  export. It rises **in the release commit**, not here: raised in this PR first, `npm ci` failed with
+  `ETARGET` (PR #222's devops review, measured), which RELEASING.md forbids. The crossvalidate
+  changeset carries the instruction. ADR-019 had said the delegation ships nothing an adopter can
+  observe; its Consequences carry a dated correction.
 - The arch rule is `eess/one-code-block-tag-comparison` in `arch.rules.ts`. It matches a `.lang`
   equality (other than with `null`/`undefined`), a method called on `.lang`, and `switch (x.lang)`.
-  It misses a tag read into a variable first, a lookup keyed on it, and `x['lang']`; the rule's
+  It misses the tag passed as an argument or used as an operand of anything but an equality (a
+  regex `.test`, `includes`, `in`), a tag read into a variable first, and `x['lang']`; the rule's
   comment says so.
 - The `near-miss` non-vacuity row became `capitalised-tag`: a broken block tagged `Mermaid` must be
   reported at its line. A new row, `arch/one-code-block-tag-comparison`, plants one probe per
-  spelling and one `.lang === null` probe the rule must stay quiet on.
+  branch of the matcher and one `.lang === null` probe that must exit 0. Its first method probe sat
+  inside an equality, so deleting the call branch left it green (PR #222's review); the probe is now
+  a bare `b.lang?.startsWith('mermaid')`.
 
 ## Verification
 
@@ -69,7 +74,9 @@ ADR-019's Consequences.
       `ParsedCodeBlocks.nearMisses`, `describeNearMisses`, the dead-glob diagnosis, and the docs'
       "Which blocks" paragraph rewritten.
 - [x] One owner of the comparison; `isMermaidTag` delegates; the arch rule reds a second comparison
-      (each of the three spellings measured red by hand, `.lang === null` measured quiet).
+      (each probe measured red by hand through `eess-ts check arch.rules.ts`, `.lang === null`
+      measured quiet; and each branch needed: with the call branch deleted, the bare-method probe
+      goes quiet).
 - [x] The near-miss fixtures, on both sides: ` ```mmd ` in both crossvalidate bindings, ` ```mmd `
       and ` ```json5 ` through `parseCodeBlocks`.
 - [x] Two sabotages of `tagIsLanguage`: the exact comparison reds the four case tests (bugs 0423

@@ -26,10 +26,14 @@ const inPkg = (pkg: string): string => `**/packages/${pkg}/**`
 
 /**
  * ADR-019: a fence's language tag is compared in one place, eess-md's `tagIsLanguage`. This matches
- * a comparison made anywhere else: `x.lang` (or a method called on it) on one side of `===`, `!==`,
- * `==` or `!=`, a method called on `x.lang` (`.toLowerCase()`, `.startsWith(…)`), and
- * `switch (x.lang)`. Asking whether there is a tag at all (`x.lang === null`) is not a comparison of
- * one, so it passes. It reads node kinds by name because the root does not depend on ts-morph.
+ * a comparison made anywhere else, in three spellings: `x.lang` (or anything built on it) on one side
+ * of `===`, `!==`, `==` or `!=`; a method called on `x.lang` (`.toLowerCase()`, `.startsWith(…)`);
+ * and `switch (x.lang)`. Asking whether there is a tag at all (`x.lang === null`) is not a comparison
+ * of one, so it passes. It reads node kinds by name because the root does not depend on ts-morph.
+ *
+ * It matches text, not types: any property named `lang` counts, an HTML `document…lang` included,
+ * and so does an equality around a call that already delegates (`tagIsLanguage(b.lang, x) === true`).
+ * Both go red rather than green, and none exists in any package source today.
  */
 const LANG = /\.lang\b/
 const NO_TAG = new Set(['null', 'undefined'])
@@ -38,13 +42,16 @@ const langTagComparison: ExpressionMatcher = {
   description: 'a comparison of a code block tag (`.lang`) outside tagIsLanguage',
   matches(node) {
     const kind = node.getKindName()
+    if (kind !== 'BinaryExpression' && kind !== 'CallExpression' && kind !== 'SwitchStatement') {
+      return false
+    }
     const parts = node.getChildren().map((c) => c.getText())
     if (kind === 'BinaryExpression') {
       const [left = '', op = '', right = ''] = parts
       if (!EQUALITY.has(op)) return false
       return (LANG.test(left) && !NO_TAG.has(right)) || (LANG.test(right) && !NO_TAG.has(left))
     }
-    if (kind === 'CallExpression') return /\.lang\??\.\w+$/.test(parts[0] ?? '')
+    if (kind === 'CallExpression') return /\.lang[?!]?\.\w+$/.test(parts[0] ?? '')
     if (kind === 'SwitchStatement') return LANG.test(parts[2] ?? '')
     return false
   },
@@ -145,9 +152,10 @@ export default [
     }),
 
   // ADR-019 C3 — one owner of the tag comparison. What it cannot see, stated rather than implied
-  // (ADR-016 rule 7): the tag read into a variable first (`const { lang } = b`, `const t = b.lang`)
-  // and compared there; a lookup keyed on it (`map.get(b.lang)`, `tags.includes(b.lang)`); and
-  // `b['lang']`. A Tier-1 check on the spelled comparison, not proof that only one exists.
+  // (ADR-016 rule 7): the tag passed as an argument, or used as an operand of anything but an
+  // equality (`/^mermaid$/i.test(b.lang ?? '')`, `tags.includes(b.lang)`, `map.get(b.lang)`,
+  // `b.lang in TAGS`); the tag read into a variable first (`const { lang } = b`) and compared there;
+  // and `b['lang']`. A Tier-1 check on the spelled comparison, not proof that only one exists.
   modules(p)
     .that()
     .resideInFolder('**/packages/*/src/**')

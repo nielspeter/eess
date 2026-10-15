@@ -25,9 +25,9 @@
  *                 eess/md-one-link-resolver, on that file.
  *   arch/one-code-block-tag-comparison (bug 0426, ADR-019 C3)
  *                 packages/md/src/__nonvacuity_probe_tag__.ts compares `.lang`
- *                 three ways (`===`, a method on it, `switch`), one probe each →
- *                 eess/one-code-block-tag-comparison; a probe asking only
- *                 `.lang === null` must NOT fire it.
+ *                 three ways (`===`, a bare method call on it, `switch`), one probe
+ *                 per branch of the matcher → eess/one-code-block-tag-comparison; a
+ *                 probe asking only `.lang === null` must exit 0.
  *   internal arch packages/core/src/__nonvacuity_probe_catch__.ts has a silent
  *                 `catch {}` → eess/no-silent-catch. (This gate has in-flight
  *                 violations from other agents; the clean direction is reported
@@ -718,13 +718,15 @@ function gateArchOneLinkResolver() {
 }
 
 // --- Gate: arch/one-code-block-tag-comparison (bug 0426, ADR-019 C3) ---
-// One probe per spelling the rule claims, so narrowing it to any one of them reddens this row; and
-// one probe it must stay quiet on, so widening it to every mention of `.lang` reddens it too.
+// One probe per spelling the rule claims, each caught by that spelling's branch alone, so deleting
+// any one branch reddens this row: the method probe has no equality around it, because one inside
+// `=== 'mermaid'` is caught by the equality branch too (PR #222's review). And one probe it must stay
+// quiet on, exiting 0, so widening it to every mention of `.lang` reddens it too.
 function gateArchOneTagComparison() {
   const head = 'export function probe(b: { lang: string | null }): boolean {\n'
   const spellings = {
     equality: `${head}  return b.lang === 'mermaid'\n}\n`,
-    method: `${head}  return b.lang?.toLowerCase() === 'mermaid'\n}\n`,
+    method: `${head}  return b.lang?.startsWith('mermaid') ?? false\n}\n`,
     switch: `${head}  switch (b.lang) {\n    case 'mermaid':\n      return true\n  }\n  return false\n}\n`,
   }
   const run = (body) =>
@@ -737,14 +739,16 @@ function gateArchOneTagComparison() {
     return { name, code: bad.code, fired }
   })
   const quiet = run(`${head}  return b.lang === null\n}\n`)
-  const quietOk = !firedOn(quiet, 'eess/one-code-block-tag-comparison', '__nonvacuity_probe_tag__')
+  const quietOk =
+    quiet.code === 0 &&
+    !firedOn(quiet, 'eess/one-code-block-tag-comparison', '__nonvacuity_probe_tag__')
   const ok = probes.every((p) => p.fired) && quietOk
   const probeNote = probes
     .map((p) => `${p.name} → exit ${p.code}${p.fired ? '' : ' (did not fire)'}`)
     .join(' · ')
   return {
     ok,
-    detail: `${probeNote} · \`.lang === null\` → ${quietOk ? 'quiet' : 'FIRED (too broad)'}`,
+    detail: `${probeNote} · \`.lang === null\` → ${quietOk ? 'quiet' : `exit ${quiet.code}, not quiet`}`,
   }
 }
 
