@@ -81,17 +81,17 @@ codeBlocks(parsed).should().parse().check()
 
 ### Three outcomes, by error shape (conditions 3 and 6)
 
-| thrown inside the worker                           | outcome        | remedy                                                                           |
-| -------------------------------------------------- | -------------- | -------------------------------------------------------------------------------- |
-| an `Error` carrying `hash` (the jison kinds)       | `invalid`      | "fix the syntax at this line; Mermaid's message is above", at the recovered line |
-| a `MermaidParseError` (the Langium kinds)          | `invalid`      | the same; the line read from its text (`line 2, column 8`) or unknown            |
-| `UnknownDiagramError`, block has a kind line       | `unrecognised` | "check the spelling, or this kind needs a newer `mermaid` or a plugin"           |
-| `UnknownDiagramError`, block empty                 | `unrecognised` | "the block is empty"                                                             |
-| `UnknownDiagramError`, only directives or comments | `unrecognised` | "the block declares no diagram after its directives / comments"                  |
-| `UnknownDiagramError`, only frontmatter            | `unrecognised` | "the block declares no diagram after its frontmatter"                            |
-| `UnknownDiagramError`, a directive never closed    | `unrecognised` | "a `%%{` directive is never closed with `}%%`"                                   |
-| anything else                                      | the instrument | —                                                                                |
-| a resolved value that is not a parse result        | the instrument | covers `suppressErrors`'s `false`                                                |
+| thrown inside the worker                                           | outcome        | remedy                                                                           |
+| ------------------------------------------------------------------ | -------------- | -------------------------------------------------------------------------------- |
+| an `Error` carrying `hash` (the jison kinds)                       | `invalid`      | "fix the syntax at this line; Mermaid's message is above", at the recovered line |
+| a `MermaidParseError` (the Langium kinds)                          | `invalid`      | the same; the line read from its text (`line 2, column 8`) or unknown            |
+| `UnknownDiagramError`, block has a kind line                       | `unrecognised` | "check the spelling, or this kind needs a newer `mermaid` or a plugin"           |
+| `UnknownDiagramError`, block empty                                 | `unrecognised` | "the block is empty"                                                             |
+| `UnknownDiagramError`, only directives or comments (mixed: either) | `unrecognised` | "the block declares no diagram after its directives / comments"                  |
+| `UnknownDiagramError`, only frontmatter                            | `unrecognised` | "the block declares no diagram after its frontmatter"                            |
+| `UnknownDiagramError`, a directive never closed                    | `unrecognised` | "a `%%{` directive is never closed with `}%%`"                                   |
+| anything else                                                      | the instrument | —                                                                                |
+| a resolved value that is not a parse result                        | the instrument | covers `suppressErrors`'s `false`                                                |
 
 - The **class** is decided from the error's shape, never from its message. The **line** may be read
   from the message, because the Langium kinds carry it nowhere else.
@@ -227,7 +227,11 @@ Each is overrulable.
   `blockIndex: null`. The missing peer is then one instrument finding with the install line as its fix.
 - **The preamble walk's new export is a sibling, `diagramPreamble(text)`**, returning
   `{ kind, kindLine, reason }`, where `kindLine` is the 0-based index of the kind line (or `null`) and
-  `reason` is `'declared' | 'empty' | 'comments-only' | 'directives-only' | 'unclosed-directive'`.
+  `reason` is `'declared' | 'empty' | 'comments-only' | 'directives-only' | 'frontmatter-only' |
+'unclosed-directive'`. A preamble that mixes them takes the first that applies of directive, comment,
+  frontmatter: comments plus a directive is `'directives-only'`, frontmatter plus a comment is
+  `'comments-only'`. _(`'frontmatter-only'` and the order added after PR #217's second review, which
+  found the outcome table's frontmatter row had no `reason` to come from.)_
   `diagramKind(text)` stays a `string` and becomes `diagramPreamble(text).kind`, so nothing that
   exists changes.
 - **The dogfood gate is its own plan,** [0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md),

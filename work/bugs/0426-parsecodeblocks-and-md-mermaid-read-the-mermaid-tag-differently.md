@@ -28,7 +28,8 @@ needs nothing from the author. So `parseCodeBlocks` reads a tag equal to the lan
 The near-miss disclosure then has nothing left to disclose for a case difference, and goes, with its
 tests, its non-vacuity row (`near-miss` in `scripts/nonvacuity/bad-code-block-parse.mjs`) and the docs'
 "Which blocks" paragraph rewritten. That removes public API: the `NearMissTag` export and the
-`ParsedCodeBlocks.nearMisses` field, unless a reason to keep them is recorded. eess-md takes a minor
+`ParsedCodeBlocks.nearMisses` field (read by `deadGlobDiagnosis` in
+`packages/md/src/builders/code-blocks.ts`, which changes with it), unless a reason to keep them is recorded. eess-md takes a minor
 whose changeset carries a `**Breaking**` line: an export goes, and a block that was disclosed is now
 parsed, so a green build can go red. Proposal 006's condition 10 gets a dated note.
 

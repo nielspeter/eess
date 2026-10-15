@@ -42,12 +42,12 @@ The labelled flowchart, class, state and mindmap blocks, the four that fail in p
 
 **3. The shapes are as plan 0413's table says.**
 
-| block                                              | thrown                                     | line                                    |
-| -------------------------------------------------- | ------------------------------------------ | --------------------------------------- |
-| a jison kind with a syntax error (`flowchart`)     | `Error` with `hash`                        | `hash.loc.first_line`                   |
-| a Langium kind with a syntax error (`packet-beta`) | `MermaidParseError`                        | only in the message: "line 2, column 8" |
-| a misspelt kind (`flowchrt`), `zenuml`             | `UnknownDiagramError`                      | —                                       |
-| an empty block, comments only, a directive only    | `UnknownDiagramError`, one message for all | —                                       |
+| block                                              | thrown                                     | line                                                    |
+| -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
+| a jison kind with a syntax error (`flowchart`)     | `Error` with `hash`                        | `hash.loc.first_line` _(parse errors; see Corrections)_ |
+| a Langium kind with a syntax error (`packet-beta`) | `MermaidParseError`                        | only in the message: "line 2, column 8"                 |
+| a misspelt kind (`flowchrt`), `zenuml`             | `UnknownDiagramError`                      | —                                                       |
+| an empty block, comments only, a directive only    | `UnknownDiagramError`, one message for all | —                                                       |
 
 For the jison kinds, **the message's line is wrong** _(only at end of input; corrected below)_: a missing target at the end of body line 3
 reads "Parse error on line 4" (the end of input), while `hash.loc.first_line` is 3. The line is taken
@@ -82,7 +82,7 @@ Plan 0413's design holds as written; nothing here sends it back. The freeze reco
 - the worker is gated on running under vitest and the CLI loader, which it does;
 - the version is read with `createRequire(...).resolve('mermaid/package.json')`;
 - the line rule: Mermaid's line plus the lines before the kind line, from `hash.loc.first_line` for
-  jison and the message for Langium;
+  jison and the message for Langium _(a jison lexical error has no `hash.loc`; see Corrections)_;
 - the install cost, 179 MB.
 
 ## Corrections after review (2026-10-15)
