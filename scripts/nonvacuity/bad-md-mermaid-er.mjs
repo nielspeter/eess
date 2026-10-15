@@ -7,6 +7,9 @@
  *   bad-md-mermaid-er/themed-er.md holds an `erDiagram` behind a `%%{init}%%` directive, with an
  *   attribute (`themedGhost`) its property table lacks. The ER selector must see past the directive
  *   (it tests the declared kind, not the raw fence body) and report the attribute.
+ *   bad-md-mermaid-er/capitalised-er.md holds an `erDiagram` in a fence tagged `Mermaid`, with an
+ *   attribute (`capitalisedGhost`) its table lacks. The selector must read the tag in any case
+ *   (bug 0424).
  *
  * Exit codes (consumed by scripts/check-nonvacuity.mjs):
  *   1 = the attribute was reported — OK
@@ -29,13 +32,17 @@ try {
   process.exit(2)
 }
 
-const hit = violations.filter((v) => v.ruleId === RULE && v.message.includes("'themedGhost'"))
-if (hit.length > 0) {
-  console.error(`bad-md-mermaid-er: ${RULE}: the themed diagram's drift was reported as expected`)
+const reported = (ghost) =>
+  violations.some((v) => v.ruleId === RULE && v.message.includes(`'${ghost}'`))
+const missing = ['themedGhost', 'capitalisedGhost'].filter((g) => !reported(g))
+if (missing.length === 0) {
+  console.error(
+    `bad-md-mermaid-er: ${RULE}: the themed and the capitalised diagrams' drift were reported as expected`,
+  )
   process.exit(1)
 }
 console.error(
-  `bad-md-mermaid-er: ${RULE}: NOT reported — the themed fence was skipped (vacuous). ` +
+  `bad-md-mermaid-er: ${RULE}: NOT reported for ${missing.join(', ')} — that fence was skipped (vacuous). ` +
     `${String(violations.length)} finding(s): ${violations.map((v) => v.message.split('\n')[0]).join(' | ')}`,
 )
 process.exit(0)

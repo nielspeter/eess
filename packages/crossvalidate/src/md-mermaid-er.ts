@@ -6,7 +6,7 @@ import {
   type PresetReportOptions,
   collectResult,
 } from '@nielspeter/eess'
-import { violationsFor, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
+import { violationsFor, GRAMMAR_GAP, grammarGapRemedy, asClause, isMermaidTag } from './shared.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import {
   parseErDiagram,
@@ -62,7 +62,7 @@ interface ErBlock {
 function erEntitiesOf(doc: MdDocument): ErBlock[] {
   return doc.codeBlocks
     .filter(
-      (b) => (b.lang === 'mermaid' || b.lang === null) && ER_HEADER.test(diagramKind(b.value)),
+      (b) => (isMermaidTag(b.lang) || b.lang === null) && ER_HEADER.test(diagramKind(b.value)),
     )
     .map((b): ErBlock => {
       try {

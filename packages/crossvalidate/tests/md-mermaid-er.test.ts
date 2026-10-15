@@ -162,4 +162,14 @@ describe('tableErAgree() — non-standard syntax', () => {
   it('does not select an untagged fence whose kind is not erDiagram', () => {
     expect(tableErStats(c(['untagged-sequence-only.md']), OPTS).docs).toBe(0)
   })
+
+  // Bug 0424: the ER selector compared the tag exactly, as md-mermaid did before bug 0423, so a
+  // ```Mermaid erDiagram that drifted from its table was neither compared nor counted.
+  it('reads a ```Mermaid erDiagram like a ```mermaid one (bug 0424)', () => {
+    const docs = c(['bad-capitalised-extra-attribute.md'])
+    const violations = violationsOf(() => tableErAgree(docs, OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain("'capitalisedGhost' of 'JobSchedule' is not a row")
+    expect(tableErStats(docs, OPTS).docs).toBe(1)
+  })
 })
