@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-15, after [spike 0425](../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)
+- **State:** Draft — unfrozen 2026-10-15. The post-merge architect and enforcement review of the
+  freeze found its line rule wrong after a mid-body comment, and four decisions a builder would have
+  made alone; [spike 0428](../spikes/0428-where-mermaid-puts-an-errors-line.md) measured them. The
+  re-freeze owes the items under "Owed at the re-freeze" below. First frozen 2026-10-15, after [spike 0425](../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)
   measured what this plan had deferred to its build. Three decisions are recorded under "Decided at
   the freeze". The dogfood gate moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md).
   Written 2026-10-14 against the 2026-10-14 review of proposal 006's Ask C, as plan B of that
@@ -254,6 +257,32 @@ Each is overrulable.
   version.
 - Every non-vacuity row reds when its mechanism is removed.
 - `npm run validate` green.
+
+## Owed at the re-freeze
+
+From the post-merge review of the first freeze (architect and enforcement, 2026-10-15) and spike 0428.
+Nothing below is decided until the re-freeze writes it into the sections above.
+
+- **The line map** (architect C1): Mermaid removes `%%` comment lines anywhere, so the single offset
+  is wrong. Spike 0428's map, the line canary, and no line claimed after a trailing `%%` comment.
+  `diagramPreamble`'s frozen `{ kind, kindLine, reason }` changes or the map stays internal.
+- **The worker/host split** (architect I2, enforcement I2): the worker posts shape facts; the host
+  classifies with `diagramPreamble` and the map. Name the shapes and the message union.
+- **Langium lines from `result`**, the smallest (architect I1).
+- **Test seams and the loaded version** (architect I3, enforcement I4): copy the real worker; the
+  worker reports the version it loaded, read by walking up; a mismatch is an instrument finding.
+- **Unclosed frontmatter** (enforcement I1): a reason of its own, per block, the author's error. And
+  whether "anything else" stays batch-fatal.
+- **The reason enum's names** (architect M1, enforcement I1).
+- **Three non-vacuity rows** (enforcement I3): a non-parse throw, a resolved non-result, a hang that
+  names the block and exits.
+- **Remedies that clear** (enforcement I5): early exit, budget, out-of-range version.
+- **Minors**: the version read via `./*` (architect M2); the `.mjs` worker's lint and copy (M3); the
+  conformance test runs the built worker (M4); zero blocks with a missing peer (architect M5,
+  enforcement M1); the false-red row's polarity, per-kind canary residual, a transitive
+  `ERR_MODULE_NOT_FOUND`, prerelease ranges, the rows' cost (enforcement M2–M6).
+- **Plan 0427's drift** (enforcement M7) and its priority, fixed in 0427 itself.
+- **The tag-case rule as an ADR** (architect I4): before bug 0426, not part of this plan.
 
 ## Progress ledger
 
