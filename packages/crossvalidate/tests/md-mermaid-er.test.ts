@@ -190,4 +190,14 @@ describe('tableErAgree() — non-standard syntax', () => {
   it('does not read an erDiagram in a fence tagged mmd', () => {
     expect(tableErStats(c(['mmd-tagged-er.md']), OPTS).docs).toBe(0)
   })
+
+  // Bug 0429: a directive line that ends in a comment left the directive open to the end of the
+  // block, so no kind was found and the diagram was never selected or compared.
+  it('selects an erDiagram behind a directive closed mid-line and compares it (bug 0429)', () => {
+    const docs = c(['bad-init-mid-line-extra-attribute.md'])
+    const violations = violationsOf(() => tableErAgree(docs, OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain("'midLineGhost' of 'JobSchedule' is not a row")
+    expect(tableErStats(docs, OPTS).docs).toBe(1)
+  })
 })

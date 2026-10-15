@@ -201,6 +201,16 @@ describe('embeddedDiagramsMatchCode() — embedded ```mermaid in markdown', () =
     })
   })
 
+  // Bug 0429: the directive stayed open past a trailing comment, so no kind was read and the
+  // sequenceDiagram was selected as a class diagram.
+  it('skips a FOREIGN fence behind a directive closed mid-line (bug 0429)', () => {
+    expect(embeddedDiagramStats(c(['docs/embedded-mid-line-directive.md']))).toEqual({
+      documents: 0,
+      diagrams: 0,
+      skipped: 1,
+    })
+  })
+
   it('reports nothing examined for a document with no mermaid fence at all', () => {
     // embedded-none.md was committed unreferenced by the first pass — five of six
     // reviewers flagged the orphan. This is the assertion it was added for.

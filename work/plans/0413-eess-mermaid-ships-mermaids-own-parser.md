@@ -161,7 +161,7 @@ fact for it.
   Frontmatter is "unclosed" when the text's first line is `---` and the line map's own frontmatter
   regex, Mermaid's, does not match, so the walk and Mermaid cannot disagree about it. The walk's
   directive tracking has its own defect, a directive closed mid-line read as open, recorded as
-  [bug 0429](../bugs/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md), fixed before or
+  [bug 0429](../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md), fixed before or
   with this build; with Mermaid's `ok` winning above, it cannot blame an author here.
 - A misspelt kind and a kind not in core share one remedy, so no list of kinds is kept (OQ4
   untouched).
