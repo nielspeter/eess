@@ -308,4 +308,21 @@ describe('embeddedDiagramsMatchCode() — a diagram nested in a list item or blo
       'Change the header to `classDiagram`: it is the same language, and eess-mermaid reads it.',
     )
   })
+
+  // Bug 0423: the selector compared the tag to exactly `mermaid`, so a ```Mermaid fence was neither
+  // compared nor counted, and a drifted diagram written with that tag passed in any corpus that held
+  // another class diagram.
+  it('reads a ```Mermaid fence like a ```mermaid one (bug 0423)', () => {
+    const docs = c(['docs/embedded-capitalised.md', 'docs/embedded-good.md'])
+    let err: unknown
+    try {
+      embeddedDiagramsMatchCode(docs, proj())
+    } catch (e) {
+      err = e
+    }
+    if (!(err instanceof ArchRuleError)) throw new Error('expected the ghost class to be reported')
+    const v = err.violations.find((x) => x.message.includes('GhostClassInACapitalisedFence'))
+    expect(v?.file.endsWith('embedded-capitalised.md')).toBe(true)
+    expect(embeddedDiagramStats(docs)).toMatchObject({ documents: 2, diagrams: 2, skipped: 0 })
+  })
 })

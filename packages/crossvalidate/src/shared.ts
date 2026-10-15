@@ -107,3 +107,11 @@ export function grammarGapRemedy(exclude: string): string {
 export function asClause(detail: string): string {
   return detail.replace(/[\s.:]+$/, '')
 }
+
+/**
+ * Is this fence tagged as Mermaid? Case-insensitive (bug 0423): a fence tagged `Mermaid` is plainly
+ * meant as a diagram, and comparing the tag exactly skipped it without a word.
+ */
+export function isMermaidTag(lang: string | null): boolean {
+  return lang?.toLowerCase() === 'mermaid'
+}

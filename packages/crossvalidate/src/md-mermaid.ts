@@ -10,7 +10,7 @@ import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses, diagramKind } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
-import { identifyTsClass, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
+import { identifyTsClass, GRAMMAR_GAP, grammarGapRemedy, asClause, isMermaidTag } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
@@ -159,7 +159,7 @@ function detailOf(e: unknown): string {
 /** The class-diagram fences of one document — the blocks this binding models. */
 function classDiagramBlocks(doc: MdDocument) {
   return doc.codeBlocks.filter(
-    (b) => b.lang === 'mermaid' && !FOREIGN_HEADER.test(diagramKind(b.value)),
+    (b) => isMermaidTag(b.lang) && !FOREIGN_HEADER.test(diagramKind(b.value)),
   )
 }
 
@@ -192,7 +192,7 @@ export function embeddedDiagramStats(corpus: Corpus): EmbeddedDiagramStats {
   let diagrams = 0
   let skipped = 0
   for (const doc of corpus.documents()) {
-    const mermaid = doc.codeBlocks.filter((b) => b.lang === 'mermaid')
+    const mermaid = doc.codeBlocks.filter((b) => isMermaidTag(b.lang))
     const blocks = classDiagramBlocks(doc)
     skipped += mermaid.length - blocks.length
     if (blocks.length === 0) continue

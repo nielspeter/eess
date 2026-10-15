@@ -669,7 +669,11 @@ review of this record followed, and its corrections are applied here.
    - No block of the language in loaded files is the zero-examined configuration finding, unless
      `.expectEmpty()` is declared.
 10. **The language tag** is matched exactly as `mermaid` _(ruled)_. A near-miss tag is disclosed as
-    unread beside the count (ADR-016 rule 7).
+    unread beside the count (ADR-016 rule 7). _(Note, 2026-10-15: bug 0423's fix made eess-crossvalidate's
+    md-mermaid read the tag case-insensitively, so a fence tagged `Mermaid` is read there while eess-md's
+    `parseCodeBlocks` reports it as unread. Neither is a false green, but the family has two rules for one
+    tag. Plan 0413, which runs Mermaid fences through `parseCodeBlocks`, settles one; case-folding looks
+    the better rule.)_
 11. **Tier 1, static** _(measured, enforcement)_. The claim is "parses with mermaid X.Y.Z".
     `parse()` accepts three things that fail at render: a `gantt` task dated `nonsense`, a `journey`
     step with a non-numeric score, and an unclosed `mindmap` root.

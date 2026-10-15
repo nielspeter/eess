@@ -208,6 +208,13 @@ One PR, red-first.
 | production tier: `check:mermaid-parses` reds on the manifesto break, naming file and rule | the dogfood gate |
 | empty, directive-only, misspelt and `zenuml`, each with its own remedy                    | condition 6      |
 
+## Decide at the freeze: one rule for the Mermaid tag
+
+Added 2026-10-15. eess-md's `parseCodeBlocks` (plan 0412) matches the language tag exactly and reports
+`Mermaid` as an unread near miss. eess-crossvalidate's md-mermaid now reads it, case-insensitively (bug
+0423). This plan puts Mermaid fences through `parseCodeBlocks`, so its freeze settles which rule the
+family uses, and changes the other side to match. Recorded in proposal 006 under condition 10.
+
 ## Out of scope
 
 - **The loop, the port and the evidence** — plan 0412.
