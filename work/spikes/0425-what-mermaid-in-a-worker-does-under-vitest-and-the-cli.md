@@ -107,6 +107,17 @@ So the jison line is `hash.loc.first_line` when `loc` exists, else `hash.line + 
 before the kind line are added. Also: the 14-block run's "all parsed" meant "all answered"; 10 of the
 14 were rejected on purpose. The 485 ms is a single run; the review's re-run took 853 ms.
 
+## Superseded by spike 0428 (2026-10-15)
+
+The line rule above, in §4, the Decision and the corrections, is wrong for a block with a `%%`
+comment after the kind line: Mermaid removes whole-line comments **anywhere**, so a single offset of
+"the lines before the kind line" misplaces every error after one. "In every case" held only because
+every fixture put its comments first. Two of Mermaid's lexers also lose a line per trailing comment,
+and a Langium error carries its lines in `result`, not only in its message. The version read by
+`createRequire(…).resolve('mermaid/package.json')` works only through mermaid's `./*` export. [Spike
+0428](./0428-where-mermaid-puts-an-errors-line.md) measures all four; the text above is kept as
+written.
+
 ## Not measured
 
 - Windows.
