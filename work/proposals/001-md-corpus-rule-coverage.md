@@ -9,6 +9,11 @@ shape), so one capability here is fixturable without the reference corpus.
 `haveNameMatching`, `honestyAtClose()`, `adrEnforcement()`,
 `correspondence()` (kernel), md rule files (no CLI)
 
+> **Note — 2026-10-16.** [Proposal 017](./017-md-blocks-to-check-a-documents-shape.md) takes over
+> this proposal's header-field ask ("finish `terms()`, don't add `fields()`", which it follows) and
+> its conditional rules (generalising what `honestyAtClose` hard-codes). `fileRefs()`, the temporal
+> conditions and `clauseEnforcement()` stay here.
+
 ## Problem
 
 A consuming project cannot write rules for its own corpus conventions in the md
