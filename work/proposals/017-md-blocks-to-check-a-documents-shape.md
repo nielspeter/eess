@@ -787,3 +787,89 @@ the frozen-default break (bug 0185); and a frontmatter key's own line.
 - `matchName` keeps a caller's `g` or `y` flag between documents, in two copies:
   `packages/md/src/model/query.ts:4` and `packages/crossvalidate/src/md-ts.ts:32`. To be reproduced.
 - The ADR in decision 1.
+
+## Consumer feedback — 2026-10-16
+
+After the second Review, at the maintainer's request, the three adopters were asked whether the
+blocks would be useful: which of their hand-written checks each block would replace, which they
+would not adopt, what no block covers, what would be awkward, and which box marks they use. Each
+answered from its own code, read-only. They are adopters 1, 2 and 3 as above. Their figures are
+their own measurements; the defects they reported were reproduced here (bugs 0444 to 0447).
+
+|               | adopter 1                                                               | adopter 2                            | adopter 3                                                                                                           |
+| ------------- | ----------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| verdict       | depends, leaning yes                                                    | yes                                  | yes, as a tidy-up, not a priority                                                                                   |
+| code removed  | about 350 of about 1,050 lines (mechanism; its configuration stays)     | about 400 of about 640 lines         | about 300 rule lines and 100 test lines of about 4,400, plus a real line on every finding (all report line 1 today) |
+| blocks wanted | 1, 2, 3, 5, 6, 12, 13, 14, 16                                           | 1, 2, 5, 6, 7, 13                    | 1, 2, 3, 6, 7, 12, 13                                                                                               |
+| not adopted   | 4, 8; 7 in tests only                                                   | 3, 4, 8, 11, 14, 16                  | 4, 5 as specified, 8, 16; 11 and 14 would be new checks                                                             |
+| condition     | block 1 takes its own value normaliser; section names take regex groups | a value's end is the caller's to set | block 1 reads the bulleted form                                                                                     |
+
+Adopter 3's base of about 4,400 lines is its own count for this answer; the about 9,500 in "Measured" above was counted earlier over its tooling as a whole, and the two are not reconciled here.
+
+No adopter found a default it would have to fight. All three keep their drift checks, branch gates
+and git-history checks, which 017 leaves out of scope.
+
+**What it says about block 1.** The forms in real use are wider than the label grammar's list.
+Adopter 3 counts, live and frozen: `## Status:` 601 and 536; `**Status:**` 124 and 311;
+`- **Status:**` or `- **State:**` 28 and 59; `**Status**:` 0 and 40; `**Status: value**` 0 and 14;
+frontmatter 0. Adopter 2 indents up to three spaces. Values: multi-word ("In progress"), followed by
+prose after `(`, `—`, `·` or `|`; a leading emoji; emphasis inside the value; a typographic
+apostrophe; a value spanning four lines; and a field with several values, each checked against a
+vocabulary that allows a prefix. A structured header field must win over the same label in prose
+(adopter 3 once read a prose `State:` at line 220 over the header at line 3). Labels contain spaces.
+Section names in a non-English corpus are matched by word stem, so a list of exact names is not
+enough on its own.
+
+**What it says about block 5.** Two adopters want it most: each built or plans a state-and-folder
+check only because `honestyAtClose` reads `State:` (bug 0444). Adopter 3 runs the check one way on
+purpose: its frozen records spell "done" about twenty ways, and requiring a done value flagged ten
+correctly closed records. So the direction is the caller's.
+
+**What it says about checkboxes.** Adopter 3 carries 1,699 `[?]`, 10 `[~]` and 7 `[→]` items, and
+reads them by scanning text; adopter 1 carries one `[~]` and wants it counted as open or reported,
+never ignored; adopter 2 uses only `[ ]`, `[x]` and `[X]`. eess-md sees only GFM's marks (bug 0445).
+Adopter 1 also plans a rule that knows which section a box sits in: in a closed record, an open box
+under an acceptance-criteria section may carry only `validation-owed`.
+
+**Covered already, or by composition:** an exemption by identifier (the kernel's `.excluding()`,
+whose stale entries are findings under ADR-018); an allowlist of known duplicates that warns when an
+entry no longer collides (the same); a document that must not contain a table, a count line or a
+dated line (block 14 with `not()`, or the kernel `notExist` over `rows()`); uniqueness over a
+composite key (block 13's key function). Adopter 3 also needs a field reader in a script that may not
+import eess at run time, which block 1's plain-function reader serves only if that script may import
+it; otherwise it keeps its own.
+
+**Reported defects:** `honestyAtClose` reads only `State:` (bug 0444); non-GFM box marks are invisible
+(bug 0445); a link to an untracked file resolves (bug 0446); `adrEnforcement` reads `it.skip` as a
+path (bug 0447); `adrEnforcement` validates no Status value (already bug 0128). Not reproduced:
+`taskItems()` missing nested boxes; nested boxes are read on main.
+
+### Decisions this settles
+
+The coordinator's, from the feedback and the mission; each can be overruled.
+
+1. **The noun is "field".** One adopter uses it throughout and strangers read it; md's `label` stays
+   the grammar's word. There is one element type: `terms()` is extended and reached as `fields()`,
+   with `terms()` kept as an alias. Block 2 is `haveField`.
+2. **A value's extent is the caller's.** Block 1 takes the caller's normaliser (with a delimiter set
+   and "longest match from the allowed values" as provided helpers, neither a default) and reads the
+   forms the caller names, including the bulleted form, emphasis around label and value, and up to
+   three spaces of indent. A multi-line value and a multi-valued field are options. A structured
+   form wins over prose, and two structured values for one label are a finding.
+3. **Each rule chooses its own documents, frozen or not.** No block skips frozen documents by
+   itself; frozenness is something a caller selects on.
+4. **Block 5 takes a direction**: both ways, value-to-folder only, or folder-to-value only.
+5. **Box marks are the caller's** (new block 17): the caller declares extra marks and whether each is
+   open or done; an undeclared bracketed mark is a finding. It is bug 0445's fix, made a block.
+6. **Boxes by section** (new block 18): block 12's lift, applied to sections, so a box rule can be
+   limited to boxes under sections a predicate chooses. Adopter 1's most wanted block; it composes
+   11 and 12.
+7. **Blocks no adopter wants (4, 8, 16, and 9, 10, 15, which none mentioned) stay in the proposal**
+   for corpora beyond these three, and are not sequenced for them.
+
+### The maintainer's acceptance — 2026-10-16
+
+The maintainer accepted the blocks the three adopters need: **1, 2, 5 (with a direction), 6, 7, 12,
+13, and 17 (box marks)**. Each row moves to `Accepted` in the pull request that files the plan owning
+it; until then the second Review's dispositions stand. Block 5 still waits on the ADR in the second
+Review's decision 1. Block 18 is not accepted yet.
