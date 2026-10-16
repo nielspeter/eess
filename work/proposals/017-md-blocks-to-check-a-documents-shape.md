@@ -17,7 +17,7 @@ adopters are named here only as adopter 1, 2 and 3.
 **Affects:** `@nielspeter/eess-md` (building blocks: labelled values, conditions on documents,
 references at named positions, value-and-folder agreement, a corpus from text, selectable elements),
 `@nielspeter/eess-crossvalidate` (citations at a caller-named position), the working-method kit
-(`kit/`, examples only), and this repository's own corpus gates.
+(`kit/`; examples go in `examples/`, second Review decision 3), and this repository's own corpus gates.
 
 ## Correction — 2026-10-16
 
@@ -67,6 +67,11 @@ What eess-md must not do is answer this by defining those documents. A Markdown 
 whatever kinds its owners invent, written in whatever form they chose (`**State:**`, `## Status:`,
 frontmatter). The one place eess-md does fix a shape today, `honestyAtClose` reading `State:` only,
 is also where it measurably checks nothing on corpora that chose differently (gap 4 below).
+
+> **Correction (second review, 2026-10-16): not the one place.** `adrEnforcement` fixes this
+> repository's Enforcement-table convention, the ledger also fixes board file names
+> (`packages/md/src/rules/ledger.ts:97`), and `corpus()` fixes its frozen folders
+> (`packages/md/src/corpus.ts:53`). See the second Review, decisions 1 and 2.
 
 The test of the building blocks is completeness: a caller can state the shape of any kind of
 document with them, in their own words, without a hand-written condition. Adopter 3's roughly 9,500
@@ -179,8 +184,7 @@ this repository's sabotage harness (31 probes).
 - **Sections exist with depth**, and `haveSection` already takes a `RegExp`, so a synonym group is
   a regex alternation today. Adopter 3 uses `haveSection` as shipped.
 - **Selecting documents by folder or name exists**: `docs().that().resideInFolder()`,
-  `resideInFile()`, `haveNameMatching()` (`packages/md/src/builders/docs.ts:30`). A type's selector
-  is these, declared once.
+  `resideInFile()`, `haveNameMatching()` (`packages/md/src/builders/docs.ts:30`). A type's selector is these, declared once. _(Written for the dropped type declaration; a caller's selections are these.)_
 - **Declared relations exist, by link only**: `links().areLabelled(label)` selects the links a
   labelled block declares (plan 0405), `areInSection()` the links under a heading, and
   `beLinkedBack()` checks the target answers (plan 0406,
@@ -205,8 +209,7 @@ this repository's sabotage harness (31 probes).
   > ground; see the Review.
 
 - **Pointers by section do not exist.** Links by section do.
-- **Not in eess:** a document-type declaration; a field element; a field-value predicate on
-  documents; a title condition; a requirement conditional on a field; a reference by identifier; a
+- **Not in eess:** a document-type declaration; a field element (_since the rewrite, block 1 extends `terms()` instead_); a field-value predicate on documents; a title condition; a requirement conditional on a field; a reference by identifier; a
   configurable or separable ledger.
 
 ## Asks
@@ -216,6 +219,10 @@ here has a default field name, section name, title, folder, state or identifier 
 describes a kind of document. Each block takes the caller's own labels, values, folders and names,
 and works on any Markdown. A plan, a bug, a proposal or a wiki page is something a caller builds out
 of the blocks; eess-md ships none of them.
+
+> **Correction (second review, 2026-10-16): not true today.** eess-md ships two presets with a fixed
+> shape under `rules/*`; the second Review's decision 1 scopes the principle to the package root and
+> has the presets rebuilt from public blocks.
 
 **1. Read a labelled value, in the forms the caller names.** Extend `terms()` rather than add an
 element beside it (proposal 001's review decided this, and this proposal follows it): the caller
@@ -284,7 +291,7 @@ named. The kernel's `correspondence()` reports a key matching twice when two sid
 single-sided uniqueness check over one selection is not stated anywhere.
 
 > **Correction (second review, 2026-10-16): false.** eess-gherkin ships one,
-> `haveUniqueTitles` (`packages/gherkin/src/builder.ts:20`), which reports a duplicate with the line
+> `haveUniqueTitles` (`packages/gherkin/src/builder.ts:21`), which reports a duplicate with the line
 > of the first. See the second Review: the block becomes a kernel condition with gherkin's built
 > on it.
 
@@ -335,6 +342,9 @@ of only an ADR's Enforcement table, so a runbook's `Verified by:` line or a wiki
 cites a test that exists. The fixed-position presets stay as they are, as callers of the general
 form.
 
+> **Superseded (second review, decision 3):** the examples live in `examples/`, gated; `kit/` may
+> carry the working method's own.
+
 **Outside eess-md: examples and starting kits.** The working-method kit (`kit/`) may ship example
 rule files that assemble the blocks into a plan, a bug and a proposal, and a further example for a
 wiki or a documentation site, for an adopter to copy, change or ignore. They are examples, not
@@ -348,7 +358,7 @@ green.
       work records (a plan, a bug, a wiki page, a documentation-site page with frontmatter), state
       their shape from public eess-md blocks only, with no `defineCondition` or `definePredicate` of
       their own. A judgement that cannot be written that way is a missing block, recorded, not
-      worked around. Testing the asks this way before review found blocks 11 to 13 missing. At
+      worked around. Testing the asks this way before review found blocks 11 to 13 missing (_a desk exercise over three kinds, not a measurement: see the second Review_). At
       least one example also binds documents outward: a value naming code is
       joined to `eess-ts`, and a cited test resolves at a position the example names.
 - [ ] No block has a default label, field, section, title, folder, state or identifier pattern that
@@ -388,7 +398,7 @@ green.
   proposal's principle they are examples assembled from blocks. Moving them is a breaking change
   for adopters, and is its own decision, not this proposal's.
 - **Split and sequence.** The blocks are independent; the review's order still holds (the `State:`
-  bug, then 7, 3, 5, then 1 and 2, then 4 and 6, with 8 as documentation at any time).
+  bug, then 7, 3, 5, then 1 and 2, then 4 and 6, with 8 as documentation at any time). _(Superseded: the second Review's disposition table orders them, with block 5 after block 1.)_
 
 ## Out of scope
 
@@ -655,11 +665,10 @@ are left as reviewed. This ruling supersedes the first Review's disposition tabl
 
 **What held.** Both critical findings of the first review are resolved, not reworded: blocks 1 and
 2 extend `terms()` and put presence on `docs()`, as proposal 001's review ruled, and the document
-type declaration is gone, so ADR-006's config question does not arise. Free prose is not read. The
-vacuity, per-cause message and remedy criteria absorb the enforcement findings. Every count the
+type declaration is gone, so ADR-006's config question does not arise. Free prose is not read. The vacuity, per-cause message and remedy criteria absorb the first round's enforcement findings. This round's enforcement review raised two criticals, both taken: a value in a form the caller did not name was reported as absent (the first condition below), and the completeness test had no mechanism (decision 3). Every count the
 method lens re-measured reproduced exactly, and every `path:line` pointer lands.
 
-**What the record got wrong, corrected above in place:** block 13's "not stated anywhere" (gherkin
+**What the record got wrong, corrected above in place:** the claims that `honestyAtClose` is the one place eess-md fixes a shape and that eess-md ships no document's shape; two survey lines written for the dropped type declaration; block 13's "not stated anywhere" (gherkin
 ships `haveUniqueTitles`); block 10's survey line (the crossvalidate presets already take a
 position); the pointer to the first-reviewed asks, which named a path that did not exist at that
 commit, and the asks themselves, which had been edited away and are now kept above. Also: the
@@ -738,16 +747,22 @@ From enforcement, beyond the acceptance criteria above:
 - Block 12: a predicate selecting no document is a finding naming the predicate; zero elements over
   matched documents is a finding unless declared; a row shows the scoped rule green where the
   unscoped one is red.
-- Block 13: values compare through block 1's normaliser (`066` and `0066`); every member of a group
+- Block 13: values compare through block 1's normaliser (`066` and `0066`), which is also the architect's "exact keys, normalisation is the caller's", since `beUniqueBy` keys on the value block 1 has already normalised; every member of a group
   is named; the denominator is stated (values, not documents).
 - Block 11: a heading in a fence or an HTML block, a setext heading, a depth skip, and a heading in a
   list or blockquote (which `buildDocument` does not read as a section) each have a fixture.
 - Preconditions: bug 0403, for eess-md and eess-crossvalidate both, before blocks 1, 5 and 10; bug
-  0116 (a citation resolving to a skipped test) before block 10; bugs 0400, 0402 and 0245 are named
+  0116 (a citation resolving to a skipped test), bug 0262 (only one package's tests are resolved) and bug 0382 (a cited title is not bound to the file cited beside it) before block 10; bugs 0400, 0402 and 0245 are named
   in block 9's recipes as known limits of the join.
 - This repository adopts blocks 4 (its `Implements` reader), 5 (its lanes) and 13 (record numbers),
   so those rows drive its own gates, not only fixtures.
 - `.expectEmpty()`'s expiry is the kernel's: it lapses once something is examined.
+
+Smaller findings carried to the plans rather than settled here: a plan with no phase section
+examining zero sections (a finding, or declared empty); a census of accepted values no document
+uses (report-only); a selection of one under block 13; a closed set of section names and ordering
+across values (expressible, to be shown in an example, or out of scope); the dependants named for
+the frozen-default break (bug 0185); and a frontmatter key's own line.
 
 ### Disposition, per block
 
