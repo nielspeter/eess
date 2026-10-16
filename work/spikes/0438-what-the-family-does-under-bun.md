@@ -135,7 +135,8 @@ Q4 first said vitest ran on Node "without `--bun`". The run that gave `node v24.
 started by Node, not by Bun without the flag. Measured since: `bun node_modules/.bin/vitest run`,
 without `--bun`, ran its workers on Bun 1.4.3 under both pools; `bunx vitest run` followed vitest's
 `#!/usr/bin/env node` shebang and ran on Node. The trap is the shebang, and the published bins carry
-the same one.
+the same one. Harness: `bun/vt/rt.test.ts`, run as `bun node_modules/.bin/vitest run --root bun/vt
+--pool <forks|threads>` and as `bunx vitest run` from `bun/vt`.
 
 ## Not measured
 
