@@ -854,7 +854,7 @@ time; no block serves it, and it keeps its own reader.
 
 **Reported defects:** `honestyAtClose` reads only `State:` (bug 0444); non-GFM box marks are invisible
 (bug 0445); a link to an untracked file resolves (bug 0446); `adrEnforcement` reads `it.skip` as a
-path (bug 0447); `adrEnforcement` validates no Status value (bug 0128); a `gated` row with no mechanism passes, which is not yet recorded here (owed, reproduced first).
+path (bug 0447); `adrEnforcement` validates no Status value (bug 0128). A `gated` row with an empty Mechanism cell, or one citing nothing, gets no finding: reproduced here on main's build, and inside bug 0128's scope, since the claim `gated` is the Status value it never reads.
 Not reproduced: `taskItems()` missing nested boxes (adopter 3 itself reports this no longer true).
 Not recorded: an empty Enforcement table passing, which adopter 3 inferred and did not measure.
 
