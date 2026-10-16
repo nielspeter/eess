@@ -75,7 +75,7 @@ is also where it measurably checks nothing on corpora that chose differently (ga
 
 The test of the building blocks is completeness: a caller can state the shape of any kind of
 document with them, in their own words, without a hand-written condition. Adopter 3's roughly 9,500
-lines of rules, almost all of whose judgements are hand-written conditions inside eess builders,
+lines of rules (its own later count is about 4,400; see "Consumer feedback"), almost all of whose judgements are hand-written conditions inside eess builders,
 measure how far the blocks are from that today.
 
 ## Measured
@@ -787,3 +787,165 @@ the frozen-default break (bug 0185); and a frontmatter key's own line.
 - `matchName` keeps a caller's `g` or `y` flag between documents, in two copies:
   `packages/md/src/model/query.ts:4` and `packages/crossvalidate/src/md-ts.ts:32`. To be reproduced.
 - The ADR in decision 1.
+
+## Consumer feedback — 2026-10-16
+
+After the second Review, at the maintainer's request, the three adopters were asked whether the
+blocks would be useful: which of their hand-written checks each block would replace, which they
+would not adopt, what no block covers, what would be awkward, and which box marks they use. Each
+answered from its own code, read-only. They are adopters 1, 2 and 3 as above. Their figures are
+their own measurements. The defects they reported were reproduced here and recorded as bugs 0444 to
+0447 (PR #230). This section was reviewed the same day (architect · enforcement · method) and their
+findings are folded in.
+
+|               | adopter 1                                                                   | adopter 2                                                  | adopter 3                                                                                                           |
+| ------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| verdict       | depends, leaning yes                                                        | yes                                                        | yes, as a tidy-up, not a priority                                                                                   |
+| code removed  | about 350 of about 1,050 lines (mechanism; its configuration stays)         | about 400 of about 640 lines                               | about 300 rule lines and 100 test lines of about 4,400, plus a real line on every finding (all report line 1 today) |
+| blocks wanted | 1, 2, 3, 5, 6, 12, 13, 14, 16, and 11 composed with 12                      | 1, 2, 5, 6, 7, 13                                          | 1, 2, 3, 6, 7, 12, 13, and 14 for one existing rule                                                                 |
+| most wanted   | 11 and 12 composed: a box rule limited by a value, inside matching sections | 1, 2, 5, 13 and 7                                          | none named                                                                                                          |
+| not adopted   | 4, 8; 7 in tests only                                                       | 3, 4, 8, 11, 14, 16                                        | 4, 5 as specified, 8, 16; 11 and 14 would mostly be new checks                                                      |
+| condition     | block 1 takes its own value normaliser; section names take regex groups     | a value's end is the caller's to set; `[X]` counts as done | block 1 reads the bulleted form                                                                                     |
+
+Adopter 3's base of about 4,400 lines is its own count for this answer; the about 9,500 in
+"Measured" above was counted earlier over its tooling as a whole, and the two are not reconciled
+here. Adopter 2's upgrade to any of this is blocked on bug 0439 (most of the family, eess-md included, does not load under Bun)
+until a fixed version ships.
+
+**On defaults.** Adopter 1: "since you ship no defaults, I see nothing we would have to fight".
+Adopter 2: none, "as long as `State:` stays ours to rename". Adopter 3 did not address defaults.
+
+**What stays theirs.** Adopter 1 named a rule forbidding derived content on its boards (covered by
+composition, below) and a deliberate exemption by identifier. Adopter 2 keeps a check of a record's
+"pull request open" claim against the pull request's real merge state (from git and the hosting
+service's API) and close dates read from git history. Adopter 3 keeps its drift checks (about 600
+lines over git history) and its branch gate. 017 leaves all of these out of scope.
+
+**What it says about block 1.** The forms in real use: adopter 3 counts, live and frozen,
+`## Status:` 601 and 536; `**Status:**` 124 and 311; `- **Status:**` or `- **State:**` 28 and 59;
+`**Status**:` 0 and 40; `**Status: value**` 0 and 14; frontmatter 0. Adopter 2 indents up to three
+spaces. Values: multi-word ("In progress"), followed by prose after `(`, `—`, `–`, `·` or `|`; a
+leading or trailing emoji; emphasis inside the value; a typographic apostrophe; a value matched
+regardless of case; a value spanning four lines; and a field with several values, each checked
+against a vocabulary that allows a prefix. A structured header field must be chosen over the same
+label in prose (adopter 3 once read a prose `State:` at line 220 over the header at line 3). Labels
+contain spaces. Section names are matched by word stem, so a list of exact names is not enough on
+its own.
+
+**What it says about block 5.** Adopter 1 says block 5 "alone removes a whole file", built only
+because `honestyAtClose` reads `State:` (bug 0444); adopter 2 has a defect of its own waiting on it.
+Adopter 3 runs the check one way on purpose: its frozen records spell "done" about twenty ways, and
+requiring a done value flagged ten correctly closed records.
+
+**What it says about checkboxes.** Adopter 3 carries 1,699 `[?]` items (all in frozen records),
+10 `[~]` (one in a live record) and 7 `[→]` (none live), and reads them by scanning text. Adopter 1
+carries one `[~]`, in an open record, and wants it counted as open or reported, never ignored.
+Adopter 2 uses only `[ ]`, `[x]` and `[X]`. eess-md sees only GFM's marks (bug 0445), and this
+repository has four `[~]` items in closed records that `check:ledger` does not see. Adopter 1 also
+plans a rule that knows which section a box sits in: in a closed record, an open box under an
+acceptance-criteria section may carry only `validation-owed`.
+
+**Covered already, or by composition:** an exemption by identifier (the kernel's `.excluding()`,
+whose stale entries are findings under ADR-018); an allowlist of known duplicates that warns when an
+entry no longer collides (the same); a document that must not contain a table, a count line or a
+dated line (block 14 with `not()`, or the kernel `notExist` over `rows()`); uniqueness over a
+composite key (block 13's key function). Adopter 3 also has a script that may not import eess at run
+time; no block serves it, and it keeps its own reader.
+
+**Reported defects:** `honestyAtClose` reads only `State:` (bug 0444); non-GFM box marks are invisible
+(bug 0445); a link to an untracked file resolves (bug 0446); `adrEnforcement` reads `it.skip` as a
+path (bug 0447); `adrEnforcement` validates no Status value (bug 0128). A `gated` row with an empty Mechanism cell, or one citing nothing, gets no finding: reproduced here on main's build, and inside bug 0128's scope, since the claim `gated` is the Status value it never reads.
+Not reproduced: `taskItems()` missing nested boxes (adopter 3 itself reports this no longer true).
+Not recorded: an empty Enforcement table passing, which adopter 3 inferred and did not measure.
+
+### Decisions this settles
+
+The coordinator's, from the feedback, the reviews and the mission; each can be overruled.
+
+1. **The noun is "field": one element, two constructors.** `fields(corpus, FieldOptions)` is new;
+   `terms(corpus, TermsOptions)` keeps exactly what it reads today. Both yield one widened element
+   type (`MdTerm`, with label, form and normalised value), on one builder. This overrules proposal
+   001's heading ("don't add `fields()`") in name only: its design, one element type built on
+   `terms()`, stands. Summaries and rule ids use one name.
+2. **A value's extent is the caller's, and no reading is hidden.**
+   - `fields()` yields every occurrence in every form the caller named, each with its form and its
+     own line. The new forms (the heading form, emphasis around label and value, three spaces of
+     indent) are opt-in fragments of `packages/md/src/model/label.ts` the caller names, never a
+     widening of the shared grammar `honestyAtClose` and `links().areLabelled()` read. The bulleted
+     form is already in that grammar.
+   - Precedence is one per-document resolver, used by `haveField` and block 5, never a filter in
+     the reader. It chooses a structured form over prose. A losing occurrence that disagrees is its
+     own finding at its own line; two structured values for one label (agreeing or not) are a
+     finding at both lines; and a document in conflict is withheld from dependent rules and
+     counted as withheld.
+   - The value's end is the caller's normaliser, with a delimiter set and "longest match from the
+     allowed values" as exported helpers, neither a default. A multi-line value stops at a line that
+     is itself a label in any form, a heading, a blank line or the end of its list item. A
+     multi-valued field is split after the extent is cut, one element per value.
+3. **Each rule chooses its own documents, frozen or not.** No new block skips frozen documents by
+   itself; a caller selects on frozenness with an `isFrozen()` document predicate that ships with
+   block 12. A rule's summary counts the frozen documents its selection excluded. `corpus()`'s
+   frozen default and `pointers()`'s frozen handling are unchanged until the second Review's
+   decision 2 ships.
+4. **Block 5 takes a direction**, as the kernel's existing `Direction` type, and **its values are a
+   closed set in every direction**: every value read in a bound folder belongs to a declared class
+   bound to its folders, or it is a finding ("`Shipped` at line 3 is none of the declared values").
+   An unreadable value in a bound folder is a finding of the folder-to-value direction. (The architect would make an unknown value irrelevant in folder-to-value; the closed set in every direction is enforcement's position, adopted because a one-way check over an open set is what hid the unknown spellings.) The summary
+   prints the direction chosen. One-way stays available; it is not the remedy for unknown
+   spellings, which a closed set reports.
+5. **Box marks are the caller's, and an undeclared mark is always a finding** (block 17, bug 0445's
+   fix). A mark is defined on the parsed tree: a list item whose first inline is text, not a link,
+   starting with `[`, one grapheme, `]` and a space, so `[Foo](x.md)`, `[ref]`, `[WIP]` and `[1]`
+   are not marks. The caller declares each extra mark as blocking a close or not. Elements carry
+   the mark and its declared state beside `checked`. The finding comes from the `taskItems()`
+   builder and `honestyAtClose`, which gains a `marks` option, through the kernel's deduplication of
+   configuration findings, so no existing rule stays blind. It reds corpora that carry undeclared
+   marks today, this repository's four included: a flagged break naming its dependants.
+6. **Boxes by section** (block 18): `inSections(predicate)`, the sibling of block 12's
+   `inDocuments`, sharing its owner and memo, lifts a section predicate onto any element by its
+   document and line, with no change to any element type. "Under" means any enclosing section.
+   It needs block 11's section elements. A section predicate that selects no section is a finding
+   naming it, and a box finding names the section it was attributed to.
+7. **Blocks no adopter wants (4, 8, 16, and 9, 10, 15, which none mentioned) stay in the proposal**
+   for corpora beyond these three, and are not sequenced for them.
+
+**17.** (an ask added here, after the second Review) _Box marks are the caller's._ As decision 5. Acceptance rows: a done
+document holding an undeclared `[~]` reds; `- [WIP] x`, `- [1] x`, `- [link](u)` and a defined
+`- [ref]` stay green; declaring a mark clears its finding; this repository's four `[~]` lines pass
+once its `check:ledger` declares the mark.
+
+**18.** (an ask added here, after the second Review) _Boxes by section._ As decision 6. Acceptance rows: a box under a
+`###` beneath the chosen `##` is attributed to it; a box before the first heading and a heading in a
+list each have a fixture; a section predicate selecting nothing is a finding.
+
+### The maintainer's acceptance — 2026-10-16
+
+The coordinator proposed accepting "1, 2, 6, 7, 12, 13, block 5 with a direction option, and the
+checkbox states", and the maintainer replied "1+2+3", assenting to it with the other two steps.
+"The checkbox states" is block 17 here, the coordinator's mapping. Accepted: **1, 2, 5 (with a
+direction), 6, 7, 12, 13 and 17**. Not accepted: 3, 14 and 16, which adopters 1 and 3 want, and 18,
+adopter 1's most wanted, which also needs 11. Each row moves to `Accepted` in the pull request that
+files the plan owning it; until then the second Review's dispositions stand.
+
+**Disposition rows for the accepted set.** These supersede the second Review's "6, 12, 13" row, which
+the plan order now splits, and add the new blocks:
+
+| ask                                         | disposition | condition                                                                   |
+| ------------------------------------------- | ----------- | --------------------------------------------------------------------------- |
+| **6, 13** — kernel `notExist`, `beUniqueBy` | **Held**    | Accepted by the maintainer; unholds when its plan is filed                  |
+| **12** — `inDocuments`, `isFrozen()`        | **Held**    | Accepted by the maintainer; unholds when its plan is filed                  |
+| **17** — box marks                          | **Held**    | Accepted by the maintainer; unholds when its plan (bug 0445's fix) is filed |
+| **18** — boxes by section                   | **Held**    | Not accepted; after block 11 is planned                                     |
+
+**Carried to the plans' conditions** (from this section's review, not settled here): a decided
+reading for near-GFM spacings such as `[ x ]`; a row showing that block 5's unchosen direction is
+not reported; "prose" defined by the caller's named forms and region; `honestyAtClose`'s rebuild
+selecting frozen documents explicitly so its fixtures stay unchanged; block 18's three counts
+(documents, sections, boxes) and a depth-skip fixture; the normaliser's test shapes, including
+emphasis inside a value and a typographic apostrophe.
+
+**Plannable now**, as closable plans, in order: block 7; the kernel `notExist` and `beUniqueBy`
+(blocks 6 and 13, with gherkin's `haveUniqueTitles` rebuilt on `beUniqueBy`); block 12 with
+`isFrozen()`; block 17 as bug 0445's fix. **Not yet:** blocks 1 and 2 (after bug 0403, as two plans:
+the reader, then `haveField` with its resolver); block 5 (after the ADR in the second Review's
+decision 1; bug 0444's label option ships before it as a fix).
