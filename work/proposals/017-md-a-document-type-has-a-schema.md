@@ -1,7 +1,9 @@
 # Proposal 017 — md: a document type has a schema, and the corpus is bound together
 
 **State:** Draft — filed 2026-10-16 at the maintainer's request; revised the same day with a third
-adopter's evidence; rewritten the same day (see "Correction" below); not reviewed.
+adopter's evidence; rewritten the same day (see "Correction" below); reviewed the same day
+(architect · product · enforcement), **Ruling: Split and sequence** — see "Review — 2026-10-16", the
+operative section; no ask is accepted yet.
 **Priority:** Medium — the manifesto's Schema Layer is marked partial and its generic part is not
 built, so every adopter that wants a document checked for its shape writes the check by hand, and
 this repository does without one. No shipped rule claims to check a document's shape, so nothing
@@ -128,6 +130,15 @@ this repository's sabotage harness (31 probes).
   reference in that scope names an ADR that exists. None of these is checked today; a
   `[text](path)` link to the same record would be.
 
+  > **Correction (review, 2026-10-16).** "Names an ADR that exists" measured existence, not
+  > aboutness: 14 sites write "ts-archunit ADR-NNN", and each resolves to a local ADR of the same
+  > number that is a different decision (bug 0303's class). The instrument behind 2,190 / 117 / 29
+  > is not recorded here: it was a case-sensitive, singular `\b(bug|plan|spike|proposal) (\d{3,4})\b`
+  > over tracked `.md` files under `work/`, `adr/`, `docs/` and the root, keyed on numbered files in
+  > `work/`. The enforcement reviewer, counting case-insensitively with plurals, got 2,861 / 91 / 67;
+  > ranges ("bugs 0011–0024") and a spike that is a directory change the counts again. The numbers
+  > show the order of magnitude, not a rate.
+
 ## Existing code survey
 
 - **One type-specific schema exists, hand-written**: `adrEnforcement`
@@ -160,6 +171,14 @@ this repository's sabotage harness (31 probes).
   README's package table and the ADR index this way (`spec.rules.ts:64`, `spec.rules.ts:138`). No
   board in `work/` is bound to its records like this; this repository's bug board header counts are
   known to be stale.
+
+  > **Correction (review, 2026-10-16): false.** `scripts/check-corpus.mjs:489` onward binds
+  > `work/proposals/PROPOSALS.md`'s Board to every proposal file (row presence and Ruling drift,
+  > with an evidence guard at three levels), and `scripts/check-corpus.mjs:913` onward binds
+  > `work/README.md`'s Lanes table to the lane directories. What is unbound is the bug board's
+  > Status cell (bugs 0197 and 0244). The survey also missed proposal 001, which covers much of this
+  > ground; see the Review.
+
 - **Pointers by section do not exist.** Links by section do.
 - **Not in eess:** a document-type declaration; a field element; a field-value predicate on
   documents; a title condition; a requirement conditional on a field; a reference by identifier; a
@@ -325,3 +344,109 @@ of it:
 - **The kit shipping runnable gate scripts** for what exists today (`check:ledger`, `check:corpus`).
 - **Adopter 1's future ideas** (an impact oracle over a diff, a corpus query tool, a check tying
   each PR to a record, an MCP server). Product input, not asks here.
+
+## Review — 2026-10-16
+
+**Ruling: Split and sequence**
+
+Reviewed by three lenses (architect · product · enforcement) after a code survey; the reviews are
+summarised here, and the coordinator decided the ruling. The lenses returned "Rewrite needed (narrow),
+then split", "Split and sequence" and "Ship with changes". They agree on the substance: the gap is
+real and measured, the proposal is eight shippable things, and three of them cannot be planned until
+the record itself changes. "Split and sequence" is the ruling because the record is mostly right
+and several slices are ready now; what is not ready is held below with its condition, not sent back
+whole.
+
+### What the review found in the record
+
+- **The proposal duplicates proposal 001 without citing it.** Proposal 001 (eess-md: express a
+  corpus's own conventions; Ruling: Rewrite needed; Draft) measured the same problem on an earlier
+  adopter corpus: the `State`/`Status` split, filename patterns, requirements conditioned on a field,
+  board-to-file agreement, and `honestyAtClose` taking its label as an option. Its review decided
+  the point Ask B reopens: "finish `terms()`, don't add `fields()`", because `terms()`/`MdTerm`
+  already models the labelled-value line, and that a field element cannot carry presence, since a
+  document without the field yields no element and `required` is vacuously green. Its open questions
+  (aliases, frontmatter precedence, the field's region, the semver of `honestyAtClose`'s defaults) are
+  017's. Both the author's survey and the coordinator's missed it: they surveyed code, not the
+  proposal lane.
+- **Ask A fits ADR-006 only under a constraint the proposal does not state.** A declaration passed
+  to a preset function is a rule file if it is sugar over the public builders, and a second rule
+  language if its keys carry meaning found nowhere else. The drafted example does the second three
+  times: `when: 'present'` is a string conditional where the DSL has `Predicate<MdDocument>`;
+  `relations: 'wiki page'` names a type by a string where a value would be type-checked; and `says`
+  duplicates the builder's `because` and suggestion. Proposal 012's review drew the same line.
+- **Ask D over free prose cannot be made honest.** This repository's identifiers collide with those
+  of the project its engine was ported from, using the same words, so a per-type pattern plus a
+  foreign namespace cannot tell them apart: "(bug 0039)" in ADR-012 is the ported project's;
+  "plan 0103" in bug 0229 names what is a bug here; the 14 "ts-archunit ADR-NNN" sites resolve to
+  the wrong ADR. A per-line "not a reference" marker is an escape an agent can stamp to go green
+  (ADR-009 rule 3), and a warning is the release nobody reads (ADR-009 rule 1). This proposal's own
+  text would fail it.
+- **The vacuity guard covers one level of six.** "A type that selects no document fails" leaves green
+  a type whose glob silently skips a subfolder (`work/bugs/*.md` drops `fixed/`, where 23 of the 45
+  bugs without Severity sit), an optional field present nowhere (a misspelled declaration), a
+  conditional requirement selecting no document, a relation label no document carries, a reference
+  pattern matching nothing, and a stale exemption or foreign namespace (ADR-018's rule applied to
+  documents). eess-md is also outside the vacuity matrix (bug 0403), so a new eess-md constructor
+  called bare is proven empty-safe only by hand-written fixtures.
+- **One `says` per field is one sentence for several causes** (ADR-009 rule 2): absent, misspelled,
+  written without its colon (bug 0408), mid-paragraph (bug 0415), inside a fence, duplicated, or
+  aliased with a disagreeing value. Each needs its own message, and a remedy test that applies it.
+- **Widening the shared label grammar to read a heading changes two shipped readers** (the ledger's
+  state and `links().areLabelled()`) for every adopter; the heading form must be one a field opts
+  into, read through `MdSection`.
+- **Defaults cannot be unified silently.** `corpus()` freezes `completed` and `archived`;
+  `honestyAtClose` treats five folders as done. Making one list feed both freezes `fixed/`,
+  `wont-do/` and `delivered/`, whose pointers then stop being examined (bug 0253): a break toward
+  green. A declaration must be a new optional input; both existing options and defaults stay.
+- **The evidence is all work records.** Every adopter, and this repository, is a corpus of plans and
+  bugs. The generic claim is asserted by fixtures, not shown. Frontmatter, the main field form on
+  documentation sites and wikis, is parsed (`packages/md/src/model/prose.ts:24`) but not exposed on
+  `MdDocument`.
+- **Ask E's workflow-content half has no consumer** and is a different mechanism (a state graph, whose
+  notation is a state diagram, which is proposal 006's ground).
+- **G is the wrong grain as asked.** Exporting `buildDocument` exposes mdast in the public API and
+  yields a document where rules take a `Corpus`; what tests need is a corpus built from text, so
+  links and pointers resolve as they do on disk. The claim that it fixes adopter 3's 6 min 39 s is
+  unmeasured and is withdrawn.
+
+Placement: every ask is eess-md's. Nothing moves into the kernel until a second dialect asks;
+`documentType()` registers nothing globally, and `corpus()` does not learn about types (ADR-013's
+posture). Only `@nielspeter/eess-md` versions, a minor per slice, provided defaults stay.
+
+### Disposition, per ask
+
+| ask                                                                                                  | disposition       | owner or condition                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **E, header half** — `honestyAtClose` reads the lane's own state label                               | **Held**          | First a bug: with a corpus that writes `Status:`, no record has a readable state and the placement half never runs, while the preset reports nothing. Unholds when that bug is reproduced here and recorded; its fix (a label option and aliases, a finding when no record has a readable state) is the first slice. Defaults unchanged                                                                                                            |
+| **E, separable halves and a bound folder**                                                           | **Held**          | Unholds on the maintainer's go to plan it, after the bug above. Additive options only                                                                                                                                                                                                                                                                                                                                                              |
+| **G** — a corpus built from text, for tests                                                          | **Held**          | Reshaped from "export `buildDocument`" to an in-memory corpus whose links and pointers resolve as on disk. Unholds on the maintainer's go to plan it                                                                                                                                                                                                                                                                                               |
+| **C** — `haveSection` depth, `haveTitle`, a section's pointers                                       | **Held**          | Unholds on the maintainer's go to plan it. "A section holds a live pointer" is a presence condition on `docs()` plus the existing liveness check, not `pointers().areInSection()` alone, which is vacuous on a section with no pointer                                                                                                                                                                                                             |
+| **B** — fields                                                                                       | **Held**          | Unholds when this proposal reconciles with proposal 001 (extend `terms()`, presence as a dual-use `haveField` on `docs()`, or say with evidence why 001's review was wrong), and when open questions 1 and 2 (forms, span) are decided. Bugs 0408 and 0415 are inherited, and bug 0403 is a precondition                                                                                                                                           |
+| **A** — a document type                                                                              | **Held**          | Unholds when B, C and E have shipped and the ADR-006 constraint is written into the ask: every key compiles to a public builder rule, no check exists only in the declaration, every conditional is a predicate, every cross-type reference is a value, and a type takes plain conditions as an escape. The partition check is the default for every folder a type reaches into, and is built on an eess-md `notExist`. Bug 0403 is a precondition |
+| **D1** — references at declared positions (`Implements`, `Extends`, `deferred→`, a declared section) | **Held**          | Rides with A, since it uses A's identity; a join through the kernel's `correspondence()`, not a resolver in the declaration. Replaces `scripts/lib/proposal-ruling.mjs`'s reader and keeps plan 0406's check as the mechanism                                                                                                                                                                                                                      |
+| **D2** — references in free prose, as a gate                                                         | **Rejected**      | Cannot be falsifiable here (above). A free-prose census may return as an explicitly run diagnostic; that is a separate record, with its instrument written down                                                                                                                                                                                                                                                                                    |
+| **E, workflow content** — a document's own states and transitions                                    | **Rejected** here | No consumer, and a different mechanism; it belongs with proposal 006 (state diagrams) and plan 0078 if a consumer arrives                                                                                                                                                                                                                                                                                                                          |
+| **F** — a view bound to its documents                                                                | **Held**          | Docs and a preset, not new mechanism: lift `scripts/check-corpus.mjs:489` onward into a recipe. Unholds with H; bugs 0197 and 0244 own this repository's bug board                                                                                                                                                                                                                                                                                 |
+| **H** — presets, and this repository first                                                           | **Held**          | Each slice is adopted here, in report mode, as it ships. Unholds per slice. Before the first one, decide whether a schema checks frozen documents, because otherwise the frozen list becomes the lever that silences it                                                                                                                                                                                                                            |
+
+### Owed before planning B or A
+
+- Reconcile with proposal 001, in this record (above).
+- State a tier per ask: everything here is Tier 1 except the rejected D2, which would be Tier 4.
+- Add to the acceptance criteria: the six vacuity levels, each with a non-vacuity row driving this
+  repository's own gate as well as a fixture; a per-cause message for every field cause; a test per
+  mechanical remedy that applies it and asserts the finding clears; the empty-lane path of a fresh
+  kit install, which declares `.expectEmpty()` with an expiry rather than marking discovery owned
+  (bug 0285's class); and the fence edge cases this repository has already met (bugs 0288, 0289,
+  0293, 0416, 0435), with inline code spans decided.
+- Lead with an example from outside work records (a documentation site whose pages carry
+  frontmatter), and pick one noun for the labelled value: md already says `label` and `term`.
+
+### Records owed, outside this proposal
+
+- The `State:`-only silent pass, reproduced (first slice above).
+- `matchName` in `packages/md/src/model/query.ts` calls `.test()` on a caller's `RegExp` without
+  removing a `g` or `y` flag, so `lastIndex` carries between documents. To be reproduced and
+  recorded.
+- A kernel `notExist`: md has none, and mermaid and six ts builders each carry their own copy.
