@@ -8,7 +8,7 @@
   unfrozen in PR #218, when the post-merge architect and enforcement review found the line rule wrong
   after a mid-body comment and four decisions left to the builder. Every finding of that review is
   answered under "Decided at the re-freeze", which names where. The dogfood gate is
-  [plan 0427](../0427-this-repository-checks-its-mermaid-blocks-parse.md). Written 2026-10-14 against
+  [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md). Written 2026-10-14 against
   the 2026-10-14 review of proposal 006's Ask C, as plan B of that review's split;
   [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md) (A, eess-md)
   defines the port this plan's parser fills.
@@ -279,7 +279,7 @@ One PR, red-first.
 
 ## Dogfood row
 
-Moved to [plan 0427](../0427-this-repository-checks-its-mermaid-blocks-parse.md) at the freeze.
+Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) at the freeze.
 
 ## Files Changed
 
@@ -365,7 +365,7 @@ Each is overrulable.
   condition, removes public API and claims the family; it is written before bug 0426, outside this plan.
 - **A missing peer is a finding, never a throw at construction.** `mermaidParser()` never throws: its
   `version` is `'not installed'` or `'unreadable'` and its `parse` rejects with the remedy above.
-- **The dogfood gate is its own plan,** [0427](../0427-this-repository-checks-its-mermaid-blocks-parse.md).
+- **The dogfood gate is its own plan,** [0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md).
   This plan's own tests need the real `mermaid` and `jsdom`, so they become eess-mermaid's dev
   dependencies here, and this repository's CI pays the 179 MB with this plan.
 

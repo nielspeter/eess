@@ -80,6 +80,14 @@
  *                 drives parseCodeBlocks + codeBlocks().should().parse() with a stub
  *                 parser over bad-code-block-parse/; each row asserts its own finding's
  *                 message — the instrument rows share one rule id.
+ *   mermaid-parses/{manifesto-break,stale-exclusion,no-block,dot-directory,unsafe-path,
+ *                 untracked}
+ *                 (plan 0427, production script) scripts/check-mermaid-parses.mjs, the repo's own
+ *                 gate. manifesto-break adds a dangling `Route -->` to docs/manifesto.md's graph
+ *                 block and asserts the finding sits on that line; the other five run the gate
+ *                 from a scratch git repository: exclusions holding only valid blocks, every
+ *                 block excluded, a broken block under `.claude/`, a path with a glob
+ *                 character, and a broken block in a file not yet added.
  *   corpus/mermaid-parser/* (plan 0413, fixture tier) scripts/nonvacuity/bad-mermaid-parser.mjs
  *                 drives parseCodeBlocks with mermaidParser() over bad-mermaid-parser/, or with
  *                 the built create-mermaid-parser.js over a scratch copy of the built worker
@@ -199,7 +207,8 @@
  * the `validate` chain). Exits 0 iff every fixture fired on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 // Read, not duplicated: these are the sets that decide whether a kernel symbol
@@ -2387,6 +2396,145 @@ function gateCorpusPlanImplementsUnresolved() {
   )
 }
 
+// --- Gate: check:mermaid-parses (plan 0427) — production script ---
+// The real gate over the real tree for the parse rule; a scratch git repository for its two
+// guards, because the gate's population is what git tracks and this tree has no stale exclusion
+// and no shortage of blocks to plant one into without editing the gate itself.
+const MERMAID_PARSES = join(repoRoot, 'scripts', 'check-mermaid-parses.mjs')
+const MANIFESTO = join(repoRoot, 'docs', 'manifesto.md')
+const MANIFESTO_EDGE = /^( {4}Service --> Repository)$/m
+
+function gateMermaidParsesManifestoBreak() {
+  let brokenLine = 0
+  const rewrite = (text) => {
+    const next = text.replace(MANIFESTO_EDGE, '$1\n    Route -->')
+    brokenLine = next.split('\n').indexOf('    Route -->') + 1
+    return next
+  }
+  const { json, terminal } = withRewrittenFile(MANIFESTO, rewrite, () => ({
+    json: sh(process.execPath, [MERMAID_PARSES, '--format', 'json']),
+    terminal: sh(process.execPath, [MERMAID_PARSES]),
+  }))
+  ASSERTED_RULE_IDS.add('eess/mermaid-blocks-parse')
+  const onLine = violationsOf(json).some(
+    (v) =>
+      v?.ruleId === 'eess/mermaid-blocks-parse' &&
+      String(v?.file ?? '').endsWith('docs/manifesto.md') &&
+      v?.line === brokenLine &&
+      String(v?.message ?? '').includes('does not parse with mermaid'),
+  )
+  return {
+    ok: json.code === 1 && terminal.code === 1 && brokenLine > 0 && onLine,
+    detail:
+      `a dangling Route --> on docs/manifesto.md:${brokenLine} → json exit ${json.code}, ` +
+      `terminal exit ${terminal.code}, finding on that line: ${onLine}`,
+  }
+}
+
+/** Run the gate from a scratch git repository holding `files` (path → Markdown). */
+function runMermaidParsesIn(files, args = [], untracked = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'eess-nonvacuity-mermaid-parses-'))
+  try {
+    for (const [rel, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(dir, rel)), { recursive: true })
+      writeFileSync(join(dir, rel), text)
+    }
+    spawnSync('git', ['init', '-q'], { cwd: dir })
+    spawnSync('git', ['add', '-A'], { cwd: dir })
+    for (const [rel, text] of Object.entries(untracked)) writeFileSync(join(dir, rel), text)
+    const r = spawnSync(process.execPath, [MERMAID_PARSES, ...args], { cwd: dir, encoding: 'utf8' })
+    return {
+      code: r.status ?? 2,
+      out: `${r.stdout ?? ''}${r.stderr ?? ''}`,
+      stdout: r.stdout ?? '',
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+const VALID_MERMAID = '# a\n\n```mermaid\ngraph TD\n  A --> B\n```\n'
+const BROKEN_MERMAID = '# a\n\n```mermaid\ngraph TD\n  Route -->\n```\n'
+const EXCLUDED_TREES = [
+  'scripts/nonvacuity',
+  'packages/md/tests/fixtures',
+  'packages/crossvalidate/tests/fixtures',
+]
+/** One file under each exclusion, holding `text`. */
+const underEachExclusion = (text) =>
+  Object.fromEntries(EXCLUDED_TREES.map((tree) => [`${tree}/x.md`, text]))
+
+// Every exclusion holds only VALID blocks: each suppresses nothing, so each must be named. A
+// guard that counted blocks or documents instead of violations would pass this repository.
+function gateMermaidParsesStaleExclusion() {
+  const files = { 'a.md': VALID_MERMAID, ...underEachExclusion(VALID_MERMAID) }
+  const r = runMermaidParsesIn(files)
+  const named = EXCLUDED_TREES.filter((tree) =>
+    r.out.includes(`the exclusion '${tree}/**' suppresses no failing Mermaid block`),
+  )
+  // The machine stream carries the same findings, or an agent reading it sees a red exit and
+  // nothing that explains it.
+  const json = runMermaidParsesIn(files, ['--format', 'json'])
+  ASSERTED_RULE_IDS.add('eess/mermaid-exclusion-stale')
+  const inStream = violationsOf(json).filter(
+    (v) => v?.ruleId === 'eess/mermaid-exclusion-stale',
+  ).length
+  return {
+    ok: r.code === 1 && named.length === 3 && json.code === 1 && inStream === 3,
+    detail:
+      `exclusions holding only valid blocks → exit ${r.code}, ${named.length} of 3 named stale; ` +
+      `json exit ${json.code}, ${inStream} of 3 in the stream`,
+  }
+}
+
+// Every block is excluded: the run examined nothing and must not read as a pass.
+function gateMermaidParsesNoBlock() {
+  const r = runMermaidParsesIn(underEachExclusion(BROKEN_MERMAID))
+  const refused = r.out.includes('loaded zero units') && r.out.includes('0 mermaid blocks parsed')
+  return {
+    ok: r.code === 1 && refused && !r.out.includes('suppresses no failing'),
+    detail: `a repository whose every block is excluded → exit ${r.code}, refused as empty: ${refused}`,
+  }
+}
+
+// A broken block in a dot directory reds: `**` alone skips `.claude/` and `.changeset/`, so a
+// gate selecting by glob instead of by what git sees would pass this repository green.
+function gateMermaidParsesDotDirectory() {
+  const r = runMermaidParsesIn({
+    ...underEachExclusion(BROKEN_MERMAID),
+    '.claude/skills/x/SKILL.md': BROKEN_MERMAID,
+  })
+  const named = r.out.includes('.claude/skills/x/SKILL.md:5')
+  return {
+    ok: r.code === 1 && named && !r.out.includes('suppresses no failing'),
+    detail: `a broken block under .claude/ → exit ${r.code}, named on its line: ${named}`,
+  }
+}
+
+// A new file not yet added is checked: an author runs the gate before `git add`, and a gate
+// reading only the index would pass the diagram they just wrote.
+function gateMermaidParsesUntracked() {
+  const r = runMermaidParsesIn(underEachExclusion(BROKEN_MERMAID), [], { 'new.md': BROKEN_MERMAID })
+  const named = r.out.includes('new.md:5')
+  return {
+    ok: r.code === 1 && named,
+    detail: `a broken block in a file not yet added → exit ${r.code}, named on its line: ${named}`,
+  }
+}
+
+// A path the root glob would read as a pattern is refused, not checked as something else.
+function gateMermaidParsesUnsafePath() {
+  const r = runMermaidParsesIn({
+    ...underEachExclusion(BROKEN_MERMAID),
+    'a[1].md': VALID_MERMAID,
+  })
+  const refused = r.out.includes('a[1].md contains a glob character')
+  return {
+    ok: r.code === 1 && refused,
+    detail: `a tracked a[1].md → exit ${r.code}, refused: ${refused}`,
+  }
+}
+
 // --- Gate: corpus/adr-extends (plan 0406) — production tier (bug 0127) ---
 // The real `scripts/check-corpus.mjs` runs `beLinkedBack()` over the ADRs'
 // `**Extends:**` relation. Two sabotages of real ADRs, no probe file planted, so
@@ -3070,6 +3218,13 @@ const gates = [
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
   ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
+  // Plan 0427: the repository's own Mermaid gate.
+  ['mermaid-parses/manifesto-break', gateMermaidParsesManifestoBreak],
+  ['mermaid-parses/stale-exclusion', gateMermaidParsesStaleExclusion],
+  ['mermaid-parses/no-block', gateMermaidParsesNoBlock],
+  ['mermaid-parses/dot-directory', gateMermaidParsesDotDirectory],
+  ['mermaid-parses/unsafe-path', gateMermaidParsesUnsafePath],
+  ['mermaid-parses/untracked', gateMermaidParsesUntracked],
   ['corpus/adr-extends/one-way', gateCorpusExtendsOneWay],
   ['corpus/adr-extends/list-item', gateCorpusExtendsListItem],
   ['corpus/adr-extends/every-label-removed', gateCorpusExtendsEveryLabelRemoved],
@@ -3552,6 +3707,14 @@ const GATE_FOR = {
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
+  'check:mermaid-parses': [
+    'mermaid-parses/manifesto-break',
+    'mermaid-parses/stale-exclusion',
+    'mermaid-parses/no-block',
+    'mermaid-parses/dot-directory',
+    'mermaid-parses/unsafe-path',
+    'mermaid-parses/untracked',
+  ],
   'check:ledger': [
     'emitter/ledger-dead-check',
     'corpus/ledger/box',
