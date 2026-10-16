@@ -4,6 +4,8 @@
 
 **Accepted** (March 2026)
 
+[ADR-020](./020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) (Proposed 2026-10-16) would amend the runtime half of "No Bun" below: on acceptance, a package may claim Bun where CI checks it there. The toolchain half stands.
+
 ## Context
 
 ts-archunit is a TypeScript architecture testing library built on ts-morph (which wraps the TypeScript compiler API). We need to choose:
