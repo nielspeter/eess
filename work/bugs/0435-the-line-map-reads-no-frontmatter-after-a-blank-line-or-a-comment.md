@@ -40,6 +40,6 @@ Find the step and mirror it in the line map, then let the line canary hold a blo
 ## Verification
 
 - [ ] The step located in Mermaid's source
-- [ ] Red test first: the first block above is `invalid` on line 7
+- [ ] Red test first: the first block above is `invalid` on line 8, its `C --> --> D` line
 
 Deferred: none

@@ -3,8 +3,8 @@
 ## Status
 
 - **State:** Draft — recorded 2026-10-16 in plan 0413's PR, from its architect review. Not measured.
-- **Severity:** Low — no false green: the run is red. But the remedy ("install both peers") is wrong
-  for an adopter who has.
+- **Severity:** Low — no false green: the run is red. If the read fails as expected, the remedy
+  ("install both peers") is wrong for an adopter who has.
 - **Origin:** self-found · PR review of plan 0413, 2026-10-16.
 - **Reported:** 2026-10-16
 
@@ -13,9 +13,10 @@
 `mermaidParser()` reads the installed `mermaid`'s version from the first `<dir>/mermaid/package.json`
 among `createRequire(workerUrl).resolve.paths('mermaid')`
 (`packages/mermaid/src/mermaid-js/create-mermaid-parser.ts`, `declaredMermaid`). Under Yarn PnP
-there is no `node_modules` directory, so the read finds nothing and reports `'not installed'`. That
-contradicts plan 0413's rule that an installed `mermaid` is never reported as missing (ADR-009 rule
-2).
+there is no `node_modules` directory, so the read is expected to find nothing and report
+`'not installed'`, which would contradict plan 0413's rule that an installed `mermaid` is never
+reported as missing (ADR-009 rule 2). Not measured, and nor is whether the worker itself would
+resolve `mermaid` under PnP: if it would not, "not installed" may be right for another reason.
 
 ## Fix
 
