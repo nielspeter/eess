@@ -16,28 +16,32 @@ record and a plan. Time-boxed to an hour; it took about an hour. Bun 1.4.3, Node
 
 ## Result
 
-**1. One import stops 16 of 18 entry points.** Each entry was imported in its own `bun` process
-(a shared process caches the first failure):
+**1. One import stops 22 of the 28 published entry points.** Each entry in the six packages'
+`exports` was imported in its own `bun` process, against `main`'s build (a shared process caches
+the first failure). The first run of this spike probed only 18 of them; the 28 below were measured
+after the method review.
 
-- loads: `@nielspeter/eess`, `@nielspeter/eess-md/rules/adr`, `…/rules/ledger`,
-  `@nielspeter/eess-md/internal`, `@nielspeter/eess-gherkin`;
-- fails with `SyntaxError: Export named 'registerHooks' not found in module 'node:module'`:
-  `@nielspeter/eess/internal`, `@nielspeter/eess-md`, `@nielspeter/eess-mermaid`, every eess-ts
-  entry tried (`.`, `./presets`, `./graphql`) and all seven eess-crossvalidate entries.
+- loads (6): `@nielspeter/eess`, `@nielspeter/eess-md/rules/adr`, `…/rules/ledger`,
+  `@nielspeter/eess-md/internal`, `@nielspeter/eess-ts/rules/naming`, `@nielspeter/eess-gherkin`;
+- fails (22) with `SyntaxError: Export named 'registerHooks' not found in module 'node:module'`:
+  `@nielspeter/eess/internal`, `@nielspeter/eess-md`, `@nielspeter/eess-mermaid`, 12 of the 13
+  eess-ts entries (all but `./rules/naming`) and all seven eess-crossvalidate entries.
 
 The import is `packages/core/src/cli-config.ts:3`, `import { registerHooks } from 'node:module'`.
-`@nielspeter/eess/internal` re-exports `cli-config.js`, and every dialect reaches the kernel's
-internals through it, so a CLI concern sits on the load path of every library entry. Bun's
-`node:module` has no `registerHooks`. In a `.js` ES module a missing named import fails the whole
-graph at link time, even if it is never called; a `.ts` file under Bun does not fail, which is
-why the kernel's own suite (run from source) passes.
+`@nielspeter/eess/internal` re-exports `cli-config.js`, and an entry that reaches the kernel's
+internals through it links the CLI's hook, so a CLI concern sits on the load path of library
+entries such as `corpus()`. Bun's `node:module` has no `registerHooks`. In a `.js` ES module a
+missing named import fails the whole graph at link time, even if it is never called.
 
 In a private copy of the built packages, replacing that one import with a namespace import
 (`import * as nodeModule from 'node:module'`, then `nodeModule.registerHooks(...)` at the one call
-site) made **all 18 entries load**. Nothing else in any load path fails.
+site) made **all 28 entries load**. `@nielspeter/eess-ts/cli` runs the CLI when imported and exits
+non-zero with "No command specified", the same under Node. Recorded as
+[bug 0439](../bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md).
 
-**2. Yes: every real call measured answers the same.** One script, run under both runtimes against
-the patched copy, from the repository root:
+**2. Yes, by the counts compared.** One script, run under both runtimes against the patched copy,
+from the repository root at 65b9ce44. It compares one summary per call (a count, or that a value
+loaded), not the full violation lists:
 
 | call                                                            | Node                                | Bun           |
 | --------------------------------------------------------------- | ----------------------------------- | ------------- |
@@ -48,16 +52,17 @@ the patched copy, from the repository root:
 | `parseCodeBlocks(manifesto, mermaidParser())`                   | 1 block parsed with mermaid 11.17.2 | same          |
 | eess-ts `project(core)` + `classes().should().notExist()`       | 8 violations                        | 8 violations  |
 
-Bun was as fast or slightly faster on each.
+Bun was as fast or slightly faster on each. The corpus counts are this tree's; they move with it.
 
 **3. The CLI works, and the hook is not needed.** `eess-ts check` on a `.ts` rule file, run under
 each runtime from the patched copy: red with 8 violations and exit 1, or green with exit 0, the
 same under both. A rule file importing `./helper.js` where only `helper.ts` exists also loads under
-Bun. Bun substitutes `.js` → `.ts` itself, so `importRuleModule`'s retry
-(`packages/ts/src/cli/import-rule-module.ts:62`) never calls `enableTypeScriptSpecifierResolution`
-under Bun. `eess-mermaid --help` starts under both.
+Bun: the first import succeeds, so the retry that calls `enableTypeScriptSpecifierResolution`
+(`packages/ts/src/cli/import-rule-module.ts:62`) is not needed. That it is never reached is inferred
+from the first import succeeding; nothing instrumented it. If it were reached under the patch, it
+would throw `nodeModule.registerHooks is not a function`. `eess-mermaid --help` starts under both.
 
-**4. Every suite runs on Bun; 9 tests out of about 4,270 differ once the import is fixed.**
+**4. Every suite runs on Bun; 9 of the 4,881 tests differ once the import is fixed.**
 `bun --bun vitest run` puts vitest's workers on Bun: a test asserting on the runtime received
 `bun 1.4.3` with both the `forks` and `threads` pools, and `node v24.14.0` without `--bun`.
 
@@ -70,16 +75,26 @@ under Bun. `eess-mermaid --help` starts under both.
 | crossvalidate | 122/128   | 127/128                         |
 | ts            | 3957/3970 | 3968/3970                       |
 
+**A green suite on Bun does not prove the package loads under Bun.** eess-md's suite passed 300 of
+300 under `bun --bun vitest` on `main`'s build, the same build whose `@nielspeter/eess-md` entry
+fails to import under plain `bun`. The method review measured why: a one-test file importing the
+unpatched `dist/internal.js` passes under `bun --bun vitest`, asserting `Bun.version`, so vitest's
+module runner links what Bun itself refuses. The unpatched suite failures above presumably came
+through subprocesses that run the built bins under Bun; that was not traced.
+
 The 9 that remain:
 
 - **eess-ts watch mode reads a stale sibling.** `tests/cli/esm-sibling-import.test.ts`, "a second
   fresh load sees the edited sibling": `{ first: 'v1', second: 'v1' }` where Node gives `'v2'`.
-  The fresh-import trick does not bust Bun's module cache. A real defect for `--watch` under Bun.
+  A real defect for `--watch` under Bun, recorded as
+  [bug 0440](../bugs/0440-eess-ts-watch-mode-reads-a-stale-sibling-under-bun.md).
 - **eess-mermaid's missing-peer path rejects instead of resolving.** `tests/mermaid-parser.test.ts`,
   the two "the worker failing" tests about a missing `mermaid`, `jsdom` or one of their
   dependencies: the parse rejects with `MermaidParserFailure` where the test expects it to
   resolve. The remedy is right ("Install both peers", "`eess-absent-dependency`, … is missing"),
-  and a rejection is still a finding to eess-md, so it fails closed. Not yet explained.
+  and a rejection should still be a finding to eess-md: `parseCodeBlocks` turns a thrown parser into
+  "the parser threw" (`packages/md/src/model/code-block-parse.ts:320`). That is read from the code,
+  not run under Bun. Not yet explained.
 - **Four eess-mermaid CLI tests fail inside vitest only.** "check passes for a clean rule file",
   "explain dumps rules as JSON", "explain --markdown" and the bug 0269 CONTROL test: `exitCode` is
   1 where the test expects falsy. The same command run directly under Bun (`bun dist/cli/bin.js
@@ -102,12 +117,15 @@ So the 9 are 1 + 2 + 4 + 2: eess-mermaid 6, eess-crossvalidate 1, eess-ts 2.
   measured, and it alone made every entry load; the move was not built, so whether it alone
   suffices is the plan's to measure.
 - **What can honestly be in, from this spike:** the kernel, eess-md and eess-gherkin pass their
-  suites on Bun unpatched or patched. eess-ts passes all but watch mode and one Node-mechanism test.
-  eess-crossvalidate passes all but one Node-mechanism test. eess-mermaid has two unexplained
-  differences, and its CLI tests need a look before it is claimed.
-- **What "supported" means is the decision record's to rule**: a package supports Bun where CI runs
-  its suite on Bun and fails when it breaks, and tests that assert a Node mechanism are marked as
-  such rather than skipped silently.
+  suites on Bun (run unpatched only, which by the finding above proves less than it reads). eess-ts
+  passes all but watch mode and one Node-mechanism test. eess-crossvalidate passes all but one
+  Node-mechanism test. eess-mermaid has two unexplained differences, and its CLI tests need a look
+  before it is claimed.
+- **What "supported" means is the decision record's to rule.** This spike's measurement constrains
+  it: a suite run on Bun alone would have passed eess-md through every release that fails to load
+  under Bun. So any claim pairs the suite with a plain-`bun` import of every published entry (the
+  spike's `probe.sh` is that check), and tests that assert a Node mechanism are marked as such rather
+  than skipped silently.
 
 ## Not measured
 
