@@ -4,7 +4,9 @@
 adopter's evidence; rewritten the same day (see "Correction" below); reviewed the same day
 (architect · product · enforcement), **Ruling: Split and sequence** — see "Review — 2026-10-16";
 then its asks were rewritten the same day at the maintainer's instruction (see "Correction —
-2026-10-16, after the review"), so the revised asks are **not reviewed**; no ask is accepted.
+2026-10-16, after the review") and reviewed again (architect · product · enforcement · method),
+**Ruling: Split and sequence**; "Review — 2026-10-16 (second)" is the operative section. No block is
+accepted: none has a plan yet.
 **Priority:** Medium — the manifesto's Schema Layer is marked partial and its generic part is not
 built, so every adopter that wants a document checked for its shape writes the check by hand, and
 this repository does without one. No shipped rule claims to check a document's shape, so nothing
@@ -38,8 +40,8 @@ repository's bug record as the example, and planned presets inside eess-md. That
 documents, only more generously. The asks below are rewritten as building blocks that take the
 caller's own vocabulary and describe no kind of document, and the measure of the proposal is that
 they are complete: any kind of document can be checked from them without a hand-written condition.
-Examples and starting kits live outside eess-md. The reviewed asks (A to H) are in this file's
-history at `d3f1b08d`; the Review below maps them to the blocks.
+Examples and starting kits live outside eess-md. The reviewed asks (A to H) are kept below the first
+Review, as "Asks as first reviewed", and the Review maps them to the blocks.
 
 ## Problem
 
@@ -76,7 +78,7 @@ measure how far the blocks are from that today.
 Each finding below that names eess-md was re-checked against `main`; what is only an adopter's
 measurement says so.
 
-**Adopter 1 built a declarative schema** (done 2026-08-30, five review rounds, on eess-md 0.3.0):
+**Adopter 1 built a declarative schema** (on eess-md 0.3.0):
 about 450 lines of schema plus about 1,400 of checkers around it. Each document type's schema names
 the folder it classifies and the files it exempts; a pattern for the H1, or for the filename;
 required fields, each an allowed-value set or a pattern, with a value extractor; required sections
@@ -281,6 +283,11 @@ documents in this selection carry the same value under this label" is a finding 
 named. The kernel's `correspondence()` reports a key matching twice when two sides are joined; a
 single-sided uniqueness check over one selection is not stated anywhere.
 
+> **Correction (second review, 2026-10-16): false.** eess-gherkin ships one,
+> `haveUniqueTitles` (`packages/gherkin/src/builder.ts:20`), which reports a duplicate with the line
+> of the first. See the second Review: the block becomes a kernel condition with gherkin's built
+> on it.
+
 ### Binding the corpus together: links and cross-validation
 
 A document's shape is half the ask; the other half is that what it says agrees with what it names:
@@ -305,6 +312,14 @@ What exists, and where a fixed position limits it:
   (`packages/crossvalidate/src/md-mermaid-er.ts:91`) binds a table to an ER diagram. Each joins at a
   position the preset fixes; a caller whose runbook cites a test, or whose wiki page names a module,
   has no join.
+
+  > **Correction (second review, 2026-10-16): overstated.** `adrCitationsResolve` already takes
+  > `dir`, `section` and `mechanismColumn` (`packages/crossvalidate/src/md-ts.ts:12`), so it resolves
+  > titles cited in any table column under any heading in any folder; `scenarioCitationsResolve`
+  > scans the whole corpus by default and takes a caller's `extract`
+  > (`packages/crossvalidate/src/md-gherkin.ts:21`). What is
+  > missing is a citation outside a table (a labelled line, a list), the test and scenario sides as
+  > exported selections, and a name without "ADR" in it.
 
 **9. Every block's elements bind to any dialect.** The values of block 1 and the references of block
 4 expose `.select()`, so each is a side of `correspondence()` against any dialect's selection: a
@@ -380,8 +395,8 @@ green.
 Each of these is its own record, written after this proposal's review, and none is a precondition
 of it:
 
-- **Transitions over history**: a document moved from Draft to Done without passing Ready. E checks
-  a state and its folder at one commit; a transition is a fact about two commits.
+- **Transitions over history**: a document moved from Draft to Done without passing Ready. Block 5 checks
+  a value and its folder at one commit; a transition is a fact about two commits.
 - **A drift check** (a document's cited files changed after its "checked" date). Adopters 1 and 3
   both built one; adopter 3 now reports drift as a nudge and blocks only on its reader's faults (a
   shallow clone, a missing date).
@@ -391,7 +406,7 @@ of it:
   which makes its `examined` always 1: eess has no subject for a check over a set of facts.
 - **Ledger checks adopter 3 added**: a deferral names a record that exists and is live; a checklist
   box still open cites a live record; record ids are unique across types (the kit's `next-number
---check` covers numbers, not ids). D may cover the first two; they are recorded separately
+--check` covers numbers, not ids). Block 4 may cover the first two; they are recorded separately
   until it does.
 - **Defects adopter 3 reports in eess-md, to be reproduced here before they are recorded**:
   `taskItems()` misses nested boxes and `[~]`; `adrEnforcement` does not check its Status vocabulary,
@@ -513,12 +528,103 @@ posture). Only `@nielspeter/eess-md` versions, a minor per slice, provided defau
   recorded.
 - A kernel `notExist`: md has none, and mermaid and six ts builders each carry their own copy.
 
+### Asks as first reviewed
+
+The submission's asks as this Review read them, kept here because the asks above were rewritten
+after it (PROPOSALS.md: the submission is preserved, not edited away).
+
+> Each ask is generic over Markdown. The examples use three types on purpose: a bug record, a wiki
+> page, and the manifesto's workflow specification.
+>
+> **A. A document type is declared as data, once.** `documentType({ name, select, exempt, title,
+fields, sections, relations, states })`: `select` is the folders or name pattern that classify a
+> document as this type, `exempt` the files in those folders that are not of it (an index, a board),
+> and the remaining keys are B to E. A rule set built from the declarations reports a document that
+> two types claim, and, where a folder is declared fully typed, a document no type claims. Every
+> other rule in this proposal reads the type from the declaration rather than repeating its folders,
+> so no two lists can disagree (gap 5).
+>
+> ```ts
+> const bug = documentType({
+>   name: 'bug',
+>   select: { folder: 'work/bugs/**', exempt: ['BUGS.md'] },
+>   title: /^Bug \d{4} — /,
+>   fields: [
+>     { name: 'State', required: true, accepts: ['Draft', 'Ready', 'Done', "Won't-do"] },
+>     { name: 'Severity', required: true, accepts: ['Low', 'Medium', 'High'] },
+>   ],
+>   sections: [{ name: /^(Symptom|Problem)$/, depth: 2 }, { name: 'Root cause' }],
+> })
+> const wikiPage = documentType({
+>   name: 'wiki page',
+>   select: { folder: 'wiki/**' },
+>   sections: [{ name: 'See also', when: 'present', relations: 'wiki page' }],
+> })
+> ```
+>
+> **B. A document's fields are elements, read in every form a document uses.** `fields(corpus)`
+> selects every field of every document: the label grammar's forms, widened to a heading used as a
+> field (`## Label: value`) and to YAML frontmatter keys, read outside fenced code, over the whole
+> document. Each element carries its document, its type, label, raw text, normalised value and line,
+> and reports its own line. A field spec is data: `{ name, aliases, required, accepts, says }`, where
+> `accepts` is a value set or a pattern and `says` is the remedy a finding carries. The normaliser is
+> one tested owner, shared with the ledger, chosen per field (a word, a token, an integer, a date).
+> The reader is exported as a plain function as well, so a tool that only renders a board reads
+> fields the same way as the rule that checks them.
+>
+> **C. Structure is checked per type, and can depend on a field.** `haveSection` gains an optional
+> depth, and `haveTitle` tests the H1; a predicate `docs().that().haveFieldValue(label,
+valuesOrPattern)` makes "a fixed bug has a Verification section" one rule; `pointers()` gains
+> `areInSection()`, so "this section holds a live code pointer" composes. A type declares these in
+> `sections` and `title`, and they are built from the same conditions a hand-written rule uses.
+>
+> **D. A reference is resolved against the type it names, and a type declares the relationships it
+> allows.** A reference is any way one document names another: a link (read today), a reference by
+> identifier written as text ("bug 0439", "ADR-020", "proposal 013"), or a wikilink (proposal 015
+> owns reading it; this ask consumes what 015 reads). A type declares how its documents are named
+> (`bug NNNN`, `ADR-NNN`, a wiki page's title); a reference that names an identifier no document of
+> that type holds, or one another type holds, is a finding. `relations` declares what a type may
+> refer to under a label or in a section, and what must answer it: "a plan's `Implements` names a
+> proposal", "a wiki page's See also names wiki pages", "an ADR's `Extends` is linked back", the last
+> being plan 0406's check moved onto the declaration rather than a second mechanism beside it. A
+> namespace a corpus cites but does not hold (another project's numbers) is declared as foreign and
+> not resolved.
+>
+> **E. A type's lifecycle is declared, and placement follows it.** `states` names the state field
+> (any label, a list of aliases, or the heading form), its vocabulary, which states are terminal, and
+> which folder each state lives in, including a folder that is kept but bound to one state.
+> `honestyAtClose` reads that declaration instead of its fixed `State:` label and default folders, and
+> its state, box and placement checks can each run alone (gap 4). A workflow specification's own
+> states and transitions are the same declaration applied to its content rather than its header: a
+> type can require that the states its document lists include a terminal one and that every
+> transition names a declared state. Whether that second use is one mechanism or two is the
+> architect's question.
+>
+> **F. A view is bound to the documents it lists.** A board or an index is a table whose rows stand
+> for documents of a type. A type can declare its views, and the binding is built from `rows()` and
+> `correspondence()`, which exist: every live document of the type has a row, every row names a
+> document, and a row's state cell agrees with the document's state field. This ask may be met by a
+> preset and documentation rather than new mechanism; the review decides.
+>
+> **G. A public way to build a document from text**, for tests, so a fixture is neither a
+> hand-written literal that silently lacks fields nor a temporary directory that makes a suite slow
+> (gap 6).
+>
+> **H. Presets declare types, and this repository uses them first.** The working-method kit ships its
+> types (plan, bug, proposal, spike) as declarations built from A to F. The ADR type's declaration
+> cites `adrEnforcement` for its table instead of reimplementing it. This repository declares its own
+> types, binds `work/plans` and `work/bugs` to the format CLAUDE.md prescribes, resolves its own
+> references by identifier, reads `Ruling` and `Implements` through B instead of
+> `scripts/lib/proposal-ruling.mjs`'s own reader, or records why it cannot, and binds its boards. The
+> first run is in report mode, and its findings are fixed or the declaration corrected one by one,
+> never widened to go green.
+
 ### Revision after the review — 2026-10-16
 
 The asks were rewritten after this review at the maintainer's instruction (see "Correction —
-2026-10-16, after the review"). The dispositions above refer to the asks as reviewed at `d3f1b08d`.
-They map to the blocks as follows; the revised text has not been reviewed, and a review of it is
-owed before any block is planned.
+2026-10-16, after the review"). The dispositions above refer to the asks as first reviewed (kept above, from `d3f1b08d`, when this file was `work/proposals/017-md-a-document-type-has-a-schema.md`).
+They map to the blocks as follows. The revised text was then reviewed: see the second Review, whose
+disposition table supersedes the one above.
 
 | reviewed ask                          | now                                                                                                                                             |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -535,3 +641,134 @@ owed before any block is planned.
 | (new)                                 | block 6, a document no selection claims, with an eess-md `notExist`                                                                             |
 | (new, at the maintainer's request)    | blocks 9 and 10: elements of every block bind to any dialect through `correspondence()`, and a citation resolves at a position the caller names |
 | (new, from the completeness test)     | blocks 11 to 13: a rule per matching section, element rules limited to documents a predicate chooses, a value unique across a selection         |
+
+## Review — 2026-10-16 (second)
+
+**Ruling: Split and sequence**
+
+The revised asks (blocks 1 to 13) were reviewed by four lenses: architect and product returned
+"Split and sequence", enforcement "Ship with changes", and the method lens reviewed this record. The
+coordinator decided the ruling and the decisions below; each is recorded so it can be overruled.
+There is no third design round: what the reviews found are constraints on each block, not a
+redesign, so they are recorded here as the conditions a block's plan must meet, and the asks above
+are left as reviewed. This ruling supersedes the first Review's disposition table.
+
+**What held.** Both critical findings of the first review are resolved, not reworded: blocks 1 and
+2 extend `terms()` and put presence on `docs()`, as proposal 001's review ruled, and the document
+type declaration is gone, so ADR-006's config question does not arise. Free prose is not read. The
+vacuity, per-cause message and remedy criteria absorb the enforcement findings. Every count the
+method lens re-measured reproduced exactly, and every `path:line` pointer lands.
+
+**What the record got wrong, corrected above in place:** block 13's "not stated anywhere" (gherkin
+ships `haveUniqueTitles`); block 10's survey line (the crossvalidate presets already take a
+position); the pointer to the first-reviewed asks, which named a path that did not exist at that
+commit, and the asks themselves, which had been edited away and are now kept above. Also: the
+completeness test that found blocks 11 to 13 was a desk exercise over three kinds of document (a
+plan, a bug, a wiki page), not the four the criterion names, and produced no artefact; it is not a
+measurement. The first Review said the lenses "agree on the substance"; on references they did not
+(architect: a spike first; product: its own proposal after proposal 015; enforcement: declared
+positions as a gate, free prose as a diagnostic). The record adopted enforcement's position, which
+the revised block 4 follows. The first Review also dropped one architect finding, restored here:
+any preset built on these blocks takes one `{ report }` option and merges through
+`mergeCollectResults` (ADR-008, ADR-014).
+
+### Decisions
+
+1. **The principle is scoped by ADR-006's tiers.** The root of `@nielspeter/eess-md` fixes no
+   document shape. The existing presets under `rules/*` (`honestyAtClose`, `adrEnforcement`) stay,
+   so no adopter breaks, and owe a rebuild from public root blocks only: today
+   `packages/md/src/rules/ledger.ts:12` imports `collectTaskItems`, `labelPattern` and `proseText`
+   from `model/` and writes its own conditions, which is what adopters do by hand. New plan, bug or
+   wiki shapes ship as examples, never as eess-md exports. Whether the two presets later leave
+   eess-md is the maintainer's decision (a break). The principle is binding, so it is written as an
+   ADR extending ADR-006, with an arch rule that `rules/*` imports only the md root, before block 5
+   relates to `honestyAtClose` and before any default changes.
+2. **`corpus()`'s `DEFAULT_FROZEN`** (`packages/md/src/corpus.ts:53`, `completed/` and `archived/`)
+   is a document-shape default on the root primitive, and changes what `pointers()` examines (bug
+   0253). It is recorded as its own record; removing it reds corpora that relied on it, so it ships
+   as a flagged break with a migration line.
+3. **Examples live in `examples/`**, run by `check:examples` inside `validate`, not in `kit/`, which
+   is the working method's. An arch rule over them forbids constructing any predicate or condition
+   (`defineCondition`, `definePredicate`, or a literal with `test` or `evaluate`) and importing
+   `@nielspeter/eess/internal`; each example has a clean fixture and a violating fixture per
+   judgement it states, and is registered in `check:nonvacuity`. This makes the completeness test a
+   gate rather than a claim. Its closing proof is `honestyAtClose` rebuilt from public blocks with
+   its fixtures unchanged. `packages/md/README.md` links a worked documentation-site example, since
+   npm ships neither folder.
+4. **Block shapes, settled:**
+   - **4** is composition, not an element: a block-1 value or a block-11 section, joined through
+     `correspondence()` (whose `leftAmbiguous` is "names two documents"). A second labelled-value
+     reader is what 001's ruling forbids.
+   - **9** is documentation: every builder already inherits `.select()`
+     (`packages/core/src/rule-builder.ts:195`).
+   - **10** exports the test and scenario sides as selections, adds a citation on a labelled line,
+     and gives the general form a name without "ADR"; `adrCitationsResolve` becomes a caller of it.
+     No third vocabulary for positions.
+   - **12** is one md predicate, `inDocuments(p)`, over any element carrying `doc`, used through the
+     inherited `satisfy()`; it memoises per document and reports both counts (documents matched,
+     elements examined).
+   - **13** is a kernel condition (`beUniqueBy`), with gherkin's `haveUniqueTitles` rebuilt on it:
+     two dialects ask.
+   - **6** needs `notExist` in the kernel: mermaid and six ts builders each carry a copy, and md
+     would be the next. It is registered through the internal cardinality marker so it stays
+     unforgeable.
+   - **11** has one owner with block 3: sections become elements, derived from the same heading walk
+     links and tables use, and `haveSection` and `haveTitle` are built on them.
+5. **Blocks the walk is still missing**, added as asks: **14** what a section holds (non-empty, a
+   code block, a table, a list item, a link); **15** sections in a given order; **16** a value
+   agrees with the document's own path (a number in the filename and in the H1). A link's `#anchor`
+   resolving is a dependency, bug 0136, as wikilinks are proposal 015. Freshness ("reviewed within
+   N days") reads the clock, is Tier 3, and is out of scope.
+6. **Tiers.** Every block is Tier 1. Block 10 is Tier 1 because it proves a cited title exists, not
+   that the test proves the claim.
+7. **Proposal 001.** This proposal takes over 001's header-field ask and its conditional rules
+   (generalising what `honestyAtClose` hard-codes); 001 keeps `fileRefs()`, its temporal conditions
+   and `clauseEnforcement()`. Noted in 001.
+
+### Conditions every block's plan must meet
+
+From enforcement, beyond the acceptance criteria above:
+
+- A value present in a form or under an alias the caller did not name is its own cause ("found
+  `## Status:` at line N; add the heading form, or rewrite it"), never "absent": under no defaults it
+  is the commonest cause.
+- Block 4: a malformed value is its own cause, separate from one that names nothing; an
+  out-of-selection finding shows what the identifier does name; "names two documents" has a row.
+- Block 5: a document in a bound folder with no readable value is its own finding.
+- Block 12: a predicate selecting no document is a finding naming the predicate; zero elements over
+  matched documents is a finding unless declared; a row shows the scoped rule green where the
+  unscoped one is red.
+- Block 13: values compare through block 1's normaliser (`066` and `0066`); every member of a group
+  is named; the denominator is stated (values, not documents).
+- Block 11: a heading in a fence or an HTML block, a setext heading, a depth skip, and a heading in a
+  list or blockquote (which `buildDocument` does not read as a section) each have a fixture.
+- Preconditions: bug 0403, for eess-md and eess-crossvalidate both, before blocks 1, 5 and 10; bug
+  0116 (a citation resolving to a skipped test) before block 10; bugs 0400, 0402 and 0245 are named
+  in block 9's recipes as known limits of the join.
+- This repository adopts blocks 4 (its `Implements` reader), 5 (its lanes) and 13 (record numbers),
+  so those rows drive its own gates, not only fixtures.
+- `.expectEmpty()`'s expiry is the kernel's: it lapses once something is examined.
+
+### Disposition, per block
+
+| ask                                                                      | disposition       | condition                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The `State:`-only silent pass**                                        | **Held**          | Not this proposal's: a bug, reproduced and recorded first. Its fix reds corpora that pass today, so it ships as a flagged break                                                                           |
+| **7** — a corpus from text                                               | **Held**          | Ready: no finding blocks it. Unholds when a plan declaring `**Implements:** proposal 017` is filed                                                                                                        |
+| **6, 12, 13** — kernel `notExist`, md `inDocuments`, kernel `beUniqueBy` | **Held**          | Ready as shaped in decision 4. Unholds when a plan is filed; moves the kernel (a minor, re-exported per dialect, gated by `check:family`)                                                                 |
+| **11, 3, 14, 15** — sections as elements, depth, title, content, order   | **Held**          | Ready as shaped. Unholds when a plan is filed                                                                                                                                                             |
+| **1, 2** — labelled values, `haveField`                                  | **Held**          | Unholds when three open questions are decided: the noun (md already says `label` and `term`; block 2 adds `field`), where a value's span ends, and whether a block reads frozen documents. Bug 0403 first |
+| **5** — a value agrees with its folder                                   | **Held**          | After 1 and the ADR in decision 1; `honestyAtClose`'s placement half is then rebuilt on it, so there is one placement check                                                                               |
+| **4, 10, 16** — references, citations, path agreement                    | **Held**          | After 1 and 11; 10 after bug 0116                                                                                                                                                                         |
+| **8, 9** — recipes                                                       | **Held**          | Documentation, any time after the blocks they show exist                                                                                                                                                  |
+| **The examples and the completeness gate** (decision 3)                  | **Held**          | With the first block that ships, then grows with each                                                                                                                                                     |
+| **References in free prose**                                             | **Rejected**      | Unchanged from the first Review                                                                                                                                                                           |
+| **A document's own states and transitions**                              | **Rejected** here | Unchanged; proposal 006 and plan 0078 if a consumer arrives                                                                                                                                               |
+
+### Records owed, outside this proposal
+
+- The `State:`-only silent pass, reproduced.
+- `corpus()`'s frozen default (decision 2).
+- `matchName` keeps a caller's `g` or `y` flag between documents, in two copies:
+  `packages/md/src/model/query.ts:4` and `packages/crossvalidate/src/md-ts.ts:32`. To be reproduced.
+- The ADR in decision 1.
