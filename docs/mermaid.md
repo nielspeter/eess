@@ -91,8 +91,8 @@ console.error(parsed.summary()) // "N mermaid blocks parsed with mermaid 11.17.2
 **What it costs.** `mermaid` and `jsdom` are optional peers, about 179 MB installed (`mermaid` is
 83 MB, `jsdom` 8.3 MB, the rest their dependencies). Nothing loads them until `parse` runs, and
 then only inside a worker thread, so the DOM globals Mermaid needs never reach your test process.
-A worker's start-up is about half a second; spike 0411 parsed 39 blocks in 0.6 to 1 s, start-up
-included.
+A worker's start-up is about half a second: one run of 39 blocks (fourteen fences, repeated)
+measured 588 ms, start-up included, and two re-runs 0.78 s and 0.99 s.
 
 **What it reports.** A block Mermaid accepts is valid. For one it rejects:
 
@@ -100,8 +100,9 @@ included.
 | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | a syntax error                                                      | `invalid`, on the block's Markdown line                                       |
 | a misspelt kind, or one not in core Mermaid (`zenuml`)              | `unrecognised`: check the spelling, or it needs a newer `mermaid` or a plugin |
-| empty, or nothing but comments, directives or frontmatter           | `unrecognised`, saying which                                                  |
+| empty, or nothing but comments, directives or frontmatter           | `unrecognised`, with a remedy for each                                        |
 | frontmatter Mermaid cannot read: no closing `---`, or none after it | `invalid`, on the block's first line                                          |
+| frontmatter whose YAML does not parse                               | `invalid`, on the line js-yaml names                                          |
 | a `%%{` directive never closed                                      | `unrecognised`                                                                |
 
 Everything else is the instrument, one finding that says no block was judged, naming its cause:
@@ -129,6 +130,11 @@ catches only a change in what those blocks hold.
   stopped throwing. A regression confined to another kind passes them.
 - **A stub can still lie.** A parser that answers `valid` for everything except its own canaries
   passes; the canaries make a forged pass deliberate, not impossible.
+- **Mermaid's own limits are the instrument.** A flowchart of more than 500 edges is refused by
+  Mermaid's `maxEdges`; that error is not a syntax error, so it is reported as the instrument,
+  naming the block.
+- **The installed version is read from `node_modules`.** Under Yarn Plug'n'Play an installed
+  `mermaid` would read as not installed (not measured).
 - **No block, no parse.** When the corpus has no ` ```mermaid ` block, nothing is parsed, so a
   missing `mermaid` is not reported: the rule reports that it examined nothing, or, with
   `.expectEmpty()`, passes having judged nothing.

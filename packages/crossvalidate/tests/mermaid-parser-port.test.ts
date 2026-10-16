@@ -4,7 +4,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
-import { codeBlocks, corpus, parseCodeBlocks, type CodeBlockParser } from '@nielspeter/eess-md'
+import {
+  codeBlocks,
+  corpus,
+  parseCodeBlocks,
+  type CodeBlockBudget,
+  type CodeBlockParser,
+  type CorpusOptions,
+} from '@nielspeter/eess-md'
 import { mermaidParser } from '@nielspeter/eess-mermaid'
 
 // Plan 0413: eess-mermaid's `mermaidParser()` fills eess-md's code-block parser port (plan 0412).
@@ -37,6 +44,15 @@ function markdown(blocks: readonly string[]): { cwd: string; fenceLines: number[
 const P = (lines: readonly string[]): string => lines.join('\n')
 
 describe("mermaidParser() fills eess-md's parser port", () => {
+  // Its remedies tell the author to change eess-md options by name; these fail the typecheck if
+  // eess-md renames them.
+  it('names eess-md options in its remedies that eess-md has', () => {
+    const budget: Required<CodeBlockBudget> = { startUpMs: 1, perBlockMs: 1 }
+    const options: Pick<CorpusOptions, 'ignore'> = { ignore: [] }
+    expect(Object.keys(budget)).toEqual(['startUpMs', 'perBlockMs'])
+    expect(options.ignore).toEqual([])
+  })
+
   it('is a CodeBlockParser by type, and runs the two-line example', async () => {
     const parser: CodeBlockParser = mermaidParser()
     const { cwd } = markdown([
@@ -148,14 +164,16 @@ describe('mermaidParser() in other hosts', () => {
       timeout: 30_000,
     })
 
-  // Each path settles, then the script does nothing: it exits only if the worker was terminated.
+  // Each path settles, then the script does nothing. On success, failure and abort the worker keeps
+  // a timer alive, so the script exits only if the host terminated it. On exit the worker is already
+  // gone: that row proves nothing else keeps the host alive.
   for (const [path, says] of [
     ['success', 'SETTLED resolved [{"outcome":"valid"}]'],
-    ['failure', 'SETTLED rejected the Mermaid worker could not load jsdom'],
+    ['failure', 'SETTLED rejected the Mermaid worker could not load: Cannot find package'],
     ['exit', 'SETTLED rejected the Mermaid worker exited (code 7) without a result'],
     ['abort', 'SETTLED rejected the Mermaid worker did not start parsing'],
   ] as const) {
-    it(`terminates the worker after ${path}, and the host process exits`, () => {
+    it(`settles after ${path}, and the host process exits`, () => {
       const result = settle(path)
       expect(result.signal, `${path} did not exit on its own`).toBeNull()
       expect(result.status, result.stderr).toBe(0)
@@ -164,13 +182,13 @@ describe('mermaidParser() in other hosts', () => {
   }
 
   it('reports the version a resolve hook loads when it is not the installed one', () => {
-    const result = settle('success', ['--import', join(FIXTURES, 'hook', 'register.mjs')])
+    const result = settle('real', ['--import', join(FIXTURES, 'hook', 'register.mjs')])
     expect(result.status, result.stderr).toBe(0)
     expect(result.stdout).toContain(
       'SETTLED rejected the Mermaid worker loaded mermaid 11.99.0, but mermaid 11.17.2 is installed',
     )
     expect(result.stdout).toContain('check for a loader hook that redirects it')
     // Cleared: the same run without the hook.
-    expect(settle('success').stdout).toContain('SETTLED resolved')
+    expect(settle('real').stdout).toContain('SETTLED resolved')
   }, 60_000)
 })

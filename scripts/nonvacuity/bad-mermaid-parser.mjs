@@ -9,7 +9,7 @@
  * With the real mermaid, over bad-mermaid-parser/:
  *   mid-body            a syntax error after two mid-body comments → its exact Markdown line, 8.
  *   trailing-comment    a block with a trailing `%%` comment → no line claimed, Mermaid's quoted.
- *   empty, no-kind, unclosed-frontmatter, misspelt, zenuml
+ *   empty, no-kind, unclosed-frontmatter, unclosed-directive, misspelt, zenuml
  *                       each → its own remedy.
  * With the built code sabotaged by the harness (the row passes when this goes red):
  *   ok-wins             Mermaid's `ok` no longer wins → the lone-`\r` block (bug 0434) is reported, as
@@ -19,7 +19,7 @@
  *   line-canary         one line-map behaviour removed → "line map, written for mermaid 11.17.2,
  *                       disagrees".
  * Against a scratch worker:
- *   missing-peer, missing-dependency, early-exit, out-of-range, unreadable, loaded-not-declared,
+ *   missing-peer, missing-jsdom, missing-dependency, early-exit, out-of-range, unreadable, loaded-not-declared,
  *   stops-throwing, non-parse-throw, non-result, hang
  *                       each → its own cause's text.
  *
@@ -110,10 +110,15 @@ const SCENARIOS = {
   zenuml: remedy('zenuml', 'needs a newer `mermaid` or a plugin'),
   // An accepted block's fact carries no message, so the block read past `ok` reaches eess-md as a
   // verdict with an empty one: the finding names it as text 4 (eess-md's three canaries come first).
-  'ok-wins': { dir: 'ok-wins', found: instrument("the parser's answer for text 4") },
+  'ok-wins': {
+    dir: 'ok-wins',
+    found: instrument("the parser's answer for text 4 has an empty message"),
+  },
   'dom-shim': {
     dir: 'labelled',
-    found: instrument('at the block at scripts/nonvacuity/bad-mermaid-parser/labelled/labelled.md:3'),
+    found: (vs) =>
+      instrument('at the block at scripts/nonvacuity/bad-mermaid-parser/labelled/labelled.md:3')(vs) &&
+      instrument('does not recognise as a syntax error')(vs),
   },
   'line-canary': {
     dir: 'valid',
@@ -123,6 +128,14 @@ const SCENARIOS = {
     dir: 'valid',
     worker: () => scratch({}),
     found: instrument('mermaid is not installed where eess-mermaid can resolve it'),
+  },
+  'unclosed-directive': remedy('unclosed-directive', 'is never closed with `}%%`'),
+  'missing-jsdom': {
+    dir: 'valid',
+    worker: () => scratch({ mermaid: 'real' }),
+    found: (vs) =>
+      instrument('could not load jsdom')(vs) &&
+      vs.some((v) => v.suggestion === 'Install both peers: `npm i -D mermaid@11 jsdom`.'),
   },
   'missing-dependency': {
     dir: 'valid',

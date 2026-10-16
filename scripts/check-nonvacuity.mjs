@@ -86,7 +86,9 @@
  *                 with a stub, absent or real mermaid; each row asserts its own cause or line.
  *                 The ok-wins, dom-shim and line-map/* rows first rewrite a file of
  *                 packages/mermaid/dist (MERMAID_PARSER_SABOTAGE) and pass when the fixture goes
- *                 red on a block that is fine.
+ *                 red on a block that is fine. A killed run can leave a dist file sabotaged, which
+ *                 check:integrity cannot see (dist is untracked); every sabotage reds, never
+ *                 greens, and the next build restores it.
  *   corpus/adr-extends/{one-way,list-item,every-label-removed} (production script — bug 0127)
  *                 (plan 0406) ADR-010 rewritten with no link to ADR-014 → a
  *                 corpus/adr-extends-linked-back finding on ADR-014 naming ADR-010;
@@ -2495,11 +2497,13 @@ function gateCorpusExtendsEveryLabelRemoved() {
  * (measured; the `trimStart` row below stands in for it).
  */
 const MERMAID_PARSER_SABOTAGE = [
+  // Bug 0409's regression: the preamble read before Mermaid's acceptance, so a block Mermaid accepts
+  // and the walk misreads is reported.
   [
     'ok-wins',
     'mermaid-js/create-mermaid-parser.js',
-    "if (fact.shape === 'ok')",
-    'if (false)',
+    "case 'ok':\n            return { outcome: 'valid' };",
+    "case 'ok':\n            if (diagramPreamble(text).reason === 'declared')\n                return { outcome: 'valid' };\n            break;",
     'ok-wins',
   ],
   [
@@ -2913,6 +2917,15 @@ const gates = [
   [
     'corpus/mermaid-parser/non-result',
     () => gateNode('bad-mermaid-parser.mjs', 'non-result: reported', ['non-result']),
+  ],
+  [
+    'corpus/mermaid-parser/unclosed-directive',
+    () =>
+      gateNode('bad-mermaid-parser.mjs', 'unclosed-directive: reported', ['unclosed-directive']),
+  ],
+  [
+    'corpus/mermaid-parser/missing-jsdom',
+    () => gateNode('bad-mermaid-parser.mjs', 'missing-jsdom: reported', ['missing-jsdom']),
   ],
   [
     'corpus/mermaid-parser/hang',
@@ -3509,6 +3522,8 @@ const GATE_FOR = {
     'corpus/mermaid-parser/non-parse-throw',
     'corpus/mermaid-parser/non-result',
     'corpus/mermaid-parser/hang',
+    'corpus/mermaid-parser/unclosed-directive',
+    'corpus/mermaid-parser/missing-jsdom',
     'corpus/mermaid-parser/ok-wins',
     'corpus/mermaid-parser/dom-shim',
     'corpus/mermaid-parser/line-map/comment-leading-blanks',

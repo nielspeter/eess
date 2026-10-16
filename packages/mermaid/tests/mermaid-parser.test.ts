@@ -75,6 +75,12 @@ const NEVER_THROWS = stubMermaid('async () => ({ diagramType: "flowchart" })')
 
 const run = (budgetMs = 60_000, signal = new AbortController().signal) => ({ signal, budgetMs })
 
+/** As eess-md calls a parser: its own canaries first, then the blocks. */
+const withCanaries = (
+  parser: { canaries: readonly { text: string }[] },
+  texts: readonly string[],
+) => [...parser.canaries.map((c) => c.text), ...texts]
+
 /** The parse's rejection, by shape: what eess-md reads. */
 async function rejection(
   promise: Promise<unknown>,
@@ -231,7 +237,45 @@ describe('mermaidParser(), the real mermaid in a worker', () => {
     expect(verdicts).toEqual([{ outcome: 'valid' }])
   }, 30_000)
 
-  // Spike 0428's mapped blocks: [block, the true body line of its error].
+  // Mermaid found a diagram to parse, so its placed syntax error outranks the walk, which reads no
+  // kind here (bug 0434).
+  it('reads a syntax error Mermaid places as invalid even where the walk reads no kind', async () => {
+    const verdicts = await mermaidParser().parse(
+      ['%% c\rflowchart TD\r  A --> B\r  C --> --> D'],
+      run(),
+    )
+    expect(verdicts).toEqual([expect.objectContaining({ outcome: 'invalid', line: 4 })])
+  }, 30_000)
+
+  it('reads frontmatter Mermaid cannot read as YAML as invalid, on the YAML line', async () => {
+    const verdicts = await mermaidParser().parse(
+      [
+        P(['---', 'title: [x', '---', 'flowchart TD', '  A --> B']),
+        P(['---', 'a: 1', '  b: 2', '---', 'flowchart TD', '  A --> B']),
+      ],
+      run(),
+    )
+    for (const verdict of verdicts) {
+      expect(verdict).toMatchObject({
+        outcome: 'invalid',
+        line: 3,
+        remedy: "Fix the frontmatter's YAML at this line; Mermaid's message is above.",
+      })
+    }
+  }, 30_000)
+
+  it('answers for a block of several hundred kilobytes without overflowing', async () => {
+    // One long run before a comment: the line map once spread a run that size into `push`.
+    // A sequence diagram, since Mermaid caps a flowchart at 500 edges.
+    const messages = Array.from({ length: 25_000 }, (_, i) => `  A->>B: message ${String(i)}`)
+    const text = P(['sequenceDiagram', ...messages, '  %% c', '  A->>'])
+    expect(text.length).toBeGreaterThan(300_000)
+    const verdicts = await mermaidParser().parse([text], run())
+    expect(verdicts).toEqual([
+      expect.objectContaining({ outcome: 'invalid', line: messages.length + 3 }),
+    ])
+  }, 30_000)
+
   const lines: readonly (readonly [string, number])[] = [
     [P(['flowchart TD', '  A --> B', '  %% c', '  %% c', '  C --> --> D', '  E --> F']), 5],
     [P(['flowchart TD', '  A --> B', '%%', '  C --> --> D', '  E --> F']), 4],
@@ -310,7 +354,7 @@ describe('mermaidParser(), the real mermaid in a worker', () => {
 const CANARY_AWARE = `
 const fail = (message, extra) => { throw Object.assign(new Error(message), extra) }
 function lineCanary(text) {
-  if (text.startsWith('---\\ntitle: x')) fail('canary 1', { hash: { loc: { first_line: 6 }, line: 5 } })
+  if (text.startsWith('---\\ntitle: x')) fail('canary 1', { hash: { loc: { first_line: 7 }, line: 6 } })
   if (text.includes(']]]')) fail('canary 2', { hash: { line: 2 } })
   if (text.startsWith('packet-beta') && text.includes('11-x')) fail('canary 3', { result: { lexerErrors: [{ line: 3 }], parserErrors: [] } })
 }`
@@ -374,11 +418,56 @@ describe('mermaidParser() against a stub mermaid', () => {
     expect(verdicts.every((v) => v.outcome === 'valid')).toBe(true)
   }, 30_000)
 
+  it('reports a line-canary block Mermaid accepts as the instrument', async () => {
+    const parser = createMermaidParser({
+      workerUrl: scratchWorker({
+        // Accepts line-canary block 1; rejects everything else, its own canaries included.
+        mermaid: stubMermaid(
+          `async (text) => { if (text.startsWith('---')) return {}; lineCanary(text); fail('no line', { hash: {} }) }`,
+          '11.17.2',
+          CANARY_AWARE,
+        ),
+        jsdom: STUB_JSDOM,
+      }),
+    })
+    const failure = await rejection(parser.parse(withCanaries(parser, ['flowchart TD']), run()))
+    expect(failure.message).toContain('mermaid 11.17.2 accepted line-canary block 1')
+    expect(failure.remedy).toBe('Install `mermaid@11.17.2`, and report the version to eess.')
+  }, 30_000)
+
+  it('reports a line-canary block rejected with no syntax error as the instrument, quoting Mermaid', async () => {
+    const parser = createMermaidParser({
+      workerUrl: scratchWorker({
+        mermaid: stubMermaid(
+          `async (text) => { if (text.startsWith('---')) fail('DOMPurify.sanitize is not a function'); lineCanary(text); return {} }`,
+          '11.17.2',
+          CANARY_AWARE,
+        ),
+        jsdom: STUB_JSDOM,
+      }),
+    })
+    const failure = await rejection(parser.parse(['flowchart TD'], run()))
+    expect(failure.message).toContain(
+      'rejected line-canary block 1 with something that is not a syntax error: DOMPurify.sanitize is not a function',
+    )
+  }, 30_000)
+
+  it('prefers the parse error location over the lexer line when they disagree', async () => {
+    const parser = createMermaidParser({
+      workerUrl: scratchWorker({
+        mermaid: answering(`fail('both', { hash: { loc: { first_line: 4 }, line: 9 } })`),
+        jsdom: STUB_JSDOM,
+      }),
+    })
+    const verdicts = await parser.parse([P(['flowchart TD', 'a', 'b', 'c', 'd', 'e'])], run())
+    expect(verdicts).toEqual([expect.objectContaining({ outcome: 'invalid', line: 4 })])
+  }, 30_000)
+
   it('reds the line canary when the map disagrees with mermaid, naming both versions', async () => {
     const parser = createMermaidParser({
       workerUrl: scratchWorker({
         mermaid: stubMermaid(
-          `async (text) => { if (text.startsWith('---')) fail('moved', { hash: { loc: { first_line: 7 } } }); lineCanary(text); return {} }`,
+          `async (text) => { if (text.startsWith('---')) fail('moved', { hash: { loc: { first_line: 8 } } }); lineCanary(text); return {} }`,
           '11.20.0',
           CANARY_AWARE,
         ),
@@ -413,7 +502,9 @@ describe('the version mermaidParser() names', () => {
     const cleared = createMermaidParser({
       workerUrl: scratchWorker({ mermaid: NEVER_THROWS, jsdom: STUB_JSDOM }),
     })
-    await expect(cleared.parse(['flowchart TD'], run())).resolves.toHaveLength(1)
+    await expect(
+      cleared.parse(withCanaries(cleared, ['flowchart TD']), run()),
+    ).resolves.toHaveLength(4)
   }, 30_000)
 
   it('reports a mermaid outside major 11 as the instrument, and a major 11 prerelease clears it', async () => {
@@ -434,7 +525,9 @@ describe('the version mermaidParser() names', () => {
         jsdom: STUB_JSDOM,
       }),
     })
-    await expect(cleared.parse(['flowchart TD'], run())).resolves.toHaveLength(1)
+    await expect(
+      cleared.parse(withCanaries(cleared, ['flowchart TD']), run()),
+    ).resolves.toHaveLength(4)
   }, 30_000)
 })
 
@@ -483,9 +576,8 @@ describe('the worker failing', () => {
       JSON.stringify({ name: 'eess-absent-dependency', type: 'module', exports: './index.mjs' }),
     )
     writeFileSync(join(dep, 'index.mjs'), 'export {}')
-    await expect(createMermaidParser({ workerUrl: url }).parse(['x'], run())).resolves.toHaveLength(
-      1,
-    )
+    const cleared = createMermaidParser({ workerUrl: url })
+    await expect(cleared.parse(withCanaries(cleared, ['x']), run())).resolves.toHaveLength(4)
   }, 30_000)
 
   it('names the block in flight when the worker exits without a result', async () => {
@@ -530,6 +622,17 @@ describe('the worker failing', () => {
     await expect(
       parser.parse(['flowchart TD', 'flowchart TD\n  SLOW'], run(20_000)),
     ).resolves.toHaveLength(2)
+  }, 30_000)
+
+  it('honours a signal that is already aborted', async () => {
+    const url = scratchWorker({ mermaid: NEVER_THROWS, jsdom: STUB_JSDOM })
+    const failure = await rejection(
+      createMermaidParser({ workerUrl: url }).parse(
+        ['flowchart TD'],
+        run(60_000, AbortSignal.abort()),
+      ),
+    )
+    expect(failure).toMatchObject({ blockIndex: null, remedy: 'Raise `budget.startUpMs`.' })
   }, 30_000)
 
   it('names start-up when the budget runs out before the first block', async () => {

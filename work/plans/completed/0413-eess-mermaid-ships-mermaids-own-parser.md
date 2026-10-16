@@ -414,43 +414,99 @@ Each is overrulable. Where the build departs from the text above, the text above
 - **Unclosed frontmatter is Mermaid's own test.** A block is `unclosed-frontmatter` when the text
   left after the line map's preprocessing still begins with `---`, which is the test Mermaid's
   `---` diagram detector applies (`dist/mermaid.core.mjs`, `t.toLowerCase().trimStart().startsWith("---")`).
-  That is narrower than "the first line is `---` and the frontmatter regex does not match" only in
-  being exact. Closed frontmatter with nothing after its `---` and no newline is this reason, and
-  the remedy names the newline and the diagram; with a newline it is `no-kind-after-preamble`, as
-  Mermaid throws `UnknownDiagramError` for it (spike 0428 Q5).
+  It differs from "the first line is `---` and the frontmatter regex does not match" in two ways:
+  closed frontmatter with nothing after its `---` and no newline is this reason (Mermaid throws its
+  `---` error for it), and so is a `---` reached after a leading comment
+  (`%% c\n---\nflowchart TD`), whose first line is not `---`. The remedy names the closing line, the
+  newline and the diagram. Closed frontmatter, a newline and nothing after it is
+  `no-kind-after-preamble`, as Mermaid throws `UnknownDiagramError` for it (spike 0428 Q5).
+- **A syntax error Mermaid places outranks the preamble.** A jison or Langium error means Mermaid
+  found a diagram to parse, so the block is `invalid` at the mapped line whatever the walk read. The
+  preamble reasons decide only an `UnknownDiagramError` or another throw. Before this, a lone-`\r`
+  block with a syntax error got "declares no diagram" (PR review, enforcement I3; bug 0434).
+- **Frontmatter Mermaid cannot read as YAML is the author's, on its line.** The worker posts a
+  seventh shape, `yaml`, for an error whose `name` is `YAMLException` (js-yaml's), with its
+  `mark.line`; the verdict is `invalid` at `mark.line + 2`, since Mermaid reads frontmatter only from
+  the block's first line. It was "a throw that is not a syntax error", the instrument, which
+  withheld every block's verdict for an author's typo (PR review, enforcement I2; measured on
+  `title: [x` and a bad indentation, both line 3).
 - **The trailing-comment test reads the text after the frontmatter and directive steps.** Read on
   the raw block, "a `%%` after something other than whitespace" matches every directive's own
   closing `}%%` and would withhold the line in every block with a directive, against the line rows.
-- **The line canary judges only a syntax error's line.** A line-canary block rejected with another
-  shape (a `mermaid` that cannot load its DOM throws on every block) is left to the outcome table,
-  which reports the cause. Read as "rejected, but not on its known line", it would have told that
-  adopter to install `mermaid@11.17.2`.
+- **A line-canary block that checks nothing is the instrument.** One Mermaid accepts reports "mermaid
+  X accepted line-canary block N … the line map cannot be checked against it"; one rejected with
+  anything but a syntax error reports Mermaid's own message, not the line map, so a `mermaid` that
+  cannot load its DOM is not told to install 11.17.2. The exception the frozen text gave stays, made
+  precise: when Mermaid also accepted one of this parser's own canaries, it has stopped throwing,
+  and eess-md's canaries report it. The blocks are classified before the line canary is checked, so
+  a throw in a corpus block is named as that block. (The first build skipped both cases silently;
+  PR review, enforcement I1.)
+- **The line canary holds a bare `%%` line**, which Mermaid keeps (block 1 now fails on line 16). It
+  does not hold a Langium block with errors on several lines: the "smallest line" rule is pinned by
+  the unit tests only, and the source says so.
+- **`diagramKind` stays the walk alone.** The first build made it `diagramPreamble(text).kind`,
+  which ran the line map on every call; md-mermaid and md-mermaid-er call it on every block, and
+  the map threw on a block of a few hundred kilobytes (PR review, architect I2). Only
+  `diagramPreamble` reads the preprocessing.
+- **Every error in the host settles the parse.** A throw from the worker's message listener was
+  uncaught in the caller's process; measured on a 314 KB block, through a spread in the line map's
+  `cut` that overflowed the stack (architect I1). Both are fixed: the spread is a loop, and any
+  error the classifier throws becomes a `MermaidParserFailure`. Verdicts posted before `loaded` are
+  refused.
 - **"Any other pair" has no branch.** The preamble reasons and the worker's shapes are closed unions
   and the classifier switches over both, so every pair has a row; a dead branch was not written.
 - **The ok-wins block is `%% c\rflowchart TD\r  A --> B`.** Since bug 0429 the walk and Mermaid agree
   on `%%{init}%% %% note`. They still disagree about a lone `\r`, which Mermaid reads as a line end
   and the walk does not: recorded as [bug 0434](../../bugs/0434-diagramkind-reads-a-lone-cr-as-no-line-end.md),
-  whose fix will need another block. Its non-vacuity row matches "the parser's answer for text 4":
-  an accepted block's fact carries no message, so the sabotaged classifier hands eess-md a verdict
-  with an empty one, which eess-md names by its index.
+  whose fix will need another block. Its non-vacuity row's sabotage moves the `ok` check below the
+  preamble switch (bug 0409's regression, not a deletion), and matches "the parser's answer for text
+  4 has an empty message": an accepted block's fact carries no message, so eess-md refuses the
+  verdict and names it by its index.
 - **"Frontmatter's trailing blanks" is not a behaviour the canary can see.** Mermaid's final
   `trimStart` drops leading blank lines too, so removing that step moves no line (measured: the
   sabotage left every test green). Its row is replaced by one removing the `trimStart`, and the
   lexical line-canary block now starts with a comment and a blank line, the only shape where the
   `trimStart` decides a line.
+- **Five line-map rows, not one per behaviour the canary holds.** The frozen table asked for one per
+  behaviour; the build followed the Test inventory's list (comment's leading blanks, the directive
+  step, the comment removal, the lexical `+ 1`, and the `trimStart` in place of trailing blanks).
+  Three behaviours have no row: the frontmatter cut, the CRLF rewrite and the Langium "smallest
+  line". The first two are pinned by the unit suite (measured below), the third by the mapped
+  blocks only.
 - **The line-map sabotage is in the non-vacuity rows, not the unit tests.** Each row rewrites a file
   of `packages/mermaid/dist` (untracked, and rebuilt by the next build if a run is killed).
 - **The CLI-loader, process-exit and resolve-hook tests are in eess-crossvalidate.** They need the
-  built package or a child process; eess-mermaid's own tests run its source.
+  built package or a child process; eess-mermaid's own tests run its source. On success, failure
+  and abort the worker's stub keeps a timer alive, so the process exits only if the host terminated
+  it (measured: with `terminate()` removed all three go red). On exit the worker is already gone,
+  so that row proves only that nothing else holds the host.
+- **Clearing tests:** the early-exit row clears by the same run without the block, not by an
+  `ignore` glob; the budget row clears by not aborting, since `budgetMs` only words the message.
+  Start-up, non-parse-throw and non-result have no clearing test.
 - **The peers:** `mermaid` `^11.0.0` and `jsdom` `>=29.1.1`, the one version measured. The dev
   dependencies are exact, `11.17.2` and `29.1.1`, so the line canary in CI runs against the version
   the map was written for.
-- **The rows' cost:** 24 rows under `corpus/mermaid-parser/`, 11.7 s run alone (`QA_ONLY`), most of it
-  the 13 that start the real `mermaid`; `check:nonvacuity` now counts 172 fixtures.
+- **The ESLint exemption names the worker file**, not a glob: another `.mjs` under a package's
+  `src/` fails to lint rather than passing without type-checked rules.
+- **Residuals, recorded here, not fixed:** the installed version is read from a `node_modules`
+  directory, so under Yarn PnP an installed `mermaid` would read as not installed (not measured);
+  Mermaid caps a flowchart at 500 edges and its error for a larger one is the instrument, naming the
+  block (measured); `diagramPreamble().kindLine` has no reader in `src`.
+- **The rows' cost:** 26 rows under `corpus/mermaid-parser/`, 13.2 s run alone (`QA_ONLY`), most of it
+  the 15 that start the real `mermaid`; `check:nonvacuity` now counts 174 fixtures. Full
+  `npm run validate` on the final tree: 9 m 51 s.
 - **Red-first, measured afterwards.** The tests were written beside the code, not before it. In
-  their place, each mechanism was removed from the source and the suite re-run: ok-wins (5 tests
-  red), the trailing rule (1), the DOM shim (2), the lexical `+ 1` (12), the comment's leading
-  blanks (13), the directive step (12), the comment removal (12), the `trimStart` (1).
+  their place, these eleven mechanisms were removed from the final source and the eess-mermaid
+  suite re-run (tests red of 110): `ok` moved below the preamble (1), the trailing rule (1), the DOM
+  shim (2), the lexical `+ 1` (15), the comment's leading blanks (16), the directive step (15), the
+  comment removal (15), the `trimStart` (15), the frontmatter step (16), the CRLF rewrite (15), the
+  `yaml` shape (1). The PR's testing review ran a 31-row matrix of its own over all three tiers. The
+  instrument causes are shown red by their fixture rows, which build the bad input, not by removing
+  the mechanism.
+- **Success, at close.** The two-line example: done-otherwise, it runs in eess-crossvalidate's port
+  test and asserts the summary rather than printing it. Every non-vacuity row reds when its
+  mechanism is removed: done for the seven sabotage rows by construction; the other nineteen are
+  fixture rows, red on their bad input. `npm run validate` green: on the PR's final commit.
 
 ## Out of scope
 

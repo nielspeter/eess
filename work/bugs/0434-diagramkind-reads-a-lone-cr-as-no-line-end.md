@@ -3,8 +3,10 @@
 ## Status
 
 - **State:** Draft — recorded 2026-10-16 while building plan 0413. No red test yet.
-- **Severity:** Low — in `mermaidParser()` it cannot blame an author, because Mermaid accepting a
-  block always wins (plan 0413's outcome table). In md-mermaid-er, which selects ER blocks by
+- **Severity:** Low — in `mermaidParser()` Mermaid's acceptance and a syntax error Mermaid places
+  both outrank the walk (plan 0413's outcome table, as built), so neither is misreported. What is
+  left there: a lone-`\r` block that Mermaid rejects as an unknown kind gets the "declares no
+  diagram" remedy instead of "check the spelling". In md-mermaid-er, which selects ER blocks by
   `diagramKind`, it may skip a block: not measured.
 - **Origin:** self-found · building plan 0413, 2026-10-16.
 - **Reported:** 2026-10-16
@@ -18,6 +20,12 @@ whole text is one line, starting `%%`, and is skipped as a comment.
 
 eess-md keeps the lone `\r` in a block's value (measured: a Markdown file with that block gives
 `"%% c\rflowchart TD\r  A --> B"`).
+
+_Correction, 2026-10-16 (PR review of plan 0413):_ the first version of this record said the misread
+"cannot blame an author" in `mermaidParser()`. It could: the first build routed a syntax error by
+the walk's reason, so `%% c\rflowchart TD\r  A --> B\r  C --> --> D` got "declares no diagram"
+(measured by the PR's enforcement and method reviews). The build now lets a placed syntax error
+outrank the walk; the Severity above is restated.
 
 A kind after a lone `\r` with nothing before it is still read
 (`'erDiagram\r  A ||--o{ B : x'` gives `erDiagram`, since `\r` is whitespace to the token split).

@@ -29,7 +29,11 @@ function cut(traced: Traced, pattern: RegExp): Traced {
   let last = 0
   for (const match of traced.text.matchAll(global)) {
     text += traced.text.slice(last, match.index)
-    origin.push(...traced.origin.slice(last, match.index))
+    // A loop, not a spread: a spread of a block-sized array overflows the stack (PR review, 300 KB).
+    for (let i = last; i < match.index; i += 1) {
+      const line = traced.origin[i]
+      if (line !== undefined) origin.push(line)
+    }
     last = match.index + match[0].length
     if (!pattern.global) break
   }

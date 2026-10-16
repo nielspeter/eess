@@ -18,8 +18,10 @@ codeBlocks(parsed).should().parse().check()
   directives and comments; a block with a trailing `%%` comment claims no line. A misspelt or
   plugin kind, an empty block, a block with no kind after its preamble and an unclosed directive
   are `unrecognised`, each with its own remedy.
-- A missing or out-of-range `mermaid`, a missing `jsdom` or dependency, a loader hook that loads a
-  different `mermaid`, a worker that exits or hangs, and a throw that is not a syntax error are each
+- Frontmatter whose YAML does not parse is `invalid` on its line.
+- A missing or out-of-range `mermaid`, a `package.json` with no readable version, a missing
+  `jsdom` or dependency, a loader hook that loads a different `mermaid`, a worker that exits or
+  hangs, and a throw that is not a syntax error are each
   one instrument finding naming its cause and how to clear it. A line canary reds when an installed
   `mermaid` stops agreeing with the line map, which is written for 11.17.2.
 

@@ -121,3 +121,10 @@ describe('diagramPreamble()', () => {
     })
   }
 })
+
+// PR review of plan 0413: the bindings select every block by `diagramKind`, so it stays the walk
+// alone, with none of the line map's cost.
+it('reads the kind of a diagram of several hundred kilobytes', () => {
+  const relations = Array.from({ length: 25_000 }, (_, i) => `  E${String(i)} ||--o{ F : has`)
+  expect(diagramKind(['erDiagram', ...relations, '  %% c'].join('\n'))).toBe('erDiagram')
+})

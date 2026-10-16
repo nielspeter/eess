@@ -3,7 +3,8 @@
 //
 // Self-contained on purpose: it imports only Node built-ins, `mermaid` and `jsdom`, with no relative
 // import, so a copy of this one file runs wherever those two resolve. It is plain JavaScript because
-// no loader transforms a worker's own imports (ADR-015).
+// no loader transforms a worker's own imports: the resolve hook ADR-015 allows is in-thread and
+// does not reach a worker.
 //
 // It posts facts and decides nothing. An error loses its `hash` and `result` crossing `postMessage`,
 // so each one is read here, where it was thrown, and only plain data is posted. Which outcome a fact
@@ -12,6 +13,7 @@
 //   { type: 'load-error', code, missing, message }  when they do not
 //   { type: 'progress', index }                     before each of `workerData.texts`
 //   { type: 'verdicts', results, privateResults }   one fact per text, at the end
+// A fact is { shape, locFirstLine, hashLine, langiumLines, yamlLine, message }.
 // `workerData.privateTexts` are parsed first and post no `progress`, so the indexes stay the caller's.
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -39,7 +41,14 @@ const finite = (value) => (typeof value === 'number' && Number.isFinite(value) ?
 /** One error, read by property, never by class name or message. */
 function errorFact(error) {
   const message = String(error?.message ?? error)
-  const fact = { shape: 'other', locFirstLine: null, hashLine: null, langiumLines: [], message }
+  const fact = {
+    shape: 'other',
+    locFirstLine: null,
+    hashLine: null,
+    langiumLines: [],
+    yamlLine: null,
+    message,
+  }
   if (typeof error?.hash === 'object' && error.hash !== null) {
     return {
       ...fact,
@@ -57,6 +66,10 @@ function errorFact(error) {
     return { ...fact, shape: 'langium', langiumLines: lines }
   }
   if (error?.name === 'UnknownDiagramError') return { ...fact, shape: 'unknown-diagram' }
+  // Frontmatter Mermaid could not read as YAML: js-yaml's error, its 0-based line in the YAML.
+  if (error?.name === 'YAMLException') {
+    return { ...fact, shape: 'yaml', yamlLine: finite(error.mark?.line) }
+  }
   return fact
 }
 
@@ -69,10 +82,18 @@ async function parseOne(mermaid, text) {
         locFirstLine: null,
         hashLine: null,
         langiumLines: [],
+        yamlLine: null,
         message: String(result),
       }
     }
-    return { shape: 'ok', locFirstLine: null, hashLine: null, langiumLines: [], message: '' }
+    return {
+      shape: 'ok',
+      locFirstLine: null,
+      hashLine: null,
+      langiumLines: [],
+      yamlLine: null,
+      message: '',
+    }
   } catch (error) {
     return errorFact(error)
   }

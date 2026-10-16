@@ -10,7 +10,13 @@ import { mermaidPreprocessed } from './mermaid-line-map.js'
  * binding tested the raw text and missed a themed diagram entirely (bug 0210).
  */
 export function diagramKind(text: string): string {
-  return diagramPreamble(text).kind
+  // The walk alone: the reason below needs Mermaid's preprocessing, and the bindings that select
+  // blocks by kind need neither its cost nor its dependence on one Mermaid version.
+  return kindOf(declaredLine(text).line)
+}
+
+function kindOf(line: string): string {
+  return (line.split(/[\s{]/)[0] ?? '').trim()
 }
 
 /**
@@ -36,7 +42,7 @@ interface DiagramPreamble {
 
 export function diagramPreamble(text: string): DiagramPreamble {
   const walked = declaredLine(text)
-  const kind = (walked.line.split(/[\s{]/)[0] ?? '').trim()
+  const kind = kindOf(walked.line)
   // Mermaid's own test for frontmatter it could not read: what is left after its preprocessing
   // still begins with `---` (its `---` diagram detector). The same steps as the line map, so the
   // two cannot disagree about it.
