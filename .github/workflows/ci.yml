@@ -58,6 +58,8 @@ jobs:
       - run: npm run check:crossval
       # Dogfood: the whole corpus (plans/adr/docs) — links, live pointers, ADR enforcement.
       - run: npm run check:corpus
+      # Dogfood: every Mermaid block in tracked Markdown parses with Mermaid's own parser (plan 0427).
+      - run: npm run check:mermaid-parses
       # Dogfood: honesty at close — a done record carries no undisposed `- [ ]`.
       - run: npm run check:ledger
       # Dogfood: eess-ts binds README Packages table + CLAUDE ADR-index to the code.
