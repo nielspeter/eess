@@ -4,7 +4,7 @@
 
 **Accepted** (March 2026)
 
-[ADR-020](./020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) (Proposed 2026-10-16) would amend the runtime half of "No Bun" below: on acceptance, a package may claim Bun where CI checks it there, and CI then runs vitest on the Bun runtime for that package. Local development on Node and npm stays, and Bun's own test runner stays out. The Enforcement row below is split on acceptance.
+**Amended by** [ADR-020](./020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) (Accepted 2026-10-16) in its runtime half: a package may claim Bun where CI checks it there, and CI then runs vitest on the Bun runtime for that package. Local development on Node and npm stays, and Bun's own test runner stays out. The Enforcement row for "No Bun" is split accordingly.
 
 ## Context
 
@@ -190,10 +190,11 @@ TypeScript strict mode with type checking in CI:
 
 <!-- eess enforcement-table v1 (plan 0060; status vocabulary: gated | warn | pending | manual | n/a | deprecated) -->
 
-| Clause                                    | Tier | Mechanism                                                        | Status |
-| ----------------------------------------- | ---- | ---------------------------------------------------------------- | ------ |
-| Node.js >= 24 only                        | 1    | `package.json` engines + CI node 24 (`.github/workflows/ci.yml`) | gated  |
-| Vitest is the only test runner            | 1    | `package.json` test scripts; CI runs `npm run test`              | gated  |
-| ESLint 10 flat config, type-checked rules | 1    | `eslint.config.ts`; CI runs `npm run lint`                       | gated  |
-| Prettier formatting enforced              | 1    | CI runs `npm run format:check` (`.github/workflows/ci.yml`)      | gated  |
-| No Bun (runtime or test runner)           | 5    | governance — this ADR records the rationale                      | manual |
+| Clause                                                                                                  | Tier | Mechanism                                                                                                                                      | Status     |
+| ------------------------------------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Node.js >= 24 only                                                                                      | 1    | `package.json` engines + CI node 24 (`.github/workflows/ci.yml`)                                                                               | gated      |
+| Vitest is the only test runner                                                                          | 1    | `package.json` test scripts; CI runs `npm run test`                                                                                            | gated      |
+| ESLint 10 flat config, type-checked rules                                                               | 1    | `eslint.config.ts`; CI runs `npm run lint`                                                                                                     | gated      |
+| Prettier formatting enforced                                                                            | 1    | CI runs `npm run format:check` (`.github/workflows/ci.yml`)                                                                                    | gated      |
+| No Bun as this repository's toolchain: local development on Node and npm, and not Bun's own test runner | 5    | governance — this ADR records the rationale                                                                                                    | manual     |
+| No Bun as a package runtime                                                                             | 5    | superseded by [ADR-020](./020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md): a package may claim Bun where CI checks it there | deprecated |

@@ -1,15 +1,15 @@
 # ADR-020: A package supports a runtime only where CI checks it there
 
-- **Status:** Proposed 2026-10-16; revised twice the same day after its architect, product,
-  enforcement and method reviews (PR #228). The owner asked for Bun support, scoped to what CI can test, after
+- **Status:** Accepted 2026-10-16, on the owner's decision at merge (PR #228). Proposed the same
+  day and revised twice after its architect, product, enforcement and method reviews. The owner asked for Bun support, scoped to what CI can test, after
   an adopter monorepo on Bun could not load eess-md
   ([bug 0439](../work/bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)).
-- **Would amend**, on acceptance, the runtime half of
+- **Amends** the runtime half of
   [ADR-001](./001-toolchain-node-vitest-eslint-prettier.md)'s "No Bun (runtime or test runner)".
   What stays: local development on Node and npm, and Bun's own test runner out. What changes: a
   package may claim Bun, and this repository's CI then runs vitest on the Bun runtime for it, beside
-  the Node chain. On acceptance ADR-001's Enforcement row is split to say so; the relation is prose,
-  since the corpus gate reads only `**Extends:**`.
+  the Node chain. ADR-001's Enforcement row is split to say so; the relation is prose, since the
+  corpus gate reads only `**Extends:**`.
   [ADR-004](./004-esm-only-package.md) stands: every package runs on Node 24 or later.
 - **Context:** [spike 0438](../work/spikes/0438-what-the-family-does-under-bun.md).
 
