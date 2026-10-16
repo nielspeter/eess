@@ -13,7 +13,7 @@
 //   { type: 'load-error', code, missing, message }  when they do not
 //   { type: 'progress', index }                     before each of `workerData.texts`
 //   { type: 'verdicts', results, privateResults }   one fact per text, at the end
-// A fact is { shape, locFirstLine, hashLine, langiumLines, yamlLine, message }.
+// A fact is { shape, locFirstLine, hashLine, langiumLines, yamlLine, yamlText, message }.
 // `workerData.privateTexts` are parsed first and post no `progress`, so the indexes stay the caller's.
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -47,6 +47,7 @@ function errorFact(error) {
     hashLine: null,
     langiumLines: [],
     yamlLine: null,
+    yamlText: null,
     message,
   }
   if (typeof error?.hash === 'object' && error.hash !== null) {
@@ -66,9 +67,16 @@ function errorFact(error) {
     return { ...fact, shape: 'langium', langiumLines: lines }
   }
   if (error?.name === 'UnknownDiagramError') return { ...fact, shape: 'unknown-diagram' }
-  // Frontmatter Mermaid could not read as YAML: js-yaml's error, its 0-based line in the YAML.
+  // YAML Mermaid could not read: js-yaml's error, with its 0-based line and the YAML it was given,
+  // which may be the frontmatter or a node's `@{ … }` data.
   if (error?.name === 'YAMLException') {
-    return { ...fact, shape: 'yaml', yamlLine: finite(error.mark?.line) }
+    const buffer = error.mark?.buffer
+    return {
+      ...fact,
+      shape: 'yaml',
+      yamlLine: finite(error.mark?.line),
+      yamlText: typeof buffer === 'string' ? buffer : null,
+    }
   }
   return fact
 }
@@ -83,6 +91,7 @@ async function parseOne(mermaid, text) {
         hashLine: null,
         langiumLines: [],
         yamlLine: null,
+        yamlText: null,
         message: String(result),
       }
     }
@@ -92,6 +101,7 @@ async function parseOne(mermaid, text) {
       hashLine: null,
       langiumLines: [],
       yamlLine: null,
+      yamlText: null,
       message: '',
     }
   } catch (error) {

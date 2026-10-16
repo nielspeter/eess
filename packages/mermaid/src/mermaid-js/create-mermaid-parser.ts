@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { Worker } from 'node:worker_threads'
 import { diagramPreamble } from '../parser/diagram-kind.js'
-import { hasTrailingComment, mermaidLineMap } from '../parser/mermaid-line-map.js'
+import { frontmatterYaml, hasTrailingComment, mermaidLineMap } from '../parser/mermaid-line-map.js'
 
 /**
  * Plan 0413: Mermaid's own parser, in a worker, in the shape of eess-md's code-block parser port
@@ -125,8 +125,9 @@ interface Fact {
   readonly locFirstLine: number | null
   readonly hashLine: number | null
   readonly langiumLines: readonly number[]
-  /** js-yaml's 0-based line in the frontmatter's YAML, for `yaml`. */
+  /** For `yaml`: js-yaml's 0-based line, and the YAML it was given. */
   readonly yamlLine: number | null
+  readonly yamlText: string | null
   readonly message: string
 }
 
@@ -160,16 +161,18 @@ function readFact(value: unknown): Fact | null {
   const locFirstLine = lineOrNull(value.locFirstLine)
   const hashLine = lineOrNull(value.hashLine)
   const yamlLine = lineOrNull(value.yamlLine)
+  const yamlText: unknown = value.yamlText
   const lines: unknown = value.langiumLines
   if (!isShape(shape) || typeof message !== 'string') return null
   if (locFirstLine === undefined || hashLine === undefined || yamlLine === undefined) return null
   if (!Array.isArray(lines)) return null
+  if (yamlText !== null && typeof yamlText !== 'string') return null
   const langiumLines: number[] = []
   for (const line of lines) {
     if (typeof line !== 'number') return null
     langiumLines.push(line)
   }
-  return { shape, locFirstLine, hashLine, langiumLines, yamlLine, message }
+  return { shape, locFirstLine, hashLine, langiumLines, yamlLine, yamlText, message }
 }
 
 function readFacts(value: unknown, count: number): Fact[] | null {
@@ -225,13 +228,7 @@ function verdictFor(text: string, fact: Fact, index: number): MermaidVerdict {
     case 'langium':
       return syntaxError(text, fact)
     case 'yaml':
-      // Mermaid reads frontmatter only at the block's first line, so its YAML starts on line 2.
-      return {
-        outcome: 'invalid',
-        message,
-        line: fact.yamlLine === null ? null : fact.yamlLine + 2,
-        remedy: "Fix the frontmatter's YAML at this line; Mermaid's message is above.",
-      }
+      return yamlError(text, fact)
     case 'unknown-diagram':
     case 'other':
       break
@@ -282,15 +279,54 @@ function verdictFor(text: string, fact: Fact, index: number): MermaidVerdict {
   )
 }
 
+/**
+ * A YAML error claims a line only when the YAML js-yaml was given is the block's frontmatter as the
+ * line map reads it, which starts on the block's second line. Mermaid also reads a node's `@{ … }`
+ * data as YAML, counted on a snippet of its own; that error claims no line (PR review, architect N1).
+ */
+function yamlError(text: string, fact: Fact): MermaidVerdict {
+  const frontmatter = frontmatterYaml(text)
+  const given = fact.yamlText?.replace(/\n$/, '')
+  if (frontmatter !== null && given === frontmatter && fact.yamlLine !== null) {
+    return {
+      outcome: 'invalid',
+      message: fact.message,
+      line: fact.yamlLine + 2,
+      remedy: "Fix the frontmatter's YAML at this line; Mermaid's message is above.",
+    }
+  }
+  return {
+    outcome: 'invalid',
+    message: fact.message,
+    line: null,
+    remedy:
+      "Mermaid could not read a YAML part of this block, its frontmatter or a node's `@{ … }` data; " +
+      'its message is above.',
+  }
+}
+
 function syntaxError(text: string, fact: Fact): MermaidVerdict {
   const { line, reported } = blockLine(text, fact)
   const remedy = "Fix the syntax at this line; Mermaid's message is above."
+  const said = reported === null ? 'no line' : `line ${String(reported)}`
+  // Mermaid reads frontmatter after a blank line or a comment, which the line map does not mirror
+  // (bug 0435): the walk then calls it unclosed, and the mapped line would be wrong.
+  if (diagramPreamble(text).reason === 'unclosed-frontmatter') {
+    return {
+      outcome: 'invalid',
+      message:
+        `${fact.message}\nMermaid read frontmatter here that eess-mermaid's line map does not ` +
+        `(after a blank line or a comment); it reported ${said}.`,
+      line: null,
+      remedy,
+    }
+  }
   if (hasTrailingComment(text)) {
     return {
       outcome: 'invalid',
       message:
         `${fact.message}\nMermaid's line count is unreliable in a block with a trailing \`%%\` comment; ` +
-        `it reported ${reported === null ? 'no line' : `line ${String(reported)}`}.`,
+        `it reported ${said}.`,
       line: null,
       remedy,
     }

@@ -264,6 +264,48 @@ describe('mermaidParser(), the real mermaid in a worker', () => {
     }
   }, 30_000)
 
+  // A node's `@{ … }` data is YAML too, counted on a snippet of Mermaid's own (PR review, N1).
+  it('claims no frontmatter line for YAML that is not the frontmatter', async () => {
+    const verdicts = await mermaidParser().parse(
+      [
+        P([
+          'flowchart TD',
+          '  A --> B',
+          '  B --> C',
+          '  C --> D',
+          '  D --> E',
+          '  E --> F',
+          '  G@{ shape: [ }',
+        ]),
+        P(['', '---', 'title: [x', '---', 'flowchart TD', '  A --> B']),
+      ],
+      run(),
+    )
+    for (const verdict of verdicts) {
+      expect(verdict).toMatchObject({ outcome: 'invalid', line: null })
+      expect(verdict !== undefined && 'remedy' in verdict ? verdict.remedy : '').toContain(
+        "its frontmatter or a node's `@{ … }` data",
+      )
+    }
+  }, 30_000)
+
+  // Mermaid reads frontmatter after a blank line or a comment; the line map does not (bug 0435).
+  it('claims no line where Mermaid read frontmatter the line map does not', async () => {
+    const verdicts = await mermaidParser().parse(
+      [
+        P(['', '---', 'title: x', '---', 'flowchart TD', '  A --> B', '  C --> --> D']),
+        P(['%% c', '---', 'title: x', '---', 'flowchart TD', '  C --> --> D']),
+      ],
+      run(),
+    )
+    for (const verdict of verdicts) {
+      expect(verdict).toMatchObject({ outcome: 'invalid', line: null })
+      expect(verdict !== undefined && 'message' in verdict ? verdict.message : '').toContain(
+        "Mermaid read frontmatter here that eess-mermaid's line map does not",
+      )
+    }
+  }, 30_000)
+
   it('answers for a block of several hundred kilobytes without overflowing', async () => {
     // One long run before a comment: the line map once spread a run that size into `push`.
     // A sequence diagram, since Mermaid caps a flowchart at 500 edges.

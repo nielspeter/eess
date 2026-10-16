@@ -54,6 +54,22 @@ function trace(text: string): Traced {
   return { text: normalised, origin }
 }
 
+/**
+ * The YAML of the block's frontmatter as Mermaid hands it to js-yaml (its indent removed from each
+ * line, as `extractFrontMatter` does), or `null` when the line map reads no frontmatter.
+ */
+export function frontmatterYaml(text: string): string | null {
+  const match = FRONTMATTER.exec(trace(text).text)
+  if (match === null) return null
+  const indent = match[1] ?? ''
+  const body = match[2] ?? ''
+  if (indent === '') return body
+  return body
+    .split('\n')
+    .map((line) => (line.startsWith(indent) ? line.slice(indent.length) : line))
+    .join('\n')
+}
+
 /** The text after Mermaid's frontmatter and directive steps, before its comment removal. */
 function withoutPreamble(text: string): Traced {
   return cut(cut(trace(text), FRONTMATTER), DIRECTIVE)

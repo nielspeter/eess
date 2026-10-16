@@ -102,7 +102,7 @@ measured 588 ms, start-up included, and two re-runs 0.78 s and 0.99 s.
 | a misspelt kind, or one not in core Mermaid (`zenuml`)              | `unrecognised`: check the spelling, or it needs a newer `mermaid` or a plugin |
 | empty, or nothing but comments, directives or frontmatter           | `unrecognised`, with a remedy for each                                        |
 | frontmatter Mermaid cannot read: no closing `---`, or none after it | `invalid`, on the block's first line                                          |
-| frontmatter whose YAML does not parse                               | `invalid`, on the line js-yaml names                                          |
+| YAML that does not parse: frontmatter, or a node's `@{ … }` data    | `invalid`, on the frontmatter's line, or with no line                         |
 | a `%%{` directive never closed                                      | `unrecognised`                                                                |
 
 Everything else is the instrument, one finding that says no block was judged, naming its cause:
@@ -132,9 +132,11 @@ catches only a change in what those blocks hold.
   passes; the canaries make a forged pass deliberate, not impossible.
 - **Mermaid's own limits are the instrument.** A flowchart of more than 500 edges is refused by
   Mermaid's `maxEdges`; that error is not a syntax error, so it is reported as the instrument,
-  naming the block.
+  naming the block (bug 0436).
 - **The installed version is read from `node_modules`.** Under Yarn Plug'n'Play an installed
-  `mermaid` would read as not installed (not measured).
+  `mermaid` may read as not installed (not measured; bug 0437).
+- **Frontmatter after a blank line or a comment claims no line.** Mermaid reads it; eess-mermaid's
+  line map does not, so a syntax error in such a block names the block, not a line (bug 0435).
 - **No block, no parse.** When the corpus has no ` ```mermaid ` block, nothing is parsed, so a
   missing `mermaid` is not reported: the rule reports that it examined nothing, or, with
   `.expectEmpty()`, passes having judged nothing.

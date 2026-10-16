@@ -18,7 +18,8 @@ codeBlocks(parsed).should().parse().check()
   directives and comments; a block with a trailing `%%` comment claims no line. A misspelt or
   plugin kind, an empty block, a block with no kind after its preamble and an unclosed directive
   are `unrecognised`, each with its own remedy.
-- Frontmatter whose YAML does not parse is `invalid` on its line.
+- YAML that does not parse is `invalid`: on its line in the frontmatter, with no line in a node's
+  `@{ … }` data.
 - A missing or out-of-range `mermaid`, a `package.json` with no readable version, a missing
   `jsdom` or dependency, a loader hook that loads a different `mermaid`, a worker that exits or
   hangs, and a throw that is not a syntax error are each

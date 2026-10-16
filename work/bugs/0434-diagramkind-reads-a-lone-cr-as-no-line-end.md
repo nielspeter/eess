@@ -5,8 +5,9 @@
 - **State:** Draft — recorded 2026-10-16 while building plan 0413. No red test yet.
 - **Severity:** Low — in `mermaidParser()` Mermaid's acceptance and a syntax error Mermaid places
   both outrank the walk (plan 0413's outcome table, as built), so neither is misreported. What is
-  left there: a lone-`\r` block that Mermaid rejects as an unknown kind gets the "declares no
-  diagram" remedy instead of "check the spelling". In md-mermaid-er, which selects ER blocks by
+  left there: a lone-`\r` block that Mermaid rejects with anything it does not place (an unknown
+  kind, or another throw) gets the "declares no diagram" remedy, not "check the spelling" or the
+  instrument (read from the code, not run). In md-mermaid-er, which selects ER blocks by
   `diagramKind`, it may skip a block: not measured.
 - **Origin:** self-found · building plan 0413, 2026-10-16.
 - **Reported:** 2026-10-16

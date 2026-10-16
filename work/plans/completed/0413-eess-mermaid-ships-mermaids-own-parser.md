@@ -424,12 +424,20 @@ Each is overrulable. Where the build departs from the text above, the text above
   found a diagram to parse, so the block is `invalid` at the mapped line whatever the walk read. The
   preamble reasons decide only an `UnknownDiagramError` or another throw. Before this, a lone-`\r`
   block with a syntax error got "declares no diagram" (PR review, enforcement I3; bug 0434).
-- **Frontmatter Mermaid cannot read as YAML is the author's, on its line.** The worker posts a
-  seventh shape, `yaml`, for an error whose `name` is `YAMLException` (js-yaml's), with its
-  `mark.line`; the verdict is `invalid` at `mark.line + 2`, since Mermaid reads frontmatter only from
-  the block's first line. It was "a throw that is not a syntax error", the instrument, which
-  withheld every block's verdict for an author's typo (PR review, enforcement I2; measured on
-  `title: [x` and a bad indentation, both line 3).
+- **YAML Mermaid cannot read is the author's.** The worker posts a seventh shape, `yaml`, for an
+  error whose `name` is `YAMLException` (js-yaml's), with its `mark.line` and `mark.buffer`, the YAML
+  it was given. It was "a throw that is not a syntax error", the instrument, which withheld every
+  block's verdict for an author's typo (PR review, enforcement I2). The verdict is `invalid` at
+  `mark.line + 2` only when that YAML is the block's frontmatter as the line map reads it (measured
+  on `title: [x` and a bad indentation, both line 3); otherwise, such as a node's `@{ … }` shape
+  data, which Mermaid also reads as YAML on a snippet of its own, it claims no line, with a remedy
+  naming both (round-2 review, architect N1: the first fix put a shape-data error on line 4 of a
+  block with no frontmatter).
+- **Where the walk calls frontmatter unclosed but Mermaid placed a syntax error, no line is
+  claimed.** Mermaid reads frontmatter after a leading blank line or a comment, which the line map
+  does not mirror, so the mapped line would be wrong (round-2 review, enforcement N1; measured on
+  both shapes). Recorded as [bug 0435](../../bugs/0435-the-line-map-reads-no-frontmatter-after-a-blank-line-or-a-comment.md);
+  the step Mermaid uses was not located.
 - **The trailing-comment test reads the text after the frontmatter and directive steps.** Read on
   the raw block, "a `%%` after something other than whitespace" matches every directive's own
   closing `}%%` and would withhold the line in every block with a directive, against the line rows.
@@ -488,19 +496,25 @@ Each is overrulable. Where the build departs from the text above, the text above
   the map was written for.
 - **The ESLint exemption names the worker file**, not a glob: another `.mjs` under a package's
   `src/` fails to lint rather than passing without type-checked rules.
-- **Residuals, recorded here, not fixed:** the installed version is read from a `node_modules`
-  directory, so under Yarn PnP an installed `mermaid` would read as not installed (not measured);
-  Mermaid caps a flowchart at 500 edges and its error for a larger one is the instrument, naming the
-  block (measured); `diagramPreamble().kindLine` has no reader in `src`.
+- **Found and recorded, not fixed:** Mermaid caps a flowchart at 500 edges and its error for a larger
+  one is the instrument, naming the block (measured; [bug 0436](../../bugs/0436-a-flowchart-past-mermaids-edge-limit-is-the-instrument.md));
+  the installed version is read from a `node_modules` directory, so under Yarn PnP an installed
+  `mermaid` may read as not installed (not measured; [bug 0437](../../bugs/0437-under-yarn-pnp-an-installed-mermaid-may-read-as-not-installed.md)).
+  `diagramPreamble().kindLine` has no reader in `src`: a note, not a defect.
+- **A broken DOM names the first corpus block, not the line canary.** Blocks are classified before
+  the line canary is checked, so a `mermaid` that throws `other` on everything is reported as that
+  block ("if this block is wrong, fix it; otherwise report it"), not with the line canary's "check
+  that `mermaid` and `jsdom` load cleanly" (round-2 review, enforcement N2, Minor; kept).
 - **The rows' cost:** 26 rows under `corpus/mermaid-parser/`, 13.2 s run alone (`QA_ONLY`), most of it
   the 15 that start the real `mermaid`; `check:nonvacuity` now counts 174 fixtures. Full
-  `npm run validate` on the final tree: 9 m 51 s.
+  `npm run validate`: 9 m 51 s after round 1's fixes, 10 m 12 s after round 2's.
 - **Red-first, measured afterwards.** The tests were written beside the code, not before it. In
-  their place, these eleven mechanisms were removed from the final source and the eess-mermaid
-  suite re-run (tests red of 110): `ok` moved below the preamble (1), the trailing rule (1), the DOM
+  their place, these eleven mechanisms were removed from the final source and eess-mermaid's two
+  parser test files re-run (tests red of 110): `ok` moved below the preamble (1), the trailing rule (1), the DOM
   shim (2), the lexical `+ 1` (15), the comment's leading blanks (16), the directive step (15), the
   comment removal (15), the `trimStart` (15), the frontmatter step (16), the CRLF rewrite (15), the
-  `yaml` shape (1). The PR's testing review ran a 31-row matrix of its own over all three tiers. The
+  `yaml` shape (1). The two round-2 rules (YAML provenance, and no line where the walk calls the
+  frontmatter unclosed) each red their test when removed. The PR's testing review ran a 31-row matrix of its own over all three tiers. The
   instrument causes are shown red by their fixture rows, which build the bad input, not by removing
   the mechanism.
 - **Success, at close.** The two-line example: done-otherwise, it runs in eess-crossvalidate's port
