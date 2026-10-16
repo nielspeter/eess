@@ -4,7 +4,7 @@
 
 **Accepted** (March 2026)
 
-[ADR-020](./020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) (Proposed 2026-10-16) would amend the runtime half of "No Bun" below: on acceptance, a package may claim Bun where CI checks it there. The toolchain half stands.
+[ADR-020](./020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) (Proposed 2026-10-16) would amend the runtime half of "No Bun" below: on acceptance, a package may claim Bun where CI checks it there, and CI then runs vitest on the Bun runtime for that package. Local development on Node and npm stays, and Bun's own test runner stays out. The Enforcement row below is split on acceptance.
 
 ## Context
 
