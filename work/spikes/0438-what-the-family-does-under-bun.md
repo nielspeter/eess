@@ -86,11 +86,12 @@ The 9 that remain:
 check tests/fixtures/rules/passing.rules.ts`) is green with exit 0. The tests drive `run()` in
   process and reset `process.exitCode = undefined`; the suspect is that reset or state between
   tests under Bun. Not yet explained.
-- **Three tests assert a Node mechanism.** eess-crossvalidate's "reports the version a resolve hook
+- **Two tests assert a Node mechanism.** eess-crossvalidate's "reports the version a resolve hook
   loads" runs a Node `--import` resolve hook. eess-ts's "resolves the sibling with Node, not by
   falling back to a transpiler" expects Node's strip-only TypeScript to refuse an `enum`, which
-  Bun compiles. Both are Node behaviours, not eess defects. The third is the watch-mode test above,
-  counted once.
+  Bun compiles. Both are Node behaviours, not eess defects.
+
+So the 9 are 1 + 2 + 4 + 2: eess-mermaid 6, eess-crossvalidate 1, eess-ts 2.
 
 ## Recommendation for the decision record and the plan
 
