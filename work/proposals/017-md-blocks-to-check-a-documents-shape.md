@@ -75,7 +75,7 @@ is also where it measurably checks nothing on corpora that chose differently (ga
 
 The test of the building blocks is completeness: a caller can state the shape of any kind of
 document with them, in their own words, without a hand-written condition. Adopter 3's roughly 9,500
-lines of rules, almost all of whose judgements are hand-written conditions inside eess builders,
+lines of rules (its own later count is about 4,400; see "Consumer feedback"), almost all of whose judgements are hand-written conditions inside eess builders,
 measure how far the blocks are from that today.
 
 ## Measured
@@ -809,7 +809,7 @@ findings are folded in.
 
 Adopter 3's base of about 4,400 lines is its own count for this answer; the about 9,500 in
 "Measured" above was counted earlier over its tooling as a whole, and the two are not reconciled
-here. Adopter 2's upgrade to any of this is blocked on bug 0439 (eess-md does not load under Bun)
+here. Adopter 2's upgrade to any of this is blocked on bug 0439 (most of the family, eess-md included, does not load under Bun)
 until a fixed version ships.
 
 **On defaults.** Adopter 1: "since you ship no defaults, I see nothing we would have to fight".
@@ -854,7 +854,7 @@ time; no block serves it, and it keeps its own reader.
 
 **Reported defects:** `honestyAtClose` reads only `State:` (bug 0444); non-GFM box marks are invisible
 (bug 0445); a link to an untracked file resolves (bug 0446); `adrEnforcement` reads `it.skip` as a
-path (bug 0447); `adrEnforcement` validates no Status value and no gated row's mechanism (bug 0128).
+path (bug 0447); `adrEnforcement` validates no Status value (bug 0128); a `gated` row with no mechanism passes, which is not yet recorded here (owed, reproduced first).
 Not reproduced: `taskItems()` missing nested boxes (adopter 3 itself reports this no longer true).
 Not recorded: an empty Enforcement table passing, which adopter 3 inferred and did not measure.
 
@@ -890,7 +890,7 @@ The coordinator's, from the feedback, the reviews and the mission; each can be o
 4. **Block 5 takes a direction**, as the kernel's existing `Direction` type, and **its values are a
    closed set in every direction**: every value read in a bound folder belongs to a declared class
    bound to its folders, or it is a finding ("`Shipped` at line 3 is none of the declared values").
-   An unreadable value in a bound folder is a finding of the folder-to-value direction. The summary
+   An unreadable value in a bound folder is a finding of the folder-to-value direction. (The architect would make an unknown value irrelevant in folder-to-value; the closed set in every direction is enforcement's position, adopted because a one-way check over an open set is what hid the unknown spellings.) The summary
    prints the direction chosen. One-way stays available; it is not the remedy for unknown
    spellings, which a closed set reports.
 5. **Box marks are the caller's, and an undeclared mark is always a finding** (block 17, bug 0445's
@@ -909,12 +909,12 @@ The coordinator's, from the feedback, the reviews and the mission; each can be o
 7. **Blocks no adopter wants (4, 8, 16, and 9, 10, 15, which none mentioned) stay in the proposal**
    for corpora beyond these three, and are not sequenced for them.
 
-**17.** (added to the asks) _Box marks are the caller's._ As decision 5. Acceptance rows: a done
+**17.** (an ask added here, after the second Review) _Box marks are the caller's._ As decision 5. Acceptance rows: a done
 document holding an undeclared `[~]` reds; `- [WIP] x`, `- [1] x`, `- [link](u)` and a defined
 `- [ref]` stay green; declaring a mark clears its finding; this repository's four `[~]` lines pass
 once its `check:ledger` declares the mark.
 
-**18.** (added to the asks) _Boxes by section._ As decision 6. Acceptance rows: a box under a
+**18.** (an ask added here, after the second Review) _Boxes by section._ As decision 6. Acceptance rows: a box under a
 `###` beneath the chosen `##` is attributed to it; a box before the first heading and a heading in a
 list each have a fixture; a section predicate selecting nothing is a finding.
 
@@ -926,6 +926,23 @@ checkbox states", and the maintainer replied "1+2+3", assenting to it with the o
 direction), 6, 7, 12, 13 and 17**. Not accepted: 3, 14 and 16, which adopters 1 and 3 want, and 18,
 adopter 1's most wanted, which also needs 11. Each row moves to `Accepted` in the pull request that
 files the plan owning it; until then the second Review's dispositions stand.
+
+**Disposition rows for the accepted set.** These supersede the second Review's "6, 12, 13" row, which
+the plan order now splits, and add the new blocks:
+
+| ask                                         | disposition | condition                                                                   |
+| ------------------------------------------- | ----------- | --------------------------------------------------------------------------- |
+| **6, 13** — kernel `notExist`, `beUniqueBy` | **Held**    | Accepted by the maintainer; unholds when its plan is filed                  |
+| **12** — `inDocuments`, `isFrozen()`        | **Held**    | Accepted by the maintainer; unholds when its plan is filed                  |
+| **17** — box marks                          | **Held**    | Accepted by the maintainer; unholds when its plan (bug 0445's fix) is filed |
+| **18** — boxes by section                   | **Held**    | Not accepted; after block 11 is planned                                     |
+
+**Carried to the plans' conditions** (from this section's review, not settled here): a decided
+reading for near-GFM spacings such as `[ x ]`; a row showing that block 5's unchosen direction is
+not reported; "prose" defined by the caller's named forms and region; `honestyAtClose`'s rebuild
+selecting frozen documents explicitly so its fixtures stay unchanged; block 18's three counts
+(documents, sections, boxes) and a depth-skip fixture; the normaliser's test shapes, including
+emphasis inside a value and a typographic apostrophe.
 
 **Plannable now**, as closable plans, in order: block 7; the kernel `notExist` and `beUniqueBy`
 (blocks 6 and 13, with gherkin's `haveUniqueTitles` rebuilt on `beUniqueBy`); block 12 with
