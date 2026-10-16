@@ -2,14 +2,15 @@
 
 ## Status
 
-- **State:** Ready — re-frozen 2026-10-15 on [spike 0428](../spikes/0428-where-mermaid-puts-an-errors-line.md).
-  First frozen in PR #217 after [spike 0425](../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md);
+- **State:** Done — built 2026-10-16 in one PR; the build's own decisions are under "Decided at the
+  build", each overrulable. Re-frozen 2026-10-15 on [spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md).
+  First frozen in PR #217 after [spike 0425](../../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md);
   unfrozen in PR #218, when the post-merge architect and enforcement review found the line rule wrong
   after a mid-body comment and four decisions left to the builder. Every finding of that review is
   answered under "Decided at the re-freeze", which names where. The dogfood gate is
-  [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md). Written 2026-10-14 against
+  [plan 0427](../0427-this-repository-checks-its-mermaid-blocks-parse.md). Written 2026-10-14 against
   the 2026-10-14 review of proposal 006's Ask C, as plan B of that review's split;
-  [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) (A, eess-md)
+  [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md) (A, eess-md)
   defines the port this plan's parser fills.
 - **Implements:** proposal 006 — Ask C, "every Mermaid fence parses, by Mermaid's own parser". The
   conditions cited by number below are that review's.
@@ -19,15 +20,15 @@
   crossvalidate gains tests only, declared `none` in the changeset.
 - **Created:** 2026-10-14
 - **Depends on**, in order:
-  - [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) — the port.
-  - [plan 0214](completed/0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
+  - [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md) — the port.
+  - [plan 0214](./0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
     0214 is Done (PR #212); this plan does not take it over.
-  - [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md) —
+  - [bug 0426](../../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md) —
     `parseCodeBlocks` reads the tag case-insensitively, the family rule this freeze settled. Sequenced
     **before** this plan so this PR carries no other package's change; nothing in this plan needs it
     technically.
-  - [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
+  - [bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
     plan (condition 12 allowed "before or with"; "before" keeps this PR from carrying another
     record's fix and close). Otherwise a block Mermaid accepts can still be reported by md-mermaid as
     the author's syntax error, beside this plan's green for the same block.
@@ -161,7 +162,7 @@ fact for it.
   Frontmatter is "unclosed" when the text's first line is `---` and the line map's own frontmatter
   regex, Mermaid's, does not match, so the walk and Mermaid cannot disagree about it. The walk's
   directive tracking has its own defect, a directive closed mid-line read as open, recorded as
-  [bug 0429](../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md), fixed before or
+  [bug 0429](../../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md), fixed before or
   with this build; with Mermaid's `ok` winning above, it cannot blame an author here.
   _Note, 2026-10-15 (PR #223's review):_ bug 0429 is fixed before this build, so the walk now reads
   `%%{init}%% %% note` ahead of a kind as declared, like Mermaid. The test inventory's ok-wins block
@@ -278,7 +279,7 @@ One PR, red-first.
 
 ## Dogfood row
 
-Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) at the freeze.
+Moved to [plan 0427](../0427-this-repository-checks-its-mermaid-blocks-parse.md) at the freeze.
 
 ## Files Changed
 
@@ -359,12 +360,12 @@ row passes when the gate goes red on the valid block.
 Each is overrulable.
 
 - **One rule for the tag: any letter case.** md-mermaid reads `Mermaid` since bug 0423; `parseCodeBlocks`
-  matched exactly. eess-md's side is [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
+  matched exactly. eess-md's side is [bug 0426](../../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
   fixed before this plan. The architect review asked for an ADR, since the rule reverses a ruled
   condition, removes public API and claims the family; it is written before bug 0426, outside this plan.
 - **A missing peer is a finding, never a throw at construction.** `mermaidParser()` never throws: its
   `version` is `'not installed'` or `'unreadable'` and its `parse` rejects with the remedy above.
-- **The dogfood gate is its own plan,** [0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md).
+- **The dogfood gate is its own plan,** [0427](../0427-this-repository-checks-its-mermaid-blocks-parse.md).
   This plan's own tests need the real `mermaid` and `jsdom`, so they become eess-mermaid's dev
   dependencies here, and this repository's CI pays the 179 MB with this plan.
 
@@ -406,6 +407,51 @@ Each is overrulable. Where each review finding is answered:
 | PR #219 enforcement I5 — plan 0427's scope and exclusions                                              | plan 0427, fixed in the same PR                                                              |
 | enforcement M7 and the 0427 residual                                                                   | plan 0427, fixed in the same PR                                                              |
 
+## Decided at the build (2026-10-16)
+
+Each is overrulable. Where the build departs from the text above, the text above is kept as frozen.
+
+- **Unclosed frontmatter is Mermaid's own test.** A block is `unclosed-frontmatter` when the text
+  left after the line map's preprocessing still begins with `---`, which is the test Mermaid's
+  `---` diagram detector applies (`dist/mermaid.core.mjs`, `t.toLowerCase().trimStart().startsWith("---")`).
+  That is narrower than "the first line is `---` and the frontmatter regex does not match" only in
+  being exact. Closed frontmatter with nothing after its `---` and no newline is this reason, and
+  the remedy names the newline and the diagram; with a newline it is `no-kind-after-preamble`, as
+  Mermaid throws `UnknownDiagramError` for it (spike 0428 Q5).
+- **The trailing-comment test reads the text after the frontmatter and directive steps.** Read on
+  the raw block, "a `%%` after something other than whitespace" matches every directive's own
+  closing `}%%` and would withhold the line in every block with a directive, against the line rows.
+- **The line canary judges only a syntax error's line.** A line-canary block rejected with another
+  shape (a `mermaid` that cannot load its DOM throws on every block) is left to the outcome table,
+  which reports the cause. Read as "rejected, but not on its known line", it would have told that
+  adopter to install `mermaid@11.17.2`.
+- **"Any other pair" has no branch.** The preamble reasons and the worker's shapes are closed unions
+  and the classifier switches over both, so every pair has a row; a dead branch was not written.
+- **The ok-wins block is `%% c\rflowchart TD\r  A --> B`.** Since bug 0429 the walk and Mermaid agree
+  on `%%{init}%% %% note`. They still disagree about a lone `\r`, which Mermaid reads as a line end
+  and the walk does not: recorded as [bug 0434](../../bugs/0434-diagramkind-reads-a-lone-cr-as-no-line-end.md),
+  whose fix will need another block. Its non-vacuity row matches "the parser's answer for text 4":
+  an accepted block's fact carries no message, so the sabotaged classifier hands eess-md a verdict
+  with an empty one, which eess-md names by its index.
+- **"Frontmatter's trailing blanks" is not a behaviour the canary can see.** Mermaid's final
+  `trimStart` drops leading blank lines too, so removing that step moves no line (measured: the
+  sabotage left every test green). Its row is replaced by one removing the `trimStart`, and the
+  lexical line-canary block now starts with a comment and a blank line, the only shape where the
+  `trimStart` decides a line.
+- **The line-map sabotage is in the non-vacuity rows, not the unit tests.** Each row rewrites a file
+  of `packages/mermaid/dist` (untracked, and rebuilt by the next build if a run is killed).
+- **The CLI-loader, process-exit and resolve-hook tests are in eess-crossvalidate.** They need the
+  built package or a child process; eess-mermaid's own tests run its source.
+- **The peers:** `mermaid` `^11.0.0` and `jsdom` `>=29.1.1`, the one version measured. The dev
+  dependencies are exact, `11.17.2` and `29.1.1`, so the line canary in CI runs against the version
+  the map was written for.
+- **The rows' cost:** 24 rows under `corpus/mermaid-parser/`, 11.7 s run alone (`QA_ONLY`), most of it
+  the 13 that start the real `mermaid`; `check:nonvacuity` now counts 172 fixtures.
+- **Red-first, measured afterwards.** The tests were written beside the code, not before it. In
+  their place, each mechanism was removed from the source and the suite re-run: ok-wins (5 tests
+  red), the trailing rule (1), the DOM shim (2), the lexical `+ 1` (12), the comment's leading
+  blanks (13), the directive step (12), the comment removal (12), the `trimStart` (1).
+
 ## Out of scope
 
 - **The loop, the port and the evidence** — plan 0412.
@@ -424,11 +470,11 @@ Each is overrulable. Where each review finding is answered:
 
 ## Progress ledger
 
-- [ ] Phase 1 — worker, loading, globals test under vitest and the CLI loader
-- [ ] Phase 2 — preamble, classification, line map and its canary
-- [ ] Phase 3 — canaries, budget, version range, terminate on every path
-- [ ] Phase 4 — conformance test, docs
-- [ ] changeset: eess-mermaid `minor`
+- [x] Phase 1 — worker, loading, globals test under vitest and the CLI loader
+- [x] Phase 2 — preamble, classification, line map and its canary
+- [x] Phase 3 — canaries, budget, version range, terminate on every path
+- [x] Phase 4 — conformance test, docs
+- [x] changeset: eess-mermaid `minor`
 - [ ] the dogfood gate (proposal 006's "Dogfood is not optional") — deferred→plan 0427 at the
       freeze, so the parser and the gate are each one reviewable PR
 

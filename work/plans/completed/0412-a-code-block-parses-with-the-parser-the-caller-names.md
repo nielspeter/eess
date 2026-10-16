@@ -5,7 +5,7 @@
 - **State:** Done — built 2026-10-14 to 2026-10-15 in one PR, over four review rounds, and closed in
   the same PR. All three phases are built. One ledger item is deferred to bug 0420. Frozen to Ready
   on 2026-10-14. Written against the 2026-10-14 review of proposal 006's Ask C, which split the ask
-  into this plan (A, eess-md) and [plan 0413](../0413-eess-mermaid-ships-mermaids-own-parser.md)
+  into this plan (A, eess-md) and [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)
   (B, eess-mermaid), in that order.
 - **Implements:** proposal 006 — Ask C, the half that is useful without Mermaid. The conditions
   cited by number below are that review's.

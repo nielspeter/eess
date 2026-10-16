@@ -31,5 +31,11 @@ export default tseslint.config(
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
+  // Plan 0413: a worker module eess-mermaid runs untransformed, so it is plain JavaScript. No
+  // tsconfig includes it, so it is linted without the type-checked rules.
+  {
+    files: ['packages/*/src/**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+  },
   prettierConfig,
 )

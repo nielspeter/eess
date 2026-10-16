@@ -1,0 +1,1 @@
+{ "name": "mermaid", "version": "11.99.0", "type": "module", "exports": "./index.mjs" }

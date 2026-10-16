@@ -27,11 +27,23 @@
   },
   "author": "Niels Peter",
   "license": "MIT",
+  "peerDependencies": {
+    "jsdom": ">=29.1.1",
+    "mermaid": "^11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "jsdom": {
+      "optional": true
+    },
+    "mermaid": {
+      "optional": true
+    }
+  },
   "scripts": {
     "prepublishOnly": "npm run build",
     "langium:gen": "langium generate --file langium-config.json",
     "prebuild": "rm -rf dist",
-    "build": "npm run langium:gen && tsc -p tsconfig.build.json && chmod +x dist/cli/bin.js",
+    "build": "npm run langium:gen && tsc -p tsconfig.build.json && node -e \"require('node:fs').cpSync('src/mermaid-js/mermaid-worker.mjs', 'dist/mermaid-js/mermaid-worker.mjs')\" && chmod +x dist/cli/bin.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -47,5 +59,9 @@
     "@nielspeter/eess": "^0.7.0",
     "jiti": "^2.7.0",
     "langium": "^4.2.3"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1",
+    "mermaid": "11.17.2"
   }
 }
