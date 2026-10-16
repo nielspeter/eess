@@ -1,7 +1,7 @@
 # Spike 0425: what Mermaid in a worker does under vitest and the eess-ts CLI
 
 Measured 2026-10-15 for the freeze of
-[plan 0413](../plans/0413-eess-mermaid-ships-mermaids-own-parser.md). The plan deferred several
+[plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md). The plan deferred several
 measurements to its own build, and one of them ("if the worker cannot run under vitest and the CLI
 loader, the feature does not ship") would have sent it back for a decision mid-build. Time-boxed to an
 hour; it took about 35 minutes.

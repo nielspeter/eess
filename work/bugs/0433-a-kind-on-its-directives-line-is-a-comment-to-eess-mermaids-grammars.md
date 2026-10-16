@@ -36,7 +36,7 @@ the rest of the line.
 ## Fix
 
 Undecided. Either the grammars treat a `%%{…}%%` directive as a token that ends at `}%%`, or the text
-is preprocessed as Mermaid does before parsing. [Plan 0413](../plans/0413-eess-mermaid-ships-mermaids-own-parser.md)
+is preprocessed as Mermaid does before parsing. [Plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)
 makes Mermaid's own parser answer syntax, which may change what this gap costs; decide after it.
 
 ## Verification

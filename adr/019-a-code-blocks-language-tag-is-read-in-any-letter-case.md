@@ -7,7 +7,7 @@
   its 2026-10-15 note, [bug 0423](../work/bugs/fixed/0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md),
   [bug 0424](../work/bugs/fixed/0424-a-capitalised-mermaid-er-fence-is-skipped-in-silence.md),
   [bug 0426](../work/bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
-  [plan 0413](../work/plans/0413-eess-mermaid-ships-mermaids-own-parser.md)
+  [plan 0413](../work/plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)
 
 ## The question
 

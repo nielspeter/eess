@@ -1,7 +1,7 @@
 # Spike 0428: where Mermaid puts an error's line, and what the worker must carry home
 
 Measured 2026-10-15, after the post-merge architect and enforcement review of
-[plan 0413](../plans/0413-eess-mermaid-ships-mermaids-own-parser.md) (frozen in PR #217) found that
+[plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) (frozen in PR #217) found that
 its line rule, measured in [spike 0425](./0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)
 only on blocks whose comments came first, did not hold. Time-boxed to an hour; it took about 45
 minutes. `mermaid` 11.17.2, `jsdom` 29.1.1, Node 24, the spike 0425 harness.

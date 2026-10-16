@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { diagramKind } from '../../src/index.js'
+import { diagramPreamble } from '../../src/parser/diagram-kind.js'
+
+type PreambleReason = ReturnType<typeof diagramPreamble>['reason']
 
 // Plan 0214: the one lexer for "what kind of Mermaid diagram is this", moved here from
 // eess-crossvalidate. It returns the declared kind token, after `%%` comments, `%%{init}%%`
@@ -82,4 +85,46 @@ describe('diagramKind()', () => {
       expect(header.test(diagramKind(line))).toBe(header.test(line))
     }
   })
+})
+
+// Plan 0413: why the walk reads the kind it does. Internal; mermaidParser() reads a failure with it.
+describe('diagramPreamble()', () => {
+  const cases: [string, string, PreambleReason, number | null][] = [
+    ['a declared kind', 'flowchart TD\n  A --> B', 'declared', 1],
+    ['a kind after frontmatter', '---\ntitle: x\n---\nerDiagram', 'declared', 4],
+    ['a blank block', ' \n\t\n', 'empty', null],
+    [
+      'comments and a directive with no kind',
+      '%% one\n%%{init: {}}%%',
+      'no-kind-after-preamble',
+      null,
+    ],
+    ['a directive that never closes', '%%{init: {\nerDiagram', 'unclosed-directive', null],
+    ['frontmatter that never closes', '---\ntitle: x\nerDiagram', 'unclosed-frontmatter', null],
+    // Mermaid reads frontmatter only when a newline follows its closing `---`.
+    [
+      'frontmatter with nothing after its close',
+      '---\ntitle: x\n---',
+      'unclosed-frontmatter',
+      null,
+    ],
+    [
+      'frontmatter whose close is indented',
+      '---\ntitle: x\n  ---\nerDiagram',
+      'unclosed-frontmatter',
+      4,
+    ],
+  ]
+  for (const [name, text, reason, kindLine] of cases) {
+    it(`reads ${name} as ${reason}`, () => {
+      expect(diagramPreamble(text)).toMatchObject({ reason, kindLine })
+    })
+  }
+})
+
+// PR review of plan 0413: the bindings select every block by `diagramKind`, so it stays the walk
+// alone, with none of the line map's cost.
+it('reads the kind of a diagram of several hundred kilobytes', () => {
+  const relations = Array.from({ length: 25_000 }, (_, i) => `  E${String(i)} ||--o{ F : has`)
+  expect(diagramKind(['erDiagram', ...relations, '  %% c'].join('\n'))).toBe('erDiagram')
 })

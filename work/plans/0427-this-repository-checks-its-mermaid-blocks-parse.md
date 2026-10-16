@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — fixed for plan 0413's re-freeze reviews (wording, dependencies, pinned count,
-  scope and exclusions, row text). Split out of [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) at its
+  scope and exclusions, row text). Split out of [plan 0413](./completed/0413-eess-mermaid-ships-mermaids-own-parser.md) at its
   freeze, 2026-10-15. Its design is 0413's original "Dogfood row", unchanged.
 - **Implements:** proposal 006 — Ask C's dogfood consumer.
 - **Priority:** Medium, the same as plan 0413 and never lower — the dogfood half of Ask C, and the

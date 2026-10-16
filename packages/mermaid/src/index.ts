@@ -76,6 +76,14 @@ export type {
   BridgeOutput,
 } from './bridge/from-diagram.js'
 
+// Mermaid's own parser, for eess-md's parseCodeBlocks (plan 0413)
+export { mermaidParser } from './mermaid-js/mermaid-parser.js'
+export type {
+  MermaidParser,
+  MermaidVerdict,
+  MermaidCanary,
+} from './mermaid-js/create-mermaid-parser.js'
+
 // ER diagrams (plan 0069 Phase 3)
 export { parseErDiagram } from './parser/parse-er-diagram.js'
 // Plan 0214: the one lexer for a diagram's declared kind.

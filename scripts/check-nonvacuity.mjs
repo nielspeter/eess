@@ -80,6 +80,15 @@
  *                 drives parseCodeBlocks + codeBlocks().should().parse() with a stub
  *                 parser over bad-code-block-parse/; each row asserts its own finding's
  *                 message — the instrument rows share one rule id.
+ *   corpus/mermaid-parser/* (plan 0413, fixture tier) scripts/nonvacuity/bad-mermaid-parser.mjs
+ *                 drives parseCodeBlocks with mermaidParser() over bad-mermaid-parser/, or with
+ *                 the built create-mermaid-parser.js over a scratch copy of the built worker
+ *                 with a stub, absent or real mermaid; each row asserts its own cause or line.
+ *                 The ok-wins, dom-shim and line-map/* rows first rewrite a file of
+ *                 packages/mermaid/dist (MERMAID_PARSER_SABOTAGE) and pass when the fixture goes
+ *                 red on a block that is fine. A killed run can leave a dist file sabotaged, which
+ *                 check:integrity cannot see (dist is untracked); every sabotage reds, never
+ *                 greens, and the next build restores it.
  *   corpus/adr-extends/{one-way,list-item,every-label-removed} (production script — bug 0127)
  *                 (plan 0406) ADR-010 rewritten with no link to ADR-014 → a
  *                 corpus/adr-extends-linked-back finding on ADR-014 naming ADR-010;
@@ -2481,6 +2490,66 @@ function gateCorpusExtendsEveryLabelRemoved() {
 }
 
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
+/**
+ * Plan 0413's sabotage rows: [row, file under packages/mermaid/dist, from, to, scenario]. One row per
+ * behaviour the line map mirrors that its canary can see. "Frontmatter's trailing blanks", on the
+ * plan's list, is not one: Mermaid's final `trimStart` drops them too, so removing it changes no line
+ * (measured; the `trimStart` row below stands in for it).
+ */
+const MERMAID_PARSER_SABOTAGE = [
+  // Bug 0409's regression: the preamble read before Mermaid's acceptance, so a block Mermaid accepts
+  // and the walk misreads is reported.
+  [
+    'ok-wins',
+    'mermaid-js/create-mermaid-parser.js',
+    "case 'ok':\n            return { outcome: 'valid' };",
+    "case 'ok':\n            if (diagramPreamble(text).reason === 'declared')\n                return { outcome: 'valid' };\n            break;",
+    'ok-wins',
+  ],
+  [
+    'dom-shim',
+    'mermaid-js/mermaid-worker.mjs',
+    'if (!(key in globalThis))',
+    'if (false)',
+    'dom-shim',
+  ],
+  [
+    'line-map/comment-leading-blanks',
+    'parser/mermaid-line-map.js',
+    'const COMMENT = /^\\s*%%',
+    'const COMMENT = /^[^\\S\\n]*%%',
+    'line-canary',
+  ],
+  [
+    'line-map/directive-collapse',
+    'parser/mermaid-line-map.js',
+    'return cut(cut(trace(text), FRONTMATTER), DIRECTIVE);',
+    'return cut(trace(text), FRONTMATTER);',
+    'line-canary',
+  ],
+  [
+    'line-map/comment-removal',
+    'parser/mermaid-line-map.js',
+    'cut(withoutPreamble(text), COMMENT)',
+    'withoutPreamble(text)',
+    'line-canary',
+  ],
+  [
+    'line-map/trim-start',
+    'parser/mermaid-line-map.js',
+    'const lead = uncommented.text.length - uncommented.text.trimStart().length;',
+    'const lead = 0;',
+    'line-canary',
+  ],
+  [
+    'line-map/lexical-plus-one',
+    'mermaid-js/create-mermaid-parser.js',
+    'fact.hashLine + 1',
+    'fact.hashLine',
+    'line-canary',
+  ],
+]
+
 function gateNode(script, mustSay, argv = []) {
   // `argv` lets ONE fixture file answer for several rows, each row running only
   // the scenario it is named for. Added when `check:integrity`'s four checks
@@ -2778,6 +2847,101 @@ const gates = [
     () =>
       gateNode('bad-code-block-parse.mjs', 'cannot-be-excluded: reported', ['cannot-be-excluded']),
   ],
+  // Plan 0413: Mermaid's own parser. Each row's token is the scenario name the fixture prints only
+  // when THAT finding fired; the instrument rows share one rule id (bug 0110's class).
+  [
+    'corpus/mermaid-parser/mid-body',
+    () => gateNode('bad-mermaid-parser.mjs', 'mid-body: reported', ['mid-body']),
+  ],
+  [
+    'corpus/mermaid-parser/trailing-comment',
+    () => gateNode('bad-mermaid-parser.mjs', 'trailing-comment: reported', ['trailing-comment']),
+  ],
+  [
+    'corpus/mermaid-parser/empty',
+    () => gateNode('bad-mermaid-parser.mjs', 'empty: reported', ['empty']),
+  ],
+  [
+    'corpus/mermaid-parser/no-kind',
+    () => gateNode('bad-mermaid-parser.mjs', 'no-kind: reported', ['no-kind']),
+  ],
+  [
+    'corpus/mermaid-parser/unclosed-frontmatter',
+    () =>
+      gateNode('bad-mermaid-parser.mjs', 'unclosed-frontmatter: reported', [
+        'unclosed-frontmatter',
+      ]),
+  ],
+  [
+    'corpus/mermaid-parser/misspelt',
+    () => gateNode('bad-mermaid-parser.mjs', 'misspelt: reported', ['misspelt']),
+  ],
+  [
+    'corpus/mermaid-parser/zenuml',
+    () => gateNode('bad-mermaid-parser.mjs', 'zenuml: reported', ['zenuml']),
+  ],
+  [
+    'corpus/mermaid-parser/missing-peer',
+    () => gateNode('bad-mermaid-parser.mjs', 'missing-peer: reported', ['missing-peer']),
+  ],
+  [
+    'corpus/mermaid-parser/missing-dependency',
+    () =>
+      gateNode('bad-mermaid-parser.mjs', 'missing-dependency: reported', ['missing-dependency']),
+  ],
+  [
+    'corpus/mermaid-parser/early-exit',
+    () => gateNode('bad-mermaid-parser.mjs', 'early-exit: reported', ['early-exit']),
+  ],
+  [
+    'corpus/mermaid-parser/out-of-range',
+    () => gateNode('bad-mermaid-parser.mjs', 'out-of-range: reported', ['out-of-range']),
+  ],
+  [
+    'corpus/mermaid-parser/unreadable',
+    () => gateNode('bad-mermaid-parser.mjs', 'unreadable: reported', ['unreadable']),
+  ],
+  [
+    'corpus/mermaid-parser/loaded-not-declared',
+    () =>
+      gateNode('bad-mermaid-parser.mjs', 'loaded-not-declared: reported', ['loaded-not-declared']),
+  ],
+  [
+    'corpus/mermaid-parser/stops-throwing',
+    () => gateNode('bad-mermaid-parser.mjs', 'stops-throwing: reported', ['stops-throwing']),
+  ],
+  [
+    'corpus/mermaid-parser/non-parse-throw',
+    () => gateNode('bad-mermaid-parser.mjs', 'non-parse-throw: reported', ['non-parse-throw']),
+  ],
+  [
+    'corpus/mermaid-parser/non-result',
+    () => gateNode('bad-mermaid-parser.mjs', 'non-result: reported', ['non-result']),
+  ],
+  [
+    'corpus/mermaid-parser/unclosed-directive',
+    () =>
+      gateNode('bad-mermaid-parser.mjs', 'unclosed-directive: reported', ['unclosed-directive']),
+  ],
+  [
+    'corpus/mermaid-parser/missing-jsdom',
+    () => gateNode('bad-mermaid-parser.mjs', 'missing-jsdom: reported', ['missing-jsdom']),
+  ],
+  [
+    'corpus/mermaid-parser/hang',
+    () => gateNode('bad-mermaid-parser.mjs', 'hang: reported', ['hang']),
+  ],
+  // The mechanism removed from the BUILT package (dist/ is untracked, and the next build restores
+  // it if a run is killed): each row passes when the fixture goes red on a block that is fine.
+  ...MERMAID_PARSER_SABOTAGE.map(([row, file, from, to, scenario]) => [
+    `corpus/mermaid-parser/${row}`,
+    () =>
+      withRewrittenFile(
+        join(repoRoot, 'packages', 'mermaid', 'dist', file),
+        (text) => text.replace(from, to),
+        () => gateNode('bad-mermaid-parser.mjs', `${scenario}: reported`, [scenario]),
+      ),
+  ]),
   // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
   // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
   // its detection logic — a regression back to hand-rolled iteration (or an
@@ -3339,6 +3503,34 @@ const GATE_FOR = {
     'corpus/code-block-parse/canary-may-pass',
     'corpus/code-block-parse/sync-overrun',
     'corpus/code-block-parse/cannot-be-excluded',
+    // Plan 0413 — FIXTURE tier (bug 0127), filed here beside plan 0412's rows for the same reason: no
+    // production rule parses Mermaid until plan 0427's gate.
+    'corpus/mermaid-parser/mid-body',
+    'corpus/mermaid-parser/trailing-comment',
+    'corpus/mermaid-parser/empty',
+    'corpus/mermaid-parser/no-kind',
+    'corpus/mermaid-parser/unclosed-frontmatter',
+    'corpus/mermaid-parser/misspelt',
+    'corpus/mermaid-parser/zenuml',
+    'corpus/mermaid-parser/missing-peer',
+    'corpus/mermaid-parser/missing-dependency',
+    'corpus/mermaid-parser/early-exit',
+    'corpus/mermaid-parser/out-of-range',
+    'corpus/mermaid-parser/unreadable',
+    'corpus/mermaid-parser/loaded-not-declared',
+    'corpus/mermaid-parser/stops-throwing',
+    'corpus/mermaid-parser/non-parse-throw',
+    'corpus/mermaid-parser/non-result',
+    'corpus/mermaid-parser/hang',
+    'corpus/mermaid-parser/unclosed-directive',
+    'corpus/mermaid-parser/missing-jsdom',
+    'corpus/mermaid-parser/ok-wins',
+    'corpus/mermaid-parser/dom-shim',
+    'corpus/mermaid-parser/line-map/comment-leading-blanks',
+    'corpus/mermaid-parser/line-map/directive-collapse',
+    'corpus/mermaid-parser/line-map/comment-removal',
+    'corpus/mermaid-parser/line-map/trim-start',
+    'corpus/mermaid-parser/line-map/lexical-plus-one',
     // Plan 0406: the first two run the production script; the rest are FIXTURE tier.
     'corpus/adr-extends/one-way',
     'corpus/adr-extends/list-item',
