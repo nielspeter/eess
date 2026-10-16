@@ -21,6 +21,39 @@ describe('diagramKind()', () => {
     ['an empty fence', '', ''],
     ['a fence of only comments', '%% one\n%% two', ''],
     ['a fence whose init never closes', '%%{init: {\nerDiagram', ''],
+    // Bug 0429: a directive closes at its first `}%%`, wherever it is on the line, as Mermaid's own
+    // directive pattern does. Each body below parses with mermaid 11.17.2 (measured).
+    [
+      'after an init closed mid-line by a comment',
+      '%%{init: {"theme":"dark"}}%% %% note\nerDiagram\n  A ||--o{ B : x',
+      'erDiagram',
+    ],
+    [
+      'after a multi-line init closed mid-line',
+      '%%{init: {\n  "theme": "dark"\n}}%% %% note\nsequenceDiagram',
+      'sequenceDiagram',
+    ],
+    [
+      'after two inits on one line',
+      '%%{init: {"theme":"dark"}}%% %%{init: {"fontSize": 12}}%%\nerDiagram',
+      'erDiagram',
+    ],
+    // Only the loop decides this one: after the first directive, the second still starts `%%{`.
+    [
+      'on the line of two inits',
+      '%%{init: {"theme":"dark"}}%% %%{init: {"fontSize": 12}}%% erDiagram\n  A ||--o{ B : x',
+      'erDiagram',
+    ],
+    [
+      'on the line of its init',
+      '%%{init: {"theme":"dark"}}%% erDiagram\n  A ||--o{ B : x',
+      'erDiagram',
+    ],
+    [
+      'on the line a multi-line init closes',
+      '%%{init: {\n  "theme": "dark"\n}}%% sequenceDiagram',
+      'sequenceDiagram',
+    ],
   ]
   for (const [name, body, kind] of cases) {
     it(`reads ${name} as ${kind === '' ? 'no kind' : kind}`, () => {

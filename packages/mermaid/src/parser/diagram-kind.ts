@@ -21,19 +21,26 @@ function declaredLine(text: string): string {
   }
   let inDirective = false
   for (; i < lines.length; i += 1) {
-    const line = lines[i]?.trim() ?? ''
-    if (line === '') continue
+    let line = lines[i]?.trim() ?? ''
     // `%%{ … }%%` may span lines. Track it, or the continuation line gets read as the declared kind:
-    // measured, a multi-line init block ahead of a sequenceDiagram made it selected.
+    // measured, a multi-line init block ahead of a sequenceDiagram made it selected. A directive
+    // closes at its FIRST `}%%`, wherever it is on the line, as Mermaid's own pattern does; what
+    // follows is read as the rest of the line (bug 0429: `%%{init}%% %% note` stayed open).
     if (inDirective) {
-      if (line.endsWith('}%%')) inDirective = false
-      continue
+      const close = line.indexOf('}%%')
+      if (close === -1) continue
+      inDirective = false
+      line = line.slice(close + 3).trim()
     }
-    if (line.startsWith('%%{') && !line.endsWith('}%%')) {
-      inDirective = true
-      continue
+    while (line.startsWith('%%{')) {
+      const close = line.indexOf('}%%')
+      if (close === -1) {
+        inDirective = true
+        break
+      }
+      line = line.slice(close + 3).trim()
     }
-    if (line.startsWith('%%')) continue
+    if (inDirective || line === '' || line.startsWith('%%')) continue
     return line
   }
   return ''

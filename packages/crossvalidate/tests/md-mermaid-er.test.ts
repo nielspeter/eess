@@ -190,4 +190,26 @@ describe('tableErAgree() — non-standard syntax', () => {
   it('does not read an erDiagram in a fence tagged mmd', () => {
     expect(tableErStats(c(['mmd-tagged-er.md']), OPTS).docs).toBe(0)
   })
+
+  // Bug 0429: a directive line that ends in a comment left the directive open to the end of the
+  // block, so no kind was found and the diagram was never selected or compared.
+  it('selects an erDiagram behind a directive closed mid-line and compares it (bug 0429)', () => {
+    const docs = c(['bad-init-mid-line-extra-attribute.md'])
+    const violations = violationsOf(() => tableErAgree(docs, OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain("'midLineGhost' of 'JobSchedule' is not a row")
+    expect(tableErStats(docs, OPTS).docs).toBe(1)
+  })
+
+  // Bug 0429, PR #223's review: with the kind on the directive's own line, Mermaid parses the block
+  // but eess-mermaid's ER grammar reads the whole line as a comment (bug 0433). So it is selected
+  // and reported as a grammar gap, never compared. Before bug 0429 it was skipped in silence.
+  it('reports an erDiagram whose kind shares its directive line as a grammar gap (bug 0429)', () => {
+    const docs = c(['bad-init-kind-same-line-extra-attribute.md'])
+    const violations = violationsOf(() => tableErAgree(docs, OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('does not parse')
+    expect(violations[0]?.message).not.toContain('sameLineGhost')
+    expect(tableErStats(docs, OPTS).docs).toBe(1)
+  })
 })

@@ -161,8 +161,13 @@ fact for it.
   Frontmatter is "unclosed" when the text's first line is `---` and the line map's own frontmatter
   regex, Mermaid's, does not match, so the walk and Mermaid cannot disagree about it. The walk's
   directive tracking has its own defect, a directive closed mid-line read as open, recorded as
-  [bug 0429](../bugs/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md), fixed before or
+  [bug 0429](../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md), fixed before or
   with this build; with Mermaid's `ok` winning above, it cannot blame an author here.
+  _Note, 2026-10-15 (PR #223's review):_ bug 0429 is fixed before this build, so the walk now reads
+  `%%{init}%% %% note` ahead of a kind as declared, like Mermaid. The test inventory's ok-wins block
+  and the "Mermaid's `ok` no longer wins" sabotage row below were chosen because the walk misread it;
+  they no longer exercise ok-wins and need a block where the walk and Mermaid still disagree. The
+  build picks one.
 - A misspelt kind and a kind not in core share one remedy, so no list of kinds is kept (OQ4
   untouched).
 
