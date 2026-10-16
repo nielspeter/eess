@@ -216,6 +216,7 @@ import { dirname, join } from 'node:path'
 // ask the same question the rule asks.
 import { KERNEL_INTERNAL, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './lib/kernel-surface.mjs'
 import { ALLOWLIST } from './lib/family-re-exports.mjs'
+import { BUN_BREAKS, checkBunLoadJob } from './check-bun-load.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EESS_TS = join(repoRoot, 'node_modules', '.bin', 'eess-ts')
@@ -3225,6 +3226,43 @@ const gates = [
   ['mermaid-parses/dot-directory', gateMermaidParsesDotDirectory],
   ['mermaid-parses/unsafe-path', gateMermaidParsesUnsafePath],
   ['mermaid-parses/untracked', gateMermaidParsesUntracked],
+  // Plan 0448: `check:bun-load`'s breaks that need no Bun — the input half and
+  // the static read of its CI job. Its Bun breaks run as the guard's own
+  // `--self-test` in the `bun-load` CI job; `gateCoverage` pins their ids.
+  [
+    'bun-load/stale-exclusion',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/stale-exclusion']),
+  ],
+  [
+    'bun-load/stale-on-import',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/stale-on-import']),
+  ],
+  [
+    'bun-load/empty-or-private',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/empty-or-private']),
+  ],
+  [
+    'bun-load/unreadable-exports',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/unreadable-exports']),
+  ],
+  [
+    'bun-load/ci-job-missing',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-job-missing']),
+  ],
+  ['bun-load/ci-if', () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-if'])],
+  [
+    'bun-load/ci-continue-on-error',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-continue-on-error']),
+  ],
+  ['bun-load/ci-needs', () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-needs'])],
+  [
+    'bun-load/ci-self-test-missing',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-self-test-missing']),
+  ],
+  [
+    'bun-load/ci-version-file',
+    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-version-file']),
+  ],
   ['corpus/adr-extends/one-way', gateCorpusExtendsOneWay],
   ['corpus/adr-extends/list-item', gateCorpusExtendsListItem],
   ['corpus/adr-extends/every-label-removed', gateCorpusExtendsEveryLabelRemoved],
@@ -3715,6 +3753,18 @@ const GATE_FOR = {
     'mermaid-parses/unsafe-path',
     'mermaid-parses/untracked',
   ],
+  'check:bun-load': [
+    'bun-load/stale-exclusion',
+    'bun-load/stale-on-import',
+    'bun-load/empty-or-private',
+    'bun-load/unreadable-exports',
+    'bun-load/ci-job-missing',
+    'bun-load/ci-if',
+    'bun-load/ci-continue-on-error',
+    'bun-load/ci-needs',
+    'bun-load/ci-self-test-missing',
+    'bun-load/ci-version-file',
+  ],
   'check:ledger': [
     'emitter/ledger-dead-check',
     'corpus/ledger/box',
@@ -3876,7 +3926,12 @@ function gateCoverage() {
   // emptied; the answer was nothing, which means it was decoration reading as a
   // decision. If a CI-only step ever genuinely belongs here, add it WITH the
   // reason it cannot run locally.
-  const CI_ONLY_BY_DESIGN = new Set([])
+  // `check:bun-load` (plan 0448): its probes need the Bun runtime, and ADR-001
+  // keeps Bun out of this repository's toolchain ("local development on Node and
+  // npm stays"), so `validate` cannot run it. Its no-Bun breaks are rows above,
+  // its CI job is read by the check below, and its Bun breaks run as its own
+  // `--self-test` in that job.
+  const CI_ONLY_BY_DESIGN = new Set(['check:bun-load'])
   for (const m of ci.matchAll(/npm run ([a-z][\w:-]*)/g)) {
     const step = m[1]
     if (step === undefined || CI_ONLY_BY_DESIGN.has(step)) continue
@@ -3896,6 +3951,27 @@ function gateCoverage() {
     if (!inValidate) {
       problems.push(`.github/workflows/ci.yml runs "${step}" but \`validate\` does not`)
     }
+  }
+  // Plan 0448: the `bun-load` job is CI-only, so nothing that runs without Bun
+  // would see it deleted, made conditional, or made non-blocking unless this
+  // reads it. ADR-020 rule 3's "a static read of the CI workflow shows the jobs
+  // always run".
+  for (const p of checkBunLoadJob(ci)) problems.push(`bun-load CI job: ${p}`)
+  // The guard's Bun breaks run only in that job, so a deleted break would read
+  // as a smaller count there and nothing here. Pinned to the ids plan 0448 names.
+  const BUN_BREAK_IDS = [
+    'named-import-in-export',
+    'named-import-in-bin',
+    'on-import-entry-link-error',
+    'excluded-package-loads',
+    'other-bun-version',
+    'fake-bun-runs-node',
+    'package-dropped',
+  ]
+  const declaredBunBreaks = new Set(BUN_BREAKS.map((b) => b.id))
+  for (const id of BUN_BREAK_IDS) {
+    if (!declaredBunBreaks.has(id))
+      problems.push(`check:bun-load's self-test no longer declares the break "${id}"`)
   }
   for (const c of checks) {
     if (NO_GATE_NEEDED[c] !== undefined) continue

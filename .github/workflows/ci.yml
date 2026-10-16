@@ -98,3 +98,29 @@ jobs:
       # version and stopped `lint`, `format:check` and every test from running —
       # including the one ADR-011 row 2 names as its `gated` mechanism.
       - run: npm run check:surface
+
+  # Every published package of the family loads under Bun (ADR-020 rule 2; plan
+  # 0448, bug 0439). Its own job, deliberately: a step inside `test` would sit
+  # behind fail-fast and the twenty-minute suite, and `needs: test` would skip it
+  # whenever `test` fails. It installs and builds on its own (about 20 s, the cost
+  # of not depending on `test`). CI-only by design: ADR-001 keeps Bun out of this
+  # repository's toolchain, so `validate` cannot run it. `gateCoverage` (in
+  # `check:nonvacuity`) reads this job and reds if it gains an `if:`,
+  # `continue-on-error` or `needs:`, or stops running the guard or its self-test.
+  bun-load:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check:bun-load
+      - run: npm run check:bun-load -- --self-test
