@@ -815,5 +815,6 @@ overruled.
   [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md).
 - **Plan B's dogfood row ("Dogfood is not optional" above) moved, unchanged, to
   [plan 0427](../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md)**, so the parser and the
-  gate are each one reviewable PR. It is deferred, not dropped: plan 0413's ledger carries it as a
-  `deferred→plan 0427` box, and 0427 depends on 0413.
+  gate are each one reviewable PR. Plan 0413's ledger carried it as a `deferred→plan 0427` box. It
+  was delivered on 2026-10-16, changed at the build (the scope is what git sees, and it has six
+  rows); plan 0427 records how.

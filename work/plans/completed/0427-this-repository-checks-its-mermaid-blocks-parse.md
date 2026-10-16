@@ -2,14 +2,16 @@
 
 ## Status
 
-- **State:** Done — built 2026-10-16 as `check:mermaid-parses`; the departures from the design are
-  under "Decided at the build". Split out of [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) at
-  its freeze, 2026-10-15. Its design is 0413's original "Dogfood row".
+- **State:** Done — built 2026-10-16 as `check:mermaid-parses`, from Draft: this plan was never
+  marked Ready. Its design was reviewed inside plan 0413's freeze reviews (PR #219), where it was
+  0413's "Dogfood row"; the departures from it are under "Decided at the build". Split out of
+  [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) at its freeze, 2026-10-15.
 - **Implements:** proposal 006 — Ask C's dogfood consumer.
 - **Priority:** Medium, the same as plan 0413 and never lower — the dogfood half of Ask C, and the
   only production-tier proof of the parser. The parser ships without it, so it is no longer the
   parser's merge condition.
-- **Effort:** Small — one script gate and one non-vacuity row; no new dependency.
+- **Effort:** Small — one script gate and one non-vacuity row, as planned (built with six rows, see
+  below); no new dependency.
 - **Created:** 2026-10-15
 - **Depends on:** plan 0413 (`mermaidParser()`).
 
@@ -46,13 +48,14 @@ dependencies.
   `docs/manifesto.md`'s `graph` block reds `check:mermaid-parses`, naming `docs/manifesto.md` and the
   line", matching on that file and line. The harness's gate list claims it.
 - `CLAUDE.md` — the gate-output table row.
-- `.changeset/` — `none` for every package (this repository only).
+- `.changeset/` — `none` for every package (this repository only). As built: no changeset, see below.
 
 ## Test inventory
 
 - The gate reds on the manifesto break, naming file and rule.
 - The gate prints eess-md's success line, "N mermaid blocks parsed with mermaid X.Y.Z"
-  (`packages/md/src/model/code-block-parse.ts:390`).
+  (`packages/md/src/model/code-block-parse.ts:374`). Checked by hand at the build; no row asserts
+  the green line.
 
 ## Out of scope
 
@@ -62,42 +65,66 @@ dependencies.
 
 Each is overrulable.
 
-- **Scope is `git ls-files '*.md'`, not the glob `**/_.md`.** Measured: `corpus({ roots: ['\*\*/_.md'] })`loaded 843 documents against 862 tracked. It missed the 22 tracked files under`.claude/`and`.changeset/`, because `\*_`does not enter dot directories, and it loaded 3 gitignored files under`reports/`that CI never sees. The plan's own words were "every tracked`_.md` file", so the gate
-  reads git. Each tracked path becomes a literal root; a path containing a glob character is refused,
-  not read as a pattern (none does today).
-- **An exclusion that covers no block is a finding, not "dropped".** The plan said the build drops
-  one; the gate does it on every run instead, counting Mermaid blocks under each exclusion with
-  eess-md's `tagIsLanguage` (ADR-019's one owner) before the exclusions are applied. The kernel's
-  `.excluding()` was not used: it warns on an unused pattern, and a warning is not ADR-018's finding.
-  All three exclusions are measured live; the fixture counts the plan pinned are not re-pinned.
-- **`check()` reports, so there is no `dedupeConfigFindings` call.** done-otherwise: the gate runs
-  one rule, so there is nothing to dedupe, and `check()` already owns the reporting (ADR-008) and
-  refuses a run that examined no block (ADR-014). The plan's "prints the success line from the fact
-  object's summary" holds: the line embeds `parsed.summary()`.
-- **Four non-vacuity rows, not one**, one per check (`GATE_FOR`'s doctrine):
-  `mermaid-parses/manifesto-break` (the plan's row: the real gate over the real tree, the finding on
-  `docs/manifesto.md` at the planted line), `stale-exclusion`, `no-block` and `dot-directory` (the
-  last three run the gate from a scratch git repository). Measured by sabotage of the gate, one
-  mechanism at a time: removing the stale-exclusion loop reds `stale-exclusion` only; selecting by
-  `**/*.md` reds `dot-directory` only; dropping the `ignore` reds `no-block` only; `violations()` in
-  place of `check()` reds three; never failing reds all four.
+- **Scope is the Markdown git sees, not a glob.** Measured: `corpus()` with the root glob
+  `**/*.md` loaded 843 documents against 862 tracked. It missed the 22 tracked files under
+  `.claude/` and `.changeset/`, because a `**` segment does not enter dot directories, and it
+  loaded 3 gitignored files under `reports/` that CI never sees. The plan's own words were "every
+  tracked Markdown file", so the gate asks git: `git ls-files --cached --others --exclude-standard`.
+  Untracked files that are not ignored count too (an enforcement review finding), so an author who
+  runs the gate before `git add` has their new diagram checked. Each path becomes a literal root; a
+  path containing a glob character is refused, not read as a pattern (none does today). The gate
+  also checks that every listed path loaded.
+- **An exclusion is resolved against the rule's violations, and a stale one is a finding.** The plan
+  said "an exclusion that matches no block is dropped". As first built, the gate counted blocks;
+  the enforcement review measured that 60 of the 77 excluded blocks are valid, so an exclusion
+  whose broken fixtures were all fixed would have stayed green. The gate now parses the excluded
+  blocks too and calls an exclusion stale when no block under it fails. This follows ADR-018's
+  rule 1, but ADR-018 is Proposed, so it is the direction, not a binding ruling. The kernel's
+  `.excluding()` was not used: it only warns on an unused pattern.
+- **`check()` reports, so there is no `dedupeConfigFindings` call.** The gate runs one rule, so
+  there is nothing to dedupe, and `check()` already owns the reporting (ADR-008) and refuses a run
+  that examined no block (ADR-014). The gate's own findings (stale exclusion, unsafe path, a path
+  that did not load, git unavailable, excluded blocks unparseable) go to the same places: stderr,
+  and stdout under `--format json`. The success line embeds `parsed.summary()`.
+- **Six non-vacuity rows, not one**, one per check (`GATE_FOR`'s doctrine):
+  `mermaid-parses/manifesto-break` (the plan's row: the real gate over the real tree, the finding
+  on `docs/manifesto.md` at the planted line), then five that run the gate from a scratch git
+  repository: `stale-exclusion` (exclusions holding only valid blocks, in both formats),
+  `no-block`, `dot-directory`, `unsafe-path` and `untracked`. Measured by sabotage of the gate,
+  one mechanism at a time, each reds the row named for it:
+  - stale-exclusion check skipped, or counting documents instead of violations: `stale-exclusion`;
+  - stale findings left out of the JSON stream: `stale-exclusion`;
+  - `--others` dropped: `untracked`;
+  - unsafe-path check emptied: `unsafe-path`;
+  - `violations()` in place of `check()`: `manifesto-break`, `no-block` and `dot-directory`.
+- **Unpinned guards:** the loaded-every-path check, the git-unavailable finding and the
+  excluded-blocks-unparseable finding have no row. Each fails closed (a finding, exit 1), but
+  nothing reds if one is deleted.
 - **The gate also runs in `ci.yml`**, beside `check:corpus`: the harness checks that CI runs every
   `validate` step.
-- **No changeset.** done-otherwise: nothing under `packages/` changed, so `check:release` asks for none.
-- **What it checks today:** 4 Mermaid blocks in 530 tracked documents outside the exclusions
-  (`docs/architecture.md`, `docs/eess-walkthrough-calculator.md`, `docs/manifesto.md`, proposal 010).
-  The fences in `work/bugs/fixed/` sit inside four-backtick fences. Not pinned; the gate prints it.
+- **No changeset.** done-otherwise: nothing under `packages/` changed, so `check:release` asks for
+  none.
+- **What it checks today:** 4 Mermaid blocks in the 530 documents outside the exclusions
+  (`docs/architecture.md`, `docs/eess-walkthrough-calculator.md`, `docs/manifesto.md`, proposal
+  010). The fences in `work/bugs/fixed/` sit inside four-backtick fences. Not pinned; the gate
+  prints it.
+- **Residual:** when every block is excluded, the kernel's refusal speaks of "an empty project, an
+  unreadable tsconfig, or a glob resolving to nothing", which is the kernel's wording for every
+  dialect. The gate's own line says "0 mermaid blocks parsed".
 
 ## Cost, measured
 
-- `check:mermaid-parses`: 5.5 s inside `validate` (5464 ms, 4 blocks; mostly the worker's start-up).
-- The four non-vacuity rows: 11 s together, run standalone.
-- The whole `validate`: 632 s on this tree, against 612 s on plan 0413's. That is a different tree, so
-  the difference is an indication, not a measurement of this plan alone.
+- `check:mermaid-parses`: 4.2 s on this tree. The method review timed the first build's phases:
+  loading the corpus took about 2.3 s and ran twice, and the worker plus the parse took about
+  0.5 s. The rebuilt gate loads each file once (the kept and the excluded files as two corpora)
+  and starts the worker twice.
+- The six non-vacuity rows: 12 s together, run standalone.
+- The whole `validate`: 632 s on the first build's tree, against 612 s on plan 0413's. A different
+  tree, so an indication, not a measurement of this plan alone.
 
 ## Progress ledger
 
-- [x] the gate, its row and its CLAUDE.md line — four rows, see above
+- [x] the gate, its row and its CLAUDE.md line — six rows, see above
 - [x] validate chain's added time measured and recorded — see "Cost, measured"
 
 Deferred: none
