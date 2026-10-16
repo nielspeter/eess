@@ -28,15 +28,18 @@ the load path of library entries such as `corpus()`. Bun's `node:module` has no 
 in a `.js` ES module a missing named import fails the whole graph at link time even if the function
 is never called.
 
-**Why no test saw it:** the suites run from source, and a green suite on Bun does not prove the
-package loads there. Spike 0438 measured eess-md's suite at 300 of 300 under `bun --bun vitest` on
+**Why no test saw it:** no test imports a published entry under plain `bun`, and a green suite on
+Bun does not prove the package loads there. eess-md's suite takes the kernel from the built
+`dist/internal.js`, the failing build, and still passed: spike 0438 measured eess-md's suite at 300 of 300 under `bun --bun vitest` on
 the same build whose entry fails to import under plain `bun`: vitest's module runner links what Bun
 itself refuses.
 
 ## Fix
 
 The spike measured one fix: a namespace import (`import * as nodeModule from 'node:module'`, then
-`nodeModule.registerHooks(...)` at the call site) made all 28 entries load. It also recommends taking
+`nodeModule.registerHooks(...)` at the call site) made all 28 entries load, counting
+`@nielspeter/eess-ts/cli` as loaded: it runs the CLI when imported and exits non-zero with "No
+command specified", the same under Node. It also recommends taking
 the CLI's loader exports off `@nielspeter/eess/internal`, so a library entry never links CLI code;
 that was not built. The plan decides which, and its red test must import each published entry under
 plain `bun`, not run a suite.
@@ -44,7 +47,9 @@ plain `bun`, not run a suite.
 ## Verification
 
 - [ ] Red first: a plain-`bun` import of each published entry fails on the current build
-- [ ] Green: every published entry loads under plain `bun`
+- [ ] Green: every published entry loads under plain `bun`, the list derived from each package's
+      `exports`; an entry that runs a command when imported (`eess-ts/cli`) counts as loaded when
+      its error is the command's own, not a link error
 - [ ] Published, and the adopter told the version numbers
 
 Deferred: none

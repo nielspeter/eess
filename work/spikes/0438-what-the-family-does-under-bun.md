@@ -122,9 +122,10 @@ So the 9 are 1 + 2 + 4 + 2: eess-mermaid 6, eess-crossvalidate 1, eess-ts 2.
   Node-mechanism test. eess-mermaid has two unexplained differences, and its CLI tests need a look
   before it is claimed.
 - **What "supported" means is the decision record's to rule.** This spike's measurement constrains
-  it: a suite run on Bun alone would have passed eess-md through every release that fails to load
-  under Bun. So any claim pairs the suite with a plain-`bun` import of every published entry (the
-  spike's `probe.sh` is that check), and tests that assert a Node mechanism are marked as such rather
+  it: a suite run on Bun alone passed eess-md on `main`'s build, which fails to load under Bun, and by
+  the same mechanism would pass every such release. So any claim pairs the suite with a plain-`bun`
+  import of every published entry, the list derived from each package's `exports` rather than typed
+  in (the first probe here typed 18 and missed 10), and tests that assert a Node mechanism are marked as such rather
   than skipped silently.
 
 ## Not measured
@@ -138,7 +139,9 @@ So the 9 are 1 + 2 + 4 + 2: eess-mermaid 6, eess-crossvalidate 1, eess-ts 2.
 
 ## Harness
 
-In the scratchpad of the session that ran it, not committed: `bun/probe.sh` (one process per
-entry), `bun/func.mjs` (the calls in Q2, run under `node` and `bun`), `bun/demo*.rules.ts` and
+In the scratchpad of the session that ran it, not committed: `bun/probe.sh` (the first probe, one
+process per entry over a typed list of 18), the 28-entry re-run, which read its list from each
+package's `exports` (`entries.txt`, and the method review's `rev438/p28.sh`), the method review's
+one-test vitest file behind Q4's masking finding (`rev438/`), `bun/func.mjs` (the calls in Q2, run under `node` and `bun`), `bun/demo*.rules.ts` and
 `bun/helper.ts` (Q3), `bun/vt/rt.test.ts` (which runtime vitest's workers use), and a worktree at
 `main` with the import patched and the family built (Q4).

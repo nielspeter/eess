@@ -12,8 +12,8 @@
 ## Symptom
 
 `packages/ts/tests/cli/esm-sibling-import.test.ts`, "a second fresh load sees the edited sibling,
-not the first one", run under `bun --bun vitest` on a build with bug 0439's import patched, received
-`{ first: 'v1', second: 'v2' }` as `{ first: 'v1', second: 'v1' }`. Under Node it passes.
+not the first one", run under `bun --bun vitest` on a build with bug 0439's import patched, expected
+`second: 'v2'` and received `'v1'`. Under Node it passes.
 
 ## Root cause
 
