@@ -27,7 +27,7 @@ Reproduced on a scratch corpus of five plans:
 | 0004   | `**State:** Done`                | live         | "State: Done but not in a done-folder" |
 | 0005   | `**Status:** Draft`              | `completed/` | **none**                               |
 
-`ledgerStats` reported `scanned: 5, withReadableState: 2`. Records 0002 and 0005 are the same
+`ledgerStats` reported `scanned: 5, withReadableState: 2, unreadableState: 0`: the last counts only a record whose `State:` label was found with a value it cannot read (`packages/md/src/rules/ledger.ts:782`), so the three `Status:` records count nowhere. Not live in this repository: no plan, bug or proposal here writes `Status:` without `State:` (measured). Records 0002 and 0005 are the same
 defects 0004 is reported for, written with the other label. The box check, which keys on the folder,
 still runs.
 

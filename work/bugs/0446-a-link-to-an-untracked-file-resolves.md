@@ -15,9 +15,7 @@ asks git. Reproduced in a scratch repository: `docs/a.md` (committed) links `./b
 exists but is untracked. `links(c).should().resolve()` reports nothing, and `docs/b.md` is loaded as
 a document. A clean clone has no `b.md`.
 
-Bug 0442 is the opposite case on another gate (a tracked file deleted but not staged).
-`check:mermaid-parses` already scopes itself with `git ls-files --cached --others
---exclude-standard` (plan 0427).
+Bug 0442 is the opposite case on another gate (a tracked file deleted but not staged). "What git tracks" means `git ls-files --cached` without the files `--deleted` lists (0442's fix too). `check:mermaid-parses` is not the model: its `git ls-files --cached --others --exclude-standard` (plan 0427) also lists untracked, unignored files, and in the repository above it prints `docs/b.md`, so it has the same blind spot (to be recorded on its own, not fixed here).
 
 ## Fix
 
