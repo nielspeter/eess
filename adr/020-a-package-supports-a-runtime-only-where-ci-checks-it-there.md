@@ -1,0 +1,148 @@
+# ADR-020: A package supports a runtime only where CI checks it there
+
+- **Status:** Accepted 2026-10-16, on the owner's decision at merge (PR #228). Proposed the same
+  day and revised twice after its architect, product, enforcement and method reviews. The owner asked for Bun support, scoped to what CI can test, after
+  an adopter monorepo on Bun could not load eess-md
+  ([bug 0439](../work/bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)).
+- **Amends** the runtime half of
+  [ADR-001](./001-toolchain-node-vitest-eslint-prettier.md)'s "No Bun (runtime or test runner)".
+  What stays: local development on Node and npm, and Bun's own test runner out. What changes: a
+  package may claim Bun, and this repository's CI then runs vitest on the Bun runtime for it, beside
+  the Node chain. ADR-001's Enforcement row is split to say so; the relation is prose, since the
+  corpus gate reads only `**Extends:**`.
+  [ADR-004](./004-esm-only-package.md) stands: every package runs on Node 24 or later.
+- **Context:** [spike 0438](../work/spikes/0438-what-the-family-does-under-bun.md).
+
+## The question
+
+ADR-001 rejected Bun for ts-archunit: its engine drives the TypeScript compiler, and its users ran
+it inside Node test suites. eess is now six packages, and most of them neither drive the compiler
+nor run only in a test suite. Spike 0438 measured the family under Bun 1.4.3, on macOS only: one
+import stops 22 of the 28 published entry points, and with it fixed, every real call it tried gave
+the same counts as under Node. So Bun support looks cheap. The question is what "supports Bun" may
+mean, so that the claim cannot be true on the page and false in an adopter's build.
+
+The spike measured two ways a check passes while Bun is broken:
+
+- **The suite masks a load failure.** eess-md's suite passed 300 of 300 on the Bun runtime, on the
+  build whose `@nielspeter/eess-md` entry fails to load under Bun: vitest's module runner links what
+  Bun itself refuses.
+- **A "Bun" run can run on Node.** Started through its `#!/usr/bin/env node` shebang, as
+  `bunx vitest run` does, vitest runs on Node: a test asserting the runtime received
+  `node v24.14.0`. Started as `bun <path to vitest>`, with or without `--bun`, it ran on Bun 1.4.3
+  under both pools (measured during this ADR's review; spike 0438's own wording was corrected). The
+  published bins carry the same shebang.
+
+## Decision
+
+**A package claims a runtime other than Node only where CI checks it on that runtime, with checks
+that prove they ran there and fail the build when the package breaks there.** Precisely:
+
+1. **Node is every package's runtime** (ADR-004). Any other runtime is claimed package by package,
+   never for the family as a whole.
+2. **A load guard may run without a claim.** Rule 3's load check, with its proof of runtime and
+   its blocking, may run under another runtime for a package that claims nothing there, so a
+   defect like bug 0439 is fixed and kept fixed without waiting for a claim. A guard runs over every
+   published package of the family, derived from the workspace; a package that cannot load under
+   that runtime is left out only through one committed list the guard validates against the
+   workspace, each entry with its reason. An excluded package that loads under that runtime is a
+   finding, so the list only shrinks, and a guard that examines no package fails. A guard says
+   nothing to adopters; only a claim does.
+3. **A claim requires two checks, both on that runtime, both blocking:**
+   - **Load.** Every entry in the package's `exports`, read from its `package.json` and never typed
+     in, is imported in its own process by the runtime's own loader, not a test runner; every
+     `bin`, read the same way, is run by that runtime directly (`<runtime> <bin path>`, never through
+     its shebang) and asked for its help, which must succeed. The check prints how many entries it
+     examined per package and fails on zero or on a count that differs from the manifest's. An
+     entry that runs a command when imported passes only on a stated outcome: named in one list the
+     check validates against `exports`, with the outcome it gives under Node.
+   - **Suite.** The package's own test suite runs on that runtime and fails the build on a
+     failure. Subprocesses in the suite are started with `process.execPath`, never a runtime's name,
+     so a test cannot leave the runtime under check; a test skipped through rule 6's helper for a
+     mechanism may name its own runtime.
+   - **Proof of runtime.** Each check asserts the runtime and the version it ran on, and fails when
+     either is wrong: the harness, not the code under check, reports them for every load probe and
+     `bin` run, and the suite asserts them in every worker it starts, not in one test. Each prints
+     them beside its count.
+   - **Blocking.** A static read of the CI workflow shows that the jobs always run and that a
+     failure fails the build.
+   - A suite alone is not a claim's check (spike 0438), and nor is a load check alone.
+4. **A claim is closed over the family.** A package may claim a runtime only if every family
+   package in its `dependencies` or `peerDependencies`, optional peers included, claims it too: the
+   kernel is on every dialect's load path, and bug 0439 was a kernel defect. Strict on purpose: an
+   adopter's install of one dialect brings what it depends on.
+5. **A claim names what CI checks.** It names the runtime's version range, and CI runs the range's
+   floor; the listing says "checked on X, on OS Y". Versions above the floor are claimed on that one
+   measurement: a break above the floor is a bug report, not a gate failure. A claim covers every feature of the package, or it names the features it
+   excludes, and an excluded feature **refuses to run** on that runtime with a finding and a remedy
+   (ADR-009 rules 2 and 3). A note beside a feature that still runs and answers is not an exclusion.
+6. **A test is skipped on one runtime only for one of two reasons, through one named helper:**
+   - it asserts the other runtime's **mechanism** (a Node resolve hook; Node's strip-only TypeScript
+     refusing an `enum`), or
+   - it tests a feature the claim **excludes** under rule 5.
+
+   The helper names the runtime and the reason, and skips only on that runtime. A wrong answer under
+   one runtime is a defect, and so is a difference nobody has explained, including one that occurs
+   only inside the test runner: neither may enter the helper, and the package cannot claim the
+   runtime while one stands. The skips are pinned per package in a committed file, so a new skip is
+   a reviewed change and a count that differs from the pin is red.
+
+7. **The claim is declared once, in the package's manifest, and everything else derives from it.**
+   The `engines` field of the package's `package.json` names the runtime and its range; the
+   repository root's manifest is not a place to claim. The CI jobs are derived from those fields:
+   the derivation prints how many manifests it read and how many claims it found, and a claim that
+   yields no job fails the build, so a broken derivation cannot pass as zero claims. The README's
+   Packages table and the package's own README, which is what an adopter reads on the package page,
+   state the claim, bound to the manifest by `check:spec`.
+8. **Every check here has a non-vacuity fixture** for its break class, named under Enforcement.
+9. **Which packages claim which runtime, and when, is the plan's call**, from what the checks
+   measure. This ADR rules what a claim requires.
+
+## Why this, and not the alternatives
+
+- **Declaring Bun for the family**, or in an unbound `engines` field or README line, cannot fail:
+  nothing goes red when a package breaks under Bun. ADR-009 calls that worth less than no check.
+  `engines` is kept as the declaration because tools read it, and rule 7 makes it the source the
+  checks derive from rather than a claim beside them.
+- **A suite run on Bun as the check** was measured green on a build that does not load.
+- **A load check as the whole claim** proves the package links, not that it answers rightly.
+- **Holding the bug 0439 fix until a claim** would leave a loud, one-import defect in adopters'
+  builds behind governance; rule 2 lets the guard and the fix ship first.
+- **Refusing Bun** keeps ADR-001, and leaves an adopter's measured failure in place.
+
+## Consequences
+
+- A second runtime in CI: a load job for each package that carries a guard or a claim, and a suite
+  job for each claim. The cost is the plan's to measure.
+- Bug 0439 can be fixed under rule 2 with a load guard as its red test, ahead of any claim.
+- eess-ts cannot claim Bun while bug 0440 stands, unless `--watch` is excluded under rule 5 and
+  refuses to run on Bun. eess-mermaid cannot claim it while its six unexplained differences in spike
+  0438 stand. eess-crossvalidate cannot claim it while a dialect it depends on does not.
+- A claim is additive. Bug 0439's fix is a patch only if nothing leaves `@nielspeter/eess/internal`
+  (the namespace import alone, or a move that keeps a re-export there). Moving the CLI's loader
+  exports off `/internal` is a break under ADR-011 rule 4, with a changeset naming its dependents;
+  the plan decides which.
+- Out of scope: Deno, Bun's own test runner, Windows, and checking the packed tarball rather than
+  the workspace build (which a `files` omission would pass; not runtime-specific).
+
+## Enforcement
+
+| Clause                                                                                                    | Tier | Mechanism                                                                                                                                                                                                                                                                        | Status  |
+| --------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **R1** — Node 24 or later is every package's runtime                                                      | 1    | a `spec.rules.ts` binding of each package manifest's engines field, built by the plan                                                                                                                                                                                            | pending |
+| **R1** — a runtime is claimed per package, never for the family                                           | 1    | rule 7: the claim is a per-manifest field, so there is nowhere to write a family claim                                                                                                                                                                                           | pending |
+| **R2** — a load guard may run without a claim                                                             | 5    | permission, nothing to enforce                                                                                                                                                                                                                                                   | n/a     |
+| **R2** — a load guard covers every published package, proves its runtime and blocks                       | 2    | the guard's CI job, built by the plan; non-vacuity: bug 0439's named import restored reds it, a package dropped from the workspace-derived list without an entry in the committed list reds it, an excluded package that loads reds it, and a guard examining no package reds it | pending |
+| **R3** — a claim's load check covers every `exports` entry and `bin`, with its count, runtime and version | 2    | a CI job per claimed runtime, built by the plan; non-vacuity: bug 0439's named import restored on a library entry's load path reds it, a truncated entry list reds it on the count, a probe or `bin` run on the wrong runtime or version reds it                                 | pending |
+| **R3** — a claim's suite runs on that runtime and version, in every worker, and proves it                 | 2    | a CI job per claimed runtime, built by the plan; non-vacuity: starting vitest through its shebang reds it, and so does a second project whose workers run on Node                                                                                                                | pending |
+| **R3** — the jobs always run and always block                                                             | 1    | a static check over the CI workflow, built by the plan; non-vacuity: a claimed-runtime job made non-blocking or conditional reds it                                                                                                                                              | pending |
+| **R3** — the jobs are required status checks                                                              | 5    | branch protection lives outside the repository                                                                                                                                                                                                                                   | manual  |
+| **R3** — subprocesses start with `process.execPath`                                                       | 1    | an arch rule over test files, built by the plan; non-vacuity: a `spawn('node', …)` reds it                                                                                                                                                                                       | pending |
+| **R4** — a claim is closed over the family                                                                | 1    | a `check:spec` binding of each claim to its family dependencies' claims, built by the plan                                                                                                                                                                                       | pending |
+| **R5** — an excluded feature refuses to run                                                               | 2    | a test per exclusion that runs the feature on that runtime and expects the finding, built by the plan                                                                                                                                                                            | pending |
+| **R6** — a skip goes only through the helper, which skips only on its runtime                             | 1    | an arch rule over test files forbidding a bare runtime skip, and a test of the helper, built by the plan; non-vacuity: a bare `skipIf` reds it                                                                                                                                   | pending |
+| **R6** — the skips match the committed pin                                                                | 2    | the suite job compares the helper's skips with the pin, built by the plan; non-vacuity: a new unpinned skip reds it                                                                                                                                                              | pending |
+| **R6** — a skip's reason is a mechanism or an exclusion, not a defect                                     | 5    | review of the pin's diff                                                                                                                                                                                                                                                         | manual  |
+| **R7** — CI jobs, READMEs and manifests agree                                                             | 1    | CI jobs derived from the manifests; `check:spec` binding both READMEs to them, built by the plan; non-vacuity: a README listing with no manifest claim reds it, a manifest claim whose derivation yields no job reds it, and a claim in the root manifest reds it                | pending |
+| **R8** — every check here has a non-vacuity fixture                                                       | 2    | `scripts/check-nonvacuity.mjs` rows for each break class named above, built by the plan                                                                                                                                                                                          | pending |
+| **R9** — which packages claim which runtime is the plan's                                                 | 5    | governance                                                                                                                                                                                                                                                                       | n/a     |

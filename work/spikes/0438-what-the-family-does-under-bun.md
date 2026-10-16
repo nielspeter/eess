@@ -64,7 +64,8 @@ would throw `nodeModule.registerHooks is not a function`. `eess-mermaid --help` 
 
 **4. Every suite runs on Bun; 9 of the 4,881 tests differ once the import is fixed.**
 `bun --bun vitest run` puts vitest's workers on Bun: a test asserting on the runtime received
-`bun 1.4.3` with both the `forks` and `threads` pools, and `node v24.14.0` without `--bun`.
+`bun 1.4.3` with both the `forks` and `threads` pools, and `node v24.14.0` when vitest was run by
+Node (see the correction below).
 
 | package       | unpatched | import patched (worktree build) |
 | ------------- | --------- | ------------------------------- |
@@ -127,6 +128,15 @@ So the 9 are 1 + 2 + 4 + 2: eess-mermaid 6, eess-crossvalidate 1, eess-ts 2.
   import of every published entry, the list derived from each package's `exports` rather than typed
   in (the first probe here typed 18 and missed 10), and tests that assert a Node mechanism are marked as such rather
   than skipped silently.
+
+## Correction (2026-10-16, ADR-020's review)
+
+Q4 first said vitest ran on Node "without `--bun`". The run that gave `node v24.14.0` was vitest
+started by Node, not by Bun without the flag. Measured since: `bun node_modules/.bin/vitest run`,
+without `--bun`, ran its workers on Bun 1.4.3 under both pools; `bunx vitest run` followed vitest's
+`#!/usr/bin/env node` shebang and ran on Node. The trap is the shebang, and the published bins carry
+the same one. Harness: `bun/vt/rt.test.ts`, run as `bun node_modules/.bin/vitest run --root bun/vt
+--pool <forks|threads>` and as `bunx vitest run` from `bun/vt`.
 
 ## Not measured
 
