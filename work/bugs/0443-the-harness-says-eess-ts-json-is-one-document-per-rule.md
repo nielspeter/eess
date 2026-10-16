@@ -15,7 +15,10 @@ json` "emits ONE pretty-printed document per failing rule, concatenated". It emi
 however many rules fail: `packages/ts/src/cli/commands/check.ts:256` ("json always emits one
 document"), and PR #227's method review measured two failing rules in one document that
 `JSON.parse` accepts. A reader who trusts the comment takes several documents for the family's
-convention, which is how bug 0441's first draft came to recommend it.
+convention, likely how bug 0441's first draft came to recommend it (inferred, not traced). The same claim
+sits in a fixed record, [bug 0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)
+line 108; that record is held to its time and is not rewritten, so this record is where the
+correction lives.
 
 ## Fix
 
