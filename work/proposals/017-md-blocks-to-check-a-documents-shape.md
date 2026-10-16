@@ -264,6 +264,23 @@ nor a temporary directory.
 this repository's proposal board is checked that way in `scripts/check-corpus.mjs`). The ask is a
 documented recipe, not new API.
 
+**11. A rule inside each matching section.** "Every section matching `Phase \d+` has a subsection
+named `Files changed`" is a requirement per section, not per document; block 3 checks a document's
+sections and cannot state it. Sections are an element of their own here, carrying their document,
+depth, heading line and subsections, so the existing structure conditions apply to each.
+
+**12. Any element rule, limited to documents the caller chooses.** `taskItems()`, `links()`,
+`pointers()` and the values of block 1 select within the whole corpus, or a folder; none can be
+limited to documents matching a document predicate. "Documents whose `Status` is `done` hold no open
+box" is `honestyAtClose`'s judgement, and it is buildable only through that preset, with its fixed
+label. A predicate that lifts any `Predicate<MdDocument>` (block 2's `haveField` among them) onto the
+elements of a document makes it one rule in the caller's words.
+
+**13. A value is unique across a selection.** A record's number, a page's slug, an id: "no two
+documents in this selection carry the same value under this label" is a finding with both documents
+named. The kernel's `correspondence()` reports a key matching twice when two sides are joined; a
+single-sided uniqueness check over one selection is not stated anywhere.
+
 ### Binding the corpus together: links and cross-validation
 
 A document's shape is half the ask; the other half is that what it says agrees with what it names:
@@ -273,7 +290,9 @@ eess-md fixes none.
 What exists, and where a fixed position limits it:
 
 - **Links**: `links()` resolves, checks liveness, and checks a labelled relation is answered from the
-  other end (`beLinkedBack()`, plan 0406). Generic already. Wikilinks are not read (proposal 015).
+  other end (`beLinkedBack()`, plan 0406). Generic already. Wikilinks are not read: proposal 015 owns
+  that, and a wiki written with them is not checkable from these blocks until it ships. It is a
+  dependency of the completeness test for a wiki, not an ask here.
 - **Code pointers**: `pointers()` checks a `path:line` lands. Generic already.
 - **Tables to anything**: `rows()` as a side of the kernel's `correspondence()`, with `agree()` on a
   column (this repository's `spec.rules.ts` binds two tables to the workspace and to `adr/`).
@@ -314,7 +333,8 @@ green.
       work records (a plan, a bug, a wiki page, a documentation-site page with frontmatter), state
       their shape from public eess-md blocks only, with no `defineCondition` or `definePredicate` of
       their own. A judgement that cannot be written that way is a missing block, recorded, not
-      worked around. At least one example also binds documents outward: a value naming code is
+      worked around. Testing the asks this way before review found blocks 11 to 13 missing. At
+      least one example also binds documents outward: a value naming code is
       joined to `eess-ts`, and a cited test resolves at a position the example names.
 - [ ] No block has a default label, field, section, title, folder, state or identifier pattern that
       describes a kind of document; a test calls each block with a caller vocabulary unlike this
@@ -514,3 +534,4 @@ owed before any block is planned.
 | H — presets                           | examples in `kit/`, not eess-md exports; completeness is the acceptance criterion                                                               |
 | (new)                                 | block 6, a document no selection claims, with an eess-md `notExist`                                                                             |
 | (new, at the maintainer's request)    | blocks 9 and 10: elements of every block bind to any dialect through `correspondence()`, and a citation resolves at a position the caller names |
+| (new, from the completeness test)     | blocks 11 to 13: a rule per matching section, element rules limited to documents a predicate chooses, a value unique across a selection         |
