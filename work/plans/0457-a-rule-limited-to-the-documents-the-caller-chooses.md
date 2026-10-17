@@ -5,7 +5,7 @@
 - **State:** Draft — written 2026-10-17 at the maintainer's request ("plans in one pr"), from
   [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) block 12, as shaped by its
   second Review's decision 4 and the consumer-feedback decision 3; reworked 2026-10-18 after PR
-  #235's five reviews, and again after the round-two to round-five reviews (see "Review response").
+  #235's five reviews, and again after the round-two to round-six reviews (see "Review response").
 - **Implements:** proposal 017
 - **Priority:** Medium — two of the three adopters asked for it (block 12 alone, and block 12
   composed with block 11). Today a rule over boxes, links, rows, terms or code blocks can be limited
@@ -389,10 +389,16 @@ catches it. It explains the guard's shape: its condition repeats its selection o
 fails only when nothing is selected; the apparent simplification
 `.that().satisfy(areLive()).should().haveSection(SECTION)` is a different, stronger claim (every
 live document has the section). It also warns off the kernel's other candidate:
-`.expectNonEmpty()` on the ratchet does not do this, because a `notExist()` rule that declares it
-can never be green (it reds on every element it examines, and on examining none). The kernel
-docstring that suggests it for `notExist()` is bug 0466; and notes the one asymmetry: `pointers(c).that().areFrozen()` is a method,
-everywhere else it is `.satisfy(inDocuments(areFrozen()))`.
+`.expectNonEmpty()` on the ratchet does not do this, because in eess-md a `notExist()` rule that
+declares it can never be green (it reds on every element it examines, and on examining none);
+eess-ts treats the same declaration differently today, and that may change. It also notes the one
+asymmetry: `pointers(c).that().areFrozen()` is a method, everywhere else it is
+`.satisfy(inDocuments(areFrozen()))`.
+
+The README carries no bug numbers; an adopter on npm has no `work/bugs/`. For this plan's readers:
+the kernel docstring that suggests `.expectNonEmpty()` for `notExist()` is
+[bug 0466](../bugs/0466-expectnonempty-is-offered-for-a-glob-typo-on-a-cardinality-rule.md), and
+eess-ts's different handling is bug 0467.
 
 ## Files Changed
 
@@ -436,6 +442,12 @@ hand-built element, in `packages/md/tests/in-documents.test.ts`:
   they hold none of the M task items the rest of this rule selects"; with `.expectEmpty()` it is
   green.
 - **Live scope, no elements, `notExist()`:** green: the assertion holding, pinned as the control.
+- **A guard fixture that loads nothing** (the `violating-scope-matches-nothing/` corpus pointed at
+  `roots` that match no file): the guard gives plan 0456's empty-source finding, whose message is
+  not the zero-examined one, so the `violating-scope-matches-nothing:` test's exact-message
+  assertion reds. This row moved here from plan 0458: on main both cases give the same
+  zero-examined message (measured by PR #235's round-six enforcement review), and they differ only
+  from plan 0456 on, which builds before this plan.
 - **The guard pair** (the example's two rules over a corpus whose `Verification` heading is
   renamed): the ratchet is green and the guard reds with the zero-examined finding; with the
   heading restored both are green.
@@ -467,19 +479,20 @@ hand-built element, in `packages/md/tests/in-documents.test.ts`:
 
 **Sabotage rows**, each run once in a worktree and each turning a row above red:
 
-| sabotage                                        | row that reds                                                                      |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `inDocuments`' `test` returns `true`            | scoped green where unscoped red                                                    |
-| `inDocuments`' `test` returns `false`           | scoped green where unscoped red; the example's `violating-open-box-in-scope:` test |
-| the memo keys on `relPath`                      | same `relPath`, opposite verdicts                                                  |
-| `scopeDiagnosis` returns `undefined`            | dead scope under a positive rule                                                   |
-| a content scope faulted under `notExist()`      | dead content scope under `notExist()` is green                                     |
-| `liftToDocument` drops `globs`                  | folder scope judged by plan 0456's check                                           |
-| step 1 returns on the first dead scope          | two scopes, the second dead                                                        |
-| step 2's `before` check removed                 | a non-scope predicate emptied it                                                   |
-| the override removed from `TaskItemRuleBuilder` | that builder's row                                                                 |
-| `areFrozen` reads `!d.frozen`                   | `areFrozen()`/`areLive()` rows                                                     |
-| `codeBlocks()` counts documents from `blocks`   | the `codeBlocks()` row                                                             |
+| sabotage                                        | row that reds                                                                             |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `inDocuments`' `test` returns `true`            | scoped green where unscoped red                                                           |
+| `inDocuments`' `test` returns `false`           | scoped green where unscoped red; the example's `violating-open-box-in-scope:` test        |
+| the memo keys on `relPath`                      | same `relPath`, opposite verdicts                                                         |
+| `scopeDiagnosis` returns `undefined`            | dead scope under a positive rule                                                          |
+| a content scope faulted under `notExist()`      | dead content scope under `notExist()` is green                                            |
+| `liftToDocument` drops `globs`                  | folder scope judged by plan 0456's check                                                  |
+| step 1 returns on the first dead scope          | two scopes, the second dead                                                               |
+| step 2's `before` check removed                 | a non-scope predicate emptied it                                                          |
+| the override removed from `TaskItemRuleBuilder` | that builder's row                                                                        |
+| `areFrozen` reads `!d.frozen`                   | `areFrozen()`/`areLive()` rows                                                            |
+| `codeBlocks()` counts documents from `blocks`   | the `codeBlocks()` row                                                                    |
+| the guard's fixture loads nothing               | a guard fixture that loads nothing; the example's `violating-scope-matches-nothing:` test |
 
 **Non-vacuity.** The example is discovered by plan 0458's one mechanism, which swaps the clean and
 violating fixtures and requires the example's own assertion to fail; this plan adds the fixture
@@ -638,14 +651,27 @@ No Critical; each finding on this plan:
 - **Method R5-1 / testing N2 / enforcement / architect (the guard test no longer asserts the
   message):** decision 1. 0458's exception relaxes `file` only; the test asserts the exact
   zero-examined message beside `ruleId` and `bypassFilters`, so a fixture that fails to load (one
-  finding, same id, same shape, a different message) reds it. 0458 owns the sabotage row for that.
+  finding, same id, same shape, a different message) reds it. The sabotage row for that is this
+  plan's (round six).
 - **Product n1 (`.expectNonEmpty()` is the trap an adopter will reach for):** decision 4. The docs
   section says a `notExist()` ratchet that declares it can never be green; the kernel docstring that
   suggests it is bug 0466.
 - **Testing m1 (`ruleId` "absent"):** the key is always written; it is `undefined` without
   `.rule({ id })`.
-- **Product (record the missing existence condition in 017 itself):** this plan's Out of scope
-  records it; 017 is outside this plan's file.
+- **Product (record the missing existence condition in 017 itself):** recorded in this plan's Out of
+  scope and in proposal 017.
+
+### Round six — 2026-10-18
+
+- **Enforcement / method R6-1 / architect (0458's "loads nothing" row cannot fire before plan
+  0456):** decision 1. The row is this plan's, in the test inventory and the sabotage table; 0458
+  keeps a pointer.
+- **Method R6-3 / architect N6-3 / product m1 (a broken sentence; a bug number in adopter text):**
+  decision 2. The docs paragraph is split; the README keeps the warning without a bug number,
+  notes that eess-ts behaves differently today without saying which way it will go, and the plan
+  links bug 0466 and names bug 0467.
+- **Method R6-2 (the round-five line said 017 was not updated):** corrected; 017 was updated in the
+  same commit.
 
 ## Progress ledger
 

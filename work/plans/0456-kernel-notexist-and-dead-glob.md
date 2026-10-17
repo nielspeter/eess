@@ -147,6 +147,25 @@ Measured on the same build, for the separator check (round four):
 | `guides\(x)/**`   | `guides(x)/a.md`  | true    |
 | `guides/(x)/**`   | `guides/x/a.md`   | true    |
 
+And for several candidates and a mixed glob (rounds five and six), on the same build:
+
+| glob              | path tested        | matches |
+| ----------------- | ------------------ | ------- |
+| `docs\guides\**`  | `docs/guides/a.md` | false   |
+| `docs/guides\**`  | `docs/guides/a.md` | false   |
+| `docs\guides/**`  | `docs/guides/a.md` | false   |
+| `docs/guides/**`  | `docs/guides/a.md` | true    |
+| `guides\x\**`     | `guides/x/a.md`    | false   |
+| `guides/x\**`     | `guides/x/a.md`    | false   |
+| `guides\x/**`     | `guides/x/a.md`    | false   |
+| `guides/x/**`     | `guides/x/a.md`    | true    |
+| `guides\a\*b.md`  | `guidesa*b.md`     | true    |
+| `guides\a\*b.md`  | `guides/a*b.md`    | false   |
+| `guides/a/*b.md`  | `guides/a/xb.md`   | true    |
+| `guides/a/*b.md`  | `guides/a*b.md`    | false   |
+| `guides/a[*]b.md` | `guides/a*b.md`    | true    |
+| `guides/a[*]b.md` | `guides/axb.md`    | false   |
+
 ## Design
 
 ### Kernel (1): marking a condition freezes it (bug 0462)
@@ -483,6 +502,16 @@ instrument or a broken selector:
       Windows shape, the sentence would be noise, so it is absent. A literal star or question mark
       in a Markdown file name is rare; a Windows separator is the common case.
 
+      **The same cost, inside one glob** (round six). Because every candidate is replaced at once,
+      a glob that uses a backslash as a separator and also escapes a literal `*` or `?` has both
+      replaced. `guides\a\*b.md`, written for a file `guides/a*b.md`, selects only `guidesa*b.md`
+      as written; replaced, it becomes `guides/a/*b.md`, in which the `*` is a wildcard, so it
+      selects `guides/a/xb.md` and not `guides/a*b.md` (measured, Problem 4). Over a repository
+      holding `guides/a/xb.md`, the rule reds with a correction that changes the literal into a
+      wildcard. The `[*]` sentence in the `suggestion` applies here too (a replaced candidate
+      preceded `*`), and the remedy is the same: write the separator as `/` and the literal as a
+      class, `guides/a[*]b.md`, which matches `guides/a*b.md` and not `guides/axb.md`.
+
     - **a glob that matches nothing in the repository stays green.** That is also what a holding
       ratchet looks like (a deleted `legacy/`), and bug 0355's ruling is that the two cannot be
       told apart. A typo that names nothing therefore stays green. This plan keeps that ruling.
@@ -793,7 +822,8 @@ change has its own changeset entry).
     kernel's `globTextFault` table reds. The md `./guides/**` test examines documents, so the hook
     never runs there.
 15. The separator check replaces one candidate at a time: the `docs\guides\**` and `guides\x\**`
-    rows red (each single replacement selects nothing).
+    rows red, because each single replacement selects nothing (both measured on picomatch 4.0.4,
+    Problem 4).
 16. `\*` and `\?` stop being candidates (the round-three filter): the `guides\**` row goes green
     and reds as a test. This is the green-direction row: its return would be a silent pass.
 17. The separator check drops "the glob as written selects no path": the first condition's control
@@ -998,6 +1028,17 @@ mechanism. No row of its own in `check:nonvacuity`.
   `violations()` is `[]`; row 13 asserts one separator finding by identity.
 - **architect R5-4 / product n3** (a misquoted bug 0460): paraphrased, not quoted.
 - Counts: 17 sabotage rows (Effort and ledger).
+
+### Round six
+
+- **coordinator decision 3** (the replace-all cost when one glob mixes a separator with an escaped
+  literal): stated, with the measured `guides\a\*b.md` rows and the `guides/a[*]b.md` remedy.
+- **testing m2** (row 15's `guides\x\**` claim not shown as measured): its single and full
+  replacements are in Problem 4's measured table, and row 15 says so.
+- The 0458 "fixture that loads nothing" row (architect N6-1, product I1, enforcement, method R6-1,
+  testing I1) moves to plan 0457, which builds after this plan and is the first to use 0458's
+  exception (coordinator's decision 1, round six); nothing to change here. This plan's empty-source
+  check (Design, "what a broken selector does now", item 1) is what makes that row able to red.
 
 ## Progress ledger
 

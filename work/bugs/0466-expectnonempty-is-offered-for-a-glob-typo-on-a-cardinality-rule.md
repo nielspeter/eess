@@ -1,4 +1,4 @@
-# Bug 0466: `.expectNonEmpty()` is offered for a glob typo on a cardinality rule, where it can never pass
+# Bug 0466: `.expectNonEmpty()` is offered for a glob typo on a `notExist()` rule, where it can never pass
 
 ## Status
 
@@ -11,7 +11,9 @@
 
 ## Symptom
 
-The docstring of `expectNonEmpty()` (`packages/core/src/terminal-builder.ts:74-86`) recommends it for a
+This is the kernel's `TerminalBuilder`; eess-ts's copy behaves the other way and never reds
+([bug 0467](./0467-eess-ts-expectnonempty-does-nothing.md)). The docstring of `expectNonEmpty()`
+(`packages/core/src/terminal-builder.ts:74-86`) recommends it for a
 `.notExist()`-shaped rule "over an accidentally-emptied corpus (a glob typo, a temporarily-missing
 folder)". On such a rule the declaration means the selection must be non-empty, and the condition means
 every selected element is a finding. So the rule reds when it selects something and reds when it
@@ -22,13 +24,18 @@ guard a ratchet against a typo gets a rule that can only fail.
 
 The docstring says what the declaration is for on a cardinality rule (asserting that the selection is
 never empty, which is the opposite of a ratchet) and points a ratchet's author to a positive guard rule
-beside it, as plan 0457's example does. If the combination has no legitimate use, it becomes a
-configuration finding instead.
+beside it, as plan 0457's example does. If the combination is to become a configuration finding
+instead, it keys on a `notExist()` condition, not on the cardinality mark: `correspondence()`'s checks
+carry that mark too (`packages/core/src/correspondence.ts:111`, `:125`), and `.expectNonEmpty()` is a
+meaningful claim there.
 
 ## Verification
 
-- [ ] Red first: `docs(c).that().resideInFolder('guides/**').should().notExist().expectNonEmpty()` is red
-      over a corpus with and without documents under `guides/`
-- [ ] Green: the docstring states it, or the combination is reported as a configuration finding
+- [ ] Red first, on main's entry points: a rule on eess-md's `docs()` with a cardinality-marked
+      condition from `@nielspeter/eess/internal` and `.expectNonEmpty()`, over a corpus with no
+      document under `guides/`, gives the declaration's finding while the docstring says nothing of
+      it (the test asserts the docstring's text, which the fix changes)
+- [ ] Green: the docstring states what the declaration means on a `notExist()` rule, or the
+      combination is reported as a configuration finding
 
 Deferred: none

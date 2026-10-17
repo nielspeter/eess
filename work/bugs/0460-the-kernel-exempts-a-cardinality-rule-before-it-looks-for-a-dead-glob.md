@@ -45,8 +45,9 @@ In the kernel, a cardinality rule that examined zero first asks the dialect whet
 at fault, under [bug 0355](./fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)'s
 ruling: a fault decidable from the glob text (a leading `/`, a `../` segment, or a `./` segment after the
 first; picomatch strips a leading `./`, so that one is not a fault, measured in plan 0456), a
-backslash used as a path separator (including before `*` or `?`, so `guides\**` is caught) where the
-glob with `/` in its place selects real files and the glob as written selects none, or a glob naming
+backslashes used as path separators (including before `*` or `?`, so `guides\**` is caught), every
+candidate replaced by `/` at once, where that glob selects real files and the glob as written selects
+none, or a glob naming
 Markdown the repository holds that the corpus did not load, is a finding. A glob that names nothing in
 the repository cannot be told from a ratchet that holds (a deleted folder), so it stays green; a
 mistyped folder is caught where the folder is the corpus root, since an empty corpus is now a finding.

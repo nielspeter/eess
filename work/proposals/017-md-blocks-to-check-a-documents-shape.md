@@ -959,7 +959,7 @@ decision 1; bug 0444's label option ships before it as a fix).
 
 ## Planning — 2026-10-17 and 2026-10-18
 
-The accepted blocks were planned in one pull request (#235), reviewed in five rounds by five lenses (2026-10-17 to 18)
+The accepted blocks were planned in one pull request (#235), reviewed repeatedly by five lenses (2026-10-17 to 18)
 (architect, product, enforcement, method, testing), and reworked after each round. It also filed
 [plan 0464](../plans/0464-the-dialects-notexist-copies-move-onto-the-kernels.md), moving the five
 existing `notExist` copies onto the kernel's (de-duplication, no ask of this proposal), and bugs 0460
