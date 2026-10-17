@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16; reproduced here on main's build. No red test yet.
+- **State:** Draft — recorded 2026-10-16; reproduced here on main's build. No red test yet. Fix
+  planned as [plan 0454](../plans/0454-box-marks-are-the-callers.md) (proposal 017 block 17), 2026-10-17.
 - **Severity:** Medium — a false green: a closed record whose items are all `[~]` passes the closing check. In this repository, four `[~]` items sit in closed records that `check:ledger` cannot see: `work/bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md:160`, `:167` and `:201`, and `work/bugs/fixed/0256-the-spike-lane-is-run-but-never-declared.md:130`. Adopters report more (as reported, not measured here).
 - **Origin:** inbound · two adopter monorepos (unnamed), feedback on proposal 017, verified here.
 - **Reported:** 2026-10-16
