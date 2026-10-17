@@ -16,10 +16,6 @@
   moves to 0.11.0 with this release. The other five entry points load nothing new from eess-md at
   runtime, and `./mermaid-ts`, `./gherkin-ts`, `./md-ts` and `./files` still load without it.
 
-  **For the release commit:** raise `peerDependencies['@nielspeter/eess-md']` in
-  `packages/crossvalidate/package.json` from `>=0.10.0` to `>=0.11.0` there, beside the version bump
-  (RELEASING.md: never before the version exists). Nothing checks it (bug 0432).
-
 - cc215fe: `diagramKind` reads past a `%%{init}%%` directive closed mid-line
 
   **Breaking (@nielspeter/eess-mermaid, @nielspeter/eess-crossvalidate):** a build that was green can go

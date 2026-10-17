@@ -326,6 +326,13 @@ version is already tagged then, so `v0.6.0` was cut for a release that moved ees
 migration page is `docs/migrating-to-eess-ts-0.6.md`. The cost: when the kernel next reaches a version
 already tagged, its release takes the next free tag.
 
+**And when the kernel's version is free but sorts below the last tag, take the next tag above it.**
+Kernel 0.7.1 shipped on `v0.14.0`, not `v0.7.1`: `v0.7.0` was a dialect release with kernel 0.5.1,
+so `v0.7.1` would have read as its patch, sat beside an unrelated "Migrating to 0.7" page, and sorted
+below `v0.13.0` for anything that orders tags by version.
+Tags only go up. The kernel's real version goes in the migration page's version table. Written down
+because the rule above does not cover this case and the next release would re-decide it.
+
 **A release carrying a migration page needs a step nothing automates.**
 `publish.yml` creates the GitHub Release with `generate_release_notes: true` and
 no body, so the notes are machine-made from PR titles and no authoring moment

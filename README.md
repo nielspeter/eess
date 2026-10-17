@@ -54,13 +54,12 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading to 0.7.1?** (the release tagged `v0.7.1`, after `v0.13.0`.) The family loads under Bun
-again. `eess-md` reads a code block's language tag in any letter case, so a ` ```Mermaid ` block is now
-parsed and can go red; `NearMissTag` and `nearMisses` are removed. `eess-mermaid` adds
-`mermaidParser()`, and `diagramKind` reads past a directive closed mid-line. `eess-crossvalidate` 0.9.0
-needs `eess-md` 0.11.0 and `eess-mermaid` 0.8.0. [Migrating to 0.7.1](./docs/migrating-to-0.7.1.md)
-covers all of it; [Migrating to 0.13](./docs/migrating-to-0.13.md) is still the page for the release
-before.
+**Upgrading to 0.14?** The family loads under Bun again. `eess-md` reads a code block's language tag
+in any letter case, so a ` ```Mermaid ` block is now parsed and can go red; `NearMissTag` and
+`nearMisses` are removed. `eess-mermaid` adds `mermaidParser()`, and `diagramKind` reads past a
+directive closed mid-line. `eess-crossvalidate` 0.9.0 needs `eess-ts` 0.13.1, `eess-md` 0.11.0 and
+`eess-mermaid` 0.8.0. [Migrating to 0.14](./docs/migrating-to-0.14.md) covers all of it;
+[Migrating to 0.13](./docs/migrating-to-0.13.md) is still the page for the release before.
 
 ## Packages
 
