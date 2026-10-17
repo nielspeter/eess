@@ -53,8 +53,11 @@ that was not built. The plan decides which, and its red test must import each pu
       `exports`; an entry that runs a command when imported (`eess-ts/cli`) counts as loaded when
       its error is the command's own, not a link error — 28 entries and 2 bins, locally and in CI on
       Linux (plan 0448)
-- [ ] `validation-owed` Published, and the adopter told the version numbers — needs the maintainer's
-      fresh yes for the release; done when the tagged commit's CI, `bun-load` included, is green,
-      the release carrying this fix's changeset is published, and the adopter has the versions (eess 0.7.1 is enough for an adopter on eess-md 0.10.x; plan 0448's Release)
+- [x] Published, and the adopter told the version numbers: tag `v0.14.0` (PR #233) at 880483c1,
+      whose CI, `bun-load` included, was green before the tag push; eess 0.7.1 published with
+      provenance 2026-10-17. Installed from npm under Bun 1.4.3, eess-md 0.10.0 and 0.11.0 both
+      import against kernel 0.7.1. The adopter was told the versions and confirmed eess 0.7.1 with
+      eess-md 0.11.0 loads under Bun 1.4.3. Their CI's Bun 1.3.12 is untested: the guard checks the
+      version in `.bun-version` only, and ADR-020 makes no claim for any Bun
 
 Deferred: none
