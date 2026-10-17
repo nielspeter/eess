@@ -30,7 +30,7 @@ All three found the same critical hole in the first draft: the check that the CI
 lived inside that job, so deleting the job, or giving it an `if:`, would have left CI green.
 
 **The fix.** A namespace import, `import * as nodeModule from 'node:module'`, and
-`nodeModule.registerHooks(...)` at the one call site (`packages/core/src/cli-config.ts:207`). Spike
+`nodeModule.registerHooks(...)` at the one call site (`packages/core/src/cli-config.ts:211` after the fix; `:207` before it). Spike
 0438 measured it on macOS: all 28 entries load under Bun 1.4.3. Measured again 2026-10-17 in the
 spike's patched worktree (at `65b9ce44`): both `bin`s answer `--help` under plain `bun`, and
 `bun packages/ts/dist/cli/bin.js check spec.rules.ts` runs green (4 rules, about 0.1 s, one run).
@@ -82,29 +82,41 @@ which would skip it whenever `test` fails. `gateCoverage`'s `CI_ONLY_BY_DESIGN` 
 its self-test invoked. No branch protection is configured on `main`, so "blocks" means the CI run
 goes red and the maintainer's review-before-merge rule stops the merge; ADR-020's R2 row says so.
 
-**Non-vacuity, split by what needs Bun.**
+**Non-vacuity, split by what needs Bun.** _As built, after the PR's review (2026-10-17), which found
+the guard computed each package's manifest count and never compared against it, the package list read
+from one place only, and every row's `mustSay` matching the fixture's own sentinel._
 
-- Without Bun, as ordinary `check:nonvacuity` rows through one fixture, `bad-bun-load.mjs`, with a
-  scenario per row: a stale exclusion; a stale run-on-import entry; a workspace with no published
-  package; a wildcard `exports` subpath; a `private` package that is still probed (the filter
-  inverted); and five sabotaged `ci.yml` texts (job missing, `if:`, `continue-on-error`, `needs:`, the
-  self-test step missing). `GATE_FOR['check:bun-load']` names these rows.
+- Without Bun, as sixteen `check:nonvacuity` rows through one fixture, `bad-bun-load.mjs`, one
+  scenario per row, each `mustSay` the line only its own assertion prints: a stale exclusion; a stale
+  run-on-import entry; a workspace whose only package is `private` (which also proves the filter); a
+  `workspaces` entry naming no directory; a package npm's `npm query .workspace` lists and the
+  guard's reading does not (the second source for the package list, through a test-only option); Bun
+  missing from `PATH`; no `.bun-version`; a wildcard `exports` subpath; and eight sabotaged `ci.yml`
+  texts (job missing, job-level `if:`, `continue-on-error`, `needs:`, the guard step missing, a
+  step-level `if:`, the self-test step missing, Bun not installed from `.bun-version`).
+  `GATE_FOR['check:bun-load']` names these rows.
 - With Bun, as the guard's `--self-test` in the CI job, over scratch workspaces under the system temp
   directory, each with its own package links: bug 0439's named import in an export; the same import
   reached only through a `bin`; a run-on-import entry that hits a link error; an excluded package that
-  loads; a `.bun-version` other than the Bun installed; a fake `bun` on `PATH` that runs Node; a
-  published package the guard drops (through a test-only option); and one clean workspace that must
-  be green. Each break asserts its `ruleId`, not only exit 1. The breaks are one exported table with
+  loads; a `.bun-version` other than the Bun installed; a fake `bun` on `PATH` that runs Node; a published package the guard drops (through a test-only option); an entry the guard skips, caught
+  by comparing the probes run with the manifest's count; an export whose import leaves a failing exit
+  code; and one clean workspace that must be green. Bug 0439's break also asserts Bun's message. Each break asserts its `ruleId`, not only exit 1. The breaks are one exported table with
   ids, and `gateCoverage` compares it against the ids this plan names, so a deleted break is a finding
   rather than a smaller count.
 
 **ADR-020's row.** R2's second row moves from `pending` to `gated`, citing the guard, its CI job and
 the `gateCoverage` check, with the no-branch-protection sentence, in this PR.
 
-**Release.** The changeset patches `@nielspeter/eess`. Because `updateInternalDependencies` is
-`patch` and every dialect takes the kernel at `^0.7.0`, all five dialects also take a patch bump, so
-six packages publish; the changeset names eess-md and eess-ts so "loads under Bun again" reaches the
-changelog the adopter reads. `publish.yml` does not run this guard, so the release box requires the
+**Release.** The changeset patches `@nielspeter/eess` and names eess-md, eess-ts and eess-mermaid,
+so "loads under Bun again" reaches the changelogs adopters read. _Corrected after the PR's review:_ the
+first version of this paragraph said all five dialects take a patch and six packages publish. That
+was not measured, and it is false. `npx changeset status` on this branch releases five: eess 0.7.1,
+eess-ts 0.13.1, and eess-md 0.11.0, eess-mermaid 0.8.0 and eess-crossvalidate 0.9.0 as minors,
+because four changesets already on `main` are pending and three of them declare breaks. eess-gherkin
+is not released: its `^0.7.0` range already admits 0.7.1, so a gherkin adopter gets the fix by
+updating the kernel. So the release the publish box waits on also ships those three breaks, and the
+maintainer's yes covers them. An adopter on eess-md 0.10.x or eess-ts 0.13.x gets the fix with
+`npm update @nielspeter/eess` alone, without taking eess-md 0.11.0's break. `publish.yml` does not run this guard, so the release box requires the
 tagged commit's CI, `bun-load` included, to be green. Adopters on 0.5.x or 0.6.x must cross minor
 versions to get the fix; the message to the adopter says so.
 
@@ -125,13 +137,15 @@ run's counts are recorded as the Linux measurement.
 - `adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md` — R2's row.
 - `CLAUDE.md` — the gate-output table's row.
 - `.changeset/` — `@nielspeter/eess`, eess-md and eess-ts named: patch.
+- `work/plans/0449-…`, `work/bugs/0450-…`, `work/bugs/0451-…`, `work/bugs/0452-…` — new records;
+  `work/spikes/0438-…` — a moved link.
 - `work/bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md` → `work/bugs/fixed/`,
   `work/bugs/BUGS.md`, this plan → `completed/`, `work/plans/ROADMAP.md`.
 
 ## Test inventory
 
 - Red first: the guard against `main`'s build, run locally with Bun 1.4.3, reports 22 of 28 entries
-  and both bins failing with bug 0439's message; recorded here.
+  and both bins failing with bug 0439's message; recorded in bug 0439's Verification.
 - Green: the guard after the fix, all 28 entries and both bins.
 - The `check:nonvacuity` rows for the no-Bun breaks, each red with its `ruleId`.
 - The self-test's Bun breaks, each red with its `ruleId`, and its clean workspace green.
@@ -150,8 +164,7 @@ run's counts are recorded as the Linux measurement.
 ## Cost, measured
 
 - **Locally** (macOS, Bun 1.4.3): the guard 2.5 s over 28 entries and 2 bins; its self-test 0.5 s;
-  `bad-bun-load.mjs`'s ten scenarios 0.04 s; `check:nonvacuity` with the ten new rows, 8 min 21 s
-  (190 fixtures).
+  `bad-bun-load.mjs`'s ten scenarios 0.04 s; `check:nonvacuity` with the ten first rows, 8 min 21 s (190 fixtures), and after the PR's review with sixteen, 8 min 25 s (196 fixtures); `bad-bun-load.mjs` alone, 1.5 s, and the self-test with nine breaks, 2.4 s, both slower for `npm query .workspace`.
 - **In CI, the first run** (PR #232, run 38976645502, Linux, `ubuntu-latest`): the `bun-load` job
   39 s wall clock, of which `npm ci` 10 s, the build 11 s, the guard 5 s and the self-test under
   1 s, in parallel with the 24.5-minute `test` job, so it adds a runner slot, not time to the run.
@@ -168,7 +181,10 @@ and 2 bins across 6 packages, loaded by Bun 1.4.3 (5.54s)`, and the self-test `7
 - [x] Record written: [plan 0449](../0449-the-clis-loader-leaves-the-kernels-internal-entry.md)
 - [x] Record written: [bug 0450](../../bugs/0450-under-bun-the-resolve-hook-call-would-throw-a-bare-typeerror.md)
 - [x] Close: bug 0439 → `fixed/` (its publish box `validation-owed`: the tagged commit's CI green,
-      `bun-load` included, six packages published, the adopter told), this plan → `completed/`,
-      boards
+      `bun-load` included, the release that carries this changeset published, the adopter told),
+      this plan → `completed/`, boards
+- [x] Records written from the PR's review:
+      [bug 0451](../../bugs/0451-nothing-proves-gatecoverage-runs-its-own-checks.md) and
+      [bug 0452](../../bugs/0452-the-ci-checks-do-not-read-the-workflows-triggers.md)
 
-Deferred: none
+Deferred: none — what is out of scope is recorded as plan 0449 and bugs 0450 to 0452, and the publish is owed on bug 0439

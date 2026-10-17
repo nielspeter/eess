@@ -109,6 +109,7 @@ jobs:
   # `continue-on-error` or `needs:`, or stops running the guard or its self-test.
   bun-load:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:

@@ -42,8 +42,7 @@ The spike measured one fix: a namespace import (`import * as nodeModule from 'no
 `@nielspeter/eess-ts/cli` as loaded: it runs the CLI when imported and exits non-zero with "No
 command specified", the same under Node. It also recommends taking
 the CLI's loader exports off `@nielspeter/eess/internal`, so a library entry never links CLI code;
-that was not built. The plan decides which, and its red test must import each published entry under
-plain `bun`, not run a suite.
+that was not built. The plan decides which, and its red test must import each published entry under plain `bun`, not run a suite. _Decided 2026-10-17 by plan 0448: the namespace import alone, a patch; the move off `/internal` is plan 0449._
 
 ## Verification
 
@@ -56,6 +55,6 @@ plain `bun`, not run a suite.
       Linux (plan 0448)
 - [ ] `validation-owed` Published, and the adopter told the version numbers — needs the maintainer's
       fresh yes for the release; done when the tagged commit's CI, `bun-load` included, is green,
-      six packages are published, and the adopter has the versions
+      the release carrying this fix's changeset is published, and the adopter has the versions (eess 0.7.1 is enough for an adopter on eess-md 0.10.x; plan 0448's Release)
 
 Deferred: none

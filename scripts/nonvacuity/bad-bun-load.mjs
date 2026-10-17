@@ -21,11 +21,11 @@
  *   0 = a scenario stayed green — the check is vacuous
  *   2 = unexpected THROW only, never a behavioural result
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkBunLoadJob, inspectWorkspace } from '../check-bun-load.mjs'
+import { checkBunLoadJob, inspectWorkspace, runGuard } from '../check-bun-load.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const NAME = 'bad-bun-load'
@@ -35,28 +35,36 @@ function vacuous(msg) {
   process.exit(0)
 }
 
-function workspace(packages) {
+function workspace(packages, workspaces = ['packages/*']) {
   const root = mkdtempSync(join(tmpdir(), 'eess-bad-bun-load-'))
-  writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'scratch', private: true, workspaces: ['packages/*'] }))
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'scratch', private: true, workspaces }))
+  mkdirSync(join(root, 'node_modules', '@scratch'), { recursive: true })
   for (const p of packages) {
     const dir = join(root, 'packages', p.dir)
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: p.name, version: '0.0.0', exports: p.exports, ...(p.private ? { private: true } : {}) }))
+    // npm's workspace list (the guard's cross-check) reads the installed links.
+    symlinkSync(dir, join(root, 'node_modules', p.name), 'dir')
   }
   return root
 }
 
-function inputsMustSay(ruleId, packages, opts) {
-  const root = workspace(packages)
+function inputsMustSay(ruleId, packages, opts, { workspaces, guard = false, versionPin = '1.4.3' } = {}) {
+  const root = workspace(packages, workspaces)
+  if (versionPin !== null) writeFileSync(join(root, '.bun-version'), `${versionPin}\n`)
   try {
-    const { findings } = inspectWorkspace({ root, ...opts })
+    // `guard` runs the whole guard with no Bun on PATH: only its own checks that
+    // need no Bun can answer, which is what these rows are for.
+    const { findings } = guard
+      ? runGuard({ root, excluded: {}, onImport: {}, env: { ...process.env, PATH: join(root, 'no-bin-here') } })
+      : inspectWorkspace({ root, ...opts })
     if (!findings.some((f) => f.ruleId === ruleId)) {
       vacuous(`inspectWorkspace stayed green for ${ruleId} (got: ${findings.map((f) => f.ruleId).join(', ') || 'nothing'})`)
     }
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
-  console.error(`${NAME}: ${ruleId} reported`)
+  console.error(`${NAME}: inputs — ${ruleId} reported`)
 }
 
 const ok = { name: '@scratch/a', dir: 'a', exports: { '.': './index.js' } }
@@ -84,6 +92,12 @@ const SCENARIOS = {
     inputsMustSay('bun-load/stale-on-import', [ok], { excluded: {}, onImport: { '@scratch/a/cli': { message: 'x' } } }),
   'bun-load/empty-or-private': () =>
     inputsMustSay('bun-load/empty', [{ ...ok, private: true }], { excluded: {}, onImport: {} }),
+  'bun-load/missing-workspace': () =>
+    inputsMustSay('bun-load/missing-workspace', [ok], { excluded: {}, onImport: {} }, { workspaces: ['packages/*', 'gone/*'] }),
+  'bun-load/npm-cross-check': () =>
+    inputsMustSay('bun-load/npm-cross-check', [ok, { ...ok, name: '@scratch/b', dir: 'b' }], { excluded: {}, onImport: {}, hidePackageForSelfTest: '@scratch/b' }),
+  'bun-load/no-bun': () => inputsMustSay('bun-load/no-bun', [ok], {}, { guard: true }),
+  'bun-load/no-version-pin': () => inputsMustSay('bun-load/no-version-pin', [ok], {}, { guard: true, versionPin: null }),
   'bun-load/unreadable-exports': () =>
     inputsMustSay('bun-load/unreadable-exports', [{ ...ok, exports: { '.': './index.js', './*': './*.js' } }], { excluded: {}, onImport: {} }),
   'bun-load/ci-job-missing': () => ciMustSay('has no `bun-load` job', (t) => t.replace(JOB, '  bun-load-renamed:\n    runs-on: ubuntu-latest\n')),
@@ -91,6 +105,10 @@ const SCENARIOS = {
   'bun-load/ci-continue-on-error': () =>
     ciMustSay('sets `continue-on-error`', (t) => t.replace(JOB, `${JOB}    continue-on-error: true\n`)),
   'bun-load/ci-needs': () => ciMustSay('has `needs:`', (t) => t.replace(JOB, `${JOB}    needs: test\n`)),
+  'bun-load/ci-guard-missing': () =>
+    ciMustSay('does not run `npm run check:bun-load`', (t) => t.replace('      - run: npm run check:bun-load\n', '')),
+  'bun-load/ci-step-if': () =>
+    ciMustSay('has an `if:`', (t) => t.replace('      - run: npm run check:bun-load\n', '      - run: npm run check:bun-load\n        if: false\n')),
   'bun-load/ci-self-test-missing': () =>
     ciMustSay('does not run `npm run check:bun-load -- --self-test`', (t) => t.replace('      - run: npm run check:bun-load -- --self-test\n', '')),
   'bun-load/ci-version-file': () =>

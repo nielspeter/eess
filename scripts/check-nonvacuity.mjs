@@ -3226,42 +3226,140 @@ const gates = [
   ['mermaid-parses/dot-directory', gateMermaidParsesDotDirectory],
   ['mermaid-parses/unsafe-path', gateMermaidParsesUnsafePath],
   ['mermaid-parses/untracked', gateMermaidParsesUntracked],
-  // Plan 0448: `check:bun-load`'s breaks that need no Bun — the input half and
-  // the static read of its CI job. Its Bun breaks run as the guard's own
-  // `--self-test` in the `bun-load` CI job; `gateCoverage` pins their ids.
+  // Plan 0448: `check:bun-load`'s breaks that need no Bun — the input half, the
+  // guard's own no-Bun findings, and the static read of its CI job. Its Bun
+  // breaks run as the guard's `--self-test` in the `bun-load` CI job;
+  // `gateCoverage` pins their ids. Each row's `mustSay` is the line only its own
+  // scenario's assertion prints (bug 0110), never the fixture's sentinel.
   [
     'bun-load/stale-exclusion',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/stale-exclusion']),
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: inputs \u2014 bun-load/stale-exclusion reported',
+        ['bun-load/stale-exclusion'],
+      ),
   ],
   [
     'bun-load/stale-on-import',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/stale-on-import']),
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: inputs \u2014 bun-load/stale-on-import reported',
+        ['bun-load/stale-on-import'],
+      ),
   ],
   [
     'bun-load/empty-or-private',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/empty-or-private']),
+    () =>
+      gateNode('bad-bun-load.mjs', 'bad-bun-load: inputs \u2014 bun-load/empty reported', [
+        'bun-load/empty-or-private',
+      ]),
+  ],
+  [
+    'bun-load/missing-workspace',
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: inputs \u2014 bun-load/missing-workspace reported',
+        ['bun-load/missing-workspace'],
+      ),
+  ],
+  [
+    'bun-load/npm-cross-check',
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: inputs \u2014 bun-load/npm-cross-check reported',
+        ['bun-load/npm-cross-check'],
+      ),
+  ],
+  [
+    'bun-load/no-bun',
+    () =>
+      gateNode('bad-bun-load.mjs', 'bad-bun-load: inputs \u2014 bun-load/no-bun reported', [
+        'bun-load/no-bun',
+      ]),
+  ],
+  [
+    'bun-load/no-version-pin',
+    () =>
+      gateNode('bad-bun-load.mjs', 'bad-bun-load: inputs \u2014 bun-load/no-version-pin reported', [
+        'bun-load/no-version-pin',
+      ]),
   ],
   [
     'bun-load/unreadable-exports',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/unreadable-exports']),
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: inputs \u2014 bun-load/unreadable-exports reported',
+        ['bun-load/unreadable-exports'],
+      ),
   ],
   [
     'bun-load/ci-job-missing',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-job-missing']),
+    () =>
+      gateNode('bad-bun-load.mjs', 'bad-bun-load: bun-load CI job \u2014 has no `bun-load` job', [
+        'bun-load/ci-job-missing',
+      ]),
   ],
-  ['bun-load/ci-if', () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-if'])],
+  [
+    'bun-load/ci-if',
+    () =>
+      gateNode('bad-bun-load.mjs', 'bad-bun-load: bun-load CI job \u2014 has an `if:`', [
+        'bun-load/ci-if',
+      ]),
+  ],
   [
     'bun-load/ci-continue-on-error',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-continue-on-error']),
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: bun-load CI job \u2014 sets `continue-on-error`',
+        ['bun-load/ci-continue-on-error'],
+      ),
   ],
-  ['bun-load/ci-needs', () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-needs'])],
+  [
+    'bun-load/ci-needs',
+    () =>
+      gateNode('bad-bun-load.mjs', 'bad-bun-load: bun-load CI job \u2014 has `needs:`', [
+        'bun-load/ci-needs',
+      ]),
+  ],
+  [
+    'bun-load/ci-guard-missing',
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: bun-load CI job \u2014 does not run `npm run check:bun-load`\n',
+        ['bun-load/ci-guard-missing'],
+      ),
+  ],
+  [
+    'bun-load/ci-step-if',
+    () =>
+      gateNode('bad-bun-load.mjs', 'bad-bun-load: bun-load CI job \u2014 has an `if:`', [
+        'bun-load/ci-step-if',
+      ]),
+  ],
   [
     'bun-load/ci-self-test-missing',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-self-test-missing']),
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: bun-load CI job \u2014 does not run `npm run check:bun-load -- --self-test`',
+        ['bun-load/ci-self-test-missing'],
+      ),
   ],
   [
     'bun-load/ci-version-file',
-    () => gateNode('bad-bun-load.mjs', 'bun-load', ['bun-load/ci-version-file']),
+    () =>
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: bun-load CI job \u2014 does not install Bun from `.bun-version`',
+        ['bun-load/ci-version-file'],
+      ),
   ],
   ['corpus/adr-extends/one-way', gateCorpusExtendsOneWay],
   ['corpus/adr-extends/list-item', gateCorpusExtendsListItem],
@@ -3757,11 +3855,17 @@ const GATE_FOR = {
     'bun-load/stale-exclusion',
     'bun-load/stale-on-import',
     'bun-load/empty-or-private',
+    'bun-load/missing-workspace',
+    'bun-load/npm-cross-check',
+    'bun-load/no-bun',
+    'bun-load/no-version-pin',
     'bun-load/unreadable-exports',
     'bun-load/ci-job-missing',
     'bun-load/ci-if',
     'bun-load/ci-continue-on-error',
     'bun-load/ci-needs',
+    'bun-load/ci-guard-missing',
+    'bun-load/ci-step-if',
     'bun-load/ci-self-test-missing',
     'bun-load/ci-version-file',
   ],
@@ -3967,6 +4071,8 @@ function gateCoverage() {
     'other-bun-version',
     'fake-bun-runs-node',
     'package-dropped',
+    'export-sets-exit-code',
+    'entry-skipped',
   ]
   const declaredBunBreaks = new Set(BUN_BREAKS.map((b) => b.id))
   for (const id of BUN_BREAK_IDS) {

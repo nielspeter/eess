@@ -84,20 +84,25 @@ function workspaceDirs(root) {
   const globs = Array.isArray(pkg.workspaces) ? pkg.workspaces : (pkg.workspaces?.packages ?? [])
   const dirs = []
   const unreadable = []
+  const missing = []
   for (const glob of globs) {
     if (glob.endsWith('/*') && !glob.slice(0, -2).includes('*')) {
       const base = join(root, glob.slice(0, -2))
-      if (!existsSync(base)) continue
+      if (!existsSync(base)) {
+        missing.push(glob)
+        continue
+      }
       for (const name of readdirSync(base).sort()) {
         if (existsSync(join(base, name, 'package.json'))) dirs.push(join(base, name))
       }
     } else if (!glob.includes('*')) {
       if (existsSync(join(root, glob, 'package.json'))) dirs.push(join(root, glob))
+      else missing.push(glob)
     } else {
       unreadable.push(glob)
     }
   }
-  return { dirs, unreadable }
+  return { dirs, unreadable, missing }
 }
 
 /** The subpaths of an `exports` field, or why they cannot be enumerated. */
@@ -136,7 +141,11 @@ const specOf = (name, entry) => (entry === '.' ? name : name + entry.slice(1))
 
 /**
  * Read the workspace and validate the committed lists. No Bun.
- * @param {{ root: string, excluded?: Record<string,string>, onImport?: typeof ON_IMPORT }} opts
+ * The package list is read twice, from two places: the `workspaces` field, and
+ * npm's own `npm query .workspace`. A package one sees and the other does not
+ * is a finding, so a misread field cannot quietly shrink the list.
+ * @param {{ root: string, excluded?: Record<string,string>, onImport?: typeof ON_IMPORT,
+ *   hidePackageForSelfTest?: string }} opts
  */
 export function inspectWorkspace(opts) {
   const root = opts.root
@@ -144,7 +153,18 @@ export function inspectWorkspace(opts) {
   const onImport = opts.onImport ?? ON_IMPORT
   const findings = []
   const rootManifest = join(root, 'package.json')
-  const { dirs, unreadable } = workspaceDirs(root)
+  const { dirs, unreadable, missing } = workspaceDirs(root)
+  for (const glob of missing) {
+    findings.push(
+      finding(
+        'missing-workspace',
+        glob,
+        rootManifest,
+        `the workspaces entry "${glob}" names no directory with a package, so nothing under it is examined`,
+        'remove the entry from "workspaces", or restore the directory',
+      ),
+    )
+  }
   for (const glob of unreadable) {
     findings.push(
       finding(
@@ -157,8 +177,11 @@ export function inspectWorkspace(opts) {
     )
   }
   const published = []
+  const seen = new Set()
   for (const dir of dirs) {
     const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+    if (opts.hidePackageForSelfTest === manifest.name) continue
+    seen.add(manifest.name)
     if (manifest.private === true) continue
     const { entries, bad } = entriesOf(manifest.exports)
     if (bad !== undefined) {
@@ -184,6 +207,42 @@ export function inspectWorkspace(opts) {
         'check the root package.json "workspaces" field and the packages\' "private" flags',
       ),
     )
+  }
+  const npm = spawnSync('npm', ['query', '.workspace'], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 60_000,
+  })
+  let npmNames
+  try {
+    npmNames = npm.status === 0 ? JSON.parse(npm.stdout).map((w) => w.name) : undefined
+  } catch {
+    npmNames = undefined
+  }
+  if (npmNames === undefined) {
+    findings.push(
+      finding(
+        'npm-cross-check',
+        'npm query .workspace',
+        rootManifest,
+        `\`npm query .workspace\` did not answer (${npm.error?.message ?? `exit ${npm.status}`}), so the package list could not be cross-checked`,
+        'run the guard after `npm ci`, where npm can read the workspace',
+      ),
+    )
+  } else {
+    for (const name of npmNames) {
+      if (!seen.has(name)) {
+        findings.push(
+          finding(
+            'npm-cross-check',
+            name,
+            rootManifest,
+            `npm lists the workspace package ${name}, and the guard's reading of "workspaces" did not find it`,
+            'teach the guard the "workspaces" shape that hides it',
+          ),
+        )
+      }
+    }
   }
   const names = new Set(published.map((p) => p.manifest.name))
   for (const name of Object.keys(excluded)) {
@@ -284,14 +343,20 @@ const firstLine = (s) =>
 /**
  * Run the guard: inputs, then one Bun probe per entry and per bin.
  * @param {{ root: string, excluded?: Record<string,string>, onImport?: typeof ON_IMPORT,
- *   env?: NodeJS.ProcessEnv, dropPackageForSelfTest?: string }} opts
+ *   env?: NodeJS.ProcessEnv, dropPackageForSelfTest?: string, skipEntryForSelfTest?: string,
+ *   hidePackageForSelfTest?: string }} opts
  */
 export function runGuard(opts) {
   const root = opts.root
   const excluded = opts.excluded ?? EXCLUDED
   const onImport = opts.onImport ?? ON_IMPORT
   const env = opts.env ?? process.env
-  const inspected = inspectWorkspace({ root, excluded, onImport })
+  const inspected = inspectWorkspace({
+    root,
+    excluded,
+    onImport,
+    hidePackageForSelfTest: opts.hidePackageForSelfTest,
+  })
   const findings = [...inspected.findings]
   const counts = []
 
@@ -309,7 +374,7 @@ export function runGuard(opts) {
     )
     return { findings, counts, bunVersion: undefined }
   }
-  const v = spawnSync('bun', ['--version'], { encoding: 'utf8', env })
+  const v = spawnSync('bun', ['--version'], { encoding: 'utf8', env, timeout: 60_000 })
   if (v.error !== undefined || v.status !== 0) {
     findings.push(
       finding(
@@ -351,6 +416,19 @@ export function runGuard(opts) {
       error: r.error,
     }
   }
+  const timedOut = (what, file, r) => {
+    if (r.error === undefined) return false
+    findings.push(
+      finding(
+        'probe-failed',
+        what,
+        file,
+        `the probe for ${what} did not finish: ${r.error.message}`,
+        'a hang or a crash of the probe itself, not a link error: run the probe by hand and look at what it waits on',
+      ),
+    )
+    return true
+  }
   const onRightRuntime = (what, file, r) => {
     if (r.runtime?.bun === wanted) return true
     findings.push(
@@ -372,10 +450,17 @@ export function runGuard(opts) {
       const file = relative(root, join(dir, 'package.json'))
       let failed = false
       let loaded = 0
+      let probedEntries = 0
       for (const entry of entries) {
         const spec = specOf(name, entry)
+        if (opts.skipEntryForSelfTest === spec) continue
+        probedEntries += 1
         const code = `await import(${JSON.stringify(spec)}); console.log(${JSON.stringify(MARK_LOADED)})`
         const r = probe(['--preload', preload, '--eval', code])
+        if (timedOut(spec, file, r)) {
+          failed = true
+          continue
+        }
         if (!onRightRuntime(spec, file, r)) {
           failed = true
           continue
@@ -402,7 +487,18 @@ export function runGuard(opts) {
           continue
         }
         if (r.status === 0 && completed) loaded += 1
-        else {
+        else if (completed) {
+          failed = true
+          findings.push(
+            finding(
+              'exit-nonzero',
+              spec,
+              file,
+              `${spec} loads under Bun ${wanted} but the import leaves the process exiting ${r.status}: ${firstLine(r.err || r.out)}`,
+              'an entry with an import side effect that sets a failing exit; if it is meant to run a command, list it in ON_IMPORT',
+            ),
+          )
+        } else {
           failed = true
           findings.push(
             finding(
@@ -416,8 +512,14 @@ export function runGuard(opts) {
         }
       }
       let ran = 0
+      let probedBins = 0
       for (const [binName, binPath] of bins) {
+        probedBins += 1
         const r = probe(['--preload', preload, join(dir, binPath), '--help'])
+        if (timedOut(binName, file, r)) {
+          failed = true
+          continue
+        }
         if (!onRightRuntime(binName, file, r)) {
           failed = true
           continue
@@ -453,9 +555,13 @@ export function runGuard(opts) {
           const f = findings[i]
           if (
             f.file === file &&
-            ['bun-load/link-error', 'bun-load/bin-failed', 'bun-load/on-import-outcome'].includes(
-              f.ruleId,
-            )
+            [
+              'bun-load/link-error',
+              'bun-load/bin-failed',
+              'bun-load/on-import-outcome',
+              'bun-load/exit-nonzero',
+              'bun-load/probe-failed',
+            ].includes(f.ruleId)
           )
             findings.splice(i, 1)
         }
@@ -464,8 +570,10 @@ export function runGuard(opts) {
         name,
         entries: loaded,
         manifestEntries: entries.length,
+        probedEntries,
         bins: ran,
         manifestBins: bins.length,
+        probedBins,
       })
     }
   } finally {
@@ -487,6 +595,19 @@ export function runGuard(opts) {
     }
   }
   for (const c of counts) {
+    // ADR-020 rule 3: a count that differs from the manifest's fails. Compared on
+    // the probes RUN, so a skipped entry is caught even though it reported nothing.
+    if (c.probedEntries !== c.manifestEntries || c.probedBins !== c.manifestBins) {
+      findings.push(
+        finding(
+          'count-mismatch',
+          c.name,
+          'package.json',
+          `${c.name}: the guard probed ${c.probedEntries} of ${c.manifestEntries} entries and ${c.probedBins} of ${c.manifestBins} bins in its manifest`,
+          'every entry and bin in the manifest is probed; an entry that cannot be is a guard defect',
+        ),
+      )
+    }
     if (c.manifestEntries + c.manifestBins === 0 && !(c.name in excluded)) {
       findings.push(
         finding(
@@ -545,7 +666,23 @@ export const BUN_BREAKS = [
   {
     id: 'named-import-in-export',
     expect: 'link-error',
+    message: "Export named 'registerHooks' not found",
     packages: [pkg('@scratch/a', 'a', { files: { 'index.js': NAMED_IMPORT } })],
+  },
+  {
+    id: 'export-sets-exit-code',
+    expect: 'exit-nonzero',
+    packages: [
+      pkg('@scratch/a', 'a', {
+        files: { 'index.js': 'process.exitCode = 1\nexport const ok = 1\n' },
+      }),
+    ],
+  },
+  {
+    id: 'entry-skipped',
+    expect: 'count-mismatch',
+    packages: [pkg('@scratch/a', 'a', { exports: { '.': './index.js', './b': './index.js' } })],
+    skipEntry: '@scratch/a/b',
   },
   {
     id: 'named-import-in-bin',
@@ -620,6 +757,7 @@ export function selfTest(wanted) {
         onImport: b.onImport ?? {},
         env: fake?.env,
         dropPackageForSelfTest: b.drop,
+        skipEntryForSelfTest: b.skipEntry,
       })
     } finally {
       rmSync(root, { recursive: true, force: true })
@@ -646,7 +784,17 @@ export function selfTest(wanted) {
     )
   for (const b of BUN_BREAKS) {
     const r = run(b)
-    if (!r.findings.some((f) => f.ruleId === `bun-load/${b.expect}`)) {
+    const hit = r.findings.filter((f) => f.ruleId === `bun-load/${b.expect}`)
+    if (
+      b.message !== undefined &&
+      hit.length > 0 &&
+      !hit.some((f) => f.message.includes(b.message))
+    ) {
+      problems.push(
+        `break "${b.id}" went red for bun-load/${b.expect} but not with "${b.message}" (got: ${hit[0].message})`,
+      )
+    }
+    if (hit.length === 0) {
       problems.push(
         `break "${b.id}" stayed green for bun-load/${b.expect} (got: ${r.findings.map((f) => f.ruleId).join(', ') || 'nothing'})`,
       )
@@ -676,7 +824,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       process.exit(1)
     }
     console.error(
-      `bun-load self-test: OK — ${r.breaks} breaks each red, 1 clean workspace green, on Bun ${wanted} (${secs()}s)`,
+      `bun-load self-test: OK — ${r.breaks} breaks each red, 1 clean workspace green, on the Bun .bun-version names (${wanted}, asserted per probe) (${secs()}s)`,
     )
     process.exit(0)
   }

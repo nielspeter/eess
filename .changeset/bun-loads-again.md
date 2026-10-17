@@ -2,6 +2,7 @@
 '@nielspeter/eess': patch
 '@nielspeter/eess-md': patch
 '@nielspeter/eess-ts': patch
+'@nielspeter/eess-mermaid': patch
 ---
 
 The family loads under Bun again
