@@ -55,8 +55,9 @@ that was not built. The plan decides which, and its red test must import each pu
       Linux (plan 0448)
 - [x] Published, and the adopter told the version numbers: tag `v0.14.0` (PR #233) at 880483c1,
       whose CI, `bun-load` included, was green before the tag push; eess 0.7.1 published with
-      provenance 2026-10-17. Installed from npm under Bun 1.4.3, eess-md 0.10.0 and 0.11.0 both
-      import against kernel 0.7.1. The adopter was told the versions and confirmed eess 0.7.1 with
+      provenance 2026-10-17. Installed from npm into a scratch folder by this release's
+      author, `bun probe.mjs` under Bun 1.4.3 imported eess-md 0.10.0 and then 0.11.0, each
+      resolving `@nielspeter/eess` to that folder's kernel 0.7.1. The adopter was told the versions and reported eess 0.7.1 with
       eess-md 0.11.0 loads under Bun 1.4.3. The adopter also reported it loads under Bun
       1.3.12, the version their CI runs, on macOS only (not their CI's Linux). eess itself checks
       only the version in `.bun-version`, and ADR-020 makes no claim for any Bun
