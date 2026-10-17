@@ -97,3 +97,10 @@ it must not be skipped silently, which would read as a clean bill (bug 0268's cl
 - [ ] `npm run validate` green.
 
 Deferred: none.
+
+**Added 2026-10-18: a condition on this fix.** [Plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md)
+makes eess-md's `resideInFolder` and `resideInFile` declare their globs with the kernel's existing
+`'normalized'` base, which describes md's matching inexactly (md compares repository-relative paths,
+where a leading `/` can never match). Nothing reads that base until this bug's fix makes `doctor` read
+md rules; that fix must give md an exact base, or account for the difference, rather than inherit
+`'normalized'` as if it were exact.

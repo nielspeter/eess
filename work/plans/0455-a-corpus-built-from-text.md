@@ -135,8 +135,9 @@ it: `examples/md/corpus-from-text.test.ts`, "every link resolves", stated as
 `links(c).should().resolve()` from the eess-md root only, with its documents kept as files under
 `examples/md/fixtures/corpus-from-text/clean/` and `…/violating-broken-link/` (a link to a missing
 file; one `violating-<judgement>/` folder per judgement, plan 0458's naming, and the example states
-one judgement) and read into `corpusFromText`. The test file has one `clean:` test and one
-`violating:` test. It adds fixture folders, not a non-vacuity row: plan 0458's one row discovers every
+one judgement) and read into `corpusFromText`. The test file has one test titled `clean: …` and one titled
+`violating-broken-link: …`: each title starts with its fixture folder's name and a colon, as plan
+0458's pairing check requires. It adds fixture folders, not a non-vacuity row: plan 0458's one row discovers every
 example under `examples/md/` and swaps each `violating-<judgement>/` folder.
 
 ## Phases
@@ -361,13 +362,18 @@ removes `DEFAULT_FROZEN`, both constructors change in that one release.
   the finding by name.
 - **Sabotage row 3 has no patch site (testing M4):** retargeted to `corpusFromText` dropping
   `options.ignore`, which exists and reds `resolve-link` and `corpus`.
-- **Example fixtures (coordinator decision 5):** `clean/` and `violating-broken-link/`, one `clean:`
-  and one `violating:` test.
+- **Example fixtures (coordinator decision 5):** `clean/` and `violating-broken-link/`, one `clean:` and one `violating-broken-link:` test.
 - **Minors:** the `.select()` comparisons get their own non-empty guard (testing M5); boxes compare
   `mark` and `state` (testing M6); `?? ''` is described as fail-closed (enforcement m17); 22 of 22
   test files (method m14).
 - **Narrowed, not fixed:** product's note that 0455 could build any time after 0458 is a ROADMAP line,
   outside this plan's file; the plan's `Builds after` already says it needs only 0458.
+
+### Round three
+
+- **Test titles (enforcement m-b, testing m2; coordinator decision 1):** the violating test is titled
+  `violating-broken-link: …`, its folder's name and a colon, as plan 0458's contract spells it.
+- **Narrowed, not fixed:** none. The other round-three rows about 0455 are marked resolved.
 
 ## Progress ledger
 

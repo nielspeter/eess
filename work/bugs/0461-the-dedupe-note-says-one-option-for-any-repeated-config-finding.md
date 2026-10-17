@@ -26,5 +26,7 @@ finding), or takes its wording from the finding. Kept out of plan 0454, which st
 
 - [ ] Red first: two `codeBlocks()` rules over one failed parse, deduplicated, carry "This one option
       generated 2 rules"
+- [ ] Green: the deduplicated finding's note names what was collapsed (two rules reporting one finding)
+      and no option
 
 Deferred: none

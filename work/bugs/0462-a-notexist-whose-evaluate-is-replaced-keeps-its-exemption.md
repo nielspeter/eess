@@ -34,6 +34,7 @@ marked condition, so it ships as a kernel minor without a break marker).
 ## Verification
 
 - [ ] Red first: the replaced `notExist()` above passes over an empty selection
-- [ ] Green: assigning `evaluate` throws, and the rule still reds
+- [ ] Green: assigning `evaluate` on a returned `notExist()` throws, so the exemption only ever
+      belongs to the condition as shipped; a plain no-op condition over the same empty selection still reds
 
 Deferred: none

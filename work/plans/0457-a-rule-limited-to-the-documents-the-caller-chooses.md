@@ -5,7 +5,7 @@
 - **State:** Draft — written 2026-10-17 at the maintainer's request ("plans in one pr"), from
   [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) block 12, as shaped by its
   second Review's decision 4 and the consumer-feedback decision 3; reworked 2026-10-18 after PR
-  #235's five reviews, and again after the round-two reviews (see "Review response").
+  #235's five reviews, and again after the round-two and round-three reviews (see "Review response").
 - **Implements:** proposal 017
 - **Priority:** Medium — two of the three adopters asked for it (block 12 alone, and block 12
   composed with block 11). Today a rule over boxes, links, rows, terms or code blocks can be limited
@@ -191,7 +191,7 @@ The two rule shapes are treated differently, and the difference is the ADRs', no
   done yet") cannot be told apart from the absence being asserted, so it is not a finding, and this
   plan overrides no cardinality hook. What a cardinality rule does get is plan 0456's
   `cardinalitySelectorFault()`: the lift forwards a wrapped predicate's `globs`, so a scope over a
-  folder (`inDocuments(resideInFolder('./work/**'))`) is judged by 0456's selector-fault check
+  folder (`inDocuments(resideInFolder('/work/**'))`, a leading `/` 0456 reports as `anchored`) is judged by 0456's selector-fault check
   exactly as the bare predicate is. Proposal 017's block-12 condition ("a predicate selecting no
   document is a finding naming the predicate") is narrowed to positive rules in the proposal
   (coordinator's edit, 2026-10-18).
@@ -251,7 +251,7 @@ export function scopeDiagnosis<T extends HasDoc>(
   rest of the rule selected before the scopes. No path computes a count of frozen documents a
   selection excluded; that count is owed by bug 0174 (below).
 - **`.expectEmpty()` is offered only where it can lapse.** On a positive rule the kernel expires the
-  declaration the first time the rule examines an element (`packages/core/src/terminal-builder.ts:293-295`),
+  declaration the first time the rule examines an element (`packages/core/src/terminal-builder.ts:294-296`),
   so the remedy is real. On a cardinality rule `examined > 0` is already a violation, so a
   declaration there never lapses; this plan offers it nowhere on that shape, and no cardinality
   finding of its own exists to offer it on.
@@ -297,63 +297,100 @@ All in one PR.
 `TaskItemRuleBuilder`, `LinkRuleBuilder`, `PointerRuleBuilder`, `RowsRuleBuilder`, `TermRuleBuilder`
 and `CodeBlockRuleBuilder`; the hook's docstring in `packages/core/src/rule-builder.ts`.
 
-**Phase 3: the example and the docs.** Under plan 0458's gate, `examples/md/in-documents.test.ts`:
-"no open box in a live document that has a `Verification` section", from public blocks only:
+**Phase 3: the example and the docs.** Under plan 0458's gate, `examples/md/in-documents.test.ts`
+states two judgements, from public blocks only: the ratchet "no open box in a live document that
+has a `Verification` section", and its guard "some live document has that section". The guard
+exists because the ratchet is a `notExist()` rule: if the heading is renamed in the documents, or
+the string misspelt, the ratchet's scope matches nothing and stays green (ADR-010 §3). The guard is
+a positive rule over the same scope, so the same mistake reds it with the zero-examined finding.
+Both read one constant, so they cannot drift apart:
 
 ```ts
-import { areLive, corpus, haveSectionPredicate, inDocuments, taskItems } from '@nielspeter/eess-md'
+import {
+  areLive,
+  corpus,
+  docs,
+  haveSectionPredicate,
+  inDocuments,
+  taskItems,
+} from '@nielspeter/eess-md'
 import { fixture } from './fixture.js' // plan 0458's helper
 
-const rule = (cwd: string) =>
-  taskItems(corpus({ cwd, roots: ['**/*.md'], frozen: ['archive/**'] }))
+const SECTION = 'Verification'
+const load = (cwd: string) => corpus({ cwd, roots: ['**/*.md'], frozen: ['archive/**'] })
+
+// The ratchet: no open box in a live document that has the section.
+const ratchet = (cwd: string) =>
+  taskItems(load(cwd))
     .that()
     .areOpen()
     .satisfy(inDocuments(areLive()))
-    .satisfy(inDocuments(haveSectionPredicate('Verification')))
+    .satisfy(inDocuments(haveSectionPredicate(SECTION)))
     .should()
     .notExist()
+
+// The guard: its scope is not empty. notExist() does not check a section name; this does.
+const guard = (cwd: string) =>
+  docs(load(cwd)).that().satisfy(areLive()).haveSection(SECTION).should().haveSection(SECTION)
 ```
+
+Measured on main's build (2026-10-18), over a one-document corpus whose live document has a setext
+`Verification` heading: `docs(c).that().haveSection(name).should().haveSection(name)` gives 0
+violations for `'Verification'` and 1 for `'Verificaton'`, the kernel's "this rule examined zero
+units" finding. So the guard reds on the exact mistake the ratchet cannot see, and the setext form
+is read.
 
 `frozen: ['archive/**']` is passed explicitly: the example shows frozenness as the caller's choice
 (decision 3), and does not lean on `DEFAULT_FROZEN` (`packages/md/src/corpus.ts:53`), which
 proposal 017's decision 2 plans to remove.
 
-Its fixtures, in the shape plan 0458 defines (`examples/md/fixtures/in-documents/clean/` and one
-`violating-open-box-in-scope/`, the one judgement this example states):
+Its fixtures, in the shape plan 0458 defines: `examples/md/fixtures/in-documents/clean/` and one
+`violating-<judgement>/` folder per judgement. Each test's title starts with its folder's name and a
+colon, as plan 0458's contract says (`clean: …`, `violating-open-box-in-scope: …`,
+`violating-scope-matches-nothing: …`):
 
-- **`clean/`:** an open box in a live document **without** `## Verification`, and an open box in an
-  `archive/` document **with** it. Both are outside the scope. The `clean:` test asserts zero
-  violations and, because this is a cardinality rule, proves its population the way plan 0458's
-  contract says: the same builder without the two scopes, `taskItems(c).that().areOpen()
-.select({ label, identify })` (`packages/core/src/rule-builder.ts:195`), is non-empty.
+- **`clean/`:** an open box in a live document **without** `## Verification`, an open box in an
+  `archive/` document **with** it, and a live document with `## Verification` whose boxes are all
+  checked. The two open boxes are outside the scope. The `clean:` test asserts zero violations from
+  both rules. The guard is positive, so it asserts `examined > 0`. The ratchet is a cardinality
+  rule, so it proves its population the way plan 0458's contract says: the same builder without the
+  two scopes, `taskItems(c).that().areOpen().select({ label, identify })`
+  (`packages/core/src/rule-builder.ts:195`), is non-empty.
 - **`violating-open-box-in-scope/`:** the clean set plus an open box in a live document whose
   `Verification` heading is setext (`Verification\n===`). A section predicate blind to setext would
-  green this test, and the swap row would red. The `violating-open-box-in-scope:` test asserts that
-  exact violation (file, line, "should not exist"), not the exit code.
+  green this test, and the swap row would red. The `violating-open-box-in-scope:` test asserts the
+  ratchet's exact violation (file, line, "should not exist"), not the exit code, and that the guard
+  is green.
+- **`violating-scope-matches-nothing/`:** the violating set above with every `Verification` heading
+  renamed (`## Checks`). The ratchet is green on it, which the test asserts, pinning ADR-010 §3's
+  ruling where an adopter will see it. The guard reds with the zero-examined finding, which the
+  `violating-scope-matches-nothing:` test asserts by its message text.
 
 `docs/markdown.md` and `packages/md/README.md` gain "Scoping a rule to documents". It teaches
-`inDocuments(or(…))` before naming the combinator limit; says that under `notExist()` a scope
-matching no document is green (ADR-010 §3, ADR-018 C3), so a ratchet's scope is best checked by a
-positive rule beside it; and notes the one asymmetry: `pointers(c).that().areFrozen()` is a method,
+`inDocuments(or(…))` before naming the combinator limit. It shows the ratchet and its guard as a
+pair, the same code as the example (so `check:docs-code` compiles it), and says plainly: a
+`notExist()` rule does not check that its scope's section name, or any other content predicate,
+matches anything; a scope matching no document is green (ADR-010 §3, ADR-018 C3); the guard is what
+catches it; and notes the one asymmetry: `pointers(c).that().areFrozen()` is a method,
 everywhere else it is `.satisfy(inDocuments(areFrozen()))`.
 
 ## Files Changed
 
-| file                                                                                 | change                                                          |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| `packages/md/src/predicates/in-documents.ts`                                         | new: `liftToDocument`, `inDocuments`, `scopeDiagnosis`          |
-| `packages/md/src/predicates/document.ts`                                             | `areFrozen()`, `areLive()`                                      |
-| `packages/md/src/builders/code-blocks.ts`                                            | `onDocument` removed; `liftToDocument`; override                |
-| `packages/md/src/model/code-block-parse.ts`                                          | `ParsedCodeBlocks.documents`                                    |
-| `packages/md/src/builders/{task-items,links,pointers,rows,vocabulary}.ts`            | `deadGlobDiagnosis()` override                                  |
-| `packages/md/src/index.ts`                                                           | four exports                                                    |
-| `packages/md/tests/in-documents.test.ts`, `packages/md/tests/fixtures/in-documents/` | new                                                             |
-| `examples/public-surface.test.ts`, checked by `scripts/check-surface.mjs`            | the new names                                                   |
-| `examples/md/in-documents.test.ts`, `examples/md/fixtures/in-documents/`             | new (plan 0458's gate; no row of its own in `check:nonvacuity`) |
-| `docs/markdown.md`, `packages/md/README.md`                                          | the section                                                     |
-| `work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md`                 | the owed green-path counts, recorded (this PR, at review)       |
-| `packages/core/src/rule-builder.ts`                                                  | `deadGlobDiagnosis()`'s docstring (comment only)                |
-| `.changeset/md-in-documents.md`                                                      | `@nielspeter/eess-md`: minor; `'@nielspeter/eess': none`        |
+| file                                                                                     | change                                                          |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `packages/md/src/predicates/in-documents.ts`                                             | new: `liftToDocument`, `inDocuments`, `scopeDiagnosis`          |
+| `packages/md/src/predicates/document.ts`                                                 | `areFrozen()`, `areLive()`                                      |
+| `packages/md/src/builders/code-blocks.ts`                                                | `onDocument` removed; `liftToDocument`; override                |
+| `packages/md/src/model/code-block-parse.ts`                                              | `ParsedCodeBlocks.documents`                                    |
+| `packages/md/src/builders/{task-items,links,pointers,rows,vocabulary}.ts`                | `deadGlobDiagnosis()` override                                  |
+| `packages/md/src/index.ts`                                                               | four exports                                                    |
+| `packages/md/tests/in-documents.test.ts`, `packages/md/tests/fixtures/in-documents/`     | new                                                             |
+| `examples/public-surface.test.ts`, checked by `scripts/check-surface.mjs`                | the new names                                                   |
+| `examples/md/in-documents.test.ts`, `examples/md/fixtures/in-documents/` (three folders) | new (plan 0458's gate; no row of its own in `check:nonvacuity`) |
+| `docs/markdown.md`, `packages/md/README.md`                                              | the section                                                     |
+| `work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md`                     | the owed green-path counts, recorded (this PR, at review)       |
+| `packages/core/src/rule-builder.ts`                                                      | `deadGlobDiagnosis()`'s docstring (comment only)                |
+| `.changeset/md-in-documents.md`                                                          | `@nielspeter/eess-md`: minor; `'@nielspeter/eess': none`        |
 
 ## Test inventory
 
@@ -379,6 +416,9 @@ hand-built element, in `packages/md/tests/in-documents.test.ts`:
   they hold none of the M task items the rest of this rule selects"; with `.expectEmpty()` it is
   green.
 - **Live scope, no elements, `notExist()`:** green: the assertion holding, pinned as the control.
+- **The guard pair** (the example's two rules over a corpus whose `Verification` heading is
+  renamed): the ratchet is green and the guard reds with the zero-examined finding; with the
+  heading restored both are green.
 - **A non-scope predicate emptied it** (a live scope, `areOpen()` over a corpus whose boxes are all
   checked): the reason is not the scope's; the generic finding speaks.
 - **A dead scope on a positive rule under `.expectEmpty()`** is green, and the same rule over a
@@ -502,7 +542,7 @@ The round-two reviews (architect, product, enforcement, method, testing), each f
   narrowed in the proposal by the coordinator.
 - **Architect I-5 / enforcement C1 / m7 (`.expectEmpty()` never lapses on `notExist()`):** the
   remedy is offered only on positive rules, where the kernel expires it
-  (`core/src/terminal-builder.ts:293-295`); the "lapses the day a document matches" sentence is gone; a row
+  (`core/src/terminal-builder.ts:294-296`); the "lapses the day a document matches" sentence is gone; a row
   pins that the positive-rule remedy lapses. The kernel order for selector faults (decision 2) is
   plan 0456's.
 - **Architect I-2 / enforcement I5 / method C1 / testing C1 (`examined > 0` on a `notExist()`
@@ -530,6 +570,29 @@ The round-two reviews (architect, product, enforcement, method, testing), each f
 - **Product m5 / method m2 ("six builders" vs seven; ROADMAP and 017 say `isFrozen()`):** this
   plan's response now says seven; the ROADMAP row and the 017 disposition row are the
   coordinator's.
+
+### Round three — 2026-10-18
+
+The round-three reviews raised no Critical; each Important and Minor on this plan:
+
+- **Product N-I2 / enforcement N3 (the guard for a scoped ratchet is prose only):** coordinator's
+  decision 7. The example ships the guard as a second judgement with its own
+  `violating-scope-matches-nothing/` fixture, so plan 0458's swap proves it fires. The README shows
+  the pair and says that `notExist()` does not check a section name. The guard's behaviour was
+  measured on main's build before it was written in (Phase 3).
+- **Coordinator decision 1 (test titles):** each title starts with its fixture folder's name and a
+  colon.
+- **Architect m-new-1 / enforcement m-g (`./work/**`reads as a fault that is not one):** the
+illustration is`'/work/\*\*'`, which 0456 reports as `anchored`.
+- **Architect m-new-6 (off-by-one pointer):** the expiry branch is
+  `packages/core/src/terminal-builder.ts:294-296`.
+- **Testing N1, second option (the lift row table-driven over six builders):** not taken. Decision 5
+  gives 0456 test-local glob-declaring predicates for the four builders, so 0456's own rows cover
+  them; this plan's one lift row proves the forwarding.
+- **Product minor 3 (017's block-11 note on `haveSectionPredicate`):** the coordinator's, in the
+  proposal.
+- **Architect "not counted" (three overrides in six builders):** noted for the build; a shared md
+  base builder is a refactor neither this plan nor 0456 owns.
 
 ## Progress ledger
 

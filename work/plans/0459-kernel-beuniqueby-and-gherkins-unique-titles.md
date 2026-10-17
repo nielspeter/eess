@@ -221,7 +221,10 @@ All in one pull request.
 - `DocsRuleBuilder.beUniqueBy(key, what)`.
 - `packages/md/README.md`: a uniqueness example, compiled by `check:docs-code`.
 - The example under plan 0458's gate, `examples/md/unique-slugs.test.ts`: "no two pages under
-  `guides/` share a slug", with a clean and a violating fixture.
+  `guides/` share a slug". Fixture folders `clean/` and `violating-shared-slug/`, one per judgement
+  the example states, under 0458's contract; test titles start with the folder's name and a colon
+  (`clean: …`, `violating-shared-slug: …`), as 0458 lines 101 and 300 say. `beUniqueBy` is not a
+  cardinality condition, so the clean test's `examined > 0` holds without a wider selection.
 
 ### Phase 3: eess-gherkin
 
@@ -365,6 +368,14 @@ These findings were made against plan 0456 before the split; they apply here.
 - **method m10** (the Close box repeats 017's row, already `Accepted`): dropped.
 - **coordinator decision 3** (freeze at marking): unchanged here; `uniqueByCondition` is not marked,
   so it freezes itself, as before.
+
+### Round three
+
+- **method N7 / coordinator decision 1** (the example still read "a clean and a violating
+  fixture"): `clean/` and `violating-shared-slug/` under 0458's contract, with titles that start
+  with the folder name and a colon.
+- **method N2** (ROADMAP's `Blocked on` names only 0458): this plan's `Builds after` already names
+  0456 and 0458; the board row is the coordinator's.
 
 ## Progress ledger
 
