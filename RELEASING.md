@@ -121,8 +121,8 @@ is the worked example.
   import claims by pattern, so that is what gets its import lines compiled. The
   rest of the name is for readers.
 
-  **When the kernel's new version is a tag that already exists, name the page
-  after the TAG.** The kernel reached 0.6.0 on the train tagged `v0.9.0`, because
+  **Whenever the tag is not the kernel's version, name the page after the TAG**
+  (`migrating-to-0.9.md`, `-0.13.md`, `-0.14.md`). The kernel reached 0.6.0 on the train tagged `v0.9.0`, because
   `v0.6.0` had already been cut for an eess-ts-only release. Naming that page
   `migrating-to-0.6.md` would have put it beside `migrating-to-eess-ts-0.6.md`
   meaning something else, and an adopter arrives from the GitHub Release holding
@@ -314,7 +314,7 @@ git push origin main
 git push origin v0.1.2
 ```
 
-**The tag is normally the KERNEL's version** (two exceptions below). The six packages do not share a number —
+**The tag is normally the KERNEL's version**; the exceptions follow. The six packages do not share a number —
 this release ships `@nielspeter/eess` at 0.5.0 and `@nielspeter/eess-md` at
 0.6.0 — and `publish.yml` fires on any `v*`, so nothing decides this for you. The
 "Versioning" section below still says the family stays "in lockstep at a common
@@ -337,7 +337,7 @@ because the rule above does not cover this case and the next release would re-de
 `publish.yml` creates the GitHub Release with `generate_release_notes: true` and
 no body, so the notes are machine-made from PR titles and no authoring moment
 exists. After the tag push, edit the Release to link the migration page —
-`gh release edit v<the release's tag> --notes-file …` — or the page you wrote is
+`gh release edit <the release's tag> --notes-file …` — or the page you wrote is
 reachable only by someone already browsing the docs.
 
 ## A removal from a published barrel is invisible to every gate (bug 0279)
