@@ -137,6 +137,16 @@ function binsOf(manifest) {
   return Object.entries(manifest.bin)
 }
 
+/** The manifest's own count of entries, read from `exports` directly, not through `entriesOf`. */
+function manifestEntryCount(exportsField) {
+  if (typeof exportsField === 'string') return 1
+  if (exportsField === null || typeof exportsField !== 'object' || Array.isArray(exportsField))
+    return 0
+  const keys = Object.keys(exportsField)
+  const subpaths = keys.filter((k) => k.startsWith('.'))
+  return subpaths.length === 0 && keys.length > 0 ? 1 : subpaths.length
+}
+
 const specOf = (name, entry) => (entry === '.' ? name : name + entry.slice(1))
 
 /**
@@ -145,7 +155,7 @@ const specOf = (name, entry) => (entry === '.' ? name : name + entry.slice(1))
  * npm's own `npm query .workspace`. A package one sees and the other does not
  * is a finding, so a misread field cannot quietly shrink the list.
  * @param {{ root: string, excluded?: Record<string,string>, onImport?: typeof ON_IMPORT,
- *   hidePackageForSelfTest?: string }} opts
+ *   hidePackageForSelfTest?: string, filterPublishedForSelfTest?: string }} opts
  */
 export function inspectWorkspace(opts) {
   const root = opts.root
@@ -195,6 +205,7 @@ export function inspectWorkspace(opts) {
         ),
       )
     }
+    if (opts.filterPublishedForSelfTest === manifest.name) continue
     published.push({ dir, manifest, entries, bins: binsOf(manifest) })
   }
   if (published.length === 0) {
@@ -214,8 +225,11 @@ export function inspectWorkspace(opts) {
     timeout: 60_000,
   })
   let npmNames
+  let npmPublished
   try {
-    npmNames = npm.status === 0 ? JSON.parse(npm.stdout).map((w) => w.name) : undefined
+    const listed = npm.status === 0 ? JSON.parse(npm.stdout) : undefined
+    npmNames = listed?.map((w) => w.name)
+    npmPublished = listed?.filter((w) => w.private !== true).map((w) => w.name)
   } catch {
     npmNames = undefined
   }
@@ -272,7 +286,7 @@ export function inspectWorkspace(opts) {
       )
     }
   }
-  return { findings, published }
+  return { findings, published, npmPublished }
 }
 
 // --- the CI job, without Bun -----------------------------------------------------
@@ -297,8 +311,11 @@ export function checkBunLoadJob(ciText) {
   }
   const job = lines.slice(start + 1, end).filter((l) => !/^\s*#/.test(l))
   const problems = []
-  if (job.some((l) => /^\s*-?\s*if:/.test(l))) {
-    problems.push('the `bun-load` job or one of its steps has an `if:`, so it does not always run')
+  if (job.some((l) => /^ {4}if:/.test(l))) {
+    problems.push('the `bun-load` job has an `if:`, so it does not always run')
+  }
+  if (job.some((l) => /^ {6,}-?\s*if:/.test(l))) {
+    problems.push('a step of the `bun-load` job has an `if:`, so it does not always run')
   }
   if (job.some((l) => /^\s*-?\s*continue-on-error:/.test(l))) {
     problems.push(
@@ -344,7 +361,7 @@ const firstLine = (s) =>
  * Run the guard: inputs, then one Bun probe per entry and per bin.
  * @param {{ root: string, excluded?: Record<string,string>, onImport?: typeof ON_IMPORT,
  *   env?: NodeJS.ProcessEnv, dropPackageForSelfTest?: string, skipEntryForSelfTest?: string,
- *   hidePackageForSelfTest?: string }} opts
+ *   hidePackageForSelfTest?: string, filterPublishedForSelfTest?: string, probeTimeoutMs?: number }} opts
  */
 export function runGuard(opts) {
   const root = opts.root
@@ -356,6 +373,7 @@ export function runGuard(opts) {
     excluded,
     onImport,
     hidePackageForSelfTest: opts.hidePackageForSelfTest,
+    filterPublishedForSelfTest: opts.filterPublishedForSelfTest,
   })
   const findings = [...inspected.findings]
   const counts = []
@@ -407,7 +425,12 @@ export function runGuard(opts) {
     `console.log(${JSON.stringify(MARK_RUNTIME)} + JSON.stringify({ bun: process.versions.bun ?? null }))\n`,
   )
   const probe = (args) => {
-    const r = spawnSync('bun', args, { cwd: root, encoding: 'utf8', env, timeout: 60_000 })
+    const r = spawnSync('bun', args, {
+      cwd: root,
+      encoding: 'utf8',
+      env,
+      timeout: opts.probeTimeoutMs ?? 60_000,
+    })
     return {
       status: r.status,
       out: r.stdout ?? '',
@@ -454,9 +477,10 @@ export function runGuard(opts) {
       for (const entry of entries) {
         const spec = specOf(name, entry)
         if (opts.skipEntryForSelfTest === spec) continue
-        probedEntries += 1
         const code = `await import(${JSON.stringify(spec)}); console.log(${JSON.stringify(MARK_LOADED)})`
         const r = probe(['--preload', preload, '--eval', code])
+        // Counted only when the probe reported back, not when the loop reached it.
+        if (r.runtime !== undefined) probedEntries += 1
         if (timedOut(spec, file, r)) {
           failed = true
           continue
@@ -514,8 +538,8 @@ export function runGuard(opts) {
       let ran = 0
       let probedBins = 0
       for (const [binName, binPath] of bins) {
-        probedBins += 1
         const r = probe(['--preload', preload, join(dir, binPath), '--help'])
+        if (r.runtime !== undefined) probedBins += 1
         if (timedOut(binName, file, r)) {
           failed = true
           continue
@@ -569,7 +593,7 @@ export function runGuard(opts) {
       counts.push({
         name,
         entries: loaded,
-        manifestEntries: entries.length,
+        manifestEntries: manifestEntryCount(manifest.exports),
         probedEntries,
         bins: ran,
         manifestBins: bins.length,
@@ -581,6 +605,22 @@ export function runGuard(opts) {
   }
 
   const reported = new Set(counts.map((c) => c.name))
+  // The second source, against the probes: every package npm lists as published
+  // must have been probed, so a package lost anywhere between reading the
+  // workspace and the probe loop is caught, not only one the reading misses.
+  for (const name of inspected.npmPublished ?? []) {
+    if (!reported.has(name) && !(name in excluded)) {
+      findings.push(
+        finding(
+          'npm-not-probed',
+          name,
+          'package.json',
+          `npm lists ${name} as a published workspace package, and no probe reported on it`,
+          'every published package is probed; one that cannot load goes in EXCLUDED with its reason',
+        ),
+      )
+    }
+  }
   for (const { manifest } of inspected.published) {
     if (!reported.has(manifest.name)) {
       findings.push(
@@ -726,6 +766,25 @@ export const BUN_BREAKS = [
     fakeBun: true,
   },
   {
+    id: 'package-filtered-after-read',
+    expect: 'npm-not-probed',
+    packages: [pkg('@scratch/a', 'a'), pkg('@scratch/b', 'b')],
+    filterPublished: '@scratch/b',
+  },
+  {
+    id: 'probe-hangs',
+    expect: 'probe-failed',
+    packages: [
+      pkg('@scratch/a', 'a', {
+        files: {
+          'index.js':
+            'setInterval(() => {}, 1000)\nawait new Promise(() => {})\nexport const ok = 1\n',
+        },
+      }),
+    ],
+    probeTimeoutMs: 1500,
+  },
+  {
     id: 'package-dropped',
     expect: 'not-examined',
     packages: [pkg('@scratch/a', 'a'), pkg('@scratch/b', 'b')],
@@ -758,6 +817,8 @@ export function selfTest(wanted) {
         env: fake?.env,
         dropPackageForSelfTest: b.drop,
         skipEntryForSelfTest: b.skipEntry,
+        filterPublishedForSelfTest: b.filterPublished,
+        probeTimeoutMs: b.probeTimeoutMs,
       })
     } finally {
       rmSync(root, { recursive: true, force: true })

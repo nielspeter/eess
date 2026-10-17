@@ -70,7 +70,7 @@ two halves, so that everything that needs no Bun runs locally:
 **Where it runs.** ADR-001 keeps Bun out of this repository's toolchain (its Amended-by note, line 7:
 "Local development on Node and npm stays"), so the Bun half cannot be a required local gate. It runs
 in its own CI job, `bun-load`: `oven-sh/setup-bun` pinned by commit SHA (with its tag as a comment)
-and `bun-version-file: .bun-version`, `permissions: contents: read`, its own `npm ci` and build, then
+and `bun-version-file: .bun-version`, `permissions: contents: read`, `timeout-minutes: 10`, its own `npm ci` and build, then
 `npm run check:bun-load` and `npm run check:bun-load -- --self-test`. It is a separate job, not a step
 in `test`, so the twenty-minute suite and fail-fast cannot hide it, and it does not `needs: test`,
 which would skip it whenever `test` fails. `gateCoverage`'s `CI_ONLY_BY_DESIGN` gains
@@ -91,16 +91,12 @@ from one place only, and every row's `mustSay` matching the fixture's own sentin
   run-on-import entry; a workspace whose only package is `private` (which also proves the filter); a
   `workspaces` entry naming no directory; a package npm's `npm query .workspace` lists and the
   guard's reading does not (the second source for the package list, through a test-only option); Bun
-  missing from `PATH`; no `.bun-version`; a wildcard `exports` subpath; and eight sabotaged `ci.yml`
-  texts (job missing, job-level `if:`, `continue-on-error`, `needs:`, the guard step missing, a
-  step-level `if:`, the self-test step missing, Bun not installed from `.bun-version`).
+  missing from `PATH`; no `.bun-version`; a wildcard `exports` subpath; and eight sabotaged `ci.yml` texts (job missing, job-level `if:`, `continue-on-error`, `needs:`, the guard step missing, a step-level `if:`, the self-test step missing, Bun not installed from `.bun-version`), the two `if:` cases with separate messages.
   `GATE_FOR['check:bun-load']` names these rows.
 - With Bun, as the guard's `--self-test` in the CI job, over scratch workspaces under the system temp
   directory, each with its own package links: bug 0439's named import in an export; the same import
   reached only through a `bin`; a run-on-import entry that hits a link error; an excluded package that
-  loads; a `.bun-version` other than the Bun installed; a fake `bun` on `PATH` that runs Node; a published package the guard drops (through a test-only option); an entry the guard skips, caught
-  by comparing the probes run with the manifest's count; an export whose import leaves a failing exit
-  code; and one clean workspace that must be green. Bug 0439's break also asserts Bun's message. Each break asserts its `ruleId`, not only exit 1. The breaks are one exported table with
+  loads; a `.bun-version` other than the Bun installed; a fake `bun` on `PATH` that runs Node; a published package the guard drops (through a test-only option); an entry the guard skips, caught by comparing the probes that reported back with the count read from `exports` directly; a package filtered out after the workspace is read, caught by requiring every package npm lists as published to have been probed; a probe that hangs, run with a short test-only timeout; an export whose import leaves a failing exit code; and one clean workspace that must be green. That is eleven breaks, the last three added by the PR's second review. Bug 0439's break also asserts Bun's message. Each break asserts its `ruleId`, not only exit 1. The breaks are one exported table with
   ids, and `gateCoverage` compares it against the ids this plan names, so a deleted break is a finding
   rather than a smaller count.
 
@@ -136,7 +132,7 @@ run's counts are recorded as the Linux measurement.
 - `package.json` — `check:bun-load`.
 - `adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md` — R2's row.
 - `CLAUDE.md` — the gate-output table's row.
-- `.changeset/` — `@nielspeter/eess`, eess-md and eess-ts named: patch.
+- `.changeset/` — `@nielspeter/eess`, eess-md, eess-ts and eess-mermaid named: patch.
 - `work/plans/0449-…`, `work/bugs/0450-…`, `work/bugs/0451-…`, `work/bugs/0452-…` — new records;
   `work/spikes/0438-…` — a moved link.
 - `work/bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md` → `work/bugs/fixed/`,
@@ -164,7 +160,7 @@ run's counts are recorded as the Linux measurement.
 ## Cost, measured
 
 - **Locally** (macOS, Bun 1.4.3): the guard 2.5 s over 28 entries and 2 bins; its self-test 0.5 s;
-  `bad-bun-load.mjs`'s ten scenarios 0.04 s; `check:nonvacuity` with the ten first rows, 8 min 21 s (190 fixtures), and after the PR's review with sixteen, 8 min 25 s (196 fixtures); `bad-bun-load.mjs` alone, 1.5 s, and the self-test with nine breaks, 2.4 s, both slower for `npm query .workspace`.
+  `bad-bun-load.mjs`'s ten scenarios 0.04 s; `check:nonvacuity` with the ten first rows, 8 min 21 s (190 fixtures), and after the PR's review with sixteen, 8 min 25 s (196 fixtures); `bad-bun-load.mjs` alone, 1.5 s, and the self-test with nine breaks, 2.4 s (eleven after the second review, 4.2 s, the hung probe's 1.5 s timeout included), both slower for `npm query .workspace`.
 - **In CI, the first run** (PR #232, run 38976645502, Linux, `ubuntu-latest`): the `bun-load` job
   39 s wall clock, of which `npm ci` 10 s, the build 11 s, the guard 5 s and the self-test under
   1 s, in parallel with the 24.5-minute `test` job, so it adds a runner slot, not time to the run.

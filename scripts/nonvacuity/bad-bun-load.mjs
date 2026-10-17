@@ -101,14 +101,14 @@ const SCENARIOS = {
   'bun-load/unreadable-exports': () =>
     inputsMustSay('bun-load/unreadable-exports', [{ ...ok, exports: { '.': './index.js', './*': './*.js' } }], { excluded: {}, onImport: {} }),
   'bun-load/ci-job-missing': () => ciMustSay('has no `bun-load` job', (t) => t.replace(JOB, '  bun-load-renamed:\n    runs-on: ubuntu-latest\n')),
-  'bun-load/ci-if': () => ciMustSay('has an `if:`', (t) => t.replace(JOB, `${JOB}    if: false\n`)),
+  'bun-load/ci-if': () => ciMustSay('the `bun-load` job has an `if:`', (t) => t.replace(JOB, `${JOB}    if: false\n`)),
   'bun-load/ci-continue-on-error': () =>
     ciMustSay('sets `continue-on-error`', (t) => t.replace(JOB, `${JOB}    continue-on-error: true\n`)),
   'bun-load/ci-needs': () => ciMustSay('has `needs:`', (t) => t.replace(JOB, `${JOB}    needs: test\n`)),
   'bun-load/ci-guard-missing': () =>
     ciMustSay('does not run `npm run check:bun-load`', (t) => t.replace('      - run: npm run check:bun-load\n', '')),
   'bun-load/ci-step-if': () =>
-    ciMustSay('has an `if:`', (t) => t.replace('      - run: npm run check:bun-load\n', '      - run: npm run check:bun-load\n        if: false\n')),
+    ciMustSay('a step of the `bun-load` job has an `if:`', (t) => t.replace('      - run: npm run check:bun-load\n', '      - run: npm run check:bun-load\n        if: false\n')),
   'bun-load/ci-self-test-missing': () =>
     ciMustSay('does not run `npm run check:bun-load -- --self-test`', (t) => t.replace('      - run: npm run check:bun-load -- --self-test\n', '')),
   'bun-load/ci-version-file': () =>

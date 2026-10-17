@@ -12,9 +12,7 @@
 ## Symptom
 
 `gateCoverage()` in `scripts/check-nonvacuity.mjs` carries several checks that no fixture drives
-through `gateCoverage` itself: the comparison of `ci.yml` with `validate`
-(`scripts/check-nonvacuity.mjs:3943`), and, since plan 0448, the read of the `bun-load` job and the
-pin of the guard's self-test break ids (`scripts/check-nonvacuity.mjs:3997`). The `bad-bun-load.mjs`
+through `gateCoverage` itself: the comparison of `ci.yml` with `validate` (the loop over `ci.matchAll` in `gateCoverage()`, `scripts/check-nonvacuity.mjs`), and, since plan 0448, the read of the `bun-load` job (the `checkBunLoadJob(ci)` call) and the pin of the guard's self-test break ids (`BUN_BREAK_IDS`). Named by statement, not line: the file moved by about a hundred lines within the PR that recorded this. The `bad-bun-load.mjs`
 rows import `checkBunLoadJob` directly, so they prove the function goes red, not that `gateCoverage`
 calls it. Deleting the call, or the pinned-id loop, turns nothing red. ADR-020's R2 row says these
 edits "red `gateCoverage`"; that holds only while the call is there.

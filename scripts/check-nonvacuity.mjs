@@ -3307,9 +3307,11 @@ const gates = [
   [
     'bun-load/ci-if',
     () =>
-      gateNode('bad-bun-load.mjs', 'bad-bun-load: bun-load CI job \u2014 has an `if:`', [
-        'bun-load/ci-if',
-      ]),
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: bun-load CI job \u2014 the `bun-load` job has an `if:`',
+        ['bun-load/ci-if'],
+      ),
   ],
   [
     'bun-load/ci-continue-on-error',
@@ -3339,9 +3341,11 @@ const gates = [
   [
     'bun-load/ci-step-if',
     () =>
-      gateNode('bad-bun-load.mjs', 'bad-bun-load: bun-load CI job \u2014 has an `if:`', [
-        'bun-load/ci-step-if',
-      ]),
+      gateNode(
+        'bad-bun-load.mjs',
+        'bad-bun-load: bun-load CI job \u2014 a step of the `bun-load` job has an `if:`',
+        ['bun-load/ci-step-if'],
+      ),
   ],
   [
     'bun-load/ci-self-test-missing',
@@ -4073,6 +4077,8 @@ function gateCoverage() {
     'package-dropped',
     'export-sets-exit-code',
     'entry-skipped',
+    'package-filtered-after-read',
+    'probe-hangs',
   ]
   const declaredBunBreaks = new Set(BUN_BREAKS.map((b) => b.id))
   for (const id of BUN_BREAK_IDS) {
