@@ -101,8 +101,21 @@ Plans 0456, 0454, 0457, 0455 and 0459 follow it.
   - Each `violating-<judgement>: …` test reads `fixture(name, 'violating-<judgement>')`. It asserts
     the finding's identity: its `file` is the violating document, its message is exact, and it is
     not a configuration finding (`bypassFilters` unset).
+  - **The one exception: a judgement that a scope "matches nothing".** Such a judgement reds with
+    the kernel's own configuration finding, `zeroExaminedViolation`
+    (`packages/core/src/vacuity-findings.ts:55`), built with `file: ''` and `bypassFilters: true`
+    and carrying the rule's own id (`:44`). Its violating test asserts that finding by `ruleId`,
+    and asserts that it is a configuration finding (`bypassFilters: true`), with `file` exempt.
+    The example's test title names the judgement as this kind. Plan 0457's
+    `violating-scope-matches-nothing:` is the first.
+
+    The exception is narrow on purpose. The general rule still stops a violating fixture that
+    merely breaks the load from counting as the judgement firing, because a broken load gives a
+    different finding (an empty source, or a thrown error), not the rule's zero-examined finding.
+
   - The swap row matches tests to folders by these title prefixes. A `violating-<judgement>/` folder
     with no test of that prefix, or a test with no folder, is a finding.
+
 - **No per-example row.** Registration in `check:nonvacuity` is this plan's one discovering row, so a
   block plan adds an example and its fixture folders and nothing to the harness. That is this plan's
   reading of decision 3's "registered in `check:nonvacuity`", stated here as a reading.
@@ -142,7 +155,7 @@ modules(ex)
   .that()
   .resideInFile('**/examples/md/fixture.ts')
   .should()
-  .onlyImportFrom('node:**')
+  .onlyImportFrom('node:{*,*/*}')
   .rule({ id: 'eess/examples-md-public-blocks-only', because })
 ```
 
@@ -157,9 +170,17 @@ It is an allowlist, not a denylist. It shuts out:
 - a relative import into `packages/*/src`;
 - `node:*` from any example file.
 
-The helper's `node:**`, rather than `node:*`, is there because picomatch's `*` stops at `/`, so
-`node:*` would red `node:fs/promises`. That is picomatch's documented `*` semantics. A quiet row
-pins it at build time on main's build, and this plan does not claim to have measured it.
+The helper's glob is `node:{*,*/*}`. Measured 2026-10-18 on main's picomatch 4.0.4, with the
+`dot: true` that `importTargetMatcher` uses (`packages/ts/src/core/import-candidates.ts:138`):
+
+| glob           | `node:fs` | `node:fs/promises` |
+| -------------- | --------- | ------------------ |
+| `node:*`       | matches   | no match           |
+| `node:**`      | matches   | no match           |
+| `node:{*,*/*}` | matches   | matches            |
+
+`**` is a globstar only as a whole path segment, so `node:**` is a `*`. A quiet row pins the
+chosen glob.
 
 `onlyImportFrom` matches a bare specifier as well as the resolved path (`candidatesFor`,
 `packages/ts/src/core/import-candidates.ts:60-81`). So `@nielspeter/eess-md` names the root
@@ -298,11 +319,15 @@ than claiming it. The known evasions are:
 - a banned name reached under an alias. `import * as md` and then `md['collect' + 'Result']`, for
   instance, never spells the identifier;
 - a single `violating-<judgement>:` test that asserts two judgements on one folder. The gate pairs a
-  folder with a test, not a test with how many judgements it states.
+  folder with a test, not a test with how many judgements it states;
+- a cardinality example that omits its population assertion (the wider `.select()`). It passes
+  every one of the `1 + 2N` runs: the reverse swap reds on the zero-violations assertion, not on
+  population, so nothing sees a clean fixture with no elements. Review holds it, and the contract
+  states the assertion as required.
 
 ### No rule can be green on an empty folder
 
-All three rules select modules under `examples/md/`. With no module there, they examine nothing,
+All four arch rules (rule 1's two halves, rules 2 and 3) select modules under `examples/md/`. With no module there, they examine nothing,
 which is ADR-010's finding; none of them is cardinality-shaped. `examples/md/fixture.ts` is itself
 a module in the folder, so with every example removed the rules still examine one module and stay
 green. The empty-folder sabotage row therefore expects the load-bearing row's zero check to red,
@@ -362,7 +387,7 @@ folder:
 
 No file is written, moved or deleted, so a killed run leaves nothing behind. That is the hazard
 `withProbe`'s `rmSync` (`scripts/check-nonvacuity.mjs:537`) and `withRewrittenFile` (`:613`) would
-otherwise carry for a tracked fixture. The helper is the one module rule 1 lets import `node:**`.
+otherwise carry for a tracked fixture. The helper is the one module rule 1 lets import Node's modules (`node:{*,*/*}`).
 
 The hook serves this repository's harness. `examples/README.md` says so in one line: outside this
 repository, pass the fixture's path yourself, and a copied example needs no helper.
@@ -382,7 +407,7 @@ unrun templates is untouched.
   discipline as `gateArchOneTagComparison` (`scripts/check-nonvacuity.mjs:744`).
 - **`arch/examples-md-no-hand-built-rules`** and **`arch/examples-md-no-rule-constructors`.** The
   same mechanism, one probe per spelling in the inventory. A quiet probe that uses only `docs()` and
-  `corpus()` must stay green under all three rules.
+  `corpus()` must stay green under all four arch rules.
 - **`examples/md-fixtures-are-load-bearing`.** It runs in this order:
   1. Discover every `examples/md/<name>.test.ts`, the probes excepted, and its `violating-*/`
      folders.
@@ -481,7 +506,7 @@ the whole harness.
 | sabotage: an example imports `@nielspeter/eess-md/rules/ledger`                             | rule 1 reds (presets are not blocks)                                                                          |
 | sabotage: relative import of `packages/md/src/model/task-items.js`                          | rule 1 reds                                                                                                   |
 | sabotage: an example imports `node:fs`                                                      | rule 1 reds (only the helper may import Node)                                                                 |
-| quiet: the helper imports `node:fs/promises`                                                | rule 1's helper half stays quiet (`node:**`)                                                                  |
+| quiet: the helper imports `node:fs/promises`                                                | rule 1's helper half stays quiet (`node:{*,*/*}`)                                                             |
 | sabotage: `{ description, test }`                                                           | rule 2 reds                                                                                                   |
 | sabotage: `{ 'test': f }` (quoted key)                                                      | rule 2 reds                                                                                                   |
 | sabotage: `{ ['evaluate']: f }` (computed key)                                              | rule 2 reds                                                                                                   |
@@ -494,7 +519,7 @@ the whole harness.
 | sabotage: `definePredicate` referenced with no import of it (a global stand-in)             | rule 3 reds, independent of the import graph                                                                  |
 | sabotage: `createRequire`                                                                   | rule 3 reds                                                                                                   |
 | sabotage: an example assembles a verdict with `collectResult`                               | rule 3 reds (verdict-assembly seams)                                                                          |
-| quiet: a probe using only `docs()` and `corpus()`                                           | all three rules quiet                                                                                         |
+| quiet: a probe using only `docs()` and `corpus()`                                           | all four arch rules quiet                                                                                     |
 | sabotage: `EESS_EXAMPLE_SWAP=violating-missing-section=clean`                               | the seed's `violating-missing-section:` test fails, by title; `clean:` passes                                 |
 | sabotage: `EESS_EXAMPLE_SWAP=clean=violating-missing-section`                               | the seed's `clean:` test fails, by title; the violating test passes                                           |
 | sabotage: the seed's violating assertion weakened to `toBeGreaterThanOrEqual(0)`            | the `violating-missing-section:` test still passes under the forward swap, so the row reds naming the example |
@@ -552,7 +577,7 @@ Each Critical and Important finding from PR #235's reviews, and what changed.
 - **Method C1, P1** (an `Accepted` row whose closing proof is deferred). The row becomes
   `Accepted, reshaped`, recorded in proposal 017 by the coordinator.
 - **Minors, grouped:**
-  - `node:**` replaces `node:*` (Testing M1);
+  - the helper's Node glob is fixed (Testing M1; measured in round four);
   - the seed asserts the finding's identity (Testing M2);
   - the swap row's cost is printed (Testing M3);
   - probes are `__nonvacuity_probe_*.test.ts` inside the include and must red with their own rule
@@ -578,7 +603,7 @@ From PR #235's second-round reviews (`review-235-*-r2.md`) and the coordinator's
   (one violating folder for several judgements). What remains is narrower, and is listed.
 - **Architect m12, Enforcement m12** (the empty-folder row expected the wrong result). `fixture.ts`
   keeps the rules examining one module; the row now expects the load-bearing row's zero check.
-- **Architect m13** (`node:**` and the verdict-assembly seams escape "public blocks"). `node:**` is
+- **Architect m13** (Node imports and the verdict-assembly seams escape "public blocks"). Node is
   limited to `fixture.ts` (rule 1 in two halves). `collectResult`, `mergeCollectResults`,
   `finishPreset` and `dispatchRule` join rule 3's names. Sabotage rows are added for both.
 - **Enforcement m11** (`memberName` read the `get`/`async`/`*` child). The name child is chosen by
@@ -587,13 +612,30 @@ From PR #235's second-round reviews (`review-235-*-r2.md`) and the coordinator's
   `check:examples`' `tsc`.
 - **Architect m14, Method m6** (`structure.ts:17`). Now `:18`.
 - **Method m1** (numbers disagreed inside the plan). Effort now says four rows and four rule calls,
-  and the heading says "No rule". The ROADMAP row's "two arch rules" is the coordinator's board.
+  and the heading says "No rule".
 - **Product minor 1** (a copied example copies the hook). `examples/README.md` gains the line.
 - **Testing M7** (row wording). Reworded.
 - **Brief 2, decision 7.** The seed already uses `corpus({ cwd, roots })`. This plan calls no
   predicate's `test` directly, so `matchingElements` does not apply here.
-- **Measurement note.** The `node:*` / `node:**` claim is picomatch's documented `*` semantics, not
-  measured on main's build in this rework. The quiet row pins it at build time.
+
+### Round four
+
+From PR #235's fourth-round reviews (`review-235-*-r4.md`), the open round-three findings, and the
+coordinator's brief 4.
+
+- **Testing r4 I2, brief 4 decision 4** (0457's "scope matches nothing" judgement could not meet
+  the violating-test contract). The contract has one stated exception. Such a judgement's
+  violating test asserts the kernel's zero-examined finding by `ruleId` and `bypassFilters: true`,
+  with `file` exempt (`vacuity-findings.ts:44`, `:55`).
+- **Testing r3 m4, r4** (a cardinality example that omits its population assertion passes every
+  swap). This is listed under "What the rules do not catch" as a review-held gap.
+- **Method r3 and r4 m1** (the body said "all three rules"). The plan now says four arch rules
+  everywhere: rule 1's two halves, rules 2 and 3.
+- **The helper's Node glob, measured on main's build.** `node:**` matches `node:fs` but not
+  `node:fs/promises` on picomatch 4.0.4 with `dot: true`, so round two's claim was wrong. The glob
+  is `node:{*,*/*}`, with the measurement table in rule 1.
+- **Brief 4 decision 8.** Lines that reported disagreements this branch has since fixed are
+  deleted: the ROADMAP note and the unmeasured-glob note.
 
 ## Progress ledger
 

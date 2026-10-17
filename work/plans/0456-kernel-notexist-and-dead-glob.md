@@ -15,8 +15,8 @@
 - **Priority:** Medium. Block 6 ("a document no selection claims") is wanted by all three
   adopters (017, "Consumer feedback"), and every later block plan's example needs a `notExist()`
   on an md builder.
-- **Effort:** Large. Counted from this plan's own tables: 29 rows in Files changed, seven of them
-  new test files, across four packages (core, ts, md, mermaid) plus `examples/` and `adr/`; 14
+- **Effort:** Large. Counted from this plan's own tables: 30 rows in Files changed, eight of
+  them new test files, across four packages (core, ts, md, mermaid) plus `examples/` and `adr/`; 14
   sabotage rows; a flagged break re-run against four of this repository's gates. One pull request,
   reviewed in two parts: the kernel (Phase 1), then the dialects (Phase 2). Phase 1 alone ships an
   inert hook, so it is not a delivery on its own.
@@ -125,9 +125,27 @@ So:
   escape, and the only way to name a folder such as `(x)` or `[draft]`. Before any other character
   it escapes that character, so `docs\a.md` names `docsa.md`: a glob that names a different path,
   not one that can never match. Round two's `backslash` text fault was prescribed from one row and
-  would have failed a correct escaped glob with a remedy that breaks it (enforcement, round three
-  N1; architect, round three m-new-2). Round three replaces it with a check that needs evidence
-  from the corpus (Design, the separator backslash).
+  would have failed a correct escaped glob with a remedy that breaks it. It is replaced by a check
+  that needs evidence from the corpus (Design, the separator backslash).
+
+Measured on the same build, for the separator check (round four):
+
+| glob              | path tested       | matches |
+| ----------------- | ----------------- | ------- |
+| `guides\**`       | `guides/a.md`     | false   |
+| `guides\**`       | `guides*a.md`     | true    |
+| `guides/**`       | `guides/a.md`     | true    |
+| `guides\x/**`     | `guides/x/a.md`   | false   |
+| `guides/x/**`     | `guides/x/a.md`   | true    |
+| `docs\*.md`       | `docs*.md`        | true    |
+| `docs/*.md`       | `docs/a.md`       | true    |
+| `docs[*].md`      | `docs*.md`        | true    |
+| `docs[*].md`      | `docsa.md`        | false   |
+| `docs[?].md`      | `docs?.md`        | true    |
+| `guides//(x/)/**` | `guides/(x)/a.md` | false   |
+| `guides//(x/)/**` | `guides/x/a.md`   | false   |
+| `guides\(x)/**`   | `guides(x)/a.md`  | true    |
+| `guides/(x)/**`   | `guides/x/a.md`   | true    |
 
 ## Design
 
@@ -399,8 +417,8 @@ instrument or a broken selector:
    `project.getSourceFiles is not a function`, which is
    [bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md). So the mismatch
    reaches nobody now; it is a condition on bug 0396's fix, which must not judge md's sites by
-   eess-ts's rules (the coordinator adds that to bug 0396). md's own check never reads the declared
-   base.
+   eess-ts's rules (bug 0396 carries that condition, added 2026-10-18). md's own check never reads
+   the declared base.
 3. **The corpus builders diagnose a cardinality rule's selector.** They override
    `cardinalitySelectorFault()` with one shared helper, `mdSelectorFault(builder)` in
    `packages/md/src/builders/selector-fault.ts` (internal). It walks the positive selector sites
@@ -426,14 +444,30 @@ instrument or a broken selector:
      `<path>`). Add the folder to `roots`, or narrow the glob to folders under them." For
      `ignored`: "K files this glob names are excluded by the corpus's `ignore`; remove that pattern,
      or narrow the glob."
-   - **a separator backslash, on evidence** (coordinator's decision 3, round three, narrowed by
-     measurement). Only a `\` that does not precede a glob metacharacter (`*?[](){}!@+|\` or a
-     space) is considered; an escape is never a fault, so `guides/\(x\)/**` stays green. Such a
-     backslash is not a text fault, because `docs\a.md` can match `docsa.md` (Problem 4). It is a
-     fault only when the glob with that `\` replaced by `/` selects at least one loaded document or
-     `.md` path in `fileIndex`, by the same matching as above. Then the author almost certainly
-     meant a path separator, and the correction is that glob. When the replaced glob also names
-     nothing, the rule stays green under bug 0355's ruling, like any glob that names nothing.
+   - **a separator backslash, on evidence** (coordinator's decision 1, round four). The
+     candidates are a `\` before an ordinary character, or before `*` or `?`: the Windows habit
+     (`guides\**`, `guides\x/**`). A `\` before any other glob metacharacter (`[](){}!@+|\` or a
+     space) is an escape and never a candidate, so `guides/\(x\)/**` stays green. A candidate is a
+     fault when both hold, by the same matching as above (`picomatch`, default options, over the
+     loaded documents' `relPath`s and the `.md` paths in `fileIndex`):
+     - the glob as written selects no path; and
+     - the glob with that `\` replaced by `/` selects at least one.
+
+     Then the author almost certainly meant a path separator, and the correction is the replaced
+     glob. When the replaced glob also selects nothing, the rule stays green under bug 0355's
+     ruling, like any glob that names nothing. The check runs after the unloaded-Markdown check, so
+     a glob as written that selects unloaded files is reported by that check first; the first
+     condition only decides which cause is named, not whether the rule reds.
+
+     **The cost, stated.** A file whose name holds a literal `*` or `?`, named by escaping it
+     (`docs\*.md` for a file `docs*.md`), next to a real folder of the same stem: once `docs*.md`
+     is deleted, the ratchet holds, but `docs/*.md` selects `docs/a.md`, so the rule reds with a
+     correction that changes its meaning. The remedy is to name the literal with a character class,
+     which leaves no backslash to consider: `docs[*].md` matches `docs*.md` and nothing else, and
+     `docs[?].md` likewise (measured, Problem 4). The finding's `suggestion` says so beside the
+     correction: "If you meant a literal `*` or `?`, write it as `[*]` or `[?]`." A literal star
+     or question mark in a Markdown file name is rare; a Windows separator is the common case.
+
    - **a glob that matches nothing in the repository stays green.** That is also what a holding
      ratchet looks like (a deleted `legacy/`), and bug 0355's ruling is that the two cannot be
      told apart. A typo that names nothing therefore stays green. This plan keeps that ruling.
@@ -459,6 +493,10 @@ Two shapes the recipe does not protect, stated in the README beside it:
   [bug 0465](../bugs/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) and deferred
   there (ledger). A test here pins today's behaviour, titled for the bug, so its fix turns the test
   red on purpose.
+
+The README also gives the separator rule and its cost: picomatch reads a backslash as an escape;
+a `guides\**` that selects nothing while `guides/**` selects files is reported as a separator; a
+literal `*` or `?` in a file name is written `[*]` or `[?]`.
 
 The README line: "A `notExist()` rule cannot tell a folder that names nothing from a ratchet that
 holds. Load the folder as the corpus's only root, as here, so a typo is an empty source."
@@ -528,55 +566,60 @@ All in one pull request, reviewed in two parts.
   contract gives a cardinality example: fixture folders `clean/`, `violating-unclaimed/` and
   `violating-double/`; test titles that start with the folder's name and a colon (`clean: …`,
   `violating-unclaimed: …`, `violating-double: …`), as 0458 lines 101 and 300 say; and the clean
-  test proving its population through a wider selection (the same corpus, `docs(c)` with no
-  narrowing, examines more than zero).
+  test proving its population through a wider selection:
+  `docs(c).select({ label: 'page', identify: (d) => ({ name: d.relPath }) })` is non-empty, the
+  same shape plans 0454 and 0457 use.
 - eess-ts: bug 0462's rows (red-first and green) in `packages/ts/tests/conditions/not-exist-frozen.test.ts`.
-- eess-mermaid: one `Object.isFrozen` assertion on its `notExist()` in
-  `packages/mermaid/tests/builders/class-rule-builder.test.ts`.
+- eess-mermaid: one `Object.isFrozen` assertion in
+  `packages/mermaid/tests/builders/class-rule-builder.test.ts`, on the condition imported from
+  `../../src/conditions/class.js` (mermaid's `notExist` condition is not on its root; that test
+  file already imports from `../../src`).
 - Run `check:corpus`, `check:ledger`, `check:spec` and `check:crossval` on this repository, and
   eess-crossvalidate's suite explicitly: they drive md builders, and the empty-source change is the
   one most likely to move them.
 
 ## Files changed
 
-| file                                                          | change                                                         |
-| ------------------------------------------------------------- | -------------------------------------------------------------- |
-| `packages/core/src/cardinality.ts`                            | freeze at marking                                              |
-| `packages/core/src/terminal-builder.ts`                       | `cardinalitySelectorFault()`; the new order; `declaredEmpty`   |
-| `packages/core/src/vacuity-findings.ts`                       | `SelectorFault`, `cardinalitySelectorFaultViolation`           |
-| `packages/core/src/not-exist.ts`                              | new                                                            |
-| `packages/core/src/glob-syntax.ts`                            | new: `globTextFault`, `TextBase`, `GlobTextFault`              |
-| `packages/core/src/internal.ts`                               | export `notExistCondition`, `NotExistOptions`, `globTextFault` |
-| `packages/core/tests/cardinality.test.ts`                     | new: the freeze, on an object and on a function                |
-| `packages/core/tests/not-exist.test.ts`                       | new                                                            |
-| `packages/core/tests/cardinality-selector-fault.test.ts`      | new                                                            |
-| `packages/core/tests/glob-syntax.test.ts`                     | new                                                            |
-| `packages/ts/src/core/glob-diagnosis.ts`                      | `syntacticFault` wraps `globTextFault`                         |
-| `packages/ts/tests/conditions/not-exist-frozen.test.ts`       | new: bug 0462's rows                                           |
-| `packages/mermaid/tests/builders/class-rule-builder.test.ts`  | one freeze assertion                                           |
-| `packages/md/src/conditions/not-exist.ts`                     | new                                                            |
-| `packages/md/src/builders/selector-fault.ts`                  | new                                                            |
-| `packages/md/src/builders/*.ts` (seven)                       | `notExist()`; `sourceEmpty()` and the fault override on six    |
-| `packages/md/src/predicates/document.ts`                      | `globs` on two predicates                                      |
-| `packages/md/src/model/resolve-link.ts`                       | `notInCorpusReasons` extracted                                 |
-| `packages/md/src/builders/code-blocks.ts`                     | `onDocument` forwards `globs`                                  |
-| `packages/md/src/rules/ledger.ts`                             | `expectEmptyHeaders` docstring                                 |
-| `packages/md/src/index.ts`                                    | six exports                                                    |
-| `packages/md/tests/not-exist.test.ts`                         | new                                                            |
-| `packages/md/tests/selector-fault.test.ts`                    | new                                                            |
-| `packages/md/README.md`                                       | block 6 recipe, its limits, the anchor line                    |
-| `examples/md/unclaimed-and-double-claimed.test.ts` + fixtures | new (plan 0458's gate)                                         |
-| `adr/010-a-pass-is-constructed-from-evidence.md`              | an Enforcement row (below)                                     |
-| `.changeset/kernel-not-exist.md`                              | kernel minor; eess-ts, eess-mermaid patch (see Release)        |
-| `.changeset/md-not-exist.md`                                  | eess-md minor, marked Breaking                                 |
-| `.changeset/` (existing release flow)                         | range bumps for eess-gherkin and eess-crossvalidate            |
+| file                                                                       | change                                                                                      |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `packages/core/src/cardinality.ts`                                         | freeze at marking                                                                           |
+| `packages/core/src/terminal-builder.ts`                                    | `cardinalitySelectorFault()`; the new order; `declaredEmpty`                                |
+| `packages/core/src/vacuity-findings.ts`                                    | `SelectorFault`, `cardinalitySelectorFaultViolation`                                        |
+| `packages/core/src/not-exist.ts`                                           | new                                                                                         |
+| `packages/core/src/glob-syntax.ts`                                         | new: `globTextFault`, `TextBase`, `GlobTextFault`                                           |
+| `packages/core/src/internal.ts`                                            | export `notExistCondition`, `NotExistOptions`, `globTextFault`, `TextBase`, `GlobTextFault` |
+| `packages/core/tests/cardinality.test.ts`                                  | new: the freeze, on an object and on a function                                             |
+| `packages/core/tests/not-exist.test.ts`                                    | new                                                                                         |
+| `packages/core/tests/cardinality-selector-fault.test.ts`                   | new                                                                                         |
+| `packages/core/tests/glob-syntax.test.ts`                                  | new                                                                                         |
+| `packages/ts/src/core/glob-diagnosis.ts`                                   | `syntacticFault` wraps `globTextFault`                                                      |
+| `packages/ts/tests/conditions/not-exist-frozen.test.ts`                    | new: bug 0462's rows                                                                        |
+| `packages/mermaid/tests/builders/class-rule-builder.test.ts`               | one freeze assertion                                                                        |
+| `packages/md/src/conditions/not-exist.ts`                                  | new                                                                                         |
+| `packages/md/src/builders/selector-fault.ts`                               | new                                                                                         |
+| `packages/md/src/builders/*.ts` (seven)                                    | `notExist()`; `sourceEmpty()` and the fault override on six                                 |
+| `packages/md/src/predicates/document.ts`                                   | `globs` on two predicates                                                                   |
+| `packages/md/src/model/resolve-link.ts`                                    | `notInCorpusReasons` extracted                                                              |
+| `packages/md/src/builders/code-blocks.ts`                                  | `onDocument` forwards `globs`                                                               |
+| `packages/md/src/rules/ledger.ts`                                          | `expectEmptyHeaders` docstring                                                              |
+| `packages/md/src/index.ts`                                                 | six exports                                                                                 |
+| `packages/md/tests/not-exist.test.ts`                                      | new                                                                                         |
+| `packages/md/tests/selector-fault.test.ts`                                 | new                                                                                         |
+| `packages/md/README.md`                                                    | block 6 recipe, its limits, the anchor line                                                 |
+| `examples/md/unclaimed-and-double-claimed.test.ts` + fixtures              | new (plan 0458's gate)                                                                      |
+| `adr/010-a-pass-is-constructed-from-evidence.md`                           | an Enforcement row (below)                                                                  |
+| `adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md` | C3's Mechanism cites the kernel test (below)                                                |
+| `.changeset/kernel-not-exist.md`                                           | kernel minor; eess-ts, eess-mermaid patch (see Release)                                     |
+| `.changeset/md-not-exist.md`                                               | eess-md minor, marked Breaking                                                              |
+| `.changeset/` (existing release flow)                                      | range bumps for eess-gherkin and eess-crossvalidate                                         |
 
 **ADR row.** ADR-010 §3 and ADR-018's C3 ("an absence rule may match nothing") now have a
 kernel-wide qualification: on a dialect that overrides the hook, a cardinality rule with a selector
 fault is red even when declared empty. ADR-010's Enforcement table gains a row, `gated`, citing
 `packages/core/tests/cardinality-selector-fault.test.ts` and its title for the
-fault-outranks-declaration case. ADR-018's C3 mechanism cell stays eess-ts's; the coordinator
-decides whether it names the kernel too.
+fault-outranks-declaration case. ADR-018's C3 Enforcement row cites the same test in its Mechanism
+cell, beside eess-ts's mechanisms (coordinator's decision 3, round four), so both rows name the
+kernel test that holds the qualification. Each is a ledger box.
 
 ## Test inventory
 
@@ -612,8 +655,17 @@ hand-build predicates; only `examples/md/` may not.
 - `globTextFault`, table-driven over Problem 4's measured rows for `'repo-relative'`: `./guides/**`
   is no fault; `/guides/**` is `anchored` with correction `guides/**`; `../guides/**` is
   `parent-segment`; `guides/./x/**` is `dot-segment` with correction `guides/x/**`; every backslash
-  row is no fault. For `'absolute'`, `'tsconfig-relative'` and `'normalized'` it returns what
+  row is no fault. This table's `./guides/**` row is the one sabotage row 14 names. For `'absolute'`, `'tsconfig-relative'` and `'normalized'` it returns what
   eess-ts's `syntacticFault` returns on main for every case in eess-ts's existing tests.
+
+**Bug 0460, red-first on main** (coordinator's decision 2, round four). The test drives an entry
+that compiles on main, so it fails on the defect and not on a missing API. md has no `notExist()`
+on main, so the rule is the public `docs()` builder with a condition marked through `/internal`
+(`marksAssertsCardinality` is exported there today, `packages/core/src/internal.ts:56`):
+`docs(c).that().resideInFolder('/guides/**').should().satisfy(marksAssertsCardinality({
+description: 'cardinality probe', evaluate: () => [] }))`, over a corpus holding `guides/a.md`. On
+main it passes (examined 0, exempt). After this plan the same test, unedited, reds with the
+`anchored` selector fault.
 
 **eess-ts** (`packages/ts/tests/conditions/not-exist-frozen.test.ts`):
 
@@ -635,10 +687,11 @@ change has its own changeset entry).
   claimed, green.
 - Block 6, claimed by two: a page in two selections is a finding; a selection widened to `'**'`
   reds the second rule.
-- Empty source and the selector fault, table-driven over the six corpus builders (testing, round
-  three N1): for each, a corpus whose roots match nothing reds a `notExist()` rule with the
-  empty-source finding, with and without `.expectEmpty()`; and a selector glob of `'/x/**'` reds
-  with the `anchored` fault. `docs()` and `terms()` use their own `resideInFolder`/`resideInFile`.
+- Empty source and the selector fault, table-driven over the six corpus builders: for each, a
+  corpus whose roots match nothing reds a `notExist()` rule with the empty-source finding, with and
+  without `.expectEmpty()`; and, over a corpus that loads documents (so the empty source cannot
+  outrank it), a selector glob of `'/x/**'` reds with a fault whose cause is `anchored`, asserted
+  by identity, not merely as red. `docs()` and `terms()` use their own `resideInFolder`/`resideInFile`.
   `links()`, `pointers()`, `rows()` and `taskItems()` offer no location method and cannot take a
   `Predicate<MdDocument>` (`satisfy` takes a `Predicate<T>`, `packages/core/src/rule-builder.ts:172`),
   so their rows use a test-local `Predicate<Element>` over `e.doc.relPath` that declares
@@ -655,10 +708,20 @@ change has its own changeset entry).
   `guides/(x)/a.md` and `guides/[draft]/b.md`; `resideInFolder('guides/\\(x\\)/**')` and
   `resideInFolder('guides/\\[draft\\]/**')` on a `notExist()` rule examine their documents (no
   fault); with those folders absent, both are green.
-- The separator backslash: the repository holds `guides/a.md`; `resideInFolder('guides\\**')` over
-  a corpus that does not load it reds with the separator fault and the correction `guides/**`, and
-  applying the correction turns the rule into the unloaded-Markdown finding's case, which its own
-  remedy then clears. The same glob with no `guides/` anywhere is green (bug 0355's ruling).
+- The separator backslash (round four):
+  - the corpus loads `guides/a.md`; `resideInFolder('guides\\**')` on a `notExist()` rule reds with
+    the separator fault and the correction `guides/**`; applying the correction gives a rule that
+    examines `guides/a.md` (and reds on it, as a `notExist()` over a real page should);
+  - the corpus loads `guides/x/a.md`; `resideInFolder('guides\\x/**')` reds with the correction
+    `guides/x/**`;
+  - with no `guides/` anywhere, `resideInFolder('guides\\**')` is green (bug 0355's ruling);
+  - the escaped-paren control, for sabotage row 13: the corpus loads `guides/x/a.md` and nothing
+    named `guides(x)/`; `resideInFolder('guides\\(x)/**')` examines zero and is green, because `\(`
+    is an escape and never a candidate, although its `/` reading `guides/(x)/**` selects
+    `guides/x/a.md` (measured, Problem 4);
+  - the pinned cost, titled for it: the corpus loads `docs/a.md` and nothing named `docs*.md`;
+    `resideInFile('docs\\*.md')…notExist()` reds with the separator fault, its `suggestion` names
+    `[*]`, and rewriting the glob as `docs[*].md` turns the rule green.
 - Unloaded Markdown: the repository holds `guides/a.md` and the corpus's roots are `['docs/**']`;
   `docs(c).that().resideInFolder('guides/**').should().notExist()` reds naming one file and
   `outside-roots`; adding `guides/**` to `roots` turns it green.
@@ -701,9 +764,12 @@ change has its own changeset entry).
 11. The fault helper treats "matches nothing in the repository" as a fault: the ratchet-holding
     control reds.
 12. The fault helper treats negative sites as positive: the negation control reds.
-13. The separator check treats an escaped metacharacter as a separator: the escaped-folder control
-    reds.
-14. `globTextFault` flags a leading `./` for `'repo-relative'`: the `./guides/**` test reds.
+13. The separator check takes a `\` before `(` as a candidate: the escaped-paren control
+    (`guides\(x)/**`, whose `/` reading selects `guides/x/a.md`) reds. The round-three control
+    could fire nothing, because neither of its states reaches the check.
+14. `globTextFault` flags a leading `./` for `'repo-relative'`: the `./guides/**` row of the
+    kernel's `globTextFault` table reds. The md `./guides/**` test examines documents, so the hook
+    never runs there.
 
 `onDocument` dropping `globs` is caught by the `codeBlocks()` fault test without a row of its own
 here; plan 0457 replaces `onDocument` and carries the equivalent row for `inDocuments`.
@@ -772,8 +838,9 @@ mechanism. No row of its own in `check:nonvacuity`.
   crashes on md rules; md rules start declaring globs here, with an inexact base.
 - Bug 0460's verification rows follow bug 0355's ruling, as this plan does: a text fault and
   unloaded Markdown red, an absent folder green, the symptom table's `gudies/**` row green by ruling,
-  a typo caught by the roots-scoped recipe. Its Fix line still names a `./` fault this plan
-  measured away (method, round three N1); that record is the coordinator's to correct.
+  a typo caught by the roots-scoped recipe. Its Fix line was corrected to this plan's fault set on
+  2026-10-18, and its separator wording to "and does not escape a metacharacter other than `*`
+  or `?`".
 
 ## Review response — 2026-10-18
 
@@ -850,7 +917,8 @@ mechanism. No row of its own in `check:nonvacuity`.
   [bug 0465](../bugs/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md), a deferral box,
   and a test titled for it.
 - **method N5** (Effort figures not this plan's counts): counted from the tables (29 Files-changed
-  rows, seven new test files, 14 sabotage rows).
+  rows, seven new test files, 14 sabotage rows; round four recounted: eight new test files, with
+  the example).
 - **method m-b / testing m2 / coordinator decision 1** (`violating <judgement>:` with a space):
   titles start with the folder name and a colon.
 - **method m-d** (`matchingElements` over a bare glob): the check is `picomatch(glob)` over
@@ -859,9 +927,37 @@ mechanism. No row of its own in `check:nonvacuity`.
 - **method m-f** (`ignored` has no remedy-remediates row): added.
 - **product minor 1** (stale "plan 0457 composes its scope fault"): removed.
 - **testing m5** (sabotage row 4 bundled two reverts): split into rows 4 and 5.
-- **testing m6, m7 / method N1** (bug 0460's Fix line and bug 0462's green row): stated under
-  "Records this plan depends on"; the records are the coordinator's.
-- **product minor 2** (ROADMAP says Medium): the board is the coordinator's; this plan says Large.
+- **testing m6, m7 / method N1** (bug 0460's Fix line and bug 0462's green row): both records were
+  corrected on 2026-10-18.
+- **product minor 2** (ROADMAP said Medium): corrected on the board.
+
+### Round four
+
+- **enforcement R4-1, R4-2 / architect R4-1 / method R4-1 / testing I1 / coordinator decision 1**
+  (the separator rule exempted its own test's glob, and sabotage row 13 could fire nothing): `\*`
+  and `\?` are candidates; a candidate is a fault when the glob as written selects nothing and the
+  `/` reading selects files; measured rows added (Problem 4); positive tests on `guides\**` and
+  `guides\x/**`; the literal-star cost stated, with the measured `[*]`/`[?]` remedy in the finding's
+  `suggestion` and a pinned test; row 13 re-pointed at an escaped-paren control the sabotaged check
+  does red (measured: `guides/(x)/**` selects `guides/x/a.md`).
+- **coordinator decision 2** (bug 0460's red-first must compile on main): the row drives
+  `docs()` with a condition marked through `/internal`, which exists on main.
+- **coordinator decision 3** (ADR-018 C3): a ledger box updates its Mechanism; the open question is
+  gone.
+- **architect m4-1** (`/internal` surface listed in two places): the `internal.ts` row lists
+  `TextBase` and `GlobTextFault`.
+- **method R4-2 / coordinator decision 8** (stale lines about bug 0396 and bug 0460): rewritten as
+  done, dated.
+- **testing m1** (six-builder fault rows over an empty corpus): over a corpus that loads documents,
+  asserting the fault's cause.
+- **testing m2** (row 14 named an md test the hook never reaches): it names the kernel table row.
+- **testing m4** (vague population proof): `.select({ label, identify })` non-empty.
+- **testing m5** (test-file count; mermaid's `notExist` not on its root): eight new test files,
+  counting the example (30 Files-changed rows with the ADR-018 row); the mermaid test imports the
+  condition from `../../src`.
+- Not adopted: a sabotage row for the separator check's "as written selects no path" condition.
+  The unloaded-Markdown check runs first, so that condition only decides which cause is named; no
+  control can make it decide red or green.
 
 ## Progress ledger
 
@@ -874,7 +970,8 @@ mechanism. No row of its own in `check:nonvacuity`.
       freeze tests
 - [ ] Sabotage rows 1–14, each red on its named test; durations reported
 - [ ] Bug 0460 and bug 0462 red-first on main, green here, both → `fixed/`
-- [ ] The ADR-010 Enforcement row
+- [ ] The ADR-010 Enforcement row, `gated`, citing the kernel fault-outranks-declaration test
+- [ ] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's
 - [ ] `check:family`, `check:release`, `check:docs-code`, `check:examples`, eess-crossvalidate's
       suite and `npm run validate` green; durations reported
 - [ ] Close: this plan → `completed/`; boards

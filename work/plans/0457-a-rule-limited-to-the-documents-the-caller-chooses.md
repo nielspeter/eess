@@ -5,7 +5,7 @@
 - **State:** Draft — written 2026-10-17 at the maintainer's request ("plans in one pr"), from
   [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) block 12, as shaped by its
   second Review's decision 4 and the consumer-feedback decision 3; reworked 2026-10-18 after PR
-  #235's five reviews, and again after the round-two and round-three reviews (see "Review response").
+  #235's five reviews, and again after the round-two, round-three and round-four reviews (see "Review response").
 - **Implements:** proposal 017
 - **Priority:** Medium — two of the three adopters asked for it (block 12 alone, and block 12
   composed with block 11). Today a rule over boxes, links, rows, terms or code blocks can be limited
@@ -194,7 +194,7 @@ The two rule shapes are treated differently, and the difference is the ADRs', no
   folder (`inDocuments(resideInFolder('/work/**'))`, a leading `/` 0456 reports as `anchored`) is judged by 0456's selector-fault check
   exactly as the bare predicate is. Proposal 017's block-12 condition ("a predicate selecting no
   document is a finding naming the predicate") is narrowed to positive rules in the proposal
-  (coordinator's edit, 2026-10-18).
+  (2026-10-18).
 
 ```ts
 // in each of the six builders (codeBlocks() passes this.project.documents, the field above)
@@ -330,15 +330,24 @@ const ratchet = (cwd: string) =>
     .notExist()
 
 // The guard: its scope is not empty. notExist() does not check a section name; this does.
+// The condition repeats the selection on purpose: the rule fails only when nothing is selected.
 const guard = (cwd: string) =>
-  docs(load(cwd)).that().satisfy(areLive()).haveSection(SECTION).should().haveSection(SECTION)
+  docs(load(cwd))
+    .that()
+    .satisfy(areLive())
+    .haveSection(SECTION)
+    .should()
+    .haveSection(SECTION)
+    .rule({ id: 'in-documents/verification-guard' })
 ```
 
 Measured on main's build (2026-10-18), over a one-document corpus whose live document has a setext
 `Verification` heading: `docs(c).that().haveSection(name).should().haveSection(name)` gives 0
 violations for `'Verification'` and 1 for `'Verificaton'`, the kernel's "this rule examined zero
 units" finding. So the guard reds on the exact mistake the ratchet cannot see, and the setext form
-is read.
+is read. Measured the same day, the finding's identity: `ruleId` is the rule's own id (absent
+without `.rule({ id })`, hence the id above), `file` is `''`, and `bypassFilters` is `true`: the
+kernel's configuration finding (`packages/core/src/vacuity-findings.ts:39-52`).
 
 `frozen: ['archive/**']` is passed explicitly: the example shows frozenness as the caller's choice
 (decision 3), and does not lean on `DEFAULT_FROZEN` (`packages/md/src/corpus.ts:53`), which
@@ -363,15 +372,20 @@ colon, as plan 0458's contract says (`clean: …`, `violating-open-box-in-scope:
   is green.
 - **`violating-scope-matches-nothing/`:** the violating set above with every `Verification` heading
   renamed (`## Checks`). The ratchet is green on it, which the test asserts, pinning ADR-010 §3's
-  ruling where an adopter will see it. The guard reds with the zero-examined finding, which the
-  `violating-scope-matches-nothing:` test asserts by its message text.
+  ruling where an adopter will see it. The guard reds with the kernel's zero-examined finding. The
+  `violating-scope-matches-nothing:` test uses plan 0458's configuration-finding form, the one
+  exception to "names the violating file": it asserts exactly one finding, with `ruleId`
+  `in-documents/verification-guard`, `bypassFilters: true` and `file: ''`.
 
 `docs/markdown.md` and `packages/md/README.md` gain "Scoping a rule to documents". It teaches
 `inDocuments(or(…))` before naming the combinator limit. It shows the ratchet and its guard as a
 pair, the same code as the example (so `check:docs-code` compiles it), and says plainly: a
 `notExist()` rule does not check that its scope's section name, or any other content predicate,
 matches anything; a scope matching no document is green (ADR-010 §3, ADR-018 C3); the guard is what
-catches it; and notes the one asymmetry: `pointers(c).that().areFrozen()` is a method,
+catches it. It explains the guard's shape: its condition repeats its selection on purpose, so it
+fails only when nothing is selected; the apparent simplification
+`.that().satisfy(areLive()).should().haveSection(SECTION)` is a different, stronger claim (every
+live document has the section); and notes the one asymmetry: `pointers(c).that().areFrozen()` is a method,
 everywhere else it is `.satisfy(inDocuments(areFrozen()))`.
 
 ## Files Changed
@@ -490,6 +504,9 @@ peer, not a dependency, so it does not move. The four names land in the surface 
   empty-corpus source finding: plan 0456.
 - A cardinality-rule finding for a scope that matches no document: ADR-010 §3 and ADR-018 C3 make
   it satisfaction. Changing that is an ADR amendment, not a plan.
+- A positive "at least one element exists" condition. The family has none, so the guard is written
+  as a selection repeated in its condition. Recorded here as an observed gap for a later block of
+  proposal 017, not built.
 
 ## Review response — 2026-10-18
 
@@ -558,18 +575,16 @@ The round-two reviews (architect, product, enforcement, method, testing), each f
 - **Enforcement m5 / testing M3 (the `test → false` sabotage names the wrong row):** it now names
   "scoped green where unscoped red" and the example's violating test.
 - **Architect m11 / enforcement m6 / method I6 (the frozen-excluded count):** the plan states that
-  no path computes it; it is wholly bug 0174's. The note on bug 0174 that says 0457 reports it on
-  the zero path is the coordinator's to correct.
+  no path computes it; it is wholly bug 0174's, whose note agrees.
 - **Architect m2 (use `matchingElements`):** `scopeDiagnosis` filters through the kernel's
   `matchingElements` (`packages/core/src/internal.ts:122`).
 - **Architect M4, partly resolved in round one (the hook's docstring):** rewritten here, comment
   only, `'@nielspeter/eess': none`.
 - **Product m1 (`haveSectionPredicate` costs block 11):** the changeset says the name may change,
-  and why a dual-use object is not an option; the note on 017's block-11 row is the coordinator's.
+  and why a dual-use object is not an option; 017's block-11 row records the shipped name.
 - **Product m4 (`docs()`/`pointers()` asymmetry):** one sentence in the docs section.
-- **Product m5 / method m2 ("six builders" vs seven; ROADMAP and 017 say `isFrozen()`):** this
-  plan's response now says seven; the ROADMAP row and the 017 disposition row are the
-  coordinator's.
+- **Product m5 / method m2 ("six builders" vs seven; `isFrozen()` on the boards):** this plan's
+  response says seven; the ROADMAP and 017 rows say `areFrozen()`/`areLive()`.
 
 ### Round three — 2026-10-18
 
@@ -582,17 +597,33 @@ The round-three reviews raised no Critical; each Important and Minor on this pla
   measured on main's build before it was written in (Phase 3).
 - **Coordinator decision 1 (test titles):** each title starts with its fixture folder's name and a
   colon.
-- **Architect m-new-1 / enforcement m-g (`./work/**`reads as a fault that is not one):** the
-illustration is`'/work/\*\*'`, which 0456 reports as `anchored`.
+- **Architect m-new-1 / enforcement m-g (a `./work/` glob reads as a fault that is not one):** the
+  illustration is now an anchored glob, a leading `/` before `work/`, which 0456 reports as
+  `anchored`.
 - **Architect m-new-6 (off-by-one pointer):** the expiry branch is
   `packages/core/src/terminal-builder.ts:294-296`.
 - **Testing N1, second option (the lift row table-driven over six builders):** not taken. Decision 5
   gives 0456 test-local glob-declaring predicates for the four builders, so 0456's own rows cover
   them; this plan's one lift row proves the forwarding.
-- **Product minor 3 (017's block-11 note on `haveSectionPredicate`):** the coordinator's, in the
-  proposal.
 - **Architect "not counted" (three overrides in six builders):** noted for the build; a shared md
   base builder is a refactor neither this plan nor 0456 owns.
+
+### Round four — 2026-10-18
+
+No Critical; each finding on this plan:
+
+- **Testing I2 (the guard's violating test cannot meet plan 0458's contract):** coordinator's
+  decision 4. 0458 now allows the configuration-finding form for a judgement that a scope matches
+  nothing; this test uses it, asserting `ruleId`, `bypassFilters: true` and `file: ''`. The guard
+  takes an explicit rule id, because the finding carries none otherwise (measured on main's build).
+- **Product m1 / decision 7 (the guard reads as a copy-paste slip):** the docs and the code comment
+  say the condition repeats the selection on purpose and the rule fails only when nothing is
+  selected, and name the stronger claim the "simplification" would make. The missing "at least one
+  exists" condition is recorded under Out of scope.
+- **Architect m4-4 (prettier damaged a code span):** reworded so the line carries no `**` inside a
+  bold label, which is what prettier escaped.
+- **Decision 8 (stale disagreement lines):** removed or rewritten to the fixed state (bug 0174's
+  note, 017's block-11 row, the boards).
 
 ## Progress ledger
 

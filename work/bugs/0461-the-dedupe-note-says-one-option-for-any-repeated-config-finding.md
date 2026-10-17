@@ -14,8 +14,8 @@ configuration findings and appends `affectedNote` (`dedupe-config-findings.ts:56
 generated N rules that cannot enforce anything; they are not listed separately because they are one
 edit." That wording is written for a preset's fan-out. eess-md's code-block instrument finding
 (`packages/md/src/builders/code-blocks.ts:119`, `bypassFilters: true`) is deduplicated the same way
-when several rules read one failed parse, and gets the same note, which then names an option nobody
-set. Plan 0454's undeclared-box-mark finding would be the third case.
+when several rules read one failed parse, and so, read from the source and not yet reproduced, gets
+the same note, which then names an option nobody set. Plan 0454's undeclared-box-mark finding would be the third case.
 
 ## Fix
 

@@ -34,10 +34,12 @@ Each copy builds its finding differently. Measured 2026-10-18 on main:
 So the migration is one call per copy, but not "one line each": each passes its own `name` and its
 own `toViolation`, and `function.ts`'s literal becomes a local constructor.
 
-**What holds the text today.** Measured with `git grep "should not exist"`:
+**What holds the text today.** To measure it, run
+`git grep -c "should not exist" -- packages/ts/tests packages/mermaid/tests` and read which
+assertions name a code frame or `identifyByArgument`. On 2026-10-18 that showed:
 
-- eess-ts: 19 assertions on the message text across 11 test files; none asserts a code frame, and
-  none asserts the `calls()` message with `identifyByArgument` set.
+- eess-ts: assertions on the message text, none on a code frame, and none on the `calls()` message
+  with `identifyByArgument` set;
 - eess-mermaid: none. Its `notExist` tests
   (`packages/mermaid/tests/builders/class-rule-builder.test.ts:27-57`, and `:61`) assert only that
   the rule throws or passes.
@@ -101,17 +103,23 @@ Characterisation tests, written and green **before** any copy moves, so the migr
 against what main actually emits rather than against what the old tests happened to assert:
 
 - `packages/ts/tests/conditions/not-exist-shape.test.ts` (new): for each of the four eess-ts
-  copies, a rule selecting exactly one element, asserting the whole finding with `toEqual`: the
-  message text, `element`, `file`, `line`, `because`, and the presence or absence of `codeFrame`,
-  `ruleId`, `suggestion` and `docs` (absent keys asserted absent, not just unchecked).
+  copies, a rule selecting exactly one element and declaring
+  `.rule({ id, because, suggestion, docs })` with a value for each, so every field the copy
+  forwards carries a value. Each asserts the whole finding with `toStrictEqual`, which tells an
+  absent key from one set to `undefined`: the message text, `element`, `file`, `line`, and exactly
+  the keys that copy emits. The `function.ts` and `call.ts` copies emit `because` and no `ruleId`,
+  `suggestion`, `docs` or `codeFrame`, so the expected objects omit those keys; the
+  `structural.ts` and `jsx.ts` copies emit what `createViolation` emits, `codeFrame` included
+  (coordinator's decision 5, round four; enforcement R4-3, testing I3, method R4-3).
 - The `calls()` row with `identifyByArgument` set (coordinator's decision 4): a `calls()` rule
   selecting a call whose argument is a string literal, with `identifyByArgument: 0`, asserting the
   message names the call with its argument, and that an argument longer than 80 characters is
   elided in the message and not in `element` (`conditions/call.ts:44-48`).
-- `packages/mermaid/tests/builders/class-rule-builder.test.ts`: one test asserting the whole
-  finding of `classes(diagram(…)).that().haveNameMatching(/^Legacy$/).should().notExist()`, the
-  message `class Legacy should not exist` and its code frame included. This is the first assertion
-  on mermaid's text.
+- `packages/mermaid/tests/builders/class-rule-builder.test.ts`: one test asserting, with
+  `toStrictEqual`, the whole finding of
+  `classes(diagram(…)).that().haveNameMatching(/^Legacy$/).should().notExist()` under
+  `.rule({ id, because, suggestion, docs })`: the message `class Legacy should not exist` and its
+  code frame included. This is the first assertion on mermaid's text.
 
 ### Phase 2: migrate
 
@@ -142,8 +150,9 @@ byte-identity proof.
 
 1. `call.ts` passes a `name` that ignores `ctx` (`archCall.getName() ?? '<call>'`): the
    `identifyByArgument` row reds.
-2. `function.ts`'s `functionViolation` adds `ruleId: context.ruleId`: its whole-finding row reds
-   (an absent key asserted absent).
+2. `function.ts`'s `functionViolation` adds `ruleId: context.ruleId`: its whole-finding row reds.
+   The Phase 1 rule declares an id, so the added key carries a value, and `toStrictEqual` sees the
+   key either way.
 3. mermaid's `classViolation` drops `sourceText` (no code frame): mermaid's whole-finding test reds.
 4. `jsx.ts` passes `name: (el) => el.getName()` (no angle brackets): its whole-finding row reds.
 
@@ -170,6 +179,14 @@ tests prove.
 - **architect m-new-3 / method N8** ("ADR-006's one owner"): ADR-006 says nothing of an owner;
   the reason cited is proposal 017's decision 4.
 - **architect m-new-4** (no `Implements` line): the Status says it implements nothing.
+
+### Round four
+
+- **enforcement R4-3 / testing I3 / method R4-3 / coordinator decision 5** (`toEqual` ignores an
+  `undefined` key, so sabotage row 2 could fire nothing): Phase 1's rules declare `id`, `because`,
+  `suggestion` and `docs`, and every whole-finding assertion uses `toStrictEqual`.
+- **enforcement m-3** (a live assertion count pinned in the plan): dropped; the plan says how to
+  measure it instead.
 
 ## Progress ledger
 

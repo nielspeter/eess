@@ -137,8 +137,13 @@ export interface MdTaskItem extends Omit<MdTaskItemRef, 'state'> {
 }
 ```
 
-Pinned by a type-level test (`// @ts-expect-error` on `.satisfy({ test: (t) => t.state ===
-'undeclared' })`), which `tsc` in the test run checks.
+Pinned by a type-level test (`// @ts-expect-error` on a predicate comparing `t.state` with
+`'undeclared'`). Vitest does not type-check: `npm run typecheck` does, because
+`packages/md/tsconfig.json:18` includes `tests` (measured on main), and an unused
+`@ts-expect-error` is TS2578. The narrowing stops a plain comparison, not a deliberate cast such as
+`String(t.state) === 'undeclared'`. The README therefore sends the author to the mark: "to select an
+undeclared box, test `t.mark`; a rule never sees an unread `state`". The scope readings keep `mark`
+as written, so such a rule reaches the box and reports it.
 
 **An undeclared or malformed box is still an element of the model, read as open by anyone who reads
 only `checked`.** `collectTaskItems(root, options)` yields it with `checked: false`. That is
@@ -312,9 +317,7 @@ lines, not counts:
 - This repository's four `[~]` lines are read once declared: a test over the real tree, with
   `c = corpus({ cwd: <repo root>, roots: ['work/bugs/**'] })`,
   `taskItems(c, { marks: { '~': 'open' } }).that().areOpen().select({ label, identify })` contains
-  exactly `0249…:160`, `:167`, `:201` and `0256…:130` among its `[~]` boxes. (The
-  first draft's "the done-item count rises" could not hold: `doneItems` counts documents,
-  `ledger.ts:748`.)
+  exactly `0249…:160`, `:167`, `:201` and `0256…:130` among its `[~]` boxes.
 
 From bug 0445's Verification and the design:
 
@@ -369,21 +372,21 @@ L3)}`.
 
 **Sabotage**, each red in the named test and green when reverted, run in a worktree:
 
-| change                                                                 | goes red                                     |
-| ---------------------------------------------------------------------- | -------------------------------------------- |
-| `readBoxMark` returns `null`                                           | the undeclared rows, and the non-vacuity row |
-| the undeclared-letter exclusion removed                                | the `[1]` and `[o]` rows                     |
-| `Intl.Segmenter` replaced by `.length`                                 | the combining-sequence row                   |
-| the malformed-box detection removed                                    | the `[ x ]` and empty-box rows               |
-| one `validateMarks` refusal removed                                    | that refusal's row                           |
-| `collectViolations` returns `base`                                     | the undeclared rows, the non-vacuity row     |
-| the scope filter dropped (every unread box reported)                   | the scope row                                |
-| grouping dropped (one finding per box)                                 | the volume row                               |
-| `bypassFilters` dropped                                                | the cannot-be-excluded row                   |
-| `hasDeferredDisposedBox` back to `!box.checked`                        | the undeclared-box-carrying-a-deferral row   |
-| the "either reading" scope replaced by skipping `areOpen`/`areChecked` | the hand-written-state-predicate row         |
-| the builder's element `state` widened back to the model's union        | the `@ts-expect-error` row (`tsc`)           |
-| the preset drops `marks`                                               | the declared-mark rows                       |
+| change                                                                 | goes red                                                  |
+| ---------------------------------------------------------------------- | --------------------------------------------------------- |
+| `readBoxMark` returns `null`                                           | the undeclared rows, and the non-vacuity row              |
+| the undeclared-letter exclusion removed                                | the `[1]` and `[o]` rows                                  |
+| `Intl.Segmenter` replaced by `.length`                                 | the combining-sequence row                                |
+| the malformed-box detection removed                                    | the `[ x ]` and empty-box rows                            |
+| one `validateMarks` refusal removed                                    | that refusal's row                                        |
+| `collectViolations` returns `base`                                     | the undeclared rows, the non-vacuity row                  |
+| the scope filter dropped (every unread box reported)                   | the scope row                                             |
+| grouping dropped (one finding per box)                                 | the volume row                                            |
+| `bypassFilters` dropped                                                | the cannot-be-excluded row                                |
+| `hasDeferredDisposedBox` back to `!box.checked`                        | the undeclared-box-carrying-a-deferral row                |
+| the "either reading" scope replaced by skipping `areOpen`/`areChecked` | the hand-written-state-predicate row                      |
+| the builder's element `state` widened back to the model's union        | `npm run typecheck`, TS2578 on the `@ts-expect-error` row |
+| the preset drops `marks`                                               | the declared-mark rows                                    |
 
 **`check:nonvacuity`:**
 
@@ -413,8 +416,10 @@ eess-md minor, a **flagged break** (`**Breaking (@nielspeter/eess-md)**`):
 - a corpus that carries a non-GFM mark, a near-GFM box or an empty box, and passes today, goes red;
 - a `.warn()` rule over `taskItems()` that carries one of these findings now fails, because
   configuration findings bypass severity (`packages/core/src/violation.ts:166`);
-- `MdTaskItemRef` gains two required fields, `mark` and `state`, which breaks a caller who
-  constructs one;
+- `MdTaskItemRef` gains two required fields, `mark` and `state`, and `MdTaskItem` (a root type,
+  `packages/md/src/index.ts:86`) no longer extends it: it carries `mark` and a `state` narrowed to
+  `'open' | 'done'`. Either breaks a caller who constructs one, for instance to unit-test a
+  `Predicate<MdTaskItem>`;
 - `areOpen()` no longer selects what is not open, and `areChecked()` selects `state === 'done'`
   (the same set as before for GFM boxes; "checked" and "done" name one state);
 - `collectTaskItems` returns more elements: undeclared marks, malformed boxes and empty `- [ ]` /
@@ -424,7 +429,7 @@ eess-md minor, a **flagged break** (`**Breaking (@nielspeter/eess-md)**`):
 Migration line: "declare each mark once, as a shared `marks` constant passed to `taskItems()` and
 `honestyAtClose()` — `{ '<mark>': 'open' | 'done' }` — or rewrite the box as `[ ]` or `[x]`; rewrite a
 `[ x ]` or an empty box; escape or code-span a bracket that is not a box; add `mark` and `state` to any
-`MdTaskItemRef` you construct; where you counted `!checked` from `collectTaskItems`, filter on
+`MdTaskItemRef` or `MdTaskItem` you construct; where you counted `!checked` from `collectTaskItems`, filter on
 `state`."
 
 The changeset also names plan 0456's eess-md break (an empty corpus is an empty source), and 0456's
@@ -518,7 +523,8 @@ Each finding of the round-two reviews about this plan, and what changed:
 
 - **Enforcement N2 — a rule selecting `state === 'undeclared'` could never fail.** The builder's
   element type narrows `state` to `BoxMarkState`; the wide union stays on `collectTaskItems`. Pinned
-  by a `@ts-expect-error` row, and by a sabotage row (widening the element type back reds `tsc`).
+  by a `@ts-expect-error` row, and by a sabotage row (widening the element type back reds
+  `npm run typecheck`).
 - **Testing m1 — the clean fixture's `[→]` was undeclared.** The example declares `'→': 'done'`.
 - **Architect m-new-5, method N6 — `.select()` with no argument.** Written as
   `.select({ label, identify })` in both places.
@@ -526,6 +532,17 @@ Each finding of the round-two reviews about this plan, and what changed:
   plan 0458 says.
 - **Testing m3 — one lane cannot both declare and not declare `[→]`.** Two subfolders, two lanes.
 - **Product (0456 m4, partly) — the mirror line.** The changeset names 0456's empty-corpus break.
+- **Narrowed:** none.
+
+### Round four
+
+- **Architect m4-3, enforcement m-2, testing m3 — "`tsc` in the test run".** The type-level row and its
+  sabotage row name `npm run typecheck` and TS2578; vitest does not type-check.
+- **Enforcement m-1 — a deliberate cast still compiles.** Stated as the narrowing's limit; the README
+  sends the author to `t.mark`, which the scope readings keep, so a rule on the mark reaches the box.
+- **Product m2 — `MdTaskItem` missing from the break.** Added to the break list and the migration line.
+- **Coordinator decision 8 — stale lines.** The parenthetical about the first draft's done-item row is
+  deleted from the test inventory.
 - **Narrowed:** none.
 
 ## Progress ledger

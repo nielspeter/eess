@@ -10,7 +10,7 @@
 
 ## Symptom
 
-`marksAssertsCardinality` (`packages/core/src/cardinality.ts:72`) records the condition object in a
+`marksAssertsCardinality` (`packages/core/src/cardinality.ts:73`) records the condition object in a
 `WeakSet`, so the key cannot be forged, but the object itself stays mutable. Reproduced on main
 through eess-ts's public entry, with a selection that matches nothing (`classes(p).that()
 .haveNameMatching(/^NoSuchClassXyz$/)`):

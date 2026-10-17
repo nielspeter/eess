@@ -45,13 +45,18 @@ In the kernel, a cardinality rule that examined zero first asks the dialect whet
 at fault, under [bug 0355](./fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)'s
 ruling: a fault decidable from the glob text (a leading `/`, a `../` segment, or a `./` segment after the
 first; picomatch strips a leading `./`, so that one is not a fault, measured in plan 0456), a
-backslash used as a path separator where the corrected glob selects real files, or a glob naming
+backslash used as a path separator (including before `*` or `?`, so `guides\**` is caught) where the
+glob with `/` in its place selects real files and the glob as written selects none, or a glob naming
 Markdown the repository holds that the corpus did not load, is a finding. A glob that names nothing in
 the repository cannot be told from a ratchet that holds (a deleted folder), so it stays green; a
 mistyped folder is caught where the folder is the corpus root, since an empty corpus is now a finding.
 Planned in [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md).
 
 ## Verification
+
+Each red-first row drives the entry point that compiles on main: eess-md's public `docs()` builder
+with a cardinality-marked condition built from `@nielspeter/eess/internal`, so it fails on the defect
+and not on the API plan 0456 adds.
 
 - [ ] Red first, measured at build: a cardinality rule over a rooted `/guides/**` glob passes today
 - [ ] Red first, measured at build: a cardinality rule over a folder holding Markdown the corpus did not load passes today

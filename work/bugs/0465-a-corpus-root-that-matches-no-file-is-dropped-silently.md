@@ -2,10 +2,12 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 from PR #235's third review (method, enforcement); found and
-  pinned while reworking plan 0456. No red test yet.
-- **Severity:** Medium — a mistyped root in a multi-root corpus removes that root's documents from
-  every rule over the corpus, without a word.
+- **State:** Draft — found while reworking plan 0456 and recorded 2026-10-18 at PR #235's third
+  review (method, enforcement). Reproduced on main's build by the round-four method review: a two-root
+  corpus with one mistyped root loads 1 document and raises nothing. No red test yet; plan 0456 plans
+  a test pinning today's behaviour.
+- **Severity:** High — a silent pass: a mistyped root in a multi-root corpus removes that root's
+  documents from every rule over the corpus, without a word.
 - **Origin:** self-found · plan 0456's rework, 2026-10-18.
 - **Reported:** 2026-10-18
 
@@ -18,8 +20,12 @@ finding, which catches a single mistyped root; it does not catch one of several.
 
 ## Fix
 
-`corpus()` reports a root that matches no file in the repository, as its own finding, the way a dead
-glob is reported elsewhere. Not plan 0456's scope (a change to `corpus()`, not to a selector); plan
+`corpus()` records a root that matches no file in the repository as a source fact on the corpus, and
+every rule over it reports that fact through its own receipt (ADR-008, ADR-013, ADR-014), deduplicated
+like other configuration findings, so a rule file with ten rules over one corpus shows it once. Whether
+a root may declare that matching nothing is intended is decided against ADR-018 (a string that names
+code resolves, or the rule says why not). The fix reds corpora that pass today: a flagged eess-md break
+with a migration line (remove or correct the dead root). Not plan 0456's scope (a change to `corpus()`, not to a selector); plan
 0456 pins today's behaviour with a test, so this fix turns that test red on purpose.
 
 ## Verification
