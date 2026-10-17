@@ -314,7 +314,7 @@ git push origin main
 git push origin v0.1.2
 ```
 
-**The tag is the KERNEL's version.** The six packages do not share a number —
+**The tag is normally the KERNEL's version** (two exceptions below). The six packages do not share a number —
 this release ships `@nielspeter/eess` at 0.5.0 and `@nielspeter/eess-md` at
 0.6.0 — and `publish.yml` fires on any `v*`, so nothing decides this for you. The
 "Versioning" section below still says the family stays "in lockstep at a common
@@ -337,7 +337,7 @@ because the rule above does not cover this case and the next release would re-de
 `publish.yml` creates the GitHub Release with `generate_release_notes: true` and
 no body, so the notes are machine-made from PR titles and no authoring moment
 exists. After the tag push, edit the Release to link the migration page —
-`gh release edit v<kernel-version> --notes-file …` — or the page you wrote is
+`gh release edit v<the release's tag> --notes-file …` — or the page you wrote is
 reachable only by someone already browsing the docs.
 
 ## A removal from a published barrel is invisible to every gate (bug 0279)
