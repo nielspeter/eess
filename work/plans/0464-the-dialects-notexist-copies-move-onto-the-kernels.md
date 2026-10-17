@@ -103,23 +103,34 @@ Characterisation tests, written and green **before** any copy moves, so the migr
 against what main actually emits rather than against what the old tests happened to assert:
 
 - `packages/ts/tests/conditions/not-exist-shape.test.ts` (new): for each of the four eess-ts
-  copies, a rule selecting exactly one element and declaring
-  `.rule({ id, because, suggestion, docs })` with a value for each, so every field the copy
-  forwards carries a value. Each asserts the whole finding with `toStrictEqual`, which tells an
-  absent key from one set to `undefined`: the message text, `element`, `file`, `line`, and exactly
-  the keys that copy emits. The `function.ts` and `call.ts` copies emit `because` and no `ruleId`,
-  `suggestion`, `docs` or `codeFrame`, so the expected objects omit those keys; the
-  `structural.ts` and `jsx.ts` copies emit what `createViolation` emits, `codeFrame` included
-  (coordinator's decision 5, round four; enforcement R4-3, testing I3, method R4-3).
+  copies, a rule selecting exactly one element, asserted twice with `toStrictEqual`, which tells an
+  absent key from one holding `undefined` (decision 3, round five):
+  - **bare** (no `.rule()`, no `.because()`): no metadata, so eess-ts's `applyFilters` stamps
+    nothing (`packages/ts/src/core/execute-rule.ts:112-133` runs only when the rule has an id,
+    reason, `because`, `suggestion` or `docs`). The expected object is exactly the copy's own keys
+    plus the terminal's `severity`. Measured on main for the `function.ts` copy:
+    `rule, element, file, line, message, because, severity`, with `because` holding `undefined` and
+    no `ruleId` key. Sabotage row 2 points at this variant.
+  - **full** (`.rule({ id, because, suggestion, docs })`, a value each): asserted by value, with the
+    `ruleId`, `suggestion` and `docs` that `applyFilters` stamps. Measured on main for the
+    `function.ts` copy: the bare keys plus `ruleId`, `suggestion` and `docs`, and `ruleId` is the
+    declared id.
+
+  The `structural.ts` and `jsx.ts` copies emit what `createViolation` emits, `codeFrame` included;
+  the `function.ts` and `call.ts` copies emit no `codeFrame`. Each copy's two expected objects are
+  measured on main in Phase 1 and written down, not derived from this plan.
+
 - The `calls()` row with `identifyByArgument` set (coordinator's decision 4): a `calls()` rule
   selecting a call whose argument is a string literal, with `identifyByArgument: 0`, asserting the
   message names the call with its argument, and that an argument longer than 80 characters is
   elided in the message and not in `element` (`conditions/call.ts:44-48`).
-- `packages/mermaid/tests/builders/class-rule-builder.test.ts`: one test asserting, with
-  `toStrictEqual`, the whole finding of
-  `classes(diagram(…)).that().haveNameMatching(/^Legacy$/).should().notExist()` under
-  `.rule({ id, because, suggestion, docs })`: the message `class Legacy should not exist` and its
-  code frame included. This is the first assertion on mermaid's text.
+- `packages/mermaid/tests/builders/class-rule-builder.test.ts`: the same two variants with
+  `toStrictEqual`, over
+  `classes(diagram(…)).that().haveNameMatching(/^Legacy$/).should().notExist()`. Measured on main:
+  mermaid's `createViolation` always writes `ruleId`, `suggestion`, `docs` and `codeFrame`, so under
+  a bare rule `ruleId`, `because`, `suggestion` and `docs` are present holding `undefined`; under
+  full metadata they hold the declared values. The message is `class Legacy should not exist`, with
+  its code frame. These are the first assertions on mermaid's text.
 
 ### Phase 2: migrate
 
@@ -150,9 +161,12 @@ byte-identity proof.
 
 1. `call.ts` passes a `name` that ignores `ctx` (`archCall.getName() ?? '<call>'`): the
    `identifyByArgument` row reds.
-2. `function.ts`'s `functionViolation` adds `ruleId: context.ruleId`: its whole-finding row reds.
-   The Phase 1 rule declares an id, so the added key carries a value, and `toStrictEqual` sees the
-   key either way.
+2. `function.ts`'s `functionViolation` adds `ruleId: context.ruleId`: its **bare** row reds,
+   because the finding gains a `ruleId` key holding `undefined` that `toStrictEqual` sees. Under
+   full metadata the row would stay green (the sabotaged value equals what `applyFilters` stamps),
+   which is why it points at the bare variant. The difference is invisible in output
+   (`JSON.stringify` drops an `undefined` key); the row guards the finding's shape, which an adapter
+   iterating `Object.keys` would see.
 3. mermaid's `classViolation` drops `sourceText` (no code frame): mermaid's whole-finding test reds.
 4. `jsx.ts` passes `name: (el) => el.getName()` (no angle brackets): its whole-finding row reds.
 
@@ -187,6 +201,13 @@ tests prove.
   `suggestion` and `docs`, and every whole-finding assertion uses `toStrictEqual`.
 - **enforcement m-3** (a live assertion count pinned in the plan): dropped; the plan says how to
   measure it instead.
+
+### Round five
+
+- **testing N1 / coordinator decision 3** (under declared metadata `applyFilters` stamps `ruleId`,
+  `suggestion` and `docs`, so the expected objects were wrong and row 2 could not red): each row runs
+  bare and with full metadata, measured on main for eess-ts and eess-mermaid; row 2 points at the
+  bare variant, and the plan says the difference is a key holding `undefined`.
 
 ## Progress ledger
 

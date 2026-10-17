@@ -959,11 +959,11 @@ decision 1; bug 0444's label option ships before it as a fix).
 
 ## Planning — 2026-10-17 and 2026-10-18
 
-The accepted blocks were planned in one pull request (#235), reviewed four times by five lenses
+The accepted blocks were planned in one pull request (#235), reviewed in five rounds by five lenses (2026-10-17 to 18)
 (architect, product, enforcement, method, testing), and reworked after each round. It also filed
 [plan 0464](../plans/0464-the-dialects-notexist-copies-move-onto-the-kernels.md), moving the five
 existing `notExist` copies onto the kernel's (de-duplication, no ask of this proposal), and bugs 0460
-to 0465. The review found
+to 0463, 0465 and 0466. The review found
 that the order above could not be built: each block's example needs public blocks a later plan adds.
 The maintainer decided, on 2026-10-18:
 
@@ -984,3 +984,9 @@ Coordinator decisions from the reviews, each overrulable: the kernel conditions 
 so they do not collide with eess-ts's root `notExist()`; `isFrozen()` ships as `areFrozen()` and
 `areLive()`, md's existing words; a marked cardinality condition is frozen (bug 0462); block 12's
 condition is narrowed as noted above.
+
+**A gap the planning found, not asked by any block.** The family has no positive "at least one element
+exists" condition. Plan 0457's example guards its `notExist()` ratchet with a positive rule whose
+condition repeats its selection, which reds only when nothing is selected: that works, and says what it
+does, but a condition that states it directly would be clearer. Recorded here so the next block chosen
+from this proposal can weigh it.

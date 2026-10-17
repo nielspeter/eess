@@ -16,7 +16,7 @@
   adopters (017, "Consumer feedback"), and every later block plan's example needs a `notExist()`
   on an md builder.
 - **Effort:** Large. Counted from this plan's own tables: 30 rows in Files changed, eight of
-  them new test files, across four packages (core, ts, md, mermaid) plus `examples/` and `adr/`; 14
+  them new test files, across four packages (core, ts, md, mermaid) plus `examples/` and `adr/`; 17
   sabotage rows; a flagged break re-run against four of this repository's gates. One pull request,
   reviewed in two parts: the kernel (Phase 1), then the dialects (Phase 2). Phase 1 alone ships an
   inert hook, so it is not a delivery on its own.
@@ -398,84 +398,99 @@ from it, and every later example after it, is exported here (the cross-plan cont
 Three additions to md's corpus builders, so that block 6's `notExist()` cannot pass on a broken
 instrument or a broken selector:
 
-1. **An empty corpus is an empty source.** `docs()`, `links()`, `pointers()`, `rows()`, `terms()`
-   and `taskItems()` override `sourceEmpty()` to `this.project.documents().length === 0`, as
-   `codeBlocks()` already does (`code-blocks.ts:109`). The kernel then reports the empty source
-   first, ahead of `.expectEmpty()`, the selector fault and the cardinality exemption (ADR-010 §3).
-   This is a behaviour change, and a break (Release). It reaches `honestyAtClose`: a lane whose
-   `roots` match no file now reds even with `expectEmptyHeaders`, whose docstring
-   (`packages/md/src/rules/ledger.ts:653-656`) gains one sentence saying so.
-2. **The location predicates declare their globs.** `resideInFolder` and `resideInFile` declare
-   `globs: globNode({ glob, kind: 'file-path', base: 'normalized' })`
-   (`packages/core/src/glob-site.ts:137`). `'normalized'` is the nearest existing root base ("a
-   base whose entry point rewrites or relativises it": md matches the path relativised from the
-   corpus's `cwd`), and it keeps `GlobBase` unchanged (Kernel (4)). It does not describe md
-   exactly: for `'normalized'` the shared rules call a leading `./` a fault and a leading `/` fine,
-   and md is the other way round. Today the only other reader of md's declared globs is eess-ts's
-   `diagnose()` (`packages/ts/src/core/diagnose.ts:329`, `rule.globs?.()`), and on any md builder
-   it crashes before reading them: `npx eess-ts doctor spec.rules.ts` exits 1 with
-   `project.getSourceFiles is not a function`, which is
-   [bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md). So the mismatch
-   reaches nobody now; it is a condition on bug 0396's fix, which must not judge md's sites by
-   eess-ts's rules (bug 0396 carries that condition, added 2026-10-18). md's own check never reads
-   the declared base.
-3. **The corpus builders diagnose a cardinality rule's selector.** They override
-   `cardinalitySelectorFault()` with one shared helper, `mdSelectorFault(builder)` in
-   `packages/md/src/builders/selector-fault.ts` (internal). It walks the positive selector sites
-   through the kernel's `declaredGlobsOf` (`packages/core/src/internal.ts:114`), which handles
-   `not()`/`or()` by negation-normal form, so a negative site is never dead. For each site, three
-   checks, in order:
-   - **a fault in the glob text:** `globTextFault(glob, 'file-path', 'repo-relative')`
-     (Kernel (4)). Remedy (`suggestion`): "Write the glob as `<correction>`" when there is one; for
-     `parent-segment`, "md globs are matched against paths under the corpus's `cwd`; name the
-     folder relative to it, or change `cwd`".
-   - **the repository holds Markdown under the glob that the corpus did not load** (bug 0355's
-     class). What is matched, exactly (method, round three m-d): the site's glob string, compiled
-     once as `picomatch(glob)` with default options (the predicate's own matcher, so no dotfile is
-     counted that the predicate could never match), over two sets of paths: the `relPath`s of the
-     loaded documents, and the `.md` paths in `corpus.fileIndex` (`packages/md/src/corpus.ts:50`).
-     The check fires when the glob selects at least one `.md` path in `fileIndex` and no loaded
-     document's `relPath`. It does not apply the site's predicate to anything: on the six
-     non-`docs()` builders the predicate is over the element type, not over documents. The cause is
-     read with the same function link resolution uses: the reason logic in `fileTarget`
-     (`packages/md/src/model/resolve-link.ts:177-192`) is extracted as
-     `notInCorpusReasons(corpus, path)` and reused, so `outside-roots` and `ignored` mean one thing.
-     Remedy: "The corpus's `roots` do not include K Markdown files this glob names (first:
-     `<path>`). Add the folder to `roots`, or narrow the glob to folders under them." For
-     `ignored`: "K files this glob names are excluded by the corpus's `ignore`; remove that pattern,
-     or narrow the glob."
-   - **a separator backslash, on evidence** (coordinator's decision 1, round four). The
-     candidates are a `\` before an ordinary character, or before `*` or `?`: the Windows habit
-     (`guides\**`, `guides\x/**`). A `\` before any other glob metacharacter (`[](){}!@+|\` or a
-     space) is an escape and never a candidate, so `guides/\(x\)/**` stays green. A candidate is a
-     fault when both hold, by the same matching as above (`picomatch`, default options, over the
-     loaded documents' `relPath`s and the `.md` paths in `fileIndex`):
-     - the glob as written selects no path; and
-     - the glob with that `\` replaced by `/` selects at least one.
+1.  **An empty corpus is an empty source.** `docs()`, `links()`, `pointers()`, `rows()`, `terms()`
+    and `taskItems()` override `sourceEmpty()` to `this.project.documents().length === 0`, as
+    `codeBlocks()` already does (`code-blocks.ts:109`). The kernel then reports the empty source
+    first, ahead of `.expectEmpty()`, the selector fault and the cardinality exemption (ADR-010 §3).
+    This is a behaviour change, and a break (Release). It reaches `honestyAtClose`: a lane whose
+    `roots` match no file now reds even with `expectEmptyHeaders`, whose docstring
+    (`packages/md/src/rules/ledger.ts:653-656`) gains one sentence saying so.
+2.  **The location predicates declare their globs.** `resideInFolder` and `resideInFile` declare
+    `globs: globNode({ glob, kind: 'file-path', base: 'normalized' })`
+    (`packages/core/src/glob-site.ts:137`). `'normalized'` is the nearest existing root base ("a
+    base whose entry point rewrites or relativises it": md matches the path relativised from the
+    corpus's `cwd`), and it keeps `GlobBase` unchanged (Kernel (4)). It does not describe md
+    exactly: for `'normalized'` the shared rules call a leading `./` a fault and a leading `/` fine,
+    and md is the other way round. Today the only other reader of md's declared globs is eess-ts's
+    `diagnose()` (`packages/ts/src/core/diagnose.ts:329`, `rule.globs?.()`), and on any md builder
+    it crashes before reading them: `npx eess-ts doctor spec.rules.ts` exits 1 with
+    `project.getSourceFiles is not a function`, which is
+    [bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md). So the mismatch
+    reaches nobody now; it is a condition on bug 0396's fix, which must not judge md's sites by
+    eess-ts's rules (bug 0396 carries that condition, added 2026-10-18). md's own check never reads
+    the declared base.
+3.  **The corpus builders diagnose a cardinality rule's selector.** They override
+    `cardinalitySelectorFault()` with one shared helper, `mdSelectorFault(builder)` in
+    `packages/md/src/builders/selector-fault.ts` (internal). It walks the positive selector sites
+    through the kernel's `declaredGlobsOf` (`packages/core/src/internal.ts:114`), which handles
+    `not()`/`or()` by negation-normal form, so a negative site is never dead. For each site, three
+    checks, in order:
+    - **a fault in the glob text:** `globTextFault(glob, 'file-path', 'repo-relative')`
+      (Kernel (4)). Remedy (`suggestion`): "Write the glob as `<correction>`" when there is one; for
+      `parent-segment`, "md globs are matched against paths under the corpus's `cwd`; name the
+      folder relative to it, or change `cwd`".
+    - **the repository holds Markdown under the glob that the corpus did not load** (bug 0355's
+      class). What is matched, exactly (method, round three m-d): the site's glob string, compiled
+      once as `picomatch(glob)` with default options (the predicate's own matcher, so no dotfile is
+      counted that the predicate could never match), over two sets of paths: the `relPath`s of the
+      loaded documents, and the `.md` paths in `corpus.fileIndex` (`packages/md/src/corpus.ts:50`).
+      The check fires when the glob selects at least one `.md` path in `fileIndex` and no loaded
+      document's `relPath`. It does not apply the site's predicate to anything: on the six
+      non-`docs()` builders the predicate is over the element type, not over documents. The cause is
+      read with the same function link resolution uses: the reason logic in `fileTarget`
+      (`packages/md/src/model/resolve-link.ts:177-192`) is extracted as
+      `notInCorpusReasons(corpus, path)` and reused, so `outside-roots` and `ignored` mean one thing.
+      Remedy: "The corpus's `roots` do not include K Markdown files this glob names (first:
+      `<path>`). Add the folder to `roots`, or narrow the glob to folders under them." For
+      `ignored`: "K files this glob names are excluded by the corpus's `ignore`; remove that pattern,
+      or narrow the glob."
+    - **a separator backslash, on evidence** (coordinator's decision 1, round four). The
+      candidates are a `\` before an ordinary character, or before `*` or `?`: the Windows habit
+      (`guides\**`, `guides\x/**`). A `\` before any other glob metacharacter (`[](){}!@+|\` or a
+      space) is an escape and never a candidate, so `guides/\(x\)/**` stays green. **Every**
+      candidate in the glob is replaced by `/` at once (coordinator's decision 2, round five): a
+      Windows glob usually has several, and measured on picomatch 4.0.4, `docs\guides\**` matches
+      `docs/guides/a.md` only with both replaced (`docs/guides\**` and `docs\guides/**` each match
+      nothing). The site is a fault when both hold, by the same matching as above (`picomatch`,
+      default options, over the loaded documents' `relPath`s and the `.md` paths in `fileIndex`):
+      - the glob as written selects no path; and
+      - the glob with every candidate replaced selects at least one.
 
-     Then the author almost certainly meant a path separator, and the correction is the replaced
-     glob. When the replaced glob also selects nothing, the rule stays green under bug 0355's
-     ruling, like any glob that names nothing. The check runs after the unloaded-Markdown check, so
-     a glob as written that selects unloaded files is reported by that check first; the first
-     condition only decides which cause is named, not whether the rule reds.
+      Then the author almost certainly meant path separators, and the correction is that replaced
+      glob. When it also selects nothing, the rule stays green under bug 0355's ruling, like any
+      glob that names nothing.
 
-     **The cost, stated.** A file whose name holds a literal `*` or `?`, named by escaping it
-     (`docs\*.md` for a file `docs*.md`), next to a real folder of the same stem: once `docs*.md`
-     is deleted, the ratchet holds, but `docs/*.md` selects `docs/a.md`, so the rule reds with a
-     correction that changes its meaning. The remedy is to name the literal with a character class,
-     which leaves no backslash to consider: `docs[*].md` matches `docs*.md` and nothing else, and
-     `docs[?].md` likewise (measured, Problem 4). The finding's `suggestion` says so beside the
-     correction: "If you meant a literal `*` or `?`, write it as `[*]` or `[?]`." A literal star
-     or question mark in a Markdown file name is rare; a Windows separator is the common case.
+      **The first condition decides the verdict.** The hook runs when the rule as a whole examined
+      zero, and it judges each positive site separately, so a site's glob can select a loaded
+      document that another predicate then narrows away. Then the unloaded-Markdown check is
+      silent (everything is loaded), and "as written selects no path" alone keeps a correct glob
+      green. Measured: `guides\x/**` matches `guidesx/a.md`. The control: a corpus loading
+      `guidesx/a.md` and `guides/x/a.md`, and a `notExist()` rule over
+      `resideInFolder('guides\\x/**')` narrowed by `haveNameMatching(/^zzz/)`. It is a holding
+      ratchet: the first condition is false, so there is no fault. Without that condition, the
+      replaced glob `guides/x/**` selects `guides/x/a.md`, and the rule would red with a correction
+      that changes its meaning. A test and sabotage row 17 pin this. (Round four said the condition
+      only chose which cause was named; that was wrong.)
 
-   - **a glob that matches nothing in the repository stays green.** That is also what a holding
-     ratchet looks like (a deleted `legacy/`), and bug 0355's ruling is that the two cannot be
-     told apart. A typo that names nothing therefore stays green. This plan keeps that ruling.
+      **The cost, stated.** A file whose name holds a literal `*` or `?`, named by escaping it
+      (`docs\*.md` for a file `docs*.md`), next to a real folder of the same stem: once `docs*.md`
+      is deleted, the ratchet holds, but `docs/*.md` selects `docs/a.md`, so the rule reds with a
+      correction that changes its meaning. The remedy is to name the literal with a character
+      class, which leaves no backslash to consider: `docs[*].md` matches `docs*.md` and nothing
+      else, and `docs[?].md` likewise (measured, Problem 4). When, and only when, a replaced
+      candidate preceded `*` or `?`, the finding's `suggestion` adds beside the correction: "If you
+      meant a literal `*` or `?`, write it as `[*]` or `[?]`." On `guides\x/**`, the commonest
+      Windows shape, the sentence would be noise, so it is absent. A literal star or question mark
+      in a Markdown file name is rare; a Windows separator is the common case.
 
-   `codeBlocks()` gets the text check only. `ParsedCodeBlocks` carries no file index
-   (`packages/md/src/model/code-block-parse.ts:96-100`), and its folder methods wrap the document
-   predicate in `onDocument` (`code-blocks.ts:21`), which this plan makes forward `globs`. Plan
-   0457 replaces `onDocument` with `inDocuments`, which must forward them too.
+    - **a glob that matches nothing in the repository stays green.** That is also what a holding
+      ratchet looks like (a deleted `legacy/`), and bug 0355's ruling is that the two cannot be
+      told apart. A typo that names nothing therefore stays green. This plan keeps that ruling.
+
+    `codeBlocks()` gets the text check only. `ParsedCodeBlocks` carries no file index
+    (`packages/md/src/model/code-block-parse.ts:96-100`), and its folder methods wrap the document
+    predicate in `onDocument` (`code-blocks.ts:21`), which this plan makes forward `globs`. Plan
+    0457 replaces `onDocument` with `inDocuments`, which must forward them too.
 
 **So a typo is caught by the recipe, not by the selector.** Block 6's documented shape loads the
 folder as the corpus's only root, so a mistyped root gives an empty corpus, which is an empty source
@@ -708,17 +723,24 @@ change has its own changeset entry).
   `guides/(x)/a.md` and `guides/[draft]/b.md`; `resideInFolder('guides/\\(x\\)/**')` and
   `resideInFolder('guides/\\[draft\\]/**')` on a `notExist()` rule examine their documents (no
   fault); with those folders absent, both are green.
-- The separator backslash (round four):
+- The separator backslash:
   - the corpus loads `guides/a.md`; `resideInFolder('guides\\**')` on a `notExist()` rule reds with
     the separator fault and the correction `guides/**`; applying the correction gives a rule that
     examines `guides/a.md` (and reds on it, as a `notExist()` over a real page should);
   - the corpus loads `guides/x/a.md`; `resideInFolder('guides\\x/**')` reds with the correction
+    `guides/x/**`, and its `suggestion` does not mention `[*]` or `[?]`;
+  - several candidates, replaced at once (round five): the corpus loads `docs/guides/a.md`;
+    `resideInFolder('docs\\guides\\**')` reds with the correction `docs/guides/**`; and the corpus
+    loads `guides/x/a.md`; `resideInFolder('guides\\x\\**')` reds with the correction
     `guides/x/**`;
+  - the first condition's control (round five): the corpus loads `guidesx/a.md` and
+    `guides/x/a.md`; a `notExist()` rule over `resideInFolder('guides\\x/**')`, narrowed by
+    `haveNameMatching(/^zzz/)`, has `violations()` equal to `[]`;
   - with no `guides/` anywhere, `resideInFolder('guides\\**')` is green (bug 0355's ruling);
   - the escaped-paren control, for sabotage row 13: the corpus loads `guides/x/a.md` and nothing
-    named `guides(x)/`; `resideInFolder('guides\\(x)/**')` examines zero and is green, because `\(`
-    is an escape and never a candidate, although its `/` reading `guides/(x)/**` selects
-    `guides/x/a.md` (measured, Problem 4);
+    named `guides(x)/`; `resideInFolder('guides\\(x)/**')` examines zero and its `violations()`
+    equals `[]`, because `\(` is an escape and never a candidate, although its `/` reading
+    `guides/(x)/**` selects `guides/x/a.md` (measured, Problem 4);
   - the pinned cost, titled for it: the corpus loads `docs/a.md` and nothing named `docs*.md`;
     `resideInFile('docs\\*.md')…notExist()` reds with the separator fault, its `suggestion` names
     `[*]`, and rewriting the glob as `docs[*].md` turns the rule green.
@@ -765,11 +787,17 @@ change has its own changeset entry).
     control reds.
 12. The fault helper treats negative sites as positive: the negation control reds.
 13. The separator check takes a `\` before `(` as a candidate: the escaped-paren control
-    (`guides\(x)/**`, whose `/` reading selects `guides/x/a.md`) reds. The round-three control
-    could fire nothing, because neither of its states reaches the check.
+    (`guides\(x)/**`, whose `/` reading selects `guides/x/a.md`) reds, with one finding whose cause
+    is the separator, asserted by identity.
 14. `globTextFault` flags a leading `./` for `'repo-relative'`: the `./guides/**` row of the
     kernel's `globTextFault` table reds. The md `./guides/**` test examines documents, so the hook
     never runs there.
+15. The separator check replaces one candidate at a time: the `docs\guides\**` and `guides\x\**`
+    rows red (each single replacement selects nothing).
+16. `\*` and `\?` stop being candidates (the round-three filter): the `guides\**` row goes green
+    and reds as a test. This is the green-direction row: its return would be a silent pass.
+17. The separator check drops "the glob as written selects no path": the first condition's control
+    reds with a separator finding on a holding ratchet.
 
 `onDocument` dropping `globs` is caught by the `codeBlocks()` fault test without a row of its own
 here; plan 0457 replaces `onDocument` and carries the equivalent row for `inDocuments`.
@@ -838,9 +866,8 @@ mechanism. No row of its own in `check:nonvacuity`.
   crashes on md rules; md rules start declaring globs here, with an inexact base.
 - Bug 0460's verification rows follow bug 0355's ruling, as this plan does: a text fault and
   unloaded Markdown red, an absent folder green, the symptom table's `gudies/**` row green by ruling,
-  a typo caught by the roots-scoped recipe. Its Fix line was corrected to this plan's fault set on
-  2026-10-18, and its separator wording to "and does not escape a metacharacter other than `*`
-  or `?`".
+  a typo caught by the roots-scoped recipe. Its Fix line and its separator wording were aligned
+  with this plan's rules on 2026-10-18.
 
 ## Review response — 2026-10-18
 
@@ -929,7 +956,6 @@ mechanism. No row of its own in `check:nonvacuity`.
 - **testing m5** (sabotage row 4 bundled two reverts): split into rows 4 and 5.
 - **testing m6, m7 / method N1** (bug 0460's Fix line and bug 0462's green row): both records were
   corrected on 2026-10-18.
-- **product minor 2** (ROADMAP said Medium): corrected on the board.
 
 ### Round four
 
@@ -955,9 +981,23 @@ mechanism. No row of its own in `check:nonvacuity`.
 - **testing m5** (test-file count; mermaid's `notExist` not on its root): eight new test files,
   counting the example (30 Files-changed rows with the ADR-018 row); the mermaid test imports the
   condition from `../../src`.
-- Not adopted: a sabotage row for the separator check's "as written selects no path" condition.
-  The unloaded-Markdown check runs first, so that condition only decides which cause is named; no
-  control can make it decide red or green.
+
+### Round five
+
+- **enforcement N5-1 / architect R5-3 / coordinator decision 2** (one backslash at a time misses
+  `docs\guides\**`): every candidate is replaced at once; measured; rows for `docs\guides\**`
+  and `guides\x\**`; sabotage row 15.
+- **enforcement m5-2** (no green-direction row): sabotage row 16, dropping `\*`/`\?` as candidates.
+- **architect R5-2 / enforcement m5-1 / method R5-2 / testing N3** (round four's claim that the
+  "as written selects no path" condition only names the cause was false): the Design sentence is
+  corrected, a measured control (`guides\x/**` selecting `guidesx/a.md`, narrowed away) asserts
+  `violations()` is `[]`, sabotage row 17 drops the condition, and the "Not adopted" line is gone.
+- **product n2** (the `[*]`/`[?]` advice on every separator finding): only when a replaced
+  candidate preceded `*` or `?`; the `guides\x/**` row asserts it absent.
+- **testing m2** (control shapes): the escaped-paren and first-condition controls assert
+  `violations()` is `[]`; row 13 asserts one separator finding by identity.
+- **architect R5-4 / product n3** (a misquoted bug 0460): paraphrased, not quoted.
+- Counts: 17 sabotage rows (Effort and ledger).
 
 ## Progress ledger
 
@@ -968,7 +1008,7 @@ mechanism. No row of its own in `check:nonvacuity`.
       `notInCorpusReasons`, the fault helper with the separator check, six exports, README,
       `honestyAtClose`'s docstring, the example with three fixtures; eess-ts's and eess-mermaid's
       freeze tests
-- [ ] Sabotage rows 1–14, each red on its named test; durations reported
+- [ ] Sabotage rows 1–17, each red on its named test; durations reported
 - [ ] Bug 0460 and bug 0462 red-first on main, green here, both → `fixed/`
 - [ ] The ADR-010 Enforcement row, `gated`, citing the kernel fault-outranks-declaration test
 - [ ] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's

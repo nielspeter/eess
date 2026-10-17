@@ -103,15 +103,23 @@ Plans 0456, 0454, 0457, 0455 and 0459 follow it.
     not a configuration finding (`bypassFilters` unset).
   - **The one exception: a judgement that a scope "matches nothing".** Such a judgement reds with
     the kernel's own configuration finding, `zeroExaminedViolation`
-    (`packages/core/src/vacuity-findings.ts:55`), built with `file: ''` and `bypassFilters: true`
-    and carrying the rule's own id (`:44`). Its violating test asserts that finding by `ruleId`,
-    and asserts that it is a configuration finding (`bypassFilters: true`), with `file` exempt.
+    (`packages/core/src/vacuity-findings.ts:55`). It is built with `file: ''` and
+    `bypassFilters: true`, and carries the rule's own id (`:44`). The exception relaxes `file`
+    and nothing else. The violating test asserts:
+    - the exact, whole zero-examined message (`:56-60`), copied from the kernel at build time;
+    - `ruleId`;
+    - `bypassFilters: true`.
+
     The example's test title names the judgement as this kind. Plan 0457's
     `violating-scope-matches-nothing:` is the first.
 
-    The exception is narrow on purpose. The general rule still stops a violating fixture that
-    merely breaks the load from counting as the judgement firing, because a broken load gives a
-    different finding (an empty source, or a thrown error), not the rule's zero-examined finding.
+    The whole message is what tells this judgement apart, and a prefix would not do. Every kernel
+    configuration finding comes from one constructor, `configFinding` (`:39-52`), with the same
+    `ruleId`, `file: ''`, `line: 0` and `bypassFilters: true`; they "differ ONLY in their
+    `message`" (`:27`). `deadGlobViolation`'s message begins with the same words, "this rule
+    examined zero units —" (`:74`). A violating fixture that merely breaks the load (a misnamed
+    folder, or `roots` matching nothing) gives `zeroLoadedSourceViolation` (`:100`), whose
+    message differs, so the exact-message assertion fails on it. A sabotage row pins that.
 
   - The swap row matches tests to folders by these title prefixes. A `violating-<judgement>/` folder
     with no test of that prefix, or a test with no folder, is a finding.
@@ -496,39 +504,40 @@ the whole harness.
 
 ## Test inventory
 
-| row                                                                                         | what it proves                                                                                                |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| seed example, `clean:`                                                                      | no violation, examined > 0 (a positive rule)                                                                  |
-| seed example, `violating-missing-section:`                                                  | exactly one finding: the violating guide, exact message, not a config finding                                 |
-| sabotage: an example imports `definePredicate` from `@nielspeter/eess`                      | rule 1 reds on the probe (and rule 3, by name)                                                                |
-| sabotage: an example imports `@nielspeter/eess/internal`                                    | rule 1 reds                                                                                                   |
-| sabotage: an example imports `@nielspeter/eess-md/internal`                                 | rule 1 reds (the allowlist is exact)                                                                          |
-| sabotage: an example imports `@nielspeter/eess-md/rules/ledger`                             | rule 1 reds (presets are not blocks)                                                                          |
-| sabotage: relative import of `packages/md/src/model/task-items.js`                          | rule 1 reds                                                                                                   |
-| sabotage: an example imports `node:fs`                                                      | rule 1 reds (only the helper may import Node)                                                                 |
-| quiet: the helper imports `node:fs/promises`                                                | rule 1's helper half stays quiet (`node:{*,*/*}`)                                                             |
-| sabotage: `{ description, test }`                                                           | rule 2 reds                                                                                                   |
-| sabotage: `{ 'test': f }` (quoted key)                                                      | rule 2 reds                                                                                                   |
-| sabotage: `{ ['evaluate']: f }` (computed key)                                              | rule 2 reds                                                                                                   |
-| sabotage: `{ get test() { … } }`                                                            | rule 2 reds                                                                                                   |
-| sabotage: `{ async test() { … } }`                                                          | rule 2 reds (the name child is chosen by kind)                                                                |
-| sabotage: `{ *evaluate() { … } }`                                                           | rule 2 reds                                                                                                   |
-| sabotage: `p.evaluate = …` after construction                                               | rule 2 reds                                                                                                   |
-| sabotage: a class extending `RuleBuilder`                                                   | rule 2 reds                                                                                                   |
-| sabotage: `await import('@nielspeter/eess/internal')`                                       | rule 2 reds (dynamic import)                                                                                  |
-| sabotage: `definePredicate` referenced with no import of it (a global stand-in)             | rule 3 reds, independent of the import graph                                                                  |
-| sabotage: `createRequire`                                                                   | rule 3 reds                                                                                                   |
-| sabotage: an example assembles a verdict with `collectResult`                               | rule 3 reds (verdict-assembly seams)                                                                          |
-| quiet: a probe using only `docs()` and `corpus()`                                           | all four arch rules quiet                                                                                     |
-| sabotage: `EESS_EXAMPLE_SWAP=violating-missing-section=clean`                               | the seed's `violating-missing-section:` test fails, by title; `clean:` passes                                 |
-| sabotage: `EESS_EXAMPLE_SWAP=clean=violating-missing-section`                               | the seed's `clean:` test fails, by title; the violating test passes                                           |
-| sabotage: the seed's violating assertion weakened to `toBeGreaterThanOrEqual(0)`            | the `violating-missing-section:` test still passes under the forward swap, so the row reds naming the example |
-| sabotage: a probe example with two judgements, one of whose tests reads the other's folder  | that judgement's forward swap leaves its test passing; the row reds naming the judgement                      |
-| sabotage: a `notExist()` probe example whose clean fixture holds documents with no elements | its population assertion (the wider `.select()`) fails unswapped; the row reds naming the example             |
-| sabotage: a `violating-<j>/` folder with no matching test, and a test with no folder        | the row reports each by name                                                                                  |
-| sabotage: an example with no `violating-*/` folder, and one with no `clean:` test           | the row reports each by name                                                                                  |
-| sabotage: an example with a syntax error                                                    | the row reds with the error, not as a pass (a type error is `check:examples`' `tsc`)                          |
-| sabotage: `examples/md/` holds no example (`fixture.ts` remains)                            | the load-bearing row fails on zero; the arch rules stay green examining `fixture.ts`                          |
+| row                                                                                                               | what it proves                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| seed example, `clean:`                                                                                            | no violation, examined > 0 (a positive rule)                                                                              |
+| seed example, `violating-missing-section:`                                                                        | exactly one finding: the violating guide, exact message, not a config finding                                             |
+| sabotage: an example imports `definePredicate` from `@nielspeter/eess`                                            | rule 1 reds on the probe (and rule 3, by name)                                                                            |
+| sabotage: an example imports `@nielspeter/eess/internal`                                                          | rule 1 reds                                                                                                               |
+| sabotage: an example imports `@nielspeter/eess-md/internal`                                                       | rule 1 reds (the allowlist is exact)                                                                                      |
+| sabotage: an example imports `@nielspeter/eess-md/rules/ledger`                                                   | rule 1 reds (presets are not blocks)                                                                                      |
+| sabotage: relative import of `packages/md/src/model/task-items.js`                                                | rule 1 reds                                                                                                               |
+| sabotage: an example imports `node:fs`                                                                            | rule 1 reds (only the helper may import Node)                                                                             |
+| quiet: the helper imports `node:fs/promises`                                                                      | rule 1's helper half stays quiet (`node:{*,*/*}`)                                                                         |
+| sabotage: `{ description, test }`                                                                                 | rule 2 reds                                                                                                               |
+| sabotage: `{ 'test': f }` (quoted key)                                                                            | rule 2 reds                                                                                                               |
+| sabotage: `{ ['evaluate']: f }` (computed key)                                                                    | rule 2 reds                                                                                                               |
+| sabotage: `{ get test() { … } }`                                                                                  | rule 2 reds                                                                                                               |
+| sabotage: `{ async test() { … } }`                                                                                | rule 2 reds (the name child is chosen by kind)                                                                            |
+| sabotage: `{ *evaluate() { … } }`                                                                                 | rule 2 reds                                                                                                               |
+| sabotage: `p.evaluate = …` after construction                                                                     | rule 2 reds                                                                                                               |
+| sabotage: a class extending `RuleBuilder`                                                                         | rule 2 reds                                                                                                               |
+| sabotage: `await import('@nielspeter/eess/internal')`                                                             | rule 2 reds (dynamic import)                                                                                              |
+| sabotage: `definePredicate` referenced with no import of it (a global stand-in)                                   | rule 3 reds, independent of the import graph                                                                              |
+| sabotage: `createRequire`                                                                                         | rule 3 reds                                                                                                               |
+| sabotage: an example assembles a verdict with `collectResult`                                                     | rule 3 reds (verdict-assembly seams)                                                                                      |
+| quiet: a probe using only `docs()` and `corpus()`                                                                 | all four arch rules quiet                                                                                                 |
+| sabotage: `EESS_EXAMPLE_SWAP=violating-missing-section=clean`                                                     | the seed's `violating-missing-section:` test fails, by title; `clean:` passes                                             |
+| sabotage: `EESS_EXAMPLE_SWAP=clean=violating-missing-section`                                                     | the seed's `clean:` test fails, by title; the violating test passes                                                       |
+| sabotage: the seed's violating assertion weakened to `toBeGreaterThanOrEqual(0)`                                  | the `violating-missing-section:` test still passes under the forward swap, so the row reds naming the example             |
+| sabotage: a probe example with two judgements, one of whose tests reads the other's folder                        | that judgement's forward swap leaves its test passing; the row reds naming the judgement                                  |
+| sabotage: a `notExist()` probe example whose clean fixture holds documents with no elements                       | its population assertion (the wider `.select()`) fails unswapped; the row reds naming the example                         |
+| sabotage: a probe example whose "matches nothing" violating fixture loads no document (its `roots` match nothing) | the exception test fails on the exact message (an empty source, not zero-examined), and the row reds naming the judgement |
+| sabotage: a `violating-<j>/` folder with no matching test, and a test with no folder                              | the row reports each by name                                                                                              |
+| sabotage: an example with no `violating-*/` folder, and one with no `clean:` test                                 | the row reports each by name                                                                                              |
+| sabotage: an example with a syntax error                                                                          | the row reds with the error, not as a pass (a type error is `check:examples`' `tsc`)                                      |
+| sabotage: `examples/md/` holds no example (`fixture.ts` remains)                                                  | the load-bearing row fails on zero; the arch rules stay green examining `fixture.ts`                                      |
 
 ## Out of scope
 
@@ -575,7 +584,7 @@ Each Critical and Important finding from PR #235's reviews, and what changed.
   helper swaps by environment variable, and no file is touched.
 - **Testing I4** (relative import into package source). A sabotage row is added.
 - **Method C1, P1** (an `Accepted` row whose closing proof is deferred). The row becomes
-  `Accepted, reshaped`, recorded in proposal 017 by the coordinator.
+  `Accepted, reshaped`, recorded in proposal 017.
 - **Minors, grouped:**
   - the helper's Node glob is fixed (Testing M1; measured in round four);
   - the seed asserts the finding's identity (Testing M2);
@@ -590,7 +599,7 @@ Each Critical and Important finding from PR #235's reviews, and what changed.
 
 ### Round two
 
-From PR #235's second-round reviews (`review-235-*-r2.md`) and the coordinator's brief 2.
+From PR #235's second-round reviews (`review-235-*-r2.md`).
 
 - **Architect I-2, Enforcement I5, Method C1, Testing C1** (a `notExist()` example's clean test
   cannot assert `examined > 0`). The contract has a cardinality form: the clean test proves its
@@ -620,10 +629,9 @@ From PR #235's second-round reviews (`review-235-*-r2.md`) and the coordinator's
 
 ### Round four
 
-From PR #235's fourth-round reviews (`review-235-*-r4.md`), the open round-three findings, and the
-coordinator's brief 4.
+From PR #235's fourth-round reviews (`review-235-*-r4.md`) and the open round-three findings.
 
-- **Testing r4 I2, brief 4 decision 4** (0457's "scope matches nothing" judgement could not meet
+- **Testing r4 I2** (0457's "scope matches nothing" judgement could not meet
   the violating-test contract). The contract has one stated exception. Such a judgement's
   violating test asserts the kernel's zero-examined finding by `ruleId` and `bypassFilters: true`,
   with `file` exempt (`vacuity-findings.ts:44`, `:55`).
@@ -634,8 +642,20 @@ coordinator's brief 4.
 - **The helper's Node glob, measured on main's build.** `node:**` matches `node:fs` but not
   `node:fs/promises` on picomatch 4.0.4 with `dot: true`, so round two's claim was wrong. The glob
   is `node:{*,*/*}`, with the measurement table in rule 1.
-- **Brief 4 decision 8.** Lines that reported disagreements this branch has since fixed are
-  deleted: the ROADMAP note and the unmeasured-glob note.
+
+### Round five
+
+From PR #235's fifth-round reviews (`review-235-*-r5.md`).
+
+- **Architect R5-1, Enforcement N5-2, Method R5-1, Testing N2** (the exception could not tell
+  "matched nothing" from "loaded nothing"). The exception now relaxes `file` only. Its violating
+  test asserts the whole zero-examined message, plus `ruleId` and `bypassFilters: true`. The
+  reason is read from the source: every configuration finding shares one constructor and differs
+  only in its message, and `deadGlobViolation` shares the prefix. A sabotage row makes a violating
+  fixture load nothing, and the exception test must red on it.
+- **Method R5-5.** The lines naming who recorded or briefed a change are reworded, and round four's
+  note on deleted lines is deleted.
+- **Enforcement and method r5** re-measured the Node-glob table on main's build; it reproduces.
 
 ## Progress ledger
 

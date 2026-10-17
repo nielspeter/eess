@@ -374,8 +374,11 @@ These findings were made against plan 0456 before the split; they apply here.
 - **method N7 / coordinator decision 1** (the example still read "a clean and a violating
   fixture"): `clean/` and `violating-shared-slug/` under 0458's contract, with titles that start
   with the folder name and a colon.
-- **method N2** (ROADMAP's `Blocked on` names only 0458): this plan's `Builds after` already names
-  0456 and 0458; the board row is the coordinator's.
+
+### Round five
+
+- **method R5-5 / coordinator decision 5** (a stale line saying the board row was someone else's):
+  deleted; the board's `Blocked on` for this plan reads "plans 0456, 0458".
 
 ## Progress ledger
 

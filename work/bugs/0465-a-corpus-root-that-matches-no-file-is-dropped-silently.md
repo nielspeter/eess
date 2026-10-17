@@ -22,7 +22,7 @@ finding, which catches a single mistyped root; it does not catch one of several.
 
 `corpus()` records a root that matches no file in the repository as a source fact on the corpus, and
 every rule over it reports that fact through its own receipt (ADR-008, ADR-013, ADR-014), deduplicated
-like other configuration findings, so a rule file with ten rules over one corpus shows it once. Whether
+like other configuration findings (whose appended note is itself wrong for this case: [bug 0461](./0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)), so a rule file with ten rules over one corpus shows it once. Whether
 a root may declare that matching nothing is intended is decided against ADR-018 (a string that names
 code resolves, or the rule says why not). The fix reds corpora that pass today: a flagged eess-md break
 with a migration line (remove or correct the dead root). Not plan 0456's scope (a change to `corpus()`, not to a selector); plan

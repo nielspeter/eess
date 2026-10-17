@@ -5,7 +5,7 @@
 - **State:** Draft — written 2026-10-17 at the maintainer's request ("plans in one pr"), from
   [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) block 12, as shaped by its
   second Review's decision 4 and the consumer-feedback decision 3; reworked 2026-10-18 after PR
-  #235's five reviews, and again after the round-two, round-three and round-four reviews (see "Review response").
+  #235's five reviews, and again after the round-two to round-five reviews (see "Review response").
 - **Implements:** proposal 017
 - **Priority:** Medium — two of the three adopters asked for it (block 12 alone, and block 12
   composed with block 11). Today a rule over boxes, links, rows, terms or code blocks can be limited
@@ -345,8 +345,8 @@ Measured on main's build (2026-10-18), over a one-document corpus whose live doc
 `Verification` heading: `docs(c).that().haveSection(name).should().haveSection(name)` gives 0
 violations for `'Verification'` and 1 for `'Verificaton'`, the kernel's "this rule examined zero
 units" finding. So the guard reds on the exact mistake the ratchet cannot see, and the setext form
-is read. Measured the same day, the finding's identity: `ruleId` is the rule's own id (absent
-without `.rule({ id })`, hence the id above), `file` is `''`, and `bypassFilters` is `true`: the
+is read. Measured the same day, the finding's identity: `ruleId` is the rule's own id (the key is always
+written, and is `undefined` unless `.rule({ id })` sets it, hence the id above), `file` is `''`, and `bypassFilters` is `true`: the
 kernel's configuration finding (`packages/core/src/vacuity-findings.ts:39-52`).
 
 `frozen: ['archive/**']` is passed explicitly: the example shows frozenness as the caller's choice
@@ -373,9 +373,12 @@ colon, as plan 0458's contract says (`clean: …`, `violating-open-box-in-scope:
 - **`violating-scope-matches-nothing/`:** the violating set above with every `Verification` heading
   renamed (`## Checks`). The ratchet is green on it, which the test asserts, pinning ADR-010 §3's
   ruling where an adopter will see it. The guard reds with the kernel's zero-examined finding. The
-  `violating-scope-matches-nothing:` test uses plan 0458's configuration-finding form, the one
-  exception to "names the violating file": it asserts exactly one finding, with `ruleId`
-  `in-documents/verification-guard`, `bypassFilters: true` and `file: ''`.
+  `violating-scope-matches-nothing:` test uses plan 0458's configuration-finding form, which relaxes
+  `file` only: it asserts exactly one finding, whose message is exactly `zeroExaminedViolation`'s
+  text (`packages/core/src/vacuity-findings.ts:56-60`, the whole string, not a prefix, because
+  `deadGlobViolation` begins the same way), whose `ruleId` is `in-documents/verification-guard`,
+  and whose `bypassFilters` is `true`. The message is what tells this judgement apart from a corpus
+  that failed to load: every kernel configuration finding shares the other fields.
 
 `docs/markdown.md` and `packages/md/README.md` gain "Scoping a rule to documents". It teaches
 `inDocuments(or(…))` before naming the combinator limit. It shows the ratchet and its guard as a
@@ -385,7 +388,10 @@ matches anything; a scope matching no document is green (ADR-010 §3, ADR-018 C3
 catches it. It explains the guard's shape: its condition repeats its selection on purpose, so it
 fails only when nothing is selected; the apparent simplification
 `.that().satisfy(areLive()).should().haveSection(SECTION)` is a different, stronger claim (every
-live document has the section); and notes the one asymmetry: `pointers(c).that().areFrozen()` is a method,
+live document has the section). It also warns off the kernel's other candidate:
+`.expectNonEmpty()` on the ratchet does not do this, because a `notExist()` rule that declares it
+can never be green (it reds on every element it examines, and on examining none). The kernel
+docstring that suggests it for `notExist()` is bug 0466; and notes the one asymmetry: `pointers(c).that().areFrozen()` is a method,
 everywhere else it is `.satisfy(inDocuments(areFrozen()))`.
 
 ## Files Changed
@@ -624,6 +630,22 @@ No Critical; each finding on this plan:
   bold label, which is what prettier escaped.
 - **Decision 8 (stale disagreement lines):** removed or rewritten to the fixed state (bug 0174's
   note, 017's block-11 row, the boards).
+
+### Round five — 2026-10-18
+
+No Critical; each finding on this plan:
+
+- **Method R5-1 / testing N2 / enforcement / architect (the guard test no longer asserts the
+  message):** decision 1. 0458's exception relaxes `file` only; the test asserts the exact
+  zero-examined message beside `ruleId` and `bypassFilters`, so a fixture that fails to load (one
+  finding, same id, same shape, a different message) reds it. 0458 owns the sabotage row for that.
+- **Product n1 (`.expectNonEmpty()` is the trap an adopter will reach for):** decision 4. The docs
+  section says a `notExist()` ratchet that declares it can never be green; the kernel docstring that
+  suggests it is bug 0466.
+- **Testing m1 (`ruleId` "absent"):** the key is always written; it is `undefined` without
+  `.rule({ id })`.
+- **Product (record the missing existence condition in 017 itself):** this plan's Out of scope
+  records it; 017 is outside this plan's file.
 
 ## Progress ledger
 
