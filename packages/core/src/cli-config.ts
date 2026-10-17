@@ -1,6 +1,10 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import { registerHooks } from 'node:module'
+// A namespace import, not `{ registerHooks }`: Bun's `node:module` has no
+// `registerHooks`, and a missing NAMED import fails the whole module graph at
+// link time, so every entry reaching this file through `/internal` failed to load
+// under Bun (bug 0439). The member is read only where the hook is registered.
+import * as nodeModule from 'node:module'
 import type { OutputFormat } from './check-options.js'
 import { isRecord } from './type-guards.js'
 
@@ -204,7 +208,7 @@ let specifierResolutionEnabled = false
 export function enableTypeScriptSpecifierResolution(): void {
   if (specifierResolutionEnabled) return
   specifierResolutionEnabled = true
-  registerHooks({
+  nodeModule.registerHooks({
     resolve(specifier, context, nextResolve) {
       if (!specifier.startsWith('./') && !specifier.startsWith('../')) {
         return nextResolve(specifier, context)

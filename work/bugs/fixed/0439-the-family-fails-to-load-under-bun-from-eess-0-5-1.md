@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16 from [spike 0438](../spikes/0438-what-the-family-does-under-bun.md).
-  The fix waits on the decision record and plan the owner asked for after the spike.
+- **State:** Fixed — 2026-10-17, by [plan 0448](../../plans/completed/0448-a-bun-load-guard-and-bug-0439s-fix.md)
+  (PR #232): a namespace import, and a Bun load guard in CI that keeps it fixed. Recorded 2026-10-16
+  from [spike 0438](../../spikes/0438-what-the-family-does-under-bun.md).
 - **Severity:** Medium — no false green: an import that fails is loud. But it is a shipped defect
   for every adopter on Bun, and eess-md, which has nothing to do with the CLI, is among them.
 - **Origin:** reported · an adopter monorepo on Bun 1.4.3, 2026-10-16; reproduced in spike 0438.
@@ -41,15 +42,19 @@ The spike measured one fix: a namespace import (`import * as nodeModule from 'no
 `@nielspeter/eess-ts/cli` as loaded: it runs the CLI when imported and exits non-zero with "No
 command specified", the same under Node. It also recommends taking
 the CLI's loader exports off `@nielspeter/eess/internal`, so a library entry never links CLI code;
-that was not built. The plan decides which, and its red test must import each published entry under
-plain `bun`, not run a suite.
+that was not built. The plan decides which, and its red test must import each published entry under plain `bun`, not run a suite. _Decided 2026-10-17 by plan 0448: the namespace import alone, a patch; the move off `/internal` is plan 0449._
 
 ## Verification
 
-- [ ] Red first: a plain-`bun` import of each published entry fails on the current build
-- [ ] Green: every published entry loads under plain `bun`, the list derived from each package's
+- [x] Red first: a plain-`bun` import of each published entry fails on the current build — the
+      guard on `main`'s build, macOS, Bun 1.4.3: 21 entries with this message, `eess-ts/cli` with the
+      same link error, and both bins (22 of 28 entries)
+- [x] Green: every published entry loads under plain `bun`, the list derived from each package's
       `exports`; an entry that runs a command when imported (`eess-ts/cli`) counts as loaded when
-      its error is the command's own, not a link error
-- [ ] Published, and the adopter told the version numbers
+      its error is the command's own, not a link error — 28 entries and 2 bins, locally and in CI on
+      Linux (plan 0448)
+- [ ] `validation-owed` Published, and the adopter told the version numbers — needs the maintainer's
+      fresh yes for the release; done when the tagged commit's CI, `bun-load` included, is green,
+      the release carrying this fix's changeset is published, and the adopter has the versions (eess 0.7.1 is enough for an adopter on eess-md 0.10.x; plan 0448's Release)
 
 Deferred: none

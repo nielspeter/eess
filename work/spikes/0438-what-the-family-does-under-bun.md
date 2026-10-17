@@ -37,7 +37,7 @@ In a private copy of the built packages, replacing that one import with a namesp
 (`import * as nodeModule from 'node:module'`, then `nodeModule.registerHooks(...)` at the one call
 site) made **all 28 entries load**. `@nielspeter/eess-ts/cli` runs the CLI when imported and exits
 non-zero with "No command specified", the same under Node. Recorded as
-[bug 0439](../bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md).
+[bug 0439](../bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md).
 
 **2. Yes, by the counts compared.** One script, run under both runtimes against the patched copy,
 from the repository root at 65b9ce44. It compares one summary per call (a count, or that a value
