@@ -1,5 +1,71 @@
 # @nielspeter/eess-mermaid
 
+## 0.8.0
+
+### Minor Changes
+
+- cc215fe: `diagramKind` reads past a `%%{init}%%` directive closed mid-line
+
+  **Breaking (@nielspeter/eess-mermaid, @nielspeter/eess-crossvalidate):** a build that was green can go
+  red with no change of yours. The change is in eess-mermaid, and eess-crossvalidate's selection runs on
+  it, so upgrading eess-mermaid alone is enough to see it.
+
+  Fixes [bug 0429](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md).
+  A directive line that went on after its `}%%` — `%%{init: {"theme": "dark"}}%% %% note`, or the
+  diagram's kind on the same line — was read as a directive still open, so `diagramKind` returned `''`.
+  It now closes at the first `}%%`, as Mermaid's own parser does, and reads the rest of the line.
+
+  In eess-crossvalidate, both Mermaid bindings select by `diagramKind`:
+  - `tableErAgree` (`./md-mermaid-er`) now selects an `erDiagram` behind such a line, where it used to
+    skip it without a word. Behind a one-line directive ended by a comment, or two directives on one
+    line, it is compared, so drift it now sees goes red. With the kind on the directive's own line, or
+    behind a multi-line directive, eess-mermaid's ER grammar does not parse it, so it is reported as a
+    gap in that grammar rather than compared; put the directive and `erDiagram` on lines of their own
+    to have it compared (the one-line case is bug 0433).
+  - `embeddedDiagramsMatchCode` (`./md-mermaid`) now skips a sequence or other non-class diagram behind
+    such a line, instead of reading it as a class diagram and reporting it.
+
+- 65b9ce4: `mermaidParser()`: Mermaid's own parser for eess-md's `parseCodeBlocks` (plan 0413), so a corpus
+  can say "every ` ```mermaid ` block parses" by the parser GitHub renders with.
+
+  ```ts
+  const parsed = await parseCodeBlocks(corpus, { language: 'mermaid', parser: mermaidParser() })
+  codeBlocks(parsed).should().parse().check()
+  ```
+
+  - `mermaid` (11) and `jsdom` are new **optional** peers, loaded only inside a worker thread, so the
+    host process never gets DOM globals. An adopter who never calls `mermaidParser()` installs and
+    loads neither. Install: `npm i -D mermaid@11 jsdom` (about 179 MB).
+  - A syntax error is reported on the block's Markdown line, mapped back through frontmatter,
+    directives and comments; a block with a trailing `%%` comment claims no line. A misspelt or
+    plugin kind, an empty block, a block with no kind after its preamble and an unclosed directive
+    are `unrecognised`, each with its own remedy.
+  - YAML that does not parse is `invalid`: on its line in the frontmatter, with no line in a node's
+    `@{ … }` data.
+  - A missing or out-of-range `mermaid`, a `package.json` with no readable version, a missing
+    `jsdom` or dependency, a loader hook that loads a different `mermaid`, a worker that exits or
+    hangs, and a throw that is not a syntax error are each
+    one instrument finding naming its cause and how to clear it. A line canary reds when an installed
+    `mermaid` stops agreeing with the line map, which is written for 11.17.2.
+
+  Additive: nothing existing changes. eess-crossvalidate gains tests only.
+
+### Patch Changes
+
+- a7420c2: The family loads under Bun again
+
+  Fixes [bug 0439](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md).
+  From eess 0.5.1 on, importing most entries under Bun failed at link time with
+  `SyntaxError: Export named 'registerHooks' not found in module 'node:module'`, including eess-md's
+  `corpus()`, which has nothing to do with the CLI: the kernel imported `registerHooks` by name for the
+  CLI's resolve hook, and Bun's `node:module` has no such export. The kernel now imports `node:module`
+  as a namespace. All 28 published entries and both CLIs load under Bun 1.4.3, and CI checks that on
+  every change (plan 0448). This is a load guard, not a claim: no package claims Bun support yet
+  (ADR-020), and Node stays every package's runtime.
+
+- Updated dependencies [a7420c2]
+  - @nielspeter/eess@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

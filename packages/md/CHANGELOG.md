@@ -1,5 +1,44 @@
 # @nielspeter/eess-md
 
+## 0.11.0
+
+### Minor Changes
+
+- ec60dd4: `parseCodeBlocks` reads a code block's language tag in any letter case
+
+  **Breaking (@nielspeter/eess-md) — a block that was only disclosed is now checked, and an export is
+  gone.** Fixes [bug 0426](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
+  under [ADR-019](https://github.com/nielspeter/eess/blob/main/adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md).
+
+  A fence tagged ` ```Mermaid ` or ` ```MERMAID ` is now read as `mermaid`, as eess-crossvalidate
+  already read it. Nothing else in the tag is normalised: ` ```mmd ` is not `mermaid`, and
+  ` ```json5 ` is not `json`. The caller's side is folded too, so `language: 'JSON'` selects
+  ` ```json ` blocks; `ParsedCodeBlocks.language` and `summary()` keep the caller's spelling.
+
+  What changes for you:
+  - A block whose tag differed only in letter case used to be skipped and named in `summary()` or the
+    zero-examined finding as a near miss. It is now parsed, so a green build can go red on it.
+  - A rule that declared `.expectEmpty()` because its corpus's only blocks were capitalised now has
+    blocks, and the declaration is reported as expired. Remove it.
+  - `NearMissTag` and `ParsedCodeBlocks.nearMisses` are removed, with the near-miss text in
+    `summary()` and in the zero-examined finding.
+
+### Patch Changes
+
+- a7420c2: The family loads under Bun again
+
+  Fixes [bug 0439](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md).
+  From eess 0.5.1 on, importing most entries under Bun failed at link time with
+  `SyntaxError: Export named 'registerHooks' not found in module 'node:module'`, including eess-md's
+  `corpus()`, which has nothing to do with the CLI: the kernel imported `registerHooks` by name for the
+  CLI's resolve hook, and Bun's `node:module` has no such export. The kernel now imports `node:module`
+  as a namespace. All 28 published entries and both CLIs load under Bun 1.4.3, and CI checks that on
+  every change (plan 0448). This is a load guard, not a claim: no package claims Bun support yet
+  (ADR-020), and Node stays every package's runtime.
+
+- Updated dependencies [a7420c2]
+  - @nielspeter/eess@0.7.1
+
 ## 0.10.0
 
 ### Minor Changes
