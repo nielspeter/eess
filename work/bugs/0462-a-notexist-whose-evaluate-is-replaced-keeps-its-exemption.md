@@ -26,8 +26,10 @@ replaced. All five `notExist` copies (four in eess-ts, one in eess-mermaid) shar
 
 ## Fix
 
-Freeze a condition when it is marked, so the exempt object cannot change. Plan 0456's kernel
-`notExist` is frozen; the five existing copies are fixed here or by their migration onto it.
+Freeze a condition when it is marked (`marksAssertsCardinality`), so no exempt object can change; this
+fixes all five copies at once. Planned in [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md)
+(coordinator's decision after its second review, 2026-10-18: nothing in `packages/*/src` mutates a
+marked condition, so it ships as a kernel minor without a break marker).
 
 ## Verification
 

@@ -73,7 +73,11 @@ export function uniqueByCondition<T>(opts: UniqueByOptions<T>): Condition<T> {
         for (const [i, e] of group.entries()) {
           const others = group.filter((_, j) => j !== i).map((o) => opts.locate(o).at)
           const tail = opts.why === undefined ? '' : `; ${opts.why}`
-          const msg = `${opts.locate(e).name} has the same ${opts.what} as ${String(others.length)} other${others.length === 1 ? '' : 's'}: ${others.join(', ')}${tail}`
+          // At most LISTED locations, then "+N more": a group of k members gives k findings,
+          // and listing all k-1 others in each would be k² text for a large group.
+          const listed = others.slice(0, LISTED).join(', ')
+          const more = others.length > LISTED ? ` and ${String(others.length - LISTED)} more` : ''
+          const msg = `${opts.locate(e).name} has the same ${opts.what} as ${String(others.length)} other${others.length === 1 ? '' : 's'}: ${listed}${more}${tail}`
           out.push(opts.toViolation(e, msg, ctx))
         }
       }
@@ -95,6 +99,9 @@ Decisions, each overrulable:
   group.
 - **The denominator is values, not documents.** One element yields one key, so `examined` is the
   number of values compared.
+- **At most ten other locations per message** (`LISTED = 10`), then "and N more". Every member is
+  still a finding at its own line; only the list inside each message is capped (architect, round
+  two, 0459 minor).
 - **A key is a string, never `undefined`.** An element without a value is removed with `.that()`
   first; a key function that may return nothing would let a broken key shrink the comparison.
 - **Not cardinality-exempt.** Zero elements is the kernel's ordinary zero-examined finding. One
@@ -135,27 +142,32 @@ const haveUniqueTitles = (): Condition<GherkinScenario> =>
   uniqueByCondition({
     key: (s) => `${s.relPath}\0${s.title}`,
     locate: (s) => ({ name: `${s.relPath} › ${s.title}`, at: `${s.relPath}:${String(s.line)}` }),
-    what: 'title within its feature file',
-    why: 'ambiguous for citation resolution',
+    what: 'title',
+    why: 'titles must be unique within a feature file, or a citation of one is ambiguous',
     toViolation: scenarioViolation,
   })
 ```
 
 `scenarioViolation` replaces the inline spread at `builder.ts:29-39`, so gherkin's conditions keep
-one constructor.
+one constructor. Its `element` becomes `<relPath>:<line> › <title>`: with the line in it, every
+member of a group has its own element, so one `.excluding('a.feature › Login')` no longer hides the
+whole group (enforcement, round two m14). That is a visible change, listed in the break below.
 
 **A break for eess-gherkin, accepted by the maintainer 2026-10-18.** What changes:
 
 - the first occurrence is now reported too, so a duplicate pair gives two findings, not one;
 - the message changes from `duplicate scenario title "X" (first at line N) — ambiguous for
-citation resolution` to `<relPath> › X has the same title within its feature file as 1 other:
-<relPath>:N; ambiguous for citation resolution`;
+citation resolution` to `<relPath> › X has the same title as 1 other: <relPath>:N; titles must be
+unique within a feature file, or a citation of one is ambiguous`;
+- the finding's `element` gains the line (`<relPath>:<line> › <title>`), so an `.excluding()`
+  pattern or a baseline entry written against the old element no longer matches;
 - a waiver on the second occurrence used to hide the pair entirely; now the first occurrence still
   reds (product, Important 5).
 
 Migration line, in the changeset: "`haveUniqueTitles` now reports every member of a duplicate
-group, each naming the others. Update tests or baselines keyed on the old message or count. A
-waiver on one occurrence no longer hides the pair: rename the scenario." Measured: no workspace
+group, each naming the others, and its element carries the line. Update tests, baselines and
+`.excluding()` patterns keyed on the old message, count or element. A waiver on one occurrence no
+longer hides the pair: rename the scenario." Measured: no workspace
 package lists eess-gherkin in `dependencies` (eess-crossvalidate has it as a peer), so
 `release/break-names-dependents` names nobody.
 
@@ -236,7 +248,7 @@ All in one pull request.
 | `packages/gherkin/src/builder.ts`             | `haveUniqueTitles` on `uniqueByCondition`     |
 | `packages/gherkin/tests/*.test.ts`            | new count, message and rows                   |
 | `scripts/check-corpus.mjs`                    | `corpus/record-number-unique`, count line     |
-| `scripts/check-nonvacuity.mjs`                | one `gateCorpusProbe` row                     |
+| `scripts/check-nonvacuity.mjs`                | `gateCorpusProbeDir`; two rows                |
 | `.changeset/*.md`                             | kernel minor, md minor, gherkin minor (break) |
 
 ## Test inventory
@@ -255,6 +267,7 @@ Every test drives the public entry point and the terminal (`.violations()`/`.che
   `bypassFilters`, not by a count (testing, 0456-M2);
 - a throwing key propagates;
 - `why` is appended when given and absent when not;
+- a group of twelve lists ten other locations and "and 1 more" in each of its twelve findings;
 - the condition is frozen (assigning `evaluate` throws).
 
 **eess-md** (`docs-unique-by.test.ts`), over `corpus()` on a fixture directory: a duplicate names
@@ -265,6 +278,8 @@ both documents by `relPath`; distinct values are green.
 - a duplicate pair in one feature file gives two findings, each at its own line;
 - the same title in two different feature files is green (pins the per-file key; testing,
   0456-I5);
+- `.excluding('<relPath>:<line> › <title>')` for one member hides that member only; the other
+  member of the pair still reds;
 - `waiver-in-doc-string.test.ts` keeps its original point: a waiver inside a doc string does not
   suppress, asserted on the line of the member it targets.
 
@@ -276,12 +291,24 @@ both documents by `relPath`; distinct values are green.
 4. It trims keys: the `'7'`/`'7 '` test reds.
 5. gherkin's key drops `relPath`: the two-files test reds.
 6. `recordNumber` returns the same value for every record: `check:corpus` reds on this repository.
+7. `uniqueByCondition` is wrapped in `marksAssertsCardinality`: the zero-elements test reds, because
+   the rule would pass on an empty selection (testing, round two M10).
+8. The location list is not capped: the twelve-member test's length assertion reds.
 
-**Non-vacuity**: one row in `scripts/check-nonvacuity.mjs` through `gateCorpusProbe`
-(`scripts/check-nonvacuity.mjs:1260`), which runs the real `scripts/check-corpus.mjs` in json and
-terminal modes. The probe is `work/__nonvacuity_probe_dup__/0001-dup.md`, which reuses an
-existing number; the row requires exit 1 in both modes and `firedOn` the rule id and the probe's
-path (enforcement I2, testing 0456-I3).
+**Non-vacuity**: two rows in `scripts/check-nonvacuity.mjs`, each running the real
+`scripts/check-corpus.mjs` in json and terminal modes, as `gateCorpusProbe`
+(`scripts/check-nonvacuity.mjs:1260`) does. `gateCorpusProbe` writes its probe with `withProbe`,
+which does not create a directory (`:537-543`), so the rows use a `gateCorpusProbeDir` variant over
+`withProbeDir` (`:554`), which creates and removes the probe folder (testing, round two M8):
+
+- `work/__nonvacuity_probe_dup__/0001-dup.md` reuses the directory-form record's number
+  (`work/spikes/0001-eess-over-ts-archunit/README.md`);
+- `work/__nonvacuity_probe_dup__/0439-dup.md` reuses a flat record's number
+  (`work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md`).
+
+Each requires exit 1 in both modes and `firedOn` the rule id at both members' paths, the probe and
+the real record, so a key that collides the probe only with itself cannot pass (enforcement, round
+two m15; testing, round two M9).
 
 ## Release
 
@@ -321,15 +348,33 @@ These findings were made against plan 0456 before the split; they apply here.
 - **architect M8 / method minor** (a key that throws; `ts` fence on `.mjs`): a non-throwing key;
   fenced `js`.
 
+### Round two
+
+- **architect 0459 minor** (quadratic location lists): capped at ten per message, with a test and a
+  sabotage row.
+- **product 0459 minor 1** (`what` reads awkwardly in gherkin's message): `what: 'title'`, with the
+  scope in `why`.
+- **enforcement m14** (one `.excluding()` hides a whole gherkin group): the element carries the
+  line; a test pins that an exclusion hides one member only; the change is listed in the break and
+  its migration line.
+- **enforcement m15 / testing M9** (`firedOn` names only the probe; the only `0001` is
+  directory-form): two probes, a directory-form and a flat collision, each asserting both paths.
+- **testing M8** (`withProbe` cannot create the probe's folder): a `gateCorpusProbeDir` over
+  `withProbeDir`.
+- **testing M10** (no sabotage for "not cardinality-exempt"): row 7.
+- **method m10** (the Close box repeats 017's row, already `Accepted`): dropped.
+- **coordinator decision 3** (freeze at marking): unchanged here; `uniqueByCondition` is not marked,
+  so it freezes itself, as before.
+
 ## Progress ledger
 
 - [ ] Phase 1: `uniqueByCondition` with its kernel tests
 - [ ] Phase 2: `docs().beUniqueBy()`, README, the example
 - [ ] Phase 3: gherkin rebuilt, break declared with its migration line
 - [ ] Phase 4: `corpus/record-number-unique` with its count line and non-vacuity row
-- [ ] Sabotage rows 1–6, each red on its named test; durations reported
+- [ ] Sabotage rows 1–8, each red on its named test; durations reported
 - [ ] `check:family`, `check:release`, `check:docs-code`, `check:examples` and `npm run validate`
       green; durations reported
-- [ ] Close: this plan → `completed/`; proposal 017's block-13 row; boards
+- [ ] Close: this plan → `completed/`; boards
 
 Deferred: none

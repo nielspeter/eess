@@ -17,13 +17,19 @@ whose condition asserts cardinality (`notExist`) before it consults the dead-glo
 passes, where the same selector on a positive rule reds with
 "examined zero units".
 
-Measured by PR #235's enforcement review on main's build, over a corpus holding `guides/a.md`, with
+Measured by PR #235's enforcement review on main's build (an agent's spike, not yet a red test), over a corpus holding `guides/a.md`, with
 a cardinality-marked condition on eess-md's `docs()`:
 
 | glob        | cardinality rule               | positive rule (`haveSection`)     |
 | ----------- | ------------------------------ | --------------------------------- |
 | `guides/**` | 1 finding, examined 1          | 1 finding                         |
 | `gudies/**` | 0 findings, examined 0 → green | 1 finding ("examined zero units") |
+
+**What the fix does not change.** The `gudies/**` row above names nothing in the repository, and under
+bug 0355's ruling that cannot be told from a ratchet that holds (a deleted folder), so it stays green
+after the fix. It is caught only where the folder is the corpus's root: then the corpus is empty, and
+an empty corpus is a finding (plan 0456). What the fix closes is a glob whose fault is decidable: a
+rooted `/` glob, or one naming Markdown the repository holds that the corpus never loaded.
 
 eess-ts closed the same class in its own dialect, with a disk discriminator (bug 0355) and a
 syntactic clause (bug 0362). The kernel has neither, and eess-md has no cardinality condition yet,
@@ -42,8 +48,8 @@ Planned in [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md).
 
 ## Verification
 
-- [ ] Red first: a cardinality rule over `./guides/**` (a fault in the glob text) passes today
-- [ ] Red first: a cardinality rule over a folder holding Markdown the corpus did not load passes today
+- [ ] Red first, measured at build: a cardinality rule over a rooted `/guides/**` glob passes today
+- [ ] Red first, measured at build: a cardinality rule over a folder holding Markdown the corpus did not load passes today
 - [ ] Green: both red, naming the glob; a glob naming no file in the repository stays green, pinned
 - [ ] Green: a corpus rooted at a mistyped folder loads nothing and reds as an empty source
 

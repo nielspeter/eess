@@ -3,17 +3,18 @@
 ## Status
 
 - **State:** Draft — written 2026-10-17 from proposal 017's second Review, decision 3; reworked
-  2026-10-18 after PR #235's five reviews (see "Review response").
+  twice on 2026-10-18 after PR #235's two review rounds (see "Review response").
 - **Implements:** proposal 017
 - **Priority:** Medium. It builds first. The build order, decided by the maintainer on 2026-10-18,
   is 0458 → 0456 → 0454 → 0457 → 0455 → 0459. Each block plan adds its example under this gate,
   so none of them has to create the gate during its own build.
 - **Builds after:** nothing.
-- **Effort:** Small to medium. It adds:
-  - three arch rules over one new folder;
+- **Effort:** Medium. It adds:
+  - four arch rules over one new folder (rule 1 in two halves, rules 2 and 3);
   - a fixture helper;
-  - one seed example with two fixtures;
-  - one non-vacuity row that discovers every example and swaps its fixtures both ways;
+  - one seed example with a clean fixture and one violating fixture;
+  - four non-vacuity rows: three over the arch rules, and one that discovers every example and
+    swaps each of its fixtures both ways;
   - a docs section.
 
   No package source changes.
@@ -72,20 +73,38 @@ exclusions. The rest of `examples/` is untouched. Two reasons for a folder rathe
 Plans 0456, 0454, 0457, 0455 and 0459 follow it.
 
 - **The file.** `examples/md/<name>.test.ts` states one judgement or a few related ones. It is built
-  from `@nielspeter/eess-md`'s root and nothing else from the family (rule 1).
-- **The fixtures.** `examples/md/fixtures/<name>/clean/` and `examples/md/fixtures/<name>/violating/`,
-  each non-empty, read through the shared helper `examples/md/fixture.ts`:
-  `fixture(name, 'clean' | 'violating')`. An example on a text corpus (plan 0455's
-  `corpusFromText`) keeps its documents as files in the same two folders and reads them in through
-  the helper, so every example is swapped the same way.
-- **The tests.**
-  - The clean test is titled `clean: …`. It asserts zero violations and `examined > 0`.
-  - The violating test is titled `violating: …`. It asserts the finding's identity: its `file` is
-    the violating document, its message is exact, and it is not a configuration finding
-    (`bypassFilters` unset).
-  - The swap row identifies the two tests by those title prefixes.
+  from `@nielspeter/eess-md`'s root and the fixture helper, and nothing else (rule 1).
+- **The fixtures: one folder per judgement.** `examples/md/fixtures/<name>/clean/`, plus one
+  `examples/md/fixtures/<name>/violating-<judgement>/` per judgement the example states (for example
+  `violating-unclaimed/` and `violating-double/` for plan 0456's two block-6 judgements). Each folder
+  is non-empty. `<judgement>` is kebab-case. Every folder is read through the shared helper
+  `examples/md/fixture.ts`:
+  - `fixture(name, kind)` returns the folder's path;
+  - `fixtureFiles(name, kind)` returns its files as `{ relPath: text }`, for an example on a text
+    corpus (plan 0455's `corpusFromText`).
+
+  `kind` is `'clean'` or `` `violating-${string}` ``. So an example on a text corpus keeps its
+  documents as files in the same folders, and every example is swapped the same way.
+
+- **The tests.** Each file has at least one test of each kind.
+  - Each `clean: …` test asserts zero violations, and proves its fixture holds a population:
+    - **For a positive rule** (one that must find something on every selected element), it asserts
+      `examined > 0`.
+    - **For a cardinality rule** (`notExist()`), `examined` is the selection's size
+      (`packages/core/src/rule-builder.ts:379-381`). A clean fixture selects nothing, so `examined`
+      is 0 by construction. The clean test instead proves the population through the same corpus
+      selected one step wider: the same builder without the rule's narrowing predicate (or scope),
+      read through `.select({ label, identify })` (`core/src/rule-builder.ts:195`), is non-empty. That shows
+      the clean fixture holds the elements the narrowing must exclude, so the green is not an empty
+      fixture's. For example, plan 0454's clean fixture holds closed records whose boxes are all
+      done, and `taskItems(c).select(…)` is non-empty.
+  - Each `violating-<judgement>: …` test reads `fixture(name, 'violating-<judgement>')`. It asserts
+    the finding's identity: its `file` is the violating document, its message is exact, and it is
+    not a configuration finding (`bypassFilters` unset).
+  - The swap row matches tests to folders by these title prefixes. A `violating-<judgement>/` folder
+    with no test of that prefix, or a test with no folder, is a finding.
 - **No per-example row.** Registration in `check:nonvacuity` is this plan's one discovering row, so a
-  block plan adds an example and its fixture pair and nothing to the harness. That is this plan's
+  block plan adds an example and its fixture folders and nothing to the harness. That is this plan's
   reading of decision 3's "registered in `check:nonvacuity`", stated here as a reading.
 - **Exports.** A block plan exports any predicate, combinator or condition its own example needs, in
   that same plan. Nothing an example needs may arrive in a later plan.
@@ -98,34 +117,49 @@ Plans 0456, 0454, 0457, 0455 and 0459 follow it.
 
 ### Rule 1, `eess/examples-md-public-blocks-only` (in `arch.rules.ts`)
 
-The modules under `examples/md/` import only from `@nielspeter/eess-md`, `vitest`, `node:**` and
-each other.
+The examples import only from `@nielspeter/eess-md`, `vitest` and each other. Only the fixture
+helper may also import Node's own modules, which it needs to resolve and read folders. It is one rule
+id over two selections, so an example cannot make its judgement with `node:fs` and a regex and then
+`expect` the result without using any block.
 
 ```ts
 const ex = project('examples/tsconfig.json')
+const because =
+  'a document-shape example proves the blocks are enough (proposal 017, decision 3); ' +
+  'a kernel, dialect-internal, subpath or package-source import is a block eess-md does not offer'
 
 modules(ex)
   .that()
   .resideInFolder('**/examples/md/**')
+  .and()
+  .not()
+  .resideInFile('**/examples/md/fixture.ts')
   .should()
-  .onlyImportFrom('@nielspeter/eess-md', 'vitest', 'node:**', '**/examples/md/**')
-  .rule({
-    id: 'eess/examples-md-public-blocks-only',
-    because:
-      'a document-shape example proves the blocks are enough (proposal 017, decision 3); ' +
-      'a kernel, dialect-internal, subpath or package-source import is a block eess-md does not offer',
-  })
+  .onlyImportFrom('@nielspeter/eess-md', 'vitest', '**/examples/md/fixture.ts')
+  .rule({ id: 'eess/examples-md-public-blocks-only', because })
+
+modules(ex)
+  .that()
+  .resideInFile('**/examples/md/fixture.ts')
+  .should()
+  .onlyImportFrom('node:**')
+  .rule({ id: 'eess/examples-md-public-blocks-only', because })
 ```
+
+The exact negation spelling on eess-ts's `modules()` is read from the code at build time; the sketch
+names the two selections.
 
 It is an allowlist, not a denylist. It shuts out:
 
 - `@nielspeter/eess/internal` and `@nielspeter/eess-md/internal`;
 - the `rules/*` subpaths;
 - the kernel root;
-- a relative import into `packages/*/src`.
+- a relative import into `packages/*/src`;
+- `node:*` from any example file.
 
-`node:**` rather than `node:*`, because picomatch's `*` stops at `/` and would red
-`node:fs/promises`.
+The helper's `node:**`, rather than `node:*`, is there because picomatch's `*` stops at `/`, so
+`node:*` would red `node:fs/promises`. That is picomatch's documented `*` semantics. A quiet row
+pins it at build time on main's build, and this plan does not claim to have measured it.
 
 `onlyImportFrom` matches a bare specifier as well as the resolved path (`candidatesFor`,
 `packages/ts/src/core/import-candidates.ts:60-81`). So `@nielspeter/eess-md` names the root
@@ -163,8 +197,15 @@ reports any of the following in `examples/md/`:
   - a `NoSubstitutionTemplateLiteral`;
   - a `ComputedPropertyName` around one of those.
 
-  Quotes, backticks and brackets are stripped before the name is compared. So `{ 'test': f }`,
-  `{ ["evaluate"]: f }` and `{ get test() {…} }` are all caught.
+  The name node is chosen by kind, never by position. A `get`/`set` keyword, an `async` modifier
+  and a generator's `*` all come before the name, so a positional `getChildren()[0]` would read
+  them instead. Quotes, backticks and brackets are stripped before the name is compared. So all of
+  these are caught:
+  - `{ 'test': f }`;
+  - `{ ["evaluate"]: f }`;
+  - `{ get test() {…} }`;
+  - `{ async test() {…} }`;
+  - `{ *evaluate() {…} }`.
 
 - **An assignment to a member named `test` or `evaluate`**: `p.test = …` and `p['evaluate'] = …`.
 - **Any class declaration or class expression.** That also covers extending the re-exported
@@ -185,11 +226,20 @@ const NAME_KINDS = new Set([
   'GetAccessor',
   'SetAccessor',
 ])
+const NAME_NODE_KINDS = new Set([
+  'Identifier',
+  'StringLiteral',
+  'NoSubstitutionTemplateLiteral',
+  'ComputedPropertyName',
+])
 const RULE_MEMBER = /^(test|evaluate)$/
 
-/** A member's name as written, quotes, backticks and computed brackets stripped. */
+/**
+ * A member's name as written, quotes, backticks and computed brackets stripped.
+ * The name child is found by KIND: `get`, `set`, `async` and `*` precede it.
+ */
 function memberName(member: Node): string {
-  const nameNode = member.getChildren()[0]
+  const nameNode = member.getChildren().find((c) => NAME_NODE_KINDS.has(c.getKindName()))
   const raw =
     nameNode?.getKindName() === 'ComputedPropertyName'
       ? (nameNode.getChildren()[1]?.getText() ?? '')
@@ -226,10 +276,17 @@ is itself a predicate or condition is not.
 
 ### Rule 3, `eess/examples-md-no-rule-constructors`
 
-Any identifier `definePredicate`, `defineCondition` or `createRequire` in `examples/md/` is reported,
-whatever its import. This is decision 3's ban by name. It holds even if eess-md's root one day
-re-exports the two constructors, and it holds after rule 1 widens. `createRequire` is on the list
-because it would load a module rule 1 cannot see.
+Any of these identifiers anywhere in `examples/md/` is reported, whatever its import. This is
+decision 3's ban by name.
+
+- `definePredicate`, `defineCondition`: the rule constructors.
+- `createRequire`: it would load a module rule 1 cannot see.
+- `collectResult`, `mergeCollectResults`, `finishPreset`, `dispatchRule`: the verdict-assembly
+  seams. md's root re-exports them (`packages/md/src/index.ts:25-35`, `:57`, read 2026-10-18), and
+  with them an example could build a verdict by hand with no `test`/`evaluate` member at all.
+
+The ban holds even if eess-md's root one day re-exports the two constructors, and it holds after
+rule 1 widens.
 
 ### What the rules do not catch
 
@@ -238,21 +295,27 @@ than claiming it. The known evasions are:
 
 - a predicate assembled through `Object.fromEntries`, `Object.assign`, `Object.defineProperty`,
   `Reflect.set`, or a key built by string concatenation;
-- a "violating fixture per judgement". The gate sees example files and fixture folders, not how many
-  judgements a test states, so one example with three judgements and one violating folder passes it.
+- a banned name reached under an alias. `import * as md` and then `md['collect' + 'Result']`, for
+  instance, never spells the identifier;
+- a single `violating-<judgement>:` test that asserts two judgements on one folder. The gate pairs a
+  folder with a test, not a test with how many judgements it states.
 
-### Neither rule can be green on an empty folder
+### No rule can be green on an empty folder
 
-All three rules select modules under `examples/md/`. With no module there they examine nothing,
-which is ADR-010's finding; none of them is cardinality-shaped. So this plan ships one example,
-which also gives the later plans a template to copy.
+All three rules select modules under `examples/md/`. With no module there, they examine nothing,
+which is ADR-010's finding; none of them is cardinality-shaped. `examples/md/fixture.ts` is itself
+a module in the folder, so with every example removed the rules still examine one module and stay
+green. The empty-folder sabotage row therefore expects the load-bearing row's zero check to red,
+not the arch rules. This plan ships one example, which also gives the later plans a template to
+copy.
 
 ### The seed example
 
 `examples/md/a-page-has-a-required-section.test.ts`: "every page under `guides/` has a
 `Prerequisites` section", one rule in the caller's words. It uses only `docs()` builder methods that
 exist on the md root today (`resideInFolder`, `haveSection`, `packages/md/src/builders/docs.ts:30`,
-`:45`), so it does not depend on any later plan.
+`:45`), so it does not depend on any later plan. It is a positive rule, so its clean test asserts
+`examined > 0`. It states one judgement, so it has one `violating-missing-section/` folder.
 
 ```ts
 import { corpus, docs } from '@nielspeter/eess-md'
@@ -273,8 +336,10 @@ describe('a page has a required section', () => {
     expect(v).toHaveLength(0)
     expect(v.examined).toBeGreaterThan(0)
   })
-  it('violating: a guide without the section is reported', () => {
-    const v = rule(fixture('a-page-has-a-required-section', 'violating')).violations()
+  it('violating-missing-section: a guide without the section is reported', () => {
+    const v = rule(
+      fixture('a-page-has-a-required-section', 'violating-missing-section'),
+    ).violations()
     expect(
       v.map((x) => [x.file.endsWith('guides/install.md'), x.message, x.bypassFilters]),
     ).toEqual([[true, 'missing section "Prerequisites"', undefined]])
@@ -282,20 +347,25 @@ describe('a page has a required section', () => {
 })
 ```
 
-The message is `structure.ts:17`'s (`missing section "${name}"`). The exact `corpus()` options and
-the `examined` accessor are read from the code at build time.
+The message is `structure.ts:18`'s (`missing section "${name}"`). The `corpus()` options are
+`cwd` and the required `roots` (`packages/md/src/corpus.ts:12-37`). The `examined` accessor is read
+from the code at build time.
 
 ### The fixture helper and the swap
 
 `examples/md/fixture.ts` resolves `fixtures/<name>/<kind>`. It honours one test-only environment
-variable, `EESS_EXAMPLE_SWAP`:
+variable, `EESS_EXAMPLE_SWAP=<from>=<to>`, where each side is `clean` or a `violating-<judgement>`
+folder:
 
-- `violating=clean` makes a request for the violating fixture return the clean one;
-- `clean=violating` does the reverse.
+- `violating-<j>=clean` makes a request for that judgement's fixture return the clean one;
+- `clean=violating-<j>` makes a request for the clean fixture return that judgement's fixture.
 
 No file is written, moved or deleted, so a killed run leaves nothing behind. That is the hazard
 `withProbe`'s `rmSync` (`scripts/check-nonvacuity.mjs:537`) and `withRewrittenFile` (`:613`) would
-otherwise carry for a tracked fixture. Rule 1 allows the helper, since it imports only `node:**`.
+otherwise carry for a tracked fixture. The helper is the one module rule 1 lets import `node:**`.
+
+The hook serves this repository's harness. `examples/README.md` says so in one line: outside this
+repository, pass the fixture's path yourself, and a copied example needs no helper.
 
 ### `check:examples` runs the folder
 
@@ -314,20 +384,33 @@ unrun templates is untouched.
   same mechanism, one probe per spelling in the inventory. A quiet probe that uses only `docs()` and
   `corpus()` must stay green under all three rules.
 - **`examples/md-fixtures-are-load-bearing`.** It runs in this order:
-  1. Discover every `examples/md/<name>.test.ts`, the probes excepted.
-  2. Fail if there are none.
-  3. A missing or empty `clean/` or `violating/` folder is a finding naming the example.
-  4. For each example, run that one file with `vitest run --reporter=json`, three times:
-     - **unswapped:** both tests pass;
-     - **`EESS_EXAMPLE_SWAP=violating=clean`:** the `violating:` test fails and the `clean:` test
-       passes;
-     - **`EESS_EXAMPLE_SWAP=clean=violating`:** the `clean:` test fails and the `violating:` test
-       passes.
+  1. Discover every `examples/md/<name>.test.ts`, the probes excepted, and its `violating-*/`
+     folders.
+  2. Fail if there are no examples.
+  3. Each of these is a finding naming the example:
+     - a missing or empty `clean/`;
+     - no `violating-*/` folder;
+     - an empty `violating-*/` folder;
+     - a `violating-<j>/` folder with no `violating-<j>:` test;
+     - a `violating-<j>:` test with no folder;
+     - a file with no `clean:` test.
+  4. For each example, run that one file with `vitest run --reporter=json`, `1 + 2N` times for N
+     judgements:
+     - **unswapped:** every test passes;
+     - **for each judgement `j`, `EESS_EXAMPLE_SWAP=violating-<j>=clean`:** every `violating-<j>:`
+       test fails, and every other test passes;
+     - **for each judgement `j`, `EESS_EXAMPLE_SWAP=clean=violating-<j>`:** at least one `clean:`
+       test fails, and every `violating-*:` test passes.
+
+       The cardinality form's population assertion passes under this swap, because the violating
+       fixture holds elements too. The zero-violations assertion is what fails.
+
   5. Read the outcome per test title from the JSON report, never from the exit code (bug 0109). A
-     compile error, a thrown corpus load or a missing path fails the row with what happened, not as
-     a pass.
-  6. The row requires `swapped === discovered > 0`, prints that denominator, and prints its own
-     time, which grows with every example.
+     syntax error, a thrown corpus load or a missing path fails the row with what happened, not as
+     a pass. vitest strips types and does not type-check, so a type error is caught by
+     `check:examples`' `tsc` step, not by this row.
+  6. The row requires `swapped === discovered > 0`, where `swapped` counts judgements across all
+     examples. It prints that denominator and its own time, which grows with every judgement.
 
 ### The documentation example
 
@@ -346,13 +429,19 @@ a declaration: one changeset, `'@nielspeter/eess-md': none`.
 
 - `examples/md/`;
 - `fixture.ts`;
-- the seed example and its two fixture folders;
+- the seed example, with `clean/` and `violating-missing-section/`;
 - the `include` lines.
 
 `npm run check:examples` runs the seed example green.
 
-**Phase 2: the three arch rules.** `arch.rules.ts` gains `project('examples/tsconfig.json')`, the
-matcher and the three rules. `npm run check:arch` prints its rule count up by three and stays green.
+**Phase 2: the arch rules.** `arch.rules.ts` gains:
+
+- `project('examples/tsconfig.json')`;
+- the matcher;
+- rule 1's two halves;
+- rules 2 and 3.
+
+`npm run check:arch` prints its rule count up by four and stays green.
 
 **Phase 3: non-vacuity.** The four rows in `scripts/check-nonvacuity.mjs`, with
 `GATE_FOR['check:arch']` and `GATE_FOR['check:examples']` extended. Run the four rows by name, not
@@ -367,47 +456,54 @@ the whole harness.
 
 ## Files Changed
 
-| file                                                    | change                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------- |
-| `examples/md/fixture.ts`                                | new: `fixture(name, kind)`, honours `EESS_EXAMPLE_SWAP` |
-| `examples/md/a-page-has-a-required-section.test.ts`     | new                                                     |
-| `examples/md/fixtures/a-page-has-a-required-section/**` | new: `clean/` and `violating/`                          |
-| `examples/tsconfig.json`, `examples/vitest.config.ts`   | include `md/**`                                         |
-| `arch.rules.ts`                                         | the examples project, the matcher, three rules          |
-| `scripts/check-nonvacuity.mjs`                          | four rows; `GATE_FOR` for arch and examples             |
-| `docs/markdown.md`                                      | "A document's shape, built from blocks"                 |
-| `packages/md/README.md`                                 | a link to that section                                  |
-| `examples/README.md`                                    | a third kind of example, and its contract               |
-| `.changeset/*.md`                                       | `'@nielspeter/eess-md': none`                           |
+| file                                                    | change                                                                |
+| ------------------------------------------------------- | --------------------------------------------------------------------- |
+| `examples/md/fixture.ts`                                | new: `fixture` and `fixtureFiles`, honour `EESS_EXAMPLE_SWAP`         |
+| `examples/md/a-page-has-a-required-section.test.ts`     | new                                                                   |
+| `examples/md/fixtures/a-page-has-a-required-section/**` | new: `clean/` and `violating-missing-section/`                        |
+| `examples/tsconfig.json`, `examples/vitest.config.ts`   | include `md/**`                                                       |
+| `arch.rules.ts`                                         | the examples project, the matcher, rule 1 (two halves), rules 2 and 3 |
+| `scripts/check-nonvacuity.mjs`                          | four rows; `GATE_FOR` for arch and examples                           |
+| `docs/markdown.md`                                      | "A document's shape, built from blocks"                               |
+| `packages/md/README.md`                                 | a link to that section                                                |
+| `examples/README.md`                                    | a third kind of example, and its contract                             |
+| `.changeset/*.md`                                       | `'@nielspeter/eess-md': none`                                         |
 
 ## Test inventory
 
-| row                                                                              | what it proves                                                                              |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| seed example, `clean:`                                                           | no violation, examined > 0                                                                  |
-| seed example, `violating:`                                                       | exactly one finding: the violating guide, exact message, not a config finding               |
-| sabotage: import `definePredicate` from `@nielspeter/eess`                       | rule 1 reds on the probe (and rule 3, by name)                                              |
-| sabotage: import `@nielspeter/eess/internal`                                     | rule 1 reds                                                                                 |
-| sabotage: import `@nielspeter/eess-md/internal`                                  | rule 1 reds (the allowlist is exact)                                                        |
-| sabotage: import `@nielspeter/eess-md/rules/ledger`                              | rule 1 reds (presets are not blocks)                                                        |
-| sabotage: relative import of `packages/md/src/model/task-items.js`               | rule 1 reds                                                                                 |
-| quiet: import from `node:fs/promises`                                            | rule 1 stays quiet (`node:**`)                                                              |
-| sabotage: `{ description, test }`                                                | rule 2 reds                                                                                 |
-| sabotage: `{ 'test': f }` (quoted key)                                           | rule 2 reds                                                                                 |
-| sabotage: `{ ['evaluate']: f }` (computed key)                                   | rule 2 reds                                                                                 |
-| sabotage: `{ get test() { … } }`                                                 | rule 2 reds                                                                                 |
-| sabotage: `p.evaluate = …` after construction                                    | rule 2 reds                                                                                 |
-| sabotage: a class extending `RuleBuilder`                                        | rule 2 reds                                                                                 |
-| sabotage: `await import('@nielspeter/eess/internal')`                            | rule 2 reds (dynamic import)                                                                |
-| sabotage: `definePredicate` referenced with no import of it (a global stand-in)  | rule 3 reds, independent of the import graph                                                |
-| sabotage: `createRequire`                                                        | rule 3 reds                                                                                 |
-| quiet: a probe using only `docs()` and `corpus()`                                | all three rules quiet                                                                       |
-| sabotage: `EESS_EXAMPLE_SWAP=violating=clean`                                    | the seed's `violating:` test fails, by title, `clean:` passes                               |
-| sabotage: `EESS_EXAMPLE_SWAP=clean=violating`                                    | the seed's `clean:` test fails, by title, `violating:` passes                               |
-| sabotage: the seed's violating assertion weakened to `toBeGreaterThanOrEqual(0)` | the forward swap stays green, and the row reds naming the example                           |
-| sabotage: an example with no `violating/` folder                                 | the load-bearing row reports it by name                                                     |
-| sabotage: an example that does not compile                                       | the load-bearing row reds with the compile error, not as a pass                             |
-| sabotage: `examples/md/` holds no example                                        | the three arch rules report examining nothing (ADR-010); the load-bearing row fails on zero |
+| row                                                                                         | what it proves                                                                                                |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| seed example, `clean:`                                                                      | no violation, examined > 0 (a positive rule)                                                                  |
+| seed example, `violating-missing-section:`                                                  | exactly one finding: the violating guide, exact message, not a config finding                                 |
+| sabotage: an example imports `definePredicate` from `@nielspeter/eess`                      | rule 1 reds on the probe (and rule 3, by name)                                                                |
+| sabotage: an example imports `@nielspeter/eess/internal`                                    | rule 1 reds                                                                                                   |
+| sabotage: an example imports `@nielspeter/eess-md/internal`                                 | rule 1 reds (the allowlist is exact)                                                                          |
+| sabotage: an example imports `@nielspeter/eess-md/rules/ledger`                             | rule 1 reds (presets are not blocks)                                                                          |
+| sabotage: relative import of `packages/md/src/model/task-items.js`                          | rule 1 reds                                                                                                   |
+| sabotage: an example imports `node:fs`                                                      | rule 1 reds (only the helper may import Node)                                                                 |
+| quiet: the helper imports `node:fs/promises`                                                | rule 1's helper half stays quiet (`node:**`)                                                                  |
+| sabotage: `{ description, test }`                                                           | rule 2 reds                                                                                                   |
+| sabotage: `{ 'test': f }` (quoted key)                                                      | rule 2 reds                                                                                                   |
+| sabotage: `{ ['evaluate']: f }` (computed key)                                              | rule 2 reds                                                                                                   |
+| sabotage: `{ get test() { … } }`                                                            | rule 2 reds                                                                                                   |
+| sabotage: `{ async test() { … } }`                                                          | rule 2 reds (the name child is chosen by kind)                                                                |
+| sabotage: `{ *evaluate() { … } }`                                                           | rule 2 reds                                                                                                   |
+| sabotage: `p.evaluate = …` after construction                                               | rule 2 reds                                                                                                   |
+| sabotage: a class extending `RuleBuilder`                                                   | rule 2 reds                                                                                                   |
+| sabotage: `await import('@nielspeter/eess/internal')`                                       | rule 2 reds (dynamic import)                                                                                  |
+| sabotage: `definePredicate` referenced with no import of it (a global stand-in)             | rule 3 reds, independent of the import graph                                                                  |
+| sabotage: `createRequire`                                                                   | rule 3 reds                                                                                                   |
+| sabotage: an example assembles a verdict with `collectResult`                               | rule 3 reds (verdict-assembly seams)                                                                          |
+| quiet: a probe using only `docs()` and `corpus()`                                           | all three rules quiet                                                                                         |
+| sabotage: `EESS_EXAMPLE_SWAP=violating-missing-section=clean`                               | the seed's `violating-missing-section:` test fails, by title; `clean:` passes                                 |
+| sabotage: `EESS_EXAMPLE_SWAP=clean=violating-missing-section`                               | the seed's `clean:` test fails, by title; the violating test passes                                           |
+| sabotage: the seed's violating assertion weakened to `toBeGreaterThanOrEqual(0)`            | the `violating-missing-section:` test still passes under the forward swap, so the row reds naming the example |
+| sabotage: a probe example with two judgements, one of whose tests reads the other's folder  | that judgement's forward swap leaves its test passing; the row reds naming the judgement                      |
+| sabotage: a `notExist()` probe example whose clean fixture holds documents with no elements | its population assertion (the wider `.select()`) fails unswapped; the row reds naming the example             |
+| sabotage: a `violating-<j>/` folder with no matching test, and a test with no folder        | the row reports each by name                                                                                  |
+| sabotage: an example with no `violating-*/` folder, and one with no `clean:` test           | the row reports each by name                                                                                  |
+| sabotage: an example with a syntax error                                                    | the row reds with the error, not as a pass (a type error is `check:examples`' `tsc`)                          |
+| sabotage: `examples/md/` holds no example (`fixture.ts` remains)                            | the load-bearing row fails on zero; the arch rules stay green examining `fixture.ts`                          |
 
 ## Out of scope
 
@@ -467,10 +563,42 @@ Each Critical and Important finding from PR #235's reviews, and what changed.
   - corrected: 1,468 lines (not 1,486), `arch.rules.ts:41` (not `:34`), and `candidatesFor` at
     `import-candidates.ts:60-81` (not `:137`) (Method minors).
 
+### Round two
+
+From PR #235's second-round reviews (`review-235-*-r2.md`) and the coordinator's brief 2.
+
+- **Architect I-2, Enforcement I5, Method C1, Testing C1** (a `notExist()` example's clean test
+  cannot assert `examined > 0`). The contract has a cardinality form: the clean test proves its
+  population through the same corpus selected without the rule's narrowing, which must be non-empty
+  (brief 2, decision 5). A sabotage row empties a `notExist()` clean fixture's elements and must red.
+- **Enforcement I6, Method I1, Testing C2** (the mechanism knew one violating folder; 0456 has two
+  judgements). There is one `violating-<judgement>/` folder per judgement. The helper, the swap
+  variable and the discovering row handle N of them, and each file has at least one `clean:` and
+  one `violating-*:` test. This also closes the gap the plan previously listed as not mechanised
+  (one violating folder for several judgements). What remains is narrower, and is listed.
+- **Architect m12, Enforcement m12** (the empty-folder row expected the wrong result). `fixture.ts`
+  keeps the rules examining one module; the row now expects the load-bearing row's zero check.
+- **Architect m13** (`node:**` and the verdict-assembly seams escape "public blocks"). `node:**` is
+  limited to `fixture.ts` (rule 1 in two halves). `collectResult`, `mergeCollectResults`,
+  `finishPreset` and `dispatchRule` join rule 3's names. Sabotage rows are added for both.
+- **Enforcement m11** (`memberName` read the `get`/`async`/`*` child). The name child is chosen by
+  kind, and rows are added for `async test()` and `*evaluate()`.
+- **Enforcement m13** ("does not compile"). It is now "a syntax error"; type errors belong to
+  `check:examples`' `tsc`.
+- **Architect m14, Method m6** (`structure.ts:17`). Now `:18`.
+- **Method m1** (numbers disagreed inside the plan). Effort now says four rows and four rule calls,
+  and the heading says "No rule". The ROADMAP row's "two arch rules" is the coordinator's board.
+- **Product minor 1** (a copied example copies the hook). `examples/README.md` gains the line.
+- **Testing M7** (row wording). Reworded.
+- **Brief 2, decision 7.** The seed already uses `corpus({ cwd, roots })`. This plan calls no
+  predicate's `test` directly, so `matchingElements` does not apply here.
+- **Measurement note.** The `node:*` / `node:**` claim is picomatch's documented `*` semantics, not
+  measured on main's build in this rework. The quiet row pins it at build time.
+
 ## Progress ledger
 
 - [ ] Phase 1: `examples/md/`, `fixture.ts`, the seed example and its fixtures; `check:examples` runs it
-- [ ] Phase 2: the three arch rules, green on the seed example
+- [ ] Phase 2: rule 1 (two halves), rules 2 and 3, green on the seed example
 - [ ] Phase 3: the four non-vacuity rows, each red on its sabotage and quiet on its quiet probe
 - [ ] Phase 4: docs section, README link, `examples/README.md`, changeset
 - [ ] Cost measured: `check:arch`, `check:examples` and the load-bearing row, before and after

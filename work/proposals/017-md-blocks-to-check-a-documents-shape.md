@@ -749,6 +749,11 @@ From enforcement, beyond the acceptance criteria above:
 - Block 12: a predicate selecting no document is a finding naming the predicate; zero elements over
   matched documents is a finding unless declared; a row shows the scoped rule green where the
   unscoped one is red.
+
+  > **Narrowed (plan 0457's review, 2026-10-18).** On a cardinality rule (`notExist()`), a scope that
+  > selects no document is not a finding: ADR-010 §3 and ADR-018 C3 make an absence rule's empty
+  > match legitimate, and a plan cannot reverse a binding ADR. The finding holds for positive rules.
+
 - Block 13: values compare through block 1's normaliser (`066` and `0066`), which is also the architect's "exact keys, normalisation is the caller's", since `beUniqueBy` keys on the value block 1 has already normalised; every member of a group
   is named; the denominator is stated (values, not documents).
 - Block 11: a heading in a fence or an HTML block, a setext heading, a depth skip, and a heading in a
@@ -932,12 +937,12 @@ files the plan owning it; until then the second Review's dispositions stand.
 **Disposition rows for the accepted set.** These supersede the second Review's "6, 12, 13" row, which
 the plan order now splits, and add the new blocks:
 
-| ask                                         | disposition  | condition                                                                                                                                                                                             |
-| ------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **6, 13** — kernel `notExist`, `beUniqueBy` | **Accepted** | Block 6: [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md); block 13: [plan 0459](../plans/0459-kernel-beuniqueby-and-gherkins-unique-titles.md); both filed 2026-10-17/18, split at review |
-| **12** — `inDocuments`, `isFrozen()`        | **Accepted** | [Plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), filed 2026-10-17                                                                                                    |
-| **17** — box marks                          | **Accepted** | [Plan 0454](../plans/0454-box-marks-are-the-callers.md), filed 2026-10-17, bug 0445's fix                                                                                                             |
-| **18** — boxes by section                   | **Held**     | Not accepted; after block 11 is planned                                                                                                                                                               |
+| ask                                         | disposition            | condition                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **6, 13** — kernel `notExist`, `beUniqueBy` | **Accepted, reshaped** | Block 6: [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md); block 13: [plan 0459](../plans/0459-kernel-beuniqueby-and-gherkins-unique-titles.md); both filed 2026-10-17/18, split at review. Reshaped 2026-10-18: the kernel conditions live behind `@nielspeter/eess/internal`, not re-exported per dialect; block 6 carries bug 0460's fix |
+| **12** — `inDocuments`, `isFrozen()`        | **Accepted, reshaped** | [Plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), filed 2026-10-17. Reshaped 2026-10-18: `isFrozen()` ships as `areFrozen()`/`areLive()`, and a scope matching no document is not a finding on a cardinality rule (ADR-010 §3, ADR-018 C3)                                                                             |
+| **17** — box marks                          | **Accepted**           | [Plan 0454](../plans/0454-box-marks-are-the-callers.md), filed 2026-10-17, bug 0445's fix                                                                                                                                                                                                                                                              |
+| **18** — boxes by section                   | **Held**               | Not accepted; after block 11 is planned                                                                                                                                                                                                                                                                                                                |
 
 **Carried to the plans' conditions** (from this section's review, not settled here): a decided
 reading for near-GFM spacings such as `[ x ]`; a row showing that block 5's unchosen direction is
@@ -951,3 +956,28 @@ emphasis inside a value and a typographic apostrophe.
 `isFrozen()`; block 17 as bug 0445's fix. **Not yet:** blocks 1 and 2 (after bug 0403, as two plans:
 the reader, then `haveField` with its resolver); block 5 (after the ADR in the second Review's
 decision 1; bug 0444's label option ships before it as a fix).
+
+## Planning — 2026-10-17 and 2026-10-18
+
+The accepted blocks were planned in one pull request (#235), reviewed twice by five lenses
+(architect, product, enforcement, method, testing), and reworked after each round. The review found
+that the order above could not be built: each block's example needs public blocks a later plan adds.
+The maintainer decided, on 2026-10-18:
+
+1. **Reorder and split.** Build order: [0458](../plans/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
+   (the examples gate) → [0456](../plans/0456-kernel-notexist-and-dead-glob.md) (block 6, `notExist()`
+   on every md builder, the public document predicates, `and`/`or`) →
+   [0454](../plans/0454-box-marks-are-the-callers.md) (block 17) →
+   [0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (block 12) →
+   [0455](../plans/0455-a-corpus-built-from-text.md) (block 7) →
+   [0459](../plans/0459-kernel-beuniqueby-and-gherkins-unique-titles.md) (block 13). This supersedes
+   "Plannable now … in order" above.
+2. **Bug 0460** (the kernel exempts a cardinality rule before it looks for a dead glob) is fixed inside
+   plan 0456, first.
+3. **eess-gherkin's break** (`haveUniqueTitles` rebuilt on `beUniqueBy`) is accepted.
+
+Coordinator decisions from the reviews, each overrulable: the kernel conditions live behind
+`@nielspeter/eess/internal` (`notExistCondition`, `uniqueByCondition`), not re-exported per dialect,
+so they do not collide with eess-ts's root `notExist()`; `isFrozen()` ships as `areFrozen()` and
+`areLive()`, md's existing words; a marked cardinality condition is frozen (bug 0462); block 12's
+condition is narrowed as noted above.

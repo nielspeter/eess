@@ -59,23 +59,25 @@ paragraph's start offset, because mdast resolves `\[` to `[` in the text node.
   `link` and a `linkReference`, so their first inline is not text. `- [ref]` without a definition
   is text, and three graphemes, so not a mark either. `- [~] a` beside a definition `[~]: url` is a
   `linkReference` and is not read: a documented limit, pinned by a fixture.
-- **Two ways to write a list item that is not a box:** escape the bracket (`- \[*] marks
-experimental`) or write it in inline code (``- `[*]` marks experimental``). Both are named in
-  every remedy below.
+- **Two ways to write a list item that is not a box:** escape the bracket (`- \[*] a`) or put
+  the bracket in a code span. Both are named in every remedy below.
 
 **Near-GFM spellings are their own finding, never a mark and never silent.** The carried condition
 asks for "a decided reading for near-GFM spacings such as `[ x ]`". Decided: `md/malformed-box` for a
-list item whose text starts with `[`, optional spaces, one of space, `x`, `X` or a declared mark,
-optional spaces, `]`, and that is not exactly a GFM box or a mark: padding inside the brackets
-(`[ x ]`), no space after `]` (`[x]done`), or no text at all after the box (`- [ ]`, `- [x]`). It
-cannot be declared away. The empty `[]` (no grapheme) is not in the grammar: GFM never had an empty
+list item whose text starts with `[`, optional spaces, one grapheme that is a space, `x`, `X`, a
+declared mark, or any other grapheme that is not a letter or digit, optional spaces, `]`, and that
+is not exactly a GFM box or a mark: padding inside the brackets (`[ x ]`, `[ ~ ]`), no space after
+`]` (`[x]done`, `[~]done`), or no text at all after the box (`- [ ]`, `- [x]`). Covering any
+non-letter grapheme, declared or not, means an undeclared `[ ~ ]` or `[~]done` is reported too, not
+silent (enforcement r2 m10). It cannot be declared away. The empty `[]` (no grapheme) is not in the grammar: GFM never had an empty
 box, no adopter reported one, and `- [] is truthy in JS` must stay green.
 
 ```text
 work/plans/x.md:12 — md/malformed-box
   `[ x ]` reads like a box, but GFM does not read it as one, so it is neither open nor done.
   Fix: write it as `[x]` (or `[ ]`) followed by a space and the item's text. If it is not a box,
-  write the bracket escaped (`\[`) or in inline code.
+  write the bracket escaped (`\[`) or in inline code. A template's blank box (an issue or PR
+  checklist) is given text, or left out of the rule's selection by its own predicates.
 ```
 
 **The caller declares each extra mark, open or done.** No mark beyond GFM's has a default
@@ -96,11 +98,12 @@ A declaration is validated when the builder or preset is constructed and refused
 
 **Where marks are declared: at each call site, decided.** The product review weighed a corpus-level
 `corpus({ marks })` as the single owner, since a mark is a corpus-wide convention. This plan keeps
-the declaration on `taskItems(corpus, options)` and `honestyAtClose({ marks })`: a mark's state is a
-judgement (does `[~]` block a close?), and the corpus carries what a document is, not what a rule
-concludes about it (ADR-013's corpus-learns-no-types line, applied by analogy). The cost is that a
-caller with several rules passes the same object to each; the README shows one shared constant, so
-the migration is one declaration and N references. Recorded so the review can overrule it.
+the declaration on `taskItems(corpus, options)` and `honestyAtClose({ marks })`, because a mark's
+state is a judgement (does `[~]` block a close?), and two rules may legitimately read it differently.
+It is not a one-way door: a `corpus({ marks })` default that call sites override can be added later
+without a break. The cost now is that a caller with several rules passes the same object to each;
+the README shows one shared constant passed to both `taskItems()` and `honestyAtClose({ marks })`, so
+the migration is one declaration and N references.
 
 **Elements carry the mark and its state beside `checked`.** `MdTaskItemRef` widens:
 
@@ -129,8 +132,10 @@ declared done mark counts as done there; an undeclared mark there counts as not 
 is not flagged as finished, which is the conservative reading of "unknown".
 
 **The finding comes from the `taskItems()` builder, scoped to the rule.** An undeclared or malformed
-box is reported only when the rule could have judged it: when it passes every predicate of the rule
-except the two state predicates, which an unread box matches, because it could be either state. A
+box is reported only when the rule could have judged it: when the rule's predicates select it under
+either reading, read as open or read as done. That needs no list of "state predicates", so a
+caller's own `.satisfy({ test: (t) => t.state === 'open' })` is handled the same way as `areOpen()`
+(enforcement r2 m8). A
 rule over `work/plans/**` does not red on a `[?]` in `docs/vendor/`; a rule whose selection reaches
 the box does. Decision 5's "no existing rule stays blind" holds, because every rule that could have
 judged the box reports it.
@@ -141,17 +146,29 @@ and adds their findings itself, overriding `collectViolations()` as `CodeBlockRu
 does (`packages/md/src/builders/code-blocks.ts:114`):
 
 ```ts
-const STATE_PREDICATES = new WeakSet<Predicate<MdTaskItem>>() // areOpen()'s and areChecked()'s
+import { matchingElements } from '@nielspeter/eess/internal'
 
 protected override collectViolations(): CollectResult {
   const base = super.collectViolations()
-  const inScope = this.unreadBoxes().filter((box) =>
-    this._predicates.every((p) => STATE_PREDICATES.has(p) || p.test(box)),
-  )
+  const unread = this.unreadBoxes()
+  // The kernel's one owner of predicate application, never `p.test` by hand (architect r2 m2).
+  const asOpen = new Set(matchingElements(unread.map(readAs('open')), this._predicates).map(origin))
+  const asDone = new Set(matchingElements(unread.map(readAs('done')), this._predicates).map(origin))
+  const inScope = unread.filter((box) => asOpen.has(box) || asDone.has(box))
   if (inScope.length === 0) return base
   return collectResult([...base, ...unreadFindings(inScope)], base)
 }
 ```
+
+`readAs(state)` makes a copy of an unread box with that `state` and the matching `checked`, and
+`origin` maps the copy back to its box.
+
+**When every box a positive rule selects is unread**, the rule examines zero and the kernel adds its
+generic "examined zero units" finding beside `md/undeclared-box-mark`. The builder does not remove a
+kernel finding. Instead the undeclared-mark message says that these boxes are why the rule examined
+nothing, so the reader is sent to the declaration, not the selector; a test pins the pair (architect
+r2 m7). Under a `notExist()` rule the cardinality exemption applies and only the undeclared-mark
+finding remains.
 
 **One finding per (document, mark), not per box.** An undeclared mark is one missing declaration, so
 adopter 3's 1,699 `[?]` would otherwise be 1,699 findings for one line of configuration (ADR-016's
@@ -207,7 +224,7 @@ All in one pull request.
 ### Phase 2 — the builder
 
 - `taskItems(corpus, options?)`; `getElements()` returns read boxes; `areOpen()` and `areChecked()`
-  select on `state` and are registered in `STATE_PREDICATES`.
+  select on `state`.
 - The `collectViolations()` override and its two finding ids, `md/undeclared-box-mark` and
   `md/malformed-box`, exported as constants beside the builder.
 
@@ -215,33 +232,42 @@ All in one pull request.
 
 - `HonestyAtCloseOptions.marks`, passed to both readers; `hasDeferredDisposedBox` and the
   `openTaskItems` peek (`ledger.ts:683`) select on `state`, so the peek stays independent of the
-  predicate it protects (the reasoning at `ledger.ts:608`).
+  predicate it protects (the reasoning at `ledger.ts:608`). Decided: `hasDeferredDisposedBox`
+  counts a box as a deferral only when `state === 'open'`. An undeclared box carrying `deferred→` is
+  not a deferral; its finding is the undeclared mark, so a `Deferred: none` beside it is not also
+  reported as a contradiction.
 - `scripts/check-ledger.mjs` declares `'~': 'open'` on the bugs lane only, the one lane that carries
   the mark.
 - `scripts/lib/finished-not-closed.mjs` takes each lane's `marks` and counts a declared done mark as
-  done.
+  done, with two fixtures in `scripts/nonvacuity/bad-finished-not-closed/` (below).
 
 ### Phase 4 — fixtures, release, docs, the example
 
 - Non-vacuity rows, changeset, `packages/md/README.md` (the task-item section gains `marks`, with one
-  shared constant passed to several rules).
+  shared constant passed to both `taskItems()` and `honestyAtClose({ marks })`).
 - An example under plan 0458's gate, `examples/md/box-marks.test.ts`: "in a closed folder, a
-  declared `[~]` counts as open". Built from public blocks only: `corpus()` rooted at the fixture's
-  closed folder, `taskItems(c, { marks: { '~': 'open' } }).that().areOpen().should().notExist()`
-  (plan 0456's `notExist()`), with a clean fixture and a violating fixture under
-  `examples/md/fixtures/box-marks/`. It needs no document predicate, so it does not wait for plan 0457.
+  declared `[~]` counts as open". Built from public blocks only: `corpus({ cwd: <fixture folder>,
+roots: ['**/*.md'] })`, then `taskItems(c, { marks: { '~': 'open' } }).that().areOpen().should()
+.notExist()` (plan 0456's `notExist()`). It needs no document predicate, so it does not wait for
+  plan 0457. Fixtures, in plan 0458's shape: `examples/md/fixtures/box-marks/clean/` (every box `[x]`
+  or a declared-done `[→]`) and `violating-declared-open/` (one `[~]`). The clean test asserts the
+  green and proves its population through a wider selection, as plan 0458's contract requires of a
+  cardinality example: the same builder without `.areOpen()`, `.select()`, is non-empty, since
+  `examined` is zero by construction under `notExist()`. The file carries at least one `clean:` and
+  one `violating:` test.
 
 ## Files changed
 
 - `packages/md/src/model/task-items.ts` — `readBoxMark`, `collectTaskItems(root, options)`,
   `MdTaskItemRef` fields, `validateMarks`.
-- `packages/md/src/builders/task-items.ts` — options, `state`-based filters, `STATE_PREDICATES`,
+- `packages/md/src/builders/task-items.ts` — options, `state`-based filters, the scoped
   `collectViolations`.
 - `packages/md/src/rules/ledger.ts` — the `marks` option, threaded to both readers.
 - `packages/md/src/index.ts` — export `BoxMarkState`, `TaskItemOptions` and the two finding ids.
 - `packages/md/tests/builders/task-items-marks.test.ts` (new); `packages/md/tests/rules/ledger.test.ts`.
 - `scripts/check-ledger.mjs` — the bugs lane's declaration.
-- `scripts/lib/finished-not-closed.mjs` — the lane's `marks`.
+- `scripts/lib/finished-not-closed.mjs` — the lane's `marks`; two fixtures under
+  `scripts/nonvacuity/bad-finished-not-closed/` and their assertions in `bad-finished-not-closed.mjs`.
 - `scripts/nonvacuity/bad-ledger.mjs` — its document count (`docs !== 6` at `:61`) and its `RULES`
   list grow with the two new fixture records; the fixture records themselves under
   `scripts/nonvacuity/bad-ledger/`; `scripts/check-nonvacuity.mjs` — the rows below.
@@ -259,9 +285,9 @@ lines, not counts:
 - A done document holding an undeclared `[~]` reds, with `md/undeclared-box-mark` at its line.
 - `- [WIP] x`, `- [1] x`, `- [link](u)` and a defined `- [ref]` stay green and yield no element.
 - Declaring a mark clears its finding: the same corpus with `marks: { '~': 'open' }` has none.
-- This repository's four `[~]` lines are read once declared: a test over the real tree,
-  `taskItems(corpus({ roots: ['work/bugs/**'] }), { marks: { '~': 'open' } }).that().areOpen()
-.select()` contains exactly `0249…:160`, `:167`, `:201` and `0256…:130` among its `[~]` boxes. (The
+- This repository's four `[~]` lines are read once declared: a test over the real tree, with
+  `c = corpus({ cwd: <repo root>, roots: ['work/bugs/**'] })`,
+  `taskItems(c, { marks: { '~': 'open' } }).that().areOpen().select()` contains exactly `0249…:160`, `:167`, `:201` and `0256…:130` among its `[~]` boxes. (The
   first draft's "the done-item count rises" could not hold: `doneItems` counts documents,
   `ledger.ts:748`.)
 
@@ -273,6 +299,20 @@ From bug 0445's Verification and the design:
 L3)}`.
 - **Not also a silent open box:** the same record with `[~]` and `[?]` undisposed yields no
   `ledger/silent-open-box` at L1 or L2 (the unread box gets one finding with one remedy).
+- **Bug 0445's headline: a done record whose boxes are all non-GFM.** A `completed/` record holding
+  only `- [~] a` (line L1), through `honestyAtClose` and through
+  `taskItems(c).that().areOpen().should().notExist()`. Both examine zero read boxes, so both take the
+  kernel's declared-empty branch (`packages/core/src/terminal-builder.ts:279`); each asserts exactly
+  `{(md/undeclared-box-mark, L1)}` by `.check()` throwing, so emission is covered, not only the
+  receipt.
+- **An undeclared box carrying a deferral:** a done record holding an undeclared
+  `- [?] deferred→bug 0001` and a `Deferred: none` summary yields exactly
+  `{(md/undeclared-box-mark, L)}`, and no deferred-none contradiction (the decision in Phase 3).
+- **A positive rule whose every selected box is unread:** both the kernel's "examined zero units"
+  and `md/undeclared-box-mark` are reported, and the latter's message names the boxes as the cause.
+- **A hand-written state predicate:** `taskItems(c).that().satisfy({ description: 'open', test: (t)
+=> t.state === 'open' })` reports an undeclared box its other predicates reach.
+- **`[ ~ ]` and `[~]done`, undeclared:** each `md/malformed-box`.
 - A declared open `[~]` without a disposition is `ledger/silent-open-box`; with one it is green.
 - A declared done `[→]` is a closed box: no finding, counted by `areChecked()`.
 - A declared letter mark `[n]` is read; an undeclared `- [o] x` and `- [v] x` are plain list items.
@@ -302,19 +342,20 @@ L3)}`.
 
 **Sabotage**, each red in the named test and green when reverted, run in a worktree:
 
-| change                                               | goes red                                     |
-| ---------------------------------------------------- | -------------------------------------------- |
-| `readBoxMark` returns `null`                         | the undeclared rows, and the non-vacuity row |
-| the undeclared-letter exclusion removed              | the `[1]` and `[o]` rows                     |
-| `Intl.Segmenter` replaced by `.length`               | the combining-sequence row                   |
-| the malformed-box detection removed                  | the `[ x ]` and empty-box rows               |
-| one `validateMarks` refusal removed                  | that refusal's row                           |
-| `collectViolations` returns `base`                   | the undeclared rows, the non-vacuity row     |
-| the scope filter dropped (every unread box reported) | the scope row                                |
-| grouping dropped (one finding per box)               | the volume row                               |
-| `bypassFilters` dropped                              | the cannot-be-excluded row                   |
-| `areOpen` back to `!t.checked`                       | the not-also-a-silent-open-box row           |
-| the preset drops `marks`                             | the declared-mark rows                       |
+| change                                                                 | goes red                                     |
+| ---------------------------------------------------------------------- | -------------------------------------------- |
+| `readBoxMark` returns `null`                                           | the undeclared rows, and the non-vacuity row |
+| the undeclared-letter exclusion removed                                | the `[1]` and `[o]` rows                     |
+| `Intl.Segmenter` replaced by `.length`                                 | the combining-sequence row                   |
+| the malformed-box detection removed                                    | the `[ x ]` and empty-box rows               |
+| one `validateMarks` refusal removed                                    | that refusal's row                           |
+| `collectViolations` returns `base`                                     | the undeclared rows, the non-vacuity row     |
+| the scope filter dropped (every unread box reported)                   | the scope row                                |
+| grouping dropped (one finding per box)                                 | the volume row                               |
+| `bypassFilters` dropped                                                | the cannot-be-excluded row                   |
+| `hasDeferredDisposedBox` back to `!box.checked`                        | the undeclared-box-carrying-a-deferral row   |
+| the "either reading" scope replaced by skipping `areOpen`/`areChecked` | the hand-written-state-predicate row         |
+| the preset drops `marks`                                               | the declared-mark rows                       |
 
 **`check:nonvacuity`:**
 
@@ -323,12 +364,17 @@ L3)}`.
   `corpus/ledger/malformed-box`, each `gateNode('bad-ledger.mjs', …)` with the finding id and line as
   its `mustSay`.
 - **This repository's declaration, both ways.** Removing `'~': 'open'` from
-  `scripts/check-ledger.mjs` must red `check:ledger` with four `md/undeclared-box-mark` findings at
-  `0249…:160/167/201` and `0256…:130` (run in a worktree as a sabotage row, since it edits a tracked
-  script). And a probe, `work/bugs/fixed/__nonvacuity_probe_tilde.md` (State `Fixed`, one undisposed
+  `scripts/check-ledger.mjs` must red `check:ledger` with exactly two `md/undeclared-box-mark`
+  findings, one per document: `0249…` at `:160`, naming lines 160, 167 and 201, and `0256…` at `:130`,
+  naming line 130 (run in a worktree as a sabotage row, since it edits a tracked script). And a probe, `work/bugs/fixed/__nonvacuity_probe_tilde.md` (State `Fixed`, one undisposed
   `- [~] x`), written and removed by `withProbe` (`scripts/check-nonvacuity.mjs:537`), must red
   `check:ledger` with `ledger/silent-open-box`: flipping the declaration to `'done'` turns that row
   green, so the row pins the state, not only the presence.
+- **`finished-not-closed`, both directions.** Two fixtures in
+  `scripts/nonvacuity/bad-finished-not-closed/`: an open record whose boxes are all a declared-done
+  `[→]` is flagged `finished-not-closed`; the same record with `[→]` undeclared is not flagged (the
+  conservative reading in Design). The existing row `corpus/ledger/finished-not-closed`
+  (`scripts/check-nonvacuity.mjs:3123`) asserts both.
 
 ## Release
 
@@ -340,12 +386,16 @@ eess-md minor, a **flagged break** (`**Breaking (@nielspeter/eess-md)**`):
 - `MdTaskItemRef` gains two required fields, `mark` and `state`, which breaks a caller who
   constructs one;
 - `areOpen()` no longer selects what is not open, and `areChecked()` selects `state === 'done'`
-  (the same set as before for GFM boxes; "checked" and "done" name one state).
+  (the same set as before for GFM boxes; "checked" and "done" name one state);
+- `collectTaskItems` returns more elements: undeclared marks, malformed boxes and empty `- [ ]` /
+  `- [x]` now appear, each with `state: 'undeclared' | 'malformed'` and `checked: false`. A direct
+  caller that counted `!checked` as open sees its count rise.
 
 Migration line: "declare each mark once, as a shared `marks` constant passed to `taskItems()` and
 `honestyAtClose()` — `{ '<mark>': 'open' | 'done' }` — or rewrite the box as `[ ]` or `[x]`; rewrite a
 `[ x ]` or an empty box; escape or code-span a bracket that is not a box; add `mark` and `state` to any
-`MdTaskItemRef` you construct."
+`MdTaskItemRef` you construct; where you counted `!checked` from `collectTaskItems`, filter on
+`state`."
 
 Dependants (bug 0185): measured, eess-crossvalidate lists eess-md as a peer dependency and no
 package lists it in `dependencies`; eess-crossvalidate uses no task-item API (grep of
@@ -361,6 +411,9 @@ which packages the changeset must name; if it asks for eess-crossvalidate, it is
 - **A mark shadowed by a link definition** (`[~]: url`): not read, pinned by a fixture.
 - **Boxes by section** (block 18, `inSections`), which the maintainer did not accept.
 - **A mark or box in a blockquote**: neither read nor reported, as GFM boxes there are today.
+- **`.select()` drops unread boxes silently.** A correspondence side built from `taskItems()` never
+  runs `collectViolations`, so an undeclared box is absent from it without a finding. A documented
+  limit, beside the blockquote one.
 - **The dedupe note's wording**: [bug 0461](../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
 - **`honestyAtClose`'s fixed `State:` label** (bug 0444) and its rebuild from public blocks (017's
   decision 1).
@@ -374,7 +427,7 @@ Each Critical and Important finding of the 2026-10-17 reviews, and what changed:
   `corpus()` roots and `taskItems().notExist()` from plan 0456, which builds first; no document
   predicate is needed.
 - **Architect I1, product I2 — corpus-wide findings broke locality; declaration scope mismatched.**
-  Findings are scoped to boxes the rule's non-state predicates reach. Declaration stays per call site,
+  Findings are scoped to boxes the rule's predicates reach (round two: under either reading). Declaration stays per call site,
   decided and reasoned in Design.
 - **Architect I2, product I4, method A1 — the dedupe note.** No kernel change; recorded as bug 0461.
   Effort and Release say eess-md only, and that is now true.
@@ -400,8 +453,32 @@ Each Critical and Important finding of the 2026-10-17 reviews, and what changed:
   `MdTaskItemRef` migration in the release (product minors); the "already disposed" assertion removed
   and the Close box no longer edits the 017 row, which this PR already set (method minors).
 - **Not taken:** none. Narrowed: the corpus-level declaration (product I2) is weighed and not taken,
-  with the reason in Design. Bug 0445 does not yet link back to this plan (method minor): a record
-  edit outside this file, owed by the coordinator in this PR.
+  with the reason in Design.
+
+### Round two
+
+Each finding of the round-two reviews about this plan, and what changed:
+
+- **Enforcement I8, testing I2, method I2 — the declaration row asserted four findings; the grouping
+  gives two.** It asserts exactly two, one per document, with the lines each names.
+- **Enforcement I7, testing I1 — the `areOpen` sabotage fired nothing.** Retargeted to
+  `hasDeferredDisposedBox` (`ledger.ts:380`), the one reader that goes round the builder, with the
+  decided outcome (an undeclared box is not a deferral) and its row.
+- **Testing I3 — bug 0445's headline shape had no row.** The all-`[~]` done record, through
+  `honestyAtClose` and through `notExist()`, on the declared-empty branch, asserted through `.check()`.
+- **Testing I4 — `finished-not-closed` had no row.** Two fixtures, both directions.
+- **Product I1 — `collectTaskItems` returns more elements.** A release bullet and a migration clause.
+- **Enforcement I5, testing C1 — the clean test cannot assert `examined > 0` under `notExist()`.**
+  The example follows plan 0458's cardinality form: its population is proven through the same
+  builder without `.areOpen()`. Fixture folders are `clean/` and `violating-declared-open/`.
+- **Minors:** `matchingElements` instead of `p.test` (architect m2); the all-unread positive rule
+  pinned with a cause in the message (architect m7); "either reading" replaces the state-predicate
+  list, with a row for a hand-written state predicate (enforcement m8); `.select()` stated as a limit
+  (m9); `[ ~ ]` and `[~]done` now `md/malformed-box` (m10); the declaration's reason rests on the
+  rule's judgement, and the choice is not a one-way door (product m1); the README constant shown with
+  `honestyAtClose` (m2); template blank boxes in the remedy (m3); `corpus({ cwd, roots })`
+  (coordinator brief 7); the stale "owed" back-link line removed (method m3).
+- **Narrowed:** none.
 
 ## Progress ledger
 

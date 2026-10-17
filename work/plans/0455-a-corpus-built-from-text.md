@@ -23,7 +23,7 @@ A caller who writes an eess-md rule tests it against a corpus, and the only cons
 keeps a fixture tree in the repository or writes one to a temporary directory. Measured 2026-10-18
 (`grep -hoE` over the test files, counting call sites, not imports):
 
-- `packages/md/tests`: 61 `corpus(` calls in 22 of 23 test files. 8 files create temporary
+- `packages/md/tests`: 61 `corpus(` calls in all 22 test files (a 23rd `.test.ts`, `tests/fixtures/corpus/src/example.test.ts`, is a fixture). 8 files create temporary
   directories (11 `mkdtemp`/`mkdtempSync` calls); 17 point `cwd` at a fixture tree under
   `packages/md/tests/fixtures` (186 files).
 - `packages/crossvalidate/tests`: 8 `corpus(` calls in 6 test files; 3 test files create temporary
@@ -119,8 +119,13 @@ caller, the same shape as ADR-012's borrowed lexer; it is not an md workaround, 
 `root` defaults to `join(sep, '__eess_text_corpus__')`, which documents carry in `file` as on disk.
 The caller may set it so messages read like their repository, as long as it does not exist.
 
-**Empty is not refused.** `corpusFromText({})` yields no documents, as `corpus()` does over an empty
-tree; the builders' own zero-examined findings (ADR-010) apply unchanged.
+**Empty is not refused; it is an empty source.** `corpusFromText({})` yields no documents, as
+`corpus()` does over an empty tree. Plan 0456, built before this one, makes an empty corpus an empty
+source on every md builder (`sourceEmpty()`), so a rule over it gets the kernel's empty-source
+configuration finding (`zeroLoadedSourceViolation`, `packages/core/src/vacuity-findings.ts:100`),
+which outranks `.expectEmpty()` (ADR-010 §3), exactly as `corpus()` over an empty tree does. The
+docs section says so for test authors: a rule meant to pass on "no matching documents" needs at
+least one document in the map, so the source is not empty and the selection is.
 
 **Tier.** This is test infrastructure, not a check: it adds no way to fail a build. Its own claim,
 "resolves as on disk", is held by the parity test below, which is Tier 2.
@@ -128,9 +133,11 @@ tree; the builders' own zero-examined findings (ADR-010) apply unchanged.
 **The examples gate (017 decision 3)** is plan 0458's, built first. This plan adds one example under
 it: `examples/md/corpus-from-text.test.ts`, "every link resolves", stated as
 `links(c).should().resolve()` from the eess-md root only, with its documents kept as files under
-`examples/md/fixtures/corpus-from-text/clean/` and `…/violating/` (a link to a missing file) and read
-into `corpusFromText`. It adds a fixture pair, not a non-vacuity row: plan 0458's one row discovers
-every example under `examples/md/`.
+`examples/md/fixtures/corpus-from-text/clean/` and `…/violating-broken-link/` (a link to a missing
+file; one `violating-<judgement>/` folder per judgement, plan 0458's naming, and the example states
+one judgement) and read into `corpusFromText`. The test file has one `clean:` test and one
+`violating:` test. It adds fixture folders, not a non-vacuity row: plan 0458's one row discovers every
+example under `examples/md/` and swaps each `violating-<judgement>/` folder.
 
 ## Phases
 
@@ -213,7 +220,8 @@ export function corpusFromText(
 ```
 
 The `?? ''` is unreachable: `read` is only called for paths taken from the map's own keys. Under
-`noUncheckedIndexedAccess` it is the typed way to say so (ADR-005: no `as`). The keys are sorted so
+`noUncheckedIndexedAccess` it is the typed way to say so (ADR-005: no `as`). It is also fail-closed
+if that ever stops holding: an empty text gives a pointer into it a `stale` finding, never a pass. The keys are sorted so
 the document order does not depend on how the caller built the map; `corpus()`'s order is the
 filesystem's (`walkFiles` does not sort, `packages/core/src/file-walk.ts:28`), which is why the
 parity test compares sets, not arrays.
@@ -254,7 +262,10 @@ parity test compares sets, not arrays.
   - `links(c).should().resolve()`;
   - `pointers(c).that().areLive().should().resolve()`;
   - `pointers(c).that().areFrozen().select(…)` and `taskItems(c).select(…)`, compared as element
-    sets (`relPath`, `line`, and for boxes `checked` and `text`), not as a rule receipt;
+    sets (`relPath`, `line`, and for boxes `checked`, `text`, and plan 0454's `mark` and `state`,
+    since 0454's reading of an escaped mark reads raw source through the very `read` this plan
+    swaps), not as a rule receipt. Each `.select()` comparison has its own guard: a non-empty element
+    set on at least one tree, on both sides;
   - `honestyAtClose` with `report: 'return'`.
 
   Both sides must agree, compared as sorted sets so file-system order cannot matter:
@@ -283,7 +294,8 @@ parity test compares sets, not arrays.
 - **`roots` default:** a map with `a.md` and `src/b.ts` loads one document. `roots: ['docs/**']` over
   a map without `docs/` loads none, and `links(c).should().resolve()`'s receipt equals the receipt of
   the same rule over `corpus({ cwd, roots: ['docs/**'] })` on an empty temporary directory, compared
-  in the same test.
+  in the same test. Both are empty sources after plan 0456, and the row asserts that finding by name
+  (`zeroLoadedSourceViolation`'s rule id), so it pins the empty source and not only the agreement.
 - **The existing suite unchanged** (Phase 1 is a refactor): `npm test --workspace packages/md` and
   `packages/crossvalidate`.
 - **Sabotage matrix**, run once in a worktree, each row a patch at a named place that reds a named
@@ -291,8 +303,10 @@ parity test compares sets, not arrays.
   1. `pointer-resolve.ts` reads the disk again → the pointers-in-memory row;
   2. `corpusFromText` passes `frozen: []` to `assembleCorpus` → parity on `corpus` and `ledger`
      (documents' `frozen`);
-  3. `corpusFromText` registers no `ignored` matcher (the text side only; `assembleCorpus` unchanged)
-     → parity on `resolve-link` (the `not-in-corpus` reasons);
+  3. `corpusFromText` drops `options.ignore` before calling `assembleCorpus` (the text side only;
+     the registry is set inside `assembleCorpus`, so there is no text-side registration to remove) →
+     parity on `resolve-link`, whose own tests pass `ignore` (`packages/md/tests/resolve-link.test.ts:22`),
+     and on `corpus` (`ignore: ['docs/sanctioned-pointer.md']`);
   4. `corpusFromText` filters its `paths` to `.md` keys before `assembleCorpus` → parity on `corpus`
      (`fileIndex`, and the pointer to a non-Markdown file);
   5. the waiver refusal removed → its refusal row;
@@ -339,6 +353,21 @@ removes `DEFAULT_FROZEN`, both constructors change in that one release.
   (product); `stale` asserted by identity, the `roots` default compared against `corpus()` on an empty
   directory, refusals asserting the named path, and a sabotage row for the guard itself (testing).
 - **Narrowed, not fixed:** none.
+
+### Round two
+
+- **The empty corpus (architect, product 1, enforcement m16):** stated as an empty source after plan
+  0456, with the finding named, the docs note for test authors, and the `roots`-default row asserting
+  the finding by name.
+- **Sabotage row 3 has no patch site (testing M4):** retargeted to `corpusFromText` dropping
+  `options.ignore`, which exists and reds `resolve-link` and `corpus`.
+- **Example fixtures (coordinator decision 5):** `clean/` and `violating-broken-link/`, one `clean:`
+  and one `violating:` test.
+- **Minors:** the `.select()` comparisons get their own non-empty guard (testing M5); boxes compare
+  `mark` and `state` (testing M6); `?? ''` is described as fail-closed (enforcement m17); 22 of 22
+  test files (method m14).
+- **Narrowed, not fixed:** product's note that 0455 could build any time after 0458 is a ROADMAP line,
+  outside this plan's file; the plan's `Builds after` already says it needs only 0458.
 
 ## Progress ledger
 
