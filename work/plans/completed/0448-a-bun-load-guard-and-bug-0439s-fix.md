@@ -2,13 +2,15 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-17 at the maintainer's request ("do the 0439 first"), under
-  [ADR-020](../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) rule 2.
+- **State:** Done — built 2026-10-17 in PR #232, from Draft: reviewed as a Draft (enforcement ·
+  devops · method) and not marked Ready. Written the same day at the maintainer's request ("do the
+  0439 first"), under
+  [ADR-020](../../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) rule 2.
 - **Priority:** High, above bug 0439's Medium severity because an adopter's upgrade is blocked on
   it: from eess 0.5.1 on, 22 of the family's 28 published entries fail to load under Bun.
 - **Effort:** Small — one import, one script with a self-test, one CI job; no new package dependency.
 - **Created:** 2026-10-17
-- **Fixes:** [bug 0439](../bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md).
+- **Fixes:** [bug 0439](../../bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md).
 
 ## Problem
 
@@ -145,15 +147,27 @@ run's counts are recorded as the Linux measurement.
 - **The release.** Publishing the patch and telling the adopter the version numbers needs the
   maintainer's fresh yes; the bug's "published" box is `validation-owed` at close.
 
+## Cost, measured
+
+- **Locally** (macOS, Bun 1.4.3): the guard 2.5 s over 28 entries and 2 bins; its self-test 0.5 s;
+  `bad-bun-load.mjs`'s ten scenarios 0.04 s; `check:nonvacuity` with the ten new rows, 8 min 21 s
+  (190 fixtures).
+- **In CI, the first run** (PR #232, run 38976645502, Linux, `ubuntu-latest`): the `bun-load` job
+  39 s wall clock, of which `npm ci` 10 s, the build 11 s, the guard 5 s and the self-test under
+  1 s, in parallel with the 24.5-minute `test` job, so it adds a runner slot, not time to the run.
+- **The Linux measurement spike 0438 lacked:** the guard on Linux printed `✓ bun load — 28 entries
+and 2 bins across 6 packages, loaded by Bun 1.4.3 (5.54s)`, and the self-test `7 breaks each red,
+1 clean workspace green, on Bun 1.4.3 (0.12s)`.
+
 ## Progress ledger
 
-- [ ] The red run recorded
-- [ ] The fix, the guard, the self-test, the CI job, the `gateCoverage` checks and rows
-- [ ] ADR-020 R2 row gated; CLAUDE.md row; changeset
-- [ ] Cost and the first Linux run recorded
-- [ ] Record written: taking the CLI's loader off `@nielspeter/eess/internal` (a minor)
-- [ ] Record written: `registerHooks` is undefined under Bun on the `.js`-to-`.ts` miss path
-- [ ] Close: bug 0439 → `fixed/` (its publish box `validation-owed`: the tagged commit's CI green,
+- [x] The red run recorded — in bug 0439's Verification: 22 of 28 entries and both bins
+- [x] The fix, the guard, the self-test, the CI job, the `gateCoverage` checks and rows
+- [x] ADR-020 R2 row gated; CLAUDE.md row; changeset
+- [x] Cost and the first Linux run recorded — above
+- [x] Record written: [plan 0449](../0449-the-clis-loader-leaves-the-kernels-internal-entry.md)
+- [x] Record written: [bug 0450](../../bugs/0450-under-bun-the-resolve-hook-call-would-throw-a-bare-typeerror.md)
+- [x] Close: bug 0439 → `fixed/` (its publish box `validation-owed`: the tagged commit's CI green,
       `bun-load` included, six packages published, the adopter told), this plan → `completed/`,
       boards
 

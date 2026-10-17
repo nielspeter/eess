@@ -3,7 +3,7 @@
 - **Status:** Accepted 2026-10-16, on the owner's decision at merge (PR #228). Proposed the same
   day and revised twice after its architect, product, enforcement and method reviews. The owner asked for Bun support, scoped to what CI can test, after
   an adopter monorepo on Bun could not load eess-md
-  ([bug 0439](../work/bugs/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)).
+  ([bug 0439](../work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)).
 - **Amends** the runtime half of
   [ADR-001](./001-toolchain-node-vitest-eslint-prettier.md)'s "No Bun (runtime or test runner)".
   What stays: local development on Node and npm, and Bun's own test runner out. What changes: a

@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-17 at plan 0448's close, as that plan's Out of scope promised.
+- **State:** Draft — recorded 2026-10-17 at plan 0448's close, as that plan's Out of scope promised ([plan 0448](./completed/0448-a-bun-load-guard-and-bug-0439s-fix.md)).
 - **Priority:** Low — no defect today: since plan 0448 the family loads under Bun, and its guard keeps
   it so. This is about what a library entry links.
 - **Effort:** Small to medium — a move of symbols plus a minor release.
