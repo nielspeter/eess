@@ -383,7 +383,9 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     // here, before any return below, so a rule whose every subject is undecided is never green.
     const { elements: filtered, undecided } = partition(allElements, this._predicates)
     const examined = filtered.length
-    const unread = undecidedViolations(undecided, this.buildConditionContext())
+    // Built only when something was undecided: a rule that meets none pays nothing for the context.
+    const unread =
+      undecided.length === 0 ? [] : undecidedViolations(undecided, this.buildConditionContext())
 
     if (filtered.length === 0) {
       if (unread.length > 0) return collectResult(unread, { examined, undecided: unread.length })
