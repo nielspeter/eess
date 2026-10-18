@@ -178,11 +178,35 @@ describe('a rule over an undecided subject (ADR-021 clauses 3, 5, 7)', () => {
       .violations()
     expect(said(found)[0]).toBe('unread.md:3: unread: status cannot be read [bypass]')
     expect(found).toHaveLength(2)
+    expect(found[1]?.message).toMatch(/declared \.expectNonEmpty\(\) but examined zero units/)
   })
   it('a rule with no assertion names the causes beside its own finding', () => {
     const found = new ItemRules([done, unread]).that().satisfy(statusIs('done')).violations()
     expect(said(found)).toContain('unread.md:3: unread: status cannot be read [bypass]')
     expect(found).toHaveLength(2)
+    expect(found.some((v) => v.message.includes('asserts nothing about them'))).toBe(true)
+  })
+  it('a condition finding with the same text does not stand in for the cause', () => {
+    // A condition that happens to say exactly what the cause says, at the same place, without
+    // `bypassFilters`: the unsuppressable cause is still reported, so `.excluding()` cannot hide it.
+    const echo = new ItemRules([done, unread])
+      .that()
+      .satisfy(not(statusIs('open')))
+      .should()
+      .satisfy({
+        description: 'echo the cause',
+        evaluate: (_items, ctx) => [
+          {
+            rule: ctx.rule,
+            element: 'unread.md:3',
+            file: 'unread.md',
+            line: 3,
+            message: 'unread: status cannot be read',
+          },
+        ],
+      })
+      .violations()
+    expect(said(echo)).toContain('unread.md:3: unread: status cannot be read [bypass]')
   })
   it('a rule whose every subject is undecided reports the causes and no generic zero-examined finding', () => {
     const found = new ItemRules([unread])
