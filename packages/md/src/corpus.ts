@@ -1,4 +1,5 @@
 import { walkFiles } from '@nielspeter/eess/internal'
+import { ArchConfigError } from '@nielspeter/eess'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import picomatch from 'picomatch'
@@ -72,6 +73,29 @@ export function corpus(options: CorpusOptions): Corpus {
     options.ignore && options.ignore.length > 0 ? picomatch([...options.ignore]) : () => false
 
   const fileIndex = new Set(allFiles)
+
+  // Bug 0465: a root that matches no file contributed nothing and was reported
+  // nowhere, so in a corpus of several roots one typo silently halved what every
+  // rule judged. Refused here, once, naming each dead root: one authored mistake,
+  // one finding, through every door that loads a corpus (ADR-009, refuse and say
+  // so). A root that matches files but no Markdown is not dead.
+  const deadRoots = options.roots.filter((glob) => {
+    const matches = picomatch(glob)
+    return !allFiles.some((rel) => matches(rel) && !matchesIgnore(rel))
+  })
+  // Only when another root does load: a corpus whose every root is dead loads
+  // nothing at all, which is an empty source the rules already report through
+  // their own receipts (ADR-010 §3), and gates build such corpora on purpose to
+  // test exactly that report. One dead root beside live ones is what was silent.
+  if (deadRoots.length > 0 && deadRoots.length < options.roots.length) {
+    const named = deadRoots.map((g) => `'${g}'`).join(', ')
+    throw new ArchConfigError(
+      'corpus',
+      `corpus root${deadRoots.length > 1 ? 's' : ''} ${named} ${deadRoots.length > 1 ? 'match' : 'matches'} no file ` +
+        `under ${root}, so ${deadRoots.length > 1 ? 'they' : 'it'} would load nothing and every rule over this ` +
+        `corpus would judge less than you named. Correct the glob, or remove the root.`,
+    )
+  }
 
   const documents: MdDocument[] = allFiles
     .filter((rel) => rel.endsWith('.md') && matchesRoot(rel) && !matchesIgnore(rel))
