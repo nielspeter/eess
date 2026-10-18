@@ -1,4 +1,4 @@
-# Plan 0470: a predicate lifted through `inDocuments` carries its findings
+# Plan 0470: a spike — how a predicate lifted through `inDocuments` carries its findings
 
 ## Status
 
@@ -7,7 +7,8 @@
 - **Priority:** Medium. Block 12's own example, "documents whose Status is done hold no open box", needs
   it. So do adopter 1's most-wanted rule and the rebuild of `honestyAtClose` from public blocks
   (proposal 017, the second Review, decision 3).
-- **Effort:** Unknown until designed. It starts as a spike that brings a design back.
+- **Effort:** Small. A time-boxed spike of about an hour that brings a design back for a decision. The
+  build is filed as its own plan after the ruling, not here.
 - **Created:** 2026-10-18
 - **Builds after:** [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)
   (`inDocuments`) and [plan 0469](./0469-havefield-a-document-has-a-value.md) (`haveField`).
@@ -34,8 +35,8 @@ findings on. So `haveField` lifted onto `taskItems()` would drop an unreadable d
 
 ## Progress ledger
 
-- [ ] Spike: a design for the diagnosis door, brought back for a decision
-- [ ] Build, per the decided design
+- [ ] Spike: the questions above measured, recorded under `work/spikes/`
+- [ ] A design brought back for a decision, and the build plan filed after the ruling
 - [ ] Close: this plan → `completed/`; boards
 
 Deferred: none

@@ -117,7 +117,7 @@ are exported, and neither is a default:
 
 - `untilDelimiter(chars)` cuts at the first delimiter and trims;
 - `longestOf(allowed)` takes the longest allowed value the text starts with, ignoring case, and
-  returns the text unchanged when none matches, so the check reports it.
+  trims leading and trailing whitespace first, and returns the trimmed text when none matches, so the check reports it. The reader hands `value` the text after the label untrimmed, as `terms()` does, so a helper that did not trim would match nothing.
 
 **Checking a value: `resolveAgainst`, extended, not a second condition.** `TermRuleBuilder`
 already checks set membership (`packages/md/src/builders/vocabulary.ts:172`), normalising both
@@ -157,7 +157,7 @@ finding lists the wrapped labels the document does carry instead.
 **Dogfooding.** `check:corpus` gains one rule per lane over the `State` values on this repository's live
 plans and bugs. Each rule uses `longestOf(states)` as its `value` and resolves against a vocabulary of
 the same states, which are the lane vocabularies `scripts/check-ledger.mjs:59-67` already declares.
-`check:ledger` reads every record's state with those vocabularies today (405 records, these among them), so the rule should be
+`check:ledger` reads every record's state with those vocabularies today, so the rule should be
 green on its first run; Phase 3 measures that. A `check:nonvacuity` row changes one bug's State to
 `Drfat`.
 
@@ -208,7 +208,8 @@ Giving each of those a level is a judgement per bug, and not part of this build.
   A `heading` value stops at its own line.
 - **`cleanValue`:** `✅ Fixed`, `**Fixed**`, `~~Fixed~~` and `` `Fixed` `` give `Fixed`; `in_progress` and `C++`
   stay as they are; a typographic apostrophe is kept.
-- **Helpers:** `untilDelimiter` on `High — reason`; `longestOf` on `In progress (blocked)`.
+- **Helpers:** `untilDelimiter` on `High — reason`; `longestOf` on `In progress (blocked)` and on
+  ` Draft — reason` with its leading space.
 - **`split`:** one element per value, each on the label's line.
 - **`resolveAgainst`:**
   - the two messages above, verbatim; a `terms()` element's message unchanged;
