@@ -1020,7 +1020,7 @@ overruled them.
 >   opts into this by naming the region.
 > - **Block 12 lifting block 2.** `haveField` is a method on `docs()` and ships no exported
 >   `Predicate<MdDocument>`. Through `inDocuments` its findings would be dropped, so lifting it waits
->   for [plan 0470](../plans/0470-a-lifted-predicate-carries-its-findings.md), which gives `inDocuments`
+>   for [plan 0470](../plans/completed/0470-a-lifted-predicate-carries-its-findings.md), which gives `inDocuments`
 >   a way to carry them. "Documents whose Status is done hold no open box" (block 12's own example,
 >   and adopter 1's most wanted) needs it.
 > - **Severity is not dogfooded** by plan 0468: 7 of 170 live values give no level, and 22 live

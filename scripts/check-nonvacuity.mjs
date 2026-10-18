@@ -107,8 +107,8 @@
  *                 corpus/adr-extends-linked-back finding on ADR-014 naming ADR-010;
  *                 ADR-009 rewritten with no link to ADR-016 → the same, on ADR-016's
  *                 list-item declaration, naming ADR-009;
- *                 ADR-014 and ADR-016 rewritten without their `**Extends:**` lines →
- *                 that rule's zero-examined finding.
+ *                 every ADR that declares one rewritten without its `**Extends:**` line
+ *                 (found, not listed: ADR-021 is the third) → that rule's zero-examined finding.
  *   corpus/linked-back/* (plan 0406) scripts/nonvacuity/bad-linked-back/ holds one
  *                 folder per finding cause and shape; each row asserts its exact
  *                 finding set, so a missing and an extra finding both fail it.
@@ -3167,19 +3167,24 @@ function gateCorpusExtendsListItem() {
 // id — the row that catches the production rule being given `.expectEmpty()`.
 function gateCorpusExtendsEveryLabelRemoved() {
   const drop = (text) => text.replace(EXTENDS_LINE, '')
-  const { json, terminal } = withRewrittenFile(ADR_014, drop, () =>
-    withRewrittenFile(ADR_016, drop, () => ({
-      json: sh(process.execPath, CORPUS_JSON),
-      terminal: sh(process.execPath, CORPUS_TERM),
-    })),
-  )
+  // Every ADR that declares one, found rather than listed: a third declaration (ADR-021) left a label
+  // standing when this named only ADR-014 and ADR-016, and the row went green.
+  const declaring = readdirSync(join(repoRoot, 'adr'))
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => join(repoRoot, 'adr', f))
+    .filter((f) => EXTENDS_LINE.test(readFileSync(f, 'utf8')))
+  const run = (files) =>
+    files.length === 0
+      ? { json: sh(process.execPath, CORPUS_JSON), terminal: sh(process.execPath, CORPUS_TERM) }
+      : withRewrittenFile(files[0], drop, () => run(files.slice(1)))
+  const { json, terminal } = run(declaring)
   const ok =
     json.code === 1 &&
     terminal.code === 1 &&
     firedNamingPayload(json, 'corpus/adr-extends-linked-back', '', 'examined zero units')
   return {
-    ok,
-    detail: `no Extends label left → json exit ${json.code}, terminal exit ${terminal.code}`,
+    ok: ok && declaring.length >= 2,
+    detail: `no Extends label left in ${declaring.length} ADR(s) → json exit ${json.code}, terminal exit ${terminal.code}`,
   }
 }
 

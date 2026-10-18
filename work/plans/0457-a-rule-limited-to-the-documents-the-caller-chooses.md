@@ -269,6 +269,15 @@ it; this plan's docs teach that form first. On a cardinality rule the combinator
 difference: a dead scope is green either way (ADR-010 §3), and a wrapped folder glob is still judged
 by plan 0456's check, because the lift forwards `globs` and the kernel walks combinators.
 
+**What ADR-021 asks of the lift (recorded 2026-10-18 from spike 0485).** A document predicate can
+declare that it cannot judge a document (`Predicate.undecided`), as `haveField` does. The lift
+forwards it: `undecided(e)` is `p.undecided(e.doc)`, memoized per document like the verdict, and the
+lifted `test` never asks `p.test` of a document `p.undecided` reports. If this plan lands before
+[plan 0486](./0486-a-predicate-that-cannot-judge-says-so.md), `inDocuments` refuses a predicate
+that declares the member instead, so the lift never ships fail-open. `SCOPES` has the same
+combinator blindness ADR-021 rejected a registry for; it only sharpens a message on a rule that is
+red anyway, so it may stay, and the build says so.
+
 **`.select()` with a dead scope** gives an empty `correspondence()` side with no scope named; the
 correspondence's own empty-side finding speaks. Documented beside the combinator limit.
 

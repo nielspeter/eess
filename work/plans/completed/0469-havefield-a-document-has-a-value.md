@@ -225,7 +225,7 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 - **A value agreeing with its folder:** block 5, after its ADR. It reuses this resolver.
 - **An exported `Predicate<MdDocument>` for `inDocuments`.** Lifting `haveField` onto other elements
   through block 12 would drop these findings, because `inDocuments` has no door for them. That door is
-  [plan 0470](../0470-a-lifted-predicate-carries-its-findings.md).
+  [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md).
 - **`honestyAtClose` rebuilt on `haveField`:** the second Review's decision 1, and bug 0444.
 - **Any region other than the header** (a named section, for example): block 11.
 - **Requiring `Severity`:** 22 live bugs carry none (measured 2026-10-18). Giving each one a level is a
@@ -277,7 +277,7 @@ Where the build departed from the text above, each overrulable:
     built before either runs, disagreeing prose and an unread label as a selector, `oneOf` with
     `split`, the unclosed fence, and the plain-line hint; sabotage rows 7–11.
   - **Recorded, not fixed:** the dogfood rule exercises only the condition position (a
-    selector-position dogfood → [plan 0470](../0470-a-lifted-predicate-carries-its-findings.md),
+    selector-position dogfood → [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md),
     where the lifted form is built); the rule's records are chosen with a path prefix rather than a
     glob, so a changed lane root reds as zero examined without naming the glob
     ([bug 0484](../../bugs/0484-state-present-picks-records-by-a-path-prefix.md)); a `## State:`
