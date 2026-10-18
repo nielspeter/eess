@@ -760,6 +760,48 @@ header is neither read nor reported; plan 0469's `haveField` reports a value out
 marker), and a CRLF file reads as an LF one. This repository's own `check:corpus` reads every live
 plan's and bug's State this way.
 
+### A document has a value: `haveField`
+
+`docs(c).haveField(options)` is dual-use, like `haveSection`. After `.that()` it selects the documents
+whose labelled value resolves and, with `oneOf` (a `Vocabulary` or a `RegExp`), is allowed; after
+`.should()` it asserts every selected document has one. It reads the value as `fields()` does and
+resolves one per document: a structured form (`bold`, `heading`, `bold-line`) beats `plain` prose;
+one structured value resolves it, and prose that disagrees is reported at its own line; two
+structured values are a conflict; plain values alone resolve only when they agree.
+
+```typescript
+import { corpus, docs, untilDelimiter } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['bugs/**'] })
+
+docs(c)
+  .that()
+  .haveField({
+    label: 'Status',
+    forms: ['bold', 'heading'],
+    value: untilDelimiter(['—']),
+    oneOf: /fixed/i,
+  })
+  .should()
+  .haveSection('Verification')
+  .check()
+```
+
+Every cause that makes a value unreadable is reported in either position, for the documents the
+rule's other predicates keep: `Status is given twice (line 3 'open', line 9 'fixed'); keep one`,
+`found … in a form this rule does not read`, `Status at line 14 is outside the header (region:
+'header'); …`, `Status at line 3 has no value this rule can read`, and `prose says Status 'open',
+but the field at line 3 says 'fixed'`. As a condition it also reports `no Status field (read as
+bold, heading); its labels: Severity, State` and a value outside `oneOf`. As a selector, a readable
+value outside `oneOf` is the filter doing its job and is not reported: a misspelt `Fxed` is a
+different value, so pair the rule with `fields(...).resolveAgainst(...)`. So is a document with no
+field at all, or a misspelt label (`**Satus:**`): pair the selector with a
+`.should().haveField({ label, forms })` rule over the same documents, which reports it. A value
+after a code fence that never closes is reported (`Status at line 9 follows a code fence that never
+closes; close the fence`), and a plain line the rule does not read is named in the no-field finding. A selection taken with
+`.select()` carries none of these findings. This repository's `check:corpus` requires one State
+in every live plan and bug this way, as a condition.
+
 ## ADR enforcement tables
 
 `eess-md` ships an `adrEnforcement()` preset that validates the `## Enforcement` table convention: every ADR ends with a **Clause | Tier | Mechanism | Status** table, tiers are valid, and cited file paths resolve. It does **not** check that a cited `it('…')` title names a real test: that is `eess-crossvalidate`'s `adrCitationsResolve`, which reads the test AST — see [`eess-crossvalidate`](/crossvalidate). If your ADRs cite test titles, run it too; with `eess-md` alone, a title citation is not verified by anything.

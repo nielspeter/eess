@@ -316,6 +316,7 @@ const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name ===
         description: `are in a live ${lane.name} record`,
         test: (t) =>
           !t.doc.frozen &&
+          !lane.doneFolders.some((f) => t.doc.relPath.includes(f)) &&
           t.doc.relPath.startsWith(prefix) &&
           !lane.boardFiles.some((b) => t.doc.relPath.endsWith(`/${b}`)),
       })
@@ -329,6 +330,31 @@ const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name ===
     return { lane: lane.name, result: rule.violations() }
   },
 )
+// Plan 0469, dogfooding `haveField`: every live plan and bug HAS a State, in the bold form. The rule
+// above checks the words of the States it finds; this one reds a record that carries none, which
+// `honestyAtClose` counts but never refuses (bug 0444). One State per record, or it is a conflict.
+const statePresentRule = docs(c)
+  .that()
+  .satisfy({
+    description: 'are live plan and bug records',
+    test: (d) =>
+      !d.frozen &&
+      LANES.some(
+        (lane) =>
+          (lane.name === 'plans' || lane.name === 'bugs') &&
+          !lane.doneFolders.some((f) => d.relPath.includes(f)) &&
+          d.relPath.startsWith(lane.roots[0].replace(/\*\*$/, '')) &&
+          !lane.boardFiles.some((b) => d.relPath.endsWith(`/${b}`)),
+      ),
+  })
+  .should()
+  .haveField({ label: 'State', forms: ['bold'] })
+  .rule({
+    id: 'corpus/state-present',
+    because: 'a record with no State is counted by the ledger and never refused (bug 0444)',
+    suggestion: "write the record's State as `- **State:** <word>` under its `## Status` section",
+  })
+const statePresent = statePresentRule.violations()
 const stateResults = stateRules.map((r) => r.result)
 const stateViolations = stateResults.flatMap((r) => [...r])
 
@@ -1067,6 +1093,7 @@ const receipt = mergeCollectResults([
   collectResult(danglingImplementsViolations, { examined: planDocsCount }),
   collectResult(laneViolations, { examined: laneRows.length }),
   ...stateResults.map((r) => collectResult([...r], { examined: r.examined })),
+  collectResult([...statePresent], { examined: statePresent.examined }),
 ])
 
 // ADR-008: this script owns its reporting on the terminal path, so the gate runs
@@ -1111,10 +1138,10 @@ line(
 )
 line(
   'states',
-  `${stateRules.map((r) => `${String(r.result.examined)} ${r.lane}`).join(' · ')} State line(s) · ${
-    stateViolations.length === 0
+  `${stateRules.map((r) => `${String(r.result.examined)} ${r.lane}`).join(' · ')} State line(s) in ${String(statePresent.examined)} record(s) · ${
+    stateViolations.length === 0 && statePresent.length === 0
       ? "✓ each in its lane's words"
-      : `✗ ${stateViolations.length} finding(s)`
+      : `✗ ${stateViolations.length + statePresent.length} finding(s)`
   }`,
 )
 line(
@@ -1164,6 +1191,7 @@ line(
 )
 
 const problems = [
+  ...statePresent,
   ...stateViolations,
   ...broken,
   ...stale,

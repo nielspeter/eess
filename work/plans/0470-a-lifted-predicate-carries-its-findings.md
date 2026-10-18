@@ -11,7 +11,7 @@
   build is filed as its own plan after the ruling, not here.
 - **Created:** 2026-10-18
 - **Builds after:** [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)
-  (`inDocuments`) and [plan 0469](./0469-havefield-a-document-has-a-value.md) (`haveField`).
+  (`inDocuments`) and [plan 0469](./completed/0469-havefield-a-document-has-a-value.md) (`haveField`).
 
 ## Problem
 
@@ -28,6 +28,9 @@ findings on. So `haveField` lifted onto `taskItems()` would drop an unreadable d
   examined.
 - **How `.select()` and `correspondence()` behave**, since neither goes through `collectViolations`.
 - **Which public predicate `haveField` then exports.**
+- **Taken over from plan 0469:** a dogfood rule that uses `haveField` in selector position, and one
+  verdict per document and use (each use recomputes it, and a lift recomputes it per element). The
+  build plan this spike files owns both.
 
 ## Out of scope
 

@@ -106,6 +106,8 @@ export { vocabulary, terms, fields, TermRuleBuilder } from './builders/vocabular
 // Plan 0468: a labelled value in the forms the caller names, and the helpers that cut one.
 export { cleanValue, untilDelimiter, longestOf } from './model/fields.js'
 export type { FieldForm, FieldOptions } from './model/fields.js'
+// Plan 0469: `docs().haveField()`, a document has a value.
+export type { HaveFieldOptions } from './builders/have-field.js'
 // Plan 0412: a code block parses with the parser the caller names.
 export { parseCodeBlocks, DEFAULT_CODE_BLOCK_BUDGET } from './model/code-block-parse.js'
 export type {

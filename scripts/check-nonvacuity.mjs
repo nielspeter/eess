@@ -3416,6 +3416,29 @@ const gates = [
         "'Fixed' (State, line 5) does not resolve against the vocabulary",
       ),
   ],
+  // Plan 0469: `haveField`. A live bug with no State reds the gate; one with two is a conflict.
+  [
+    'corpus/state-present',
+    () =>
+      gateCorpusStateProbe(
+        'bugs',
+        '__nonvacuity_probe_no_state.md',
+        [...STATE_PROBE_HEAD, 'No State line here.'],
+        'corpus/state-present',
+        'no State field (read as bold)',
+      ),
+  ],
+  [
+    'corpus/state-present-conflict',
+    () =>
+      gateCorpusStateProbe(
+        'bugs',
+        '__nonvacuity_probe_two_states.md',
+        [...STATE_PROBE_HEAD, '- **State:** Draft', '- **State:** Ready'],
+        'corpus/state-present',
+        "State is given twice (line 5 'Draft', line 6 'Ready'); keep one",
+      ),
+  ],
   [
     'corpus/state-in-a-form-not-read',
     () =>
@@ -4398,6 +4421,8 @@ const GATE_FOR = {
     'crossval/md-mermaid-er',
   ],
   'check:corpus': [
+    'corpus/state-present',
+    'corpus/state-present-conflict',
     'corpus/state-in-vocabulary-bugs',
     'corpus/state-in-vocabulary-plans',
     'corpus/state-in-a-form-not-read',

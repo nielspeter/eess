@@ -26,6 +26,9 @@ import {
  */
 export type FieldForm = 'bold' | 'heading' | 'bold-line' | 'plain'
 
+/** The marked-up forms, which beat `plain` prose and are the ones a scan for unread labels covers. */
+export const STRUCTURED_FORMS: readonly FieldForm[] = ['bold', 'heading', 'bold-line']
+
 /** What `fields()` reads: one label (and its aliases) in the forms the caller names. */
 export interface FieldOptions {
   /** The label, compared ignoring ASCII case and runs of whitespace. */
@@ -48,7 +51,7 @@ export interface FieldOptions {
 }
 
 /** One labelled value found in a document. */
-interface FieldOccurrence {
+export interface FieldOccurrence {
   /** The label as written, without its colon or emphasis. */
   readonly label: string
   readonly form: FieldForm
