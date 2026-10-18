@@ -779,6 +779,220 @@ function gateArchOneTagComparison() {
   }
 }
 
+// --- Gates: the document-shape examples (plan 0458) ---
+//
+// Three rows over the arch rules that keep `examples/md/` built from eess-md's public blocks, one
+// probe per spelling each rule claims, every probe required to red with THAT rule's id on the
+// probe's own file. And one quiet probe, built only from `docs()` and `corpus()`, that all four must
+// leave alone, so widening a rule to everything reddens a row too.
+const PROBE_EXAMPLE = join(repoRoot, 'examples', 'md', '__nonvacuity_probe_examples__.test.ts')
+const EXAMPLES_FIXTURE_HELPER = join(repoRoot, 'examples', 'md', 'fixture.ts')
+const EXAMPLE_RULES = [
+  'eess/examples-md-public-blocks-only',
+  'eess/examples-md-no-hand-built-rules',
+  'eess/examples-md-no-rule-constructors',
+]
+
+function gateExamplesMdRule(ruleId, spellings) {
+  const run = (body) =>
+    withProbe(PROBE_EXAMPLE, body, () =>
+      sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+    )
+  const probes = Object.entries(spellings).map(([name, body]) => {
+    const bad = run(body)
+    return {
+      name,
+      code: bad.code,
+      fired: bad.code === 1 && firedOn(bad, ruleId, '__nonvacuity_probe_examples__'),
+    }
+  })
+  const quiet = run(
+    "import { corpus, docs } from '@nielspeter/eess-md'\n" +
+      "export const rule = () => docs(corpus({ roots: ['**/*.md'] })).should().haveSection('X')\n",
+  )
+  const quietOk =
+    quiet.code === 0 &&
+    EXAMPLE_RULES.every((id) => !firedOn(quiet, id, '__nonvacuity_probe_examples__'))
+  const missed = probes.filter((p) => !p.fired)
+  return {
+    ok: missed.length === 0 && quietOk,
+    detail:
+      `${String(probes.length - missed.length)} of ${String(probes.length)} spellings fired` +
+      (missed.length > 0
+        ? ` (missed: ${missed.map((p) => `${p.name} → exit ${p.code}`).join(', ')})`
+        : '') +
+      ` · a docs()/corpus() probe → ${quietOk ? 'quiet' : `exit ${quiet.code}, not quiet`}`,
+  }
+}
+
+function gateExamplesMdPublicBlocksOnly() {
+  const result = gateExamplesMdRule('eess/examples-md-public-blocks-only', {
+    'definePredicate from the kernel':
+      "import { definePredicate } from '@nielspeter/eess'\nexport const x = definePredicate\n",
+    'the kernel internal':
+      "import { walkFiles } from '@nielspeter/eess/internal'\nexport const x = walkFiles\n",
+    'eess-md internal':
+      "import { proseText } from '@nielspeter/eess-md/internal'\nexport const x = proseText\n",
+    'a preset subpath':
+      "import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'\nexport const x = honestyAtClose\n",
+    'package source':
+      "import { collectTaskItems } from '../../packages/md/src/model/task-items.js'\nexport const x = collectTaskItems\n",
+    'node:fs in an example':
+      "import { readFileSync } from 'node:fs'\nexport const x = readFileSync\n",
+  })
+  // The helper's half: `node:fs/promises` must be allowed there (`node:{*,*/*}`), so the helper
+  // importing it stays quiet. Measured on the real helper, restored afterwards.
+  const helper = withRewrittenFile(
+    EXAMPLES_FIXTURE_HELPER,
+    (src) => `import 'node:fs/promises'\n${src}`,
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const helperQuiet =
+    helper.code === 0 && !firedOn(helper, 'eess/examples-md-public-blocks-only', 'fixture.ts')
+  return {
+    ok: result.ok && helperQuiet,
+    detail: `${result.detail} · the helper importing node:fs/promises → ${helperQuiet ? 'quiet' : `exit ${helper.code}`}`,
+  }
+}
+
+function gateExamplesMdNoHandBuiltRules() {
+  return gateExamplesMdRule('eess/examples-md-no-hand-built-rules', {
+    'a test member': "export const p = { description: 'x', test: () => true }\n",
+    'a quoted key': "export const p = { 'test': () => true }\n",
+    'a computed key': "export const p = { ['evaluate']: () => [] }\n",
+    'a getter': 'export const p = { get test() { return () => true } }\n',
+    'an async method': 'export const p = { async test() { return true } }\n',
+    'a generator method': 'export const p = { *evaluate() { yield 1 } }\n',
+    'an assignment': 'const p: Record<string, unknown> = {}\np.evaluate = () => []\nexport { p }\n',
+    'a class':
+      "import { docs } from '@nielspeter/eess-md'\nexport class P { run() { return docs } }\n",
+    'a dynamic import': "export const m = () => import('@nielspeter/eess/internal')\n",
+  })
+}
+
+function gateExamplesMdNoRuleConstructors() {
+  return gateExamplesMdRule('eess/examples-md-no-rule-constructors', {
+    'definePredicate with no import':
+      'declare const definePredicate: unknown\nexport const x = definePredicate\n',
+    createRequire: 'declare const createRequire: unknown\nexport const x = createRequire\n',
+    collectResult:
+      "import { collectResult } from '@nielspeter/eess-md'\nexport const x = collectResult\n",
+  })
+}
+
+/**
+ * The load-bearing row (plan 0458): every example's fixtures carry its tests. It discovers each
+ * `examples/md/<name>.test.ts` and its `violating-*` folders, then runs that file `1 + 2N` times for
+ * N judgements, reading each test's outcome by title from vitest's JSON report, never the exit code:
+ * unswapped all pass; `violating-<j>=clean` fails every `violating-<j>:` test and passes the rest;
+ * `clean=violating-<j>` fails at least one `clean:` test and passes every `violating-*:` test.
+ */
+function gateExamplesMdLoadBearing() {
+  const dir = join(repoRoot, 'examples', 'md')
+  const examples = readdirSync(dir).filter(
+    (f) => f.endsWith('.test.ts') && !f.startsWith('__nonvacuity_probe'),
+  )
+  if (examples.length === 0)
+    return { ok: false, detail: 'examples/md holds no example — nothing is proven' }
+  const vitest = join(repoRoot, 'node_modules', '.bin', 'vitest')
+  const report = join(mkdtempSync(join(tmpdir(), 'eess-examples-md-')), 'report.json')
+  const outcomes = (file, swap) => {
+    if (swap === undefined) delete process.env.EESS_EXAMPLE_SWAP
+    else process.env.EESS_EXAMPLE_SWAP = swap
+    try {
+      sh(vitest, [
+        'run',
+        '--root',
+        'examples',
+        `md/${file}`,
+        '--reporter=json',
+        `--outputFile=${report}`,
+      ])
+    } finally {
+      delete process.env.EESS_EXAMPLE_SWAP
+    }
+    let parsed
+    try {
+      parsed = JSON.parse(readFileSync(report, 'utf8'))
+    } catch {
+      return undefined
+    }
+    rmSync(report, { force: true })
+    const results = (parsed.testResults ?? []).flatMap((t) => t.assertionResults ?? [])
+    return new Map(results.map((r) => [r.title, r.status === 'passed']))
+  }
+  const findings = []
+  let discovered = 0
+  let swapped = 0
+  for (const file of examples) {
+    const name = file.replace(/\.test\.ts$/, '')
+    const fx = join(dir, 'fixtures', name)
+    const folders = (() => {
+      try {
+        return readdirSync(fx)
+      } catch {
+        return []
+      }
+    })()
+    const nonEmpty = (f) => {
+      try {
+        return readdirSync(join(fx, f)).length > 0
+      } catch {
+        return false
+      }
+    }
+    if (!folders.includes('clean') || !nonEmpty('clean'))
+      findings.push(`${name}: no non-empty clean/`)
+    const judgements = folders.filter((f) => f.startsWith('violating-'))
+    if (judgements.length === 0) findings.push(`${name}: no violating-*/ folder`)
+    for (const j of judgements) if (!nonEmpty(j)) findings.push(`${name}: ${j}/ is empty`)
+    const base = outcomes(file)
+    if (base === undefined || base.size === 0) {
+      findings.push(`${name}: vitest produced no test results (a syntax error or a thrown load?)`)
+      continue
+    }
+    const titles = [...base.keys()]
+    if (!titles.some((t) => t.startsWith('clean:'))) findings.push(`${name}: no clean: test`)
+    for (const j of judgements) {
+      if (!titles.some((t) => t.startsWith(`${j}:`)))
+        findings.push(`${name}: ${j}/ has no ${j}: test`)
+    }
+    for (const t of titles) {
+      const m = /^(violating-[a-z0-9-]+):/.exec(t)
+      if (m && !judgements.includes(m[1]))
+        findings.push(`${name}: test "${t}" has no ${m[1]}/ folder`)
+    }
+    for (const [t, ok] of base) if (!ok) findings.push(`${name}: "${t}" fails unswapped`)
+    for (const j of judgements) {
+      discovered += 1
+      const forward = outcomes(file, `${j}=clean`)
+      const reverse = outcomes(file, `clean=${j}`)
+      if (forward === undefined || reverse === undefined) {
+        findings.push(`${name}: ${j}: a swapped run produced no results`)
+        continue
+      }
+      const forwardOk = [...forward].every(([t, ok]) => (t.startsWith(`${j}:`) ? !ok : ok))
+      const reverseOk =
+        [...reverse].some(([t, ok]) => t.startsWith('clean:') && !ok) &&
+        [...reverse].every(([t, ok]) => (t.startsWith('violating-') ? ok : true))
+      if (!forwardOk)
+        findings.push(
+          `${name}: ${j}: with the clean fixture in its place, a ${j}: test still passes (or another test fails)`,
+        )
+      if (!reverseOk)
+        findings.push(`${name}: ${j}: with ${j}/ in place of clean/, no clean: test fails`)
+      if (forwardOk && reverseOk) swapped += 1
+    }
+  }
+  const ok = findings.length === 0 && swapped === discovered && discovered > 0
+  return {
+    ok,
+    detail:
+      `${String(examples.length)} example(s), ${String(swapped)} of ${String(discovered)} judgement(s) proven load-bearing both ways` +
+      (findings.length > 0 ? ` · ${findings.join(' · ')}` : ''),
+  }
+}
+
 /**
  * Bug 0287: the check that stops a fifth copy of the fence regex. One row per root it walks, because
  * the four copies lived in two of them — two packages and a gate script — and a root dropped from its
@@ -3678,6 +3892,10 @@ const gates = [
         'examples/does-not-compile',
       ]),
   ],
+  ['examples/md-fixtures-are-load-bearing', gateExamplesMdLoadBearing],
+  ['arch/examples-md-public-blocks-only', gateExamplesMdPublicBlocksOnly],
+  ['arch/examples-md-no-hand-built-rules', gateExamplesMdNoHandBuiltRules],
+  ['arch/examples-md-no-rule-constructors', gateExamplesMdNoRuleConstructors],
   [
     'vacuity-matrix',
     () =>
@@ -3763,6 +3981,9 @@ const GATE_FOR = {
   // claim is narrower than the gate; it is filed under the script whose engine
   // would otherwise have no witness that it still matches the kernel's.
   'check:arch': [
+    'arch/examples-md-public-blocks-only',
+    'arch/examples-md-no-hand-built-rules',
+    'arch/examples-md-no-rule-constructors',
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'arch/md-one-link-resolver',
@@ -4025,7 +4246,7 @@ const GATE_FOR = {
     'guardrails/no-verdict-outside-rules',
     'guardrails/rule-files-matches-nothing',
   ],
-  'check:examples': ['examples/does-not-compile'],
+  'check:examples': ['examples/does-not-compile', 'examples/md-fixtures-are-load-bearing'],
   // Two rows, because the script scans several populations — `docs/` + package
   // READMEs, `.changeset/**`, and the repo-root docs (bug 0273) — and one row per
   // script cannot notice when one of them stops being scanned, which is exactly

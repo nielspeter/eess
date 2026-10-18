@@ -13,6 +13,7 @@ export default defineConfig({
     //
     // The other example files remain unrun on purpose — see bug 0222 for the
     // scope question, which this does not settle.
-    include: ['cross-dialect.*.test.ts', 'public-surface.test.ts'],
+    // `md/**`: the document-shape examples, built from eess-md's public blocks only (plan 0458).
+    include: ['cross-dialect.*.test.ts', 'public-surface.test.ts', 'md/**/*.test.ts'],
   },
 })

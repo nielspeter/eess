@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-17 from proposal 017's second Review, decision 3; reworked
-  twice on 2026-10-18 after PR #235's two review rounds (see "Review response").
+- **State:** Done — built 2026-10-18 in its own pull request, under the build order the maintainer
+  set; the two deferrals below go to proposal 017, where their blocks are held.
 - **Implements:** proposal 017
 - **Priority:** Medium. It builds first. The build order, decided by the maintainer on 2026-10-18,
   is 0458 → 0456 → 0454 → 0457 → 0455 → 0459. Each block plan adds its example under this gate,
@@ -670,11 +670,11 @@ From PR #235's sixth-round reviews (`review-235-*-r6.md`).
 
 ## Progress ledger
 
-- [ ] Phase 1: `examples/md/`, `fixture.ts`, the seed example and its fixtures; `check:examples` runs it
-- [ ] Phase 2: rule 1 (two halves), rules 2 and 3, green on the seed example
-- [ ] Phase 3: the four non-vacuity rows, each red on its sabotage and quiet on its quiet probe
-- [ ] Phase 4: docs section, README link, `examples/README.md`, changeset
-- [ ] Cost measured: `check:arch`, `check:examples` and the load-bearing row, before and after
+- [x] Phase 1: `examples/md/`, `fixture.ts`, the seed example and its fixtures; `check:examples` runs it
+- [x] Phase 2: rule 1 (two halves), rules 2 and 3, green on the seed example
+- [x] Phase 3: the four non-vacuity rows, each red on its sabotage and quiet on its quiet probe. Rule 1 fires on 6 of 6 spellings, rule 2 on 9 of 9, rule 3 on 3 of 3, and a `docs()`/`corpus()` probe is quiet under all four. The load-bearing row reds on a weakened assertion and on a folder with no example (measured by hand, 2026-10-18).
+- [x] Phase 4: docs section, README link, `examples/README.md`, changeset
+- [x] Cost measured, 2026-10-18: `check:arch` 28 rules in 7.79 s on main, 32 rules in 8.28 s after; `check:examples` 1.9 s before (this plan's own figure), 2.19 s after; the load-bearing row 1.59 s for its one judgement, growing with each judgement added.
 - [ ] `deferred→proposal 017` `honestyAtClose` rebuilt from public blocks, decision 3's closing
       proof (needs blocks 1, 2 and 5, and the ADR in the second Review's decision 1; no plan yet)
 - [ ] `deferred→proposal 017` the outward-binding example and rule 1's widening to sibling dialect

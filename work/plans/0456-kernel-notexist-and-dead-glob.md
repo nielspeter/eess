@@ -21,7 +21,7 @@
   reviewed in two parts: the kernel (Phase 1), then the dialects (Phase 2). Phase 1 alone ships an
   inert hook, so it is not a delivery on its own.
 - **Created:** 2026-10-17
-- **Builds after:** [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
+- **Builds after:** [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
   (the examples gate). Build order (maintainer, 2026-10-18): 0458 → **0456** → 0454 → 0457 →
   0455 → 0459.
 - **Builds before:** 0454, 0457, 0459 and [0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md).

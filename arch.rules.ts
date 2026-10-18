@@ -10,7 +10,14 @@
  *    import each other (siblings on the kernel; only eess-crossvalidate bridges
  *    them).
  */
-import { workspace, modules, type ExpressionMatcher } from '@nielspeter/eess-ts'
+import {
+  workspace,
+  project,
+  modules,
+  not,
+  resideInFile,
+  type ExpressionMatcher,
+} from '@nielspeter/eess-ts'
 
 const p = workspace([
   'packages/core/tsconfig.build.json',
@@ -57,7 +64,114 @@ const langTagComparison: ExpressionMatcher = {
   },
 }
 
+/**
+ * Plan 0458 — the document-shape examples under `examples/md/` are built from eess-md's public blocks
+ * only (proposal 017, decision 3). Three rules hold it, at Tier 1: what they cannot see is recorded
+ * in the plan ("What the rules do not catch") and held by review.
+ */
+const examples = project('examples/tsconfig.json')
+const EXAMPLES_MD = '**/examples/md/**'
+const FIXTURE_HELPER = '**/examples/md/fixture.ts'
+const blocksOnly =
+  'a document-shape example proves the blocks are enough (proposal 017, decision 3); ' +
+  'a kernel, dialect-internal, subpath or package-source import is a block eess-md does not offer'
+
+const MEMBER_KINDS = new Set([
+  'PropertyAssignment',
+  'ShorthandPropertyAssignment',
+  'MethodDeclaration',
+  'GetAccessor',
+  'SetAccessor',
+])
+const NAME_KINDS = new Set([
+  'Identifier',
+  'StringLiteral',
+  'NoSubstitutionTemplateLiteral',
+  'ComputedPropertyName',
+])
+const RULE_MEMBER = /^(test|evaluate)$/
+
+/** A member's name as written, quotes, backticks and computed brackets stripped. Found by kind. */
+function memberName(member: {
+  getChildren(): readonly {
+    getKindName(): string
+    getText(): string
+    getChildren(): readonly { getText(): string }[]
+  }[]
+}): string {
+  const nameNode = member.getChildren().find((c) => NAME_KINDS.has(c.getKindName()))
+  const raw =
+    nameNode?.getKindName() === 'ComputedPropertyName'
+      ? (nameNode.getChildren()[1]?.getText() ?? '')
+      : (nameNode?.getText() ?? '')
+  return raw.replace(/^['"`]|['"`]$/g, '')
+}
+
+const handBuiltRule: ExpressionMatcher = {
+  description:
+    'a hand-built predicate, condition or builder (a `test`/`evaluate` member, a class, or a dynamic import)',
+  matches(node) {
+    const kind = node.getKindName()
+    if (kind === 'ClassDeclaration' || kind === 'ClassExpression') return true
+    if (kind === 'CallExpression') return node.getChildren()[0]?.getKindName() === 'ImportKeyword'
+    if (MEMBER_KINDS.has(kind)) return RULE_MEMBER.test(memberName(node))
+    if (kind === 'BinaryExpression') {
+      const [left, op] = node.getChildren()
+      return (
+        op?.getText() === '=' &&
+        /(\.(test|evaluate)|\[['"`](test|evaluate)['"`]\])$/.test(left?.getText() ?? '')
+      )
+    }
+    return false
+  },
+}
+
+const RULE_CONSTRUCTORS = new Set([
+  'definePredicate',
+  'defineCondition',
+  'createRequire',
+  'collectResult',
+  'mergeCollectResults',
+  'finishPreset',
+  'dispatchRule',
+])
+const ruleConstructor: ExpressionMatcher = {
+  description:
+    'a rule constructor or verdict-assembly seam (definePredicate, defineCondition, createRequire, collectResult, mergeCollectResults, finishPreset, dispatchRule)',
+  matches(node) {
+    return node.getKindName() === 'Identifier' && RULE_CONSTRUCTORS.has(node.getText())
+  },
+}
+
 export default [
+  // Plan 0458, rule 1 (two halves, one id): an example imports eess-md's root, vitest and the
+  // fixture helper, nothing else; only the helper may import Node's modules.
+  modules(examples)
+    .that()
+    .resideInFolder(EXAMPLES_MD)
+    .satisfy(not(resideInFile(FIXTURE_HELPER)))
+    .should()
+    .onlyImportFrom('@nielspeter/eess-md', 'vitest', FIXTURE_HELPER)
+    .rule({ id: 'eess/examples-md-public-blocks-only', because: blocksOnly }),
+  modules(examples)
+    .that()
+    .resideInFile(FIXTURE_HELPER)
+    .should()
+    .onlyImportFrom('node:{*,*/*}')
+    .rule({ id: 'eess/examples-md-public-blocks-only', because: blocksOnly }),
+  // Rule 2: no predicate, condition or builder built by hand, which needs no import at all.
+  modules(examples).that().resideInFolder(EXAMPLES_MD).should().notContain(handBuiltRule).rule({
+    id: 'eess/examples-md-no-hand-built-rules',
+    because:
+      'an example composes blocks; a hand-built predicate or condition proves nothing about them (proposal 017, decision 3)',
+  }),
+  // Rule 3: the rule constructors and verdict-assembly seams, banned by name whatever their import.
+  modules(examples).that().resideInFolder(EXAMPLES_MD).should().notContain(ruleConstructor).rule({
+    id: 'eess/examples-md-no-rule-constructors',
+    because:
+      'decision 3 bans constructing a predicate or condition, and a verdict assembled by hand bypasses the blocks',
+  }),
+
   // Kernel purity — @nielspeter/eess depends on nothing dialect-specific.
   modules(p)
     .that()
