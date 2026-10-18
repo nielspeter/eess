@@ -159,8 +159,8 @@ type Allowed = Vocabulary | RegExp
 function judge(allowed: Allowed): { ok: (value: string) => boolean; says: string } {
   if (allowed instanceof RegExp) {
     // A copy without `g`/`y`, so a caller's stateful pattern judges every value alike; anchored, so
-    // `/fixed/` does not pass `unfixed`.
-    const whole = new RegExp(`^(?:${allowed.source})$`, allowed.flags.replace(/[gy]/g, ''))
+    // `/fixed/` does not pass `unfixed`; without `m`, so `^…$` spans the whole value, not one line.
+    const whole = new RegExp(`^(?:${allowed.source})$`, allowed.flags.replace(/[gym]/g, ''))
     return { ok: (v) => whole.test(v), says: `does not match ${String(allowed)}` }
   }
   return {
@@ -185,16 +185,28 @@ const resolveAgainst = (allowed: Allowed): Condition<MdTerm> => {
             file: t.doc.file,
             line: t.line,
             // A field names its label and line; it never lists the set, which can be hundreds long.
-            message:
-              t.form === 'pattern'
-                ? `'${t.value}' ${says}`
-                : `'${t.value}' (${t.label}, line ${String(t.line)}) ${says}`,
+            message: valueMessage(t, says),
             ...(ctx.because !== undefined && { because: ctx.because }),
             ...(ctx.suggestion !== undefined && { suggestion: ctx.suggestion }),
             ...(ctx.docs !== undefined && { docs: ctx.docs }),
           }),
         ),
   }
+}
+
+/**
+ * A value finding. A field names its label and line; one whose value is empty after cutting (an
+ * emoji-only `✅`, a `### Status:` with the value elsewhere, a cut that kept nothing) says so, with
+ * the text it read, so the author is not sent to a vocabulary for a value that is not there.
+ */
+function valueMessage(t: MdTerm, says: string): string {
+  if (t.form === 'pattern') return `'${t.value}' ${says}`
+  const where = `(${t.label}, line ${String(t.line)})`
+  if (t.value === '') {
+    const read = t.raw.replace(/\s+/g, ' ').trim()
+    return `${where} has no value this rule can read${read === '' ? '' : ` in '${read}'`}`
+  }
+  return `'${t.value}' ${where} ${says}`
 }
 
 /** What a `TermRuleBuilder` reads: a `terms()` pattern, or a `fields()` label in named forms. */

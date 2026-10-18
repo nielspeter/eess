@@ -1,5 +1,15 @@
 import type { MdDocument } from './document.js'
-import { proseText } from './prose.js'
+import { proseText, type SetAside } from './prose.js'
+import {
+  LABEL_HEADING,
+  PREFIX,
+  boldLine,
+  heading,
+  labelBody,
+  opensWithLabelShape,
+  plain,
+  wrapped,
+} from './label.js'
 
 /**
  * A labelled value in a record, read in the forms the caller names (plan 0468, proposal 017
@@ -47,58 +57,34 @@ interface FieldOccurrence {
   readonly text: string
 }
 
-const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-/** A label's body: ASCII case ignored (the `i` flag), any run of whitespace matching any other. */
-const body = (label: string): string =>
-  label
-    .trim()
-    .split(/\s+/)
-    .map(escapeRe)
-    .join(String.raw`\s+`)
-
-const INDENT = String.raw`^ {0,3}`
-const MARKER = String.raw`(?:(?:[-*+]|\d+[.)])\s+)?`
-
-/** The pattern for one form over a label body; group 1 is the label as written, group 2 the rest. */
+/** The pattern for one form over a label body; group 1 is the label as written, the last group the rest. */
 function formPattern(form: FieldForm, b: string): RegExp {
   const L = `(${b})`
   switch (form) {
     case 'heading':
-      return new RegExp(String.raw`${INDENT}#{1,6}\s+${L}\s*:\s*(.*)$`, 'i')
+      return new RegExp(`${heading(L)}\\s*(.*)$`, 'i')
     case 'bold-line':
-      // Not `**X:** **v**`: a bold label with a bold value is the `bold` form.
-      return new RegExp(
-        String.raw`${INDENT}${MARKER}\*\*${L}\s*:(?!\*\*)\s*((?:(?!\*\*).)*?)\*\*\s*$`,
-        'i',
-      )
+      return new RegExp(`${PREFIX}${boldLine(L)}`, 'i')
     case 'bold':
-      return new RegExp(
-        String.raw`${INDENT}${MARKER}(?:\*\*${L}:\*\*|\*\*${L}\*\*\s*:|__${L}__\s*:)(.*)$`,
-        'i',
-      )
+      return new RegExp(`${PREFIX}(?:${wrapped(L)})(.*)$`, 'i')
     case 'plain':
-      return new RegExp(String.raw`${INDENT}${MARKER}${L}\s*:(.*)$`, 'i')
+      return new RegExp(`${PREFIX}${plain(L)}(.*)$`, 'i')
   }
 }
 
 /** The forms a line could be read in, most specific first, so one line is read once. */
 const ORDER: readonly FieldForm[] = ['heading', 'bold-line', 'bold', 'plain']
 
-/** Any heading written `## Label: value`: it continues a header rather than ending it. */
-const LABEL_HEADING = /^ {0,3}#{2,6}\s+[^:\n#][^:\n]*:\s*\S/
-const HEADING = /^ {0,3}#{1,6}\s/
-const DEEP_HEADING = /^ {0,3}#{2,6}\s/
+const HEADING = /^\s*#{1,6}\s/
+const DEEP_HEADING = /^\s*#{2,6}\s/
 const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s+/
-/** A line opening with a label in any form, any label: it ends a value above it. */
-// A plain label is label-shaped (the ledger's `PLAIN_LABEL`), so prose holding a colon does not cut.
-const ANY_LABEL =
-  /^ {0,3}(?:(?:[-*+]|\d+[.)])\s+)?(?:\*\*[^*\n]+?:\*\*|\*\*[^*\n]+?\*\*\s*:|__[^_\n]+?__\s*:|\*\*[^*\n]+?:.*\*\*\s*$|[A-Za-z][A-Za-z ]{0,40}?\s*:)/
+const THEMATIC_BREAK = /^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/
 
 /**
  * The index past the document's header: the first heading of depth 2 or more that is not itself a
- * `## Label: value` heading. A title (depth 1) does not end it, and nor do label headings, so
- * `## Status: open` followed by `## Severity: High` stays one header.
+ * `## Label: value` heading (the shared `LABEL_HEADING`, the ledger's rule too). A title (depth 1)
+ * does not end it. This is `fields()`'s header; the ledger's `State:` reader reads its own, larger
+ * region (bug 0119).
  */
 function headerEnd(lines: readonly string[]): number {
   for (let i = 0; i < lines.length; i++) {
@@ -108,37 +94,49 @@ function headerEnd(lines: readonly string[]): number {
   return lines.length
 }
 
-/** A label's match on one line in one of `forms`, or `undefined`. */
+/** The compiled patterns for some labels in some forms, built once per scan. */
+type Patterns = readonly { readonly form: FieldForm; readonly re: RegExp }[]
+
+function compile(labels: readonly string[], forms: readonly FieldForm[]): Patterns {
+  const bodies = labels.map(labelBody)
+  return ORDER.filter((f) => forms.includes(f)).flatMap((form) =>
+    bodies.map((b) => ({ form, re: formPattern(form, b) })),
+  )
+}
+
+/** A label's match on one line, or `undefined`. */
 function matchLine(
   line: string,
-  bodies: readonly string[],
-  forms: readonly FieldForm[],
+  patterns: Patterns,
 ): { form: FieldForm; label: string; rest: string } | undefined {
-  for (const form of ORDER) {
-    if (!forms.includes(form)) continue
-    for (const b of bodies) {
-      const m = formPattern(form, b).exec(line)
-      if (m === null) continue
-      // Group order follows the pattern: for `bold` the label sits in one of three groups.
-      const groups = m.slice(1)
-      const rest = groups[groups.length - 1] ?? ''
-      const label = groups.slice(0, -1).find((g) => g !== undefined) ?? ''
-      return { form, label: label.replace(/\s+/g, ' ').trim(), rest }
-    }
+  for (const { form, re } of patterns) {
+    const m = re.exec(line)
+    if (m === null) continue
+    // Group order follows the pattern: for `bold` the label sits in one of three groups.
+    const groups = m.slice(1)
+    const rest = groups[groups.length - 1] ?? ''
+    const label = groups.slice(0, -1).find((g) => g !== undefined) ?? ''
+    return { form, label: label.replace(/\s+/g, ' ').trim(), rest }
   }
   return undefined
 }
 
 /**
- * The continuation of a value: the lines after its label until a blank line, a heading, a line that
- * is itself a label in any form, or the end of its list item. A `heading` or `bold-line` value is
- * one line.
+ * The continuation of a value: the lines after its label until a blank line, a heading, a thematic
+ * break, a line that opens with a label of any shape (the shared `opensWithLabelShape`), or the end
+ * of its list item. A `heading` or `bold-line` value is one line.
  */
 function continuation(lines: readonly string[], from: number, end: number): string[] {
   const out: string[] = []
   for (let i = from; i < end; i++) {
     const line = lines[i] ?? ''
-    if (line.trim() === '' || HEADING.test(line) || LIST_ITEM.test(line) || ANY_LABEL.test(line)) {
+    if (
+      line.trim() === '' ||
+      HEADING.test(line) ||
+      THEMATIC_BREAK.test(line) ||
+      LIST_ITEM.test(line) ||
+      opensWithLabelShape(line)
+    ) {
       break
     }
     out.push(line.trim())
@@ -146,24 +144,51 @@ function continuation(lines: readonly string[], from: number, end: number): stri
   return out
 }
 
-/** The lines and label occurrences of one document in the given forms, in reading order. */
+/** One label line a scan found. */
+export interface ScannedField {
+  readonly label: string
+  readonly form: FieldForm
+  readonly line: number
+  readonly raw: string
+  readonly text: string
+}
+
+/**
+ * A document's lines as the field readers see them: fenced code blanked (by `setAside`, default
+ * `'closed-fences'`, which reads past a fence that never closes, so a reader whose findings grow
+ * with what it reads reports too much rather than nothing), a trailing `\r` removed so a CRLF file
+ * reads as an LF one, and cut at the header's end when `region` is `'header'`.
+ */
+export function fieldLines(
+  doc: MdDocument,
+  region: 'header' | undefined,
+  setAside: SetAside = 'closed-fences',
+): string[] {
+  const lines = proseText(doc.text, setAside, doc.root)
+    .split('\n')
+    .map((l) => l.replace(/\r$/, ''))
+  return region === 'header' ? lines.slice(0, headerEnd(lines)) : lines
+}
+
+/** The label occurrences of one document in the given forms, in reading order. */
 export function scanFields(
   doc: MdDocument,
   labels: readonly string[],
   forms: readonly FieldForm[],
   region: 'header' | undefined,
-): { label: string; form: FieldForm; line: number; raw: string; text: string }[] {
-  // Fenced code is an example: its lines are blanked, so nothing in it is read.
-  const lines = proseText(doc.text, 'closed-fences', doc.root).split('\n')
-  const end = region === 'header' ? headerEnd(lines) : lines.length
-  const bodies = labels.map(body)
-  const out: { label: string; form: FieldForm; line: number; raw: string; text: string }[] = []
-  for (let i = 0; i < end; i++) {
+  setAside: SetAside = 'closed-fences',
+): ScannedField[] {
+  const lines = fieldLines(doc, region, setAside)
+  const patterns = compile(labels, forms)
+  const out: ScannedField[] = []
+  for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? ''
-    const hit = matchLine(line, bodies, forms)
+    const hit = matchLine(line, patterns)
     if (hit === undefined) continue
     const more =
-      hit.form === 'heading' || hit.form === 'bold-line' ? [] : continuation(lines, i + 1, end)
+      hit.form === 'heading' || hit.form === 'bold-line'
+        ? []
+        : continuation(lines, i + 1, lines.length)
     out.push({
       label: hit.label,
       form: hit.form,
@@ -177,22 +202,24 @@ export function scanFields(
 
 /**
  * Every occurrence of the label (and its aliases) in one document, in the forms the caller names.
- * The one labelled-value reader: `fields()` and the unnamed-form scan use it, and so does
- * `haveField` (plan 0469). An occurrence whose cut value is empty is not yielded.
+ * The one labelled-value reader: `fields()` and the unnamed-form scan use it, and so will
+ * `haveField` (plan 0469, which should pass `'code-blocks'` as `setAside`: for a presence check,
+ * reading past an unclosed fence errs toward "present"). An occurrence whose cut value is empty is
+ * still yielded, with the value `''`, so a check reports it rather than skipping it.
  */
-export function readFields(doc: MdDocument, options: FieldOptions): FieldOccurrence[] {
+export function readFields(
+  doc: MdDocument,
+  options: FieldOptions,
+  setAside: SetAside = 'closed-fences',
+): FieldOccurrence[] {
   const cut = options.value ?? cleanValue
   const out: FieldOccurrence[] = []
-  for (const hit of scanFields(
-    doc,
-    [options.label, ...(options.aliases ?? [])],
-    options.forms,
-    options.region,
-  )) {
+  const labels = [options.label, ...(options.aliases ?? [])]
+  for (const hit of scanFields(doc, labels, options.forms, options.region, setAside)) {
     const value = cut(hit.raw)
-    if (value === '') continue
-    const values = options.split ? options.split(value).filter((v) => v !== '') : [value]
-    out.push({ ...hit, values })
+    const split = value === '' || options.split === undefined ? [value] : options.split(value)
+    const values = split.filter((v) => v !== '')
+    out.push({ ...hit, values: values.length > 0 ? values : [''] })
   }
   return out
 }
@@ -234,18 +261,20 @@ export function untilDelimiter(chars: readonly string[]): (raw: string) => strin
 }
 
 /**
- * The longest allowed value the text starts with, ignoring case, as a whole word; the text is
- * trimmed first. When none matches, the trimmed text is returned, so a check reports it.
+ * The longest allowed value the text starts with, ignoring case and the apostrophe's glyph (`’` is
+ * `'`), as a whole word; the text is trimmed first. When none matches, the trimmed text is returned, so a check reports it.
  */
 export function longestOf(allowed: readonly string[]): (raw: string) => string {
+  const fold = (t: string): string => t.toLowerCase().replace(/’/g, "'")
   const byLength = [...allowed].sort((a, b) => b.length - a.length)
   return (raw) => {
     const text = raw.trim()
-    const lower = text.toLowerCase()
+    const folded = fold(text)
     for (const a of byLength) {
-      if (!lower.startsWith(a.toLowerCase())) continue
+      if (!folded.startsWith(fold(a))) continue
+      // The ledger's word characters (letters, digits, `_`, `-`, an apostrophe): `Done-ish` is not `Done`.
       const next = text.charAt(a.length)
-      if (next === '' || !/[\p{L}\p{N}]/u.test(next)) return text.slice(0, a.length)
+      if (next === '' || !/[\p{L}\p{N}_'’-]/u.test(next)) return text.slice(0, a.length)
     }
     return text
   }

@@ -1964,27 +1964,26 @@ function gateCorpusOneDeadCheck() {
 }
 
 /**
- * Plan 0468: `check:corpus` reads every live bug's State with `fields()` and the lane's words. A
- * probe bug whose State is `Drfat` must red the gate, naming the value, the label and the line.
+ * Plan 0468: `check:corpus` reads every live plan's and bug's State with `fields()` and the lane's
+ * words, one rule and one id per lane. Each row plants a probe record, runs the gate's machine-
+ * readable path, and requires the finding by id, file and message, so `rule-id coverage` sees the id
+ * asserted. Three probes: a misspelt bug State; a plan carrying a bug's word (`Fixed`), which proves
+ * the lanes' vocabularies stay apart; and a bug whose State is a heading, a form the rule does not
+ * read.
  */
-function gateCorpusStateInVocabulary() {
-  const probe = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_state.md')
-  const text = ['# Bug 9998: a probe', '', '## Status', '', '- **State:** Drfat', ''].join('\n')
-  const r = withProbe(probe, text, () =>
-    sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+function gateCorpusStateProbe(lane, file, lines, ruleId, payload) {
+  const probe = join(repoRoot, 'work', lane, file)
+  const r = withProbe(probe, [...lines, ''].join('\n'), () =>
+    sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
   )
-  const named = r.stderr
-    .split('\n')
-    .some(
-      (l) =>
-        l.includes('__nonvacuity_probe_state.md:5') &&
-        l.includes("'Drfat' (State, line 5) does not resolve against the vocabulary"),
-    )
+  const named = firedNamingPayload(r, ruleId, file, payload)
   return {
     ok: r.code === 1 && named,
-    detail: `a live bug whose State is Drfat → exit ${r.code}, named at its line: ${named}`,
+    detail: `${file} → exit ${r.code}, ${ruleId} naming "${payload}": ${named}`,
   }
 }
+
+const STATE_PROBE_HEAD = ['# A probe', '', '## Status', '']
 
 /**
  * ADR-014's "every hand-assembled check supplies evidence", on `check:ledger`'s
@@ -3395,7 +3394,39 @@ const gates = [
     () => gateNode('bad-crossval-gherkin-e2e.mjs', 'crossval/scenarios-covered'),
   ],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
-  ['corpus/state-in-vocabulary', gateCorpusStateInVocabulary],
+  [
+    'corpus/state-in-vocabulary-bugs',
+    () =>
+      gateCorpusStateProbe(
+        'bugs',
+        '__nonvacuity_probe_state.md',
+        [...STATE_PROBE_HEAD, '- **State:** Drfat'],
+        'corpus/state-in-vocabulary-bugs',
+        "'Drfat' (State, line 5) does not resolve against the vocabulary",
+      ),
+  ],
+  [
+    'corpus/state-in-vocabulary-plans',
+    () =>
+      gateCorpusStateProbe(
+        'plans',
+        '__nonvacuity_probe_state.md',
+        [...STATE_PROBE_HEAD, '- **State:** Fixed'],
+        'corpus/state-in-vocabulary-plans',
+        "'Fixed' (State, line 5) does not resolve against the vocabulary",
+      ),
+  ],
+  [
+    'corpus/state-in-a-form-not-read',
+    () =>
+      gateCorpusStateProbe(
+        'bugs',
+        '__nonvacuity_probe_state_heading.md',
+        ['# A probe', '', '## State: Drfat'],
+        'corpus/state-in-vocabulary-bugs',
+        'found `## State: Drfat` at line 3, in a form this rule does not read (heading)',
+      ),
+  ],
   // Three rows, one per rule the fixture must make fire. The fixture exits 0
   // unless ALL three do, so any one of them going quiet reddens all three rows —
   // and the gate list NAMES what is proven, instead of one row standing in for a
@@ -4367,7 +4398,9 @@ const GATE_FOR = {
     'crossval/md-mermaid-er',
   ],
   'check:corpus': [
-    'corpus/state-in-vocabulary',
+    'corpus/state-in-vocabulary-bugs',
+    'corpus/state-in-vocabulary-plans',
+    'corpus/state-in-a-form-not-read',
     'corpus/dead-root',
     'corpus/undocumented-waiver',
     'corpus/adr',

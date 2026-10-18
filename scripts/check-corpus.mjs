@@ -293,16 +293,24 @@ const extendsRule = links(corpus({ roots: ['adr/**'] }))
 const extendsViolations = extendsRule.violations()
 
 // Plan 0468, dogfooding `fields()`: every live plan and bug writes its State in its lane's own
-// words. The words are the lanes `check:ledger` reads (`./lib/ledger-lanes.mjs`), so the two gates
-// cannot disagree. `longestOf` cuts the value at the state (`Draft — written …` is `Draft`); a state
-// that is not a lane word stays whole and is reported. Whole documents, not the header region: the
-// State line sits under a `## Status` section here. A State written in a form the rule does not
-// read (a `## State:` heading, a whole bold line) is reported by `fields()` itself.
+// words. The words are the lanes `check:ledger` reads (`./lib/ledger-lanes.mjs`), and the label
+// grammar is the one the ledger reads (`packages/md/src/model/label.ts`): the two gates share both,
+// though each keeps its own reader (the ledger's is bug 0444's). `longestOf` cuts the value at the
+// state (`Draft — written …` is `Draft`); a state that is not a lane word stays whole and is
+// reported. Whole documents, not the header region: the State line sits under a `## Status` section
+// here. A State written in a shape the rule does not read (a `## State:` heading, a blockquote) is
+// reported by `fields()` itself. One rule and one id per lane, so a finding names its lane.
+const foldApostrophe = (v) => v.trim().replace(/’/g, "'")
+// Literal ids, so `check:nonvacuity`'s rule-id coverage reads both from this source.
+const STATE_RULE_IDS = {
+  plans: 'corpus/state-in-vocabulary-plans',
+  bugs: 'corpus/state-in-vocabulary-bugs',
+}
 const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name === 'bugs').map(
   (lane) => {
     const prefix = lane.roots[0].replace(/\*\*$/, '')
     const words = [...lane.states]
-    return fields(c, { label: 'State', forms: ['bold'], value: longestOf(words) })
+    const rule = fields(c, { label: 'State', forms: ['bold'], value: longestOf(words) })
       .that()
       .satisfy({
         description: `are in a live ${lane.name} record`,
@@ -312,16 +320,17 @@ const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name ===
           !lane.boardFiles.some((b) => t.doc.relPath.endsWith(`/${b}`)),
       })
       .should()
-      .resolveAgainst(vocabulary(c, { terms: words }))
+      .resolveAgainst(vocabulary(c, { terms: words, normalize: foldApostrophe }))
       .rule({
-        id: 'corpus/state-in-vocabulary',
+        id: STATE_RULE_IDS[lane.name],
         because: `a ${lane.name} record's State is read by the ledger only in the lane's own words`,
+        suggestion: `write the State as one of: ${words.join(', ')}`,
       })
+    return { lane: lane.name, result: rule.violations() }
   },
 )
-const stateResults = stateRules.map((r) => r.violations())
+const stateResults = stateRules.map((r) => r.result)
 const stateViolations = stateResults.flatMap((r) => [...r])
-const statesExamined = stateResults.reduce((n, r) => n + r.examined, 0)
 
 // Proposal → plan linkage (bug 0141 / plan 0142): an accepted proposal
 // (Ruling: Ship as-is / Ship with changes) must have at least one plan that
@@ -1102,7 +1111,7 @@ line(
 )
 line(
   'states',
-  `${statesExamined} live plan and bug State line(s) · ${
+  `${stateRules.map((r) => `${String(r.result.examined)} ${r.lane}`).join(' · ')} State line(s) · ${
     stateViolations.length === 0
       ? "✓ each in its lane's words"
       : `✗ ${stateViolations.length} finding(s)`

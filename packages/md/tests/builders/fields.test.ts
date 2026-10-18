@@ -313,3 +313,95 @@ describe('terms() is unchanged (plan 0468)', () => {
     expect(t).toEqual(['pattern Owner=team'])
   })
 })
+
+describe('the review round: what was skipped is read or reported (plan 0468)', () => {
+  const crlf = (lines: readonly string[]) =>
+    corpus({ cwd: tree({ 'bugs/b.md': [...lines, ''].join('\r\n') }), roots: ['**/*.md'] })
+  const rule = (c: ReturnType<typeof corpus>, opts: Opts) =>
+    fields(c, { label: 'Status', ...opts })
+      .should()
+      .resolveAgainst(/open|closed/)
+      .violations()
+  const said = (found: readonly { line: number; message: string }[]) =>
+    found.filter((v) => v.line > 0).map((v) => `${String(v.line)}: ${v.message}`)
+
+  it('a CRLF file is read as an LF one, in every form', () => {
+    const c = crlf(['# B', '', '**Status:** open', '## Status: closed'])
+    expect(read(c, { forms: ['bold', 'heading'] })).toEqual([
+      'bold Status=open @3',
+      'heading Status=closed @4',
+    ])
+  })
+
+  it('a nested, a tab-indented and a numbered label are read, as the ledger reads them', () => {
+    const c = one([
+      '# B',
+      '',
+      '- Status',
+      '    - **Status:** open',
+      '\t**Status:** closed',
+      '1. **Status:** open',
+    ])
+    expect(read(c, { forms: ['bold'] })).toEqual([
+      'bold Status=open @4',
+      'bold Status=closed @5',
+      'bold Status=open @6',
+    ])
+  })
+
+  it('an emoji-only value is reported as having no value, not skipped', () => {
+    expect(said(rule(one(['# B', '', '**Status:** ✅']), { forms: ['bold'] }))).toEqual([
+      "3: (Status, line 3) has no value this rule can read in '✅'",
+    ])
+  })
+
+  it('a heading with its value elsewhere is reported once its form is read', () => {
+    expect(said(rule(one(['# B', '', '### Status:', 'open']), { forms: ['heading'] }))).toEqual([
+      '3: (Status, line 3) has no value this rule can read',
+    ])
+  })
+
+  it('shapes no form reads are reported, with a rewrite remedy', () => {
+    const c = one([
+      '# B',
+      '',
+      '> **Status:** open',
+      '- [ ] **Status:** open',
+      '## **Status:** open',
+      '__Status:__ open',
+      '**Status :** open',
+      '**Status: open** — note',
+    ])
+    const found = said(rule(c, { forms: ['bold', 'heading', 'bold-line'] }))
+    expect(found.map((m) => m.slice(0, 2))).toEqual(['3:', '4:', '5:', '6:', '7:', '8:'])
+    for (const m of found) expect(m).toContain('in a shape no form reads; rewrite it as')
+  })
+
+  it('plain prose holding the label is still not reported', () => {
+    expect(
+      said(
+        rule(one(['# B', '', '**Status:** open', 'Status: see the **note**']), { forms: ['bold'] }),
+      ),
+    ).toEqual([])
+  })
+
+  it('a thematic break ends a value', () => {
+    const c = one(['# B', '', '**Status:** open', '***', 'after the break'])
+    expect(read(c, { forms: ['bold'] })).toEqual(['bold Status=open @3'])
+  })
+
+  it('longestOf keeps the ledger word rules: Done-ish is not Done, and Won’t-do is Won’t-do', () => {
+    const states = longestOf(['Done', "Won't-do"])
+    expect(states('Done-ish')).toBe('Done-ish')
+    expect(states('Won’t-do — no longer needed')).toBe('Won’t-do')
+  })
+
+  it('an m-flag pattern still matches the whole value', () => {
+    const c = one(['# B', '', '**Status:** fixed', 'unfixed'])
+    const found = fields(c, { label: 'Status', forms: ['bold'], value: (raw) => raw })
+      .should()
+      .resolveAgainst(/fixed/m)
+      .violations()
+    expect(found.map((v) => v.line)).toEqual([3])
+  })
+})
