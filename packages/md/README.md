@@ -152,6 +152,12 @@ adrEnforcement(c, { dir: 'docs/adr/**' })
 An index/schema doc in the ADR directory (`README.md` or `index.md`) is exempt —
 it isn't an ADR, so it isn't required to carry an `## Enforcement` table.
 
+## A document's shape
+
+eess-md defines no document shape. A rule about what your plans, bugs or pages must hold is built from
+the blocks above in your own words; [the Markdown dialect's docs](../../docs/markdown.md#a-documents-shape-built-from-blocks)
+show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/examples/md) with passing and failing fixtures are in eess's repository.
+
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match

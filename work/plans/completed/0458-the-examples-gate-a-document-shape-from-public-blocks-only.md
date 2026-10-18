@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-17 from proposal 017's second Review, decision 3; reworked
-  twice on 2026-10-18 after PR #235's two review rounds (see "Review response").
+- **State:** Done — built 2026-10-18 in its own pull request, under the build order the maintainer
+  set; the two deferrals below go to proposal 017, where their blocks are held. It was built from the reviewed Draft (six review rounds in PR #235) without a separate `/plan-ready` step; its build PR's review stood in for it.
 - **Implements:** proposal 017
 - **Priority:** Medium. It builds first. The build order, decided by the maintainer on 2026-10-18,
   is 0458 → 0456 → 0454 → 0457 → 0455 → 0459. Each block plan adds its example under this gate,
@@ -54,7 +54,7 @@ held:
   so a rule over all of `examples/` would have to exclude the one file that exists to break it.
 - **Nothing proves an example's violating fixture matters.** `check:nonvacuity` registers
   `check:examples` against one row, `examples/does-not-compile`
-  (`scripts/check-nonvacuity.mjs:3941`), which proves only that the type-check can fail.
+  (`scripts/check-nonvacuity.mjs:4068` as of the build), which proves only that the type-check can fail.
 
 ## Design
 
@@ -340,9 +340,10 @@ than claiming it. The known evasions are:
 
 All four arch rules (rule 1's two halves, rules 2 and 3) select modules under `examples/md/`. With no module there, they examine nothing,
 which is ADR-010's finding; none of them is cardinality-shaped. `examples/md/fixture.ts` is itself
-a module in the folder, so with every example removed the rules still examine one module and stay
-green. The empty-folder sabotage row therefore expects the load-bearing row's zero check to red,
-not the arch rules. This plan ships one example, which also gives the later plans a template to
+a module in the folder, so with every example removed the rules still examine one module.
+(Measured at build, 2026-10-18: rule 1's first half excludes the helper, so with no example it
+examines zero modules and reds. It fails closed, more strictly than this paragraph first said.) The
+empty-folder sabotage row therefore expects the load-bearing row's zero check to red. This plan ships one example, which also gives the later plans a template to
 copy.
 
 ### The seed example
@@ -397,7 +398,7 @@ folder:
 - `clean=violating-<j>` makes a request for the clean fixture return that judgement's fixture.
 
 No file is written, moved or deleted, so a killed run leaves nothing behind. That is the hazard
-`withProbe`'s `rmSync` (`scripts/check-nonvacuity.mjs:537`) and `withRewrittenFile` (`:613`) would
+`withProbe`'s `rmSync` (`scripts/check-nonvacuity.mjs:550`) and `withRewrittenFile` (`:621`) would
 otherwise carry for a tracked fixture. The helper is the one module rule 1 lets import Node's modules (`node:{*,*/*}`).
 
 The hook serves this repository's harness. `examples/README.md` says so in one line: outside this
@@ -415,7 +416,7 @@ unrun templates is untouched.
   (inside the new include, so the project sees them, and a name `.gitignore:27` and
   `check:integrity` already recognise as a leftover). There is one probe per spelling. Each must red
   with this rule's id on the probe's own file, never with a zero-examined finding. This is the same
-  discipline as `gateArchOneTagComparison` (`scripts/check-nonvacuity.mjs:744`).
+  discipline as `gateArchOneTagComparison` (`scripts/check-nonvacuity.mjs:752`).
 - **`arch/examples-md-no-hand-built-rules`** and **`arch/examples-md-no-rule-constructors`.** The
   same mechanism, one probe per spelling in the inventory. A quiet probe that uses only `docs()` and
   `corpus()` must stay green under all four arch rules.
@@ -511,7 +512,7 @@ the whole harness.
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | seed example, `clean:`                                                                      | no violation, examined > 0 (a positive rule)                                                                  |
 | seed example, `violating-missing-section:`                                                  | exactly one finding: the violating guide, exact message, not a config finding                                 |
-| sabotage: an example imports `definePredicate` from `@nielspeter/eess`                      | rule 1 reds on the probe (and rule 3, by name)                                                                |
+| sabotage: an example imports `definePredicate` from `@nielspeter/eess`                      | rule 1 reds on the probe                                                                                      |
 | sabotage: an example imports `@nielspeter/eess/internal`                                    | rule 1 reds                                                                                                   |
 | sabotage: an example imports `@nielspeter/eess-md/internal`                                 | rule 1 reds (the allowlist is exact)                                                                          |
 | sabotage: an example imports `@nielspeter/eess-md/rules/ledger`                             | rule 1 reds (presets are not blocks)                                                                          |
@@ -525,7 +526,7 @@ the whole harness.
 | sabotage: `{ async test() { … } }`                                                          | rule 2 reds (the name child is chosen by kind)                                                                |
 | sabotage: `{ *evaluate() { … } }`                                                           | rule 2 reds                                                                                                   |
 | sabotage: `p.evaluate = …` after construction                                               | rule 2 reds                                                                                                   |
-| sabotage: a class extending `RuleBuilder`                                                   | rule 2 reds                                                                                                   |
+| sabotage: a class (any class; the rule bans every class)                                    | rule 2 reds                                                                                                   |
 | sabotage: `await import('@nielspeter/eess/internal')`                                       | rule 2 reds (dynamic import)                                                                                  |
 | sabotage: `definePredicate` referenced with no import of it (a global stand-in)             | rule 3 reds, independent of the import graph                                                                  |
 | sabotage: `createRequire`                                                                   | rule 3 reds                                                                                                   |
@@ -668,16 +669,37 @@ From PR #235's sixth-round reviews (`review-235-*-r6.md`).
   red where this plan builds first. The sentence that claims the two findings differ now says from
   when, and points to the row's new home.
 
+## Build notes — 2026-10-18 (PR #238's review)
+
+The build's review (architect, enforcement, testing, method, product) found the gate weaker than this
+plan claimed, and the build answered:
+
+- **An example could judge without a block** (a regex over `fixtureFiles` text, `vi.importActual`,
+  `process.getBuiltinModule`, a banned name as a string key). `fixtureFiles` is not shipped; plan
+  0455 adds it with its first caller. A fifth rule entry, `eess/examples-md-uses-a-block`, requires
+  every example to import a value from eess-md, a type-only import not counting. Rule 3 also bans
+  `importActual`, `importMock`, `getBuiltinModule`, `binding` and `dlopen`, and a banned name spelled as a string. Rule 2 matches `??=`, `||=` and `&&=`.
+- **Still not caught, held by review:** a verdict computed outside a builder, by reading elements
+  (md's model readers, `.select()`) and asserting on them with `expect`; and a computed key built in
+  a variable (`const k = 'test'; ({ [k]: f })`).
+- **A nested example** would run, be gated, and never be swap-proven. vitest now runs only
+  `md/*.test.ts`, and the load-bearing row reports any test file below the top level.
+- **The load-bearing row** requires every swapped run to report the unswapped run's titles. It
+  reports a duplicate title and a `violating-` title that is not kebab-case, counts a fixture folder
+  only if it holds files, prints its time, and removes its temp directory.
+
 ## Progress ledger
 
-- [ ] Phase 1: `examples/md/`, `fixture.ts`, the seed example and its fixtures; `check:examples` runs it
-- [ ] Phase 2: rule 1 (two halves), rules 2 and 3, green on the seed example
-- [ ] Phase 3: the four non-vacuity rows, each red on its sabotage and quiet on its quiet probe
-- [ ] Phase 4: docs section, README link, `examples/README.md`, changeset
-- [ ] Cost measured: `check:arch`, `check:examples` and the load-bearing row, before and after
+- [x] Phase 1: `examples/md/`, `fixture.ts`, the seed example and its fixtures; `check:examples` runs it
+- [x] Phase 2: rule 1 (two halves), rules 2 and 3, green on the seed example; plus `eess/examples-md-uses-a-block` from the build's review
+- [x] Phase 3: the non-vacuity rows, each committed. The arch rows fire on every spelling: rule 1 on 6 of 6 plus a red and a quiet case on the helper; uses-a-block on 2 of 2; rule 2 on 17 of 17; rule 3 on 13 of 13. A `docs()`/`corpus()` probe stays quiet under all of them. The load-bearing row has four committed rows of its own: a test reading another judgement's folder (the forward swap), a `clean:` test that cannot fail (the reverse swap), a folder with no test, and an example below the top level.
+- [x] done-otherwise: of the Test inventory's load-bearing cases, the weakened assertion and the empty folder were measured by hand (2026-10-18), and a syntax error by the testing review. "No `violating-*/` folder", "no `clean:` test", a test with no folder, a title that is not kebab-case, a duplicate title, and a swapped run reporting different titles are code branches with no committed row (the testing review measured that removing any of them leaves every row green).
+- [ ] deferred→plan 0456 — the inventory's `notExist()` case (a clean fixture with no elements) needs `notExist()` on an md builder, which plan 0456 adds; its test inventory now carries the row
+- [x] Phase 4: docs section, README link, `examples/README.md`, changeset
+- [x] Cost measured, 2026-10-18: `check:arch` 28 rules in 7.79 s on main, 33 rules in 8.19 s after; `check:examples` 1.96 s on main, 1.70 s after; the load-bearing row 1.4 s for its one judgement, growing with each judgement added.
 - [ ] `deferred→proposal 017` `honestyAtClose` rebuilt from public blocks, decision 3's closing
       proof (needs blocks 1, 2 and 5, and the ADR in the second Review's decision 1; no plan yet)
 - [ ] `deferred→proposal 017` the outward-binding example and rule 1's widening to sibling dialect
       roots (block 10; no plan yet)
 
-Deferred: proposal 017
+Deferred: proposal 017, plan 0456

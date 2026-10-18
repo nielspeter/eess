@@ -21,7 +21,7 @@
   reviewed in two parts: the kernel (Phase 1), then the dialects (Phase 2). Phase 1 alone ships an
   inert hook, so it is not a delivery on its own.
 - **Created:** 2026-10-17
-- **Builds after:** [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
+- **Builds after:** [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
   (the examples gate). Build order (maintainer, 2026-10-18): 0458 → **0456** → 0454 → 0457 →
   0455 → 0459.
 - **Builds before:** 0454, 0457, 0459 and [0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
@@ -670,6 +670,11 @@ Every test drives the public entry point and the terminal (`.violations()` or `.
 `TerminalBuilder.evidencedViolations`, after `collectViolations` returns. Package tests may
 hand-build predicates; only `examples/md/` may not.
 
+**From plan 0458** (deferred there, 2026-10-18): this plan's example under `examples/md/` is the first
+cardinality example, so the examples gate's load-bearing row gains a committed row here: a
+`notExist()` example whose clean fixture holds documents with no elements fails its population
+assertion (the wider `.select()`), and the row reds naming it.
+
 **Kernel**, through a minimal `RuleBuilder` subclass in the test file:
 
 - `notExistCondition`: an empty selection is green with no finding; two elements give two
@@ -1053,6 +1058,7 @@ mechanism. No row of its own in `check:nonvacuity`.
 - [ ] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's
 - [ ] `check:family`, `check:release`, `check:docs-code`, `check:examples`, eess-crossvalidate's
       suite and `npm run validate` green; durations reported
+- [ ] The examples gate's `notExist()` row (from plan 0458): a clean fixture holding documents with no elements reds the load-bearing row, naming the example
 - [ ] Close: this plan → `completed/`; boards
 - [ ] deferred→[plan 0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md) (the five
       copies' migration)

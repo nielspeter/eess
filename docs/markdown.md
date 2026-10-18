@@ -445,6 +445,29 @@ taskItems(c).that().areOpen().should().satisfy(carriesAnOwner).check()
 `evaluate` receives the filtered items and returns one `ArchViolation` per
 failure — an empty array means every item passed.
 
+## A document's shape, built from blocks
+
+A rule about what a kind of document must hold is written with the blocks above, in your own words.
+eess-md defines no plan, bug or page shape for you. For example, every page under `guides/` has a
+`Prerequisites` section:
+
+```ts
+import { corpus, docs } from '@nielspeter/eess-md'
+
+const pages = corpus({ cwd: 'site', roots: ['**/*.md'] })
+
+docs(pages)
+  .that()
+  .resideInFolder('guides/**')
+  .should()
+  .haveSection('Prerequisites')
+  .because('a guide states what it assumes')
+  .check()
+```
+
+Worked examples, each using only eess-md's public exports and each with a passing fixture and a
+failing one, are in [`examples/md/`](https://github.com/nielspeter/eess/tree/main/examples/md).
+
 ## Binding a table to code
 
 A markdown table is a spec — a package list, an ADR index. `rows()` turns its body rows into first-class elements, and `.select()` (inherited from the kernel on every eess builder) makes any selection one side of a [`correspondence()`](/crossvalidate). Bind the table to what it describes, and drift either way fails the build:

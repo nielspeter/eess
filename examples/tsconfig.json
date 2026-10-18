@@ -10,5 +10,5 @@
     "esModuleInterop": true,
     "jsx": "react-jsx"
   },
-  "include": ["*.test.ts"]
+  "include": ["*.test.ts", "md/**/*.test.ts", "md/**/*.ts"]
 }

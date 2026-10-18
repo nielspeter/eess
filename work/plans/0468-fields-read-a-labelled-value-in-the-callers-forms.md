@@ -15,7 +15,7 @@
   - [bug 0403](../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
     the second Review set for block 1: the vacuity matrix covers eess-md before eess-md gains a
     constructor;
-  - [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
+  - [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
     gate, which decision 3 makes the condition for every accepted block.
 
   Where this sits among proposal 017's plans is the maintainer's to set.
@@ -267,7 +267,7 @@ names the dependants that release requires (bug 0185).
 
 ## Progress ledger
 
-- [ ] Preconditions: plan 0458 shipped (bug 0403 was fixed in PR #237)
+- [x] Preconditions: bug 0403 fixed (PR #237), plan 0458 built (the examples gate)
 - [ ] Phase 1: reader
 - [ ] Phase 2: `resolveAgainst` and the unnamed-form scan
 - [ ] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
