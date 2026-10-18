@@ -5,8 +5,11 @@ adopter's evidence; rewritten the same day (see "Correction" below); reviewed th
 (architect · product · enforcement), **Ruling: Split and sequence** — see "Review — 2026-10-16";
 then its asks were rewritten the same day at the maintainer's instruction (see "Correction —
 2026-10-16, after the review") and reviewed again (architect · product · enforcement · method),
-**Ruling: Split and sequence**; "Review — 2026-10-16 (second)" is the operative section. No block is
-accepted: none has a plan yet.
+**Ruling: Split and sequence**; "Review — 2026-10-16 (second)" is the operative section. Blocks 6,
+7, 12, 13 and 17, accepted by the maintainer, are owned by plans 0454 to 0457 and 0459; the examples
+gate, decision 3's condition on them, by plan 0458 (2026-10-17/18). Blocks 1 and 2, also accepted, are
+owned by plans 0468 and 0469 (2026-10-18), built after bug 0403 and plan 0458. Block 5, also accepted,
+waits on block 1 and its ADR.
 **Priority:** Medium — the manifesto's Schema Layer is marked partial and its generic part is not
 built, so every adopter that wants a document checked for its shape writes the check by hand, and
 this repository does without one. No shipped rule claims to check a document's shape, so nothing
@@ -747,6 +750,11 @@ From enforcement, beyond the acceptance criteria above:
 - Block 12: a predicate selecting no document is a finding naming the predicate; zero elements over
   matched documents is a finding unless declared; a row shows the scoped rule green where the
   unscoped one is red.
+
+  > **Narrowed (plan 0457's review, 2026-10-18).** On a cardinality rule (`notExist()`), a scope that
+  > selects no document is not a finding: ADR-010 §3 (Accepted) makes an absence rule's empty
+  > match legitimate, as ADR-018 C3 (still Proposed) would, and a plan cannot reverse a binding ADR. The finding holds for positive rules.
+
 - Block 13: values compare through block 1's normaliser (`066` and `0066`), which is also the architect's "exact keys, normalisation is the caller's", since `beUniqueBy` keys on the value block 1 has already normalised; every member of a group
   is named; the denominator is stated (values, not documents).
 - Block 11: a heading in a fence or an HTML block, a setext heading, a depth skip, and a heading in a
@@ -766,19 +774,19 @@ the frozen-default break (bug 0185); and a frontmatter key's own line.
 
 ### Disposition, per block
 
-| ask                                                                      | disposition       | condition                                                                                                                                                                                                 |
-| ------------------------------------------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **The `State:`-only silent pass**                                        | **Held**          | Not this proposal's: a bug, reproduced and recorded first. Its fix reds corpora that pass today, so it ships as a flagged break                                                                           |
-| **7** — a corpus from text                                               | **Held**          | Ready: no finding blocks it. Unholds when a plan declaring `**Implements:** proposal 017` is filed                                                                                                        |
-| **6, 12, 13** — kernel `notExist`, md `inDocuments`, kernel `beUniqueBy` | **Held**          | Ready as shaped in decision 4. Unholds when a plan is filed; moves the kernel (a minor, re-exported per dialect, gated by `check:family`)                                                                 |
-| **11, 3, 14, 15** — sections as elements, depth, title, content, order   | **Held**          | Ready as shaped. Unholds when a plan is filed                                                                                                                                                             |
-| **1, 2** — labelled values, `haveField`                                  | **Held**          | Unholds when three open questions are decided: the noun (md already says `label` and `term`; block 2 adds `field`), where a value's span ends, and whether a block reads frozen documents. Bug 0403 first |
-| **5** — a value agrees with its folder                                   | **Held**          | After 1 and the ADR in decision 1; `honestyAtClose`'s placement half is then rebuilt on it, so there is one placement check                                                                               |
-| **4, 10, 16** — references, citations, path agreement                    | **Held**          | After 1 and 11; 10 after bug 0116                                                                                                                                                                         |
-| **8, 9** — recipes                                                       | **Held**          | Documentation, any time after the blocks they show exist                                                                                                                                                  |
-| **The examples and the completeness gate** (decision 3)                  | **Held**          | With the first block that ships, then grows with each                                                                                                                                                     |
-| **References in free prose**                                             | **Rejected**      | Unchanged from the first Review                                                                                                                                                                           |
-| **A document's own states and transitions**                              | **Rejected** here | Unchanged; proposal 006 and plan 0078 if a consumer arrives                                                                                                                                               |
+| ask                                                                      | disposition            | condition                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **The `State:`-only silent pass**                                        | **Held**               | Not this proposal's: a bug, reproduced and recorded first. Its fix reds corpora that pass today, so it ships as a flagged break                                                                                                                                                                                                                              |
+| **7** — a corpus from text                                               | **Accepted**           | [Plan 0455](../plans/0455-a-corpus-built-from-text.md), filed 2026-10-17                                                                                                                                                                                                                                                                                     |
+| **6, 12, 13** — kernel `notExist`, md `inDocuments`, kernel `beUniqueBy` | **Held**               | Ready as shaped in decision 4. Unholds when a plan is filed; moves the kernel (a minor, re-exported per dialect, gated by `check:family`) (superseded 2026-10-18 by the rows below and "Planning": the kernel conditions are not re-exported per dialect)                                                                                                    |
+| **11, 3, 14, 15** — sections as elements, depth, title, content, order   | **Held**               | Ready as shaped. Unholds when a plan is filed. Note 2026-10-18: plan 0457 ships a section predicate, `haveSectionPredicate`, ahead of these blocks; block 11 may rename it                                                                                                                                                                                   |
+| **1, 2** — labelled values, `haveField`                                  | **Held**               | Unholds when three open questions are decided: the noun (md already says `label` and `term`; block 2 adds `field`), where a value's span ends, and whether a block reads frozen documents. Bug 0403 first (superseded 2026-10-18 by the "1, 2" row under "The maintainer's acceptance": plans 0468 and 0469)                                                 |
+| **5** — a value agrees with its folder                                   | **Held**               | After 1 and the ADR in decision 1; `honestyAtClose`'s placement half is then rebuilt on it, so there is one placement check                                                                                                                                                                                                                                  |
+| **4, 10, 16** — references, citations, path agreement                    | **Held**               | After 1 and 11; 10 after bug 0116                                                                                                                                                                                                                                                                                                                            |
+| **8, 9** — recipes                                                       | **Held**               | Documentation, any time after the blocks they show exist                                                                                                                                                                                                                                                                                                     |
+| **The examples and the completeness gate** (decision 3)                  | **Accepted, reshaped** | [Plan 0458](../plans/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), filed 2026-10-17, built first. Accepted as decision 3's condition on the accepted blocks, not on the maintainer's list (2026-10-18). Reshaped: its closing proof (`honestyAtClose` rebuilt from public blocks) is split off to the rebuild after blocks 1, 2 and 5 |
+| **References in free prose**                                             | **Rejected**           | Unchanged from the first Review                                                                                                                                                                                                                                                                                                                              |
+| **A document's own states and transitions**                              | **Rejected** here      | Unchanged; proposal 006 and plan 0078 if a consumer arrives                                                                                                                                                                                                                                                                                                  |
 
 ### Records owed, outside this proposal
 
@@ -930,12 +938,13 @@ files the plan owning it; until then the second Review's dispositions stand.
 **Disposition rows for the accepted set.** These supersede the second Review's "6, 12, 13" row, which
 the plan order now splits, and add the new blocks:
 
-| ask                                         | disposition | condition                                                                   |
-| ------------------------------------------- | ----------- | --------------------------------------------------------------------------- |
-| **6, 13** — kernel `notExist`, `beUniqueBy` | **Held**    | Accepted by the maintainer; unholds when its plan is filed                  |
-| **12** — `inDocuments`, `isFrozen()`        | **Held**    | Accepted by the maintainer; unholds when its plan is filed                  |
-| **17** — box marks                          | **Held**    | Accepted by the maintainer; unholds when its plan (bug 0445's fix) is filed |
-| **18** — boxes by section                   | **Held**    | Not accepted; after block 11 is planned                                     |
+| ask                                         | disposition            | condition                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **6, 13** — kernel `notExist`, `beUniqueBy` | **Accepted, reshaped** | Block 6: [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md); block 13: [plan 0459](../plans/0459-kernel-beuniqueby-and-gherkins-unique-titles.md); both filed 2026-10-17/18, split at review. Reshaped 2026-10-18: the kernel conditions live behind `@nielspeter/eess/internal`, not re-exported per dialect; block 6 carries bug 0460's fix |
+| **12** — `inDocuments`, `isFrozen()`        | **Accepted, reshaped** | [Plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), filed 2026-10-17. Reshaped 2026-10-18: `isFrozen()` ships as `areFrozen()`/`areLive()`, and a scope matching no document is not a finding on a cardinality rule (ADR-010 §3, ADR-018 C3)                                                                             |
+| **1, 2** — labelled values, `haveField`     | **Accepted**           | [Plan 0468](../plans/0468-fields-read-a-labelled-value-in-the-callers-forms.md) (block 1, `fields()`) and [plan 0469](../plans/0469-havefield-a-document-has-a-value.md) (block 2, `haveField`), filed 2026-10-18; both after bug 0403 and plan 0458                                                                                                   |
+| **17** — box marks                          | **Accepted**           | [Plan 0454](../plans/0454-box-marks-are-the-callers.md), filed 2026-10-17, bug 0445's fix                                                                                                                                                                                                                                                              |
+| **18** — boxes by section                   | **Held**               | Not accepted; after block 11 is planned                                                                                                                                                                                                                                                                                                                |
 
 **Carried to the plans' conditions** (from this section's review, not settled here): a decided
 reading for near-GFM spacings such as `[ x ]`; a row showing that block 5's unchosen direction is
@@ -946,6 +955,115 @@ emphasis inside a value and a typographic apostrophe.
 
 **Plannable now**, as closable plans, in order: block 7; the kernel `notExist` and `beUniqueBy`
 (blocks 6 and 13, with gherkin's `haveUniqueTitles` rebuilt on `beUniqueBy`); block 12 with
-`isFrozen()`; block 17 as bug 0445's fix. **Not yet:** blocks 1 and 2 (after bug 0403, as two plans:
+`isFrozen()`; block 17 as bug 0445's fix. **Not yet** (superseded 2026-10-18 by "Blocks 1 and 2, planned" under "Planning": plans 0468 and 0469)**:** blocks 1 and 2 (after bug 0403, as two plans:
 the reader, then `haveField` with its resolver); block 5 (after the ADR in the second Review's
 decision 1; bug 0444's label option ships before it as a fix).
+
+## Planning — 2026-10-17 and 2026-10-18
+
+The accepted blocks were planned in one pull request (#235), reviewed repeatedly by five lenses (2026-10-17 to 18)
+(architect, product, enforcement, method, testing), and reworked after each round. It also filed
+[plan 0464](../plans/0464-the-dialects-notexist-copies-move-onto-the-kernels.md), moving the five
+existing `notExist` copies onto the kernel's (de-duplication, no ask of this proposal), and bugs 0460
+to 0463, 0465 and 0466. The review found
+that the order above could not be built: each block's example needs public blocks a later plan adds.
+The maintainer decided, on 2026-10-18:
+
+1. **Reorder and split.** Build order: [0458](../plans/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
+   (the examples gate) → [0456](../plans/0456-kernel-notexist-and-dead-glob.md) (block 6, `notExist()`
+   on every md builder, the public document predicates, `and`/`or`) →
+   [0454](../plans/0454-box-marks-are-the-callers.md) (block 17) →
+   [0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (block 12) →
+   [0455](../plans/0455-a-corpus-built-from-text.md) (block 7) →
+   [0459](../plans/0459-kernel-beuniqueby-and-gherkins-unique-titles.md) (block 13). This supersedes
+   "Plannable now … in order" above.
+2. **Bug 0460** (the kernel exempts a cardinality rule before it looks for a dead glob) is fixed inside
+   plan 0456, first.
+3. **eess-gherkin's break** (`haveUniqueTitles` rebuilt on `beUniqueBy`) is accepted.
+
+Coordinator decisions from the reviews, each overrulable: the kernel conditions live behind
+`@nielspeter/eess/internal` (`notExistCondition`, `uniqueByCondition`), not re-exported per dialect,
+so they do not collide with eess-ts's root `notExist()`; `isFrozen()` ships as `areFrozen()` and
+`areLive()`, md's existing words; a marked cardinality condition is frozen (bug 0462); block 12's
+condition is narrowed as noted above.
+
+**A gap the planning found, not asked by any block.** The family has no positive "at least one element
+exists" condition. Plan 0457's example guards its `notExist()` ratchet with a positive rule whose
+condition repeats its selection, which reds only when nothing is selected: that works, and says what it
+does, but a condition that states it directly would be clearer. Recorded here so the next block chosen
+from this proposal can weigh it.
+
+**Blocks 1 and 2, planned 2026-10-18.** After the plans above, the maintainer asked for these two to be
+planned. All three adopters want blocks 1 and 2, and the six plans above do not include them.
+[Plan 0468](../plans/0468-fields-read-a-labelled-value-in-the-callers-forms.md) is the reader, `fields()`;
+[plan 0469](../plans/0469-havefield-a-document-has-a-value.md) is `haveField` with the per-document
+resolver. Both build after bug 0403 and plan 0458. Bug 0403 is a precondition for building, not for
+planning, so this supersedes the "Not yet: blocks 1 and 2" sentence under "The maintainer's
+acceptance". Their place in the build order above is the maintainer's to set. The three open questions
+on the second Review's "1, 2" row (the noun, where a value ends, frozen documents) are answered by
+"Decisions this settles", 1 to 3. Those are the coordinator's decisions, and the maintainer has not
+overruled them.
+
+> **Narrowed (plans 0468 and 0469's review, 2026-10-18).** These change conditions set above:
+>
+> - **The second Review's first condition.** A value in a form the caller did not name is a finding
+>   for the `bold`, `heading` and `bold-line` forms, never for `plain`: prose opening "status: …" is
+>   common, as `wrappedLabelOf` already records. A value under an alias the caller did not name
+>   cannot be known. Instead, the "no field" finding lists the wrapped labels the document does carry.
+> - **Decision 2's "counted as withheld".** Each withheld document gets one finding, and those
+>   findings are the count. No separate summary number is added.
+> - **The carried "prose defined by the caller's named forms and region".** Plan 0469 defines prose
+>   by form, and offers one region, `region: 'header'` (before the first section), added after the
+>   adopters' follow-up below. Any other region waits for block 11.
+> - **Decision 2's "a losing occurrence that disagrees is its own finding".** Under `region`, an
+>   occurrence outside the region is not read, so a disagreeing one there is not reported. The caller
+>   opts into this by naming the region.
+> - **Block 12 lifting block 2.** `haveField` is a method on `docs()` and ships no exported
+>   `Predicate<MdDocument>`. Through `inDocuments` its findings would be dropped, so lifting it waits
+>   for [plan 0470](../plans/0470-a-lifted-predicate-carries-its-findings.md), which gives `inDocuments`
+>   a way to carry them. "Documents whose Status is done hold no open box" (block 12's own example,
+>   and adopter 1's most wanted) needs it.
+> - **Severity is not dogfooded** by plan 0468: 7 of 170 live values give no level, and 22 live
+>   bugs carry none.
+
+## Consumer follow-up — 2026-10-18
+
+All three adopters were sent the build order and plans 0468 to 0470, and answered read-only.
+
+- **A register inside a record.** One adopter's plan carries its real `**Status:**` on line 3 and
+  ten feedback items written `- **Status:** open.` below it. Plan 0469 would have read this as a
+  conflict, so it gains `region: 'header'`. A "first occurrence wins" option was rejected, because it
+  would hide a second value even inside the header. The region hides only what lies outside the
+  header, and only when the caller opts in.
+- **Two labels in one header.** The other adopter has 33 closed bugs that carry both `**State:**`
+  and `**Status:**`, from a period when its close step wrote both. This is not a conflict as planned:
+  labels and aliases belong to each rule, and a label the rule does not name is not counted.
+- **Lanes are the caller's.** "A lane with no readable state is a finding" (bug 0444) must apply only
+  to the lanes the caller declares, never to every folder under a root. That adopter runs its ledger
+  over folders that carry no state. Recorded in bug 0444.
+- **`## Status at a glance`** is a heading with no colon, so it is not a field. Plan 0468 has a test
+  row for it.
+- **Box marks.** One adopter has a single `[~]` in an open bug and will declare it or fix it: plan
+  0454's finding is welcome.
+- **Block 5's direction.** One adopter wants one direction only: a closed folder must not hold a live
+  value. The other wants both: it has had a closed bug left in the live folder and an open bug in the
+  closed folder. With adopter 3's one-way answer, that makes two for one direction and one for both.
+  Decision 4's `Direction` option serves both; this is input for block 5's ADR.
+- **Adopter 3, later the same day.** It measured the header region over 1,735 records.
+  - It needs every `## Label: value` heading treated as part of the header, because 1,080 of its
+    1,137 `## Status:` records go on with `## Severity:`, `## Priority:` and similar headings.
+    Adopted.
+  - That reads one frozen record too far. When that record's header already has a value, the result
+    is a reported conflict. When the header has none, a body value below the heading is read as the
+    header's, and nothing is reported. That is a known limit, recorded as bug 0471.
+    - Reporting it as its own cause was considered and not adopted: it would have to tell adopter
+      3's legitimate `## Severity:`/`## Priority:` chain apart from a body value read too far, and
+      nothing has measured that distinction.
+  - The region has to bound the unnamed-form scan as well, or 67 per-phase status lines would each
+    give a finding. Adopted, by making the region a reader option.
+  - 51 records hold `- **State:**` under a `## Status` section with no colon. They need a
+    named-section region, which waits for block 11; until then `haveField` reports them as "no
+    field".
+  - It read `fields()` as missing the `**X**:` form, but that form is part of `bold`.
+- **Git history.** The second adopter reads it only in a view, not a check, so it is not yet a need
+  shared by more than one adopter.

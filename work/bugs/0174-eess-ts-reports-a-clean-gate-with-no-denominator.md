@@ -107,6 +107,13 @@ built here:
 Whichever is chosen applies to `eess-mermaid` too — its existing line has the
 same blind spot.
 
+**Added 2026-10-18: eess-md inherits it.** [Plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s
+`inDocuments` scope reports its counts (documents matched, elements examined) only when a rule
+examined zero, inside the finding. On a green run no CLI prints them, which is this bug's open half.
+The plan narrows proposal 017's "reports both counts" to the zero path and leaves the green-path
+counts here, together with consumer-feedback decision 3's count of frozen documents a selection
+excluded, which no plan computes yet.
+
 ## Fix
 
 Not built. `CLAUDE.md` has been corrected in the meantime to describe what the

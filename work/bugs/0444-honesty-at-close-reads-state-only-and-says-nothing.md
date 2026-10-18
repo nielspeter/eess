@@ -44,9 +44,15 @@ stays `State`, so no caller's labels change; but a corpus that passes today beca
 never ran will red, so this ships as a flagged break with a migration line ("pass `label`, or declare
 the lane"). Proposal 017's block 5 generalises the placement half; this fix does not wait for it.
 
+The "no readable state" finding applies only to the lanes the caller declares (the preset's `lanes`
+option), never to every folder under a root. An adopter runs its ledger over folders that carry no
+state (UI extractions, mail drafts, index files), and those must stay quiet (proposal 017, "Consumer
+follow-up — 2026-10-18").
+
 ## Verification
 
 - [ ] Red first: the five-record corpus above, through the public preset
 - [ ] Green, with a non-vacuity row for each of 0002 and 0005, and one for a lane with no readable state
+- [ ] A folder under the root that is not a declared lane gives no finding
 
 Deferred: none
