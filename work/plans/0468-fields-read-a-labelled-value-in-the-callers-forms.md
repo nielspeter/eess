@@ -202,7 +202,8 @@ Giving each of those a level is a judgement per bug, and not part of this build.
   - `heading` at depths 2 and 4;
   - `bold-line`;
   - `plain`.
-- **Not read:** a fenced example, and a label in the middle of a paragraph.
+- **Not read:** a fenced example; a label in the middle of a paragraph; a heading with no colon,
+  such as `## Status at a glance`.
 - **Every occurrence yielded.** An alias is reported with its own `label`.
 - **Multi-line values:** stop at a blank line, a heading, another label, and the end of the list item.
   A `heading` value stops at its own line.

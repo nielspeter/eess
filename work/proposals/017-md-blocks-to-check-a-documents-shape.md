@@ -1013,8 +1013,8 @@ overruled them.
 > - **Decision 2's "counted as withheld".** Each withheld document gets one finding, and those
 >   findings are the count. No separate summary number is added.
 > - **The carried "prose defined by the caller's named forms and region".** Plan 0469 defines prose
->   by form only. A region waits for block 11. Until then, a record that keeps an earlier
->   submission below its current header (proposals 010 and 016 do) resolves as a conflict.
+>   by form, and offers one region, `region: 'header'` (before the first section), added after the
+>   adopters' follow-up below. Any other region waits for block 11.
 > - **Block 12 lifting block 2.** `haveField` is a method on `docs()` and ships no exported
 >   `Predicate<MdDocument>`. Through `inDocuments` its findings would be dropped, so lifting it waits
 >   for [plan 0470](../plans/0470-a-lifted-predicate-carries-its-findings.md), which gives `inDocuments`
@@ -1022,3 +1022,29 @@ overruled them.
 >   and adopter 1's most wanted) needs it.
 > - **Severity is not dogfooded** by plan 0468: 7 of 170 live values give no level, and 22 live
 >   bugs carry none.
+
+## Consumer follow-up — 2026-10-18
+
+Two adopters were sent the build order and plans 0468 to 0470, and answered read-only. Adopter 3
+could not be reached that day.
+
+- **A register inside a record.** One adopter's plan carries its real `**Status:**` on line 3 and
+  ten feedback items written `- **Status:** open.` below it. Plan 0469 would have read this as a
+  conflict, so it gains `region: 'header'`. A "first occurrence wins" option was rejected, because it
+  would hide a real second header value.
+- **Two labels in one header.** The other adopter has 33 closed bugs that carry both `**State:**`
+  and `**Status:**`, from a period when its close step wrote both. This is not a conflict as planned:
+  labels and aliases belong to each rule, and a label the rule does not name is not counted.
+- **Lanes are the caller's.** "A lane with no readable state is a finding" (bug 0444) must apply only
+  to the lanes the caller declares, never to every folder under a root. That adopter runs its ledger
+  over folders that carry no state. Recorded in bug 0444.
+- **`## Status at a glance`** is a heading with no colon, so it is not a field. Plan 0468 has a test
+  row for it.
+- **Box marks.** One adopter has a single `[~]` in an open bug and will declare it or fix it: plan
+  0454's finding is welcome.
+- **Block 5's direction.** One adopter wants one direction only: a closed folder must not hold a live
+  value. The other wants both: it has had a closed bug left in the live folder and an open bug in the
+  closed folder. With adopter 3's one-way answer, that makes two for one direction and one for both.
+  Decision 4's `Direction` option serves both; this is input for block 5's ADR.
+- **Git history.** The second adopter reads it only in a view, not a check, so it is not yet a need
+  shared by more than one adopter.

@@ -31,6 +31,8 @@ answers both questions with its own code.
 export interface HaveFieldOptions extends FieldOptions {
   /** The allowed values, after the caller's `value`: the same type `resolveAgainst` takes. */
   readonly oneOf?: Vocabulary | RegExp
+  /** `'header'`: read the field only before the document's first section. Default: the whole document. */
+  readonly region?: 'header'
 }
 
 docs(c).that().haveField(spec) // a predicate: documents whose resolved value exists (and is allowed)
@@ -56,6 +58,19 @@ precedence is decided in one place (decision 2).
 5. **No occurrence:** the document has no value.
 
 With `oneOf`, a field with several values is allowed only when every value is.
+
+**The header region.** With `region: 'header'`, the resolver reads only occurrences before the
+document's first heading of depth 2 or more, not counting a `heading`-form occurrence of the field
+itself. Two adopters' records need it, and so do two of this repository's:
+
+- **A register inside a record.** An adopter's plan carries its real `**Status:**` on line 3, then ten
+  feedback items each written `- **Status:** open.`.
+- **A kept earlier submission.** Proposals 010 and 016 keep their original submission, with its own
+  `**State:**`, below the current header.
+
+Read over the whole document, each of these is a conflict. Within the header, each resolves to its
+real value. A "first occurrence wins" option was considered and rejected, because it would hide a
+real second header value.
 
 **Every cause is reported, in either position.** `haveField` used as a selector must not drop a
 document without saying so (ADR-009). Three causes make a document's value unreadable, and the builder's
@@ -168,6 +183,8 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
   - one row per outcome;
   - a structured occurrence beating an earlier `plain` one (adopter 3's line-220 case);
   - several agreeing `plain` occurrences;
+  - `region: 'header'`: a register of bulleted `**Status:**` items under a later `##` resolves to the
+    header's value; without the option it is a conflict;
   - a split field resolving as one occurrence.
 - **The condition:** each message above, word for word, and one cause per document.
 - **The predicate:**
@@ -194,7 +211,7 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
   through block 12 would drop these findings, because `inDocuments` has no door for them. That door is
   [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md).
 - **`honestyAtClose` rebuilt on `haveField`:** the second Review's decision 1, and bug 0444.
-- **A region limiting where a field is read:** block 11.
+- **Any region other than the header** (a named section, for example): block 11.
 - **Requiring `Severity`:** 22 live bugs carry none (measured 2026-10-18). Giving each one a level is a
   judgement per bug, not part of this build.
 
