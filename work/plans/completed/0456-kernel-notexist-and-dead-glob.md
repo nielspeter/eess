@@ -1076,7 +1076,9 @@ Where the build departed from the text above, each overrulable:
       `notInCorpusReasons`, the fault helper with the separator check, six exports, README,
       `honestyAtClose`'s docstring, the example with three fixtures; eess-ts's and eess-mermaid's
       freeze tests
-- [ ] Sabotage rows 1–17, each red on its named test; durations reported
+- [x] Sabotage rows 1–17, each red on its named test; durations reported (all 17 red, run in the
+      build worktree by a script that restores each file with `git checkout` and rebuilds the kernel
+      for kernel rows; 0.7–1.4 s a row, 22 s in all; tree clean afterwards)
 - [x] Bug 0460 and bug 0462 red-first on main, green here, both → `fixed/`
 - [x] The ADR-010 Enforcement row, `gated`, citing the kernel fault-outranks-declaration test
 - [x] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's
