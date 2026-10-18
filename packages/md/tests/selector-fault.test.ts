@@ -181,6 +181,12 @@ describe('a backslash written as a path separator (plan 0456)', () => {
     expect([...inFolder(c, 'guides\\**').violations()]).toEqual([])
   })
 
+  it('an escaped dash in a character class is never a separator', () => {
+    // `[a\-c]` is a class of `a`, `-` and `c`; read with `/` it would select `docs/b/`.
+    const c = corpus({ cwd: tree(['docs/b/x.md']), roots: ['**/*.md'] })
+    expect([...inFolder(c, 'docs/[a\\-c]/**').violations()]).toEqual([])
+  })
+
   it('an escaped paren is never a separator, though its slash reading selects a file', () => {
     const c = corpus({ cwd: tree(['guides/x/a.md']), roots: ['**/*.md'] })
     expect([...inFolder(c, 'guides\\(x)/**').violations()]).toEqual([])

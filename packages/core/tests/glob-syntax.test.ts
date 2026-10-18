@@ -3,7 +3,7 @@
  * are plan 0456's Problem 4, measured on picomatch 4.0.4 as eess-md resolves it.
  */
 import { describe, it, expect } from 'vitest'
-import { globTextCorrection, globTextFault } from '../src/internal.js'
+import { repoRelativeCorrection, globTextFault } from '../src/internal.js'
 
 describe('globTextFault, repo-relative (plan 0456)', () => {
   const rows: [string, string | undefined, string | undefined][] = [
@@ -25,7 +25,7 @@ describe('globTextFault, repo-relative (plan 0456)', () => {
     it(`repo-relative ${glob} is ${fault ?? 'no fault'}`, () => {
       const found = globTextFault(glob, 'file-path', 'repo-relative')
       expect(found).toBe(fault)
-      if (found !== undefined) expect(globTextCorrection(glob, found)).toBe(correction)
+      if (found !== undefined) expect(repoRelativeCorrection(glob, found)).toBe(correction)
     })
   }
 })

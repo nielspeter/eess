@@ -89,7 +89,9 @@ describe('notExistCondition (plan 0456)', () => {
       .andShould()
       .satisfy({ description: 'anything', evaluate: () => [] })
       .violations()
-    expect(found.map((v) => v.bypassFilters)).toEqual([true])
+    expect(found.map((v) => [v.bypassFilters, v.message])).toEqual([
+      [true, expect.stringContaining('examined zero units')],
+    ])
   })
 
   it('the condition it returns is frozen', () => {

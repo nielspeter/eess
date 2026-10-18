@@ -136,8 +136,34 @@ describe('notExist() on each md builder (plan 0456)', () => {
         .should()
         .notExist()
         .violations(),
+      rows(c, { section: /^Packages$/, columns: { pkg: /^Package$/ } })
+        .that()
+        .satisfy(none)
+        .should()
+        .notExist()
+        .violations(),
     ]) {
       expect([...found]).toEqual([])
+    }
+  })
+
+  it('codeBlocks(): an empty selection is green', async () => {
+    const parsed = await parseCodeBlocks(loaded(), { language: 'mermaid', parser })
+    const found = codeBlocks(parsed).that().resideInFolder('guides/none/**').should().notExist()
+    expect([...found.violations()]).toEqual([])
+  })
+
+  it('a positive rule over a corpus that loaded nothing is an empty source, declared empty or not', () => {
+    // The break adopters meet first: `.expectEmpty()` no longer satisfies an empty corpus.
+    for (const declared of [false, true]) {
+      const rule = docs(empty()).that().resideInFolder('guides/**')
+      const found = (declared ? rule.expectEmpty() : rule)
+        .should()
+        .haveSection('Prerequisites')
+        .violations()
+      expect(found.map((v) => v.message)).toEqual([
+        expect.stringContaining("this rule's source loaded zero units"),
+      ])
     }
   })
 })

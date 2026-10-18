@@ -2,7 +2,7 @@ import type { GlobNode, GlobSite } from '@nielspeter/eess'
 import {
   isGlobNode,
   isOpaqueGlob,
-  globTextCorrection,
+  repoRelativeCorrection,
   globTextFault,
   type GlobTextFault,
   type SelectorFault,
@@ -63,7 +63,7 @@ const TEXT_CAUSE: Record<Exclude<GlobTextFault, 'unanchored'>, string> = {
 function textFault(site: GlobSite): SelectorFault | undefined {
   const fault = globTextFault(site.glob, 'file-path', 'repo-relative')
   if (fault === undefined || fault === 'unanchored') return undefined
-  const correction = globTextCorrection(site.glob, fault)
+  const correction = repoRelativeCorrection(site.glob, fault)
   const remedy =
     correction !== undefined
       ? `Write the glob as \`${correction}\`.`
@@ -105,8 +105,11 @@ function unloadedFault(site: GlobSite, corpus: Corpus): SelectorFault | undefine
   }
 }
 
-/** A backslash before one of these is an escape, never a separator. */
-const ESCAPED = new Set(['[', ']', '(', ')', '{', '}', '!', '@', '+', '|', '\\', ' '])
+/**
+ * A backslash before one of these is an escape, never a separator. `-` and `^`
+ * are special inside a character class (`[a\\-c]`), so they escape too.
+ */
+const ESCAPED = new Set(['[', ']', '(', ')', '{', '}', '!', '@', '+', '|', '\\', ' ', '-', '^'])
 
 /**
  * The glob with every separator-like backslash replaced by `/`, or `undefined`

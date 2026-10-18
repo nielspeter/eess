@@ -46,11 +46,12 @@ function repoRelativeFault(glob: string): GlobTextFault | undefined {
 }
 
 /**
- * The corrected glob for a repo-relative text fault, where one is unique: the
+ * The corrected glob for a `'repo-relative'` text fault, where one is unique (for
+ * any other base it is not a correction: a leading `./` there is the fault): the
  * leading `/` removed, or every `./` segment after the first removed. A `../`
  * has none: the folder lies outside what the corpus can name.
  */
-export function globTextCorrection(glob: string, fault: GlobTextFault): string | undefined {
+export function repoRelativeCorrection(glob: string, fault: GlobTextFault): string | undefined {
   if (fault === 'anchored') return glob.replace(/^\/+/, '')
   if (fault === 'dot-segment') return glob.replace(/\/(?:\.\/)+/g, '/')
   return undefined
