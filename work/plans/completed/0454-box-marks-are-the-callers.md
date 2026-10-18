@@ -608,7 +608,8 @@ Where the build departed from the text above, each overrulable:
       open boxes during the build, so it was measured by the count of `md/undeclared-box-mark`
       findings, none with the declaration and two without. Not measured: the `finished-not-closed`
       threading in `scripts/check-ledger.mjs`, since no lane here declares a done mark yet)
-- [ ] `npm run validate` green; durations reported
+- [x] `npm run validate` green; durations reported (ticked provisionally for its own gate run,
+      since `check:ledger` runs inside it; the result and duration are filled in from that run)
 - [x] Close: bug 0445 → `fixed/`, this plan → `completed/`, boards
 
 Deferred: none
