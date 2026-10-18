@@ -107,3 +107,25 @@ describe('honestyAtClose reads the caller’s label (bug 0444)', () => {
     expect(stats({ aliases: ['Status'] })).toBe(5)
   })
 })
+
+/**
+ * Bug 0476 — a record that writes its state as a heading (`## Status: Done`) was never read, and in a
+ * call where other records were readable nothing said so. The heading form is now read under the
+ * labels in force, and reported under any other label.
+ */
+describe('honestyAtClose reads a heading-form state (bug 0476)', () => {
+  it('with label: Status, a ## Status: heading is read and checked against its folder', () => {
+    expect(pairs('ledger-heading', { label: 'Status', aliases: ['State'] })).toEqual([
+      [BOX, '0002-heading-done-open-box.md'],
+      [MISMATCH, '0001-heading-done-live.md'],
+    ])
+  })
+
+  it('with default options, a ## Status: heading beside a readable record is reported, not skipped', () => {
+    expect(pairs('ledger-heading')).toEqual([
+      [BOX, '0002-heading-done-open-box.md'],
+      [UNDER, '0001-heading-done-live.md'],
+      [UNDER, '0002-heading-done-open-box.md'],
+    ])
+  })
+})

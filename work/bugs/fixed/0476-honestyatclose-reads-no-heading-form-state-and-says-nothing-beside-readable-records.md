@@ -2,8 +2,7 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 from PR #236's verification (product). Measured on the PR's
-  build; no red test yet.
+- **State:** Fixed — 2026-10-18, in the batch-2 pull request.
 - **Severity:** Medium — a silent pass. Adopter 3 writes most of its records with a `## Status:`
   heading, and about 1,000 of them get no state read and no finding.
 - **Origin:** self-found · PR #236's verification, 2026-10-18.
@@ -28,9 +27,21 @@ Either read the heading form as a caller-named form, which is the shape plan 046
 heading and no readable state, as `ledger/state-under-another-label` does for labels. The preset's
 rebuild on public blocks (proposal 017, the second Review's decision 1) is the natural home.
 
+## Resolution
+
+The heading form is read. A record whose first section's heading is its state, such as
+`## Status: Done`, is read under the labels in force, as a label line is. One adopter writes most of
+its records this way, so it passes `label: 'Status'` and they are checked. Only a value from the
+vocabulary counts, so `## Status at a glance` and `## State: of the art` stay headings. A heading under
+a label not in force is reported as `ledger/state-under-another-label`, like a wrapped or plain
+label.
+
+The read covers the first section's heading, which is the header region the preset already reads.
+A heading-form state further down a record is still not read.
+
 ## Verification
 
-- [ ] Red first: a call with one `State:` record and one `## Status: Done` record in a live folder says nothing about the second
-- [ ] Green: the second record is read or reported
+- [x] Red first: a call with one `State:` record and a `## Status: Done` record gave no finding on the second (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`, the heading rows).
+- [x] Green: with `label: 'Status'` the heading record is read and its folder checked; with defaults it is reported. A sabotage row that switches off the heading read turns its row red.
 
 Deferred: none

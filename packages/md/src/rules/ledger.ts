@@ -276,6 +276,9 @@ function findStateRe(
   return stateIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary, label)
 }
 
+/** A heading's text without its `##` marker, so `## Status: Done` reads as `Status: Done`. */
+const headingAsLabel = (line: string): string => line.replace(/^#{2,6}\s+/, '')
+
 /** A plain `Label:` opening a line, after an optional bullet: the label's text. */
 const PLAIN_LABEL = /^\s*(?:[-*+]\s+)?([A-Za-z][A-Za-z ]{0,40}?)\s*:/
 
@@ -294,11 +297,13 @@ function stateUnderAnotherLabel(
   const lines = proseText(doc.text, 'code-blocks', doc.root).split('\n')
   let seenHeading = 0
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i] ?? ''
-    if (/^##\s/.test(line)) {
+    const raw = lines[i] ?? ''
+    let line = raw
+    if (/^##\s/.test(raw)) {
       seenHeading += 1
       if (seenHeading > 1) break
-      continue
+      // The first section's own heading may be written as a label (bug 0476).
+      line = headingAsLabel(raw)
     }
     // Wrapped labels, and the plain form too: unlike `wrappedLabelOf`'s other callers this one
     // only fires when the value is a word of the state vocabulary, so prose opening "Note: …"
@@ -333,6 +338,12 @@ function stateIn(
     if (/^##\s/.test(lines[i] ?? '')) {
       seenHeading += 1
       if (seenHeading > 1) break
+      // A first section whose heading is the state itself, `## Status: Done` (bug 0476): read
+      // under the labels in force, as a label line is. Only a value from the vocabulary counts,
+      // so `## Status at a glance` or `## State: of the art` is a heading, not a state.
+      const heading = known.exec(headingAsLabel(lines[i] ?? ''))
+      if (heading?.[1] !== undefined)
+        return { state: canonical(heading[1]), raw: heading[1], line: i + 1 }
       continue
     }
     const line = lines[i] ?? ''

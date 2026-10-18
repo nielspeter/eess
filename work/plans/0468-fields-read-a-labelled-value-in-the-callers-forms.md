@@ -12,7 +12,7 @@
   name.
 - **Created:** 2026-10-18
 - **Builds after:**
-  - [bug 0403](../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
+  - [bug 0403](../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
     the second Review set for block 1: the vacuity matrix covers eess-md before eess-md gains a
     constructor;
   - [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples

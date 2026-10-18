@@ -170,7 +170,7 @@ from a green baseline, verdicts read from exit codes, plus an adversarial review
 links that record.
 
 **Vacuity matrix:** it probes constructors over empty input and so reaches `links()`, not this
-condition. Covering eess-md there is [bug 0403](../../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s
+condition. Covering eess-md there is [bug 0403](../../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s
 fix, and this plan does not wait for it.
 
 ## Out of scope

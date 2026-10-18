@@ -57,6 +57,12 @@ above), and two more worth knowing about — `ignore` and `cwd` (the repo root
 `roots`/`frozen`/`ignore` resolve against — the same thing `c.root` reports
 back, and defaults to `process.cwd()` as the second bullet below explains).
 
+A root that matches no file, or only ignored files, while another root loads is refused with an
+`ArchConfigError` that names it: a mistyped root would otherwise drop its documents without a word
+(bug 0465). A root that is empty on purpose, such as a lane with no records yet or a test fixture that
+writes only the folder its rule reads, is named in `expectEmptyRoots`. That declaration expires: once
+the root matches files, it is refused until you remove the name (bug 0475).
+
 `ignore` is narrower than it sounds, in three ways worth knowing before you rely
 on it. It is a **glob over repo-relative file paths**, so a bare directory name
 (`ignore: ['drafts']`) matches nothing and reports nothing — write
@@ -792,7 +798,8 @@ The last two are about a state the preset could not read at all (bug 0444):
   records, because the preset has no lane list: each call is one lane.
 
 A corpus that writes its state under another label passes `label: 'Status'`, or adds it with
-`aliases: ['Status']`. A heading such as `## Status: Done` is not a label this preset reads.
+`aliases: ['Status']`. A record whose first section's heading is its state, `## Status: Done`, is
+read too, under the labels in force (bug 0476).
 
 The vocabulary finding, `ledger/unknown-state`, is the one a new adopter meets first, and it is a **violation,
 not an ignore**: the default vocabulary is `Draft | Ready | Open | Done |

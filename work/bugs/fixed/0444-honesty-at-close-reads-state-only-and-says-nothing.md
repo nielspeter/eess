@@ -77,7 +77,7 @@ finding. This is the flagged break. The `check:nonvacuity` rows
 Residuals, each recorded:
 
 - **A record that writes its state as a heading** (`## Status: Done`) gets no finding when other
-  records in the call are readable: [bug 0476](../0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md).
+  records in the call are readable: [bug 0476](./0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md).
 - **A non-record document** with no state line, whose header holds a state word under a label
   (`**Questions:** Open`), is reported. It is loud, not silent, and its remedy names `boardFiles`.
   A test row pins it.
