@@ -100,13 +100,15 @@ every occurrence in one document:
   So `## Status: open` followed by `## Severity: High` and `## Priority: 2` stays one header. This
   covers 1,080 of adopter 3's 1,137 `## Status:` records.
   - Any `## Label: value` heading counts, not only the labels the caller declares. Adopter 3 measured
-    one record where this reads too far (`## ⚠️ RETRACTED: …`, frozen). A record read too far gives a
-    reported finding, never a silent pass.
+    one record where this reads too far (`## ⚠️ RETRACTED: …`, frozen). This is a known limit: when
+    the real header has no value and a body line below such a heading has one, that body value is
+    read as the header's, and nothing is reported. When the header does have a value, reading too
+    far gives a conflict, which is reported.
   - The unnamed-form scan reads the same region. With the header region, a per-phase `**Status:**`
     further down is neither read nor reported.
   - A field that sits under a named section (`## Status`, with `- **State:** v` under it; 51 of
-    adopter 3's records, 7 of them live) is outside the header. `haveField` reports such a record as
-    "no field", never skipping it. A named-section region waits for block 11.
+    adopter 3's records, 7 of them live) is outside the header. `haveField` reports it in either
+    position, as plan 0469's "outside the region" cause. A named-section region waits for block 11.
 
 - Fenced code is skipped (`proseText`).
 - Frozen documents are read (decision 3: each rule chooses its own documents).

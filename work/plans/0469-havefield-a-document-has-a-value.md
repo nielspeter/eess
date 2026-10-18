@@ -71,13 +71,15 @@ real value. A "first occurrence wins" option was considered and rejected, becaus
 real second header value.
 
 **Every cause is reported, in either position.** `haveField` used as a selector must not drop a
-document without saying so (ADR-009). Three causes make a document's value unreadable, and the builder's
+document without saying so (ADR-009). Four causes make a document's value unreadable, and the builder's
 `collectViolations` reports them in both phases, as `links()` reports its declaration findings
 (`packages/md/src/builders/links.ts:140-150`):
 
 - the conflict;
 - the unnamed form;
-- the disagreeing prose.
+- the disagreeing prose;
+- **outside the region**: with `region` set, no value in the header, but the label occurs elsewhere
+  in the document (read over the whole document).
 
 A readable value outside `oneOf` is different. Used as a condition, `haveField` reports it. Used as a
 selector, it is the filter doing its job: the document is not selected, and nothing is reported. A
@@ -99,6 +101,7 @@ document. These are the messages:
 
 ```
 work/bugs/0001.md: no Status field (read as bold, heading); its labels: Severity, State
+work/bugs/0001.md: Status at line 14 is outside the header (region: 'header'); move it into the header, or drop the region
 work/bugs/0001.md: found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line
 work/bugs/0001.md:3: 'Shipped' (Status, line 3) is not in the allowed set (open, fixed)
 work/bugs/0001.md:3,9: Status is given twice (line 3 'open', line 9 'fixed'); keep one
@@ -146,8 +149,8 @@ Measured 2026-10-18 with eess-md's own `proseText`, every live plan and bug has 
 rule needs no exclusion. A `check:nonvacuity` row removes the State line from one live bug.
 
 Proposals are left out. Two of them (010 and 016) keep their original submission, with its own
-`**State:**` line, below the current one, as the lane's rule asks. Telling those apart needs a
-region, which waits for block 11; it is recorded in proposal 017. This is the first check here that
+`**State:**` line, below the current one, as the lane's rule asks. `region: 'header'` now separates
+those, so whether to add the lane, measured, is the build's choice. This is the first check here that
 reds when a record has no state at all: `honestyAtClose` counts such a record but never refuses it
 (bug 0444).
 
@@ -187,7 +190,8 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 - **The condition:** each message above, word for word, and one cause per document.
 - **The predicate:**
   - it selects the documents that have the field, and with `oneOf` only the allowed ones;
-  - a conflicted document and an unnamed-form document are each not selected **and** reported;
+  - a conflicted document, an unnamed-form document and a field outside the header (`region:
+'header'`) are each not selected **and** reported;
   - an `open` bug under `oneOf: /fixed/i` is not selected and not reported;
   - a document outside the other predicates is not reported.
 - **The example:** red on a fixed bug with no `Verification` section; green once the section is added.
@@ -196,7 +200,9 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
   1. the resolver prefers the first occurrence;
   2. `collectViolations` skips the predicate phase;
   3. the condition passes a document with no field;
-  4. the resolver counts split elements.
+  4. the resolver counts split elements;
+  5. the "outside the region" cause is dropped, and a `## Status` section record used in a selector
+     goes unreported.
 
 ## Release
 
