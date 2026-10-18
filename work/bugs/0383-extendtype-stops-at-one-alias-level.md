@@ -40,6 +40,12 @@ narrow a selection silently, and decided nothing.
 
 ## Fix
 
+**A mechanism now exists (2026-10-18).** [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
+lets a predicate say it cannot judge a subject (`Predicate.undecided`), reported wherever the rule's
+verdict depends on it. A heritage walk that stops short is that case; whether this bug's fix uses it
+is this record's to decide, and eess-ts would then honour the member rather than refuse it
+([plan 0486](../plans/0486-a-predicate-that-cannot-judge-says-so.md)'s Out of scope).
+
 Not decided: resolve each member to its declaration and apply the same reading recursively
 (alias → its type node, interface → its chain, class → its heritage), with a visited set.
 Decide the wrapper question first. It shares its shape with

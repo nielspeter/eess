@@ -108,8 +108,10 @@ clause 6). The sites, from `grep -rn "matchingElements(" packages/*/src`:
 - Delete `DocsRuleBuilder`'s identity-keyed override (plan 0469).
 - `inScope` and `unnamedFormFindings` read `membership`: an undecided candidate is reached, and its
   causes are reported once, deduplicated against the rule's own result.
-- Plan 0469's tests change where ADR-021 changes the behaviour: four `.select()` calls over an
-  undecided document now refuse. Each changed assertion says why.
+- Plan 0469's tests change where ADR-021 changes the behaviour: three `.select()` calls over an
+  undecided document (a conflict, an empty value, a register read without the header region) now
+  refuse. A value that resolved beside disagreeing prose stays selected (ADR-021 clause 4), as it
+  was in plan 0469. Each changed assertion says why.
 - Fold the change into the pending `md-have-field` changeset (`haveField` is unreleased).
 
 ### Phase 4: dogfood, the gates, the release notes
