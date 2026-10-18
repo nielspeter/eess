@@ -1095,7 +1095,7 @@ Where the build departed from the text above, each overrulable:
 
 - [x] Phase 1 (review part 1): freeze at marking, `cardinalitySelectorFault` on `TerminalBuilder`
       with its order and receipt, `notExistCondition`, `globTextFault` with eess-ts's wrapper,
-      kernel tests, whole suite once (core 331 tests in 1 s, eess-ts 3,976 in 44 s, eess-mermaid
+      kernel tests, whole suite once (at fa68400e: core 331 tests in 1 s, eess-ts 3,976 in 44 s, eess-mermaid
       172; all green)
 - [x] Phase 2 (review part 2): md `notExist()` ×7, `sourceEmpty()` ×6, declared globs,
       `notInCorpusReasons`, the fault helper with the separator check, six exports, README,
@@ -1120,7 +1120,10 @@ Where the build departed from the text above, each overrulable:
       were re-run: `check:corpus`, `check:ledger`, `format:check`, `test` (core 331, crossvalidate
       128, gherkin 11, md 380, mermaid 173, eess-ts 3,977), `test:matrix` (48) and `check:surface`,
       all green.)
-- [x] The examples gate's `notExist()` row (from plan 0458): a clean fixture holding documents with no elements reds the load-bearing row, naming the example
+- [x] The examples gate's `notExist()` row (from plan 0458): done-otherwise. The committed row is
+      `examples/md-load-bearing-names-a-failing-clean-test`: a `clean:` test that fails as written
+      (its probe is a `notExist()` example whose clean fixture holds no element) is named. That an
+      example has a population assertion at all stays review-held, as plan 0458 says.
       (`examples/md-load-bearing-reds-on-an-empty-population` in `scripts/check-nonvacuity.mjs`)
 - [x] Close: this plan → `completed/`; boards
 - [ ] deferred→[plan 0464](../0464-the-dialects-notexist-copies-move-onto-the-kernels.md) (the five
