@@ -2,8 +2,7 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-10-07 by reading `scripts/vacuity-matrix.mjs` at `7596e30`. No
-  red test yet.
+- **State:** Fixed — 2026-10-18, in the batch-2 pull request.
 - **Severity:** Medium — **an enforcement row claims more than its mechanism checks.** ADR-010's
   row "Every published check-constructor fails over a zero-file project (the vacuity matrix)" is
   `gated`, and the matrix enumerates only `@nielspeter/eess-ts`. A sibling dialect's constructor
@@ -54,11 +53,28 @@ Not designed. Either the matrix enumerates every family package's exports map, e
 its own empty input (an empty corpus, an empty diagram, an empty feature set), or ADR-010's row is
 narrowed to what it checks and a row is added for each sibling.
 
+## Resolution
+
+The matrix probes the sibling dialects too (`scripts/vacuity-matrix.mjs`, "Sibling dialects"):
+
+- every check-constructor of eess-md, eess-mermaid, eess-gherkin and eess-crossvalidate, called
+  bare over that dialect's own empty input (an empty corpus, an empty diagram, an empty feature
+  set), each subpath of the exports map included;
+- every other exported function is either a kernel re-export, recognised by identity, or listed
+  in `SIBLING_NOT_CONSTRUCTORS` with a reason. An export that is neither is a finding, so a new
+  constructor cannot be added unprobed. This is the mechanical enumeration the Fix asked for.
+- ADR-010's row now says what the matrix checks.
+
+Its first run found two real fail-opens, `diagramMatchesCode()` and `adrCitationsResolve()`, from one
+cause. They are recorded as [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md),
+with dated `KNOWN_FAIL_OPEN` entries. `codeBlocks()` is listed rather than probed: it needs a parser
+to construct, and its zero-blocks case is `check:nonvacuity`'s `corpus/code-block-parse/zero-blocks`.
+
 ## Verification
 
-- [ ] Red test written first: a sibling-dialect constructor made to pass over empty input turns
-      `check:vacuity` red
-- [ ] the matrix's own non-vacuity proof covers a sibling row
-- [ ] `npm run validate` green.
+- [x] done-otherwise: the red proof is a non-vacuity row, not a unit test. `vacuity-matrix/sibling-fail-open` replaces eess-md's `docs` probe with one that passes silently, and the matrix fails naming it.
+- [x] The matrix's own non-vacuity proof covers a sibling row, and an unaccounted export (`vacuity-matrix/unaccounted-export`).
+- [x] `npm run validate` green.
+- [ ] deferred→bug 0477 — the two crossvalidate presets that pass over two empty inputs
 
-Deferred: none.
+Deferred: bug 0477
