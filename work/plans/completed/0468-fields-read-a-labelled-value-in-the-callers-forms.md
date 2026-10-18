@@ -357,7 +357,8 @@ Where the build departed from the text above, each overrulable:
       because `check:ledger` runs inside it: exit 0 in 14 min 21 s; 217 non-vacuity fixtures; tests
       core 331, crossvalidate 128, gherkin 11, md 417, mermaid 173, eess-ts 3,977, examples 27,
       test:matrix 48. An earlier run on the pre-review code failed on `rule-id coverage`, fixed in
-      the review round)
+      the review round. Rebased onto main after PR #240 (plan 0454) merged, the combined tree was
+      validated again at 11a3d6c: exit 0 in 14 min 26 s, 220 fixtures, md 458 tests)
 - [x] Close: this plan → `completed/`; boards
 
 Deferred: none
