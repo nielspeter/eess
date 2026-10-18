@@ -592,7 +592,7 @@ Where the build departed from the text above, each overrulable:
 
 ## Progress ledger
 
-- [x] Phase 1 — red-first test committed failing (355dc30f); the model; the parsed-tree count of this
+- [x] Phase 1 — red-first test committed failing (6958879a after the rebase onto #239; 355dc30f before); the model; the parsed-tree count of this
       repository's non-GFM boxes (four, see Build notes)
 - [x] Phase 2 — the builder, its scoped and grouped findings
 - [x] Phase 3 — `honestyAtClose`'s `marks`; `check:ledger` declaring `[~]`; `finished-not-closed`
@@ -600,35 +600,42 @@ Where the build departed from the text above, each overrulable:
 - [x] Phase 4 — non-vacuity rows, changeset, README, the example under plan 0458's gate (the
       load-bearing check proves 4 of 4 judgements across 3 examples, 6 s)
 - [x] Every acceptance row above green through the public entry points; every sabotage row red
-      (`task-items-marks.test.ts`, 33 tests, and the red-first file; the matrix below, run at
-      8e480b0a: each named check green on the untouched tree and red with its row applied, files
-      restored by `git checkout`, tree clean, 74 s. Row 14 is counted, not exited: `check:ledger`
-      reports no `md/undeclared-box-mark` with the declaration and exactly two without it, 0249 at
-      :160 and 0256 at :130, since the gate's exit also carries this plan's own open boxes)
-- [x] `npm run validate` green; durations reported (at 9515913d, with this box ticked provisionally because
-      `check:ledger` runs inside it: exit 0; 217 non-vacuity fixtures; tests core 331, crossvalidate
-      128, gherkin 11, md 414, mermaid 173, eess-ts 3,977, examples 26, test:matrix 48. Its
-      duration was not measured; the earlier runs on this machine took 12–14 min)
+      (the matrix below, run at d9eb9856 by a script in the build worktree: rows 1–13, 131 and
+      15–19 each green on the untouched tree and red with the row applied; eess-md rebuilt for rows
+      18–19, whose red is the non-vacuity row `corpus/ledger/undeclared-mark`; files restored by
+      `git checkout`, tree clean, 1 min 44 s. Row 131, the open-box peek alone, is pinned, not
+      unfalsifiable. Row 14 is counted, not exited: `check:ledger`'s exit also carries this plan's own
+      open boxes during the build, so it was measured by the count of `md/undeclared-box-mark`
+      findings, none with the declaration and two without. Not measured: the `finished-not-closed`
+      threading in `scripts/check-ledger.mjs`, since no lane here declares a done mark yet)
+- [ ] `npm run validate` green; durations reported
 - [x] Close: bug 0445 → `fixed/`, this plan → `completed/`, boards
 
 Deferred: none
 
-**Sabotage matrix, measured 2026-10-18 at 8e480b0a:**
+**Sabotage matrix, measured 2026-10-18 at d9eb9856 (after the review round):**
 
-| row | sabotage                                               | checked by                                            | named test                                                                   | baseline | sabotaged             | time |
-| --- | ------------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------- | -------- | --------------------- | ---- |
-| 1   | readBoxMark returns null                               | `packages/md/tests/builders/task-items-marks.test.ts` | a done document holding an undeclared [~] reds at its line                   | green    | red                   | 4.7s |
-| 2   | the undeclared-letter exclusion removed                | `packages/md/tests/builders/task-items-marks.test.ts` | [WIP], [1], a link and a defined reference stay green                        | green    | red                   | 9.0s |
-| 2   | the undeclared-letter exclusion removed                | `packages/md/tests/builders/task-items-marks.test.ts` | an undeclared [o] and [v] are plain list items                               | green    | red                   | 9.0s |
-| 3   | Intl.Segmenter replaced by .length                     | `packages/md/tests/builders/task-items-marks.test.ts` | a combining sequence are each one grapheme                                   | green    | red                   | 4.6s |
-| 4   | the malformed-box detection removed                    | `packages/md/tests/builders/task-items-marks.test.ts` | [ x ], [x]a, an empty [ ] and an empty [x] are malformed                     | green    | red                   | 4.7s |
-| 5   | one validateMarks refusal removed (GFM's own)          | `packages/md/tests/builders/task-items-marks.test.ts` | a declaration with x is refused, naming the key                              | green    | red                   | 4.6s |
-| 6   | collectViolations returns base                         | `packages/md/tests/builders/task-items-marks.test.ts` | a done record whose boxes are all [~] reds a notExist() rule through check() | green    | red                   | 4.7s |
-| 7   | the scope filter dropped                               | `packages/md/tests/builders/task-items-marks.test.ts` | a rule whose predicates exclude the document does not report its unread box  | green    | red                   | 4.6s |
-| 8   | grouping dropped (one finding per box)                 | `packages/md/tests/builders/task-items-marks.test.ts` | three undeclared [?] in one document are one finding naming three lines      | green    | red                   | 4.8s |
-| 9   | bypassFilters dropped                                  | `packages/md/tests/builders/task-items-marks.test.ts` | excluding the finding's element does not hide it                             | green    | red                   | 4.6s |
-| 10  | hasDeferredDisposedBox back to !box.checked            | `packages/md/tests/builders/task-items-marks.test.ts` | an undeclared box carrying a deferral is not a deferral                      | green    | red                   | 4.6s |
-| 11  | either reading replaced by skipping areOpen/areChecked | `packages/md/tests/builders/task-items-marks.test.ts` | a hand-written state predicate reaches an unread box                         | green    | red                   | 4.6s |
-| 12  | the builder's element state widened back               | `npx tsc --noEmit`                                    | reports TS2578                                                               | green    | red                   | 1.7s |
-| 13  | the preset drops marks                                 | `packages/md/tests/builders/task-items-marks.test.ts` | declaring a mark clears its finding                                          | green    | red                   | 4.8s |
-| 14  | this repository's [~] declaration removed              | `node scripts/check-ledger.mjs`                       | two `md/undeclared-box-mark`, one per document                               | none     | 0249:160 and 0256:130 | 12 s |
+| row | sabotage                                               | checked by                                                                | named test                                                                       | baseline | sabotaged                                       | time  |
+| --- | ------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------- | ----------------------------------------------- | ----- |
+| 1   | readBoxMark returns null                               | `packages/md/tests/builders/task-items-marks.test.ts`                     | a done document holding an undeclared [~] reds at its line                       | green    | red                                             | 4.7s  |
+| 2   | the undeclared-letter exclusion removed                | `packages/md/tests/builders/task-items-marks.test.ts`                     | [WIP], [1], a link and a defined reference stay green                            | green    | red                                             | 9.2s  |
+| 2   | the undeclared-letter exclusion removed                | `packages/md/tests/builders/task-items-marks.test.ts`                     | an undeclared [o] and [v] are plain list items                                   | green    | red                                             | 9.2s  |
+| 3   | Intl.Segmenter replaced by .length                     | `packages/md/tests/builders/task-items-marks.test.ts`                     | a combining sequence are each one grapheme                                       | green    | red                                             | 4.6s  |
+| 4   | the malformed-box detection removed                    | `packages/md/tests/builders/task-items-marks.test.ts`                     | [ x ], [x]a, an empty [ ] and an empty [x] are malformed                         | green    | red                                             | 4.7s  |
+| 5   | one validateMarks refusal removed (GFM's own)          | `packages/md/tests/builders/task-items-marks.test.ts`                     | a declaration with x is refused, naming the key                                  | green    | red                                             | 4.7s  |
+| 6   | collectViolations returns base                         | `packages/md/tests/builders/task-items-marks.test.ts`                     | a done record whose boxes are all [~] reds a notExist() rule through check()     | green    | red                                             | 4.6s  |
+| 7   | the scope filter dropped                               | `packages/md/tests/builders/task-items-marks.test.ts`                     | a rule whose predicates exclude the document does not report its unread box      | green    | red                                             | 4.7s  |
+| 8   | grouping dropped (one finding per box)                 | `packages/md/tests/builders/task-items-marks.test.ts`                     | three undeclared [?] in one document are one finding naming three lines          | green    | red                                             | 4.6s  |
+| 9   | bypassFilters dropped                                  | `packages/md/tests/builders/task-items-marks.test.ts`                     | excluding the finding's element does not hide it                                 | green    | red                                             | 4.6s  |
+| 10  | hasDeferredDisposedBox back to !box.checked            | `packages/md/tests/builders/task-items-marks.test.ts`                     | an undeclared box carrying a deferral is not a deferral                          | green    | red                                             | 4.6s  |
+| 11  | either reading replaced by skipping areOpen/areChecked | `packages/md/tests/builders/task-items-marks.test.ts`                     | a hand-written state predicate reaches an unread box                             | green    | red                                             | 4.6s  |
+| 12  | the builder's element state widened back               | `npx tsc --noEmit`                                                        | reports TS2578                                                                   | green    | red                                             | 1.7s  |
+| 13  | the preset drops marks (silent-box rule)               | `packages/md/tests/builders/task-items-marks.test.ts`                     | declaring a mark clears its finding                                              | green    | red                                             | 4.6s  |
+| 131 | the preset drops marks (the open-box peek only)        | `packages/md/tests/builders/task-items-marks.test.ts`                     | declaring a mark clears its finding                                              | green    | red                                             | 9.3s  |
+| 131 | the preset drops marks (the open-box peek only)        | `packages/md/tests/builders/task-items-marks.test.ts`                     | a declared open [~] without a disposition is a silent open box                   | green    | red                                             | 9.3s  |
+| 15  | the preset drops marks (the deferral reader)           | `packages/md/tests/builders/task-items-marks.test.ts`                     | a declared open [~] disposed deferred→ beside Deferred: none is the deferral lie | green    | red                                             | 4.6s  |
+| 16  | finished-not-closed passes an unread box over          | `node scripts/nonvacuity/bad-finished-not-closed.mjs`                     | reports reported once as md/undeclared-box-mark                                  | green    | red                                             | 12.4s |
+| 17  | this repository's [~] declared done instead of open    | `QA_ONLY=corpus/ledger/tilde-is-open node scripts/check-nonvacuity.mjs`   | corpus/ledger/tilde-is-open                                                      | green    | red                                             | 11.7s |
+| 18  | readBoxMark returns null, eess-md rebuilt              | `QA_ONLY=corpus/ledger/undeclared-mark node scripts/check-nonvacuity.mjs` | corpus/ledger/undeclared-mark                                                    | green    | red                                             | 1.7s  |
+| 19  | collectViolations returns base, eess-md rebuilt        | `QA_ONLY=corpus/ledger/undeclared-mark node scripts/check-nonvacuity.mjs` | corpus/ledger/undeclared-mark                                                    | green    | red                                             | 1.8s  |
+| 14  | this repository's [~] declaration removed              | `node scripts/check-ledger.mjs`                                           | two `md/undeclared-box-mark`, one per document                                   | none     | 0249:160 (naming 160, 167 and 201) and 0256:130 | 12 s  |

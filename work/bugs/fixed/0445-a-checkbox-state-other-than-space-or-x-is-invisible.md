@@ -34,7 +34,7 @@ GFM's (proposal 017's principle). A list item whose text starts with a bracketed
 ## Verification
 
 - [x] Red first: the three-item record above, through `honestyAtClose`
-      (`packages/md/tests/rules/box-marks-in-a-closed-record.test.ts`, committed failing as 355dc30f:
+      (`packages/md/tests/rules/box-marks-in-a-closed-record.test.ts`, committed failing as 6958879a (355dc30f before the rebase):
       only `ledger/silent-open-box @ 7` was reported, both undeclared marks missing)
 - [x] Green: a declared `[~]` counts as open, an undeclared `[?]` is a finding, with non-vacuity rows
       (`packages/md/tests/builders/task-items-marks.test.ts`; `corpus/ledger/undeclared-mark`,
