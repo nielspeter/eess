@@ -2,10 +2,7 @@
 
 ## Status
 
-- **State:** Draft — filed 2026-10-18 as the home that plan 0469's review asked for. The spike ran
-  2026-10-18 against plan 0457's written design (0457 is not built yet) and brings back candidate B,
-  with C until B lands, for the maintainer's ruling:
-  [spike 0470](../spikes/0470-how-a-lifted-predicate-carries-its-findings.md).
+- **State:** Draft — filed 2026-10-18 as the home that plan 0469's review asked for; not designed yet.
 - **Implements:** proposal 017
 - **Priority:** Medium. Block 12's own example, "documents whose Status is done hold no open box", needs
   it. So do adopter 1's most-wanted rule and the rebuild of `honestyAtClose` from public blocks
@@ -38,9 +35,7 @@ findings on. So `haveField` lifted onto `taskItems()` would drop an unreadable d
 
 ## Progress ledger
 
-- [x] Spike: the questions above measured, recorded under `work/spikes/`
-      ([spike 0470](../spikes/0470-how-a-lifted-predicate-carries-its-findings.md); read from the code,
-      no prototype, since plan 0457 is not built)
+- [ ] Spike: the questions above measured, recorded under `work/spikes/`
 - [ ] A design brought back for a decision, and the build plan filed after the ruling
 - [ ] Close: this plan → `completed/`; boards
 
