@@ -1,5 +1,6 @@
-import { RuleBuilder } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
+import type { MdLocation } from '../conditions/not-exist.js'
+import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { MdDocument } from '../model/document.js'
 import {
   resideInFolder,
@@ -21,9 +22,14 @@ import {
  * a predicate after `.that()`, a condition after `.should()` — mirroring the
  * dual-use methods in the TS dialect (plan 0041).
  */
-export class DocsRuleBuilder extends RuleBuilder<MdDocument, Corpus> {
+export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   protected getElements(): MdDocument[] {
     return this.project.documents()
+  }
+
+  /** A document is named by its path and reported at its first line. */
+  protected locate(d: MdDocument): MdLocation {
+    return { doc: d, line: 1, name: d.relPath }
   }
 
   /** Filter to documents whose repo-relative path matches the folder glob. */

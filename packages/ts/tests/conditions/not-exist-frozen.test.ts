@@ -28,8 +28,6 @@ describe('a returned notExist() cannot be emptied (bug 0462)', () => {
       .should()
       .satisfy({ description: 'no-op', evaluate: () => [] })
       .violations()
-    expect(found.map((v) => v.message)).toEqual([
-      expect.stringContaining('examined 0 subjects'),
-    ])
+    expect(found.map((v) => v.message)).toEqual([expect.stringContaining('examined 0 subjects')])
   })
 })

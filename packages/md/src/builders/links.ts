@@ -1,4 +1,6 @@
-import { RuleBuilder, collectResult, type CollectResult, type Predicate } from '@nielspeter/eess'
+import { collectResult, type CollectResult, type Predicate } from '@nielspeter/eess'
+import { atLine, type MdLocation } from '../conditions/not-exist.js'
+import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
 import { collectLinks, type MdLink, type MdLinkRef } from '../model/links.js'
 import { stampedByDocument } from '../model/by-document.js'
@@ -29,12 +31,15 @@ const areExternal = (): Predicate<MdLink> => ({
 /**
  * Rule builder over the corpus's markdown links.
  */
-export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
+export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
   /** What `areLabelled()`/`areInSection()` declared, for the near-miss scan (plan 0405). */
   private _declarations: readonly LinkDeclaration[] = []
 
   protected getElements(): MdLink[] {
     return stampedByDocument<MdLinkRef>(this.project, (doc) => collectLinks(doc.root, doc.text))
+  }
+  protected locate(e: MdLink): MdLocation {
+    return atLine(e)
   }
 
   /** Filter to links that point within the repo (no scheme). */

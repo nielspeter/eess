@@ -93,9 +93,16 @@ describe('notExistCondition (plan 0456)', () => {
   })
 
   it('the condition it returns is frozen', () => {
-    const c = notExistCondition<Widget>({ name: (w) => w.name, toViolation: () => ({
-      rule: '', element: '', file: '', line: 0, message: '',
-    }) })
+    const c = notExistCondition<Widget>({
+      name: (w) => w.name,
+      toViolation: () => ({
+        rule: '',
+        element: '',
+        file: '',
+        line: 0,
+        message: '',
+      }),
+    })
     expect(Object.isFrozen(c)).toBe(true)
   })
 })

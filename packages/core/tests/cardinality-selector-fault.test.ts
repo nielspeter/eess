@@ -55,7 +55,12 @@ const items: readonly Item[] = [{ name: 'a' }]
 
 describe('a cardinality rule reports its selector fault (bug 0460)', () => {
   it('the fault reds an absence rule with its own message, remedy and bypass', () => {
-    const found = new ItemRules({ items, fault }).that().named('/x').should().notExist().violations()
+    const found = new ItemRules({ items, fault })
+      .that()
+      .named('/x')
+      .should()
+      .notExist()
+      .violations()
     expect(found).toHaveLength(1)
     expect(found[0]?.message).toBe(
       'This absence rule examined nothing because its selector named("/x") is broken: a leading / ' +
@@ -97,10 +102,7 @@ describe('a cardinality rule reports its selector fault (bug 0460)', () => {
   })
 
   it('an empty source outranks the selector fault', () => {
-    const found = new ItemRules({ items: [], fault, empty: true })
-      .should()
-      .notExist()
-      .violations()
+    const found = new ItemRules({ items: [], fault, empty: true }).should().notExist().violations()
     expect(found.map((v) => v.message)).toEqual([
       expect.stringContaining("this rule's source loaded zero units"),
     ])

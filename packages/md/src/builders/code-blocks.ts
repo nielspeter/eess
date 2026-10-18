@@ -14,13 +14,21 @@ import {
 } from '../model/code-block-parse.js'
 import { resideInFile, resideInFolder } from '../predicates/document.js'
 import { mdViolation } from '../model/violation.js'
+import type { SelectorFault } from '@nielspeter/eess/internal'
+import { mdNotExist } from '../conditions/not-exist.js'
+import { mdSelectorFault } from './selector-fault.js'
 
 /** The instrument's identity: one constant, so several rules over one failed parse dedupe to one. */
 export const CODE_BLOCK_PARSER_INSTRUMENT = 'eess-md: code-block parser'
 
+// Forwards the document predicate's declared globs, so an absence rule over a
+// broken folder glob is diagnosed here too (plan 0456). Plan 0457 replaces this
+// with `inDocuments`, which must forward them as well.
 const onDocument = (p: Predicate<ParsedCodeBlock['doc']>): Predicate<ParsedCodeBlock> => ({
   description: p.description,
   test: (b) => p.test(b.doc),
+  ...(p.globs !== undefined && { globs: p.globs }),
+  ...(p.originLabel !== undefined && { originLabel: p.originLabel }),
 })
 
 function bodyLineCount(value: string): number {
@@ -110,6 +118,14 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
     return this.project.documentsLoaded === 0
   }
 
+  /**
+   * Bug 0460: the glob text only. `ParsedCodeBlocks` carries no file index, so
+   * the unloaded-Markdown and separator checks cannot run here.
+   */
+  protected override cardinalitySelectorFault(): SelectorFault | undefined {
+    return mdSelectorFault(this.globs(), undefined)
+  }
+
   /** The kernel's verdict, plus the instrument finding once per rule when the parser failed. */
   protected override collectViolations(): CollectResult {
     const base = super.collectViolations()
@@ -140,6 +156,17 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
   /** Filter to blocks in documents whose repo-relative path matches the folder glob. */
   resideInFolder(glob: string): this {
     return this.addPredicate(onDocument(resideInFolder(glob)))
+  }
+
+  /** The selection must be empty: each selected block is a finding, at its opening fence. */
+  notExist(): this {
+    return this.addCondition(
+      mdNotExist((b: ParsedCodeBlock) => ({
+        doc: b.doc,
+        line: b.block.line,
+        name: `${b.doc.relPath}:${String(b.block.line)}`,
+      })),
+    )
   }
 
   /** Assert every selected block parses: an `invalid` or `unrecognised` verdict is a finding. */

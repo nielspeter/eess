@@ -1,4 +1,6 @@
-import { RuleBuilder, type Predicate } from '@nielspeter/eess'
+import type { Predicate } from '@nielspeter/eess'
+import { atLine, type MdLocation } from '../conditions/not-exist.js'
+import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
 import { extractPointers, type MdPointer, type MdPointerRef } from '../model/pointers.js'
 import { stampedByDocument } from '../model/by-document.js'
@@ -19,11 +21,14 @@ const areFrozen = (): Predicate<MdPointer> => ({
 /**
  * Rule builder over the corpus's `path:line` code pointers.
  */
-export class PointerRuleBuilder extends RuleBuilder<MdPointer, Corpus> {
+export class PointerRuleBuilder extends CorpusRuleBuilder<MdPointer> {
   protected getElements(): MdPointer[] {
     return stampedByDocument<MdPointerRef>(this.project, (doc) =>
       extractPointers(doc.text, doc.root),
     )
+  }
+  protected locate(e: MdPointer): MdLocation {
+    return atLine(e)
   }
 
   /** Filter to pointers in live documents (not in a frozen folder). */
