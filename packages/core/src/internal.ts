@@ -54,6 +54,15 @@ export {
 export { isRecord, isNullaryCallable } from './type-guards.js'
 export { isSilent } from './silent-exclusion.js'
 export { marksAssertsCardinality } from './cardinality.js'
+// One `notExist` condition, built by each dialect with its own violation shape
+// (plan 0456). Family plumbing: an adopter writes `.should().notExist()`.
+export { notExistCondition } from './not-exist.js'
+export type { NotExistOptions } from './not-exist.js'
+// The selector fault a dialect reports for an absence rule (bug 0460).
+export type { SelectorFault } from './vacuity-findings.js'
+// One owner of the glob-text rules, eess-ts's and eess-md's (plan 0456).
+export { globTextFault, globTextCorrection } from './glob-syntax.js'
+export type { TextBase, GlobTextFault } from './glob-syntax.js'
 export { marksOwnEmptyDiscovery, ownsEmptyDiscovery } from './owns-empty-discovery.js'
 export { matchSelections } from './matching.js'
 export {

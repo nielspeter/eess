@@ -71,6 +71,9 @@ const CARDINALITY_ASSERTERS = new WeakSet<object>()
  * not retained after its rule is discarded.
  */
 export function marksAssertsCardinality<T extends object>(condition: T): T {
+  // Frozen at marking: the exemption attaches to an object nobody can change.
+  // Before this, `notExist().evaluate = () => []` kept the exemption (bug 0462).
+  Object.freeze(condition)
   CARDINALITY_ASSERTERS.add(condition)
   return condition
 }

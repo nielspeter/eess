@@ -3,9 +3,10 @@ import {
   deadGlobViolation,
   unmetExpectNonEmptyViolation,
   zeroLoadedSourceViolation,
+  cardinalitySelectorFaultViolation,
   expiredExpectEmptyViolation,
 } from './vacuity-findings.js'
-import type { RuleFacts } from './vacuity-findings.js'
+import type { RuleFacts, SelectorFault } from './vacuity-findings.js'
 import { UNSUPPRESSABLE } from './unsuppressable.js'
 import type { ArchViolation } from './violation.js'
 import { type CollectResult, collectResult } from './collect-result.js'
@@ -271,6 +272,13 @@ export abstract class TerminalBuilder {
     // emitter ON the receipt (ADR-014 §3) rather than through delivery options:
     // one boolean over a sum cannot carry per-rule declarations, and this is the
     // moment the terminal knows the fact and used to discard it.
+    // Bug 0460: an absence rule over a broken selector examined zero because
+    // the selector is broken, not because the assertion holds. Asked only when
+    // it matters, so a dialect's diagnosis never runs on an ordinary rule.
+    const fault =
+      examined === 0 && sourceEmpty !== true && this.assertsCardinality()
+        ? this.cardinalitySelectorFault()
+        : undefined
     const evidence = {
       examined,
       sourceEmpty,
@@ -281,8 +289,11 @@ export abstract class TerminalBuilder {
       // real units, and marking it declared there made every passing
       // `.notExist()` expire the moment the emitter checked. Measured: it
       // reddened six crossvalidate tests.
+      // Withheld beside a selector fault: the receipt must not claim "declared
+      // empty" next to a finding that says the emptiness is a fault (ADR-014 §3).
       declaredEmpty:
-        this._expectEmpty === true || (examined === 0 && this.assertsCardinality())
+        fault === undefined &&
+        (this._expectEmpty === true || (examined === 0 && this.assertsCardinality()))
           ? true
           : undefined,
     }
@@ -293,6 +304,11 @@ export abstract class TerminalBuilder {
     // method to cyclomatic complexity 11 and the repo's own `check:arch` said so.
     // The ORDER is the content here, and it is unchanged.
     if (examined === 0) {
+      // After an empty source (ADR-010 §3), before every declaration: a broken
+      // selector is not something `.expectEmpty()` can declare away.
+      if (fault !== undefined) {
+        return withFinding(cardinalitySelectorFaultViolation(this.facts(), fault))
+      }
       const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob)
       return zero === undefined ? collectResult(violations, evidence) : withFinding(zero)
     }
@@ -402,6 +418,17 @@ export abstract class TerminalBuilder {
    */
   protected assertsCardinality(): boolean {
     return false
+  }
+
+  /**
+   * For a cardinality rule that examined zero: the selector fault that makes
+   * "zero" not the assertion holding, or `undefined`. Bug 0355's ruling: a fault
+   * decidable from the glob text (bug 0362), or a path the instrument holds
+   * files under that the rule never saw. NEVER "the glob matches nothing": that
+   * is also what a holding ratchet looks like. Default: no diagnosis (bug 0460).
+   */
+  protected cardinalitySelectorFault(): SelectorFault | undefined {
+    return undefined
   }
 }
 
