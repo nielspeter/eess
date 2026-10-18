@@ -85,7 +85,8 @@ describe('proposal 017 block 17: acceptance rows', () => {
         (t) => `${t.doc.relPath.replace(/^work\/bugs\/fixed\/(\d{4}).*$/, '$1')}:${String(t.line)}`,
       )
     expect(tilde).toEqual(['0249:160', '0249:167', '0249:201', '0256:130'])
-  })
+    // It walks the repository and parses every bug record: 7 s on a CI runner, past vitest's 5 s.
+  }, 30_000)
 })
 
 describe('bug 0445', () => {
