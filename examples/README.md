@@ -72,6 +72,7 @@ proposal 017's claim that the blocks are enough (plan 0458). Each one is execute
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | [md/a-page-has-a-required-section.test.ts](./md/a-page-has-a-required-section.test.ts) | every page under `guides/` has a `Prerequisites` section |
 | [md/unclaimed-and-double-claimed.test.ts](./md/unclaimed-and-double-claimed.test.ts)   | every page is claimed by one selection, and none by two  |
+| [md/box-marks.test.ts](./md/box-marks.test.ts)                                         | in closed records, a declared `[~]` counts as open       |
 
 **The contract an example meets.**
 

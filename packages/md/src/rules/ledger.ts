@@ -9,7 +9,7 @@ import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import type { ArchViolation } from '../model/violation.js'
 import type { Root } from 'mdast'
-import { collectTaskItems } from '../model/task-items.js'
+import { collectTaskItems, validateMarks, type TaskItemOptions } from '../model/task-items.js'
 import { labelPattern, wrappedLabelOf } from '../model/label.js'
 import { proseText, unterminatedFence } from '../model/prose.js'
 import { docs } from '../builders/docs.js'
@@ -95,6 +95,12 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
    * lane needs at least its board file on disk.
    */
   readonly expectEmptyHeaders?: boolean
+  /**
+   * Box marks beyond GFM's `[ ]` and `[x]`, each declared open or done (plan 0454): a declared open
+   * mark is an open box and needs a disposition like `[ ]`; a declared done mark is a closed box. An
+   * undeclared mark in a done record is a finding. Pass the same object you pass to `taskItems()`.
+   */
+  readonly marks?: TaskItemOptions['marks']
   /**
    * The label a record's state is written under. Default `State`. A corpus that
    * writes `**Status:** Done` passes `label: 'Status'` (bug 0444).
@@ -512,9 +518,11 @@ function isDisposed(boxText: string): boolean {
  * "protection" was this repo's own live corpus incidentally carrying one,
  * which would have silently vanished the day that box got resolved.
  */
-function hasDeferredDisposedBox(doc: MdDocument): boolean {
-  return collectTaskItems(doc.root).some(
-    (box) => !box.checked && DEFERRED_DISPOSITION_RE.test(box.text),
+function hasDeferredDisposedBox(doc: MdDocument, marks: TaskItemOptions['marks']): boolean {
+  // Only an open box defers (plan 0454): an undeclared box carrying `deferred→` is reported as an
+  // undeclared mark, so a `Deferred: none` beside it is not also called a contradiction.
+  return collectTaskItems(doc.root, { marks, source: doc.text }).some(
+    (box) => box.state === 'open' && DEFERRED_DISPOSITION_RE.test(box.text),
   )
 }
 
@@ -833,7 +841,7 @@ function deferredNoneLieCondition(): Condition<MdDocument> {
  *   specifically doesn't also blind the peek.
  * - `deferredLieViolations`'s selection adds `hasDeferredDisposedBox` (which
  *   walks each done document's own mdast via a separate
- *   `collectTaskItems(doc.root)` call) on top of `isDoneItemPredicate`. Its
+ *   `collectTaskItems(doc.root, { marks, source })` call) on top of `isDoneItemPredicate`. Its
  *   peek (`anyDeferredDisposedBoxOnADoneItem`) instead re-tests
  *   `openTaskItems` (a different traversal) against the same
  *   `DEFERRED_DISPOSITION_RE` constant `hasDeferredDisposedBox` uses — so a
@@ -879,6 +887,8 @@ export function honestyAtClose(
   const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
   const closeInPlace = options.closeInPlace ?? false
   const { states, terminalStates } = resolveVocabulary(options, 'honestyAtClose')
+  validateMarks(options.marks, 'honestyAtClose')
+  const marks = options.marks
   const expectEmptyHeaders = options.expectEmptyHeaders ?? false
   const names = labelNames(options, 'honestyAtClose')
   const label = stateLabel(names)
@@ -901,7 +911,7 @@ export function honestyAtClose(
   // nothing outstanding). Each peek below narrows to what its own rule
   // actually selects, while staying independent of the predicate/function
   // that rule uses to select it.
-  const openTaskItems = taskItems(corpus)
+  const openTaskItems = taskItems(corpus, { marks })
     .that()
     .areOpen()
     .select({
@@ -915,7 +925,7 @@ export function honestyAtClose(
   const anyOpenBoxOnADoneItem = openTaskItems.some((t) =>
     isDoneItem(t.doc, doneFolders, states, terminalStates, label),
   )
-  let silentBoxRule = taskItems(corpus)
+  let silentBoxRule = taskItems(corpus, { marks })
     .that()
     .areOpen()
     .satisfy(belongsToADoneItem(doneFolders, states, terminalStates, label))
@@ -925,7 +935,7 @@ export function honestyAtClose(
   const silentOpenBoxViolations = silentBoxRule.violations()
 
   // Independent of `hasDeferredDisposedBox`: that function walks each done
-  // document's own mdast via a separate `collectTaskItems(doc.root)` call:
+  // document's own mdast via a separate `collectTaskItems(doc.root, …)` call:
   // this peek instead reuses the flat, already-collected `openTaskItems` list
   // (from the `taskItems()` builder's own traversal) and the same
   // `DEFERRED_DISPOSITION_RE` constant `hasDeferredDisposedBox` tests against
@@ -942,7 +952,7 @@ export function honestyAtClose(
     .satisfy(isDoneItemPredicate(doneFolders, states, terminalStates, label))
     .satisfy({
       description: 'carries a box disposed as deferred→<home>',
-      test: (doc: MdDocument) => hasDeferredDisposedBox(doc),
+      test: (doc: MdDocument) => hasDeferredDisposedBox(doc, marks),
     })
     .should()
     .satisfy(deferredNoneLieCondition())

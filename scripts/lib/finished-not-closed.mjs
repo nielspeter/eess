@@ -78,14 +78,58 @@
  * [ADR-006]: ../../adr/006-framework-rules-architecture.md
  */
 import { corpus } from '@nielspeter/eess-md'
-import { collectTaskItems } from '@nielspeter/eess-md'
+import { collectTaskItems, MALFORMED_BOX, UNDECLARED_BOX_MARK } from '@nielspeter/eess-md'
 import { findState } from '@nielspeter/eess-md/rules/ledger'
 
 export const FINISHED_NOT_CLOSED_RULE = 'ledger/finished-not-closed'
 export const FINISHED_NOT_CLOSED_VACUOUS_RULE = 'ledger/finished-not-closed-examined-nothing'
 
 /**
- * @param {Array<{roots: readonly string[], doneFolders?: readonly string[], states?: readonly string[], terminalStates: readonly string[], cwd?: string}>} lanes
+ * The boxes that keep an open record from reading as finished, reported under eess-md's own ids:
+ * one per undeclared mark, one per malformed box.
+ */
+function unreadBoxFindings(doc, unread) {
+  const out = []
+  const marks = new Map()
+  for (const b of unread) {
+    if (b.state === 'malformed') {
+      out.push({
+        rule: MALFORMED_BOX,
+        ruleId: MALFORMED_BOX,
+        element: `${doc.relPath}:${b.line}`,
+        file: doc.file,
+        line: b.line,
+        message:
+          `every other box of this open record is done, and this one (mark \`${b.mark}\`) is not a ` +
+          `box GFM reads, so whether the record is finished cannot be told.`,
+        suggestion: `Write the mark you meant as \`[${b.mark}]\` followed by a space and the item's text.`,
+        bypassFilters: true,
+      })
+      continue
+    }
+    marks.set(b.mark, [...(marks.get(b.mark) ?? []), b.line])
+  }
+  for (const [mark, lines] of marks) {
+    out.push({
+      rule: UNDECLARED_BOX_MARK,
+      ruleId: UNDECLARED_BOX_MARK,
+      element: `${doc.relPath} [${mark}]`,
+      file: doc.file,
+      line: lines[0],
+      message:
+        `every other box of this open record is done, and \`[${mark}]\` (line ${lines.join(', ')}) is a ` +
+        `mark this lane did not declare, so whether the record is finished cannot be told.`,
+      suggestion:
+        `Declare it in the lane's \`marks\`: { '${mark}': 'open' } if the work is not finished, or ` +
+        `'done' only if it is.`,
+      bypassFilters: true,
+    })
+  }
+  return out
+}
+
+/**
+ * @param {Array<{roots: readonly string[], marks?: Readonly<Record<string, "open" | "done">>, doneFolders?: readonly string[], states?: readonly string[], terminalStates: readonly string[], cwd?: string}>} lanes
  * @returns {{violations: object[], examined: number}}
  */
 export function findFinishedNotClosed(lanes) {
@@ -113,10 +157,19 @@ export function findFinishedNotClosed(lanes) {
       if (lane.terminalStates.includes(found.state)) continue
 
       laneExamined += 1
-      const boxes = collectTaskItems(doc.root)
+      // The lane's declared marks (plan 0454): a declared done mark counts as done.
+      const boxes = collectTaskItems(doc.root, { marks: lane.marks, source: doc.text })
       if (boxes.length === 0) continue
-      const open = boxes.filter((b) => !b.checked)
-      if (open.length > 0) continue
+      if (boxes.some((b) => b.state === 'open')) continue
+      // Every box this rule can read is done. A box it cannot read (a mark the lane did not
+      // declare, a near-GFM box) decides whether the record is finished, so it is reported, not
+      // read as open and passed over (plan 0454's review: an examined record that cannot be judged
+      // must say so).
+      const unread = boxes.filter((b) => b.state === 'undeclared' || b.state === 'malformed')
+      if (unread.length > 0) {
+        violations.push(...unreadBoxFindings(doc, unread))
+        continue
+      }
 
       violations.push({
         rule: FINISHED_NOT_CLOSED_RULE,
