@@ -68,7 +68,10 @@ two of this repository's:
 
 Read over the whole document, each of these is a conflict. Within the header, each resolves to its
 real value. A "first occurrence wins" option was considered and rejected, because it would hide a
-real second header value.
+second value anywhere, even inside the header. The region hides only what lies outside the part the
+caller names, and only when the caller opts in. That narrows decision 2 ("a losing occurrence that
+disagrees is its own finding"): a disagreeing occurrence outside the region is neither read nor
+reported. The narrowing is recorded in proposal 017.
 
 **Every cause is reported, in either position.** `haveField` used as a selector must not drop a
 document without saying so (ADR-009). Four causes make a document's value unreadable, and the builder's
@@ -79,7 +82,9 @@ document without saying so (ADR-009). Four causes make a document's value unread
 - the unnamed form;
 - the disagreeing prose;
 - **outside the region**: with `region` set, no value in the header, but the label occurs elsewhere
-  in the document (read over the whole document).
+  in the document, in any structured form (`bold`, `heading`, `bold-line`) whether the rule names it
+  or not. So a `## Status: fixed` after a `## Notes` heading, under `forms: ['bold']`, is reported,
+  never skipped.
 
 A readable value outside `oneOf` is different. Used as a condition, `haveField` reports it. Used as a
 selector, it is the filter doing its job: the document is not selected, and nothing is reported. A
@@ -160,7 +165,7 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 2. **`haveField`.** The predicate and condition forms, `collectViolations` in both phases, and the
    messages above.
 3. **Dogfood, docs, release.** The `check:corpus` rule and its `check:nonvacuity` row, an example under
-   `examples/md/`, the eess-md README with the paired rule, a note that a record keeping an earlier status below its header resolves as a conflict until block 11, a glob that keeps a rule off frozen records, `docs/markdown.md`, a changeset.
+   `examples/md/`, the eess-md README with the paired rule, the header region and its known limit (plan 0468), a glob that keeps a rule off frozen records, `docs/markdown.md`, a changeset.
 
 ## Files changed
 
