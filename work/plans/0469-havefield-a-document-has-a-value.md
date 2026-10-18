@@ -11,7 +11,7 @@
 - **Effort:** Medium. One dual-use method on `docs()`, a resolver for each document, and its
   findings.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md), whose
+- **Builds after:** [plan 0468](./completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md), whose
   reader it resolves, and therefore after 0468's own preconditions.
 
 ## Problem

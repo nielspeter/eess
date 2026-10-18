@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-18 from proposal 017's block 1; revised the same day after one
+- **State:** Done — built 2026-10-18 in PR #241 from the reviewed Draft, without a separate
+  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458, 0456 and 0454.
+  "Build notes" says where the build departed from the text. Written 2026-10-18 from proposal 017's block 1; revised the same day after one
   review round (architect · product · enforcement · method).
 - **Implements:** proposal 017
 - **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
@@ -12,15 +14,15 @@
   name.
 - **Created:** 2026-10-18
 - **Builds after:**
-  - [bug 0403](../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
+  - [bug 0403](../../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
     the second Review set for block 1: the vacuity matrix covers eess-md before eess-md gains a
     constructor;
-  - [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
+  - [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
     gate, which decision 3 makes the condition for every accepted block.
 
   Where this sits among proposal 017's plans is the maintainer's to set.
 
-- **Followed by:** [plan 0469](./0469-havefield-a-document-has-a-value.md), `haveField`, which
+- **Followed by:** [plan 0469](../0469-havefield-a-document-has-a-value.md), `haveField`, which
   resolves this reader's occurrences.
 
 ## Problem
@@ -104,7 +106,7 @@ every occurrence in one document:
   - Any `## Label: value` heading counts, not only the labels the caller declares. Adopter 3 measured
     one record where this reads too far (`## ⚠️ RETRACTED: …`, frozen). This is a known limit: when
     the real header has no value and a body line below such a heading has one, that body value is
-    read as the header's, and nothing is reported. It is [bug 0471](../bugs/0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md). When the header does have a value, reading too
+    read as the header's, and nothing is reported. It is [bug 0471](../../bugs/0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md). When the header does have a value, reading too
     far gives a conflict, which is reported.
   - The unnamed-form scan reads the same region. With the header region, a per-phase `**Status:**`
     further down is neither read nor reported.
@@ -265,13 +267,59 @@ names the dependants that release requires (bug 0185).
 - **A census of allowed values that no document uses** (a carried item, report-only): left to the
   first adopter who asks.
 
+## Build notes — 2026-10-18
+
+Where the build departed from the text above, each overrulable:
+
+- **The dogfood rule reads whole documents, not the header region.** Measured on the build's base:
+  every live plan (28) and bug (192) writes `- **State:** …` under a `## Status` section, which ends
+  the header, so `region: 'header'` read none of them. Over whole documents each has exactly one
+  bold `State`, all in their lane's words; the rule was green on its first run (222 lines at the
+  build's head).
+- **The lane vocabularies moved to `scripts/lib/ledger-lanes.mjs`.** `check:ledger` and the new
+  `check:corpus` rule import one list (the plan cited `scripts/check-ledger.mjs:59-67`), so the two
+  gates cannot disagree. Moving it shortened `check-ledger.mjs`; bug 0283's pointer into it was
+  re-pointed.
+- **The unnamed-form finding is an ordinary finding,** with the rule's context (as `links()`'s
+  declaration findings are), not a configuration finding; the example asserts that.
+- **A plain label ends a multi-line value only when it is label-shaped** (the ledger's
+  `PLAIN_LABEL`: letters and spaces, then a colon), so prose holding a colon does not cut a value.
+- **`bold-line` does not read `**X:\*\* **v**`,** a bold label with a bold value; that is `bold`.
+- **`longestOf` matches a whole word:** `Drafted` is not `Draft`, so it is reported.
+- **`FieldOccurrence` is not exported:** nothing outside the model reads it yet (`no-unused-exports`);
+  plan 0469's resolver will.
+- **`fields()` is in the vacuity matrix** (over an empty corpus it gives a configuration finding),
+  and the three value helpers are listed as not constructors.
+- **Three sabotage rows beyond the plan's four:** whole-value matching (5), the scan's region (6), and
+  the dogfood rule checking nothing (7). Row 4 first stayed green: the only blank-line test had a
+  label after the blank, which ends the value anyway; a test with prose after the blank was added.
+- **The example is `examples/md/a-record-states-its-status.test.ts`,** with two judgements (an unknown
+  value, a form the rule does not read), not a folder `examples/md/fields/`.
+
 ## Progress ledger
 
 - [x] Preconditions: bug 0403 fixed (PR #237), plan 0458 built (the examples gate)
-- [ ] Phase 1: reader
-- [ ] Phase 2: `resolveAgainst` and the unnamed-form scan
-- [ ] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
-- [ ] Sabotage rows 1–4 red on their named tests; suites green; durations reported
-- [ ] Close: this plan → `completed/`; boards
+- [x] Phase 1: reader
+- [x] Phase 2: `resolveAgainst` and the unnamed-form scan
+- [x] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
+      (`corpus/state-in-vocabulary`: a probe bug with State `Drfat` reds `check:corpus` at its line;
+      the load-bearing check proves 5 of 5 judgements across 3 examples)
+- [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–7 in the
+      table below, run at 9151c729 in the build worktree: each named check green on the untouched
+      tree and red with its row applied, files restored by `git checkout`, tree clean, 20 s)
+- [ ] `npm run validate` green; duration reported
+- [x] Close: this plan → `completed/`; boards
 
 Deferred: none
+
+**Sabotage matrix, measured 2026-10-18 at 9151c729:**
+
+| row | sabotage                                 | checked by                                                             | named test                                                            | baseline | sabotaged | time  |
+| --- | ---------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------- | -------- | --------- | ----- |
+| 1   | the heading fragment dropped             | `packages/md/tests/builders/fields.test.ts`                            | heading at depths 2 and 4                                             | green    | red       | 1.6s  |
+| 2   | the unnamed-form scan disabled           | `packages/md/tests/builders/fields.test.ts`                            | forms: [bold] over a selected heading document reports the heading    | green    | red       | 1.4s  |
+| 3   | the scan ignores the selection           | `packages/md/tests/builders/fields.test.ts`                            | the same document outside the selection gives no finding              | green    | red       | 1.4s  |
+| 4   | a continuation runs past a blank line    | `packages/md/tests/builders/fields.test.ts`                            | a blank line ends a value even when prose follows it                  | green    | red       | 1.5s  |
+| 5   | whole-value matching dropped             | `packages/md/tests/builders/fields.test.ts`                            | a pattern must match the whole value: /fixed/ rejects unfixed         | green    | red       | 2.3s  |
+| 6   | the scan reads past the header region    | `packages/md/tests/builders/fields.test.ts`                            | a per-phase bold Status after the header is neither read nor reported | green    | red       | 1.5s  |
+| 7   | check:corpus's State rule checks nothing | `QA_ONLY=corpus/state-in-vocabulary node scripts/check-nonvacuity.mjs` | corpus/state-in-vocabulary                                            | green    | red       | 11.7s |
