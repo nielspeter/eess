@@ -136,12 +136,39 @@ try {
     process.exit(0)
   }
 
+  // Plan 0454, both directions. One lane cannot both declare `[→]` and leave it undeclared, so the
+  // same record sits in two folders read as two lanes: declared done, a record whose boxes are all
+  // `[→]` is finished; undeclared, `[→]` is not read as done, so it is not (the conservative reading).
+  const lane = (dir, marks) => ({
+    roots: [`${ROOT}/${dir}/**`],
+    terminalStates: ['Fixed', 'Rejected'],
+    states: ['Draft'],
+    ...(marks ? { marks } : {}),
+  })
+  const declared = findFinishedNotClosed([lane('marks-declared', { '→': 'done' })]).violations
+  const undeclared = findFinishedNotClosed([lane('marks-undeclared')]).violations
+  if (!declared.some((v) => v.element.includes('marks-declared/0006-all-moved-on'))) {
+    console.error(
+      `bad-finished-not-closed: a record whose boxes are all a declared done mark was not ` +
+        `flagged — the lane's marks do not reach the rule`,
+    )
+    process.exit(0)
+  }
+  if (undeclared.length > 0) {
+    console.error(
+      `bad-finished-not-closed: an undeclared mark was read as done (${undeclared[0].element}) — ` +
+        `an unknown box must not make a record look finished`,
+    )
+    process.exit(0)
+  }
+
   // The rule id is in the message on purpose: the harness's `gateNode` keys on
   // it, so a fixture that exits 1 for an unrelated reason cannot be read as proof
   // that THIS rule fired (bug 0110).
   console.error(
     `bad-finished-not-closed: OK — ${FINISHED_NOT_CLOSED_RULE} fired on the ` +
-      `finished-but-open record, silent on work-in-progress and on a properly closed one`,
+      `finished-but-open record, silent on work-in-progress and on a properly closed one; ` +
+      `a declared done mark counts as done, an undeclared one does not`,
   )
   process.exit(1)
 } catch (err) {

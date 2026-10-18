@@ -2002,6 +2002,38 @@ function gateLedgerDeadCheck() {
 }
 
 /**
+ * Plan 0454: this repository declares `[~]` open on its bugs lane. A closed bug holding one
+ * undisposed `[~]` must red `check:ledger` as a silent open box. That pins the declared STATE, not
+ * only its presence: declared `'done'`, the probe would be a closed box and this row would go green.
+ * Removing the declaration is the other direction, run as a sabotage row (it edits a tracked script).
+ */
+function gateLedgerTildeIsOpen() {
+  const probe = join(repoRoot, 'work', 'bugs', 'fixed', '__nonvacuity_probe_tilde.md')
+  const text = [
+    '# Bug 9999: a probe',
+    '',
+    '## Status',
+    '',
+    '- **State:** Fixed',
+    '',
+    '## Verification',
+    '',
+    '- [~] half done, and nobody said what happened to the rest',
+    '',
+    'Deferred: none',
+    '',
+  ].join('\n')
+  const r = withProbe(probe, text, () => sh(process.execPath, [join('scripts', 'check-ledger.mjs')]))
+  const named = r.stderr
+    .split('\n')
+    .some((l) => l.includes('__nonvacuity_probe_tilde.md:9') && l.includes('ledger/silent-open-box'))
+  return {
+    ok: r.code === 1 && named,
+    detail: `a closed bug with an undisposed [~] → exit ${r.code}, silent-open-box at its line: ${named}`,
+  }
+}
+
+/**
  * The same, on `check:release`, and its two wrinkles are why this is not a
  * copy-paste of the row above.
  *
@@ -3349,6 +3381,16 @@ const gates = [
   // only "protection" was this repo's own live corpus incidentally carrying a
   // deferred box, which would silently vanish the day that box got resolved.
   ['corpus/ledger/deferred-lie', () => gateNode('bad-ledger.mjs', 'ledger/deferred-none-lie')],
+  // Plan 0454: a box mark no one declared, and a near-GFM box, each at its own line.
+  [
+    'corpus/ledger/undeclared-mark',
+    () => gateNode('bad-ledger.mjs', 'md/undeclared-box-mark · 0007-undeclared-mark.md:10'),
+  ],
+  ['corpus/ledger/tilde-is-open', gateLedgerTildeIsOpen],
+  [
+    'corpus/ledger/malformed-box',
+    () => gateNode('bad-ledger.mjs', 'md/malformed-box · 0008-malformed-box.md:10'),
+  ],
   // Bug 0286: three rows, one per route — a fix for one does not touch the others. Route A is an
   // existing finding that fails to appear, so its token is one only this fixture's document can print.
   [
@@ -4447,6 +4489,9 @@ const GATE_FOR = {
     'corpus/ledger/placement',
     'corpus/ledger/state',
     'corpus/ledger/deferred-lie',
+    'corpus/ledger/undeclared-mark',
+    'corpus/ledger/malformed-box',
+    'corpus/ledger/tilde-is-open',
     'corpus/ledger/dead-selector',
     'corpus/ledger/half-vocabulary',
     'corpus/ledger/uncovered-lane',

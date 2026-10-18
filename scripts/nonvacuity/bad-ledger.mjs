@@ -39,11 +39,17 @@ const ROOT = 'scripts/nonvacuity/bad-ledger'
 // summary that lies about it) and `completed/0006-deferred-honest.md` (the same
 // box, a summary that tells the truth) give this rule a permanent, evergreen
 // ground truth independent of anything else in the corpus.
+//
+// `md/undeclared-box-mark` and `md/malformed-box` joined with plan 0454: `completed/0007` carries a
+// `[?]` no one declared, and `completed/0008` a `[ x ]` GFM does not read. Before that plan both
+// were plain list items and the record passed.
 const RULES = [
   'ledger/silent-open-box',
   'ledger/state-folder-mismatch',
   'ledger/unknown-state',
   'ledger/deferred-none-lie',
+  'md/undeclared-box-mark',
+  'md/malformed-box',
 ]
 
 let c
@@ -58,9 +64,9 @@ try {
 // "no violation" would be trivially true and this gate would sit green forever
 // on a drifted root (bug 0110's class).
 const docs = c.documents().length
-if (docs !== 6) {
+if (docs !== 8) {
   console.error(
-    `bad-ledger: the corpus loaded ${docs} document(s), expected 6 — this fixture proves ` +
+    `bad-ledger: the corpus loaded ${docs} document(s), expected 8 — this fixture proves ` +
       `nothing against an empty corpus; check ${ROOT}`,
   )
   process.exit(2)
@@ -88,7 +94,7 @@ if (fromReconciled.length > 0) {
   process.exit(2)
 }
 
-const fired = new Set(violations.map((v) => v.rule))
+const fired = new Set(violations.map((v) => v.ruleId ?? v.rule))
 const missing = RULES.filter((r) => !fired.has(r))
 if (missing.length > 0) {
   console.error(
@@ -102,5 +108,8 @@ console.error(
   `bad-ledger: all ${RULES.length} rules fired as expected across ${docs} documents — ` +
     RULES.join(', '),
 )
-for (const v of violations) console.error(`  x ${v.rule} · ${v.message.split('\n')[0]}`)
+for (const v of violations) {
+  const where = `${v.file.split('/').pop() ?? ''}:${String(v.line)}`
+  console.error(`  x ${v.ruleId ?? v.rule} · ${where} · ${v.message.split('\n')[0]}`)
+}
 process.exit(1)
