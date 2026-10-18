@@ -794,9 +794,13 @@ rule's other predicates keep: `Status is given twice (line 3 'open', line 9 'fix
 but the field at line 3 says 'fixed'`. As a condition it also reports `no Status field (read as
 bold, heading); its labels: Severity, State` and a value outside `oneOf`. As a selector, a readable
 value outside `oneOf` is the filter doing its job and is not reported: a misspelt `Fxed` is a
-different value, so pair the rule with `fields(...).resolveAgainst(...)`. A selection taken with
+different value, so pair the rule with `fields(...).resolveAgainst(...)`. So is a document with no
+field at all, or a misspelt label (`**Satus:**`): pair the selector with a
+`.should().haveField({ label, forms })` rule over the same documents, which reports it. A value
+after a code fence that never closes is reported (`Status at line 9 follows a code fence that never
+closes; close the fence`), and a plain line the rule does not read is named in the no-field finding. A selection taken with
 `.select()` carries none of these findings. This repository's `check:corpus` requires one State
-in every live plan and bug this way.
+in every live plan and bug this way, as a condition.
 
 ## ADR enforcement tables
 

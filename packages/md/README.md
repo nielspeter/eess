@@ -262,9 +262,11 @@ cover the region, multi-line values and the findings.
 is allowed); `.should().haveField(...)` asserts every selected document has it. One value per
 document: a structured form beats plain prose, and two structured values are a conflict. A document
 whose value cannot be read (a conflict, a form the rule does not read, a value outside the header,
-an empty value) is reported in either position, never left out silently. A misspelt value is a
-different value, so a selector alone cannot tell it: pair it with `fields(...).resolveAgainst(...)`.
-A selection taken with `.select()` carries none of these findings.
+an empty value, a value after a code fence that never closes) is reported in either position. As a
+selector, a document with no field at all, or a misspelt label (`**Satus:**`), is left out like any
+document the filter does not keep: pair the selector with a `.should().haveField({ label, forms })`
+rule over the same documents, which reports it, and with `fields(...).resolveAgainst(...)` for a
+misspelt value. A selection taken with `.select()` carries none of these findings.
 
 ## Custom conventions (localization, project-specific lifecycle)
 

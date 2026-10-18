@@ -3,7 +3,7 @@ import { matchingElements } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import {
   causeViolation,
-  fieldVerdict,
+  verdictOf,
   haveFieldCondition,
   haveFieldPredicate,
   type HaveFieldOptions,
@@ -59,7 +59,7 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
     const context = this.buildConditionContext()
     const found = this._fields.flatMap(({ spec }) =>
       kept.flatMap((d) =>
-        fieldVerdict(d, spec)
+        verdictOf(d, spec)
           .causes.filter((c) => c.kind === 'unreadable')
           .map((c) => causeViolation(d, c, context)),
       ),

@@ -316,6 +316,7 @@ const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name ===
         description: `are in a live ${lane.name} record`,
         test: (t) =>
           !t.doc.frozen &&
+          !lane.doneFolders.some((f) => t.doc.relPath.includes(f)) &&
           t.doc.relPath.startsWith(prefix) &&
           !lane.boardFiles.some((b) => t.doc.relPath.endsWith(`/${b}`)),
       })
@@ -341,6 +342,7 @@ const statePresentRule = docs(c)
       LANES.some(
         (lane) =>
           (lane.name === 'plans' || lane.name === 'bugs') &&
+          !lane.doneFolders.some((f) => d.relPath.includes(f)) &&
           d.relPath.startsWith(lane.roots[0].replace(/\*\*$/, '')) &&
           !lane.boardFiles.some((b) => d.relPath.endsWith(`/${b}`)),
       ),

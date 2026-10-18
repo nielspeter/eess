@@ -99,6 +99,9 @@ describe('the header region (plan 0469)', () => {
 
   it('without the region the register is a conflict', () => {
     expect(selected(one(register), spec())).toEqual([])
+    expect(asCondition(one(register), spec())).toEqual([
+      "bugs/b.md:3,7,8: Status is given 3 times (line 3 'open', line 7 'open.', line 8 'fixed.'); keep one",
+    ])
   })
 
   it('a value only below the header is reported as outside the region, in either position', () => {
@@ -179,5 +182,73 @@ describe('the predicate (plan 0469)', () => {
       .haveSection('X')
       .violations()
     expect(found.map((v) => v.message)).toEqual([expect.stringContaining('examined zero units')])
+  })
+})
+
+describe('the review round (plan 0469)', () => {
+  it('a value after a code fence that never closes is reported, in either position, not taken as absent', () => {
+    const c = one(['# B', '', '```', '**Status:** fixed'])
+    const message =
+      'bugs/b.md:4: Status at line 4 follows a code fence that never closes; close the fence'
+    expect(asCondition(c, spec())).toEqual([message])
+    expect(said(docs(c).that().haveField(spec()).should().haveSection('X').violations())).toEqual([
+      message,
+    ])
+  })
+
+  it('the same spec in both positions gives one finding for a selected document with disagreeing prose', () => {
+    const c = one(['# B', '', 'Status: open', '', '**Status:** fixed'])
+    const s = spec({ forms: ['bold', 'plain'] })
+    expect(said(docs(c).that().haveField(s).should().haveField(s).violations())).toEqual([
+      "bugs/b.md:3: prose says Status 'open', but the field at line 5 says 'fixed'",
+    ])
+  })
+
+  it('a selector reports disagreeing prose and an unread label beside a resolved value', () => {
+    const c = one(['# B', '', 'Status: open', '', '**Status:** fixed', '', '**Status: shut**'])
+    const found = docs(c)
+      .that()
+      .haveField(spec({ forms: ['bold', 'plain'] }))
+      .should()
+      .haveSection('X')
+      .violations()
+    // The document is selected (its value resolved), so the condition runs on it too.
+    expect(said(found)).toEqual([
+      'bugs/b.md: missing section "X"',
+      "bugs/b.md:3: prose says Status 'open', but the field at line 5 says 'fixed'",
+      "bugs/b.md:7: found `**Status: shut**` at line 7, in a form this rule does not read (bold-line); add 'bold-line' to forms, or rewrite the line",
+    ])
+  })
+
+  it('two rules forked from one base do not share their haveField specs', () => {
+    const c = one(['# B', '', '**Status:** fixed', '**State:** a', '**State:** b'])
+    const base = docs(c).that()
+    const byStatus = base.haveField(spec()).should().haveSection('X').violations()
+    base.haveField(spec({ label: 'State', forms: ['bold'] }))
+    // Only its own condition's finding: the sibling's State conflict does not leak in.
+    expect(said(byStatus)).toEqual(['bugs/b.md: missing section "X"'])
+    const byState = base
+      .haveField(spec({ label: 'State', forms: ['bold'] }))
+      .should()
+      .haveSection('X')
+      .violations()
+    expect(said(byState)).toEqual([
+      "bugs/b.md:4,5: State is given twice (line 4 'a', line 5 'b'); keep one",
+    ])
+  })
+
+  it('with split and oneOf, a field is allowed only when every value is', () => {
+    const c = one(['# B', '', '**Status:** fixed, open'])
+    const s = spec({ split: (v) => v.split(',').map((x) => x.trim()), oneOf: /fixed/ })
+    expect(selected(c, s)).toEqual([])
+    expect(asCondition(c, s)).toEqual([
+      "bugs/b.md:3: 'open' (Status, line 3) does not match /fixed/",
+    ])
+  })
+
+  it('a plain line the rule does not read is named in the no-field finding', () => {
+    expect(asCondition(one(['# B', '', 'Status: fixed']), spec({ forms: ['bold'] }))).toEqual([
+      "bugs/b.md: no Status field (read as bold); line 3 has `Status: fixed`, a plain line this rule does not read: add 'plain' to forms, or write it as `**Status:** v`",
+    ])
   })
 })
