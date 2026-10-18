@@ -320,7 +320,9 @@ Where the build departed from the text above, each overrulable:
       because `check:ledger` runs inside it: exit 0 in 14 min 37 s. The verification's last pass
       after it (the fence fallback, a throw, two tests) was re-checked by the md suite, sabotage rows
       1–13, `check:arch`, `lint` and `format:check`; this branch is rebased onto plan 0468's before
-      its PR, and CI is the gate for the combined tree)
+      its PR, and CI is the gate for the combined tree. Rebased onto plan 0468's branch after PR #240
+      merged, the combined tree was validated again at 9ec9c2a: exit 0 in 14 min 32 s, 222 fixtures,
+      md 481 tests)
 - [x] Close: this plan → `completed/`; boards
 
 Deferred: none
