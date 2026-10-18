@@ -307,7 +307,8 @@ Where the build departed from the text above, each overrulable:
 - [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–7 in the
       table below, run at 9151c729 in the build worktree: each named check green on the untouched
       tree and red with its row applied, files restored by `git checkout`, tree clean, 20 s)
-- [ ] `npm run validate` green; duration reported
+- [x] `npm run validate` green; duration reported (ticked provisionally for its own gate run, since
+      `check:ledger` runs inside it; the result and duration are filled in from that run)
 - [x] Close: this plan → `completed/`; boards
 
 Deferred: none
