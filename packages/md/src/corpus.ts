@@ -1,4 +1,5 @@
 import { walkFiles } from '@nielspeter/eess/internal'
+import { ArchConfigError } from '@nielspeter/eess'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import picomatch from 'picomatch'
@@ -73,6 +74,27 @@ export function corpus(options: CorpusOptions): Corpus {
 
   const fileIndex = new Set(allFiles)
 
+  // Bug 0465: a root that matched no file contributed nothing and was
+  // reported nowhere, so in a corpus of several roots one typo silently halved
+  // what every rule judged. Refused here, once, naming each dead root and why:
+  // one authored mistake, one finding, through every door that loads a corpus
+  // (ADR-009, refuse and say so).
+  const dead = options.roots.flatMap((glob) => {
+    const why = deadRootReason(glob, allFiles, matchesIgnore)
+    return why === undefined ? [] : [`'${glob}' ${why}`]
+  })
+  // Only when another root does load. A corpus whose every root is dead loads
+  // nothing at all: an empty source, which gates build on purpose to test its own
+  // report. Today most builders report it only as zero examined units; plan 0456
+  // makes it a named empty-source finding (bug 0465's Resolution).
+  if (dead.length > 0 && dead.length < options.roots.length) {
+    throw new ArchConfigError(
+      'corpus',
+      `corpus root${dead.length > 1 ? 's' : ''} ${dead.join('; ')} — so every rule over this corpus ` +
+        `would judge less than you named. Correct the glob, or remove the root.`,
+    )
+  }
+
   const documents: MdDocument[] = allFiles
     .filter((rel) => rel.endsWith('.md') && matchesRoot(rel) && !matchesIgnore(rel))
     .map((rel) => {
@@ -96,4 +118,22 @@ export function corpus(options: CorpusOptions): Corpus {
   // Kept so `resolveLink` can say why an existing file was not loaded (plan 0404).
   registerCorpusMatchers(loaded, { inRoots: matchesRoot, ignored: matchesIgnore })
   return loaded
+}
+
+/**
+ * Why a root is dead, or `undefined`: it matches no file, or only ignored files.
+ */
+function deadRootReason(
+  glob: string,
+  allFiles: readonly string[],
+  ignored: (rel: string) => boolean,
+): string | undefined {
+  const matches = picomatch(glob)
+  const hits = allFiles.filter((rel) => matches(rel))
+  if (hits.length === 0) return 'matches no file'
+  if (hits.every((rel) => ignored(rel))) return 'matches only ignored files'
+  // A root matching files but no Markdown is not refused: callers list code
+  // globs (`src/**/*.ts`) as roots beside their documents, harmlessly. It still
+  // contributes nothing, which bug 0465's Resolution records as a residual.
+  return undefined
 }

@@ -245,10 +245,16 @@ abstract class RuleDeclaration {
   /**
    * Assert that the predicate chain matches at least one subject. If the
    * filtered subject set is empty, the rule FAILS with a config-level
-   * meta-finding instead of passing vacuously — the "0 === 0" false-green
-   * ADR-008 forbids. Opt-in: legitimately-empty selections (e.g. "no
-   * repositories yet") stay green without it. Built on the materialized
-   * subject set (plan 0064); the finding bypasses diff/baseline (plan 0067).
+   * meta-finding naming this declaration. Since plan 0074 an empty selection
+   * is already a finding on a positive rule, so the declaration matters on a
+   * cardinality rule, whose empty selection otherwise passes. Read on the
+   * empty-selection path since bug 0467; before that, the flag was set and
+   * never read. The finding bypasses diff/baseline (plan 0067).
+   *
+   * **On a `.notExist()` rule this can never pass** (bug 0466): a selected
+   * subject fails `.notExist()`, and an empty selection fails this
+   * declaration. To catch a glob typo that empties a `.notExist()` rule's
+   * population, add a positive rule beside it over that population.
    */
   expectNonEmpty(): this {
     if (this._expectEmpty) throw new TypeError(CONTRADICTION)
@@ -879,6 +885,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
       getProject: () => this.getProject(),
       globs: () => this.globs(),
       assertsCardinality: () => this.assertsCardinality(),
+      requiresNonEmpty: () => this._requireNonEmpty,
       declaresEmpty: () => this.declaresEmpty(),
       zeroSubjectsAdvice: () => this.zeroSubjectsAdvice(),
       zeroSubjectsViolation: (project) => this.zeroSubjectsViolation(project),

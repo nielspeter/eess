@@ -130,6 +130,11 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'behavioural: dead-selector-fails.test.ts and the-floor.test.ts — it delegates its text to zeroSubjectsViolation (one text for one state) while keeping its own attribution, and the shared remedy is proven to remediate there',
   },
+  'src/core/vacuity-diagnosis.ts::neverPassesViolation': {
+    remedy: 'own',
+    verified:
+      'behavioural: expect-non-empty-is-read.test.ts — the finding fires on a .notExist() rule that declared .expectNonEmpty(), on both an empty and a non-empty selection, below the instrument and selector findings; its remedy (remove the declaration) turns the empty-selection rule green, as the row without the declaration shows',
+  },
   'src/core/vacuity-diagnosis.ts::zeroSubjectsViolationOf': {
     remedy: 'own',
     verified:

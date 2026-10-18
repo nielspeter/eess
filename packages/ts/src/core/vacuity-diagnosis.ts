@@ -63,6 +63,8 @@ export interface RuleFacts {
   getProject(): ArchProject | undefined
   globs(): readonly GlobNode[]
   assertsCardinality(): boolean
+  /** The author declared `.expectNonEmpty()` (bug 0467: it used to be set and never read). */
+  requiresNonEmpty(): boolean
   declaresEmpty(): boolean
   zeroSubjectsAdvice(): string
   zeroSubjectsViolation(project: ArchProject | undefined): ArchViolation
@@ -360,6 +362,9 @@ export function evidenceFloor(
         ? undefined
         : diskSet(project).exhaustion
     if (exhausted !== undefined) return [walkExhaustedViolation(facts, exhausted)]
+    // Last, below every finding about the instrument and the selector (ADR-010 §3):
+    // a declaration that can never be met on this rule shape (bugs 0467, 0466).
+    if (facts.requiresNonEmpty()) return [neverPassesViolation(facts)]
     return violations
   }
   // The author said empty is the point. `declaresEmpty()` — not
@@ -543,6 +548,30 @@ export function expiredDeclarationViolation(facts: RuleFacts, examined: number):
     line: 0,
     message,
     suggestion,
+    bypassFilters: true,
+  }
+}
+
+/**
+ * `.expectNonEmpty()` on a `.notExist()`-shaped rule: it can never pass (bugs 0467,
+ * 0466). A selected subject fails the condition, and an empty selection fails the
+ * declaration. Reported on both paths, with one remedy, because "fix the
+ * selection" — the remedy for an unmet declaration elsewhere — cannot help here.
+ * In eess-ts every cardinality-marked condition is a `.notExist()`.
+ */
+export function neverPassesViolation(facts: RuleFacts): ArchViolation {
+  const described = facts.describeRule()
+  const name = described.id || described.rule || facts.ruleClass.name
+  return {
+    rule: name,
+    ruleId: described.id,
+    element: described.id ?? name,
+    file: '',
+    line: 0,
+    message:
+      'this rule declares .expectNonEmpty() and asserts .notExist(), so it can never pass: a selected subject fails .notExist(), and an empty selection fails the declaration.',
+    suggestion:
+      'Remove .expectNonEmpty(). To catch a glob typo that empties this rule, add a positive rule over the same population beside it — a positive rule over zero subjects is already a finding.',
     bypassFilters: true,
   }
 }

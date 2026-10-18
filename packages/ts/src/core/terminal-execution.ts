@@ -7,6 +7,7 @@ import {
   deadSelectorFindings,
   evidenceFloor,
   expiredDeclarationViolation,
+  neverPassesViolation,
 } from './vacuity-diagnosis.js'
 
 /** A rule, reduced to what running it needs. */
@@ -100,7 +101,11 @@ export function collectWithAssertionGuard(run: RuleRun): CollectResult {
     // before this was hoisted.
     const declaredEmpty =
       run.expectsEmpty ||
-      (examined === 0 && (collected.declaredEmpty === true || run.assertsCardinality()))
+      (examined === 0 &&
+        (collected.declaredEmpty === true ||
+          // Not when the author declared the opposite (bug 0467): that receipt
+          // carries the never-passes finding, not a declaration of emptiness.
+          (run.assertsCardinality() && !run.facts.requiresNonEmpty())))
         ? true
         : undefined
 
@@ -120,6 +125,10 @@ export function collectWithAssertionGuard(run: RuleRun): CollectResult {
         examined,
       })
     }
+    // The same declaration over a non-empty selection: the condition's own
+    // findings stand, and the one that names the real cause comes first.
+    if (examined > 0 && run.assertsCardinality() && run.facts.requiresNonEmpty())
+      violations.unshift(neverPassesViolation(run.facts))
     return collectResult(violations, {
       examined,
       sourceEmpty: collected.sourceEmpty,

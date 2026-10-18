@@ -73,16 +73,21 @@ export abstract class TerminalBuilder {
 
   /**
    * Declare that this rule's examined set must be non-empty — the opposite
-   * assertion, for a corpus the author has positive knowledge should never
-   * legitimately be empty. Unlike a bare, undeclared rule, this **overrides
-   * `assertsCardinality()`'s exemption**: a `.notExist()`-shaped condition
-   * that finds zero subjects normally passes silently (emptiness satisfies
-   * what it asserts) — but if the author declared `.expectNonEmpty()`, that
-   * silence is exactly what they said should never happen, so it reddens
-   * instead, naming the declaration as the reason. This is the real
-   * difference from not declaring anything: without it, a `.notExist()` rule
-   * over an accidentally-emptied corpus (a glob typo, a temporarily-missing
-   * folder) passes and says nothing; with it, that same emptiness is caught.
+   * assertion, for a selection the author has positive knowledge should never
+   * legitimately be empty. Over zero examined units it reddens, naming the
+   * declaration, and it **overrides `assertsCardinality()`'s exemption**.
+   *
+   * **On a `.notExist()` rule this can never pass** (bug 0466). The examined
+   * set is the selection after `.that()`: a selected element fails
+   * `.notExist()`, and an empty selection fails this declaration. It is not a
+   * typo guard for a ratchet. To catch a glob typo that empties a
+   * `.notExist()` rule's population, add a positive rule beside it over that
+   * population: a positive rule over zero examined units is already a finding
+   * (ADR-010).
+   *
+   * It is a meaningful claim on other cardinality-marked checks, such as
+   * `correspondence()`'s, where "the join examined nothing" is the failure the
+   * author wants named.
    */
   expectNonEmpty(): this {
     const next = this.copy()

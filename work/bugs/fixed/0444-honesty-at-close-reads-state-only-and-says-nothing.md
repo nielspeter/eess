@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16; reproduced here on main's build. No red test yet.
+- **State:** Fixed — 2026-10-18, in PR #236 (with bugs 0467, 0466 and 0465).
 - **Severity:** High — a false green on the gate's own claim. Two of three adopter corpora that use
   this preset write `Status:` in most lanes, so its state-to-folder half never runs for them, and the
   preset reports nothing about it.
@@ -49,10 +49,46 @@ option), never to every folder under a root. An adopter runs its ledger over fol
 state (UI extractions, mail drafts, index files), and those must stay quiet (proposal 017, "Consumer
 follow-up — 2026-10-18").
 
+## Resolution
+
+`honestyAtClose` and `ledgerStats` take `label` (default `State`) and `aliases`, threaded through every
+reader in the preset. A blank label is refused. Two findings close the silent pass:
+
+- **`ledger/state-under-another-label`**, per record. The record has no state line under the labels
+  in force, but a label in its header, wrapped or plain, holds a value from the state vocabulary
+  (`**Status:** Done`, `Status: Done`). With default options this names 0002 and 0005 in the table above, where
+  before nothing was said. It keys on the caller's own vocabulary, so a stateless document's labels
+  (`**Status:** draft-mail`) stay quiet.
+- **`ledger/no-readable-state`**, once per call, when no examined document carries a state line in
+  any form. It sits in the header rule itself, so an empty lane still gets one zero-examined finding,
+  not two. Its remedy is built from the options in force:
+  - narrow the corpus to the record folders;
+  - otherwise, pass the label the records use;
+  - a `## Status:` heading is not a label this preset reads (plan 0468 owns that form).
+
+The Fix asked that the finding apply "only to the lanes the caller declares". The preset has no lane
+list, so each call is a lane. A caller whose single call covers record and non-record folders gets
+no lane finding. A call over non-record folders only is reported, and the remedy is to narrow it.
+
+Four existing tests asserted that a stateless single document passes. They now assert its one
+finding. This is the flagged break. The `check:nonvacuity` rows
+`corpus/ledger/{state-under-another-label,no-readable-state}` guard both findings at the gate tier.
+
+Residuals, each recorded:
+
+- **A record that writes its state as a heading** (`## Status: Done`) gets no finding when other
+  records in the call are readable: [bug 0476](../0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md).
+- **A non-record document** with no state line, whose header holds a state word under a label
+  (`**Questions:** Open`), is reported. It is loud, not silent, and its remedy names `boardFiles`.
+  A test row pins it.
+- **Both labels in one header**, when the caller names both, resolve to whichever comes first,
+  silently. Plan 0469's conflict finding is the home for that shape.
+
 ## Verification
 
-- [ ] Red first: the five-record corpus above, through the public preset
-- [ ] Green, with a non-vacuity row for each of 0002 and 0005, and one for a lane with no readable state
-- [ ] A folder under the root that is not a declared lane gives no finding
+- [x] Red first: the five-record table above, through the public preset (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`). With default options 0002 and 0005 got no finding on main.
+- [x] Green: every record is pinned by `[rule, record]`, with default options, with `aliases: ['Status']`, and with `label` together with `aliases`. Each finding has a `check:nonvacuity` row.
+- [x] done-otherwise: each call is a lane, since the preset has no lane list (Resolution). A stateless folder beside records gives no finding, and a stateless-only call gives one, with "narrow the corpus" as its remedy.
+- [ ] deferred→bug 0476 — a heading-form state beside readable records is still silent
 
-Deferred: none
+Deferred: bug 0476

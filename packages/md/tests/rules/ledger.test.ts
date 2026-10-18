@@ -178,7 +178,9 @@ describe('honestyAtClose — the State line sits under ## Status, as every recor
     // The region is the preamble plus the FIRST section. A `State:` mentioned in
     // prose further down is not this document's state.
     const f = findingsOf(() => honestyAtClose(corpusFor('green-state-mentioned-later.md')))
-    expect(f).toEqual([])
+    // Nothing reads it as the document's state. Since bug 0444 a lane where no
+    // record's state is read is itself reported, so that is the one finding.
+    expect(f.map((v) => v.rule)).toEqual(['ledger/no-readable-state'])
   })
 })
 
@@ -210,13 +212,16 @@ describe('honestyAtClose — the State value is read, not grabbed', () => {
   })
 
   it.each([
-    ['Stateless rendering is the default here.'],
-    ['- State machine transitions are documented in adr/012'],
-    ['- **Statement:** Done'],
-  ])('does not read %s as a state declaration at all', (line) => {
+    ['Stateless rendering is the default here.', 'ledger/no-readable-state'],
+    ['- State machine transitions are documented in adr/012', 'ledger/no-readable-state'],
+    // Not read as `State:`. Since bug 0444 a wrapped label holding a vocabulary
+    // token, on a record with no state line, is reported as possibly its state.
+    ['- **Statement:** Done', 'ledger/state-under-another-label'],
+  ])('does not read %s as a state declaration at all', (line, only) => {
     // The colon is required. Without it, any line starting with the word "State"
-    // became a declaration and reported its second word as the state.
-    expect(readsAs(line)).toHaveLength(0)
+    // became a declaration and reported its second word as the state. Since bug
+    // 0444 a record whose state is not read is itself reported: that is the one finding.
+    expect(readsAs(line).map((v) => v.rule)).toEqual([only])
   })
 
   it('supports a multi-word vocabulary, which (\\S+) could not express', () => {
