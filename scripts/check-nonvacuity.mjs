@@ -86,7 +86,7 @@
  *                 parser over bad-code-block-parse/; each row asserts its own finding's
  *                 message — the instrument rows share one rule id.
  *   mermaid-parses/{manifesto-break,stale-exclusion,no-block,dot-directory,unsafe-path,
- *                 untracked}
+ *                 untracked,deleted-file}
  *                 (plan 0427, production script) scripts/check-mermaid-parses.mjs, the repo's own
  *                 gate. manifesto-break adds a dangling `Route -->` to docs/manifesto.md's graph
  *                 block and asserts the finding sits on that line; the other five run the gate
@@ -2438,7 +2438,7 @@ function gateMermaidParsesManifestoBreak() {
 }
 
 /** Run the gate from a scratch git repository holding `files` (path → Markdown). */
-function runMermaidParsesIn(files, args = [], untracked = {}) {
+function runMermaidParsesIn(files, args = [], untracked = {}, deleted = []) {
   const dir = mkdtempSync(join(tmpdir(), 'eess-nonvacuity-mermaid-parses-'))
   try {
     for (const [rel, text] of Object.entries(files)) {
@@ -2448,6 +2448,7 @@ function runMermaidParsesIn(files, args = [], untracked = {}) {
     spawnSync('git', ['init', '-q'], { cwd: dir })
     spawnSync('git', ['add', '-A'], { cwd: dir })
     for (const [rel, text] of Object.entries(untracked)) writeFileSync(join(dir, rel), text)
+    for (const rel of deleted) rmSync(join(dir, rel))
     const r = spawnSync(process.execPath, [MERMAID_PARSES, ...args], { cwd: dir, encoding: 'utf8' })
     return {
       code: r.status ?? 2,
@@ -2525,6 +2526,21 @@ function gateMermaidParsesUntracked() {
   return {
     ok: r.code === 1 && named,
     detail: `a broken block in a file not yet added → exit ${r.code}, named on its line: ${named}`,
+  }
+}
+
+// A tracked file deleted but not staged is skipped, not misread (bug 0442): `--cached` still lists
+// it, and the gate used to report it as a file eess-md failed to load. A broken block beside it must
+// still be named, so a gate that skipped everything would not pass this row.
+function gateMermaidParsesDeletedFile() {
+  const r = runMermaidParsesIn({ 'a.md': BROKEN_MERMAID, 'gone.md': VALID_MERMAID }, [], {}, [
+    'gone.md',
+  ])
+  const named = r.out.includes('a.md:5')
+  const misread = r.out.includes('gone.md')
+  return {
+    ok: r.code === 1 && named && !misread,
+    detail: `a broken block beside a deleted, unstaged file → exit ${r.code}, named on its line: ${named}, deleted file mentioned: ${misread}`,
   }
 }
 
@@ -3244,6 +3260,7 @@ const gates = [
   ['mermaid-parses/dot-directory', gateMermaidParsesDotDirectory],
   ['mermaid-parses/unsafe-path', gateMermaidParsesUnsafePath],
   ['mermaid-parses/untracked', gateMermaidParsesUntracked],
+  ['mermaid-parses/deleted-file', gateMermaidParsesDeletedFile],
   // Plan 0448: `check:bun-load`'s breaks that need no Bun — the input half, the
   // guard's own no-Bun findings, and the static read of its CI job. Its Bun
   // breaks run as the guard's `--self-test` in the `bun-load` CI job;
@@ -3873,6 +3890,7 @@ const GATE_FOR = {
     'mermaid-parses/dot-directory',
     'mermaid-parses/unsafe-path',
     'mermaid-parses/untracked',
+    'mermaid-parses/deleted-file',
   ],
   'check:bun-load': [
     'bun-load/stale-exclusion',
