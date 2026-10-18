@@ -587,8 +587,10 @@ Where the build departed from the text above, each overrulable:
       restored by `git checkout`, tree clean, 74 s. Row 14 is counted, not exited: `check:ledger`
       reports no `md/undeclared-box-mark` with the declaration and exactly two without it, 0249 at
       :160 and 0256 at :130, since the gate's exit also carries this plan's own open boxes)
-- [x] `npm run validate` green; durations reported (ticked provisionally for its own gate run, since
-      `check:ledger` runs inside it; the result is filled in from that run's log)
+- [x] `npm run validate` green; durations reported (at 9515913d, with this box ticked provisionally because
+      `check:ledger` runs inside it: exit 0; 217 non-vacuity fixtures; tests core 331, crossvalidate
+      128, gherkin 11, md 414, mermaid 173, eess-ts 3,977, examples 26, test:matrix 48. Its
+      duration was not measured; the earlier runs on this machine took 12–14 min)
 - [x] Close: bug 0445 → `fixed/`, this plan → `completed/`, boards
 
 Deferred: none
