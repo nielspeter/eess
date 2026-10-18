@@ -2023,10 +2023,14 @@ function gateLedgerTildeIsOpen() {
     'Deferred: none',
     '',
   ].join('\n')
-  const r = withProbe(probe, text, () => sh(process.execPath, [join('scripts', 'check-ledger.mjs')]))
+  const r = withProbe(probe, text, () =>
+    sh(process.execPath, [join('scripts', 'check-ledger.mjs')]),
+  )
   const named = r.stderr
     .split('\n')
-    .some((l) => l.includes('__nonvacuity_probe_tilde.md:9') && l.includes('ledger/silent-open-box'))
+    .some(
+      (l) => l.includes('__nonvacuity_probe_tilde.md:9') && l.includes('ledger/silent-open-box'),
+    )
   return {
     ok: r.code === 1 && named,
     detail: `a closed bug with an undisposed [~] → exit ${r.code}, silent-open-box at its line: ${named}`,

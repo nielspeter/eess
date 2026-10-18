@@ -82,7 +82,7 @@ type Box = Pick<MdTaskItemRef, 'mark' | 'state' | 'text'>
  * - `[`, spaces, one grapheme that is a space, `x`, `X`, a declared mark or no letter or digit,
  *   spaces, `]`, and not exactly a box or a mark: `'malformed'` (`[ x ]`, `[x]done`, `- [ ]`).
  */
-export function readBoxMark(
+function readBoxMark(
   item: ListItem,
   source: string | undefined,
   marks: Readonly<Record<string, BoxMarkState>>,

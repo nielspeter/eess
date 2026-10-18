@@ -8,7 +8,9 @@ import { corpus, type ArchViolation } from '../../src/index.js'
 import { honestyAtClose } from '../../src/rules/ledger.js'
 import { tree } from '../helpers/tree.js'
 
-const RECORD = ['# Bug 1', '', '- **State:** Done', '', '- [~] a', '- [?] b', '- [ ] c', ''].join('\n')
+const RECORD = ['# Bug 1', '', '- **State:** Done', '', '- [~] a', '- [?] b', '- [ ] c', ''].join(
+  '\n',
+)
 
 /** `(finding id, line)` pairs, sorted: identity, not a count. */
 const pairs = (found: readonly ArchViolation[]): string[] =>

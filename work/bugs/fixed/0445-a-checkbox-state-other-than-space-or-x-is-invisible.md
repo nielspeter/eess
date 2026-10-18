@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16; reproduced here on main's build. No red test yet. Fix
-  planned as [plan 0454](../plans/0454-box-marks-are-the-callers.md) (proposal 017 block 17), 2026-10-17.
+- **State:** Fixed — 2026-10-18, in PR #240 with [plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md)
+  (proposal 017 block 17): box marks beyond GFM's are declared by the caller, and an undeclared one is
+  a finding. Recorded 2026-10-16; reproduced on main's build.
 - **Severity:** Medium — a false green: a closed record whose items are all `[~]` passes the closing check. In this repository, four `[~]` items sit in closed records that `check:ledger` cannot see: `work/bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md:160`, `:167` and `:201`, and `work/bugs/fixed/0256-the-spike-lane-is-run-but-never-declared.md:130`. Adopters report more (as reported, not measured here).
 - **Origin:** inbound · two adopter monorepos (unnamed), feedback on proposal 017, verified here.
 - **Reported:** 2026-10-16
@@ -32,8 +33,14 @@ GFM's (proposal 017's principle). A list item whose text starts with a bracketed
 
 ## Verification
 
-- [ ] Red first: the three-item record above, through `honestyAtClose`
-- [ ] Green: a declared `[~]` counts as open, an undeclared `[?]` is a finding, with non-vacuity rows
-- [ ] This repository's four `[~]` lines in 0249 and 0256 are read, and pass as disposed
+- [x] Red first: the three-item record above, through `honestyAtClose`
+      (`packages/md/tests/rules/box-marks-in-a-closed-record.test.ts`, committed failing as 355dc30f:
+      only `ledger/silent-open-box @ 7` was reported, both undeclared marks missing)
+- [x] Green: a declared `[~]` counts as open, an undeclared `[?]` is a finding, with non-vacuity rows
+      (`packages/md/tests/builders/task-items-marks.test.ts`; `corpus/ledger/undeclared-mark`,
+      `corpus/ledger/malformed-box` and `corpus/ledger/tilde-is-open` in `scripts/check-nonvacuity.mjs`)
+- [x] This repository's four `[~]` lines in 0249 and 0256 are read, and pass as disposed
+      (`scripts/check-ledger.mjs` declares `'~': 'open'` on the bugs lane; `check:ledger` green with it,
+      and without it exactly two `md/undeclared-box-mark` findings, one per document)
 
 Deferred: none

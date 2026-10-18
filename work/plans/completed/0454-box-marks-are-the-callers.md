@@ -2,12 +2,14 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-17 at the maintainer's request ("plans in one pr"), as the
-  plan that owns [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block
+- **State:** Done — built 2026-10-18 in PR #240 from the reviewed Draft, without a separate
+  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458 and 0456. "Build
+  notes" says where the build departed from the text. Written 2026-10-17 at the maintainer's request ("plans in one pr"), as the
+  plan that owns [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block
   17, which the maintainer accepted on 2026-10-16. Reviewed 2026-10-17 (architect · product ·
   enforcement · method · testing) and reworked 2026-10-18; see "Review response" below.
 - **Implements:** proposal 017
-- **Fixes:** [bug 0445](../bugs/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)
+- **Fixes:** [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)
 - **Priority:** Medium, bug 0445's severity: a closed record whose boxes are all `[~]` passes the
   closing check, and this repository carries four such boxes today.
 - **Effort:** Medium — one model function, one builder, one preset option, two repository scripts,
@@ -212,7 +214,7 @@ is `(file, ruleId, '<relPath> [<mark>]')` for an undeclared mark and `(file, rul
 '<relPath>:<line>')` for a malformed box, so the kernel's `dedupeConfigFindings`
 (`packages/core/src/dedupe-config-findings.ts:69`) collapses one cause reported by several rules to
 one. The note that function appends misdescribes this case, as it already misdescribes the code-block
-instrument finding: that wording is [bug 0461](../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s,
+instrument finding: that wording is [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s,
 not this plan's, and this plan changes no kernel code.
 
 **`honestyAtClose` takes `marks`** and passes it to both of its box readers, the `taskItems()` rule
@@ -453,7 +455,7 @@ which packages the changeset must name; if it asks for eess-crossvalidate, it is
 - **`.select()` drops unread boxes silently.** A correspondence side built from `taskItems()` never
   runs `collectViolations`, so an undeclared box is absent from it without a finding. A documented
   limit, beside the blockquote one.
-- **The dedupe note's wording**: [bug 0461](../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
+- **The dedupe note's wording**: [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
 - **`honestyAtClose`'s fixed `State:` label** (bug 0444) and its rebuild from public blocks (017's
   decision 1).
 - **Counting declared marks in `ledgerStats`.** It counts documents, not boxes.
@@ -547,13 +549,40 @@ Each finding of the round-two reviews about this plan, and what changed:
 
 ## Progress ledger
 
-- [ ] Phase 1 — red-first test committed failing; the model; the parsed-tree count of this
-      repository's non-GFM boxes
-- [ ] Phase 2 — the builder, its scoped and grouped findings
-- [ ] Phase 3 — `honestyAtClose`'s `marks`; `check:ledger` declaring `[~]`; `finished-not-closed`
+## Build notes — 2026-10-18
+
+Where the build departed from the text above, each overrulable:
+
+- **The parsed-tree count is four.** Measured over every `.md` file in this repository with
+  `collectTaskItems(doc.root, { source: doc.text })`: four undeclared `[~]` boxes, exactly the four
+  Problem names (0249:160, :167, :201; 0256:130), and no malformed box anywhere.
+- **`collectTaskItems` takes the source.** Its options are `{ marks, source }`: the backslash before
+  `[` is read from the document's text, which mdast resolves away. A direct caller that omits
+  `source` reads an escaped `\[~]` as a box (stated in its docstring); the builder and the preset
+  always pass it.
+- **`readBoxMark` is module-private.** `check:arch`'s `no-unused-exports` refused it as an export
+  nothing else imports; `collectTaskItems` is the public reader.
+- **The unread-box findings live in `packages/md/src/builders/box-mark-findings.ts`,** beside the
+  builder, with `inScope` (the either-reading scope through the kernel's `matchingElements`) and
+  `unreadFindings`. `MdTaskItem` is that module's `ReadBox` under its public name.
+- **The undeclared-mark remedy names both entry points:** "Declare it in the rule's `marks` … passed
+  to taskItems() or honestyAtClose()", since the same finding comes from either.
+- **`bad-ledger.mjs` prints each finding's file and line,** so the two new rows' `mustSay` can pin
+  the line, not only the id. Its document count is 8.
+- **The tilde probe's line is 9,** the box in the probe record; the row requires `check:ledger` to
+  exit 1 with `ledger/silent-open-box` on that line.
+
+## Progress ledger
+
+- [x] Phase 1 — red-first test committed failing (355dc30f); the model; the parsed-tree count of this
+      repository's non-GFM boxes (four, see Build notes)
+- [x] Phase 2 — the builder, its scoped and grouped findings
+- [x] Phase 3 — `honestyAtClose`'s `marks`; `check:ledger` declaring `[~]`; `finished-not-closed`
       threaded
-- [ ] Phase 4 — non-vacuity rows, changeset, README, the example under plan 0458's gate
+- [x] Phase 4 — non-vacuity rows, changeset, README, the example under plan 0458's gate (the
+      load-bearing check proves 4 of 4 judgements across 3 examples, 6 s)
 - [ ] Every acceptance row above green through the public entry points; every sabotage row red
-- [ ] Close: bug 0445 → `fixed/`, this plan → `completed/`, boards
+- [ ] `npm run validate` green; durations reported
+- [x] Close: bug 0445 → `fixed/`, this plan → `completed/`, boards
 
 Deferred: none

@@ -158,6 +158,36 @@ eess-md defines no document shape. A rule about what your plans, bugs or pages m
 the blocks above in your own words; [the Markdown dialect's docs](../../docs/markdown.md#a-documents-shape-built-from-blocks)
 show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/examples/md) with passing and failing fixtures are in eess's repository.
 
+## Box marks beyond `[ ]` and `[x]`
+
+GFM reads three box marks: `[ ]`, `[x]` and `[X]`. Any other mark is yours to declare, open (it
+blocks a close, like `[ ]`) or done (like `[x]`). Declare them once and pass the same object to every
+rule that reads boxes:
+
+```ts
+import { corpus, taskItems } from '@nielspeter/eess-md'
+import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
+
+const marks = { '~': 'open', '→': 'done' } as const
+const c = corpus({ cwd: process.cwd(), roots: ['work/**'] })
+
+taskItems(c, { marks }).that().areOpen().should().notExist().check()
+honestyAtClose(c, { marks })
+```
+
+A box whose mark no one declared is reported as `md/undeclared-box-mark`, once per document and mark,
+naming every line. A near-GFM box (`[ x ]`, `[x]done`, or a `- [ ]` with no text) is
+`md/malformed-box`, one per box; `marks` cannot clear it. Both are configuration findings:
+`.excluding()` cannot hide them, and they fail a `.warn()` rule. A rule reports such a box only when
+its predicates could have reached it, read as open or as done.
+
+A rule never sees an unread box: a `taskItems()` element's `state` is only `'open'` or `'done'`. To
+select an undeclared box, test `t.mark`. Not a box at all: an undeclared letter or digit (`[o]`,
+`[1]`), a link or a defined reference (`[ref]`), a bracket escaped (`\[`) or in inline code, and a box
+in a blockquote. A mark that is also a link definition's label (`[~]: url`) is read as a link
+reference, not a box. A correspondence side built with `.select()` drops unread boxes without a
+finding.
+
 ## Every page claimed once: `notExist()`
 
 Every builder over a corpus (`docs`, `links`, `pointers`, `rows`, `terms`, `taskItems`, and
