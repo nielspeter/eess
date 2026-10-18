@@ -86,6 +86,7 @@ import type {
   FieldOptions,
 } from '@nielspeter/eess-md'
 import { corpus, docs, links, pointers, rows, taskItems, terms } from '@nielspeter/eess-md'
+import { cleanValue, fields, longestOf, untilDelimiter } from '@nielspeter/eess-md'
 // The dialect-side half, and the reason this file subsumes bug 0225. `check:family`
 // is IMPORT-driven: eess-md re-exports `correspondence()` and its own source never
 // imports `CorrespondenceOptions`, so nothing obliged the type to come with it. A
@@ -197,6 +198,10 @@ it('every published entry point still exposes the surface a consumer names', () 
     rows,
     taskItems,
     terms,
+    fields,
+    cleanValue,
+    untilDelimiter,
+    longestOf,
     diagram,
     mermaidClasses,
     mdCorrespondence,

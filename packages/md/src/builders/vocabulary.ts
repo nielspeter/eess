@@ -280,7 +280,7 @@ export function terms(corpus: Corpus, options: TermsOptions): TermRuleBuilder {
 /**
  * Entry point: rules over a labelled value, read in the forms the caller names (plan 0468):
  * `fields(c, { label: 'Status', forms: ['bold', 'heading'] }).should().resolveAgainst(states)`.
- * A label written in a wrapped form the rule does not read is reported, never skipped.
+ * A label the rule's selection writes with markup it does not read is reported; plain prose is not.
  */
 export function fields(corpus: Corpus, options: FieldOptions): TermRuleBuilder {
   return new TermRuleBuilder(corpus, { kind: 'fields', options })

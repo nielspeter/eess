@@ -47,5 +47,9 @@ describe('a record states its status', () => {
       "found `**Status: open**` at line 3, in a form this rule does not read (bold-line); add 'bold-line' to forms, or rewrite the line",
     )
     expect(finding?.bypassFilters).toBeUndefined()
+    // The public gate entry throws on it too, not only the receipt.
+    expect(() => rule(fixture(NAME, 'violating-unread-form')).check()).toThrow(
+      /Architecture violation/,
+    )
   })
 })

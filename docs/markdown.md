@@ -744,11 +744,21 @@ fields(c, { label: 'State', forms: ['bold', 'heading'], value: longestOf(states)
 
 `resolveAgainst` takes a `Vocabulary` or a `RegExp`, which must match the whole value. A field's
 finding names the value, the label and the line, never the whole set: `'Shipped' (Status, line 3)
-does not resolve against the vocabulary (4 terms)`. A label your rule's selection holds in a
-wrapped form it does not read is a finding, not a silent skip: ``found `## Status: open` at line 3,
-in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line``. The
-`plain` form is never scanned for, since prose often opens "status: …". This repository's own
-`check:corpus` reads every live plan's and bug's State this way.
+does not resolve against the vocabulary (4 terms)`. A value that is empty after cutting (an
+emoji-only `✅`, a `### Status:` with the value on the next line) is a finding too: `(Status, line 3)
+has no value this rule can read`.
+
+A line in your rule's selection that names the label with markup before its colon, and that the
+rule did not read, is a finding. When a form you did not name reads it: ``found `## Status: open`
+at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the
+line``. When no form reads its shape (a blockquote, a task box, `__Status:__`, `## **Status:**`):
+``… in a shape no form reads; rewrite it as `**Status:** v`, `## Status: v` or `**Status: v**` ``.
+Plain prose is never taken for a label: `Status: see the note` with no markup before the colon is
+neither read (unless you name `plain`) nor reported. With `region: 'header'`, a label below the
+header is neither read nor reported; plan 0469's `haveField` reports a value outside the region.
+`fields()` reads the same label grammar as `honestyAtClose` (any indent, a bullet or a numbered
+marker), and a CRLF file reads as an LF one. This repository's own `check:corpus` reads every live
+plan's and bug's State this way.
 
 ## ADR enforcement tables
 

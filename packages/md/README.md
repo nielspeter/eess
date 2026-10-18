@@ -253,7 +253,8 @@ absolute paths (`'**/guides/**'`); here a glob is relative to the corpus's `cwd`
 `fields(corpus, { label, forms })` reads a value such as `Status` in the forms your corpus writes:
 `bold` (`**Status:** v`), `heading` (`## Status: v`), `bold-line` (`**Status: v**`) and `plain`
 (`Status: v`). There is no default form. `.should().resolveAgainst(vocabulary | RegExp)` checks the
-value, and a label written in a wrapped form your rule does not read is reported, never skipped.
+value, and a label your rule's selection writes with markup it does not read is reported, as is a
+value that is empty after cutting.
 `cleanValue`, `untilDelimiter` and `longestOf` cut a value. [The Markdown dialect's docs](../../docs/markdown.md#a-labelled-value-fields)
 cover the region, multi-line values and the findings.
 
