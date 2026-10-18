@@ -6,6 +6,7 @@ import type { ArchCall } from '../models/arch-call.js'
 import { collectCalls } from '../models/arch-call.js'
 import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
 import { matchingElements } from '@nielspeter/eess/internal'
+import { TS_RULE } from '../core/undecided-door.js'
 
 /** One collection per project, shared by every rule built from it (plan 0075). */
 const cache = createElementCache<ArchCall>()
@@ -323,7 +324,7 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall> {
    * Used by within() to extract callbacks from matched calls.
    */
   getMatchedCalls(): ArchCall[] {
-    return matchingElements(this.getElements(), this._predicates)
+    return matchingElements(this.getElements(), this._predicates, TS_RULE)
   }
 }
 

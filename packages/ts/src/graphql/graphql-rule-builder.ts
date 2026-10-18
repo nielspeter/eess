@@ -6,6 +6,7 @@ import {
   ruleDescriptionOf,
   selectionMemo,
 } from '@nielspeter/eess/internal'
+import { TS_RULE } from '../core/undecided-door.js'
 import type { CollectResult } from '../core/terminal-builder.js'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 
@@ -134,7 +135,9 @@ export abstract class GraphqlRuleBuilder<T> extends TerminalBuilder {
    * at" differently from the others.
    */
   protected selected(): T[] {
-    return this.selectionOf(this, () => matchingElements(this.getElements(), this._predicates))
+    return this.selectionOf(this, () =>
+      matchingElements(this.getElements(), this._predicates, TS_RULE),
+    )
   }
 
   /**

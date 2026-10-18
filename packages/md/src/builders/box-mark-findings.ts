@@ -1,5 +1,5 @@
-import type { ArchViolation, Predicate } from '@nielspeter/eess'
-import { matchingElements } from '@nielspeter/eess/internal'
+import type { ArchViolation, Predicate, Undecided } from '@nielspeter/eess'
+import { membership } from '@nielspeter/eess/internal'
 import type { MdDocument } from '../model/document.js'
 import { checkedOf, type BoxMarkState, type ReadBox, type UnreadBox } from '../model/task-items.js'
 
@@ -13,12 +13,14 @@ const NOT_A_BOX = 'If it is not a box, write the bracket escaped (`\\[`) or in i
 /**
  * The unread boxes the rule could have judged: those its predicates select read as open, or read as
  * done. No list of "state predicates" is needed, so a caller's own state test is handled like
- * `areOpen()`. Applied by the kernel's one owner of predicate application.
+ * `areOpen()`. Applied through the kernel's one truth table (ADR-021): a box whose membership is
+ * undecided is reached too, so its mark is reported, and the causes are returned so the caller
+ * reports them as well. Neither finding is dropped because the box's document cannot be read.
  */
 export function inScope(
   unread: readonly UnreadBox[],
   predicates: readonly Predicate<ReadBox>[],
-): UnreadBox[] {
+): { readonly reached: UnreadBox[]; readonly undecided: readonly Undecided[] } {
   const origin = new Map<ReadBox, UnreadBox>()
   const readAs =
     (state: BoxMarkState) =>
@@ -28,13 +30,17 @@ export function inScope(
       return copy
     }
   const reached = new Set<UnreadBox>()
+  const undecided: Undecided[] = []
   for (const state of ['open', 'done'] as const) {
-    for (const copy of matchingElements(unread.map(readAs(state)), [...predicates])) {
+    for (const copy of unread.map(readAs(state))) {
+      const m = membership(predicates, 'all', copy)
+      if (m === false) continue
       const box = origin.get(copy)
       if (box !== undefined) reached.add(box)
+      if (m !== true) undecided.push(...m)
     }
   }
-  return unread.filter((box) => reached.has(box))
+  return { reached: unread.filter((box) => reached.has(box)), undecided }
 }
 
 function finding(

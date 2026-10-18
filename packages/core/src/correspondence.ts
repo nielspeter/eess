@@ -1,6 +1,7 @@
 import type { ArchViolation } from './violation.js'
 import { collectResult } from './collect-result.js'
 import type { Predicate } from './predicate.js'
+import { partition, refuseUndecided, type Door } from './undecided.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
 import { matchSelections, type MatchOptions } from './matching.js'
 import {
@@ -288,8 +289,10 @@ export function selectMatching<T>(
   predicates: readonly Predicate<T>[],
   opts: { label: string; identify: (element: T) => ElementInfo },
 ): Selection<T> {
+  const { elements: admitted, undecided } = partition(elements, predicates)
+  refuseUndecided(undecided, 'select()')
   return {
-    elements: matchingElements(elements, predicates),
+    elements: admitted,
     label: opts.label,
     identify: opts.identify,
   }
@@ -313,6 +316,11 @@ export function selectMatching<T>(
 export function matchingElements<T>(
   elements: readonly T[],
   predicates: readonly Predicate<T>[],
+  door: string | Door = 'this rule',
 ): T[] {
-  return elements.filter((element) => predicates.every((predicate) => predicate.test(element)))
+  const { elements: admitted, undecided } = partition(elements, predicates)
+  // ADR-021 clause 6: this door hands back elements only, so an undecided subject is refused here
+  // rather than dropped. A builder's own `collectViolations` partitions instead and reports it.
+  refuseUndecided(undecided, door)
+  return admitted
 }

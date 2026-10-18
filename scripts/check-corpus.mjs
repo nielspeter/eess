@@ -25,13 +25,16 @@
  */
 import { join, resolve } from 'node:path'
 import {
+  and,
   corpus,
   correspondence,
   docs,
   fields,
+  haveField,
   links,
   longestOf,
   matchTableRows,
+  or,
   pointers,
   rows,
   vocabulary,
@@ -355,6 +358,45 @@ const statePresentRule = docs(c)
     suggestion: "write the record's State as `- **State:** <word>` under its `## Status` section",
   })
 const statePresent = statePresentRule.violations()
+
+// Plan 0486, dogfooding `haveField` in selector position (ADR-021): no plan or bug whose State is a
+// closing word sits in a live folder, since the close ritual moves it. One rule over both lanes, as
+// `or()` of `and()`s, so a record whose State cannot be read (given twice, empty, in a form this rule
+// does not read) is undecided and reported on this rule's id rather than dropped, through the
+// kernel's three-valued combinators. A State outside the vocabulary is decided false here: the
+// per-lane `corpus/state-in-vocabulary-*` rules above report it.
+const liveRecordIn = (lane) => ({
+  description: `are live ${lane.name} records`,
+  test: (d) =>
+    !d.frozen &&
+    !lane.doneFolders.some((f) => d.relPath.includes(f)) &&
+    d.relPath.startsWith(lane.roots[0].replace(/\*\*$/, '')) &&
+    !lane.boardFiles.some((b) => d.relPath.endsWith(`/${b}`)),
+})
+const closingStateIn = (lane) =>
+  haveField({
+    label: 'State',
+    forms: ['bold'],
+    value: longestOf([...lane.states]),
+    oneOf: new RegExp(`^(${lane.terminalStates.join('|')})$`),
+  })
+const closedLiveRule = docs(c)
+  .that()
+  .satisfy(
+    or(
+      ...LANES.filter((lane) => lane.name === 'plans' || lane.name === 'bugs').map((lane) =>
+        and(liveRecordIn(lane), closingStateIn(lane)),
+      ),
+    ),
+  )
+  .should()
+  .notExist()
+  .rule({
+    id: 'corpus/closed-records-sit-in-done-folders',
+    because: "a closed record left in a live folder reads as open work (the close ritual's move)",
+    suggestion: "move the record to its lane's done folder, or correct its State",
+  })
+const closedLive = closedLiveRule.violations()
 const stateResults = stateRules.map((r) => r.result)
 const stateViolations = stateResults.flatMap((r) => [...r])
 
@@ -1094,6 +1136,7 @@ const receipt = mergeCollectResults([
   collectResult(laneViolations, { examined: laneRows.length }),
   ...stateResults.map((r) => collectResult([...r], { examined: r.examined })),
   collectResult([...statePresent], { examined: statePresent.examined }),
+  collectResult([...closedLive], { examined: statePresent.examined }),
 ])
 
 // ADR-008: this script owns its reporting on the terminal path, so the gate runs
@@ -1145,6 +1188,12 @@ line(
   }`,
 )
 line(
+  'closed',
+  `${String(closedLive.examined)} closed record(s) in a live folder · ${String(closedLive.undecided ?? 0)} undecided · ${
+    closedLive.length === 0 ? '✓ every closed record sits in a done folder' : `✗ ${closedLive.length} finding(s)`
+  }`,
+)
+line(
   'extends',
   `${extendsViolations.examined} ADR Extends link(s) · ${
     extendsViolations.length === 0
@@ -1192,6 +1241,7 @@ line(
 
 const problems = [
   ...statePresent,
+  ...closedLive,
   ...stateViolations,
   ...broken,
   ...stale,

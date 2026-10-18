@@ -1,7 +1,8 @@
 import { assertionAdviceFor } from './assertion-advice.js'
 import { collectResult } from './collect-result.js'
 import type { Predicate } from './predicate.js'
-import { selectMatching, matchingElements } from './correspondence.js'
+import { selectMatching } from './correspondence.js'
+import { partition, undecidedViolations } from './undecided.js'
 import { recordPredicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
@@ -377,10 +378,15 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    */
   protected collectViolations(): CollectResult {
     const allElements = this.getElements()
-    const filtered = matchingElements(allElements, this._predicates)
+    // ADR-021: one evaluation decides membership and names what it could not decide. Only a
+    // definitely-selected subject is examined; an undecided one is represented by its causes, made
+    // here, before any return below, so a rule whose every subject is undecided is never green.
+    const { elements: filtered, undecided } = partition(allElements, this._predicates)
     const examined = filtered.length
+    const unread = undecidedViolations(undecided, this.buildConditionContext())
 
     if (filtered.length === 0) {
+      if (unread.length > 0) return collectResult(unread, { examined, undecided: unread.length })
       const sourceEmpty = this.sourceEmpty()
       // Skip the diagnosis (a real filesystem walk, in a dialect's
       // override) when the project itself is already known empty — nothing
@@ -397,7 +403,10 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     // assertion too — see `assertionLessViolation`.
     if (!this.assertsSomething() && this._expectEmpty === undefined) {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
-      return collectResult([assertionLessViolation(ruleId, this.assertionAdvice())], { examined })
+      return collectResult([assertionLessViolation(ruleId, this.assertionAdvice()), ...unread], {
+        examined,
+        undecided: unread.length,
+      })
     }
 
     // Step 4: Build context for conditions
@@ -409,7 +418,8 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
       violations.push(...condition.evaluate(filtered, context))
     }
 
-    return collectResult(violations, { examined })
+    const fresh = undecidedViolations(undecided, context, violations)
+    return collectResult([...violations, ...fresh], { examined, undecided: fresh.length })
   }
 
   /**

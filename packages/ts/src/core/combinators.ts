@@ -4,6 +4,8 @@ import {
   combineGlobs,
   negateGlobs,
   assertHomogeneous as kernelAssertHomogeneous,
+  kleene,
+  negatedTest,
 } from '@nielspeter/eess/internal'
 
 /**
@@ -34,6 +36,11 @@ export function not<T>(input: Predicate<T> | TypeMatcher): Predicate<T> | TypeMa
     // `not` nested inside the subtree flips it back, which is why this cannot
     // just flip polarity. See `negateGlobs`.
     globs: input.globs && negateGlobs(input.globs),
+    // ADR-021, as the kernel's `not`: unknown stays unknown under negation.
+    ...(input.undecided && {
+      undecided: (element: T) => input.undecided?.(element) ?? [],
+      test: negatedTest(input),
+    }),
   }
 }
 
@@ -104,6 +111,8 @@ function combine<T>(
   return {
     description: predicates.map((p) => p.description).join(op === 'all' ? ' and ' : ' or '),
     test: (element: T) => holds(predicates, (p) => p.test(element)),
+    // ADR-021: the kernel's one truth table, when an input can be undecided.
+    ...(predicates.some((p) => p.undecided) && kleene(predicates, op)),
     globs: combineGlobs(
       op,
       predicates.map((p) => p.globs),

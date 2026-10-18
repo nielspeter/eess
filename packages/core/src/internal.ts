@@ -142,3 +142,12 @@ export { evaluateConditions, conditionContextFrom } from './condition.js'
 // plumbing: every dialect builder renders one, a consumer does not.
 export { ruleDescriptionOf, ruleDescriptionFrom } from './rule-description.js'
 export { assertHomogeneous } from './combinators.js'
+export {
+  membership,
+  partition,
+  kleene,
+  negatedTest,
+  undecidedViolations,
+  refuseUndecided,
+} from './undecided.js'
+export type { Membership, Door } from './undecided.js'

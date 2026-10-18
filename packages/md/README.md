@@ -266,7 +266,13 @@ an empty value, a value after a code fence that never closes) is reported in eit
 selector, a document with no field at all, or a misspelt label (`**Satus:**`), is left out like any
 document the filter does not keep: pair the selector with a `.should().haveField({ label, forms })`
 rule over the same documents, which reports it, and with `fields(...).resolveAgainst(...)` for a
-misspelt value. A selection taken with `.select()` carries none of these findings.
+misspelt value.
+
+`haveField(options)` is also exported as a predicate, for `satisfy()`, `not`/`and`/`or`, and a lift
+onto the boxes or links of a document. A document whose value cannot be read is **undecided**
+(ADR-021): the rule neither keeps nor drops it, but reports the cause once, as a finding no
+`.excluding()` or `.warn()` removes, wherever the rule's verdict depends on it. `.select()` over an
+undecided document throws, naming the cause, since a selection has no way to report it.
 
 ## Custom conventions (localization, project-specific lifecycle)
 

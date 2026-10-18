@@ -250,6 +250,7 @@ export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
       this.source.options,
       this._predicates,
       this.buildConditionContext(),
+      base,
     )
     if (findings.length === 0) return base
     return collectResult([...base, ...findings], base)

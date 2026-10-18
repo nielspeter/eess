@@ -1,6 +1,18 @@
 import type { DeclaredGlobs } from './glob-site.js'
 
 /**
+ * Why a predicate cannot judge one subject (ADR-021): where the cause is, and what it is. The builder
+ * that applies the predicate makes it a finding with the rule's context.
+ */
+export interface Undecided {
+  readonly file: string
+  readonly line: number
+  /** What the finding names, e.g. `work/bugs/b.md:3,4`. Also the key `.excluding()` would match. */
+  readonly element: string
+  readonly message: string
+}
+
+/**
  * A predicate that tests whether an architectural element matches a condition.
  * Used in `.that()` clauses to filter elements before rule evaluation.
  */
@@ -42,6 +54,26 @@ export interface Predicate<T> {
    * message the preset produces, not just the configuration finding.
    */
   readonly originLabel?: string
+
+  /**
+   * Why this predicate cannot judge `element`, or nothing when it can (ADR-021).
+   *
+   * Optional, and declared only by a predicate that can fail to judge: a value read from a document
+   * that gives it twice, for instance. A non-empty result makes the subject **undecided**: the kernel
+   * neither selects it nor drops it, but reports each cause as an unsuppressable finding wherever the
+   * rule's verdict depends on it, and a door that hands no findings back (`matchingElements`,
+   * `.select()`) refuses. The combinators carry it in strong Kleene logic.
+   *
+   * **The contract for a predicate that declares it:** `test` is never called by the kernel on a
+   * subject this reports, and a `test` called directly on one must throw rather than answer, so a
+   * wrapper written by hand around `test` cannot drop it silently.
+   *
+   * Method syntax, as `test` is, on purpose: a function-typed property would make `Predicate<T>`
+   * invariant in `T`, and builders that widen their predicates would stop compiling (measured in
+   * spike 0485), with `this: void` so it can be passed around unbound. It takes no rule context, so a
+   * producer can memoize it per subject.
+   */
+  undecided?(this: void, element: T): readonly Undecided[]
 }
 
 /**

@@ -265,7 +265,7 @@ export abstract class TerminalBuilder {
    */
   private evidencedViolations(): CollectResult {
     const collected = this.collectViolations()
-    const { examined, sourceEmpty, deadGlob } = collected
+    const { examined, sourceEmpty, deadGlob, undecided } = collected
     const violations: ArchViolation[] = [...collected]
 
     // The evidence travels with every return below. A declaration reaches the
@@ -277,6 +277,7 @@ export abstract class TerminalBuilder {
       examined,
       sourceEmpty,
       deadGlob,
+      undecided,
       // `assertsCardinality()` is a declaration ONLY over zero subjects — ADR-010
       // §3: "`.notExist()` over zero subjects is a declaration by construction."
       // Over a non-empty selection it is an ordinary assertion that examined
@@ -285,8 +286,10 @@ export abstract class TerminalBuilder {
       // reddened six crossvalidate tests.
       // Withheld beside a selector fault: the receipt must not claim "declared
       // empty" next to a finding that says the emptiness is a fault (ADR-014 §3).
+      // Withheld too when subjects were undecided (ADR-021): the emptiness is theirs, not declared.
       declaredEmpty:
         fault === undefined &&
+        undecided === undefined &&
         (this._expectEmpty === true || (examined === 0 && this.assertsCardinality()))
           ? true
           : undefined,
@@ -298,7 +301,9 @@ export abstract class TerminalBuilder {
     // method to cyclomatic complexity 11 and the repo's own `check:arch` said so.
     // The ORDER is the content here, and it is unchanged.
     if (examined === 0) {
-      const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob, fault)
+      // ADR-021: zero examined because every subject was undecided is explained by those findings.
+      const zero =
+        undecided === undefined ? this.zeroExaminedFinding(sourceEmpty, deadGlob, fault) : undefined
       return zero === undefined ? collectResult(violations, evidence) : withFinding(zero)
     }
     if (this._expectEmpty === true) {

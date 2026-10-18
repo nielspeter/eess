@@ -3,7 +3,13 @@
  * word, and every unreadable cause reported in either position, through the public `docs()`.
  */
 import { describe, it, expect } from 'vitest'
-import { corpus, docs, type ArchViolation, type HaveFieldOptions } from '../../src/index.js'
+import {
+  corpus,
+  docs,
+  isArchConfigError,
+  type ArchViolation,
+  type HaveFieldOptions,
+} from '../../src/index.js'
 import { tree } from '../helpers/tree.js'
 
 const one = (lines: readonly string[], path = 'bugs/b.md') =>
@@ -15,13 +21,21 @@ const spec = (extra: Partial<HaveFieldOptions> = {}): HaveFieldOptions => ({
 })
 const said = (found: readonly ArchViolation[]): string[] =>
   found.filter((v) => v.line > 0).map((v) => `${v.element}: ${v.message}`)
-/** The documents a `haveField` selector keeps. */
-const selected = (c: ReturnType<typeof corpus>, s: HaveFieldOptions): string[] =>
-  docs(c)
-    .that()
-    .haveField(s)
-    .select({ label: 'doc', identify: (d) => ({ name: d.relPath }) })
-    .elements.map((d) => d.relPath)
+/**
+ * The documents a `haveField` selector keeps, or `['undecided']` when `.select()` refuses because a
+ * document's value cannot be read (ADR-021: a door that hands no findings back refuses).
+ */
+const selected = (c: ReturnType<typeof corpus>, s: HaveFieldOptions): string[] => {
+  const rule = docs(c).that().haveField(s)
+  try {
+    return rule
+      .select({ label: 'doc', identify: (d) => ({ name: d.relPath }) })
+      .elements.map((d) => d.relPath)
+  } catch (e) {
+    if (isArchConfigError(e)) return ['undecided']
+    throw e
+  }
+}
 const asCondition = (c: ReturnType<typeof corpus>, s: HaveFieldOptions) =>
   said(docs(c).should().haveField(s).violations())
 
@@ -32,6 +46,7 @@ describe('the resolver (plan 0469)', () => {
 
   it('a structured field beats an earlier plain one, and the disagreeing prose is reported', () => {
     const c = one(['# B', '', 'Status: open', '', '**Status:** fixed'])
+    // The structured value resolves, so the document is decided and selected (ADR-021 clause 4).
     expect(selected(c, spec({ forms: ['bold', 'plain'] }))).toEqual(['bugs/b.md'])
     expect(asCondition(c, spec({ forms: ['bold', 'plain'] }))).toEqual([
       "bugs/b.md:3: prose says Status 'open', but the field at line 5 says 'fixed'",
@@ -40,7 +55,7 @@ describe('the resolver (plan 0469)', () => {
 
   it('two structured occurrences conflict, agreeing or not', () => {
     const c = one(['# B', '', '**Status:** open', '', '## Status: fixed'])
-    expect(selected(c, spec())).toEqual([])
+    expect(selected(c, spec())).toEqual(['undecided'])
     expect(asCondition(c, spec())).toEqual([
       "bugs/b.md:3,5: Status is given twice (line 3 'open', line 5 'fixed'); keep one",
     ])
@@ -75,7 +90,7 @@ describe('the resolver (plan 0469)', () => {
 
   it('an empty value is unreadable, not present', () => {
     const c = one(['# B', '', '**Status:** ✅'])
-    expect(selected(c, spec())).toEqual([])
+    expect(selected(c, spec())).toEqual(['undecided'])
     expect(asCondition(c, spec())).toEqual([
       'bugs/b.md:3: Status at line 3 has no value this rule can read',
     ])
@@ -98,7 +113,7 @@ describe('the header region (plan 0469)', () => {
   })
 
   it('without the region the register is a conflict', () => {
-    expect(selected(one(register), spec())).toEqual([])
+    expect(selected(one(register), spec())).toEqual(['undecided'])
     expect(asCondition(one(register), spec())).toEqual([
       "bugs/b.md:3,7,8: Status is given 3 times (line 3 'open', line 7 'open.', line 8 'fixed.'); keep one",
     ])
@@ -204,7 +219,7 @@ describe('the review round (plan 0469)', () => {
     ])
   })
 
-  it('a selector reports disagreeing prose and an unread label beside a resolved value', () => {
+  it('a resolved value beside disagreeing prose is decided: kept by the selector, reported by the condition', () => {
     const c = one(['# B', '', 'Status: open', '', '**Status:** fixed', '', '**Status: shut**'])
     const found = docs(c)
       .that()
@@ -212,9 +227,10 @@ describe('the review round (plan 0469)', () => {
       .should()
       .haveSection('X')
       .violations()
-    // The document is selected (its value resolved), so the condition runs on it too.
-    expect(said(found)).toEqual([
-      'bugs/b.md: missing section "X"',
+    // Its value resolved, so it is decided (ADR-021 clause 4): selected, and the condition runs on
+    // it. The prose and the unread label are for the condition form, which `asCondition` shows.
+    expect(said(found)).toEqual(['bugs/b.md: missing section "X"'])
+    expect(asCondition(c, spec({ forms: ['bold', 'plain'] }))).toEqual([
       "bugs/b.md:3: prose says Status 'open', but the field at line 5 says 'fixed'",
       "bugs/b.md:7: found `**Status: shut**` at line 7, in a form this rule does not read (bold-line); add 'bold-line' to forms, or rewrite the line",
     ])

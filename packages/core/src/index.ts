@@ -6,7 +6,7 @@
 // dialect-specific parser.
 
 // Predicate & condition interfaces
-export type { Predicate } from './predicate.js'
+export type { Predicate, Undecided } from './predicate.js'
 export type { Condition, ConditionContext } from './condition.js'
 export { not, and, or } from './combinators.js'
 export type { Matcher } from './combinators.js'

@@ -1,8 +1,8 @@
-import { ArchConfigError, type ConditionContext, type Predicate } from '@nielspeter/eess'
-import { matchingElements } from '@nielspeter/eess/internal'
+import type { ConditionContext, Predicate, Undecided } from '@nielspeter/eess'
+import { membership, undecidedViolations } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import { cleanValue, type FieldOptions } from '../model/fields.js'
-import { unreadFieldMessage, unreadFields, type UnreadField } from '../model/field-unread.js'
+import { unreadFieldMessage, unreadFields } from '../model/field-unread.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 import type { MdTerm } from './vocabulary.js'
 
@@ -10,7 +10,7 @@ import type { MdTerm } from './vocabulary.js'
  * A label the rule's selection holds that the rule did not read is a finding, never a silent skip
  * (plan 0468). Two kinds: a line a form the rule does not name would read (add the form), and a
  * marked-up line no form reads (rewrite it). Scoped to the rule's selection: each candidate passes
- * through the rule's own predicates, by the kernel's one owner of predicate application, so a rule
+ * through the rule's own predicates, by the kernel's one truth table (ADR-021), so a rule
  * over `bugs/**` never reds on a README's `## Status: beta`. Read in the same region as the rule.
  */
 export function unnamedFormFindings(
@@ -18,10 +18,11 @@ export function unnamedFormFindings(
   options: FieldOptions,
   predicates: readonly Predicate<MdTerm>[],
   context: ConditionContext,
+  already: readonly ArchViolation[] = [],
 ): ArchViolation[] {
   const cut = options.value ?? cleanValue
-  const candidates: MdTerm[] = []
-  const unread = new Map<MdTerm, UnreadField>()
+  const found: ArchViolation[] = []
+  const causes: Undecided[] = []
   for (const doc of corpus.documents()) {
     for (const u of unreadFields(doc, options)) {
       // A shape no form reads takes the rule's first form as its own: none is.
@@ -34,27 +35,21 @@ export function unnamedFormFindings(
         label: u.label,
         form,
       }
-      candidates.push(term)
-      unread.set(term, u)
-    }
-  }
-  return matchingElements(candidates, [...predicates]).flatMap((t) => {
-    const u = unread.get(t)
-    // Unreachable: `matchingElements` returns the candidates themselves. A finding must not vanish.
-    if (u === undefined) {
-      throw new ArchConfigError(
-        'fields',
-        'an unread-label candidate lost its record; report this as an eess-md bug',
+      // ADR-021: a candidate the rule's predicates cannot decide is reached (fail-closed), and the
+      // causes are reported beside it, once, rather than the candidate being dropped.
+      const m = membership(predicates, 'all', term)
+      if (m === false) continue
+      if (m !== true) causes.push(...m)
+      found.push(
+        mdViolation({
+          element: `${doc.relPath}:${String(u.line)}`,
+          file: doc.file,
+          line: u.line,
+          message: unreadFieldMessage(u),
+          context,
+        }),
       )
     }
-    return [
-      mdViolation({
-        element: `${t.doc.relPath}:${String(t.line)}`,
-        file: t.doc.file,
-        line: t.line,
-        message: unreadFieldMessage(u),
-        context,
-      }),
-    ]
-  })
+  }
+  return [...undecidedViolations(causes, context, already), ...found]
 }

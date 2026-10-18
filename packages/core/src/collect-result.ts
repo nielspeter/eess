@@ -59,6 +59,12 @@ export interface CollectResult extends Array<ArchViolation> {
    * kernel never touches picomatch or a project type to build this itself.
    */
   readonly deadGlob?: string
+  /**
+   * How many causes left subjects undecided (ADR-021), each reported among the violations. A rule
+   * that examined zero because every subject was undecided is explained by them, so the terminal
+   * adds no generic zero-examined finding and claims no declared emptiness.
+   */
+  readonly undecided?: number
 }
 
 /** Evidence a caller supplies alongside the violations. */
@@ -68,6 +74,7 @@ export interface Evidence {
   readonly declaredEmpty?: boolean
   readonly notRun?: boolean
   readonly deadGlob?: string
+  readonly undecided?: number
 }
 
 /**
@@ -92,6 +99,9 @@ export function collectResult(
     ...(evidence.declaredEmpty === true ? { declaredEmpty: true as const } : {}),
     ...(evidence.notRun === true ? { notRun: true as const } : {}),
     ...(evidence.deadGlob === undefined ? {} : { deadGlob: evidence.deadGlob }),
+    ...(evidence.undecided === undefined || evidence.undecided === 0
+      ? {}
+      : { undecided: evidence.undecided }),
   })
 }
 

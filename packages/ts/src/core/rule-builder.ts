@@ -1,4 +1,5 @@
 import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
+import { TS_RULE } from './undecided-door.js'
 import { conditionContextFrom } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
@@ -403,7 +404,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    */
   protected filterElements(): T[] {
     // AND semantics — every predicate must match.
-    return matchingElements(this.getElements(), this._predicates)
+    return matchingElements(this.getElements(), this._predicates, TS_RULE)
   }
 
   /**
