@@ -534,7 +534,7 @@ Two shapes the recipe does not protect, stated in the README beside it:
 - **A corpus with several roots, one of them mistyped.** `corpus({ roots: ['guides/**',
 'gudies-ref/**'] })` loads documents, so it is not an empty source, and the dead root drops its
   half without a word. That is a silent pass in `corpus()` itself, recorded as
-  [bug 0465](../bugs/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) and deferred
+  [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) and deferred
   there (ledger). A test here pins today's behaviour, titled for the bug, so its fix turns the test
   red on purpose.
 
@@ -876,7 +876,7 @@ mechanism. No row of its own in `check:nonvacuity`.
 - **eess-mermaid's missing empty-source check** (the measured empty-diagram row). Not bug 0460's
   kernel order. Home: [bug 0463](../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
 - **A corpus root that matches no file, in a multi-root corpus.** A silent pass in `corpus()`,
-  pinned by a test here. Home: [bug 0465](../bugs/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md).
+  pinned by a test here. Home: [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md).
 - **A named dead-glob finding for md's positive rules.** They keep the generic finding; plan 0457
   overrides `deadGlobDiagnosis()` for its scopes.
 - **A typo that names nothing in the repository**, on a cardinality rule. Bug 0355's ruling, kept;
@@ -890,7 +890,7 @@ mechanism. No row of its own in `check:nonvacuity`.
 - [Bug 0463](../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md): eess-mermaid reports
   no empty source, so `classes(diagram('classDiagram\n')).should().notExist()` passes (measured
   above).
-- [Bug 0465](../bugs/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md): a mistyped
+- [Bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md): a mistyped
   root in a multi-root corpus drops its half silently.
 - [Bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md): eess-ts's `doctor`
   crashes on md rules; md rules start declaring globs here, with an inexact base.
@@ -971,7 +971,7 @@ mechanism. No row of its own in `check:nonvacuity`.
   `marksAssertsCardinality`; bug 0462's rows in `packages/ts/tests`; one eess-mermaid assertion with
   a changeset entry; the `correspondence` callables dropped from the test, with the reason.
 - **method N4 / enforcement m-c / coordinator decision 5** (the multi-root silent pass has no home):
-  [bug 0465](../bugs/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md), a deferral box,
+  [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md), a deferral box,
   and a test titled for it.
 - **method N5** (Effort figures not this plan's counts): counted from the tables (29 Files-changed
   rows, seven new test files, 14 sabotage rows; round four recounted: eight new test files, with

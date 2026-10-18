@@ -397,7 +397,7 @@ asymmetry: `pointers(c).that().areFrozen()` is a method, everywhere else it is
 
 The README carries no bug numbers; an adopter on npm has no `work/bugs/`. For this plan's readers:
 the kernel docstring that suggests `.expectNonEmpty()` for `notExist()` is
-[bug 0466](../bugs/0466-expectnonempty-is-offered-for-a-glob-typo-on-a-cardinality-rule.md), and
+[bug 0466](../bugs/fixed/0466-expectnonempty-is-offered-for-a-glob-typo-on-a-cardinality-rule.md), and
 eess-ts's different handling is bug 0467.
 
 ## Files Changed

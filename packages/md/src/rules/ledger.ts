@@ -91,6 +91,23 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
    * the lane has real content.
    */
   readonly expectEmptyHeaders?: boolean
+  /**
+   * The label a record's state is written under. Default `State`. A corpus that
+   * writes `**Status:** Done` passes `label: 'Status'` (bug 0444).
+   */
+  readonly label?: string
+  /** Other labels read as the state, beside {@link label}: `aliases: ['Status']`. */
+  readonly aliases?: readonly string[]
+}
+
+/** The state label in force for these options, as one regex source. */
+function labelFor(options: HonestyAtCloseOptions): string {
+  return stateLabel([options.label ?? 'State', ...(options.aliases ?? [])])
+}
+
+/** How a label set reads in a message: `State`, or `State or Status`. */
+function labelsNamed(options: HonestyAtCloseOptions): string {
+  return [options.label ?? 'State', ...(options.aliases ?? [])].join(' or ')
 }
 
 const DEFAULT_DONE_FOLDERS = ['/completed/', '/fixed/', '/wont-do/', '/delivered/', '/archived/']
@@ -145,10 +162,19 @@ function resolveVocabulary(
   )
 }
 
-// The `State:` label, in the grammar this dialect shares with
-// `links().areLabelled()` (`model/label.ts`, plan 0405). The colon is required in
-// every form; why is recorded there. The ledger compiles it case-insensitively.
-const LABEL = labelPattern('State')
+/**
+ * The state label, and its aliases, in the grammar this dialect shares with
+ * `links().areLabelled()` (`model/label.ts`, plan 0405), as one regex source.
+ * The default is `State`; a corpus that writes `Status` passes its own (bug 0444:
+ * the label used to be a constant, so a `Status:` record had no readable state
+ * and the placement half never ran on it, silently). The colon is required in
+ * every form; why is recorded in `model/label.ts`. The ledger compiles it
+ * case-insensitively.
+ */
+function stateLabel(labels: readonly string[]): string {
+  return `(?:${labels.map((l) => labelPattern(l)).join('|')})`
+}
+const DEFAULT_LABEL = stateLabel(['State'])
 // An emphasis wrapper or a leading symbol on the value — `**Done**`, `` `Done` ``,
 // `✅ Done`. Markdown, not vocabulary.
 const WRAP = String.raw`(?:\*\*|__|\x60|_)?(?:[^\w\s'’-]+\s*)?`
@@ -181,20 +207,21 @@ const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  * (for `isDoneItem`, which calls this with `terminalStates` directly) relying
  * on `[].includes('')` being `false` by accident rather than by design.
  */
-function stateMatcher(states: readonly string[]): RegExp {
+function stateMatcher(states: readonly string[], label: string): RegExp {
   if (states.length === 0) return /(?!)/ // never matches: forces the UNREADABLE_RE fallback
   const alts = [...states]
     .sort((a, b) => b.length - a.length)
     .map((s) => escapeRe(s).replace(/['’]/g, "['’]"))
     .join('|')
-  return new RegExp(`${LABEL}${WRAP}(${alts})(?![\\w'’-])`, 'i')
+  return new RegExp(`${label}${WRAP}(${alts})(?![\\w'’-])`, 'i')
 }
 
 // Fallback: the line IS a state declaration, but its value is not in the
 // vocabulary. Used only to name the offending value in the message — so it
 // captures up to the house `—` separator rather than one whitespace-delimited
 // token, or a multi-word state would be reported by its first word alone.
-const UNREADABLE_RE = new RegExp(`${LABEL}(\\S[^—–]*?)\\s*(?:[—–].*)?$`, 'i')
+const unreadableRe = (label: string): RegExp =>
+  new RegExp(`${label}(\\S[^—–]*?)\\s*(?:[—–].*)?$`, 'i')
 const ELIDE = 32
 
 // Any one of these on a box's line marks it *disposed* (not silent). Tokens are
@@ -217,18 +244,21 @@ export function findState(
   text: string,
   vocabulary: readonly string[],
   root?: Root,
+  label: string = DEFAULT_LABEL,
 ): { state?: string; raw: string; line: number } | null {
   // Prose only, read as CommonMark reads it, so an illustrative `**State:** Draft` in a code block is
   // not the document's own (bugs 0286, 0287) — by the parser the task-box pass uses.
-  return stateIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary)
+  return stateIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary, label)
 }
 
 /** The first `State:` token in the header region of these lines — `findState`'s scan. */
 function stateIn(
   lines: readonly string[],
   vocabulary: readonly string[],
+  label: string,
 ): { state?: string; raw: string; line: number } | null {
-  const known = stateMatcher(vocabulary)
+  const known = stateMatcher(vocabulary, label)
+  const unreadableLine = unreadableRe(label)
   const canonical = (m: string): string =>
     vocabulary.find(
       (s) => s.toLowerCase().replace(/’/g, "'") === m.toLowerCase().replace(/’/g, "'"),
@@ -248,7 +278,7 @@ function stateIn(
     const line = lines[i] ?? ''
     const hit = known.exec(line)
     if (hit?.[1] !== undefined) return { state: canonical(hit[1]), raw: hit[1], line: i + 1 }
-    const unreadable = UNREADABLE_RE.exec(line)
+    const unreadable = unreadableLine.exec(line)
     if (unreadable?.[1] !== undefined) {
       const raw = unreadable[1]
       return { raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 }
@@ -277,9 +307,10 @@ function hasTerminalState(
   doc: MdDocument,
   states: readonly string[],
   terminalStates: readonly string[],
+  label: string,
 ): boolean {
   const known = [...new Set([...states, ...terminalStates])]
-  const found = findState(doc.text, known, doc.root)
+  const found = findState(doc.text, known, doc.root, label)
   if (found?.state === undefined) return false
   const token = foldState(found.state)
   return terminalStates.some((t) => foldState(t) === token)
@@ -290,9 +321,10 @@ function isDoneItem(
   doneFolders: readonly string[],
   states: readonly string[],
   terminalStates: readonly string[],
+  label: string,
 ): boolean {
   if (doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))) return true
-  return hasTerminalState(doc, states, terminalStates)
+  return hasTerminalState(doc, states, terminalStates, label)
 }
 
 const v = (
@@ -323,9 +355,10 @@ function headerStateViolation(
   closeInPlace: boolean,
   states: readonly string[],
   terminalStates: readonly string[],
+  label: string,
 ): ArchViolation | null {
   const known = [...new Set([...states, ...terminalStates])]
-  const found = findState(doc.text, known, doc.root)
+  const found = findState(doc.text, known, doc.root, label)
   if (!found) return null // no State line at all → this document is not an item
 
   if (found.state === undefined) {
@@ -339,7 +372,7 @@ function headerStateViolation(
     )
   }
 
-  const terminal = hasTerminalState(doc, states, terminalStates)
+  const terminal = hasTerminalState(doc, states, terminalStates, label)
   if (inDoneFolder && !terminal) {
     return v(
       'ledger/state-folder-mismatch',
@@ -419,10 +452,11 @@ function isDoneItemPredicate(
   doneFolders: readonly string[],
   states: readonly string[],
   terminalStates: readonly string[],
+  label: string,
 ): Predicate<MdDocument> {
   return {
     description: 'is a done item',
-    test: (doc) => isDoneItem(doc, doneFolders, states, terminalStates),
+    test: (doc) => isDoneItem(doc, doneFolders, states, terminalStates, label),
   }
 }
 
@@ -444,10 +478,11 @@ function belongsToADoneItem(
   doneFolders: readonly string[],
   states: readonly string[],
   terminalStates: readonly string[],
+  label: string,
 ): Predicate<MdTaskItem> {
   return {
     description: 'belongs to a done item',
-    test: (t) => isDoneItem(t.doc, doneFolders, states, terminalStates),
+    test: (t) => isDoneItem(t.doc, doneFolders, states, terminalStates, label),
   }
 }
 
@@ -482,13 +517,17 @@ function unterminatedFenceViolation(doc: MdDocument): ArchViolation | null {
  * The header ends where the prose's second heading does. A `##` line inside a code block — a shell
  * comment, a template's skeleton — is not a heading, and counting it would end the search above the line.
  */
-function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchViolation | null {
+function stateInCodeViolation(
+  doc: MdDocument,
+  known: readonly string[],
+  label: string,
+): ArchViolation | null {
   const prose = proseText(doc.text, 'code-blocks', doc.root).split('\n')
-  if (stateIn(prose, known) !== null) return null
+  if (stateIn(prose, known, label) !== null) return null
   const raw = doc.text
     .split('\n')
     .map((line, i) => (/^##\s/.test(line) && prose[i] !== line ? '' : line))
-  const hidden = stateIn(raw, known)
+  const hidden = stateIn(raw, known, label)
   if (hidden === null) return null
   return {
     rule: 'ledger/state-in-code',
@@ -509,6 +548,7 @@ function headerStateCondition(
   closeInPlace: boolean,
   states: readonly string[],
   terminalStates: readonly string[],
+  label: string,
 ): Condition<MdDocument> {
   return {
     description: 'have a readable State: line that matches its folder',
@@ -521,13 +561,66 @@ function headerStateCondition(
         const fence = unterminatedFenceViolation(doc)
         if (fence) out.push(fence)
         else {
-          const hidden = stateInCodeViolation(doc, [...new Set([...states, ...terminalStates])])
+          const hidden = stateInCodeViolation(
+            doc,
+            [...new Set([...states, ...terminalStates])],
+            label,
+          )
           if (hidden) out.push(hidden)
         }
-        const found = headerStateViolation(doc, inDoneFolder, closeInPlace, states, terminalStates)
+        const found = headerStateViolation(
+          doc,
+          inDoneFolder,
+          closeInPlace,
+          states,
+          terminalStates,
+          label,
+        )
         if (found) out.push(found)
       }
       return out
+    },
+  }
+}
+
+/**
+ * Condition over a whole lane: at least one record carries a state line under the
+ * label in force (bug 0444). Reported once, on the first record, naming the label,
+ * so a corpus that writes `Status:` is told to pass `label` rather than passing
+ * with its placement half silently off.
+ */
+function laneHasStateCondition(
+  states: readonly string[],
+  terminalStates: readonly string[],
+  label: string,
+  named: string,
+): Condition<MdDocument> {
+  const known = [...new Set([...states, ...terminalStates])]
+  return {
+    description: `have a ${named}: line somewhere in the lane`,
+    evaluate(elements: MdDocument[], _ctx: ConditionContext): ArchViolation[] {
+      // A state line anywhere in a header counts, even one inside code or behind
+      // an unclosed fence: those get their own, more precise finding
+      // (`ledger/state-in-code`, `ledger/unterminated-fence`), one cause each.
+      const hasStateLine = (doc: MdDocument): boolean =>
+        findState(doc.text, known, doc.root, label) !== null ||
+        stateInCodeViolation(doc, known, label) !== null ||
+        unterminatedFenceViolation(doc) !== null
+      if (elements.some(hasStateLine)) return []
+      const first = elements[0]
+      if (first === undefined) return []
+      return [
+        {
+          rule: 'ledger/no-readable-state',
+          element: first.relPath,
+          file: first.file,
+          line: 1,
+          message: `none of the ${String(elements.length)} records in this lane has a ${named}: line, so no record's state was read and the state/folder check ran on none of them`,
+          because:
+            'a lane whose state is never read passes the placement check with nothing checked',
+          suggestion: `pass the label your records use (label: 'Status', or aliases: ['Status']), or, if these documents are not records, list them in boardFiles`,
+        },
+      ]
     },
   }
 }
@@ -664,14 +757,26 @@ export function honestyAtClose(
   const closeInPlace = options.closeInPlace ?? false
   const { states, terminalStates } = resolveVocabulary(options, 'honestyAtClose')
   const expectEmptyHeaders = options.expectEmptyHeaders ?? false
+  const label = labelFor(options)
 
   let headerRule = docs(corpus)
     .that()
     .satisfy(notBoardFile(boardFiles))
     .should()
-    .satisfy(headerStateCondition(doneFolders, closeInPlace, states, terminalStates))
+    .satisfy(headerStateCondition(doneFolders, closeInPlace, states, terminalStates, label))
   if (expectEmptyHeaders) headerRule = headerRule.expectEmpty()
   const headerViolations = headerRule.violations()
+
+  // Bug 0444: a lane whose records carry no state line under the label in force
+  // was read as "no items", so the placement half never ran and nothing said so.
+  // One finding for the lane when it examined records and none has a state line.
+  let laneRule = docs(corpus)
+    .that()
+    .satisfy(notBoardFile(boardFiles))
+    .should()
+    .satisfy(laneHasStateCondition(states, terminalStates, label, labelsNamed(options)))
+  if (expectEmptyHeaders) laneRule = laneRule.expectEmpty()
+  const laneViolations = laneRule.violations()
 
   // Open task items, collected once and reused for both peeks below. "Any
   // done item exists" is too coarse a signal on its own — most done items
@@ -692,12 +797,12 @@ export function honestyAtClose(
   // than through that predicate object, so a corruption of
   // `belongsToADoneItem` itself doesn't also blind this peek.
   const anyOpenBoxOnADoneItem = openTaskItems.some((t) =>
-    isDoneItem(t.doc, doneFolders, states, terminalStates),
+    isDoneItem(t.doc, doneFolders, states, terminalStates, label),
   )
   let silentBoxRule = taskItems(corpus)
     .that()
     .areOpen()
-    .satisfy(belongsToADoneItem(doneFolders, states, terminalStates))
+    .satisfy(belongsToADoneItem(doneFolders, states, terminalStates, label))
     .should()
     .satisfy(dispositionCondition())
   if (!anyOpenBoxOnADoneItem) silentBoxRule = silentBoxRule.expectEmpty()
@@ -713,12 +818,12 @@ export function honestyAtClose(
   // peek too.
   const anyDeferredDisposedBoxOnADoneItem = openTaskItems.some(
     (t) =>
-      isDoneItem(t.doc, doneFolders, states, terminalStates) &&
+      isDoneItem(t.doc, doneFolders, states, terminalStates, label) &&
       DEFERRED_DISPOSITION_RE.test(t.text),
   )
   let deferredLieRule = docs(corpus)
     .that()
-    .satisfy(isDoneItemPredicate(doneFolders, states, terminalStates))
+    .satisfy(isDoneItemPredicate(doneFolders, states, terminalStates, label))
     .satisfy({
       description: 'carries a box disposed as deferred→<home>',
       test: (doc: MdDocument) => hasDeferredDisposedBox(doc),
@@ -731,7 +836,12 @@ export function honestyAtClose(
   // Merged, not spread: all three are receipts, and a spread would discard every
   // `examined` this preset just earned — the denominator `check:ledger` prints.
   return finishPreset(
-    mergeCollectResults([headerViolations, silentOpenBoxViolations, deferredLieViolations]),
+    mergeCollectResults([
+      headerViolations,
+      laneViolations,
+      silentOpenBoxViolations,
+      deferredLieViolations,
+    ]),
     options,
   )
 }
@@ -767,6 +877,7 @@ export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {})
   const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
   const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
   const { states, terminalStates } = resolveVocabulary(options, 'ledgerStats')
+  const label = labelFor(options)
   const known = [...new Set([...states, ...terminalStates])]
 
   let scanned = 0
@@ -777,10 +888,10 @@ export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {})
     const base = doc.relPath.split('/').pop() ?? doc.relPath
     if (boardFiles.has(base)) continue
     scanned += 1
-    const found = findState(doc.text, known, doc.root)
+    const found = findState(doc.text, known, doc.root, label)
     if (found?.state !== undefined) withReadableState += 1
     else if (found !== null) unreadableState += 1
-    if (isDoneItem(doc, doneFolders, states, terminalStates)) doneItems += 1
+    if (isDoneItem(doc, doneFolders, states, terminalStates, label)) doneItems += 1
   }
   return { scanned, withReadableState, unreadableState, doneItems }
 }

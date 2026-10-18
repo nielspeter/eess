@@ -178,7 +178,9 @@ describe('honestyAtClose — the State line sits under ## Status, as every recor
     // The region is the preamble plus the FIRST section. A `State:` mentioned in
     // prose further down is not this document's state.
     const f = findingsOf(() => honestyAtClose(corpusFor('green-state-mentioned-later.md')))
-    expect(f).toEqual([])
+    // Nothing reads it as the document's state. Since bug 0444 a lane where no
+    // record's state is read is itself reported, so that is the one finding.
+    expect(f.map((v) => v.rule)).toEqual(['ledger/no-readable-state'])
   })
 })
 
@@ -216,7 +218,8 @@ describe('honestyAtClose — the State value is read, not grabbed', () => {
   ])('does not read %s as a state declaration at all', (line) => {
     // The colon is required. Without it, any line starting with the word "State"
     // became a declaration and reported its second word as the state.
-    expect(readsAs(line)).toHaveLength(0)
+    // The one finding is the lane's (bug 0444): no record's state was read.
+    expect(readsAs(line).map((v) => v.rule)).toEqual(['ledger/no-readable-state'])
   })
 
   it('supports a multi-word vocabulary, which (\\S+) could not express', () => {

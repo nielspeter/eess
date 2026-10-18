@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16; reproduced here on main's build. No red test yet.
+- **State:** Fixed — 2026-10-18, in PR #236 (with bugs 0467, 0466 and 0465).
 - **Severity:** High — a false green on the gate's own claim. Two of three adopter corpora that use
   this preset write `Status:` in most lanes, so its state-to-folder half never runs for them, and the
   preset reports nothing about it.
@@ -49,10 +49,19 @@ option), never to every folder under a root. An adopter runs its ledger over fol
 state (UI extractions, mail drafts, index files), and those must stay quiet (proposal 017, "Consumer
 follow-up — 2026-10-18").
 
+## Resolution
+
+`honestyAtClose` and `ledgerStats` take `label` (default `State`) and `aliases`, threaded through every
+reader in the preset. A new finding, `ledger/no-readable-state`, is raised once per call when the
+call examined records and none carries a state line under the label in force. A record whose only
+state line is in code, or behind an unclosed fence, already gets its own finding, so it does not
+also count toward this one. Four existing tests asserted that a single stateless document passes;
+they now assert that this lane finding is their one finding. This is the flagged break.
+
 ## Verification
 
-- [ ] Red first: the five-record corpus above, through the public preset
-- [ ] Green, with a non-vacuity row for each of 0002 and 0005, and one for a lane with no readable state
-- [ ] A folder under the root that is not a declared lane gives no finding
+- [x] Red first: the five-record corpus above, through the public preset (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`, red on main)
+- [x] done-otherwise: green, with sabotage rows instead of `check:nonvacuity` fixtures. Ignoring the label turns the 0002/0005 row red, and switching the lane finding off turns its row red
+- [x] done-otherwise: `honestyAtClose` has no lane list, since each call is a lane. A stateless folder beside records that carry a state gives no finding (the mixed-lane row)
 
 Deferred: none
