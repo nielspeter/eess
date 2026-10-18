@@ -238,11 +238,15 @@ Where the build departed from the text above, each overrulable:
   renamed to say so.
 - **The dogfood rule** is `corpus/closed-records-sit-in-done-folders` over both lanes, written as
   `or()` of `and()`s. It keeps its own receipt (the first cut borrowed `state-present`'s count,
-  caught by three reviewers), and its summary line prints the live records it judged. Measured:
+  caught by three reviewers), and its summary line prints the live-record population beside it (`state-present`'s count, the
+  same records: display only, not the receipt). Measured:
   0 closed of 221 live records, 0 undecided causes. Three non-vacuity rows, one per lane plus the
   undecided case; the plans lane had none in the first cut, and dropping it stayed green.
-- **Red first:** 12 of the 15 kernel tests written first failed on the base; the 3 that passed pin
-  behaviour that must not change (a decided subject, and `matchingElements` over decided subjects).
+- **Red first:** the kernel tests were written before the code. Measured again on the final file
+  against the base (f888eef, the ruling's head): 21 of its 25 tests fail. The 4 that pass pin
+  behaviour that must not change (a combinator over inputs that cannot be undecided declares no
+  `undecided`; a subject another input decides is not reported; `matchingElements` over decided
+  subjects is unchanged) or are the type-level pin, which a run cannot fail.
 - **Cost, measured after the memo** (2,000 records with 5 boxes each, three runs): the lifted rule
   takes 72–84 ms against 36–41 ms for the same rule with a text predicate, where the spike measured
   450 against 42 before the memo. With every tenth record undecided it reports those 200 causes.
@@ -268,36 +272,40 @@ Deferred: none
 
 **Sabotage matrix, 2026-10-18.** Every row but 7b and 14 ran together at fa68d93; rows 7b and 14,
 whose anchors the review fixes moved, ran at fa68d93 after re-anchoring; rows 6, 9 and 16 ran again at
-91dfebd after a change to `rule-builder.ts`. Each row: baseline green, sabotage applied, its package
+91dfebd after a change to `rule-builder.ts`. Row 20 as first written removed the guard that leaves
+out the generic finding, which reds a different test than the one it named (its own output said so,
+and PR #244's testing and method verifications caught the table claiming otherwise); it was
+rewritten to the first cut's line, and it and row 23 ran at 0b7651e. Each row: baseline green, sabotage applied, its package
 rebuilt, its named test run, the file restored by `git checkout`, tree clean after. The full run
 took 54 s, its 21 rows 47 s and the baseline the rest. Rows 11 and 12 are type-correct mutants (an
 earlier run's were not, and broke eess-md's type build).
 
-| row | sabotage                                                | red      | named test in the failure                                                 | time |
-| --- | ------------------------------------------------------- | -------- | ------------------------------------------------------------------------- | ---- |
-| 1   | kernel `not` stops forwarding `undecided`               | core     | not(): unknown stays unknown                                              | 1.9s |
-| 2   | kernel `and`/`or` drop `kleene`                         | core     | and(): a decided false input decides false; otherwise unknown wins        | 2.0s |
-| 3   | eess-ts `not` stops forwarding                          | ts       | not() carries undecided, and the builder refuses naming the cause         | 3.7s |
-| 4   | `not`'s `test` back to negating                         | core     | not()'s test refuses rather than negating a guess                         | 2.0s |
-| 5   | `membership` loses its short-circuit                    | core     | a subject another input decides is not reported                           | 2.0s |
-| 6   | membership by `test` alone in `partition`               | core     | reports the cause once, unsuppressable, and selects only decided subjects | 2.0s |
-| 7   | `matchingElements` filters by `test`                    | core     | matchingElements throws, naming the first cause                           | 2.0s |
-| 7b  | `selectMatching` filters by `test`                      | core, md | select() throws, naming the first cause                                   | 2.7s |
-| 8   | `haveField`'s `test` stops refusing                     | md       | a hand wrapper around test() refuses, naming the cause                    | 2.2s |
-| 9   | the empty-selection return drops the causes             | core     | a rule whose every subject is undecided reports the causes …              | 2.0s |
-| 10  | `bypassFilters` removed                                 | core     | the `[bypass]` assertions                                                 | 2.0s |
-| 11  | `inScope` back to two values                            | md       | block 12                                                                  | 2.2s |
-| 12  | `unnamedFormFindings` drops undecided candidates        | md       | fields() over an undecided document reports the cause …                   | 2.2s |
-| 13  | the memo answers with another document's verdict        | md       | block 12                                                                  | 2.2s |
-| 14  | `kleene`'s cache ignores the element                    | core     | a subject another input decides is not reported                           | 2.0s |
-| 15  | the finding inherits the rule's suggestion              | core     | … never the rule suggestion                                               | 2.0s |
-| 16  | an absence rule claims declared emptiness beside causes | core     | an absence rule whose every subject is undecided is not green             | 2.0s |
-| 17  | `haveField` decides on `has`, not on `resolved`         | md       | a resolved value outside oneOf is decided false …                         | 2.2s |
-| 18  | eess-ts `select()` takes the kernel's door              | ts       | select() refuses with a remedy that is true in eess-ts                    | 3.7s |
-| 19  | `violations()` drops the undecided count                | core     | one cause shared by many subjects is one finding                          | 2.0s |
-| 20  | the terminal drops a specific zero-examined finding too | core     | a more specific zero-examined finding still stands beside the causes      | 2.0s |
-| 21  | `fields()` keeps its duplicate of a cause               | md       | fields() reports a cause once …                                           | 2.2s |
-| 22  | `fields()` does not count its causes in the receipt     | md       | fields() over an undecided document reports the cause …                   | 2.2s |
+| row | sabotage                                                                       | red      | named test in the failure                                                 | time |
+| --- | ------------------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------- | ---- |
+| 1   | kernel `not` stops forwarding `undecided`                                      | core     | not(): unknown stays unknown                                              | 1.9s |
+| 2   | kernel `and`/`or` drop `kleene`                                                | core     | and(): a decided false input decides false; otherwise unknown wins        | 2.0s |
+| 3   | eess-ts `not` stops forwarding                                                 | ts       | not() carries undecided, and the builder refuses naming the cause         | 3.7s |
+| 4   | `not`'s `test` back to negating                                                | core     | not()'s test refuses rather than negating a guess                         | 2.0s |
+| 5   | `membership` loses its short-circuit                                           | core     | a subject another input decides is not reported                           | 2.0s |
+| 6   | membership by `test` alone in `partition`                                      | core     | reports the cause once, unsuppressable, and selects only decided subjects | 2.0s |
+| 7   | `matchingElements` filters by `test`                                           | core     | matchingElements throws, naming the first cause                           | 2.0s |
+| 7b  | `selectMatching` filters by `test`                                             | core, md | select() throws, naming the first cause                                   | 2.7s |
+| 8   | `haveField`'s `test` stops refusing                                            | md       | a hand wrapper around test() refuses, naming the cause                    | 2.2s |
+| 9   | the empty-selection return drops the causes                                    | core     | a rule whose every subject is undecided reports the causes …              | 2.0s |
+| 10  | `bypassFilters` removed                                                        | core     | the `[bypass]` assertions                                                 | 2.0s |
+| 11  | `inScope` back to two values                                                   | md       | block 12                                                                  | 2.2s |
+| 12  | `unnamedFormFindings` drops undecided candidates                               | md       | fields() over an undecided document reports the cause …                   | 2.2s |
+| 13  | the memo answers with another document's verdict                               | md       | block 12                                                                  | 2.2s |
+| 14  | `kleene`'s cache ignores the element                                           | core     | a subject another input decides is not reported                           | 2.0s |
+| 15  | the finding inherits the rule's suggestion                                     | core     | … never the rule suggestion                                               | 2.0s |
+| 16  | an absence rule claims declared emptiness beside causes                        | core     | an absence rule whose every subject is undecided is not green             | 2.0s |
+| 17  | `haveField` decides on `has`, not on `resolved`                                | md       | a resolved value outside oneOf is decided false …                         | 2.2s |
+| 18  | eess-ts `select()` takes the kernel's door                                     | ts       | select() refuses with a remedy that is true in eess-ts                    | 3.7s |
+| 19  | `violations()` drops the undecided count                                       | core     | one cause shared by many subjects is one finding                          | 2.0s |
+| 20  | the terminal drops a specific zero-examined finding too (the first cut's line) | core     | a more specific zero-examined finding still stands beside the causes      | 2.0s |
+| 21  | `fields()` keeps its duplicate of a cause                                      | md       | fields() reports a cause once …                                           | 2.2s |
+| 22  | `fields()` does not count its causes in the receipt                            | md       | fields() over an undecided document reports the cause …                   | 2.2s |
+| 23  | de-duplication against every finding, not only unsuppressable ones             | core     | a condition finding with the same text does not stand in for the cause    | 2.0s |
 
 The matrix script and its output are this session's scratch files, not kept in the repository: the
 table is the record.
