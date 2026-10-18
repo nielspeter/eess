@@ -110,13 +110,14 @@ every occurrence in one document:
 per value, all on the label's line. `terms()` reads exactly what it reads today.
 
 **The value.** The default, `cleanValue`, removes paired emphasis delimiters (`**x**`, `_x_`,
-`` `x` ``), never a lone `_` inside a word. It removes a leading or trailing pictograph with its
+`` `x` ``, `~~x~~`), never a lone `_` inside a word. It removes a leading or trailing pictograph with its
 variation selector, then trims and collapses whitespace. So `in_progress` and `C++` survive. It cuts
 nothing. A caller's `value` replaces it; `cleanValue` is exported for a caller to compose. Two helpers
 are exported, and neither is a default:
 
-- `untilDelimiter(chars)` cuts at the first delimiter;
-- `longestOf(allowed)` takes the longest allowed value the text starts with.
+- `untilDelimiter(chars)` cuts at the first delimiter and trims;
+- `longestOf(allowed)` takes the longest allowed value the text starts with, ignoring case, and
+  returns the text unchanged when none matches, so the check reports it.
 
 **Checking a value: `resolveAgainst`, extended, not a second condition.** `TermRuleBuilder`
 already checks set membership (`packages/md/src/builders/vocabulary.ts:172`), normalising both
@@ -124,11 +125,15 @@ sides with the vocabulary's `normalize`. It gains one input type:
 
 - `resolveAgainst(allowed: Vocabulary | RegExp)`;
 - a `RegExp` must match the whole value, and a copy is compiled without `g`/`y`;
-- the finding names the value as written, the label and the line:
+- a `fields()` finding names the value as written, the label and the line. It never lists the set,
+  which for a vocabulary built from folders can hold hundreds of terms:
 
 ```
-'Shipped' (Status, line 3) is not in the allowed set (open, fixed, closed)
+'Shipped' (Status, line 3) does not resolve against the vocabulary (5 terms)
+'Shipped' (Status, line 3) does not match /(open|fixed)/
 ```
+
+A `terms()` element keeps today's message unchanged (`packages/md/src/builders/vocabulary.ts:145`).
 
 **A form the caller did not name is a finding, never a silent skip.** This is the second Review's
 enforcement condition. The scan:
@@ -149,12 +154,21 @@ A label matching nothing at all gives the kernel's zero-examined finding (ADR-01
 recorded in proposal 017: an alias the caller did not name cannot be known. Plan 0469's "no field"
 finding lists the wrapped labels the document does carry instead.
 
-**Dogfooding.** `check:corpus` gains a rule over the `Severity` values on this repository's live bugs.
-It is written with `untilDelimiter(['—'])` and `resolveAgainst(/(Critical|High|Medium|Low)\b.*/)`. A
-`check:nonvacuity` row changes one bug's Severity to `Hgh`. Live values include `Low-to-medium` and
-`Medium under Bun` (measured 2026-10-18). Both match the pattern, which is the reason it is a pattern
-and not a set. Phase 3 measures the count, and any value outside the pattern is fixed or recorded,
-never excluded silently.
+**Dogfooding.** `check:corpus` gains one rule per lane over the `State` values on this repository's live
+plans and bugs. Each rule uses `longestOf(states)` as its `value` and resolves against a vocabulary of
+the same states, which are the lane vocabularies `scripts/check-ledger.mjs:59-67` already declares.
+`check:ledger` reads every record's state with those vocabularies today (405 records, these among them), so the rule should be
+green on its first run; Phase 3 measures that. A `check:nonvacuity` row changes one bug's State to
+`Drfat`.
+
+`Severity` is not dogfooded, because the values are not ready for it. Measured 2026-10-18 over 170
+live bold `Severity` lines:
+
+- after `cleanValue` and `untilDelimiter(['—'])`, 7 still match no level, because they write prose
+  instead (bugs 0174, 0175, 0177, 0178, 0180, 0181, 0182);
+- 22 live bugs have no `Severity` line at all.
+
+Giving each of those a level is a judgement per bug, and not part of this build.
 
 ## Phases
 
@@ -192,12 +206,12 @@ never excluded silently.
 - **Every occurrence yielded.** An alias is reported with its own `label`.
 - **Multi-line values:** stop at a blank line, a heading, another label, and the end of the list item.
   A `heading` value stops at its own line.
-- **`cleanValue`:** `✅ Fixed`, `**Fixed**` and `` `Fixed` `` give `Fixed`; `in_progress` and `C++`
+- **`cleanValue`:** `✅ Fixed`, `**Fixed**`, `~~Fixed~~` and `` `Fixed` `` give `Fixed`; `in_progress` and `C++`
   stay as they are; a typographic apostrophe is kept.
 - **Helpers:** `untilDelimiter` on `High — reason`; `longestOf` on `In progress (blocked)`.
 - **`split`:** one element per value, each on the label's line.
 - **`resolveAgainst`:**
-  - the message above, verbatim, for both a set and a `RegExp`;
+  - the two messages above, verbatim; a `terms()` element's message unchanged;
   - `/fixed/` rejects `unfixed`, because the match is whole-value;
   - a `/g` pattern gives the same result on its second document.
 - **Unnamed forms:**

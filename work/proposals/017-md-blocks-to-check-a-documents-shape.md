@@ -752,8 +752,8 @@ From enforcement, beyond the acceptance criteria above:
   unscoped one is red.
 
   > **Narrowed (plan 0457's review, 2026-10-18).** On a cardinality rule (`notExist()`), a scope that
-  > selects no document is not a finding: ADR-010 §3 and ADR-018 C3 make an absence rule's empty
-  > match legitimate, and a plan cannot reverse a binding ADR. The finding holds for positive rules.
+  > selects no document is not a finding: ADR-010 §3 (Accepted) makes an absence rule's empty
+  > match legitimate, as ADR-018 C3 (still Proposed) would, and a plan cannot reverse a binding ADR. The finding holds for positive rules.
 
 - Block 13: values compare through block 1's normaliser (`066` and `0066`), which is also the architect's "exact keys, normalisation is the caller's", since `beUniqueBy` keys on the value block 1 has already normalised; every member of a group
   is named; the denominator is stated (values, not documents).
@@ -955,7 +955,7 @@ emphasis inside a value and a typographic apostrophe.
 
 **Plannable now**, as closable plans, in order: block 7; the kernel `notExist` and `beUniqueBy`
 (blocks 6 and 13, with gherkin's `haveUniqueTitles` rebuilt on `beUniqueBy`); block 12 with
-`isFrozen()`; block 17 as bug 0445's fix. **Not yet:** blocks 1 and 2 (after bug 0403, as two plans:
+`isFrozen()`; block 17 as bug 0445's fix. **Not yet** (superseded 2026-10-18 by "Blocks 1 and 2, planned" under "Planning": plans 0468 and 0469)**:** blocks 1 and 2 (after bug 0403, as two plans:
 the reader, then `haveField` with its resolver); block 5 (after the ADR in the second Review's
 decision 1; bug 0444's label option ships before it as a fix).
 
@@ -1017,4 +1017,8 @@ overruled them.
 >   submission below its current header (proposals 010 and 016 do) resolves as a conflict.
 > - **Block 12 lifting block 2.** `haveField` is a method on `docs()` and ships no exported
 >   `Predicate<MdDocument>`. Through `inDocuments` its findings would be dropped, so lifting it waits
->   until `inDocuments` has a way to carry them.
+>   for [plan 0470](../plans/0470-a-lifted-predicate-carries-its-findings.md), which gives `inDocuments`
+>   a way to carry them. "Documents whose Status is done hold no open box" (block 12's own example,
+>   and adopter 1's most wanted) needs it.
+> - **Severity is not dogfooded** by plan 0468: 7 of 170 live values give no level, and 22 live
+>   bugs carry none.

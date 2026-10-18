@@ -521,8 +521,8 @@ peer, not a dependency, so it does not move. The four names land in the surface 
 - Teaching kernel combinators to forward a scope: the remedy is composing inside the scope.
 - The kernel's `cardinalitySelectorFault()` (bug 0460), md's glob-based override of it, and the
   empty-corpus source finding: plan 0456.
-- A cardinality-rule finding for a scope that matches no document: ADR-010 §3 and ADR-018 C3 make
-  it satisfaction. Changing that is an ADR amendment, not a plan.
+- A cardinality-rule finding for a scope that matches no document: ADR-010 §3 (Accepted) makes
+  it satisfaction, as ADR-018 C3 (still Proposed; its mechanism is gated) would. Changing that is an ADR amendment, not a plan.
 - A positive "at least one element exists" condition. The family has none, so the guard is written
   as a selection repeated in its condition. Recorded here as an observed gap for a later block of
   proposal 017, not built.

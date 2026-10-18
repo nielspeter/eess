@@ -58,16 +58,28 @@ precedence is decided in one place (decision 2).
 With `oneOf`, a field with several values is allowed only when every value is.
 
 **Every cause is reported, in either position.** `haveField` used as a selector must not drop a
-document without saying so (ADR-009). So the builder's `collectViolations` reports four causes, in
-both phases, as `links()` reports its declaration findings (`packages/md/src/builders/links.ts:140-150`):
+document without saying so (ADR-009). Three causes make a document's value unreadable, and the builder's
+`collectViolations` reports them in both phases, as `links()` reports its declaration findings
+(`packages/md/src/builders/links.ts:140-150`):
 
 - the conflict;
 - the unnamed form;
-- the disagreeing prose;
-- a resolved value outside `oneOf`.
+- the disagreeing prose.
+
+A readable value outside `oneOf` is different. Used as a condition, `haveField` reports it. Used as a
+selector, it is the filter doing its job: the document is not selected, and nothing is reported. A
+misspelt value is caught by a paired `fields(...).resolveAgainst(...)` rule instead (see the example
+below).
 
 They cover the documents the rule's **other** predicates keep, so a bugs-only rule never reports a
-README.
+README. "Other predicates" means the rule's own `.that()` predicates. `haveField` is a builder method,
+not an exported predicate, so it cannot sit inside an `or()` or `not()`. The specs it records are
+replaced on `fork()`, never pushed onto shared state (`packages/md/src/builders/links.ts:87-99`). A
+document gets one finding per cause even when the same spec is used in both phases.
+
+`.select()` is a door these findings do not pass through: a selection built with `haveField` leaves
+out an unreadable document without reporting it, as `links()` documents for its own declarations
+(`packages/md/src/builders/links.ts:63-65`). The method's JSDoc and the README say so.
 
 Each document gets one cause (ADR-009 rule 2). An unnamed-form finding replaces "no field" for that
 document. These are the messages:
@@ -117,10 +129,8 @@ misspelt value from a different one.
 
 **Dogfooding.** `check:corpus` gains a rule: every live plan and bug (`work/plans/*.md`,
 `work/bugs/*.md`, the board files excluded by name) has one `State` field in the `bold` form.
-Measured 2026-10-18 with fences stripped, every one has exactly one except
-[bug 0293](../bugs/0293-an-example-inside-an-html-block-is-read-as-prose.md), whose examples sit in
-HTML blocks that the reader reads as prose. That record is excluded with `.excluding()`, citing bug 0293. Under ADR-018 the exclusion becomes a finding once 0293 is fixed. A `check:nonvacuity` row
-removes the State line from one live bug.
+Measured 2026-10-18 with eess-md's own `proseText`, every live plan and bug has exactly one, so the
+rule needs no exclusion. A `check:nonvacuity` row removes the State line from one live bug.
 
 Proposals are left out. Two of them (010 and 016) keep their original submission, with its own
 `**State:**` line, below the current one, as the lane's rule asks. Telling those apart needs a
@@ -134,7 +144,7 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 2. **`haveField`.** The predicate and condition forms, `collectViolations` in both phases, and the
    messages above.
 3. **Dogfood, docs, release.** The `check:corpus` rule and its `check:nonvacuity` row, an example under
-   `examples/md/`, the eess-md README with the paired rule, `docs/markdown.md`, a changeset.
+   `examples/md/`, the eess-md README with the paired rule, a note that a record keeping an earlier status below its header resolves as a conflict until block 11, a glob that keeps a rule off frozen records, `docs/markdown.md`, a changeset.
 
 ## Files changed
 
@@ -162,8 +172,8 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 - **The condition:** each message above, word for word, and one cause per document.
 - **The predicate:**
   - it selects the documents that have the field, and with `oneOf` only the allowed ones;
-  - a conflicted document, an unnamed-form document and a disallowed-value document are each not
-    selected **and** reported;
+  - a conflicted document and an unnamed-form document are each not selected **and** reported;
+  - an `open` bug under `oneOf: /fixed/i` is not selected and not reported;
   - a document outside the other predicates is not reported.
 - **The example:** red on a fixed bug with no `Verification` section; green once the section is added.
 - **A selection of nothing:** the zero-examined finding.
@@ -181,8 +191,8 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 
 - **A value agreeing with its folder:** block 5, after its ADR. It reuses this resolver.
 - **An exported `Predicate<MdDocument>` for `inDocuments`.** Lifting `haveField` onto other elements
-  through block 12 would drop these findings, because `inDocuments` has no door for them. Exporting it
-  waits until that door is decided. It is recorded in proposal 017.
+  through block 12 would drop these findings, because `inDocuments` has no door for them. That door is
+  [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md).
 - **`honestyAtClose` rebuilt on `haveField`:** the second Review's decision 1, and bug 0444.
 - **A region limiting where a field is read:** block 11.
 - **Requiring `Severity`:** 22 live bugs carry none (measured 2026-10-18). Giving each one a level is a
