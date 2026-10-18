@@ -146,6 +146,7 @@ function combine<T, V>(
   const predicates = inputs.filter((input): input is Predicate<T> => typeof input !== 'function')
   return {
     description: predicates.map((p) => p.description).join(op === 'all' ? ' and ' : ' or '),
+    // Replaced by `kleene`'s `test` below when an input can be undecided: the spread comes after.
     test: (element: T) => holds(predicates, (p) => p.test(element)),
     // ADR-021: an input that can be undecided puts the pair on the one truth table, which overrides
     // the two-valued `test` above; inputs that cannot keep it, and pay nothing.

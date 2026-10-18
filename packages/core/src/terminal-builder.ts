@@ -200,6 +200,7 @@ export abstract class TerminalBuilder {
       sourceEmpty: evidenced.sourceEmpty,
       declaredEmpty: evidenced.declaredEmpty,
       deadGlob: evidenced.deadGlob,
+      undecided: evidenced.undecided,
     })
   }
 
@@ -301,9 +302,10 @@ export abstract class TerminalBuilder {
     // method to cyclomatic complexity 11 and the repo's own `check:arch` said so.
     // The ORDER is the content here, and it is unchanged.
     if (examined === 0) {
-      // ADR-021: zero examined because every subject was undecided is explained by those findings.
-      const zero =
-        undecided === undefined ? this.zeroExaminedFinding(sourceEmpty, deadGlob, fault) : undefined
+      // ADR-021: zero examined because every subject was undecided is explained by those findings, so
+      // the generic finding is not added; a more specific one (a dead glob, a selector fault, an unmet
+      // `.expectNonEmpty()`) still is.
+      const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob, fault, undecided !== undefined)
       return zero === undefined ? collectResult(violations, evidence) : withFinding(zero)
     }
     if (this._expectEmpty === true) {
@@ -328,6 +330,7 @@ export abstract class TerminalBuilder {
     sourceEmpty: boolean | undefined,
     deadGlob: string | undefined,
     fault: SelectorFault | undefined,
+    explained = false,
   ): ArchViolation | undefined {
     if (sourceEmpty === true) return zeroLoadedSourceViolation(this.facts())
     // After an empty source (ADR-010 §3), before every declaration: a broken
@@ -337,7 +340,7 @@ export abstract class TerminalBuilder {
     if (this._expectEmpty === false) return unmetExpectNonEmptyViolation(this.facts())
     if (this.assertsCardinality()) return undefined
     if (deadGlob !== undefined) return deadGlobViolation(this.facts(), deadGlob)
-    return zeroExaminedViolation(this.facts())
+    return explained ? undefined : zeroExaminedViolation(this.facts())
   }
 
   /**

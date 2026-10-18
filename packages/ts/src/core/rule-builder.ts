@@ -1,5 +1,5 @@
 import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
-import { TS_RULE } from './undecided-door.js'
+import { TS_RULE, TS_SELECT } from './undecided-door.js'
 import { conditionContextFrom } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
@@ -145,7 +145,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
     // The kernel's — this was byte-identical, and the hierarchies differ, so a
     // free function is the only way the two builders can share it.
-    return selectMatching(this.getElements(), this._predicates, opts)
+    return selectMatching(this.getElements(), this._predicates, opts, TS_SELECT)
   }
 
   /** This rule as declared — the input every description and advice reads. */

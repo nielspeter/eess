@@ -288,9 +288,10 @@ export function selectMatching<T>(
   elements: readonly T[],
   predicates: readonly Predicate<T>[],
   opts: { label: string; identify: (element: T) => ElementInfo },
+  door: string | Door = 'select()',
 ): Selection<T> {
   const { elements: admitted, undecided } = partition(elements, predicates)
-  refuseUndecided(undecided, 'select()')
+  refuseUndecided(undecided, door)
   return {
     elements: admitted,
     label: opts.label,
@@ -316,7 +317,7 @@ export function selectMatching<T>(
 export function matchingElements<T>(
   elements: readonly T[],
   predicates: readonly Predicate<T>[],
-  door: string | Door = 'this rule',
+  door: string | Door,
 ): T[] {
   const { elements: admitted, undecided } = partition(elements, predicates)
   // ADR-021 clause 6: this door hands back elements only, so an undecided subject is refused here

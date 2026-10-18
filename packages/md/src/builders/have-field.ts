@@ -23,11 +23,7 @@ function verdictOf(doc: MdDocument, spec: HaveFieldOptions): FieldVerdict {
 }
 
 /** A cause as a finding with the rule's context. */
-function causeViolation(
-  doc: MdDocument,
-  c: FieldCause,
-  context: ConditionContext,
-): ArchViolation {
+function causeViolation(doc: MdDocument, c: FieldCause, context: ConditionContext): ArchViolation {
   return mdViolation({
     element: c.element,
     file: doc.file,
@@ -59,10 +55,11 @@ export function haveFieldPredicate(spec: HaveFieldOptions): Predicate<MdDocument
     const known = verdicts.get(d)
     if (known !== undefined) return known
     const v = verdictOf(d, spec)
-    // Undecided only when the value itself cannot be read. A value that resolved, beside prose that
-    // disagrees or a label in an unread form, is decided: structured forms win (plan 0469), so the
-    // verdict does not depend on those causes (ADR-021 clause 4), and the condition form reports them.
-    const undecided = (v.has ? [] : v.causes)
+    // Undecided only when the value itself cannot be read. A value that resolved, allowed or not, is
+    // decided even beside prose that disagrees or a label in an unread form: structured forms win
+    // (plan 0469), so the verdict does not depend on those causes (ADR-021 clause 4), and the
+    // condition form reports them.
+    const undecided = (v.resolved ? [] : v.causes)
       .filter((c) => c.kind === 'unreadable')
       .map(
         (c): Undecided => ({ file: d.file, line: c.line, element: c.element, message: c.message }),

@@ -111,6 +111,17 @@ describe('the truth table (ADR-021 clause 2)', () => {
     expect(and(always, never).undecided).toBeUndefined()
     expect(not(never).undecided).toBeUndefined()
   })
+  it('the combinator cache answers an undefined element, as any other', () => {
+    const maybe: Predicate<string | undefined> = {
+      description: 'is set',
+      undecided: (s) =>
+        s === undefined ? [{ file: 'x', line: 1, element: 'x', message: 'unset' }] : [],
+      test: (s) => s !== undefined,
+    }
+    const both = and(maybe, { description: 'any', test: () => true })
+    expect(both.undecided?.(undefined)).toHaveLength(1)
+    expect(both.undecided?.('a')).toEqual([])
+  })
   it("a combinator's test() refuses a subject it cannot decide, naming the cause", () => {
     expect(() => and(always, u).test(unread)).toThrow(/unread: status cannot be read/)
   })
@@ -153,6 +164,25 @@ describe('a rule over an undecided subject (ADR-021 clauses 3, 5, 7)', () => {
       .notExist()
       .violations()
     expect(said(found)).toEqual(['unread.md:3: unread: status cannot be read [bypass]'])
+    // Zero examined over an absence rule is a declaration only when nothing was undecided.
+    expect(found.declaredEmpty).toBeUndefined()
+    expect(found.undecided).toBe(1)
+  })
+  it('a more specific zero-examined finding still stands beside the causes', () => {
+    const found = new ItemRules([unread])
+      .that()
+      .satisfy(statusIs('done'))
+      .should()
+      .beNamedA()
+      .expectNonEmpty()
+      .violations()
+    expect(said(found)[0]).toBe('unread.md:3: unread: status cannot be read [bypass]')
+    expect(found).toHaveLength(2)
+  })
+  it('a rule with no assertion names the causes beside its own finding', () => {
+    const found = new ItemRules([done, unread]).that().satisfy(statusIs('done')).violations()
+    expect(said(found)).toContain('unread.md:3: unread: status cannot be read [bypass]')
+    expect(found).toHaveLength(2)
   })
   it('a rule whose every subject is undecided reports the causes and no generic zero-examined finding', () => {
     const found = new ItemRules([unread])
@@ -173,6 +203,8 @@ describe('a rule over an undecided subject (ADR-021 clauses 3, 5, 7)', () => {
       .notExist()
       .violations()
     expect(said(found)).toEqual(['unread.md:3: unread: status cannot be read [bypass]'])
+    // Zero examined over an absence rule is a declaration only when nothing was undecided.
+    expect(found.declaredEmpty).toBeUndefined()
   })
   it('.excluding() naming the cause does not hide it', () => {
     const found = new ItemRules([unread])
@@ -193,7 +225,7 @@ describe('a rule over an undecided subject (ADR-021 clauses 3, 5, 7)', () => {
 
 describe('a door that hands no findings back refuses (ADR-021 clause 6)', () => {
   it('matchingElements throws, naming the first cause', () => {
-    expect(() => matchingElements([done, unread], [statusIs('done')])).toThrow(
+    expect(() => matchingElements([done, unread], [statusIs('done')], 'this caller')).toThrow(
       /unread: status cannot be read/,
     )
   })
@@ -204,7 +236,7 @@ describe('a door that hands no findings back refuses (ADR-021 clause 6)', () => 
     )
   })
   it('matchingElements over decided subjects is unchanged', () => {
-    expect(matchingElements([done, open], [statusIs('done')])).toEqual([done])
+    expect(matchingElements([done, open], [statusIs('done')], 'this caller')).toEqual([done])
   })
   it("select()'s refusal names select(), the door the caller used", () => {
     const rule = new ItemRules([unread]).that().satisfy(statusIs('done'))

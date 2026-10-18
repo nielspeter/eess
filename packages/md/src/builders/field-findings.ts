@@ -51,5 +51,12 @@ export function unnamedFormFindings(
       )
     }
   }
-  return [...undecidedViolations(causes, context, already), ...found]
+  const reported = undecidedViolations(causes, context, already)
+  // A cause and an unread-label finding can say the same thing at the same line; the unsuppressable
+  // one stands (ADR-021 clause 5).
+  const said = new Set(reported.map((v) => `${v.file}\u0000${String(v.line)}\u0000${v.message}`))
+  return [
+    ...reported,
+    ...found.filter((v) => !said.has(`${v.file}\u0000${String(v.line)}\u0000${v.message}`)),
+  ]
 }

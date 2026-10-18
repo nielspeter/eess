@@ -37,11 +37,24 @@ describe('eess-ts refuses an undecided subject (ADR-021)', () => {
   })
   it('and() and or() decide from the kernel truth table', () => {
     const p = project(tsconfig)
-    // A true branch decides or(): every class is selected, nothing is refused.
-    const decided = classes(p).that().satisfy(or(always, cannotJudge)).should().notExist()
-    expect(decided.violations().length).toBeGreaterThan(0)
-    // and() with a true branch leaves the subject undecided, and the builder refuses it.
-    const undecided = classes(p).that().satisfy(and(always, cannotJudge)).should().notExist()
-    expect(() => undecided.violations()).toThrow(/status cannot be read/)
+    const never: Predicate<ClassDeclaration> = { description: 'never', test: () => false }
+    // A decided branch decides: or(true, ?) selects every class, and(false, ?) selects none.
+    const all = classes(p).that().satisfy(or(always, cannotJudge)).should().notExist()
+    expect(all.violations().every((v) => v.message.includes('should not exist'))).toBe(true)
+    expect(all.violations().length).toBeGreaterThan(0)
+    const none = classes(p).that().satisfy(and(never, cannotJudge)).should().notExist()
+    expect(() => none.violations()).not.toThrow()
+    // An undecided branch the other does not decide is refused.
+    const andTrue = classes(p).that().satisfy(and(always, cannotJudge)).should().notExist()
+    expect(() => andTrue.violations()).toThrow(/status cannot be read/)
+    const orFalse = classes(p).that().satisfy(or(never, cannotJudge)).should().notExist()
+    expect(() => orFalse.violations()).toThrow(/status cannot be read/)
+  })
+  it('select() refuses with a remedy that is true in eess-ts', () => {
+    const rule = classes(project(tsconfig)).that().satisfy(cannotJudge)
+    const select = () =>
+      rule.select({ label: 'class', identify: (c) => ({ name: c.getName() ?? '' }) })
+    expect(select).toThrow(/^select\(\) cannot answer.*refuse an undecided subject/s)
+    expect(select).not.toThrow(/check\(\)/)
   })
 })

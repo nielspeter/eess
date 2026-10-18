@@ -347,6 +347,7 @@ export function executeCheck(
     sourceEmpty: violations.sourceEmpty,
     declaredEmpty: violations.declaredEmpty,
     deadGlob: violations.deadGlob,
+    undecided: violations.undecided,
   }
   let filtered = applyFilters(violations, ctx)
 

@@ -3457,6 +3457,18 @@ const gates = [
       ),
   ],
   [
+    // Plan 0486: the plans lane of the same rule (its two halves are an `or()`, and each must red).
+    'corpus/closed-records-plans',
+    () =>
+      gateCorpusStateProbe(
+        'plans',
+        '__nonvacuity_probe_closed_live_plan.md',
+        [...STATE_PROBE_HEAD, '- **State:** Done'],
+        'corpus/closed-records-sit-in-done-folders',
+        'should not exist',
+      ),
+  ],
+  [
     // Plan 0486, ADR-021: a record whose State cannot be read is undecided under the selector-position
     // rule, and reported on THAT rule's id, not dropped (and not only by `corpus/state-present`).
     'corpus/closed-records-undecided',
@@ -4455,6 +4467,7 @@ const GATE_FOR = {
     'corpus/state-present-conflict',
     'corpus/closed-records-sit-in-done-folders',
     'corpus/closed-records-undecided',
+    'corpus/closed-records-plans',
     'corpus/state-in-vocabulary-bugs',
     'corpus/state-in-vocabulary-plans',
     'corpus/state-in-a-form-not-read',

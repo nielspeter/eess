@@ -32,7 +32,7 @@ const selected = (c: ReturnType<typeof corpus>, s: HaveFieldOptions): string[] =
       .select({ label: 'doc', identify: (d) => ({ name: d.relPath }) })
       .elements.map((d) => d.relPath)
   } catch (e) {
-    if (isArchConfigError(e)) return ['undecided']
+    if (isArchConfigError(e) && /^select\(\) cannot answer/.test(e.message)) return ['undecided']
     throw e
   }
 }

@@ -253,7 +253,15 @@ export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
       base,
     )
     if (findings.length === 0) return base
-    return collectResult([...base, ...findings], base)
+    const causes = findings.filter((v) => v.bypassFilters === true).length
+    return collectResult([...base, ...findings], {
+      examined: base.examined,
+      sourceEmpty: base.sourceEmpty,
+      declaredEmpty: base.declaredEmpty,
+      notRun: base.notRun,
+      deadGlob: base.deadGlob,
+      undecided: (base.undecided ?? 0) + causes,
+    })
   }
   protected locate(e: MdTerm): MdLocation {
     return atLine(e)

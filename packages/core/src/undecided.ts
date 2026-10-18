@@ -75,7 +75,10 @@ export function undecidedViolations(
   context: ConditionContext,
   already: readonly ArchViolation[] = [],
 ): ArchViolation[] {
-  const seen = new Set(already.map(keyOf))
+  if (undecided.length === 0) return []
+  // Only an unsuppressable finding already says it: a suppressible one with the same text must not
+  // stand in for this one, or `.excluding()` could hide it (ADR-021 clause 5).
+  const seen = new Set(already.filter((v) => v.bypassFilters === true).map(keyOf))
   const out: ArchViolation[] = []
   for (const u of undecided) {
     const key = keyOf(u)
@@ -149,7 +152,9 @@ export function kleene<T>(
   // the last element reachable until the next one replaces it, and nothing longer.
   let last: { readonly element: T; readonly m: Membership } | undefined
   const of = (element: T): Membership => {
-    if (last?.element !== element) last = { element, m: membership(predicates, op, element) }
+    if (last === undefined || last.element !== element) {
+      last = { element, m: membership(predicates, op, element) }
+    }
     return last.m
   }
   return {

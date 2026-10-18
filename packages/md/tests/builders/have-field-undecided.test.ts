@@ -14,6 +14,7 @@ import {
   and,
   type ArchViolation,
   type MdDocument,
+  type MdTerm,
   type Predicate,
 } from '../../src/index.js'
 import { tree } from '../helpers/tree.js'
@@ -116,6 +117,32 @@ describe('haveField as a predicate (ADR-021)', () => {
     expect(said(found)).toEqual(['b.md: b.md should not exist'])
   })
 
+  it('a resolved value outside oneOf is decided false, even beside a label in another form', () => {
+    const one = corpus({
+      cwd: tree({ 'bugs/a.md': '# A\n\n**Status:** wontfix\n\n## Status: open\n' }),
+      roots: ['**/*.md'],
+    })
+    const found = docs(one).that().satisfy(done).should().notExist().violations()
+    expect(said(found)).toEqual([])
+    expect(found.undecided).toBeUndefined()
+  })
+
+  it('fields() reports a cause once when it says what the unread-label finding says', () => {
+    const own = corpus({
+      cwd: tree({ 'bugs/x.md': '# X\n\n## Status: done\n' }),
+      roots: ['**/*.md'],
+    })
+    const found = fields(own, { label: 'Status', forms: ['bold'] })
+      .that()
+      .satisfy(lift<MdTerm>(done))
+      .should()
+      .notExist()
+      .violations()
+    expect(said(found)).toEqual([
+      "bugs/x.md:3: found `## Status: done` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line [bypass]",
+    ])
+  })
+
   it('fields() over an undecided document reports the cause and keeps its own findings', () => {
     const own = corpus({
       cwd: tree({
@@ -134,6 +161,7 @@ describe('haveField as a predicate (ADR-021)', () => {
       "bugs/x.md:3,4: Status is given twice (line 3 'done', line 4 'open'); keep one [bypass]",
       "bugs/x.md:6: found `## Priority: high` at line 6, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
     ])
+    expect(found.undecided).toBe(1)
   })
 
   it('the verdict is memoized per document: asked twice, the same causes come back', () => {

@@ -47,4 +47,4 @@ export {
 // type is the callable-but-unnameable defect ADR-011's nameability guard exists
 // for, one package out.
 export type { CollectResult } from '@nielspeter/eess'
-export type { Condition, Predicate, ArchViolation } from '@nielspeter/eess'
+export type { Condition, Predicate, Undecided, ArchViolation } from '@nielspeter/eess'

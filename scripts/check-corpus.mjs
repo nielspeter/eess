@@ -1136,7 +1136,9 @@ const receipt = mergeCollectResults([
   collectResult(laneViolations, { examined: laneRows.length }),
   ...stateResults.map((r) => collectResult([...r], { examined: r.examined })),
   collectResult([...statePresent], { examined: statePresent.examined }),
-  collectResult([...closedLive], { examined: statePresent.examined }),
+  // Its own receipt (ADR-010): zero examined over `.notExist()` is a declaration, and an undecided
+  // record is a finding, so nothing is borrowed from `state-present`.
+  closedLive,
 ])
 
 // ADR-008: this script owns its reporting on the terminal path, so the gate runs
@@ -1189,7 +1191,7 @@ line(
 )
 line(
   'closed',
-  `${String(closedLive.examined)} closed record(s) in a live folder · ${String(closedLive.undecided ?? 0)} undecided · ${
+  `${String(closedLive.examined)} closed record(s) in a live folder, of ${String(statePresent.examined)} live record(s) · ${String(closedLive.undecided ?? 0)} undecided cause(s) · ${
     closedLive.length === 0
       ? '✓ every closed record sits in a done folder'
       : `✗ ${closedLive.length} finding(s)`

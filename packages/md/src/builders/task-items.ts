@@ -76,6 +76,7 @@ export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
       examined: base.examined,
       sourceEmpty: base.sourceEmpty,
       declaredEmpty: base.declaredEmpty,
+      notRun: base.notRun,
       deadGlob: base.deadGlob,
       undecided: (base.undecided ?? 0) + causes.length,
     })

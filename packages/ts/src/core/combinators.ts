@@ -110,6 +110,7 @@ function combine<T>(
   const predicates = inputs.filter((input): input is Predicate<T> => typeof input !== 'function')
   return {
     description: predicates.map((p) => p.description).join(op === 'all' ? ' and ' : ' or '),
+    // Replaced by `kleene`'s `test` below when an input can be undecided: the spread comes after.
     test: (element: T) => holds(predicates, (p) => p.test(element)),
     // ADR-021: the kernel's one truth table, when an input can be undecided.
     ...(predicates.some((p) => p.undecided) && kleene(predicates, op)),
