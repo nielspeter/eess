@@ -512,7 +512,7 @@ the whole harness.
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | seed example, `clean:`                                                                      | no violation, examined > 0 (a positive rule)                                                                  |
 | seed example, `violating-missing-section:`                                                  | exactly one finding: the violating guide, exact message, not a config finding                                 |
-| sabotage: an example imports `definePredicate` from `@nielspeter/eess`                      | rule 1 reds on the probe (and rule 3, by name)                                                                |
+| sabotage: an example imports `definePredicate` from `@nielspeter/eess`                      | rule 1 reds on the probe                                                                                      |
 | sabotage: an example imports `@nielspeter/eess/internal`                                    | rule 1 reds                                                                                                   |
 | sabotage: an example imports `@nielspeter/eess-md/internal`                                 | rule 1 reds (the allowlist is exact)                                                                          |
 | sabotage: an example imports `@nielspeter/eess-md/rules/ledger`                             | rule 1 reds (presets are not blocks)                                                                          |
@@ -677,8 +677,8 @@ plan claimed, and the build answered:
 - **An example could judge without a block** (a regex over `fixtureFiles` text, `vi.importActual`,
   `process.getBuiltinModule`, a banned name as a string key). `fixtureFiles` is not shipped; plan
   0455 adds it with its first caller. A fifth rule entry, `eess/examples-md-uses-a-block`, requires
-  every example to import eess-md. Rule 3 also bans `importActual`, `importMock` and
-  `getBuiltinModule`, and a banned name spelled as a string. Rule 2 matches `??=`, `||=` and `&&=`.
+  every example to import a value from eess-md, a type-only import not counting. Rule 3 also bans
+  `importActual`, `importMock`, `getBuiltinModule`, `binding` and `dlopen`, and a banned name spelled as a string. Rule 2 matches `??=`, `||=` and `&&=`.
 - **Still not caught, held by review:** a verdict computed outside a builder, by reading elements
   (md's model readers, `.select()`) and asserting on them with `expect`; and a computed key built in
   a variable (`const k = 'test'; ({ [k]: f })`).
@@ -692,8 +692,8 @@ plan claimed, and the build answered:
 
 - [x] Phase 1: `examples/md/`, `fixture.ts`, the seed example and its fixtures; `check:examples` runs it
 - [x] Phase 2: rule 1 (two halves), rules 2 and 3, green on the seed example; plus `eess/examples-md-uses-a-block` from the build's review
-- [x] Phase 3: the non-vacuity rows, each committed. The arch rows fire on every spelling: rule 1 on 6 of 6 plus a red and a quiet case on the helper; uses-a-block on 1 of 1; rule 2 on 15 of 15; rule 3 on 10 of 10. A `docs()`/`corpus()` probe stays quiet under all of them. The load-bearing row has three committed rows of its own: a test reading another judgement's folder, a folder with no test, and an example below the top level.
-- [x] done-otherwise: of the Test inventory's load-bearing cases, the weakened assertion and the empty folder were measured by hand (2026-10-18), and a syntax error by the testing review. "No `violating-*/` folder" and "no `clean:` test" are code branches with no committed row.
+- [x] Phase 3: the non-vacuity rows, each committed. The arch rows fire on every spelling: rule 1 on 6 of 6 plus a red and a quiet case on the helper; uses-a-block on 2 of 2; rule 2 on 17 of 17; rule 3 on 13 of 13. A `docs()`/`corpus()` probe stays quiet under all of them. The load-bearing row has four committed rows of its own: a test reading another judgement's folder (the forward swap), a `clean:` test that cannot fail (the reverse swap), a folder with no test, and an example below the top level.
+- [x] done-otherwise: of the Test inventory's load-bearing cases, the weakened assertion and the empty folder were measured by hand (2026-10-18), and a syntax error by the testing review. "No `violating-*/` folder", "no `clean:` test", a test with no folder, a title that is not kebab-case, a duplicate title, and a swapped run reporting different titles are code branches with no committed row (the testing review measured that removing any of them leaves every row green).
 - [ ] deferred→plan 0456 — the inventory's `notExist()` case (a clean fixture with no elements) needs `notExist()` on an md builder, which plan 0456 adds; its test inventory now carries the row
 - [x] Phase 4: docs section, README link, `examples/README.md`, changeset
 - [x] Cost measured, 2026-10-18: `check:arch` 28 rules in 7.79 s on main, 33 rules in 8.19 s after; `check:examples` 1.96 s on main, 1.70 s after; the load-bearing row 1.4 s for its one judgement, growing with each judgement added.

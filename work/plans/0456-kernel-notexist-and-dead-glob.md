@@ -1058,6 +1058,7 @@ mechanism. No row of its own in `check:nonvacuity`.
 - [ ] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's
 - [ ] `check:family`, `check:release`, `check:docs-code`, `check:examples`, eess-crossvalidate's
       suite and `npm run validate` green; durations reported
+- [ ] The examples gate's `notExist()` row (from plan 0458): a clean fixture holding documents with no elements reds the load-bearing row, naming the example
 - [ ] Close: this plan → `completed/`; boards
 - [ ] deferred→[plan 0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md) (the five
       copies' migration)

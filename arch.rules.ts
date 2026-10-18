@@ -139,6 +139,8 @@ const RULE_CONSTRUCTORS = new Set([
   'importActual',
   'importMock',
   'getBuiltinModule',
+  'binding',
+  'dlopen',
 ])
 const ruleConstructor: ExpressionMatcher = {
   description:
@@ -175,12 +177,13 @@ export default [
     .that()
     .resideInFolder(EXAMPLES_MD)
     .satisfy(not(resideInFile(FIXTURE_HELPER)))
-    .notImportFrom('@nielspeter/eess-md')
+    .notImportFromWithOptions(['@nielspeter/eess-md'], { ignoreTypeImports: true })
     .should()
     .notExist()
     .rule({
       id: 'eess/examples-md-uses-a-block',
-      because: 'an example that imports no eess-md block cannot prove the blocks are enough',
+      because:
+        'an example that imports no value from eess-md cannot prove the blocks are enough (a type-only import does not count)',
     }),
   // Rule 2: no predicate, condition or builder built by hand, which needs no import at all.
   modules(examples).that().resideInFolder(EXAMPLES_MD).should().notContain(handBuiltRule).rule({

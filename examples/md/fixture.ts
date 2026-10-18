@@ -3,7 +3,8 @@
  *
  * Each example keeps its documents under `fixtures/<name>/clean/` and one
  * `fixtures/<name>/violating-<judgement>/` per judgement it states. This resolves those folders. It
- * hands an example a path, never the documents' text, so the judgement has to be made by a block.
+ * hands an example a path, never the documents' text. (An example could still read text through
+ * eess-md's model readers; review holds that.)
  *
  * It honours one test-only variable, `EESS_EXAMPLE_SWAP=<from>=<to>`, which this repository's
  * `check:nonvacuity` sets to prove each fixture is load-bearing: a request for `<from>` returns

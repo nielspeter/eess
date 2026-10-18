@@ -62,7 +62,8 @@ proposal 017's claim that the blocks are enough (plan 0458). Each one is execute
 
 - `eess/examples-md-public-blocks-only`: an example imports only `@nielspeter/eess-md`, `vitest` and
   the fixture helper; only the helper may import Node's modules;
-- `eess/examples-md-uses-a-block`: every example imports eess-md, so its judgement is a block's;
+- `eess/examples-md-uses-a-block`: every example imports a value from eess-md (a type-only import
+  does not count);
 - `eess/examples-md-no-hand-built-rules`: no `test`/`evaluate` member, class or dynamic import;
 - `eess/examples-md-no-rule-constructors`: no `definePredicate`, `defineCondition`, `createRequire`,
   verdict-assembly seam or module load that bypasses the import graph, whatever its import.

@@ -841,7 +841,9 @@ function gateExamplesMdPublicBlocksOnly() {
       "import { readFileSync } from 'node:fs'\nexport const x = readFileSync\n",
   })
   // The helper's half, measured on the real helper and restored afterwards: `node:fs/promises` is
-  // allowed there (`node:{*,*/*}`), and anything outside `node:` is not.
+  // allowed there (`node:{*,*/*}`), and anything outside `node:` is not. The rule selects the helper
+  // by its path, so no probe file can stand in for it; `withRewrittenFile` restores it, and records
+  // the original in `pendingRestores` for a killed run.
   const onHelper = (prefix) =>
     withRewrittenFile(EXAMPLES_FIXTURE_HELPER, (src) => `${prefix}\n${src}`, archJson)
   const allowed = onHelper("import 'node:fs/promises'")
@@ -862,6 +864,8 @@ function gateExamplesMdUsesABlock() {
   return gateExamplesMdRule('eess/examples-md-uses-a-block', {
     'only vitest':
       "import { expect } from 'vitest'\nexport const check = (ok: boolean) => expect(ok).toBe(true)\n",
+    'a type-only eess-md import':
+      "import type { ArchViolation } from '@nielspeter/eess-md'\nexport const check = (v: ArchViolation[]) => v.length\n",
   })
 }
 
@@ -881,6 +885,10 @@ function gateExamplesMdNoHandBuiltRules() {
       "const p: Record<string, unknown> = {}\np['test'] = () => true\nexport { p }\n",
     'a nullish assignment':
       'const p: Record<string, unknown> = {}\np.test ??= () => true\nexport { p }\n',
+    'an or-assignment':
+      'const p: Record<string, unknown> = {}\np.test ||= () => true\nexport { p }\n',
+    'an and-assignment':
+      'const p: Record<string, unknown> = {}\np.evaluate &&= () => []\nexport { p }\n',
     'a class':
       "import { docs } from '@nielspeter/eess-md'\nexport class P { run() { return docs } }\n",
     'a class expression': 'export const P = class { run() { return 1 } }\n',
@@ -907,6 +915,11 @@ function gateExamplesMdNoRuleConstructors() {
     'vi.importActual':
       "import { vi } from 'vitest'\nexport const x = () => vi.importActual('@nielspeter/eess/internal')\n",
     'process.getBuiltinModule': "export const x = process.getBuiltinModule('node:fs')\n",
+    'vi.importMock':
+      "import { vi } from 'vitest'\nexport const x = () => vi.importMock('node:fs')\n",
+    'process.binding':
+      "export const x = (process as unknown as { binding(n: string): unknown }).binding('fs')\n",
+    'process.dlopen': 'export const x = process.dlopen\n',
   })
 }
 
@@ -1104,17 +1117,18 @@ const lbExample = (tests) =>
   `describe('probe', () => {\n${tests}\n})\n`
 
 function withLbProbe(folders, tests, fn) {
-  return withProbeDir(LB_FIXTURES, LB_TEST, lbExample(tests), () => {
-    for (const [folder, text] of Object.entries(folders)) {
-      mkdirSync(join(LB_FIXTURES, folder, 'guides'), { recursive: true })
-      writeFileSync(join(LB_FIXTURES, folder, 'guides', 'g.md'), text)
-    }
-    try {
+  try {
+    return withProbeDir(LB_FIXTURES, LB_TEST, lbExample(tests), () => {
+      for (const [folder, text] of Object.entries(folders)) {
+        mkdirSync(join(LB_FIXTURES, folder, 'guides'), { recursive: true })
+        writeFileSync(join(LB_FIXTURES, folder, 'guides', 'g.md'), text)
+      }
       return fn()
-    } finally {
-      rmSync(LB_TEST, { force: true })
-    }
-  })
+    })
+  } finally {
+    // The test file sits beside the fixture directory, so `withProbeDir` does not remove it.
+    rmSync(LB_TEST, { force: true })
+  }
 }
 
 const LB_CLEAN =
@@ -1139,6 +1153,22 @@ function gateExamplesMdLoadBearingRedsOnCrossRead() {
   return {
     ok: !r.ok && named,
     detail: `a test reading another judgement's folder → ${named ? 'named' : `not named (${r.detail})`}`,
+  }
+}
+
+function gateExamplesMdLoadBearingRedsOnAWeakClean() {
+  // A clean: test whose assertion cannot fail: only the reverse swap catches it.
+  const weakClean =
+    "  it('clean: ok', () => { expect(rule(fixture(NAME, 'clean')).violations().length).toBeGreaterThanOrEqual(0) })"
+  const r = withLbProbe(
+    { clean: LB_GUIDE_OK, 'violating-a': LB_GUIDE_BAD },
+    [weakClean, lbViolating('violating-a', 'violating-a')].join('\n'),
+    () => examplesMdLoadBearing(LB_PROBE),
+  )
+  const named = r.findings.some((f) => f.includes('in place of clean/, no clean: test fails'))
+  return {
+    ok: !r.ok && named,
+    detail: `a clean: test that cannot fail → ${named ? 'named' : `not named (${r.detail})`}`,
   }
 }
 
@@ -4077,6 +4107,7 @@ const gates = [
     'examples/md-load-bearing-reds-on-an-orphan-folder',
     gateExamplesMdLoadBearingRedsOnOrphanFolder,
   ],
+  ['examples/md-load-bearing-reds-on-a-weak-clean-test', gateExamplesMdLoadBearingRedsOnAWeakClean],
   ['examples/md-load-bearing-reds-on-a-nested-example', gateExamplesMdLoadBearingRedsOnNested],
   ['arch/examples-md-uses-a-block', gateExamplesMdUsesABlock],
   ['arch/examples-md-public-blocks-only', gateExamplesMdPublicBlocksOnly],
@@ -4438,6 +4469,7 @@ const GATE_FOR = {
     'examples/md-fixtures-are-load-bearing',
     'examples/md-load-bearing-reds-on-a-cross-read',
     'examples/md-load-bearing-reds-on-an-orphan-folder',
+    'examples/md-load-bearing-reds-on-a-weak-clean-test',
     'examples/md-load-bearing-reds-on-a-nested-example',
   ],
   // Two rows, because the script scans several populations — `docs/` + package
