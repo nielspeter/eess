@@ -223,16 +223,15 @@ describe('the review round (plan 0469)', () => {
   it('two rules forked from one base do not share their haveField specs', () => {
     const c = one(['# B', '', '**Status:** fixed', '**State:** a', '**State:** b'])
     const base = docs(c).that()
-    const byStatus = base.haveField(spec()).should().haveSection('X').violations()
-    base.haveField(spec({ label: 'State', forms: ['bold'] }))
-    // Only its own condition's finding: the sibling's State conflict does not leak in.
-    expect(said(byStatus)).toEqual(['bugs/b.md: missing section "X"'])
+    // Both rules are built before either is evaluated, so a spec shared through the base would show.
+    const byStatus = base.haveField(spec()).should().haveSection('X')
     const byState = base
       .haveField(spec({ label: 'State', forms: ['bold'] }))
       .should()
       .haveSection('X')
-      .violations()
-    expect(said(byState)).toEqual([
+    // Only its own condition's finding: the sibling's State conflict does not leak in.
+    expect(said(byStatus.violations())).toEqual(['bugs/b.md: missing section "X"'])
+    expect(said(byState.violations())).toEqual([
       "bugs/b.md:4,5: State is given twice (line 4 'a', line 5 'b'); keep one",
     ])
   })
