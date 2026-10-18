@@ -277,7 +277,14 @@ function findStateRe(
 }
 
 /** A heading's text without its `##` marker, so `## Status: Done` reads as `Status: Done`. */
-const headingAsLabel = (line: string): string => line.replace(/^#{2,6}\s+/, '')
+const headingAsLabel = (line: string): string => line.replace(/^##\s+/, '')
+
+/**
+ * A `## Label: value` heading: its label and value. Such a heading continues the header rather than
+ * ending it, as a run of field headings (`## Status: Open` then `## Severity: High`) is one header
+ * (plan 0468's header rule; bug 0476).
+ */
+const LABEL_HEADING = /^##\s+([A-Za-z][A-Za-z ]{0,40}?)\s*:\s*(\S.*?)\s*$/
 
 /** A plain `Label:` opening a line, after an optional bullet: the label's text. */
 const PLAIN_LABEL = /^\s*(?:[-*+]\s+)?([A-Za-z][A-Za-z ]{0,40}?)\s*:/
@@ -298,12 +305,22 @@ function stateUnderAnotherLabel(
   let seenHeading = 0
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i] ?? ''
-    let line = raw
+    const line = raw
     if (/^##\s/.test(raw)) {
+      // A `## Label: value` heading under another label is reported only when its whole value is a
+      // state word: `## Status: Done` is, `## Background: Open questions` is not (bug 0476).
+      const field = LABEL_HEADING.exec(raw)
+      if (field !== null) {
+        const [, label = '', value = ''] = field
+        const fold = (t: string): string => t.toLowerCase().replace(/’/g, "'")
+        const state = vocabulary.find((v) => fold(v) === fold(value))
+        if (!read.has(label.trim().toLowerCase()) && state !== undefined)
+          return { label: label.trim(), state, line: i + 1 }
+        continue
+      }
       seenHeading += 1
       if (seenHeading > 1) break
-      // The first section's own heading may be written as a label (bug 0476).
-      line = headingAsLabel(raw)
+      continue
     }
     // Wrapped labels, and the plain form too: unlike `wrappedLabelOf`'s other callers this one
     // only fires when the value is a word of the state vocabulary, so prose opening "Note: …"
@@ -335,15 +352,24 @@ function stateIn(
   // whole placement half reported green having examined nothing (bug 0119).
   let seenHeading = 0
   for (let i = 0; i < lines.length; i++) {
-    if (/^##\s/.test(lines[i] ?? '')) {
-      seenHeading += 1
-      if (seenHeading > 1) break
-      // A first section whose heading is the state itself, `## Status: Done` (bug 0476): read
-      // under the labels in force, as a label line is. Only a value from the vocabulary counts,
-      // so `## Status at a glance` or `## State: of the art` is a heading, not a state.
-      const heading = known.exec(headingAsLabel(lines[i] ?? ''))
+    const rawLine = lines[i] ?? ''
+    if (/^##\s/.test(rawLine)) {
+      // A heading that is the state itself, `## Status: Done` (bug 0476): read under the labels in
+      // force, as a label line is, and a value outside the vocabulary is reported as unreadable, as a
+      // label line's is. `## Status at a glance` has no colon, so it is a heading, not a state.
+      const asLabel = headingAsLabel(rawLine)
+      const heading = known.exec(asLabel)
       if (heading?.[1] !== undefined)
         return { state: canonical(heading[1]), raw: heading[1], line: i + 1 }
+      const unreadHeading = unreadableLine.exec(asLabel)
+      if (unreadHeading?.[1] !== undefined) {
+        const raw = unreadHeading[1]
+        return { raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 }
+      }
+      // Any other `## Label: value` heading continues the header; any other heading is a section.
+      if (LABEL_HEADING.test(rawLine)) continue
+      seenHeading += 1
+      if (seenHeading > 1) break
       continue
     }
     const line = lines[i] ?? ''
@@ -712,7 +738,7 @@ function noReadableStateViolation(
     suggestion:
       `If these documents are not records (drafts, extractions), narrow the corpus passed to this call to the folders that hold records, or pass \`ignore\`. ` +
       `If they are records, pass the label they write their state under (labels read now: ${labelsNamed(names)}). ` +
-      'A heading such as `## Status: Done` is not a label this preset reads.',
+      'A heading such as `## Status: Done` is read under the labels in force; if your records use one, pass that label.',
   }
 }
 

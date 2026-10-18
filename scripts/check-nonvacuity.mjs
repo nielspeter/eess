@@ -166,7 +166,7 @@
  *                 ratchet stripped to `[]`, turning schemaFromSDL()'s already-
  *                 real, already-ratcheted fail-open into an unratcheted one →
  *                 the mutated matrix must exit 1 naming exactly that export.
- *   vacuity-matrix/{sibling-fail-open,unaccounted-export} (bug 0403)
+ *   vacuity-matrix/{sibling-fail-open,unaccounted-export,stale-entry,probe-crash} (bug 0403)
  *                 scripts/nonvacuity/bad-vacuity-matrix-sibling.mjs mutates a copy so a sibling
  *                 dialect's probe passes silently, or an export drops out of the accounted list.
  *
@@ -3706,6 +3706,24 @@ const gates = [
         ['unaccounted'],
       ),
   ],
+  [
+    'vacuity-matrix/stale-entry',
+    () =>
+      gateNode(
+        'bad-vacuity-matrix-sibling.mjs',
+        '@nielspeter/eess-md::noSuchExport is listed but not exported',
+        ['stale-entry'],
+      ),
+  ],
+  [
+    'vacuity-matrix/probe-crash',
+    () =>
+      gateNode(
+        'bad-vacuity-matrix-sibling.mjs',
+        '@nielspeter/eess-md::docs (sibling) threw for a reason other than a configuration finding',
+        ['probe-crash'],
+      ),
+  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -3779,6 +3797,8 @@ const GATE_FOR = {
     'vacuity-matrix',
     'vacuity-matrix/sibling-fail-open',
     'vacuity-matrix/unaccounted-export',
+    'vacuity-matrix/stale-entry',
+    'vacuity-matrix/probe-crash',
     'emitter/remedy-remediates',
   ],
   'check:spec': ['spec'],

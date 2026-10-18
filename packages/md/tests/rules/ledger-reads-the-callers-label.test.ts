@@ -63,7 +63,7 @@ describe('honestyAtClose reads the caller’s label (bug 0444)', () => {
     expect(found.map((v) => v.rule)).toEqual(['ledger/no-readable-state'])
     expect(found[0]?.suggestion).toContain('narrow the corpus')
     expect(found[0]?.suggestion).toContain('`State:`')
-    expect(found[0]?.suggestion).toContain('## Status: Done')
+    expect(found[0]?.suggestion).toContain('`## Status: Done` is read under the labels in force')
   })
 
   it('a plain Status: line is named too, beside records the preset reads', () => {
@@ -127,5 +127,19 @@ describe('honestyAtClose reads a heading-form state (bug 0476)', () => {
       [UNDER, '0001-heading-done-live.md'],
       [UNDER, '0002-heading-done-open-box.md'],
     ])
+  })
+
+  it('a ## Label: heading continues the header, and a value outside the vocabulary is reported', () => {
+    expect(pairs('ledger-heading-more', { label: 'Status' })).toEqual([
+      [MISMATCH, '0001-status-after-severity.md'],
+      ['ledger/unknown-state', '0002-status-shipped.md'],
+    ])
+  })
+
+  it('a heading under another label is reported only when its whole value is a state word', () => {
+    // `## Background: Open questions…` is not a state; 0003's **Status:** Draft is read.
+    expect(pairs('ledger-heading-more', { aliases: ['Status'] }).map((p) => p[1])).not.toContain(
+      '0003-background.md',
+    )
   })
 })

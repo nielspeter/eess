@@ -105,7 +105,8 @@ export function corpus(options: CorpusOptions): Corpus {
   // nothing at all: an empty source, which gates build on purpose to test its own
   // report. Today most builders report it only as zero examined units; plan 0456
   // makes it a named empty-source finding (bug 0465's Resolution).
-  if (dead.length > 0 && dead.length + declaredEmpty.size < options.roots.length) {
+  // A declared-empty root counts as another root here, so a typo beside it is still named.
+  if (dead.length > 0 && dead.length < options.roots.length) {
     throw new ArchConfigError(
       'corpus',
       `corpus root${dead.length > 1 ? 's' : ''} ${dead.join('; ')} — so every rule over this corpus ` +
@@ -173,11 +174,24 @@ function declaredEmptyFaults(
       faults.push(
         `expectEmptyRoots names '${glob}', which is not one of this corpus's roots — remove it, or add the root.`,
       )
-    } else if (deadRootReason(glob, allFiles, ignored) === undefined) {
+    } else if (loadsADocument(glob, allFiles, ignored)) {
       faults.push(
-        `corpus root '${glob}' is declared empty in expectEmptyRoots, but it matches files now — remove it from expectEmptyRoots so its documents are read.`,
+        `corpus root '${glob}' is declared empty in expectEmptyRoots, but it loads documents now — remove it from expectEmptyRoots so they are read.`,
       )
     }
   }
   return faults
+}
+
+/**
+ * Whether a root loads at least one Markdown document. A declared-empty root expires on this, not on
+ * matching any file: a lane holding only a `.gitkeep` is still empty of records.
+ */
+function loadsADocument(
+  glob: string,
+  allFiles: readonly string[],
+  ignored: (rel: string) => boolean,
+): boolean {
+  const matches = picomatch(glob)
+  return allFiles.some((rel) => rel.endsWith('.md') && matches(rel) && !ignored(rel))
 }

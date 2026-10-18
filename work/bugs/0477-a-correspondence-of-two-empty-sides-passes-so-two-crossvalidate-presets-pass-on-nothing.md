@@ -4,8 +4,10 @@
 
 - **State:** Draft — found 2026-10-18 by bug 0403's fix, the first run of the vacuity matrix over
   the sibling dialects. Reproduced by the matrix's probes; no red unit test yet.
-- **Severity:** High — a silent pass. `diagramMatchesCode()` over an empty diagram and a zero-file
-  project, and `adrCitationsResolve()` over an empty corpus and a zero-file project, both pass.
+- **Severity:** High — a silent pass. The kernel's `correspondence().beComplete()` over two empty
+  selections passes, and so do the two presets that end in it: `diagramMatchesCode()` over an empty
+  diagram and a zero-file project, and `adrCitationsResolve()` over an empty corpus and a zero-file
+  project.
 - **Origin:** self-found · bug 0403's fix, 2026-10-18.
 - **Reported:** 2026-10-18
 
@@ -18,8 +20,9 @@ passes. `diagramMatchesCode()` (`packages/crossvalidate/src/mermaid-ts.ts:35`) a
 `adrCitationsResolve()` (`packages/crossvalidate/src/md-ts.ts:130`) end in that join, so a broken
 input on both sides (an empty diagram, an unloaded project) is a green build.
 
-The vacuity matrix carries both presets as `KNOWN_FAIL_OPEN` entries naming this bug, expiring
-2026-12-31.
+The vacuity matrix carries `correspondence()` and both presets as `KNOWN_FAIL_OPEN` entries naming
+this bug, expiring 2026-12-31. A fix that only makes the presets report an empty input leaves the
+kernel's entry red, which is intended: the join itself is the defect.
 
 ## Fix
 
@@ -35,6 +38,6 @@ Decide which against ADR-010 §3 and ADR-014. `preserveRelations()` carries the 
 ## Verification
 
 - [ ] Red first: each preset over two empty inputs passes
-- [ ] Green: each reports the empty input, and its `KNOWN_FAIL_OPEN` entry is removed
+- [ ] Green: the join and each preset report the empty input, and their `KNOWN_FAIL_OPEN` entries are removed
 
 Deferred: none

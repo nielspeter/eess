@@ -69,10 +69,27 @@ describe('a root can be declared empty, and the declaration expires (bug 0475)',
     expect(c.documents().length).toBeGreaterThan(0)
   })
 
-  it('a declared root that now matches files is refused: the declaration has expired', () => {
+  it('a declared root that now loads documents is refused: the declaration has expired', () => {
     expect(() =>
       corpus({ cwd: fixture, roots: ['docs/**', 'site/**'], expectEmptyRoots: ['site/**'] }),
-    ).toThrow(/'site\/\*\*'.*declared empty.*matches files/s)
+    ).toThrow(/'site\/\*\*'.*declared empty.*loads documents/s)
+  })
+
+  it('a declared root that matches files but no Markdown stays declared', () => {
+    // A lane holding only a .gitkeep, or code, has no records yet.
+    expect(() =>
+      corpus({ cwd: fixture, roots: ['docs/**', 'src/**'], expectEmptyRoots: ['src/**'] }),
+    ).not.toThrow()
+  })
+
+  it('a typo beside a declared-empty root, with no live root, is still named', () => {
+    expect(() =>
+      corpus({
+        cwd: fixture,
+        roots: ['empty-on-purpose/**', 'typo/**'],
+        expectEmptyRoots: ['empty-on-purpose/**'],
+      }),
+    ).toThrow(/'typo\/\*\*'/)
   })
 
   it('a declared name that is not one of the roots is refused as stale', () => {

@@ -42,21 +42,25 @@ told apart from a mistyped Markdown root. Start with a spike over the three adop
 **The fix.** `corpus()` takes `expectEmptyRoots`, naming roots that are empty on purpose. It is a
 declaration, so it expires (ADR-010 §3):
 
-- a named root that matches no file loads beside live roots;
-- a named root that matches files is refused, so the folder is never silently unexamined once it
+- a named root that loads no Markdown document is allowed beside other roots. A lane holding only a
+  `.gitkeep`, or code, counts as empty;
+- a named root that loads documents is refused, so the folder is never silently unexamined once it
   fills;
-- a name that is not one of the roots is refused as stale.
+- a name that is not one of the roots is refused as stale;
+- an undeclared dead root beside a declared one is still refused and named, even with no live root.
 
 A blanket "allow empty roots" switch was rejected, because it would silence a dead root on a live tree
 too.
 
-**Not changed.** A root that matches files but no Markdown, beside a live root, is still not
-refused. Callers list code globs as roots beside their documents. That shape is now declarable or
-correctable, and it stays recorded here as accepted.
+**Residual.** An undeclared root that matches files but no Markdown, beside a live root, still
+contributes nothing silently. It can now be declared, but nothing tells its author to. Refusing it
+broke existing callers, which list code globs as roots. Recorded as
+[bug 0478](../0478-a-root-with-files-but-no-markdown-contributes-nothing-silently.md).
 
 ## Verification
 
 - [x] A design decided and recorded (Resolution).
-- [x] Red first, then green: `packages/md/tests/corpus-dead-root.test.ts`, the four `expectEmptyRoots` rows, red before the option existed. Sabotage rows that skip the expiry check, or the stale check, each turn one row red.
+- [x] Red first, then green: `packages/md/tests/corpus-dead-root.test.ts`. The rows that pass `expectEmptyRoots` were red before the option existed. The typo-beside-a-live-root row passes on main as well, and is a regression guard. Sabotage of the expiry check, and of the stale check, each turned one row red (measured by hand, 2026-10-18).
+- [ ] deferred→bug 0478 — an undeclared root with files but no Markdown is still silent
 
-Deferred: none
+Deferred: bug 0478

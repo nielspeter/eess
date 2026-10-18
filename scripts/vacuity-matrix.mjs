@@ -35,6 +35,7 @@
  *       nothing about real exports below this point can be trusted
  */
 import path from 'node:path'
+import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -292,28 +293,45 @@ const PRESET_PROBES = {
 //
 // ADR-010's row binds every rule family, and this matrix used to import eess-ts alone. Each sibling's
 // check-constructors are probed bare over that dialect's own empty input. Every other exported
-// function is either a re-export of a kernel function (recognised by identity, so the kernel's own
-// probes answer for it) or named in SIBLING_NOT_CONSTRUCTORS with a reason. Anything else is an
-// unaccounted export and fails the matrix, so a new constructor cannot be added unprobed.
+// function is either a re-export of a kernel function (recognised by identity; the kernel's own
+// check-constructor, `correspondence()`, is probed below) or named in SIBLING_NOT_CONSTRUCTORS with
+// a reason. Anything else is an unaccounted export and fails the matrix. Whether a listed export
+// really is not a constructor is a reviewer's judgement, which the reason column makes checkable.
+// Exported classes (a capitalised name) are skipped: each builder class is reached through its
+// factory, which is probed.
 
-const SIBLING_MODULES = {
-  '@nielspeter/eess-md': await import('@nielspeter/eess-md'),
-  '@nielspeter/eess-md/rules/adr': await import('@nielspeter/eess-md/rules/adr'),
-  '@nielspeter/eess-md/rules/ledger': await import('@nielspeter/eess-md/rules/ledger'),
-  '@nielspeter/eess-mermaid': await import('@nielspeter/eess-mermaid'),
-  '@nielspeter/eess-gherkin': await import('@nielspeter/eess-gherkin'),
-  '@nielspeter/eess-crossvalidate/mermaid-ts':
-    await import('@nielspeter/eess-crossvalidate/mermaid-ts'),
-  '@nielspeter/eess-crossvalidate/md-ts': await import('@nielspeter/eess-crossvalidate/md-ts'),
-  '@nielspeter/eess-crossvalidate/md-mermaid':
-    await import('@nielspeter/eess-crossvalidate/md-mermaid'),
-  '@nielspeter/eess-crossvalidate/files': await import('@nielspeter/eess-crossvalidate/files'),
-  '@nielspeter/eess-crossvalidate/md-gherkin':
-    await import('@nielspeter/eess-crossvalidate/md-gherkin'),
-  '@nielspeter/eess-crossvalidate/gherkin-ts':
-    await import('@nielspeter/eess-crossvalidate/gherkin-ts'),
-  '@nielspeter/eess-crossvalidate/md-mermaid-er':
-    await import('@nielspeter/eess-crossvalidate/md-mermaid-er'),
+// Derived from each sibling package's own exports map, so a new subpath is imported and its
+// functions enumerated without anyone listing it. `./internal` is family plumbing behind ADR-011,
+// not adopter surface, so it is left out.
+const SIBLING_PACKAGES = [
+  '@nielspeter/eess-md',
+  '@nielspeter/eess-mermaid',
+  '@nielspeter/eess-gherkin',
+  '@nielspeter/eess-crossvalidate',
+]
+/**
+ * A package's own package.json, found the way Node finds the package: the nearest
+ * `node_modules/<name>` above this script. Works for a copy run from elsewhere, and for a package
+ * with no root (`.`) export, such as eess-crossvalidate.
+ */
+function packageJsonOf(name) {
+  let dir = path.dirname(fileURLToPath(import.meta.url))
+  for (;;) {
+    const candidate = path.join(dir, 'node_modules', name, 'package.json')
+    if (existsSync(candidate)) return JSON.parse(readFileSync(candidate, 'utf8'))
+    const parent = path.dirname(dir)
+    if (parent === dir) throw new Error(`vacuity-matrix: cannot find ${name}'s package.json`)
+    dir = parent
+  }
+}
+const SIBLING_MODULES = {}
+for (const name of SIBLING_PACKAGES) {
+  const pkg = packageJsonOf(name)
+  for (const sub of Object.keys(pkg.exports ?? { '.': null })) {
+    if (sub === './internal') continue
+    const spec = sub === '.' ? name : `${name}${sub.slice(1)}`
+    SIBLING_MODULES[spec] = await import(spec)
+  }
 }
 const md = SIBLING_MODULES['@nielspeter/eess-md']
 const mermaid = SIBLING_MODULES['@nielspeter/eess-mermaid']
@@ -332,6 +350,17 @@ const reported = (result) => kernel.finishPreset(result)
 
 /** `export name` → the bare probe. Keys are `package::export`. */
 const SIBLING_PROBES = {
+  // The kernel's own check-constructor, re-exported by eess-md and eess-crossvalidate: a join of two
+  // empty selections. Bug 0477.
+  '@nielspeter/eess::correspondence': () => {
+    const side = (label) =>
+      md.docs(emptyCorpus).select({ label, identify: (d) => ({ name: d.relPath }) })
+    kernel
+      .correspondence({ left: side('left'), right: side('right') })
+      .should()
+      .beComplete()
+      .check()
+  },
   '@nielspeter/eess-md::docs': () => md.docs(emptyCorpus).check(),
   '@nielspeter/eess-md::links': () => md.links(emptyCorpus).check(),
   '@nielspeter/eess-md::pointers': () => md.pointers(emptyCorpus).check(),
@@ -436,6 +465,11 @@ const siblingExports = Object.entries(SIBLING_MODULES).flatMap(([pkg, mod]) =>
  * fresh reason if it's still real and still accepted.
  */
 const KNOWN_FAIL_OPEN = [
+  {
+    name: '@nielspeter/eess::correspondence',
+    reason: 'bug 0477: a join of two empty selections passes',
+    expires: '2026-12-31',
+  },
   // Both found the day the matrix first probed the sibling dialects (bug 0403), and both for one
   // reason: `correspondence().beComplete()` carries the cardinality mark, so a join of two empty
   // sides examines nothing and passes. Recorded as bug 0477.
@@ -477,10 +511,18 @@ const findings = []
 
 // Completeness over the siblings: an export neither probed nor accounted for is a finding, and so is
 // an entry in either table that names no export (a stale entry hides nothing, but it lies).
-const accounted = new Set([
-  ...Object.keys(SIBLING_PROBES),
-  ...Object.keys(SIBLING_NOT_CONSTRUCTORS),
-])
+// A sibling probe that throws for an unrelated reason (an option renamed, an input that no longer
+// loads) has stopped testing its constructor. That is a finding, not a pass.
+for (const r of results.filter((x) => x.kind === 'sibling' && x.verdict === 'other-throw')) {
+  findings.push(
+    `${r.name} (sibling) threw for a reason other than a configuration finding — the probe no longer reaches its check; fix the probe`,
+  )
+}
+const accounted = new Set(
+  [...Object.keys(SIBLING_PROBES), ...Object.keys(SIBLING_NOT_CONSTRUCTORS)].filter(
+    (name) => !name.startsWith('@nielspeter/eess::'),
+  ),
+)
 for (const name of siblingExports) {
   if (!accounted.has(name)) {
     findings.push(

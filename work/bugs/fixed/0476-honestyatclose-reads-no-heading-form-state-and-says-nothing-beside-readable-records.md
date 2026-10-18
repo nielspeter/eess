@@ -29,19 +29,23 @@ rebuild on public blocks (proposal 017, the second Review's decision 1) is the n
 
 ## Resolution
 
-The heading form is read. A record whose first section's heading is its state, such as
-`## Status: Done`, is read under the labels in force, as a label line is. One adopter writes most of
-its records this way, so it passes `label: 'Status'` and they are checked. Only a value from the
-vocabulary counts, so `## Status at a glance` and `## State: of the art` stay headings. A heading under
-a label not in force is reported as `ledger/state-under-another-label`, like a wrapped or plain
-label.
+A state written as a heading is read. `## Status: Done` in a record's header is read under the labels
+in force, as a label line is, and a value outside the vocabulary (`## Status: Shipped`) is reported
+as an unknown state, as a label line's is. The header follows plan 0468's rule: a `## Label: value`
+heading continues it rather than ending it, so `## Severity: High` followed by `## Status: Done` is
+read. Only `##` headings count.
 
-The read covers the first section's heading, which is the header region the preset already reads.
-A heading-form state further down a record is still not read.
+A `## Label: value` heading under a label not in force is reported as
+`ledger/state-under-another-label`, but only when its whole value is a state word. `## Status: Done`
+is reported. `## Background: Open questions` is not, because a heading shaped like a field is common
+prose.
+
+Not measured: how many of the adopter's heading-form records this reads. That is the adopter's to
+run on upgrade.
 
 ## Verification
 
 - [x] Red first: a call with one `State:` record and a `## Status: Done` record gave no finding on the second (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`, the heading rows).
-- [x] Green: with `label: 'Status'` the heading record is read and its folder checked; with defaults it is reported. A sabotage row that switches off the heading read turns its row red.
+- [x] Green: with `label: 'Status'` the heading record is read and checked; a heading after `## Severity:` is read; an out-of-vocabulary heading is reported; with defaults a state heading under another label is reported and a prose heading is not. Switching off the heading read turned its row red (measured by hand, 2026-10-18).
 
 Deferred: none

@@ -8,6 +8,9 @@
  *                      names `@nielspeter/eess-md::docs (sibling) is fail-open`.
  *   unaccounted        eess-md's `vocabulary` is removed from SIBLING_NOT_CONSTRUCTORS → the matrix
  *                      names it as exported and neither probed nor listed.
+ *   stale-entry        a listed name that is not exported → the matrix names it as stale.
+ *   probe-crash        eess-md's `docs` probe throws an unrelated TypeError → the matrix names it as a
+ *                      probe that no longer reaches its check.
  *
  * Exit codes: 1 = the mutated matrix failed, naming the export; 0 = it did not (the sibling half is
  * vacuous); 2 = the mutation did not apply, or an unexpected error.
@@ -27,6 +30,16 @@ const SCENARIOS = {
     from: "'@nielspeter/eess-md::docs': () => md.docs(emptyCorpus).check(),",
     to: "'@nielspeter/eess-md::docs': () => {},",
     mustSay: '@nielspeter/eess-md::docs (sibling) is fail-open with no KNOWN_FAIL_OPEN entry',
+  },
+  'stale-entry': {
+    from: "  '@nielspeter/eess-md::vocabulary': 'data builder, returns a term set',\n",
+    to: "  '@nielspeter/eess-md::vocabulary': 'data builder, returns a term set',\n  '@nielspeter/eess-md::noSuchExport': 'a stale entry',\n",
+    mustSay: '@nielspeter/eess-md::noSuchExport is listed but not exported',
+  },
+  'probe-crash': {
+    from: "'@nielspeter/eess-md::docs': () => md.docs(emptyCorpus).check(),",
+    to: "'@nielspeter/eess-md::docs': () => { throw new TypeError('a renamed option') },",
+    mustSay: '@nielspeter/eess-md::docs (sibling) threw for a reason other than a configuration finding',
   },
   unaccounted: {
     from: "  '@nielspeter/eess-md::vocabulary': 'data builder, returns a term set',\n",

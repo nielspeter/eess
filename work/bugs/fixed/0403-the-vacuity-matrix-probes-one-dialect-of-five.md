@@ -57,24 +57,32 @@ narrowed to what it checks and a row is added for each sibling.
 
 The matrix probes the sibling dialects too (`scripts/vacuity-matrix.mjs`, "Sibling dialects"):
 
-- every check-constructor of eess-md, eess-mermaid, eess-gherkin and eess-crossvalidate, called
-  bare over that dialect's own empty input (an empty corpus, an empty diagram, an empty feature
-  set), each subpath of the exports map included;
-- every other exported function is either a kernel re-export, recognised by identity, or listed
-  in `SIBLING_NOT_CONSTRUCTORS` with a reason. An export that is neither is a finding, so a new
-  constructor cannot be added unprobed. This is the mechanical enumeration the Fix asked for.
-- ADR-010's row now says what the matrix checks.
+- **Probes.** Every check-constructor of eess-md, eess-mermaid, eess-gherkin and eess-crossvalidate is
+  called bare over that dialect's own empty input: an empty corpus, an empty diagram, an empty
+  feature set. So is the kernel's own check-constructor, `correspondence()`, which eess-md and
+  eess-crossvalidate re-export.
+- **Modules.** The modules come from each package's exports map, leaving out `./internal`, so a new
+  subpath is enumerated without anyone listing it.
+- **Accounting.** Every other exported function is either a kernel re-export, recognised by identity,
+  or listed in `SIBLING_NOT_CONSTRUCTORS` with a reason. An export that is neither is a finding, and
+  so is a stale entry. Whether a listed export really is not a constructor is a reviewer's
+  judgement; the reason column makes it checkable. Exported classes are reached through their
+  probed factories.
+- **Crashes.** A sibling probe that throws for an unrelated reason is a finding, because it has
+  stopped reaching its check.
+- **ADR-010's row** now says what the matrix checks.
 
-Its first run found two real fail-opens, `diagramMatchesCode()` and `adrCitationsResolve()`, from one
-cause. They are recorded as [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md),
-with dated `KNOWN_FAIL_OPEN` entries. `codeBlocks()` is listed rather than probed: it needs a parser
-to construct, and its zero-blocks case is `check:nonvacuity`'s `corpus/code-block-parse/zero-blocks`.
+Its first run found real fail-opens with one cause: `correspondence()` over two empty selections, and
+the two presets that end in it, `diagramMatchesCode()` and `adrCitationsResolve()`. They are recorded
+as [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md),
+with dated `KNOWN_FAIL_OPEN` entries. `codeBlocks()` is listed, not probed: it needs a parser to
+construct, and its zero-blocks case is `check:nonvacuity`'s `corpus/code-block-parse/zero-blocks`.
 
 ## Verification
 
 - [x] done-otherwise: the red proof is a non-vacuity row, not a unit test. `vacuity-matrix/sibling-fail-open` replaces eess-md's `docs` probe with one that passes silently, and the matrix fails naming it.
-- [x] The matrix's own non-vacuity proof covers a sibling row, and an unaccounted export (`vacuity-matrix/unaccounted-export`).
+- [x] The matrix's own non-vacuity proof covers the sibling half: `vacuity-matrix/{sibling-fail-open,unaccounted-export,stale-entry,probe-crash}`.
 - [x] `npm run validate` green.
-- [ ] deferred→bug 0477 — the two crossvalidate presets that pass over two empty inputs
+- [ ] deferred→bug 0477 — `correspondence()` and two crossvalidate presets pass over two empty inputs
 
 Deferred: bug 0477
