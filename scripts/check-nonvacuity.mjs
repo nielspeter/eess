@@ -64,6 +64,11 @@
  *                 attribute its table lacks → crossval/table-er-agree (bug 0210).
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
+ *   corpus/ledger/{state-under-another-label,no-readable-state}
+ *                 (bug 0444) scripts/nonvacuity/bad-ledger-label/: a `Status:` record beside
+ *                 a `State:` one, and a folder with no state at all.
+ *   corpus/dead-root (bug 0465) scripts/nonvacuity/bad-corpus-dead-root.mjs: a mistyped
+ *                 root beside a live one must be refused, naming it.
  *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,
  *                 empty-declaration,unread-label,nested-declaration,annotated-child,
  *                 inner-label,stands-alone,formatted-label}
@@ -3123,6 +3128,19 @@ const gates = [
     'corpus/ledger/finished-not-closed',
     () => gateNode('bad-finished-not-closed.mjs', 'ledger/finished-not-closed'),
   ],
+  // Bug 0444: a record whose state sits under a label the preset does not read,
+  // and a call that reads no state at all, are each a finding, not a skip.
+  [
+    'corpus/ledger/state-under-another-label',
+    () =>
+      gateNode('bad-ledger-label.mjs', 'ledger/state-under-another-label', ['under-another-label']),
+  ],
+  [
+    'corpus/ledger/no-readable-state',
+    () => gateNode('bad-ledger-label.mjs', 'ledger/no-readable-state', ['no-readable-state']),
+  ],
+  // Bug 0465: a corpus root that matches no file, beside a live one, is refused.
+  ['corpus/dead-root', () => gateNode('bad-corpus-dead-root.mjs', 'corpus/dead-root refused')],
   // Bug 0131 round 3: a corruption scoped to ONE lane (not the whole corpus)
   // must still fail loudly — the first version of this check summed
   // done-items across every lane before comparing to zero, so a single-lane
@@ -3731,6 +3749,7 @@ const GATE_FOR = {
     'crossval/md-mermaid-er',
   ],
   'check:corpus': [
+    'corpus/dead-root',
     'corpus/undocumented-waiver',
     'corpus/adr',
     'corpus/links/site',
@@ -3887,6 +3906,8 @@ const GATE_FOR = {
     'corpus/ledger/fenced-example',
     'corpus/ledger/unterminated-fence',
     'corpus/ledger/state-in-code',
+    'corpus/ledger/state-under-another-label',
+    'corpus/ledger/no-readable-state',
   ],
   'check:release': [
     'emitter/release-dead-check',

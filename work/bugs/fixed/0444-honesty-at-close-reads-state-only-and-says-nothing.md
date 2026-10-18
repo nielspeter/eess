@@ -52,16 +52,32 @@ follow-up — 2026-10-18").
 ## Resolution
 
 `honestyAtClose` and `ledgerStats` take `label` (default `State`) and `aliases`, threaded through every
-reader in the preset. A new finding, `ledger/no-readable-state`, is raised once per call when the
-call examined records and none carries a state line under the label in force. A record whose only
-state line is in code, or behind an unclosed fence, already gets its own finding, so it does not
-also count toward this one. Four existing tests asserted that a single stateless document passes;
-they now assert that this lane finding is their one finding. This is the flagged break.
+reader in the preset. A blank label is refused. Two findings close the silent pass:
+
+- **`ledger/state-under-another-label`**, per record. The record has no state line under the labels
+  in force, but a wrapped label in its header holds a value from the state vocabulary
+  (`**Status:** Done`). With default options this names 0002 and 0005 in the table above, where
+  before nothing was said. It keys on the caller's own vocabulary, so a stateless document's labels
+  (`**Status:** draft-mail`) stay quiet.
+- **`ledger/no-readable-state`**, once per call, when no examined document carries a state line in
+  any form. It sits in the header rule itself, so an empty lane still gets one zero-examined finding,
+  not two. Its remedy is built from the options in force:
+  - narrow the corpus to the record folders;
+  - otherwise, pass the label the records use;
+  - a `## Status:` heading is not a label this preset reads (plan 0468 owns that form).
+
+The Fix asked that the finding apply "only to the lanes the caller declares". The preset has no lane
+list, so each call is a lane. A caller whose single call covers record and non-record folders gets
+no lane finding. A call over non-record folders only is reported, and the remedy is to narrow it.
+
+Four existing tests asserted that a stateless single document passes. They now assert its one
+finding. This is the flagged break. The `check:nonvacuity` rows
+`corpus/ledger/{state-under-another-label,no-readable-state}` guard both findings at the gate tier.
 
 ## Verification
 
-- [x] Red first: the five-record corpus above, through the public preset (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`, red on main)
-- [x] done-otherwise: green, with sabotage rows instead of `check:nonvacuity` fixtures. Ignoring the label turns the 0002/0005 row red, and switching the lane finding off turns its row red
-- [x] done-otherwise: `honestyAtClose` has no lane list, since each call is a lane. A stateless folder beside records that carry a state gives no finding (the mixed-lane row)
+- [x] Red first: the five-record table above, through the public preset (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`). With default options 0002 and 0005 got no finding on main.
+- [x] Green: every record is pinned by `[rule, record]`, with default options, with `aliases: ['Status']`, and with `label` together with `aliases`. Each finding has a `check:nonvacuity` row.
+- [x] done-otherwise: each call is a lane, since the preset has no lane list (Resolution). A stateless folder beside records gives no finding, and a stateless-only call gives one, with "narrow the corpus" as its remedy.
 
 Deferred: none

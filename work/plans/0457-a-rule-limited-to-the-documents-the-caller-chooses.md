@@ -390,15 +390,15 @@ fails only when nothing is selected; the apparent simplification
 `.that().satisfy(areLive()).should().haveSection(SECTION)` is a different, stronger claim (every
 live document has the section). It also warns off the kernel's other candidate:
 `.expectNonEmpty()` on the ratchet does not do this, because in eess-md a `notExist()` rule that
-declares it can never be green (it reds on every element it examines, and on examining none);
-eess-ts treats the same declaration differently today, and that may change. It also notes the one
+declares it can never be green (it reds on every element it examines, and on examining none), and
+eess-ts reports that combination as a finding saying so. It also notes the one
 asymmetry: `pointers(c).that().areFrozen()` is a method, everywhere else it is
 `.satisfy(inDocuments(areFrozen()))`.
 
 The README carries no bug numbers; an adopter on npm has no `work/bugs/`. For this plan's readers:
-the kernel docstring that suggests `.expectNonEmpty()` for `notExist()` is
-[bug 0466](../bugs/fixed/0466-expectnonempty-is-offered-for-a-glob-typo-on-a-cardinality-rule.md), and
-eess-ts's different handling is bug 0467.
+the kernel docstring that used to suggest `.expectNonEmpty()` for `notExist()` was
+[bug 0466](../bugs/fixed/0466-expectnonempty-is-offered-for-a-glob-typo-on-a-cardinality-rule.md), and eess-ts
+reading the declaration was bug 0467, both fixed in PR #236.
 
 ## Files Changed
 

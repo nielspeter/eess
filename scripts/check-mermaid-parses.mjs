@@ -16,6 +16,7 @@
  * Run: `npm run check:mermaid-parses` (`--format json` puts every finding on stdout). Exits
  * non-zero on any finding.
  */
+import { existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import picomatch from 'picomatch'
 import { codeBlocks, corpus, parseCodeBlocks } from '@nielspeter/eess-md'
@@ -66,7 +67,9 @@ try {
   )
   finish('no document was read')
 }
-paths = [...new Set(paths)]
+// `--cached` still lists a tracked file deleted from the working tree. It has nothing to parse, and
+// as a root of its own it would match no file, which `corpus()` refuses (bug 0465).
+paths = [...new Set(paths)].filter((f) => existsSync(f))
 
 // Each path becomes a root glob, so a name the glob reads as a pattern would select something
 // else. Refuse it rather than check the wrong file.

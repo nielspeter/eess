@@ -531,12 +531,10 @@ Two shapes the recipe does not protect, stated in the README beside it:
 - **A folder named in `.that()` over a wider corpus.** `docs(c).that().resideInFolder('gudies/**')
 .should().notExist()` over `roots: ['**/*.md']` is green when no `gudies/` exists anywhere: bug
   0355's ruling, and bug 0460's own symptom row, which stays green after this plan.
-- **A corpus with several roots, one of them mistyped.** `corpus({ roots: ['guides/**',
-'gudies-ref/**'] })` loads documents, so it is not an empty source, and the dead root drops its
-  half without a word. That is a silent pass in `corpus()` itself, recorded as
-  [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) and deferred
-  there (ledger). A test here pins today's behaviour, titled for the bug, so its fix turns the test
-  red on purpose.
+- **A corpus with several roots, one of them mistyped.** Fixed before this plan by [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) (PR #236):
+  `corpus()` refuses a root that matches no file when another root loads. A corpus whose **every**
+  root is dead is still loaded, and this plan's empty-source finding is what reports it (note
+  2026-10-18).
 
 The README also gives the separator rule and its cost: picomatch reads a backslash as an escape;
 a `guides\**` that selects nothing while `guides/**` selects files is reported as a separator; a
@@ -786,8 +784,8 @@ change has its own changeset entry).
 - Pinned limits, each a test whose title names the limit so a later fix reads as progress:
   - a folder in `.that()` naming nothing over a wide corpus is green (bug 0355's ruling; bug 0460's
     symptom row);
-  - `it('a corpus root that matches no file is dropped without a word (bug 0465)')`: a two-root
-    corpus with one mistyped root loads the other half and is not an empty source.
+  - a corpus whose every root matches no file is this plan's empty-source finding, not a refusal
+    from `corpus()` (bug 0465 refuses a dead root only beside a live one).
 - Reverse control under negation: `satisfy(not(resideInFolder('/x/**')))` is not a fault (a negative
   site is never dead).
 - `codeBlocks().resideInFolder('/x/**').should().notExist()` reds with the `anchored` fault (globs
@@ -875,8 +873,8 @@ mechanism. No row of its own in `check:nonvacuity`.
   [plan 0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
 - **eess-mermaid's missing empty-source check** (the measured empty-diagram row). Not bug 0460's
   kernel order. Home: [bug 0463](../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
-- **A corpus root that matches no file, in a multi-root corpus.** A silent pass in `corpus()`,
-  pinned by a test here. Home: [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md).
+- **A corpus root that matches no file, in a multi-root corpus.** Fixed by [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) in PR #236, so no
+  longer out of scope here.
 - **A named dead-glob finding for md's positive rules.** They keep the generic finding; plan 0457
   overrides `deadGlobDiagnosis()` for its scopes.
 - **A typo that names nothing in the repository**, on a cardinality rule. Bug 0355's ruling, kept;
@@ -890,8 +888,8 @@ mechanism. No row of its own in `check:nonvacuity`.
 - [Bug 0463](../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md): eess-mermaid reports
   no empty source, so `classes(diagram('classDiagram\n')).should().notExist()` passes (measured
   above).
-- [Bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md): a mistyped
-  root in a multi-root corpus drops its half silently.
+- [Bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md): fixed in PR #236. A
+  dead root beside a live one is refused; an all-dead corpus is left to this plan.
 - [Bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md): eess-ts's `doctor`
   crashes on md rules; md rules start declaring globs here, with an inexact base.
 - Bug 0460's verification rows follow bug 0355's ruling, as this plan does: a text fault and
@@ -1059,6 +1057,14 @@ mechanism. No row of its own in `check:nonvacuity`.
 - [ ] deferred→[plan 0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md) (the five
       copies' migration)
 - [ ] deferred→bug 0463 (eess-mermaid reports no empty source)
-- [ ] deferred→bug 0465 (a corpus root that matches no file is dropped silently)
+- [x] done-otherwise: bug 0465 was fixed by PR #236 before this plan was built; this plan keeps the
+      all-dead-roots case, through its empty-source finding
 
-Deferred: plan 0464; bug 0463; bug 0465
+Deferred: plan 0464; bug 0463
+
+## Note — 2026-10-18, after PR #236
+
+Bug 0465 was fixed ahead of this plan. `corpus()` refuses a root that matches no file, or only
+ignored files, when another root loads. That replaces the test this plan was to write pinning the
+silent drop, and the README limitation it planned. A corpus whose every root is dead still loads.
+This plan's empty-source finding is now its named report, which bug 0465's Resolution defers here.

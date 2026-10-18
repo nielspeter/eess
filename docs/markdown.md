@@ -767,7 +767,7 @@ primitive.
 `@nielspeter/eess-md/rules/ledger` ships a second opt-in preset,
 `honestyAtClose` — the working-method's "an item closes with nothing silently
 lost" gate. It reads GFM task boxes (via `collectTaskItems`, above) and a
-document's `State:` header line, and reports six things: a done item with an
+document's `State:` header line, and reports eight things: a done item with an
 open box carrying no disposition token (`ledger/silent-open-box`), a
 `Deferred: none` summary that contradicts a box disposed as
 `deferred→<home>` (`ledger/deferred-none-lie`), a `State:` value that
@@ -781,6 +781,17 @@ cannot tell such a record from a document that is not one — a guide in the lan
 the template in a code block — so `ledger/state-in-code` reports that too; name a
 document like that in `boardFiles`.
 
+The last two are about a state the preset could not read at all (bug 0444):
+
+- **`ledger/state-under-another-label`**: a record with no `State:` line whose header holds a
+  value from the vocabulary under another wrapped label, such as `**Status:** Done`.
+- **`ledger/no-readable-state`**: a call in which no document carries a state line at all.
+  Raised once per call. Its first remedy is to narrow the corpus you pass to the folders that hold
+  records, because the preset has no lane list: each call is one lane.
+
+A corpus that writes its state under another label passes `label: 'Status'`, or adds it with
+`aliases: ['Status']`. A heading such as `## Status: Done` is not a label this preset reads.
+
 The vocabulary finding, `ledger/unknown-state`, is the one a new adopter meets first, and it is a **violation,
 not an ignore**: the default vocabulary is `Draft | Ready | Open | Done |
 Won't-do`, so a corpus using `In Review` or `Shipped` reds until you pass your own
@@ -788,7 +799,7 @@ Won't-do`, so a corpus using `In Review` or `Shipped` reds until you pass your o
 purpose — a record whose status nobody can parse is indistinguishable from one
 that has none, which is what bug 0120 is about.
 
-`findState(text, vocabulary, root?)` is the same scan the preset uses to read a
+`findState(text, vocabulary, root?, labels?)` is the same scan the preset uses to read a
 document's status, exported so a caller can ask the question without a second
 opinion. It returns `{ state?, raw, line }` or `null`, and the three things it
 gets right are the three a hand-rolled regex gets wrong: it reads the document's prose as
@@ -841,7 +852,9 @@ closes items where they sit instead of moving them), `states` and
 `terminalStates` (the full `State:` vocabulary and which of it counts as
 closed — a bug lane passes `['Draft', 'Ready', 'Fixed', 'Rejected', 'Parked']`
 / `['Fixed', 'Rejected']` where a plan lane passes the default `Done`/`Won't-do`
-shape). **Pass `states` and `terminalStates` together, or neither**: either one alone throws
+shape), `label` and `aliases` (the label a record's state is written under: default `State`;
+`aliases` adds labels beside it, and a blank label is refused). **Pass `states` and
+`terminalStates` together, or neither**: either one alone throws
 an `ArchConfigError`. They declare one vocabulary, and a half used to take the other from the
 defaults — so a closing token you added to `states` was never terminal, its records were never
 treated as done, and their open boxes passed with no finding at all (bug 0284). To keep the
@@ -852,8 +865,8 @@ document appears).
 `ledgerStats(corpus, options?)` is the denominator `honestyAtClose` computes
 for itself, exposed separately so a caller can print it rather than staying
 blind-and-green: a `LedgerStats` — `scanned` (documents considered, board
-files excluded), `withReadableState` (…of which carry a `State:` line the
-declared vocabulary can read), `unreadableState` (…of which carry one it
+files excluded), `withReadableState` (…of which carry a state line, under the
+labels in force, that the declared vocabulary can read), `unreadableState` (…of which carry one it
 can't), and `doneItems` (…of which are done, by folder or by terminal state,
 and so ledger-checked). A caller should print this, not re-derive its own copy
 of the same expression — this repo's own `scripts/check-ledger.mjs` did once,

@@ -212,14 +212,16 @@ describe('honestyAtClose — the State value is read, not grabbed', () => {
   })
 
   it.each([
-    ['Stateless rendering is the default here.'],
-    ['- State machine transitions are documented in adr/012'],
-    ['- **Statement:** Done'],
-  ])('does not read %s as a state declaration at all', (line) => {
+    ['Stateless rendering is the default here.', 'ledger/no-readable-state'],
+    ['- State machine transitions are documented in adr/012', 'ledger/no-readable-state'],
+    // Not read as `State:`. Since bug 0444 a wrapped label holding a vocabulary
+    // token, on a record with no state line, is reported as possibly its state.
+    ['- **Statement:** Done', 'ledger/state-under-another-label'],
+  ])('does not read %s as a state declaration at all', (line, only) => {
     // The colon is required. Without it, any line starting with the word "State"
-    // became a declaration and reported its second word as the state.
-    // The one finding is the lane's (bug 0444): no record's state was read.
-    expect(readsAs(line).map((v) => v.rule)).toEqual(['ledger/no-readable-state'])
+    // became a declaration and reported its second word as the state. Since bug
+    // 0444 a record whose state is not read is itself reported: that is the one finding.
+    expect(readsAs(line).map((v) => v.rule)).toEqual([only])
   })
 
   it('supports a multi-word vocabulary, which (\\S+) could not express', () => {

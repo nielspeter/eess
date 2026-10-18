@@ -10,7 +10,7 @@ import type { MdDocument } from '../model/document.js'
 import type { ArchViolation } from '../model/violation.js'
 import type { Root } from 'mdast'
 import { collectTaskItems } from '../model/task-items.js'
-import { labelPattern } from '../model/label.js'
+import { labelPattern, wrappedLabelOf } from '../model/label.js'
 import { proseText, unterminatedFence } from '../model/prose.js'
 import { docs } from '../builders/docs.js'
 import { taskItems, type MdTaskItem } from '../builders/task-items.js'
@@ -100,14 +100,24 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
   readonly aliases?: readonly string[]
 }
 
-/** The state label in force for these options, as one regex source. */
-function labelFor(options: HonestyAtCloseOptions): string {
-  return stateLabel([options.label ?? 'State', ...(options.aliases ?? [])])
+/**
+ * The state labels in force, trimmed. An empty label would read nothing, and the
+ * finding would then blame the corpus rather than the option, so it is refused.
+ */
+function labelNames(options: HonestyAtCloseOptions, caller: string): readonly string[] {
+  const names = [options.label ?? 'State', ...(options.aliases ?? [])].map((l) => l.trim())
+  if (names.some((l) => l === '')) {
+    throw new ArchConfigError(
+      caller,
+      `${caller} was given an empty \`label\` or alias. Name the label your records write their state under, e.g. label: 'Status'.`,
+    )
+  }
+  return names
 }
 
-/** How a label set reads in a message: `State`, or `State or Status`. */
-function labelsNamed(options: HonestyAtCloseOptions): string {
-  return [options.label ?? 'State', ...(options.aliases ?? [])].join(' or ')
+/** How a label set reads in a message: `` `State:` ``, or `` `State:` or `Status:` ``. */
+function labelsNamed(names: readonly string[]): string {
+  return names.map((l) => `\`${l}:\``).join(' or ')
 }
 
 const DEFAULT_DONE_FOLDERS = ['/completed/', '/fixed/', '/wont-do/', '/delivered/', '/archived/']
@@ -244,11 +254,55 @@ export function findState(
   text: string,
   vocabulary: readonly string[],
   root?: Root,
-  label: string = DEFAULT_LABEL,
+  labels: readonly string[] = ['State'],
+): { state?: string; raw: string; line: number } | null {
+  return findStateRe(
+    text,
+    vocabulary,
+    root,
+    labels.length === 0 ? DEFAULT_LABEL : stateLabel(labels),
+  )
+}
+
+/** `findState` over an already-compiled label source — the preset's readers share one. */
+function findStateRe(
+  text: string,
+  vocabulary: readonly string[],
+  root: Root | undefined,
+  label: string,
 ): { state?: string; raw: string; line: number } | null {
   // Prose only, read as CommonMark reads it, so an illustrative `**State:** Draft` in a code block is
   // not the document's own (bugs 0286, 0287) — by the parser the task-box pass uses.
   return stateIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary, label)
+}
+
+/**
+ * A state value from the vocabulary written in the header under a wrapped label
+ * the preset does not read (bug 0444): `**Status:** Done` while the preset reads
+ * `State:`. Keyed on the vocabulary, so a stateless document's own labels
+ * (`**Status:** draft-mail`) are not mistaken for one.
+ */
+function stateUnderAnotherLabel(
+  doc: MdDocument,
+  vocabulary: readonly string[],
+  names: readonly string[],
+): { label: string; state: string; line: number } | null {
+  const read = new Set(names.map((n) => n.toLowerCase()))
+  const lines = proseText(doc.text, 'code-blocks', doc.root).split('\n')
+  let seenHeading = 0
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? ''
+    if (/^##\s/.test(line)) {
+      seenHeading += 1
+      if (seenHeading > 1) break
+      continue
+    }
+    const found = wrappedLabelOf(line)?.trim()
+    if (found === undefined || found === '' || read.has(found.toLowerCase())) continue
+    const hit = stateMatcher(vocabulary, stateLabel([found])).exec(line)
+    if (hit?.[1] !== undefined) return { label: found, state: hit[1], line: i + 1 }
+  }
+  return null
 }
 
 /** The first `State:` token in the header region of these lines — `findState`'s scan. */
@@ -310,7 +364,7 @@ function hasTerminalState(
   label: string,
 ): boolean {
   const known = [...new Set([...states, ...terminalStates])]
-  const found = findState(doc.text, known, doc.root, label)
+  const found = findStateRe(doc.text, known, doc.root, label)
   if (found?.state === undefined) return false
   const token = foldState(found.state)
   return terminalStates.some((t) => foldState(t) === token)
@@ -358,7 +412,7 @@ function headerStateViolation(
   label: string,
 ): ArchViolation | null {
   const known = [...new Set([...states, ...terminalStates])]
-  const found = findState(doc.text, known, doc.root, label)
+  const found = findStateRe(doc.text, known, doc.root, label)
   if (!found) return null // no State line at all → this document is not an item
 
   if (found.state === undefined) {
@@ -549,24 +603,45 @@ function headerStateCondition(
   states: readonly string[],
   terminalStates: readonly string[],
   label: string,
+  names: readonly string[],
 ): Condition<MdDocument> {
+  const known = [...new Set([...states, ...terminalStates])]
   return {
     description: 'have a readable State: line that matches its folder',
     evaluate(elements: MdDocument[], _ctx: ConditionContext): ArchViolation[] {
       const out: ArchViolation[] = []
+      // Whether any record in this call carries a state line at all, in any form a
+      // finding below already names. If none does, the call read no state, and
+      // that is reported once (bug 0444) — in this one rule, so an empty lane
+      // still gets one zero-examined finding, not two.
+      let anyStateLine = false
       for (const doc of elements) {
+        const read = findStateRe(doc.text, known, doc.root, label) !== null
+        if (read) anyStateLine = true
+        if (!read) {
+          const other = stateUnderAnotherLabel(doc, known, names)
+          if (other !== null) {
+            anyStateLine = true
+            out.push(anotherLabelViolation(doc, other, names))
+          }
+        }
         const inDoneFolder = doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))
         // A fence that never closes turns everything below it into code, so it is reported alone; a
         // State: line still in code once it is closed is reported on the next run.
         const fence = unterminatedFenceViolation(doc)
-        if (fence) out.push(fence)
-        else {
+        if (fence) {
+          if (stateIn(doc.text.split('\n'), known, label) !== null) anyStateLine = true
+          out.push(fence)
+        } else {
           const hidden = stateInCodeViolation(
             doc,
             [...new Set([...states, ...terminalStates])],
             label,
           )
-          if (hidden) out.push(hidden)
+          if (hidden) {
+            anyStateLine = true
+            out.push(hidden)
+          }
         }
         const found = headerStateViolation(
           doc,
@@ -578,50 +653,49 @@ function headerStateCondition(
         )
         if (found) out.push(found)
       }
+      const first = elements[0]
+      if (!anyStateLine && first !== undefined)
+        out.push(noReadableStateViolation(first, elements.length, names))
       return out
     },
   }
 }
 
-/**
- * Condition over a whole lane: at least one record carries a state line under the
- * label in force (bug 0444). Reported once, on the first record, naming the label,
- * so a corpus that writes `Status:` is told to pass `label` rather than passing
- * with its placement half silently off.
- */
-function laneHasStateCondition(
-  states: readonly string[],
-  terminalStates: readonly string[],
-  label: string,
-  named: string,
-): Condition<MdDocument> {
-  const known = [...new Set([...states, ...terminalStates])]
+/** A record's state written under a label this preset does not read (bug 0444). */
+function anotherLabelViolation(
+  doc: MdDocument,
+  other: { label: string; state: string; line: number },
+  names: readonly string[],
+): ArchViolation {
   return {
-    description: `have a ${named}: line somewhere in the lane`,
-    evaluate(elements: MdDocument[], _ctx: ConditionContext): ArchViolation[] {
-      // A state line anywhere in a header counts, even one inside code or behind
-      // an unclosed fence: those get their own, more precise finding
-      // (`ledger/state-in-code`, `ledger/unterminated-fence`), one cause each.
-      const hasStateLine = (doc: MdDocument): boolean =>
-        findState(doc.text, known, doc.root, label) !== null ||
-        stateInCodeViolation(doc, known, label) !== null ||
-        unterminatedFenceViolation(doc) !== null
-      if (elements.some(hasStateLine)) return []
-      const first = elements[0]
-      if (first === undefined) return []
-      return [
-        {
-          rule: 'ledger/no-readable-state',
-          element: first.relPath,
-          file: first.file,
-          line: 1,
-          message: `none of the ${String(elements.length)} records in this lane has a ${named}: line, so no record's state was read and the state/folder check ran on none of them`,
-          because:
-            'a lane whose state is never read passes the placement check with nothing checked',
-          suggestion: `pass the label your records use (label: 'Status', or aliases: ['Status']), or, if these documents are not records, list them in boardFiles`,
-        },
-      ]
-    },
+    rule: 'ledger/state-under-another-label',
+    element: doc.relPath,
+    file: doc.file,
+    line: other.line,
+    message: `this record has no ${labelsNamed(names)} line, and its header's \`${other.label}:\` holds ${other.state}, a state from the vocabulary — so no state is read and its folder is not checked`,
+    because:
+      'a record whose state is never read passes the state/folder check with nothing checked',
+    suggestion: `If \`${other.label}:\` is this record's state, pass aliases: ['${other.label}'] (or label: '${other.label}'). If it is not, add a ${labelsNamed(names)} line, or list this document in boardFiles if it is not a record.`,
+  }
+}
+
+/** A call in which no record carries a state line at all (bug 0444). */
+function noReadableStateViolation(
+  first: MdDocument,
+  count: number,
+  names: readonly string[],
+): ArchViolation {
+  return {
+    rule: 'ledger/no-readable-state',
+    element: first.relPath,
+    file: first.file,
+    line: 1,
+    message: `none of the ${String(count)} documents this call examined has a ${labelsNamed(names)} line in its header, so no state was read and the state/folder check ran on none of them`,
+    because: 'a call whose state is never read passes the placement check with nothing checked',
+    suggestion:
+      `If these documents are not records (drafts, extractions), narrow the corpus passed to this call to the folders that hold records, or pass \`ignore\`. ` +
+      `If they are records, pass the label they write their state under (labels read now: ${labelsNamed(names)}). ` +
+      'A heading such as `## Status: Done` is not a label this preset reads.',
   }
 }
 
@@ -757,26 +831,16 @@ export function honestyAtClose(
   const closeInPlace = options.closeInPlace ?? false
   const { states, terminalStates } = resolveVocabulary(options, 'honestyAtClose')
   const expectEmptyHeaders = options.expectEmptyHeaders ?? false
-  const label = labelFor(options)
+  const names = labelNames(options, 'honestyAtClose')
+  const label = stateLabel(names)
 
   let headerRule = docs(corpus)
     .that()
     .satisfy(notBoardFile(boardFiles))
     .should()
-    .satisfy(headerStateCondition(doneFolders, closeInPlace, states, terminalStates, label))
+    .satisfy(headerStateCondition(doneFolders, closeInPlace, states, terminalStates, label, names))
   if (expectEmptyHeaders) headerRule = headerRule.expectEmpty()
   const headerViolations = headerRule.violations()
-
-  // Bug 0444: a lane whose records carry no state line under the label in force
-  // was read as "no items", so the placement half never ran and nothing said so.
-  // One finding for the lane when it examined records and none has a state line.
-  let laneRule = docs(corpus)
-    .that()
-    .satisfy(notBoardFile(boardFiles))
-    .should()
-    .satisfy(laneHasStateCondition(states, terminalStates, label, labelsNamed(options)))
-  if (expectEmptyHeaders) laneRule = laneRule.expectEmpty()
-  const laneViolations = laneRule.violations()
 
   // Open task items, collected once and reused for both peeks below. "Any
   // done item exists" is too coarse a signal on its own — most done items
@@ -836,12 +900,7 @@ export function honestyAtClose(
   // Merged, not spread: all three are receipts, and a spread would discard every
   // `examined` this preset just earned — the denominator `check:ledger` prints.
   return finishPreset(
-    mergeCollectResults([
-      headerViolations,
-      laneViolations,
-      silentOpenBoxViolations,
-      deferredLieViolations,
-    ]),
+    mergeCollectResults([headerViolations, silentOpenBoxViolations, deferredLieViolations]),
     options,
   )
 }
@@ -877,7 +936,7 @@ export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {})
   const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
   const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
   const { states, terminalStates } = resolveVocabulary(options, 'ledgerStats')
-  const label = labelFor(options)
+  const label = stateLabel(labelNames(options, 'ledgerStats'))
   const known = [...new Set([...states, ...terminalStates])]
 
   let scanned = 0
@@ -888,7 +947,7 @@ export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {})
     const base = doc.relPath.split('/').pop() ?? doc.relPath
     if (boardFiles.has(base)) continue
     scanned += 1
-    const found = findState(doc.text, known, doc.root, label)
+    const found = findStateRe(doc.text, known, doc.root, label)
     if (found?.state !== undefined) withReadableState += 1
     else if (found !== null) unreadableState += 1
     if (isDoneItem(doc, doneFolders, states, terminalStates, label)) doneItems += 1

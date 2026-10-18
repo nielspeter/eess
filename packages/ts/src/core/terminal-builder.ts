@@ -885,6 +885,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
       getProject: () => this.getProject(),
       globs: () => this.globs(),
       assertsCardinality: () => this.assertsCardinality(),
+      requiresNonEmpty: () => this._requireNonEmpty,
       declaresEmpty: () => this.declaresEmpty(),
       zeroSubjectsAdvice: () => this.zeroSubjectsAdvice(),
       zeroSubjectsViolation: (project) => this.zeroSubjectsViolation(project),

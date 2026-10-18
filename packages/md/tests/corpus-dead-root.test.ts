@@ -41,8 +41,15 @@ describe('a corpus root that matches no file is refused (bug 0465)', () => {
     expect(() => corpus({ cwd: fixture, roots: ['a-typo/**', 'b-typo/**'] })).not.toThrow()
   })
 
-  it('a root that matches files but no Markdown is not a dead root', () => {
-    // An empty source, not a mistyped root: plan 0456 owns that case.
-    expect(() => corpus({ cwd: fixture, roots: ['src/**'] })).not.toThrow()
+  it('a root that matches files but no Markdown, beside a live root, is not refused', () => {
+    // Callers list code globs as roots beside their documents. Bug 0465's
+    // Resolution records this as a residual: such a root contributes nothing.
+    expect(() => corpus({ cwd: fixture, roots: ['docs/**', 'src/**'] })).not.toThrow()
+  })
+
+  it('a root whose files are all ignored is named as ignored, not as matching nothing', () => {
+    expect(() =>
+      corpus({ cwd: fixture, roots: ['docs/**', 'site/**'], ignore: ['site/**'] }),
+    ).toThrow(/'site\/\*\*'.*ignored/s)
   })
 })

@@ -30,18 +30,25 @@ meaningful claim there.
 
 ## Resolution
 
-The docstring route, not a configuration finding. Refusing the combination needs the kernel to
-recognise a `notExist()` condition, which arrives only with plan 0456's `notExistCondition`. Both the
-kernel's and eess-ts's docstrings now say the combination can never pass, and point a ratchet's
-author to a positive rule over the same population.
+- **eess-ts refuses the combination.** It reports a finding that the rule can never pass, on both paths
+  ([bug 0467](./0467-eess-ts-expectnonempty-does-nothing.md)). In eess-ts every cardinality-marked
+  condition is a `.notExist()`.
+- **The kernel gets only the docstring route.** Its cardinality mark also covers `correspondence()`,
+  where `.expectNonEmpty()` is a meaningful claim, so refusing there needs plan 0456's
+  `notExistCondition`.
+- **Both docstrings** now say the combination can never pass on a `.notExist()` rule, and point a
+  ratchet's author to a positive rule over the same population.
+- **One residual, recorded as [bug 0474](../0474-the-kernels-expectnonempty-finding-ranks-and-advises-wrong.md).**
+  The kernel's own finding on that shape still offers "fix the selection".
 
 ## Verification
 
-- [x] done-otherwise: a characterisation test, not red first. A docstring cannot be red-tested, so `packages/core/tests/expect-non-empty-on-not-exist.test.ts` pins through the kernel's public `RuleBuilder` what the new docstring says (empty selection: the declaration's finding; non-empty: the condition's). The box's original wording: a rule on eess-md's `docs()` with a cardinality-marked
-      condition from `@nielspeter/eess/internal` and `.expectNonEmpty()`, over a corpus with no
-      document under `guides/`, gives the declaration's finding while the docstring says nothing of
-      it (the test asserts the docstring's text, which the fix changes)
-- [x] Green: the docstring states what the declaration means on a `notExist()` rule, or the
-      combination is reported as a configuration finding
+- [x] done-otherwise: a characterisation test, not a red-first one. A docstring cannot be red-tested.
+      `packages/core/tests/expect-non-empty-on-not-exist.test.ts` pins what the docstring now says,
+      through the kernel's public `RuleBuilder`: an empty selection gives the declaration's finding,
+      and a non-empty selection gives the condition's.
+- [x] Green: the docstrings state what the declaration means on a `.notExist()` rule, and eess-ts
+      reports the combination as a finding.
+- [ ] deferred→bug 0474 — the kernel's finding on a `.notExist()` rule still offers "fix the selection"
 
-Deferred: none
+Deferred: bug 0474

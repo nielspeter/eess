@@ -27,21 +27,34 @@ with a migration line (remove or correct the dead root). Not plan 0456's scope (
 
 ## Resolution
 
-`corpus()` refuses with an `ArchConfigError` naming every dead root, instead of the source fact on
+`corpus()` refuses with an `ArchConfigError` when a root matches no file, or only ignored files,
+while another root does load. It names each dead root and says why. This replaces the source fact on
 each rule's receipt that the Fix above planned. The receipt route was measured against the kernel's
 deduplication: the key includes the rule id, so ten rules over one corpus would report the root ten
 times, and collapsing them needs a kernel change. A refusal is one finding for one authored mistake,
 on every door that loads a corpus, as eess-md already does for a half-declared vocabulary (bug 0284).
 
-It fires only when another root does load. A first version refused every dead root. The
-non-vacuity gate measured that this broke four fixtures that build an all-empty corpus on purpose,
-to test the empty-source report. Loading nothing at all stays that report (ADR-010 §3; plan 0456).
-Sabotage rows: switching the refusal off turns two rows red.
+What it deliberately does not refuse:
+
+- **A corpus whose every root is dead.** The first version refused it, and the non-vacuity gate
+  measured four fixtures breaking that build such corpora on purpose. Today most builders report it
+  only as zero examined units. [Plan 0456](../../plans/0456-kernel-notexist-and-dead-glob.md) makes it
+  a named empty-source finding, and owns that case.
+- **A root that matches files but no Markdown**, beside a live one. Such a root contributes nothing.
+  Refusing it broke existing callers, which list code globs (`src/**/*.ts`) as roots beside their
+  documents. Recorded in [bug 0475](../0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md).
+- **A root that is legitimately empty for now** (a lane with no records yet). It has no way to be
+  declared, so its author can only remove it, and the folder is silently unexamined once it appears.
+  Also bug 0475.
+
+eess-gherkin's loader has the same multi-root shape: [bug 0472](../0472-a-gherkin-root-that-matches-no-file-is-dropped-silently.md).
 
 ## Verification
 
-- [x] Red first: the two-root corpus above loads with no finding (`packages/md/tests/corpus-dead-root.test.ts`, red on main)
-- [x] done-otherwise: green, by refusal rather than a receipt finding (Resolution): it reports the dead root as matching no file; a two-root corpus whose roots both match
-      stays green
+- [x] Red first: the two-root corpus above loaded with no finding on main (`packages/md/tests/corpus-dead-root.test.ts`).
+- [x] Green: the dead root is refused and named, an ignored-only root is named as ignored, and roots that all match still load. The `corpus/dead-root` row in `check:nonvacuity` guards it at the gate tier.
+- [ ] deferred→plan 0456 — a corpus whose every root is dead becomes a named empty-source finding there
+- [ ] deferred→bug 0472 — eess-gherkin's loader has the same multi-root shape
+- [ ] deferred→bug 0475 — no declaration for a legitimately empty root; a non-Markdown root contributes nothing
 
-Deferred: none
+Deferred: plan 0456, bug 0472, bug 0475

@@ -35,18 +35,36 @@ the combination unusable).
 
 ## Resolution
 
-eess-ts reads the declaration on its empty-selection path, but only on a cardinality rule, the one
-shape where it changes the verdict. A first version read it on every rule. Its review measured that
-this swapped a positive rule's empty-selection finding, whose remedy is `.expectEmpty()`, for the
-unmet-declaration text, whose remedy (remove `.expectNonEmpty()`) leaves that rule red: the wrong
-remedy bug 0069 recorded. The message is the kernel's, exported behind `/internal` as
-`UNMET_EXPECT_NON_EMPTY`, so the two families say the same thing. A sabotage row that skips the read
-turns the test red.
+eess-ts reports `.expectNonEmpty()` on a `.notExist()` rule with its own finding: the rule can never
+pass, and the only remedy is to remove the declaration (`neverPassesViolation`,
+`packages/ts/src/core/vacuity-diagnosis.ts`). It is reported on both paths:
+
+- **An empty selection:** inside the evidence floor's cardinality branch, after the empty-project,
+  dead-glob and walk-budget findings, which ADR-010 §3 ranks above any declaration. The receipt no
+  longer claims "declared empty" for this shape.
+- **A non-empty selection:** first, beside the condition's own findings, so the author is not sent
+  to fix the code and then told to delete the declaration.
+
+On a positive rule the declaration changes nothing, as before: the empty selection is already a
+finding with the right remedy (plan 0074).
+
+This PR's review rejected two earlier versions:
+
+- The first read the declaration on every rule. That swapped a positive rule's remedy for a wrong one,
+  the defect bug 0069 recorded.
+- The second used the kernel's unmet-declaration text ("fix the selection"). That remedy cannot help
+  on this shape, and the empty-selection version also outranked the empty-project and dead-glob
+  findings.
+
+The kernel keeps its own behaviour, recorded as [bug 0474](../0474-the-kernels-expectnonempty-finding-ranks-and-advises-wrong.md).
+eess-ts builders other than `RuleBuilder` still ignore the declaration:
+[bug 0473](../0473-expectnonempty-is-unread-on-eess-ts-builders-other-than-rulebuilder.md).
 
 ## Verification
 
-- [x] Red first: the second row above passes today (`packages/ts/tests/core/expect-non-empty-is-read.test.ts`, red on main)
-- [x] done-otherwise: green, and it reds naming the declaration on a cardinality rule, the kernel's verdict there. On a positive rule eess-ts keeps its own empty-selection finding, see Resolution; the kernel and eess-ts give the same verdict on the
-      same rule shape
+- [x] Red first: a `.notExist()` rule over zero subjects with `.expectNonEmpty()` passed on main (`packages/ts/tests/core/expect-non-empty-is-read.test.ts`).
+- [x] Green: it reports that the rule can never pass, on an empty and a non-empty selection, and a dead glob still outranks it. A sabotage row that skips the floor's check turns the empty-selection row red.
+- [ ] deferred→bug 0473 — the other eess-ts builders still ignore `.expectNonEmpty()`
+- [ ] deferred→bug 0474 — the kernel's finding on this shape still ranks and advises wrong
 
-Deferred: none
+Deferred: bug 0473, bug 0474
