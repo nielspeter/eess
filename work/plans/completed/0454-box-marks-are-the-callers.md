@@ -151,7 +151,7 @@ as written, so such a rule reaches the box and reports it.
 only `checked`.** `collectTaskItems(root, options)` yields it with `checked: false`. That is
 fail-closed for "a done record hides an open box". It is not fail-closed in every direction: a gate
 asking "are all boxes done?" would read an undeclared mark as not-done. This repository has one such
-gate, `scripts/lib/finished-not-closed.mjs:116`, and Phase 3 threads the lane's `marks` into it, so a
+gate, `scripts/lib/finished-not-closed.mjs:161`, and Phase 3 threads the lane's `marks` into it, so a
 declared done mark counts as done there; an undeclared mark there counts as not done, and the record
 is not flagged as finished, which is the conservative reading of "unknown".
 
@@ -218,16 +218,16 @@ instrument finding: that wording is [bug 0461](../../bugs/0461-the-dedupe-note-s
 not this plan's, and this plan changes no kernel code.
 
 **`honestyAtClose` takes `marks`** and passes it to both of its box readers, the `taskItems()` rule
-(`ledger.ts:697`) and `hasDeferredDisposedBox` (`ledger.ts:380`). A declared open mark is an open
+(`ledger.ts:928`) and `hasDeferredDisposedBox` (`ledger.ts:521`). A declared open mark is an open
 box and needs a disposition token like `[ ]`; a declared done mark is a closed box. An undeclared
 mark in a done document is a finding, which is the acceptance row "a done document holding an
 undeclared `[~]` reds".
 
 **This repository declares `[~]`.** `scripts/check-ledger.mjs`'s bugs lane passes
 `marks: { '~': 'open' }`. That works per lane because each lane builds its own corpus
-(`scripts/check-ledger.mjs:89`); a later change that merges the lanes into one corpus must carry the
+(`scripts/check-ledger.mjs:92`); a later change that merges the lanes into one corpus must carry the
 declaration to every lane. Whether the four boxes then pass as disposed (`DISPOSITION_RE` at
-`ledger.ts:204`) is measured in the build, not assumed here.
+`ledger.ts:251`) is measured in the build, not assumed here.
 
 ## Phases
 
@@ -255,8 +255,8 @@ All in one pull request.
 ### Phase 3 — the preset and this repository
 
 - `HonestyAtCloseOptions.marks`, passed to both readers; `hasDeferredDisposedBox` and the
-  `openTaskItems` peek (`ledger.ts:683`) select on `state`, so the peek stays independent of the
-  predicate it protects (the reasoning at `ledger.ts:608`). Decided: `hasDeferredDisposedBox`
+  `openTaskItems` peek (`ledger.ts:914`) select on `state`, so the peek stays independent of the
+  predicate it protects (the reasoning at `ledger.ts:912`). Decided: `hasDeferredDisposedBox`
   counts a box as a deferral only when `state === 'open'`. An undeclared box carrying `deferred→` is
   not a deferral; its finding is the undeclared mark, so a `Deferred: none` beside it is not also
   reported as a contradiction.
@@ -400,7 +400,7 @@ L3)}`.
   `scripts/check-ledger.mjs` must red `check:ledger` with exactly two `md/undeclared-box-mark`
   findings, one per document: `0249…` at `:160`, naming lines 160, 167 and 201, and `0256…` at `:130`,
   naming line 130 (run in a worktree as a sabotage row, since it edits a tracked script). And a probe, `work/bugs/fixed/__nonvacuity_probe_tilde.md` (State `Fixed`, one undisposed
-  `- [~] x`), written and removed by `withProbe` (`scripts/check-nonvacuity.mjs:537`), must red
+  `- [~] x`), written and removed by `withProbe` (`scripts/check-nonvacuity.mjs:545`), must red
   `check:ledger` with `ledger/silent-open-box`: flipping the declaration to `'done'` turns that row
   green, so the row pins the state, not only the presence.
 - **`finished-not-closed`, both directions.** Two fixtures, in two subfolders of
@@ -409,7 +409,7 @@ L3)}`.
   that declares `'→': 'done'`, an open record whose boxes are all `[→]` is flagged
   `finished-not-closed`; in the lane that declares nothing, the same record is not flagged (the
   conservative reading in Design). The existing row `corpus/ledger/finished-not-closed`
-  (`scripts/check-nonvacuity.mjs:3123`) asserts both.
+  (`scripts/check-nonvacuity.mjs:3656`) asserts both.
 
 ## Release
 
@@ -419,7 +419,7 @@ eess-md minor, a **flagged break** (`**Breaking (@nielspeter/eess-md)**`):
 - a `.warn()` rule over `taskItems()` that carries one of these findings now fails, because
   configuration findings bypass severity (`packages/core/src/violation.ts:166`);
 - `MdTaskItemRef` gains two required fields, `mark` and `state`, and `MdTaskItem` (a root type,
-  `packages/md/src/index.ts:86`) no longer extends it: it carries `mark` and a `state` narrowed to
+  `packages/md/src/index.ts:101`) no longer extends it: it carries `mark` and a `state` narrowed to
   `'open' | 'done'`. Either breaks a caller who constructs one, for instance to unit-test a
   `Predicate<MdTaskItem>`;
 - `areOpen()` no longer selects what is not open, and `areChecked()` selects `state === 'done'`
@@ -444,6 +444,15 @@ package lists it in `dependencies`; eess-crossvalidate uses no task-item API (gr
 which packages the changeset must name; if it asks for eess-crossvalidate, it is named.
 
 ## Out of scope
+
+- **Residuals from the build's review (2026-10-18), recorded rather than fixed:** an undeclared mark
+  written as an HTML entity (`&#91;~]`) reads as a box, since the escape is read only as a
+  backslash (fails closed); `scripts/lib/finished-not-closed.mjs` builds its own copy of the
+  unread-box findings, so its wording can drift from eess-md's; the `.select()` and blockquote
+  limits are stated, not pinned by a test; the example has no undeclared-mark fixture, because the
+  examples contract asks a violating test for a finding that is not a configuration finding; the
+  "they are why this rule examined nothing" sentence also appears under a declared `.expectEmpty()`;
+  `taskItems()` walks each document again per pass (not memoised).
 
 - **A declared mark that no box uses.** Not reported: a declaration that matches nothing can only
   make a finding appear, never hide one. Recorded here, not decided against.
@@ -503,7 +512,7 @@ Each finding of the round-two reviews about this plan, and what changed:
 - **Enforcement I8, testing I2, method I2 — the declaration row asserted four findings; the grouping
   gives two.** It asserts exactly two, one per document, with the lines each names.
 - **Enforcement I7, testing I1 — the `areOpen` sabotage fired nothing.** Retargeted to
-  `hasDeferredDisposedBox` (`ledger.ts:380`), the one reader that goes round the builder, with the
+  `hasDeferredDisposedBox` (`ledger.ts:521`), the one reader that goes round the builder, with the
   decided outcome (an undeclared box is not a deferral) and its row.
 - **Testing I3 — bug 0445's headline shape had no row.** The all-`[~]` done record, through
   `honestyAtClose` and through `notExist()`, on the declared-empty branch, asserted through `.check()`.
@@ -567,9 +576,10 @@ Where the build departed from the text above, each overrulable:
   to taskItems() or honestyAtClose()", since the same finding comes from either.
 - **`bad-ledger.mjs` prints each finding's file and line,** so the two new rows' `mustSay` can pin
   the line, not only the id. Its document count is 8.
-- **Line pointers in this plan are as of 2026-10-17's main.** PRs #236, #237 and #239 moved code
-  after it was written (method review); the function and file names are authoritative, the line
-  numbers are not re-measured.
+- **Line pointers.** PRs #236, #237 and #239 moved code after this plan was written (method review).
+  From Design on, the eess-md and script pointers are re-pointed to the build's head. The Problem
+  section's pointers describe 2026-10-17's main, before the fix, and the kernel pointers are not
+  re-measured; their names are authoritative.
 - **The parsed-tree count of four excludes this plan's own fixtures,** measured before they were
   added; at the build's head the same scan also finds the deliberate unread boxes in
   `scripts/nonvacuity/bad-ledger/`, `bad-finished-not-closed/marks-*/` and `examples/md/fixtures/box-marks/`.
@@ -596,20 +606,26 @@ Where the build departed from the text above, each overrulable:
       repository's non-GFM boxes (four, see Build notes)
 - [x] Phase 2 — the builder, its scoped and grouped findings
 - [x] Phase 3 — `honestyAtClose`'s `marks`; `check:ledger` declaring `[~]`; `finished-not-closed`
-      threaded
+      threaded (the library through its harness; `check:ledger`'s own threading is wired but not
+      measured, since no lane here declares a done mark yet)
 - [x] Phase 4 — non-vacuity rows, changeset, README, the example under plan 0458's gate (the
       load-bearing check proves 4 of 4 judgements across 3 examples, 6 s)
 - [x] Every acceptance row above green through the public entry points; every sabotage row red
-      (the matrix below, run at d9eb9856 by a script in the build worktree: rows 1–13, 131 and
+      (the matrix below, run at d9eb9856 by a script in the build worktree: rows 1–13, 13b and
       15–19 each green on the untouched tree and red with the row applied; eess-md rebuilt for rows
       18–19, whose red is the non-vacuity row `corpus/ledger/undeclared-mark`; files restored by
-      `git checkout`, tree clean, 1 min 44 s. Row 131, the open-box peek alone, is pinned, not
+      `git checkout`, tree clean, 1 min 44 s. Row 13b, the open-box peek alone, is pinned, not
       unfalsifiable. Row 14 is counted, not exited: `check:ledger`'s exit also carries this plan's own
       open boxes during the build, so it was measured by the count of `md/undeclared-box-mark`
       findings, none with the declaration and two without. Not measured: the `finished-not-closed`
       threading in `scripts/check-ledger.mjs`, since no lane here declares a done mark yet)
-- [x] `npm run validate` green; durations reported (ticked provisionally for its own gate run,
-      since `check:ledger` runs inside it; the result and duration are filled in from that run)
+- [x] `npm run validate` green; durations reported (at 40f6d04c, with this box ticked
+      provisionally because `check:ledger` runs inside it: exit 0 in 13 min 38 s; 217 non-vacuity
+      fixtures; tests core 331, crossvalidate 128, gherkin 11, md 421, mermaid 173, eess-ts 3,977,
+      examples 26, test:matrix 48. The review's last pass after it (the after-mark whitespace, a
+      malformed-box fixture for `finished-not-closed`, comments and records) was re-checked by the
+      steps it touches: the md suite, the `bad-finished-not-closed` harness, sabotage rows 1–4 and
+      16, `check:ledger`, `check:corpus`, `lint` and `format:check`)
 - [x] Close: bug 0445 → `fixed/`, this plan → `completed/`, boards
 
 Deferred: none
@@ -630,12 +646,12 @@ Deferred: none
 | 9   | bypassFilters dropped                                  | `packages/md/tests/builders/task-items-marks.test.ts`                     | excluding the finding's element does not hide it                                 | green    | red                                             | 4.6s  |
 | 10  | hasDeferredDisposedBox back to !box.checked            | `packages/md/tests/builders/task-items-marks.test.ts`                     | an undeclared box carrying a deferral is not a deferral                          | green    | red                                             | 4.6s  |
 | 11  | either reading replaced by skipping areOpen/areChecked | `packages/md/tests/builders/task-items-marks.test.ts`                     | a hand-written state predicate reaches an unread box                             | green    | red                                             | 4.6s  |
-| 12  | the builder's element state widened back               | `npx tsc --noEmit`                                                        | reports TS2578                                                                   | green    | red                                             | 1.7s  |
+| 12  | the builder's element state widened back               | `npx tsc --noEmit` in `packages/md`                                       | reports TS2578                                                                   | green    | red                                             | 1.7s  |
 | 13  | the preset drops marks (silent-box rule)               | `packages/md/tests/builders/task-items-marks.test.ts`                     | declaring a mark clears its finding                                              | green    | red                                             | 4.6s  |
-| 131 | the preset drops marks (the open-box peek only)        | `packages/md/tests/builders/task-items-marks.test.ts`                     | declaring a mark clears its finding                                              | green    | red                                             | 9.3s  |
-| 131 | the preset drops marks (the open-box peek only)        | `packages/md/tests/builders/task-items-marks.test.ts`                     | a declared open [~] without a disposition is a silent open box                   | green    | red                                             | 9.3s  |
+| 13b | the preset drops marks (the open-box peek only)        | `packages/md/tests/builders/task-items-marks.test.ts`                     | declaring a mark clears its finding                                              | green    | red                                             | 9.3s  |
+| 13b | the preset drops marks (the open-box peek only)        | `packages/md/tests/builders/task-items-marks.test.ts`                     | a declared open [~] without a disposition is a silent open box                   | green    | red                                             | 9.3s  |
 | 15  | the preset drops marks (the deferral reader)           | `packages/md/tests/builders/task-items-marks.test.ts`                     | a declared open [~] disposed deferred→ beside Deferred: none is the deferral lie | green    | red                                             | 4.6s  |
-| 16  | finished-not-closed passes an unread box over          | `node scripts/nonvacuity/bad-finished-not-closed.mjs`                     | reports reported once as md/undeclared-box-mark                                  | green    | red                                             | 12.4s |
+| 16  | finished-not-closed passes an unread box over          | `node scripts/nonvacuity/bad-finished-not-closed.mjs`                     | an undeclared mark on an otherwise finished open record is reported              | green    | red                                             | 12.4s |
 | 17  | this repository's [~] declared done instead of open    | `QA_ONLY=corpus/ledger/tilde-is-open node scripts/check-nonvacuity.mjs`   | corpus/ledger/tilde-is-open                                                      | green    | red                                             | 11.7s |
 | 18  | readBoxMark returns null, eess-md rebuilt              | `QA_ONLY=corpus/ledger/undeclared-mark node scripts/check-nonvacuity.mjs` | corpus/ledger/undeclared-mark                                                    | green    | red                                             | 1.7s  |
 | 19  | collectViolations returns base, eess-md rebuilt        | `QA_ONLY=corpus/ledger/undeclared-mark node scripts/check-nonvacuity.mjs` | corpus/ledger/undeclared-mark                                                    | green    | red                                             | 1.8s  |

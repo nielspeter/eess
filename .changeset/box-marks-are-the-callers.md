@@ -10,7 +10,7 @@
 - `areOpen()` selects `state === 'open'` and `areChecked()` `state === 'done'`: the same boxes as before for GFM boxes.
 - `collectTaskItems(root, { marks, source })` requires the document's `source` (mdast resolves an escaped `\[` away) and returns more elements: undeclared marks, malformed boxes and empty `- [ ]` / `- [x]`, each with `state: 'undeclared' | 'malformed'` and `checked: false`. A caller that counted `!checked` as open sees its count rise.
 
-To migrate: declare each mark once, as a shared `marks` constant passed to `taskItems()` and `honestyAtClose()` (`{ '<mark>': 'open' | 'done' }`), or rewrite the box as `[ ]` or `[x]`; rewrite a `[ x ]` or an empty box; escape (`\[`) or code-span a bracket that is not a box; add `mark` and `state` to any `MdTaskItemRef` or `MdTaskItem` you construct; where you counted `!checked` from `collectTaskItems`, filter on `state`.
+To migrate: declare each mark once, as a shared `marks` constant passed to `taskItems()` and `honestyAtClose()` (`{ '<mark>': 'open' | 'done' }`), or rewrite the box as `[ ]` or `[x]`; rewrite a `[ x ]` or an empty box; escape (`\[`) or code-span a bracket that is not a box; add `mark` and `state` to any `MdTaskItemRef` or `MdTaskItem` you construct; pass `source: doc.text` to `collectTaskItems`, and where you counted `!checked` from it, filter on `state`.
 
 New: `UNDECLARED_BOX_MARK`, `MALFORMED_BOX`, and the types `BoxMarkState` and `TaskItemOptions`.
 

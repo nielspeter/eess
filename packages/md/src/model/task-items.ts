@@ -134,7 +134,7 @@ function readBoxMark(
   const known = GFM_MARKS.has(mark) || declared !== undefined
   if (!known && LETTER_OR_DIGIT.test(mark)) return null
   // GFM takes a space, a tab or a line ending after the box; so does a mark.
-  const exact = inner === mark && /^\s/u.test(after) && text !== ''
+  const exact = inner === mark && /^[ \t\r\n]/.test(after) && text !== ''
   if (exact && !GFM_MARKS.has(mark)) {
     return { mark, state: declared ?? 'undeclared', text }
   }

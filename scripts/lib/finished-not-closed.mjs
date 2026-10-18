@@ -85,10 +85,6 @@ export const FINISHED_NOT_CLOSED_RULE = 'ledger/finished-not-closed'
 export const FINISHED_NOT_CLOSED_VACUOUS_RULE = 'ledger/finished-not-closed-examined-nothing'
 
 /**
- * @param {Array<{roots: readonly string[], marks?: Readonly<Record<string, "open" | "done">>, doneFolders?: readonly string[], states?: readonly string[], terminalStates: readonly string[], cwd?: string}>} lanes
- * @returns {{violations: object[], examined: number}}
- */
-/**
  * The boxes that keep an open record from reading as finished, reported under eess-md's own ids:
  * one per undeclared mark, one per malformed box.
  */
@@ -132,6 +128,10 @@ function unreadBoxFindings(doc, unread) {
   return out
 }
 
+/**
+ * @param {Array<{roots: readonly string[], marks?: Readonly<Record<string, "open" | "done">>, doneFolders?: readonly string[], states?: readonly string[], terminalStates: readonly string[], cwd?: string}>} lanes
+ * @returns {{violations: object[], examined: number}}
+ */
 export function findFinishedNotClosed(lanes) {
   const violations = []
   let examined = 0

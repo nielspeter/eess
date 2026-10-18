@@ -841,7 +841,7 @@ function deferredNoneLieCondition(): Condition<MdDocument> {
  *   specifically doesn't also blind the peek.
  * - `deferredLieViolations`'s selection adds `hasDeferredDisposedBox` (which
  *   walks each done document's own mdast via a separate
- *   `collectTaskItems(doc.root)` call) on top of `isDoneItemPredicate`. Its
+ *   `collectTaskItems(doc.root, { marks, source })` call) on top of `isDoneItemPredicate`. Its
  *   peek (`anyDeferredDisposedBoxOnADoneItem`) instead re-tests
  *   `openTaskItems` (a different traversal) against the same
  *   `DEFERRED_DISPOSITION_RE` constant `hasDeferredDisposedBox` uses — so a
@@ -935,7 +935,7 @@ export function honestyAtClose(
   const silentOpenBoxViolations = silentBoxRule.violations()
 
   // Independent of `hasDeferredDisposedBox`: that function walks each done
-  // document's own mdast via a separate `collectTaskItems(doc.root)` call:
+  // document's own mdast via a separate `collectTaskItems(doc.root, …)` call:
   // this peek instead reuses the flat, already-collected `openTaskItems` list
   // (from the `taskItems()` builder's own traversal) and the same
   // `DEFERRED_DISPOSITION_RE` constant `hasDeferredDisposedBox` tests against

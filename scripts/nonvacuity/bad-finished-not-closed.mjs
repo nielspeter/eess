@@ -157,11 +157,13 @@ try {
   }
   // Undeclared, `[→]` is neither read as done (the record is not called finished) nor passed over:
   // the record cannot be judged, so the mark is reported once, at its first box.
-  const undeclaredIds = undeclared.map((v) => `${v.ruleId ?? v.rule}@${v.line}`)
-  if (undeclaredIds.join(',') !== 'md/undeclared-box-mark@9') {
+  // `0007-padded-box` is the malformed branch: its other box is done, and `[ x ]` is not read.
+  const undeclaredIds = undeclared.map((v) => `${v.ruleId ?? v.rule}@${v.line}`).sort()
+  if (undeclaredIds.join(',') !== 'md/malformed-box@10,md/undeclared-box-mark@9') {
     console.error(
-      `bad-finished-not-closed: an undeclared mark on an otherwise finished open record must be ` +
-        `reported once as md/undeclared-box-mark at line 9; saw [${undeclaredIds.join(', ')}]`,
+      `bad-finished-not-closed: on an otherwise finished open record, an undeclared mark must be ` +
+        `reported once as md/undeclared-box-mark (line 9) and a padded box as md/malformed-box ` +
+        `(line 10); saw [${undeclaredIds.join(', ')}]`,
     )
     process.exit(0)
   }
