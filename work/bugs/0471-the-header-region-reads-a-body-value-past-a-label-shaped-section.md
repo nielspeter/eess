@@ -5,8 +5,8 @@
 - **State:** Draft — recorded 2026-10-18 from PR #235's review of plan 0468's header region
   (architect). It is a limit built into the design, not shipped code, so it has no failing test yet.
   It becomes reproducible once plan 0468 is built.
-- **Severity:** Medium — a silent pass on one shape of record. Adopter 3 measured one such record in
-  1,735, and it is frozen.
+- **Severity:** Medium — a silent pass on one shape of record. Adopter 3 measured one frozen record, of 1,735, that is read too far;
+  whether it is the silent case is unmeasured.
 - **Origin:** self-found · PR #235's review, 2026-10-18.
 - **Reported:** 2026-10-18
 
