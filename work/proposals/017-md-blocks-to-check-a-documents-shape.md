@@ -1055,7 +1055,7 @@ All three adopters were sent the build order and plans 0468 to 0470, and answere
     Adopted.
   - That reads one frozen record too far. When that record's header already has a value, the result
     is a reported conflict. When the header has none, a body value below the heading is read as the
-    header's, and nothing is reported. That is a known limit, recorded in plan 0468.
+    header's, and nothing is reported. That is a known limit, recorded as bug 0471.
     - Reporting it as its own cause was considered and not adopted: it would have to tell adopter
       3's legitimate `## Severity:`/`## Priority:` chain apart from a body value read too far, and
       nothing has measured that distinction.

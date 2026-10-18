@@ -102,7 +102,7 @@ every occurrence in one document:
   - Any `## Label: value` heading counts, not only the labels the caller declares. Adopter 3 measured
     one record where this reads too far (`## ⚠️ RETRACTED: …`, frozen). This is a known limit: when
     the real header has no value and a body line below such a heading has one, that body value is
-    read as the header's, and nothing is reported. When the header does have a value, reading too
+    read as the header's, and nothing is reported. It is [bug 0471](../bugs/0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md). When the header does have a value, reading too
     far gives a conflict, which is reported.
   - The unnamed-form scan reads the same region. With the header region, a per-phase `**Status:**`
     further down is neither read nor reported.
