@@ -18,12 +18,12 @@ export interface HaveFieldOptions extends FieldOptions {
 }
 
 /** The verdict for one document under a `haveField` spec, its `oneOf` judged as `resolveAgainst` does. */
-export function verdictOf(doc: MdDocument, spec: HaveFieldOptions): FieldVerdict {
+function verdictOf(doc: MdDocument, spec: HaveFieldOptions): FieldVerdict {
   return fieldVerdict(doc, spec, spec.oneOf === undefined ? undefined : judge(spec.oneOf))
 }
 
 /** A cause as a finding with the rule's context. */
-export function causeViolation(
+function causeViolation(
   doc: MdDocument,
   c: FieldCause,
   context: ConditionContext,
