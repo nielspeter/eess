@@ -16,6 +16,7 @@ export type { CorpusOptions, Corpus } from './corpus.js'
 // @nielspeter/eess install.
 export type {
   Predicate,
+  Undecided,
   Condition,
   ConditionContext,
   ArchFix,
@@ -108,6 +109,8 @@ export { cleanValue, untilDelimiter, longestOf } from './model/fields.js'
 export type { FieldForm, FieldOptions } from './model/fields.js'
 // Plan 0469: `docs().haveField()`, a document has a value.
 export type { HaveFieldOptions } from './builders/have-field.js'
+// ADR-021: the predicate form, for `satisfy()`, the combinators and a lift onto other elements.
+export { haveFieldPredicate as haveField } from './builders/have-field.js'
 // Plan 0412: a code block parses with the parser the caller names.
 export { parseCodeBlocks, DEFAULT_CODE_BLOCK_BUDGET } from './model/code-block-parse.js'
 export type {

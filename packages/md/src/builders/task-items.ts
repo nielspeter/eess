@@ -1,4 +1,5 @@
 import { collectResult, type CollectResult, type Predicate } from '@nielspeter/eess'
+import { undecidedViolations } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import {
   collectTaskItems,
@@ -66,10 +67,19 @@ export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
   protected override collectViolations(): CollectResult {
     const base = super.collectViolations()
     const unread = this.boxes().filter((box) => !isRead(box.state))
-    const reached = inScope(unread, this._predicates)
+    const { reached, undecided } = inScope(unread, this._predicates)
     if (reached.length === 0) return base
+    // ADR-021: a box whose document cannot be read reports that cause too, once, beside its mark.
+    const causes = undecidedViolations(undecided, this.buildConditionContext(), base)
     // The kernel's evidence, passed through whole.
-    return collectResult([...base, ...unreadFindings(reached, base.examined === 0)], base)
+    return collectResult([...base, ...causes, ...unreadFindings(reached, base.examined === 0)], {
+      examined: base.examined,
+      sourceEmpty: base.sourceEmpty,
+      declaredEmpty: base.declaredEmpty,
+      notRun: base.notRun,
+      deadGlob: base.deadGlob,
+      undecided: (base.undecided ?? 0) + causes.length,
+    })
   }
 
   protected locate(t: MdTaskItem): MdLocation {

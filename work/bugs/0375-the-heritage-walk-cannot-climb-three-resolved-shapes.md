@@ -38,7 +38,7 @@ class named in `implements` end it.
 lets a predicate say it cannot judge a subject (`Predicate.undecided`), reported wherever the rule's
 verdict depends on it. A heritage walk that stops short is that case; whether this bug's fix uses it
 is this record's to decide, and eess-ts would then honour the member rather than refuse it
-([plan 0486](../plans/0486-a-predicate-that-cannot-judge-says-so.md)'s Out of scope).
+([plan 0486](../plans/completed/0486-a-predicate-that-cannot-judge-says-so.md)'s Out of scope).
 
 Not decided. Each shape has an obvious extension — climb a class expression, split an
 intersection into its members, walk a class named in `implements` as its own heritage — and

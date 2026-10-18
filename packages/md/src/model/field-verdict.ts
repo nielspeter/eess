@@ -32,6 +32,8 @@ export interface FieldCause {
 /** A document's verdict: does it have the value, and what is said about it. */
 export interface FieldVerdict {
   readonly has: boolean
+  /** The value resolved (allowed or not): the reading is decided, whatever else is said (ADR-021). */
+  readonly resolved: boolean
   readonly causes: readonly FieldCause[]
 }
 
@@ -62,7 +64,11 @@ export function fieldVerdict(
   allowed?: AllowedJudge,
 ): FieldVerdict {
   const at = (line: number): string => `${doc.relPath}:${String(line)}`
-  const one = (cause: FieldCause): FieldVerdict => ({ has: false, causes: [cause] })
+  const one = (cause: FieldCause): FieldVerdict => ({
+    has: false,
+    resolved: false,
+    causes: [cause],
+  })
   const r = resolveField(doc, spec, 'code-blocks')
   const unread = unreadFields(doc, spec, 'code-blocks').map(
     (u): FieldCause => ({
@@ -111,9 +117,13 @@ export function fieldVerdict(
         message: `'${v}' (${o.label}, line ${String(o.line)}) ${allowed?.says ?? ''}`,
       }),
     )
-    return { has: refused.length === 0, causes: [...prose, ...unread, ...disallowed] }
+    return {
+      has: refused.length === 0,
+      resolved: true,
+      causes: [...prose, ...unread, ...disallowed],
+    }
   }
-  if (unread.length > 0) return { has: false, causes: unread }
+  if (unread.length > 0) return { has: false, resolved: false, causes: unread }
   // Read past code that is not certainly an example (a fence that never closes, an indented block),
   // the label is there, in a form the rule reads or not: say so, naming the code, rather than "no
   // field".

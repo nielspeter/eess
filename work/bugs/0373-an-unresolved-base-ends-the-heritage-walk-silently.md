@@ -43,7 +43,7 @@ them.
 lets a predicate say it cannot judge a subject (`Predicate.undecided`), reported wherever the rule's
 verdict depends on it. A heritage walk that stops short is that case; whether this bug's fix uses it
 is this record's to decide, and eess-ts would then honour the member rather than refuse it
-([plan 0486](../plans/0486-a-predicate-that-cannot-judge-says-so.md)'s Out of scope).
+([plan 0486](../plans/completed/0486-a-predicate-that-cannot-judge-says-so.md)'s Out of scope).
 
 Not decided. ADR-016 clause 1 says an instrument that stops short reports it. The question
 is whether "the checker could not resolve this base" is an instrument limit — reported once

@@ -1,5 +1,6 @@
 import type { Predicate } from './predicate.js'
 import { combineGlobs, negateGlobs } from './glob-site.js'
+import { kleene, negatedTest } from './undecided.js'
 
 /**
  * A function that tests a value against a condition.
@@ -38,6 +39,11 @@ export function not<T, V>(input: Predicate<T> | Matcher<V>): Predicate<T> | Matc
     // `not` nested inside the subtree flips it back, which is why this cannot
     // just flip polarity. See `negateGlobs`.
     globs: input.globs && negateGlobs(input.globs),
+    // ADR-021: unknown stays unknown under negation, and `test` above throws on it as the input's does.
+    ...(input.undecided && {
+      undecided: (element: T) => input.undecided?.(element) ?? [],
+      test: negatedTest(input),
+    }),
   }
 }
 
@@ -140,7 +146,11 @@ function combine<T, V>(
   const predicates = inputs.filter((input): input is Predicate<T> => typeof input !== 'function')
   return {
     description: predicates.map((p) => p.description).join(op === 'all' ? ' and ' : ' or '),
+    // Replaced by `kleene`'s `test` below when an input can be undecided: the spread comes after.
     test: (element: T) => holds(predicates, (p) => p.test(element)),
+    // ADR-021: an input that can be undecided puts the pair on the one truth table, which overrides
+    // the two-valued `test` above; inputs that cannot keep it, and pay nothing.
+    ...(predicates.some((p) => p.undecided) && kleene(predicates, op)),
     globs: combineGlobs(
       op,
       predicates.map((p) => p.globs),

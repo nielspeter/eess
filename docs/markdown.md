@@ -798,9 +798,49 @@ different value, so pair the rule with `fields(...).resolveAgainst(...)`. So is 
 field at all, or a misspelt label (`**Satus:**`): pair the selector with a
 `.should().haveField({ label, forms })` rule over the same documents, which reports it. A value
 after a code fence that never closes is reported (`Status at line 9 follows a code fence that never
-closes; close the fence`), and a plain line the rule does not read is named in the no-field finding. A selection taken with
-`.select()` carries none of these findings. This repository's `check:corpus` requires one State
-in every live plan and bug this way, as a condition.
+closes; close the fence`), and a plain line the rule does not read is named in the no-field finding.
+This repository's `check:corpus` requires one State in every live plan and bug this way, as a
+condition.
+
+**As a predicate.** `haveField(options)` is exported on its own, for `satisfy()` and the
+combinators. A lift onto a document's boxes or links is plan 0457's `inDocuments`, not yet
+shipped; a hand-written lift must forward `undecided`, or the predicate's `test` refuses. A document whose value cannot be read is **undecided**
+([ADR-021](../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)): it is not selected, not
+dropped, and each cause is one finding that cannot be suppressed, reported wherever the rule's
+verdict depends on it. Combined with a predicate that decides the document anyway (a folder that
+excludes it, an `or` branch that holds), it is not reported. A value that resolved, allowed or not, is
+decided, even beside prose that disagrees: the condition form reports that. `.select()` over an undecided document
+throws, naming the cause.
+
+```typescript
+import {
+  and,
+  corpus,
+  docs,
+  haveField,
+  longestOf,
+  type MdDocument,
+  type Predicate,
+} from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/**'] })
+const closed = haveField({
+  label: 'State',
+  forms: ['bold'],
+  value: longestOf(['Done', 'Draft']),
+  oneOf: /^Done$/,
+})
+const live: Predicate<MdDocument> = {
+  description: 'are live plans',
+  test: (d) => !d.relPath.includes('/completed/'),
+}
+
+// No closed plan sits in a live folder; a plan whose State cannot be read is reported, not skipped.
+docs(c).that().satisfy(and(live, closed)).should().notExist().check()
+```
+
+This repository's `check:corpus` states a version of the same rule over its plans and bugs
+(`corpus/closed-records-sit-in-done-folders`).
 
 ## ADR enforcement tables
 

@@ -4,7 +4,7 @@ export { checkAll } from './core/check-all.js'
 export type { ArchProject } from './core/project.js'
 
 // Core — predicate interface & combinators
-export type { Predicate } from '@nielspeter/eess'
+export type { Predicate, Undecided } from '@nielspeter/eess'
 export { not, and, or } from './core/combinators.js'
 
 // Core — condition interface & violation model

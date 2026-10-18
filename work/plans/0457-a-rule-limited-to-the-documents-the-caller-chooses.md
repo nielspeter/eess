@@ -273,7 +273,7 @@ by plan 0456's check, because the lift forwards `globs` and the kernel walks com
 declare that it cannot judge a document (`Predicate.undecided`), as `haveField` does. The lift
 forwards it: `undecided(e)` is `p.undecided(e.doc)`, memoized per document like the verdict, and the
 lifted `test` never asks `p.test` of a document `p.undecided` reports. If this plan lands before
-[plan 0486](./0486-a-predicate-that-cannot-judge-says-so.md), `inDocuments` refuses a predicate
+[plan 0486](./completed/0486-a-predicate-that-cannot-judge-says-so.md), `inDocuments` refuses a predicate
 that declares the member instead, so the lift never ships fail-open. `SCOPES` has the same
 combinator blindness ADR-021 rejected a registry for; it only sharpens a message on a rule that is
 red anyway, so it may stay, and the build says so.

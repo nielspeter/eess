@@ -49,6 +49,7 @@ describe('a fixed bug shows its verification', () => {
     expect(finding?.message).toBe(
       "found `**Status: fixed**` at line 3, in a form this rule does not read (bold-line); add 'bold-line' to forms, or rewrite the line",
     )
-    expect(finding?.bypassFilters).toBeUndefined()
+    // The rule cannot judge this bug (ADR-021), so the finding cannot be excluded or warned away.
+    expect(finding?.bypassFilters).toBe(true)
   })
 })

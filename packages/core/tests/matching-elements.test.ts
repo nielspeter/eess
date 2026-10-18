@@ -18,13 +18,15 @@ const admits = (allowed: readonly string[]): Predicate<string> => ({
 describe('matchingElements', () => {
   it('admits an element only when every predicate admits it', () => {
     const elements = ['a', 'b', 'c']
-    expect(matchingElements(elements, [admits(['a', 'b']), admits(['b', 'c'])])).toEqual(['b'])
+    expect(matchingElements(elements, [admits(['a', 'b']), admits(['b', 'c'])], 'test')).toEqual([
+      'b',
+    ])
   })
 
   it('admits everything when there are no predicates', () => {
     // The `.that()`-less chain: no narrowing means the whole population, not
     // the empty set. Getting this backwards makes every unfiltered rule vacuous.
-    expect(matchingElements(['a', 'b'], [])).toEqual(['a', 'b'])
+    expect(matchingElements(['a', 'b'], [], 'test')).toEqual(['a', 'b'])
   })
 
   it('gives selectMatching the same elements it computes on its own', () => {
@@ -36,7 +38,7 @@ describe('matchingElements', () => {
       label: 'letter',
       identify: (name) => ({ name, file: 'letters.ts', line: 1 }),
     })
-    expect(selection.elements).toEqual(matchingElements(elements, predicates))
+    expect(selection.elements).toEqual(matchingElements(elements, predicates, 'test'))
     expect(selection.elements).toEqual(['a', 'c'])
   })
 })

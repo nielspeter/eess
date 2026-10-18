@@ -428,6 +428,8 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::haveTable': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::haveTableRowsSatisfying': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::resideInFolder': 'predicate factory, used inside a builder (plan 0456)',
+  '@nielspeter/eess-md::haveField':
+    'predicate factory, used inside a builder; its undecided subjects are the builder findings (plan 0486)',
   '@nielspeter/eess-md::resideInFile': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::haveNameMatching': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::matchTableRows': 'model reader',

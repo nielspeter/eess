@@ -3445,6 +3445,43 @@ const gates = [
       ),
   ],
   [
+    // Plan 0486: the dogfood rule reds a closed record left in a live folder.
+    'corpus/closed-records-sit-in-done-folders',
+    () =>
+      gateCorpusStateProbe(
+        'bugs',
+        '__nonvacuity_probe_closed_live.md',
+        [...STATE_PROBE_HEAD, '- **State:** Fixed'],
+        'corpus/closed-records-sit-in-done-folders',
+        'should not exist',
+      ),
+  ],
+  [
+    // Plan 0486: the plans lane of the same rule (its two halves are an `or()`, and each must red).
+    'corpus/closed-records-plans',
+    () =>
+      gateCorpusStateProbe(
+        'plans',
+        '__nonvacuity_probe_closed_live_plan.md',
+        [...STATE_PROBE_HEAD, '- **State:** Done'],
+        'corpus/closed-records-sit-in-done-folders',
+        'should not exist',
+      ),
+  ],
+  [
+    // Plan 0486, ADR-021: a record whose State cannot be read is undecided under the selector-position
+    // rule, and reported on THAT rule's id, not dropped (and not only by `corpus/state-present`).
+    'corpus/closed-records-undecided',
+    () =>
+      gateCorpusStateProbe(
+        'bugs',
+        '__nonvacuity_probe_closed_undecided.md',
+        [...STATE_PROBE_HEAD, '- **State:** Fixed', '- **State:** Draft'],
+        'corpus/closed-records-sit-in-done-folders',
+        "State is given twice (line 5 'Fixed', line 6 'Draft'); keep one",
+      ),
+  ],
+  [
     'corpus/state-in-a-form-not-read',
     () =>
       gateCorpusStateProbe(
@@ -4428,6 +4465,9 @@ const GATE_FOR = {
   'check:corpus': [
     'corpus/state-present',
     'corpus/state-present-conflict',
+    'corpus/closed-records-sit-in-done-folders',
+    'corpus/closed-records-undecided',
+    'corpus/closed-records-plans',
     'corpus/state-in-vocabulary-bugs',
     'corpus/state-in-vocabulary-plans',
     'corpus/state-in-a-form-not-read',

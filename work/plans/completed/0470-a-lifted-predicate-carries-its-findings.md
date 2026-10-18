@@ -5,7 +5,7 @@
 - **State:** Done — the spike ran 2026-10-18 as a throwaway prototype in two revisions (the first
   reviewed by three lenses, the second in PR #243's review), with the three adopters' answers measured: [spike 0485](../../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md).
   Decided the same day: [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md).
-  The build is [plan 0486](../0486-a-predicate-that-cannot-judge-says-so.md).
+  The build is [plan 0486](./0486-a-predicate-that-cannot-judge-says-so.md).
 - **Implements:** proposal 017
 - **Priority:** Medium. Block 12's own example, "documents whose Status is done hold no open box", needs
   it. So do adopter 1's most-wanted rule and the rebuild of `honestyAtClose` from public blocks
@@ -46,7 +46,7 @@ findings on. So `haveField` lifted onto `taskItems()` would drop an unreadable d
       prototype revisions, two review rounds, the three adopters' answers, the cost measured)
 - [x] A design brought back for a decision, and the build plan filed after the ruling
       ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md);
-      [plan 0486](../0486-a-predicate-that-cannot-judge-says-so.md), which also owns the two items
+      [plan 0486](./0486-a-predicate-that-cannot-judge-says-so.md), which also owns the two items
       taken over from plan 0469: Phase 3's memoized verdict and Phase 4's selector-position dogfood)
 - [x] Close: this plan → `completed/`; boards
 

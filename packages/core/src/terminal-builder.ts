@@ -200,6 +200,7 @@ export abstract class TerminalBuilder {
       sourceEmpty: evidenced.sourceEmpty,
       declaredEmpty: evidenced.declaredEmpty,
       deadGlob: evidenced.deadGlob,
+      undecided: evidenced.undecided,
     })
   }
 
@@ -265,7 +266,7 @@ export abstract class TerminalBuilder {
    */
   private evidencedViolations(): CollectResult {
     const collected = this.collectViolations()
-    const { examined, sourceEmpty, deadGlob } = collected
+    const { examined, sourceEmpty, deadGlob, undecided } = collected
     const violations: ArchViolation[] = [...collected]
 
     // The evidence travels with every return below. A declaration reaches the
@@ -277,6 +278,7 @@ export abstract class TerminalBuilder {
       examined,
       sourceEmpty,
       deadGlob,
+      undecided,
       // `assertsCardinality()` is a declaration ONLY over zero subjects — ADR-010
       // §3: "`.notExist()` over zero subjects is a declaration by construction."
       // Over a non-empty selection it is an ordinary assertion that examined
@@ -285,8 +287,10 @@ export abstract class TerminalBuilder {
       // reddened six crossvalidate tests.
       // Withheld beside a selector fault: the receipt must not claim "declared
       // empty" next to a finding that says the emptiness is a fault (ADR-014 §3).
+      // Withheld too when subjects were undecided (ADR-021): the emptiness is theirs, not declared.
       declaredEmpty:
         fault === undefined &&
+        undecided === undefined &&
         (this._expectEmpty === true || (examined === 0 && this.assertsCardinality()))
           ? true
           : undefined,
@@ -298,7 +302,10 @@ export abstract class TerminalBuilder {
     // method to cyclomatic complexity 11 and the repo's own `check:arch` said so.
     // The ORDER is the content here, and it is unchanged.
     if (examined === 0) {
-      const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob, fault)
+      // ADR-021: zero examined because every subject was undecided is explained by those findings, so
+      // the generic finding is not added; a more specific one (a dead glob, a selector fault, an unmet
+      // `.expectNonEmpty()`) still is.
+      const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob, fault, undecided !== undefined)
       return zero === undefined ? collectResult(violations, evidence) : withFinding(zero)
     }
     if (this._expectEmpty === true) {
@@ -323,6 +330,7 @@ export abstract class TerminalBuilder {
     sourceEmpty: boolean | undefined,
     deadGlob: string | undefined,
     fault: SelectorFault | undefined,
+    explained = false,
   ): ArchViolation | undefined {
     if (sourceEmpty === true) return zeroLoadedSourceViolation(this.facts())
     // After an empty source (ADR-010 §3), before every declaration: a broken
@@ -332,7 +340,7 @@ export abstract class TerminalBuilder {
     if (this._expectEmpty === false) return unmetExpectNonEmptyViolation(this.facts())
     if (this.assertsCardinality()) return undefined
     if (deadGlob !== undefined) return deadGlobViolation(this.facts(), deadGlob)
-    return zeroExaminedViolation(this.facts())
+    return explained ? undefined : zeroExaminedViolation(this.facts())
   }
 
   /**
