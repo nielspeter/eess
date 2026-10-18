@@ -156,8 +156,7 @@ it isn't an ADR, so it isn't required to carry an `## Enforcement` table.
 
 eess-md defines no document shape. A rule about what your plans, bugs or pages must hold is built from
 the blocks above in your own words; [the Markdown dialect's docs](../../docs/markdown.md#a-documents-shape-built-from-blocks)
-show one, and this repository's `examples/md/` holds worked examples with clean and violating
-fixtures.
+show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/examples/md) with passing and failing fixtures are in eess's repository.
 
 ## Custom conventions (localization, project-specific lifecycle)
 

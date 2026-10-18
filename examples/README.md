@@ -54,16 +54,18 @@ than `examples/tsconfig.json`'s typecheck, not the absence of one.
 
 ## Document-shape examples — built from eess-md's public blocks only
 
-`md/` holds examples that state a document's shape with eess-md's blocks and nothing else: no
+To state a document's shape in your own project, copy an example's `rule()` and point it at your
+folder; its tests show what the rule finds. `md/` holds examples that state a document's shape with eess-md's blocks and nothing else: no
 predicate or condition built by hand, no internal import, no preset. They are the gate for
 proposal 017's claim that the blocks are enough (plan 0458). Each one is executed by
 `npm run check:examples`, and `check:arch` holds them to their contract:
 
 - `eess/examples-md-public-blocks-only`: an example imports only `@nielspeter/eess-md`, `vitest` and
   the fixture helper; only the helper may import Node's modules;
+- `eess/examples-md-uses-a-block`: every example imports eess-md, so its judgement is a block's;
 - `eess/examples-md-no-hand-built-rules`: no `test`/`evaluate` member, class or dynamic import;
-- `eess/examples-md-no-rule-constructors`: no `definePredicate`, `defineCondition`, `createRequire`
-  or verdict-assembly seam, whatever its import.
+- `eess/examples-md-no-rule-constructors`: no `definePredicate`, `defineCondition`, `createRequire`,
+  verdict-assembly seam or module load that bypasses the import graph, whatever its import.
 
 | Example                                                                                | Judgement                                                |
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
@@ -81,7 +83,9 @@ proposal 017's claim that the blocks are enough (plan 0458). Each one is execute
 
 `check:nonvacuity`'s `examples/md-fixtures-are-load-bearing` row finds every example and swaps each
 fixture both ways (`EESS_EXAMPLE_SWAP`), so a fixture that does not carry its test is a finding.
-Outside this repository, pass the fixture's path yourself; a copied example needs no helper.
+`md/fixture.ts` serves this repository's check only: outside it, pass the fixture's path yourself; a
+copied example needs no helper. What the rules cannot see (a verdict computed outside a builder, by
+reading elements and asserting on them) is held by review.
 
 ## Running
 

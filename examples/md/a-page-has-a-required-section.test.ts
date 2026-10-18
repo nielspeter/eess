@@ -20,13 +20,19 @@ describe('a page has a required section', () => {
   it('clean: every guide has the section', () => {
     const v = rule(fixture(NAME, 'clean')).violations()
     expect(v).toHaveLength(0)
-    expect(v.examined).toBeGreaterThan(0)
+    // Two guides are examined; the home page is not a guide, so the selector leaves it out.
+    expect(v.examined).toBe(2)
   })
 
   it('violating-missing-section: a guide without the section is reported', () => {
     const v = rule(fixture(NAME, 'violating-missing-section')).violations()
-    expect(
-      v.map((x) => [x.file.endsWith('guides/install.md'), x.message, x.bypassFilters]),
-    ).toEqual([[true, 'missing section "Prerequisites"', undefined]])
+    expect(v).toHaveLength(1)
+    const [finding] = v
+    // The violating guide, by its path in the corpus and on disk.
+    expect(finding?.element).toBe('guides/install.md')
+    expect(finding?.file).toContain('violating-missing-section')
+    expect(finding?.message).toBe('missing section "Prerequisites"')
+    // A finding about the document, not a configuration finding about the rule.
+    expect(finding?.bypassFilters).toBeUndefined()
   })
 })

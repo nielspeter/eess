@@ -670,6 +670,11 @@ Every test drives the public entry point and the terminal (`.violations()` or `.
 `TerminalBuilder.evidencedViolations`, after `collectViolations` returns. Package tests may
 hand-build predicates; only `examples/md/` may not.
 
+**From plan 0458** (deferred there, 2026-10-18): this plan's example under `examples/md/` is the first
+cardinality example, so the examples gate's load-bearing row gains a committed row here: a
+`notExist()` example whose clean fixture holds documents with no elements fails its population
+assertion (the wider `.select()`), and the row reds naming it.
+
 **Kernel**, through a minimal `RuleBuilder` subclass in the test file:
 
 - `notExistCondition`: an empty selection is green with no finding; two elements give two

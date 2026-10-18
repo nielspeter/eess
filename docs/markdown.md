@@ -465,10 +465,8 @@ docs(pages)
   .check()
 ```
 
-Each such shape in this repository is a worked example under
-[`examples/md/`](../examples/md/a-page-has-a-required-section.test.ts), with a clean fixture and one violating fixture per judgement,
-held by `check:arch` to use public blocks only and by `check:nonvacuity` to prove every fixture
-carries its test.
+Worked examples, each using only eess-md's public exports and each with a passing fixture and a
+failing one, are in [`examples/md/`](https://github.com/nielspeter/eess/tree/main/examples/md).
 
 ## Binding a table to code
 

@@ -90,6 +90,7 @@ const NAME_KINDS = new Set([
   'ComputedPropertyName',
 ])
 const RULE_MEMBER = /^(test|evaluate)$/
+const ASSIGNMENT = new Set(['=', '??=', '||=', '&&='])
 
 /** A member's name as written, quotes, backticks and computed brackets stripped. Found by kind. */
 function memberName(member: {
@@ -118,7 +119,7 @@ const handBuiltRule: ExpressionMatcher = {
     if (kind === 'BinaryExpression') {
       const [left, op] = node.getChildren()
       return (
-        op?.getText() === '=' &&
+        ASSIGNMENT.has(op?.getText() ?? '') &&
         /(\.(test|evaluate)|\[['"`](test|evaluate)['"`]\])$/.test(left?.getText() ?? '')
       )
     }
@@ -134,12 +135,22 @@ const RULE_CONSTRUCTORS = new Set([
   'mergeCollectResults',
   'finishPreset',
   'dispatchRule',
+  // Module loads that bypass rule 1's import graph through an allowed module (vitest) or none.
+  'importActual',
+  'importMock',
+  'getBuiltinModule',
 ])
 const ruleConstructor: ExpressionMatcher = {
   description:
-    'a rule constructor or verdict-assembly seam (definePredicate, defineCondition, createRequire, collectResult, mergeCollectResults, finishPreset, dispatchRule)',
+    'a rule constructor, verdict-assembly seam or bypassing module load (definePredicate, defineCondition, createRequire, collectResult, mergeCollectResults, finishPreset, dispatchRule, importActual, importMock, getBuiltinModule)',
   matches(node) {
-    return node.getKindName() === 'Identifier' && RULE_CONSTRUCTORS.has(node.getText())
+    const kind = node.getKindName()
+    // A banned name as an identifier, or spelled as a string key (`md['collectResult']`).
+    if (kind === 'Identifier') return RULE_CONSTRUCTORS.has(node.getText())
+    if (kind === 'StringLiteral' || kind === 'NoSubstitutionTemplateLiteral') {
+      return RULE_CONSTRUCTORS.has(node.getText().slice(1, -1))
+    }
+    return false
   },
 }
 
@@ -159,6 +170,18 @@ export default [
     .should()
     .onlyImportFrom('node:{*,*/*}')
     .rule({ id: 'eess/examples-md-public-blocks-only', because: blocksOnly }),
+  // Rule 1's complement: an example that imports no block at all judges by other means.
+  modules(examples)
+    .that()
+    .resideInFolder(EXAMPLES_MD)
+    .satisfy(not(resideInFile(FIXTURE_HELPER)))
+    .notImportFrom('@nielspeter/eess-md')
+    .should()
+    .notExist()
+    .rule({
+      id: 'eess/examples-md-uses-a-block',
+      because: 'an example that imports no eess-md block cannot prove the blocks are enough',
+    }),
   // Rule 2: no predicate, condition or builder built by hand, which needs no import at all.
   modules(examples).that().resideInFolder(EXAMPLES_MD).should().notContain(handBuiltRule).rule({
     id: 'eess/examples-md-no-hand-built-rules',

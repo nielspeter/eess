@@ -781,34 +781,34 @@ function gateArchOneTagComparison() {
 
 // --- Gates: the document-shape examples (plan 0458) ---
 //
-// Three rows over the arch rules that keep `examples/md/` built from eess-md's public blocks, one
-// probe per spelling each rule claims, every probe required to red with THAT rule's id on the
-// probe's own file. And one quiet probe, built only from `docs()` and `corpus()`, that all four must
-// leave alone, so widening a rule to everything reddens a row too.
+// Rows over the arch rules that keep `examples/md/` built from eess-md's public blocks, one probe per
+// spelling each rule claims, every probe required to red with THAT rule's id on the probe's own file.
+// And one quiet probe, built only from `docs()` and `corpus()`, that every rule must leave alone, so
+// widening a rule to everything reddens a row too.
 const PROBE_EXAMPLE = join(repoRoot, 'examples', 'md', '__nonvacuity_probe_examples__.test.ts')
 const EXAMPLES_FIXTURE_HELPER = join(repoRoot, 'examples', 'md', 'fixture.ts')
 const EXAMPLE_RULES = [
   'eess/examples-md-public-blocks-only',
+  'eess/examples-md-uses-a-block',
   'eess/examples-md-no-hand-built-rules',
   'eess/examples-md-no-rule-constructors',
 ]
+const archJson = () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json'])
 
 function gateExamplesMdRule(ruleId, spellings) {
-  const run = (body) =>
-    withProbe(PROBE_EXAMPLE, body, () =>
-      sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
-    )
   const probes = Object.entries(spellings).map(([name, body]) => {
-    const bad = run(body)
+    const bad = withProbe(PROBE_EXAMPLE, body, archJson)
     return {
       name,
       code: bad.code,
       fired: bad.code === 1 && firedOn(bad, ruleId, '__nonvacuity_probe_examples__'),
     }
   })
-  const quiet = run(
+  const quiet = withProbe(
+    PROBE_EXAMPLE,
     "import { corpus, docs } from '@nielspeter/eess-md'\n" +
       "export const rule = () => docs(corpus({ roots: ['**/*.md'] })).should().haveSection('X')\n",
+    archJson,
   )
   const quietOk =
     quiet.code === 0 &&
@@ -840,32 +840,50 @@ function gateExamplesMdPublicBlocksOnly() {
     'node:fs in an example':
       "import { readFileSync } from 'node:fs'\nexport const x = readFileSync\n",
   })
-  // The helper's half: `node:fs/promises` must be allowed there (`node:{*,*/*}`), so the helper
-  // importing it stays quiet. Measured on the real helper, restored afterwards.
-  const helper = withRewrittenFile(
-    EXAMPLES_FIXTURE_HELPER,
-    (src) => `import 'node:fs/promises'\n${src}`,
-    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
-  )
+  // The helper's half, measured on the real helper and restored afterwards: `node:fs/promises` is
+  // allowed there (`node:{*,*/*}`), and anything outside `node:` is not.
+  const onHelper = (prefix) =>
+    withRewrittenFile(EXAMPLES_FIXTURE_HELPER, (src) => `${prefix}\n${src}`, archJson)
+  const allowed = onHelper("import 'node:fs/promises'")
   const helperQuiet =
-    helper.code === 0 && !firedOn(helper, 'eess/examples-md-public-blocks-only', 'fixture.ts')
+    allowed.code === 0 && !firedOn(allowed, 'eess/examples-md-public-blocks-only', 'fixture.ts')
+  const refused = onHelper("import '@nielspeter/eess/internal'")
+  const helperRed =
+    refused.code === 1 && firedOn(refused, 'eess/examples-md-public-blocks-only', 'fixture.ts')
   return {
-    ok: result.ok && helperQuiet,
-    detail: `${result.detail} · the helper importing node:fs/promises → ${helperQuiet ? 'quiet' : `exit ${helper.code}`}`,
+    ok: result.ok && helperQuiet && helperRed,
+    detail:
+      `${result.detail} · the helper importing node:fs/promises → ${helperQuiet ? 'quiet' : `exit ${allowed.code}`}` +
+      ` · the helper importing the kernel internal → ${helperRed ? 'red' : `exit ${refused.code}, did not fire`}`,
   }
+}
+
+function gateExamplesMdUsesABlock() {
+  return gateExamplesMdRule('eess/examples-md-uses-a-block', {
+    'only vitest':
+      "import { expect } from 'vitest'\nexport const check = (ok: boolean) => expect(ok).toBe(true)\n",
+  })
 }
 
 function gateExamplesMdNoHandBuiltRules() {
   return gateExamplesMdRule('eess/examples-md-no-hand-built-rules', {
     'a test member': "export const p = { description: 'x', test: () => true }\n",
+    'a shorthand member': 'const test = () => true\nexport const p = { test }\n',
     'a quoted key': "export const p = { 'test': () => true }\n",
+    'a template key': 'export const p = { [`evaluate`]: () => [] }\n',
     'a computed key': "export const p = { ['evaluate']: () => [] }\n",
     'a getter': 'export const p = { get test() { return () => true } }\n',
+    'a setter': 'export const p = { set evaluate(v: unknown) { void v } }\n',
     'an async method': 'export const p = { async test() { return true } }\n',
     'a generator method': 'export const p = { *evaluate() { yield 1 } }\n',
     'an assignment': 'const p: Record<string, unknown> = {}\np.evaluate = () => []\nexport { p }\n',
+    'a bracket assignment':
+      "const p: Record<string, unknown> = {}\np['test'] = () => true\nexport { p }\n",
+    'a nullish assignment':
+      'const p: Record<string, unknown> = {}\np.test ??= () => true\nexport { p }\n',
     'a class':
       "import { docs } from '@nielspeter/eess-md'\nexport class P { run() { return docs } }\n",
+    'a class expression': 'export const P = class { run() { return 1 } }\n',
     'a dynamic import': "export const m = () => import('@nielspeter/eess/internal')\n",
   })
 }
@@ -874,28 +892,78 @@ function gateExamplesMdNoRuleConstructors() {
   return gateExamplesMdRule('eess/examples-md-no-rule-constructors', {
     'definePredicate with no import':
       'declare const definePredicate: unknown\nexport const x = definePredicate\n',
+    defineCondition: 'declare const defineCondition: unknown\nexport const x = defineCondition\n',
     createRequire: 'declare const createRequire: unknown\nexport const x = createRequire\n',
     collectResult:
       "import { collectResult } from '@nielspeter/eess-md'\nexport const x = collectResult\n",
+    mergeCollectResults:
+      "import { mergeCollectResults } from '@nielspeter/eess-md'\nexport const x = mergeCollectResults\n",
+    finishPreset:
+      "import { finishPreset } from '@nielspeter/eess-md'\nexport const x = finishPreset\n",
+    dispatchRule:
+      "import { dispatchRule } from '@nielspeter/eess-md'\nexport const x = dispatchRule\n",
+    'a banned name as a string key':
+      "import * as md from '@nielspeter/eess-md'\nexport const x = md['collectResult']\n",
+    'vi.importActual':
+      "import { vi } from 'vitest'\nexport const x = () => vi.importActual('@nielspeter/eess/internal')\n",
+    'process.getBuiltinModule': "export const x = process.getBuiltinModule('node:fs')\n",
   })
 }
 
+/** Every file under `dir`, recursively. */
+function filesUnder(dir) {
+  let out = []
+  let entries
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return out
+  }
+  for (const e of entries) {
+    const path = join(dir, e.name)
+    out = e.isDirectory() ? out.concat(filesUnder(path)) : out.concat([path])
+  }
+  return out
+}
+
 /**
- * The load-bearing row (plan 0458): every example's fixtures carry its tests. It discovers each
+ * The load-bearing check (plan 0458): every example's fixtures carry its tests. It discovers each
  * `examples/md/<name>.test.ts` and its `violating-*` folders, then runs that file `1 + 2N` times for
  * N judgements, reading each test's outcome by title from vitest's JSON report, never the exit code:
  * unswapped all pass; `violating-<j>=clean` fails every `violating-<j>:` test and passes the rest;
- * `clean=violating-<j>` fails at least one `clean:` test and passes every `violating-*:` test.
+ * `clean=violating-<j>` fails at least one `clean:` test and passes every `violating-*:` test. Every
+ * run must report the same titles, or a swap that broke collection would pass on nothing.
+ *
+ * `only` restricts the run to one example, for the rows that prove this check can fail.
  */
-function gateExamplesMdLoadBearing() {
+function examplesMdLoadBearing(only) {
+  const started = Date.now()
   const dir = join(repoRoot, 'examples', 'md')
-  const examples = readdirSync(dir).filter(
-    (f) => f.endsWith('.test.ts') && !f.startsWith('__nonvacuity_probe'),
+  const top = readdirSync(dir).filter(
+    (f) =>
+      f.endsWith('.test.ts') &&
+      (only === undefined ? !f.startsWith('__nonvacuity_probe') : f === `${only}.test.ts`),
   )
-  if (examples.length === 0)
-    return { ok: false, detail: 'examples/md holds no example — nothing is proven' }
+  const findings = []
+  // A test file below the top level runs nowhere the contract expects and is proven by nothing.
+  for (const path of filesUnder(dir)) {
+    const rel = path.slice(dir.length + 1)
+    if (!rel.endsWith('.test.ts') || !rel.includes('/') || rel.startsWith('fixtures/')) continue
+    if (only === undefined ? rel.startsWith('__nonvacuity_probe') : !rel.startsWith(only)) continue
+    findings.push(
+      `${rel}: an example below the top level of examples/md/ — move it to examples/md/<name>.test.ts`,
+    )
+  }
+  if (top.length === 0 && findings.length === 0) {
+    return {
+      ok: false,
+      findings: ['examples/md holds no example — nothing is proven'],
+      detail: 'no example',
+    }
+  }
   const vitest = join(repoRoot, 'node_modules', '.bin', 'vitest')
-  const report = join(mkdtempSync(join(tmpdir(), 'eess-examples-md-')), 'report.json')
+  const tmp = mkdtempSync(join(tmpdir(), 'eess-examples-md-'))
+  const report = join(tmp, 'report.json')
   const outcomes = (file, swap) => {
     if (swap === undefined) delete process.env.EESS_EXAMPLE_SWAP
     else process.env.EESS_EXAMPLE_SWAP = swap
@@ -919,77 +987,188 @@ function gateExamplesMdLoadBearing() {
     }
     rmSync(report, { force: true })
     const results = (parsed.testResults ?? []).flatMap((t) => t.assertionResults ?? [])
-    return new Map(results.map((r) => [r.title, r.status === 'passed']))
+    return results.map((r) => [r.title, r.status === 'passed'])
   }
-  const findings = []
   let discovered = 0
   let swapped = 0
-  for (const file of examples) {
-    const name = file.replace(/\.test\.ts$/, '')
-    const fx = join(dir, 'fixtures', name)
-    const folders = (() => {
+  try {
+    for (const file of top) {
+      const name = file.replace(/\.test\.ts$/, '')
+      const fx = join(dir, 'fixtures', name)
+      let folders = []
       try {
-        return readdirSync(fx)
+        folders = readdirSync(fx)
       } catch {
-        return []
+        folders = []
       }
-    })()
-    const nonEmpty = (f) => {
-      try {
-        return readdirSync(join(fx, f)).length > 0
-      } catch {
-        return false
-      }
-    }
-    if (!folders.includes('clean') || !nonEmpty('clean'))
-      findings.push(`${name}: no non-empty clean/`)
-    const judgements = folders.filter((f) => f.startsWith('violating-'))
-    if (judgements.length === 0) findings.push(`${name}: no violating-*/ folder`)
-    for (const j of judgements) if (!nonEmpty(j)) findings.push(`${name}: ${j}/ is empty`)
-    const base = outcomes(file)
-    if (base === undefined || base.size === 0) {
-      findings.push(`${name}: vitest produced no test results (a syntax error or a thrown load?)`)
-      continue
-    }
-    const titles = [...base.keys()]
-    if (!titles.some((t) => t.startsWith('clean:'))) findings.push(`${name}: no clean: test`)
-    for (const j of judgements) {
-      if (!titles.some((t) => t.startsWith(`${j}:`)))
-        findings.push(`${name}: ${j}/ has no ${j}: test`)
-    }
-    for (const t of titles) {
-      const m = /^(violating-[a-z0-9-]+):/.exec(t)
-      if (m && !judgements.includes(m[1]))
-        findings.push(`${name}: test "${t}" has no ${m[1]}/ folder`)
-    }
-    for (const [t, ok] of base) if (!ok) findings.push(`${name}: "${t}" fails unswapped`)
-    for (const j of judgements) {
-      discovered += 1
-      const forward = outcomes(file, `${j}=clean`)
-      const reverse = outcomes(file, `clean=${j}`)
-      if (forward === undefined || reverse === undefined) {
-        findings.push(`${name}: ${j}: a swapped run produced no results`)
+      const hasFiles = (f) => filesUnder(join(fx, f)).length > 0
+      if (!folders.includes('clean') || !hasFiles('clean'))
+        findings.push(`${name}: no clean/ with files`)
+      const judgements = folders.filter((f) => f.startsWith('violating-'))
+      if (judgements.length === 0) findings.push(`${name}: no violating-*/ folder`)
+      for (const j of judgements) if (!hasFiles(j)) findings.push(`${name}: ${j}/ holds no file`)
+      const base = outcomes(file)
+      if (base === undefined || base.length === 0) {
+        findings.push(`${name}: vitest produced no test results (a syntax error or a thrown load?)`)
         continue
       }
-      const forwardOk = [...forward].every(([t, ok]) => (t.startsWith(`${j}:`) ? !ok : ok))
-      const reverseOk =
-        [...reverse].some(([t, ok]) => t.startsWith('clean:') && !ok) &&
-        [...reverse].every(([t, ok]) => (t.startsWith('violating-') ? ok : true))
-      if (!forwardOk)
-        findings.push(
-          `${name}: ${j}: with the clean fixture in its place, a ${j}: test still passes (or another test fails)`,
-        )
-      if (!reverseOk)
-        findings.push(`${name}: ${j}: with ${j}/ in place of clean/, no clean: test fails`)
-      if (forwardOk && reverseOk) swapped += 1
+      const titles = base.map(([t]) => t)
+      const dupes = titles.filter((t, i) => titles.indexOf(t) !== i)
+      for (const t of new Set(dupes)) findings.push(`${name}: the title "${t}" is used twice`)
+      if (!titles.some((t) => t.startsWith('clean:'))) findings.push(`${name}: no clean: test`)
+      for (const t of titles) {
+        if (/^violating-/i.test(t) && !/^violating-[a-z0-9-]+:/.test(t)) {
+          findings.push(`${name}: "${t}" is not violating-<kebab-case-judgement>:`)
+        }
+        const m = /^(violating-[a-z0-9-]+):/.exec(t)
+        if (m && !judgements.includes(m[1]))
+          findings.push(`${name}: test "${t}" has no ${m[1]}/ folder`)
+      }
+      for (const j of judgements) {
+        if (!titles.some((t) => t.startsWith(`${j}:`)))
+          findings.push(`${name}: ${j}/ has no ${j}: test`)
+      }
+      for (const [t, ok] of base) if (!ok) findings.push(`${name}: "${t}" fails unswapped`)
+      const sameTitles = (run) =>
+        run !== undefined && run.length === base.length && run.every(([t], i) => t === titles[i])
+      for (const j of judgements) {
+        if (!titles.some((t) => t.startsWith(`${j}:`))) continue
+        discovered += 1
+        const forward = outcomes(file, `${j}=clean`)
+        const reverse = outcomes(file, `clean=${j}`)
+        if (!sameTitles(forward) || !sameTitles(reverse)) {
+          findings.push(
+            `${name}: ${j}: a swapped run reported different tests than the unswapped one`,
+          )
+          continue
+        }
+        const forwardOk = forward.every(([t, ok]) => (t.startsWith(`${j}:`) ? !ok : ok))
+        const reverseOk =
+          reverse.some(([t, ok]) => t.startsWith('clean:') && !ok) &&
+          reverse.every(([t, ok]) => (t.startsWith('violating-') ? ok : true))
+        if (!forwardOk) {
+          const stillPassing = forward
+            .filter(([t, ok]) => t.startsWith(`${j}:`) && ok)
+            .map(([t]) => t)
+          const broken = forward.filter(([t, ok]) => !t.startsWith(`${j}:`) && !ok).map(([t]) => t)
+          if (stillPassing.length > 0) {
+            findings.push(
+              `${name}: ${j}: with clean/ in place of ${j}/, "${stillPassing.join('", "')}" still passes`,
+            )
+          }
+          if (broken.length > 0) {
+            findings.push(
+              `${name}: ${j}: swapping ${j}/ out broke "${broken.join('", "')}", which should not read it`,
+            )
+          }
+        }
+        if (!reverseOk)
+          findings.push(`${name}: ${j}: with ${j}/ in place of clean/, no clean: test fails`)
+        if (forwardOk && reverseOk) swapped += 1
+      }
     }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true })
   }
   const ok = findings.length === 0 && swapped === discovered && discovered > 0
   return {
     ok,
+    findings,
     detail:
-      `${String(examples.length)} example(s), ${String(swapped)} of ${String(discovered)} judgement(s) proven load-bearing both ways` +
+      `${String(top.length)} example(s), ${String(swapped)} of ${String(discovered)} judgement(s) proven load-bearing both ways (${String(Date.now() - started)} ms)` +
       (findings.length > 0 ? ` · ${findings.join(' · ')}` : ''),
+  }
+}
+
+function gateExamplesMdLoadBearing() {
+  const { ok, detail } = examplesMdLoadBearing()
+  return { ok, detail }
+}
+
+/**
+ * The load-bearing check must be able to fail. Each row plants a probe example, runs the check on it
+ * alone, and requires a finding naming the probe. Probes carry the `__nonvacuity_probe` prefix, so a
+ * killed run's leftover is named by `check:integrity`.
+ */
+const LB_PROBE = '__nonvacuity_probe_examples_lb__'
+const LB_TEST = join(repoRoot, 'examples', 'md', `${LB_PROBE}.test.ts`)
+const LB_FIXTURES = join(repoRoot, 'examples', 'md', 'fixtures', LB_PROBE)
+const LB_GUIDE_OK = '# G\n\n## Prerequisites\n\nNone.\n'
+const LB_GUIDE_BAD = '# G\n\nNo section.\n'
+const lbExample = (tests) =>
+  "import { corpus, docs } from '@nielspeter/eess-md'\n" +
+  "import { describe, expect, it } from 'vitest'\n" +
+  "import { fixture } from './fixture.js'\n" +
+  `const NAME = '${LB_PROBE}'\n` +
+  "const rule = (cwd: string) => docs(corpus({ cwd, roots: ['**/*.md'] })).that().resideInFolder('guides/**').should().haveSection('Prerequisites')\n" +
+  `describe('probe', () => {\n${tests}\n})\n`
+
+function withLbProbe(folders, tests, fn) {
+  return withProbeDir(LB_FIXTURES, LB_TEST, lbExample(tests), () => {
+    for (const [folder, text] of Object.entries(folders)) {
+      mkdirSync(join(LB_FIXTURES, folder, 'guides'), { recursive: true })
+      writeFileSync(join(LB_FIXTURES, folder, 'guides', 'g.md'), text)
+    }
+    try {
+      return fn()
+    } finally {
+      rmSync(LB_TEST, { force: true })
+    }
+  })
+}
+
+const LB_CLEAN =
+  "  it('clean: ok', () => { expect(rule(fixture(NAME, 'clean')).violations()).toHaveLength(0) })"
+const lbViolating = (title, folder) =>
+  `  it('${title}: reported', () => { expect(rule(fixture(NAME, '${folder}')).violations()).toHaveLength(1) })`
+
+function gateExamplesMdLoadBearingRedsOnCrossRead() {
+  // Two judgements; the second's test reads the first's folder, so swapping its own out changes nothing.
+  const r = withLbProbe(
+    { clean: LB_GUIDE_OK, 'violating-a': LB_GUIDE_BAD, 'violating-b': LB_GUIDE_BAD },
+    [
+      LB_CLEAN,
+      lbViolating('violating-a', 'violating-a'),
+      lbViolating('violating-b', 'violating-a'),
+    ].join('\n'),
+    () => examplesMdLoadBearing(LB_PROBE),
+  )
+  const named = r.findings.some(
+    (f) => f.includes(LB_PROBE) && f.includes('violating-b') && f.includes('still passes'),
+  )
+  return {
+    ok: !r.ok && named,
+    detail: `a test reading another judgement's folder → ${named ? 'named' : `not named (${r.detail})`}`,
+  }
+}
+
+function gateExamplesMdLoadBearingRedsOnOrphanFolder() {
+  const r = withLbProbe(
+    { clean: LB_GUIDE_OK, 'violating-a': LB_GUIDE_BAD, 'violating-orphan': LB_GUIDE_BAD },
+    [LB_CLEAN, lbViolating('violating-a', 'violating-a')].join('\n'),
+    () => examplesMdLoadBearing(LB_PROBE),
+  )
+  const named = r.findings.some((f) =>
+    f.includes('violating-orphan/ has no violating-orphan: test'),
+  )
+  return {
+    ok: !r.ok && named,
+    detail: `a violating folder with no test → ${named ? 'named' : `not named (${r.detail})`}`,
+  }
+}
+
+function gateExamplesMdLoadBearingRedsOnNested() {
+  const nestedDir = join(repoRoot, 'examples', 'md', LB_PROBE)
+  const r = withProbeDir(
+    nestedDir,
+    join(nestedDir, 'nested.test.ts'),
+    "import { it } from 'vitest'\nit('clean: x', () => {})\n",
+    () => examplesMdLoadBearing(LB_PROBE),
+  )
+  const named = r.findings.some((f) => f.includes('below the top level'))
+  return {
+    ok: !r.ok && named,
+    detail: `an example below the top level → ${named ? 'named' : `not named (${r.detail})`}`,
   }
 }
 
@@ -3893,6 +4072,13 @@ const gates = [
       ]),
   ],
   ['examples/md-fixtures-are-load-bearing', gateExamplesMdLoadBearing],
+  ['examples/md-load-bearing-reds-on-a-cross-read', gateExamplesMdLoadBearingRedsOnCrossRead],
+  [
+    'examples/md-load-bearing-reds-on-an-orphan-folder',
+    gateExamplesMdLoadBearingRedsOnOrphanFolder,
+  ],
+  ['examples/md-load-bearing-reds-on-a-nested-example', gateExamplesMdLoadBearingRedsOnNested],
+  ['arch/examples-md-uses-a-block', gateExamplesMdUsesABlock],
   ['arch/examples-md-public-blocks-only', gateExamplesMdPublicBlocksOnly],
   ['arch/examples-md-no-hand-built-rules', gateExamplesMdNoHandBuiltRules],
   ['arch/examples-md-no-rule-constructors', gateExamplesMdNoRuleConstructors],
@@ -3982,6 +4168,7 @@ const GATE_FOR = {
   // would otherwise have no witness that it still matches the kernel's.
   'check:arch': [
     'arch/examples-md-public-blocks-only',
+    'arch/examples-md-uses-a-block',
     'arch/examples-md-no-hand-built-rules',
     'arch/examples-md-no-rule-constructors',
     'emitter/bare-builder-reds-the-cli',
@@ -4246,7 +4433,13 @@ const GATE_FOR = {
     'guardrails/no-verdict-outside-rules',
     'guardrails/rule-files-matches-nothing',
   ],
-  'check:examples': ['examples/does-not-compile', 'examples/md-fixtures-are-load-bearing'],
+  'check:examples': [
+    'examples/does-not-compile',
+    'examples/md-fixtures-are-load-bearing',
+    'examples/md-load-bearing-reds-on-a-cross-read',
+    'examples/md-load-bearing-reds-on-an-orphan-folder',
+    'examples/md-load-bearing-reds-on-a-nested-example',
+  ],
   // Two rows, because the script scans several populations — `docs/` + package
   // READMEs, `.changeset/**`, and the repo-root docs (bug 0273) — and one row per
   // script cannot notice when one of them stops being scanned, which is exactly
