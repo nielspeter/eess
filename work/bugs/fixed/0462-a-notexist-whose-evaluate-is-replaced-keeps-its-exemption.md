@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18; found while drafting plan 0456 and reproduced here.
+- **State:** Fixed — 2026-10-18, in PR #239 with [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md):
+  `marksAssertsCardinality` freezes what it marks. Recorded 2026-10-18 while drafting plan 0456.
 - **Severity:** Low — it takes a deliberate edit to a returned condition; the result is the forgery
   `packages/core/src/cardinality.ts` exists to prevent.
 - **Origin:** self-found · plan 0456's drafting, 2026-10-17.
@@ -27,14 +28,17 @@ replaced. All five `notExist` copies (four in eess-ts, one in eess-mermaid) shar
 ## Fix
 
 Freeze a condition when it is marked (`marksAssertsCardinality`), so no exempt object can change; this
-fixes all five copies at once. Planned in [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md)
+fixes all five copies at once. Planned in [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md)
 (coordinator's decision after its second review, 2026-10-18: nothing in `packages/*/src` mutates a
 marked condition, so it ships as a kernel minor without a break marker).
 
 ## Verification
 
-- [ ] Red first: the replaced `notExist()` above passes over an empty selection
-- [ ] Green: assigning `evaluate` on a returned `notExist()` throws, so the exemption only ever
+- [x] Red first: the replaced `notExist()` above passes over an empty selection
+      (`packages/ts/tests/conditions/not-exist-frozen.test.ts`, committed failing as 57259275: the
+      assignment did not throw)
+- [x] Green: assigning `evaluate` on a returned `notExist()` throws, so the exemption only ever
       belongs to the condition as shipped; a plain no-op condition over the same empty selection still reds
+      (the same file, both rows; the freeze itself in `packages/core/tests/cardinality.test.ts`)
 
 Deferred: none

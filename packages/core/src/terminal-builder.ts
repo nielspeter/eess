@@ -272,13 +272,7 @@ export abstract class TerminalBuilder {
     // emitter ON the receipt (ADR-014 §3) rather than through delivery options:
     // one boolean over a sum cannot carry per-rule declarations, and this is the
     // moment the terminal knows the fact and used to discard it.
-    // Bug 0460: an absence rule over a broken selector examined zero because
-    // the selector is broken, not because the assertion holds. Asked only when
-    // it matters, so a dialect's diagnosis never runs on an ordinary rule.
-    const fault =
-      examined === 0 && sourceEmpty !== true && this.assertsCardinality()
-        ? this.cardinalitySelectorFault()
-        : undefined
+    const fault = this.selectorFaultWhenEmpty(examined, sourceEmpty)
     const evidence = {
       examined,
       sourceEmpty,
@@ -304,12 +298,7 @@ export abstract class TerminalBuilder {
     // method to cyclomatic complexity 11 and the repo's own `check:arch` said so.
     // The ORDER is the content here, and it is unchanged.
     if (examined === 0) {
-      // After an empty source (ADR-010 §3), before every declaration: a broken
-      // selector is not something `.expectEmpty()` can declare away.
-      if (fault !== undefined) {
-        return withFinding(cardinalitySelectorFaultViolation(this.facts(), fault))
-      }
-      const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob)
+      const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob, fault)
       return zero === undefined ? collectResult(violations, evidence) : withFinding(zero)
     }
     if (this._expectEmpty === true) {
@@ -323,8 +312,9 @@ export abstract class TerminalBuilder {
    * because it declared the emptiness.
    *
    * Extracted from `evidencedViolations` under `check:arch`'s complexity rule.
-   * The precedence is the whole content and is unchanged: an empty source
-   * outranks every declaration (ADR-010 §3), an explicit declaration is
+   * The precedence is the whole content: an empty source outranks every
+   * declaration (ADR-010 §3), an absence rule's broken selector comes next
+   * (bug 0460, plan 0456), an explicit declaration is
    * satisfied, `.expectNonEmpty()` is unmet, a cardinality condition is
    * satisfied by emptiness, and a nameable dead glob outranks the generic
    * message because it is strictly more actionable.
@@ -332,13 +322,30 @@ export abstract class TerminalBuilder {
   private zeroExaminedFinding(
     sourceEmpty: boolean | undefined,
     deadGlob: string | undefined,
+    fault: SelectorFault | undefined,
   ): ArchViolation | undefined {
     if (sourceEmpty === true) return zeroLoadedSourceViolation(this.facts())
+    // After an empty source (ADR-010 §3), before every declaration: a broken
+    // selector is not something `.expectEmpty()` can declare away (bug 0460).
+    if (fault !== undefined) return cardinalitySelectorFaultViolation(this.facts(), fault)
     if (this._expectEmpty === true) return undefined
     if (this._expectEmpty === false) return unmetExpectNonEmptyViolation(this.facts())
     if (this.assertsCardinality()) return undefined
     if (deadGlob !== undefined) return deadGlobViolation(this.facts(), deadGlob)
     return zeroExaminedViolation(this.facts())
+  }
+
+  /**
+   * Bug 0460: an absence rule that examined zero over a source that loaded,
+   * asked why. Only then, so a dialect's diagnosis never runs on an ordinary
+   * rule; the empty source is reported instead when there is one.
+   */
+  private selectorFaultWhenEmpty(
+    examined: number,
+    sourceEmpty: boolean | undefined,
+  ): SelectorFault | undefined {
+    if (examined !== 0 || sourceEmpty === true || !this.assertsCardinality()) return undefined
+    return this.cardinalitySelectorFault()
   }
 
   /**

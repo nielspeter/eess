@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — written 2026-10-18, split from
-  [plan 0456](./0456-kernel-notexist-and-dead-glob.md) after PR #235's review (method, B2: one
+  [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md) after PR #235's review (method, B2: one
   plan held two independent kernel conditions, a break in a third package and a dogfood rule).
 - **Implements:** proposal 017
 - **Priority:** Medium. Two of the three adopters want block 13 (017, "Consumer feedback"), and
@@ -11,7 +11,7 @@
 - **Effort:** Medium. One kernel condition, one eess-md builder method, one eess-gherkin condition
   rebuilt (a break), one rule in `check:corpus` with its non-vacuity row. One pull request.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0456](./0456-kernel-notexist-and-dead-glob.md) (it uses 0456's `/internal`
+- **Builds after:** [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md) (it uses 0456's `/internal`
   shape and md's root exports) and [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
   (the examples gate). Build order (maintainer, 2026-10-18): 0458 → 0456 → 0454 → 0457 → 0455 →
   **0459**.

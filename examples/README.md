@@ -71,6 +71,7 @@ proposal 017's claim that the blocks are enough (plan 0458). Each one is execute
 | Example                                                                                | Judgement                                                |
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | [md/a-page-has-a-required-section.test.ts](./md/a-page-has-a-required-section.test.ts) | every page under `guides/` has a `Prerequisites` section |
+| [md/unclaimed-and-double-claimed.test.ts](./md/unclaimed-and-double-claimed.test.ts)   | every page is claimed by one selection, and none by two  |
 
 **The contract an example meets.**
 

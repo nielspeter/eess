@@ -2,14 +2,15 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-17 from proposal 017's maintainer acceptance (block 6);
+- **State:** Done — built 2026-10-18 in PR #239 from the reviewed Draft; "Build notes" says where
+  the build departed from the text. Written 2026-10-17 from proposal 017's maintainer acceptance (block 6);
   reworked three times on 2026-10-18 after PR #235's review rounds (architect · product ·
   enforcement · method · testing). `beUniqueBy`, the eess-gherkin rebuild and the record-number
-  dogfood moved to [plan 0459](./0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
+  dogfood moved to [plan 0459](../0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
 - **Implements:** proposal 017
-- **Fixes:** [bug 0460](../bugs/0460-the-kernel-exempts-a-cardinality-rule-before-it-looks-for-a-dead-glob.md)
+- **Fixes:** [bug 0460](../../bugs/fixed/0460-the-kernel-exempts-a-cardinality-rule-before-it-looks-for-a-dead-glob.md)
   (first, at the maintainer's decision 2026-10-18) and
-  [bug 0462](../bugs/0462-a-notexist-whose-evaluate-is-replaced-keeps-its-exemption.md), by freezing
+  [bug 0462](../../bugs/fixed/0462-a-notexist-whose-evaluate-is-replaced-keeps-its-exemption.md), by freezing
   a condition when it is marked (coordinator's decision 3 in the second rework brief, 2026-10-18,
   which reverses the first brief's narrower call).
 - **Priority:** Medium. Block 6 ("a document no selection claims") is wanted by all three
@@ -21,10 +22,10 @@
   reviewed in two parts: the kernel (Phase 1), then the dialects (Phase 2). Phase 1 alone ships an
   inert hook, so it is not a delivery on its own.
 - **Created:** 2026-10-17
-- **Builds after:** [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
+- **Builds after:** [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
   (the examples gate). Build order (maintainer, 2026-10-18): 0458 → **0456** → 0454 → 0457 →
   0455 → 0459.
-- **Builds before:** 0454, 0457, 0459 and [0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
+- **Builds before:** 0454, 0457, 0459 and [0464](../0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
   They use what this plan makes public (the contract below).
 
 ## Problem
@@ -53,8 +54,8 @@ whose condition asserts cardinality at line 318, before it consults any diagnosi
 at line 319, and `.expectEmpty()` returns even earlier, at line 316. eess-ts guards against both in
 its own `evidenceFloor` (`packages/ts/src/core/vacuity-diagnosis.ts:309`): there the cardinality
 faults are checked before `declaresEmpty()`, under the rulings of
-[bug 0355](../bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
-and [bug 0362](../bugs/fixed/0362-a-typod-ratchet-is-green-in-both-tools.md). Every dialect on the
+[bug 0355](../../bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
+and [bug 0362](../../bugs/fixed/0362-a-typod-ratchet-is-green-in-both-tools.md). Every dialect on the
 kernel's `TerminalBuilder` has neither. Adding `notExist()` to md without the guard would ship a
 ratchet that a one-character selector fault turns permanently green.
 
@@ -79,7 +80,7 @@ What the table says about exposure:
   outranks every declaration, and the kernel applies that first (`core/src/terminal-builder.ts:315`), but
   only when the dialect says so. For md this plan adds it, because block 6's recipe depends on it
   (Design, "What a broken selector does now"). For eess-mermaid it is a separate defect, not this
-  plan's scope: [bug 0463](../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
+  plan's scope: [bug 0463](../../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
 - **eess-md's location predicates declare no globs.** `resideInFolder` and `resideInFile`
   (`packages/md/src/predicates/document.ts:7`, `:12`) return a bare `{ description, test }`, so no
   glob-based diagnosis can see them, and the kernel's plan-0069 machinery (`Predicate.globs`,
@@ -295,7 +296,7 @@ Decisions, each overrulable:
   `createJsxViolation`, `classViolation`), and eess-ts's `function.ts` copy as a literal with no code
   frame and no `ruleId` (`packages/ts/src/conditions/function.ts:56-73`). A factory taking `identify`
   would impose one shape on all of them. With `toViolation`, each copy's migration keeps its own
-  shape. That migration is [plan 0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
+  shape. That migration is [plan 0464](../0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
 - **`name` takes the context** (architect, round three N-2). eess-ts's `calls()` copy names the
   element with `callNameForMessage(archCall, context)`, which reads `context.identifyByArgument`
   (`packages/ts/src/conditions/call.ts:50-52`). A `name` without `ctx` could not produce that
@@ -434,7 +435,7 @@ instrument or a broken selector:
     `diagnose()` (`packages/ts/src/core/diagnose.ts:329`, `rule.globs?.()`), and on any md builder
     it crashes before reading them: `npx eess-ts doctor spec.rules.ts` exits 1 with
     `project.getSourceFiles is not a function`, which is
-    [bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md). So the mismatch
+    [bug 0396](../../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md). So the mismatch
     reaches nobody now; it is a condition on bug 0396's fix, which must not judge md's sites by
     eess-ts's rules (bug 0396 carries that condition, added 2026-10-18). md's own check never reads
     the declared base.
@@ -531,7 +532,7 @@ Two shapes the recipe does not protect, stated in the README beside it:
 - **A folder named in `.that()` over a wider corpus.** `docs(c).that().resideInFolder('gudies/**')
 .should().notExist()` over `roots: ['**/*.md']` is green when no `gudies/` exists anywhere: bug
   0355's ruling, and bug 0460's own symptom row, which stays green after this plan.
-- **A corpus with several roots, one of them mistyped.** Fixed before this plan by [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) (PR #236):
+- **A corpus with several roots, one of them mistyped.** Fixed before this plan by [bug 0465](../../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) (PR #236):
   `corpus()` refuses a root that matches no file when another root loads. A corpus whose **every**
   root is dead is still loaded, and this plan's empty-source finding is what reports it (note
   2026-10-18).
@@ -875,10 +876,10 @@ mechanism. No row of its own in `check:nonvacuity`.
 
 - **Migrating the five `notExist` copies onto `notExistCondition`.** Bug 0462 no longer depends on
   it (Kernel (1)); it is de-duplication only. Home:
-  [plan 0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
+  [plan 0464](../0464-the-dialects-notexist-copies-move-onto-the-kernels.md).
 - **eess-mermaid's missing empty-source check** (the measured empty-diagram row). Not bug 0460's
-  kernel order. Home: [bug 0463](../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
-- **A corpus root that matches no file, in a multi-root corpus.** Fixed by [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) in PR #236, so no
+  kernel order. Home: [bug 0463](../../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
+- **A corpus root that matches no file, in a multi-root corpus.** Fixed by [bug 0465](../../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) in PR #236, so no
   longer out of scope here.
 - **A named dead-glob finding for md's positive rules.** They keep the generic finding; plan 0457
   overrides `deadGlobDiagnosis()` for its scopes.
@@ -886,16 +887,16 @@ mechanism. No row of its own in `check:nonvacuity`.
   the recipe's roots-scoped corpus is the remedy, and the README states the limit.
 - **Making md's declared base exact.** `GlobBase` stays unchanged (Kernel (4)); the gap reaches no
   reader until bug 0396 is fixed, and is a condition on that fix.
-- `beUniqueBy`, the gherkin rebuild and the record-number dogfood: [plan 0459](./0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
+- `beUniqueBy`, the gherkin rebuild and the record-number dogfood: [plan 0459](../0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
 
 ## Records this plan depends on
 
-- [Bug 0463](../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md): eess-mermaid reports
+- [Bug 0463](../../bugs/0463-a-mermaid-notexist-over-an-empty-diagram-passes.md): eess-mermaid reports
   no empty source, so `classes(diagram('classDiagram\n')).should().notExist()` passes (measured
   above).
-- [Bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md): fixed in PR #236. A
+- [Bug 0465](../../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md): fixed in PR #236. A
   dead root beside a live one is refused; an all-dead corpus is left to this plan.
-- [Bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md): eess-ts's `doctor`
+- [Bug 0396](../../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md): eess-ts's `doctor`
   crashes on md rules; md rules start declaring globs here, with an inexact base.
 - Bug 0460's verification rows follow bug 0355's ruling, as this plan does: a text fault and
   unloaded Markdown red, an absent folder green, the symptom table's `gudies/**` row green by ruling,
@@ -974,7 +975,7 @@ mechanism. No row of its own in `check:nonvacuity`.
   `marksAssertsCardinality`; bug 0462's rows in `packages/ts/tests`; one eess-mermaid assertion with
   a changeset entry; the `correspondence` callables dropped from the test, with the reason.
 - **method N4 / enforcement m-c / coordinator decision 5** (the multi-root silent pass has no home):
-  [bug 0465](../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md), a deferral box,
+  [bug 0465](../../bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md), a deferral box,
   and a test titled for it.
 - **method N5** (Effort figures not this plan's counts): counted from the tables (29 Files-changed
   rows, seven new test files, 14 sabotage rows; round four recounted: eight new test files, with
@@ -1043,24 +1044,48 @@ mechanism. No row of its own in `check:nonvacuity`.
   exception (coordinator's decision 1, round six); nothing to change here. This plan's empty-source
   check (Design, "what a broken selector does now", item 1) is what makes that row able to red.
 
+## Build notes — 2026-10-18
+
+Where the build departed from the text above, each overrulable:
+
+- **`SelectorFault` carries `remedy`, not `correction`.** The kernel needs only the `Fix:` line; the
+  dialect writes it, with the correction inside it where there is one. The kernel's
+  `globTextCorrection` computes the correction for the text faults.
+- **`isAnchored` did not move.** The kernel already had its own
+  (`packages/core/src/project-relative.ts:14`), so `globTextFault` uses it; eess-ts keeps its copy.
+- **One base class for the six corpus builders.** `CorpusRuleBuilder`
+  (`packages/md/src/builders/corpus-rule-builder.ts`) holds `sourceEmpty()`, the fault override and
+  `notExist()`; each builder supplies `locate()`. Six copies would have been one `no-copy-paste`
+  cluster.
+- **`terms()` had its own `resideInFile`.** It now declares its glob too, so the six-builder fault
+  table holds for `terms()` through its own method.
+- **`honestyAtClose` returns early on an empty corpus.** With an empty source all three of its rules
+  reported it, and the kernel's merge added a fourth finding; bug 0444's test pins "one finding, not
+  two". The preset now returns the header rule's one empty-source finding. The merge's repeat is
+  [bug 0479](../../bugs/0479-a-merge-repeats-an-empty-source-its-member-already-reported.md).
+- **The location predicates carry `originLabel`** (`resideInFolder("…")`), so a selector fault names
+  the call the author wrote.
+
 ## Progress ledger
 
-- [ ] Phase 1 (review part 1): freeze at marking, `cardinalitySelectorFault` on `TerminalBuilder`
+- [x] Phase 1 (review part 1): freeze at marking, `cardinalitySelectorFault` on `TerminalBuilder`
       with its order and receipt, `notExistCondition`, `globTextFault` with eess-ts's wrapper,
-      kernel tests, whole suite once
-- [ ] Phase 2 (review part 2): md `notExist()` ×7, `sourceEmpty()` ×6, declared globs,
+      kernel tests, whole suite once (core 331 tests in 1 s, eess-ts 3,976 in 44 s, eess-mermaid
+      172; all green)
+- [x] Phase 2 (review part 2): md `notExist()` ×7, `sourceEmpty()` ×6, declared globs,
       `notInCorpusReasons`, the fault helper with the separator check, six exports, README,
       `honestyAtClose`'s docstring, the example with three fixtures; eess-ts's and eess-mermaid's
       freeze tests
 - [ ] Sabotage rows 1–17, each red on its named test; durations reported
-- [ ] Bug 0460 and bug 0462 red-first on main, green here, both → `fixed/`
-- [ ] The ADR-010 Enforcement row, `gated`, citing the kernel fault-outranks-declaration test
-- [ ] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's
+- [x] Bug 0460 and bug 0462 red-first on main, green here, both → `fixed/`
+- [x] The ADR-010 Enforcement row, `gated`, citing the kernel fault-outranks-declaration test
+- [x] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's
 - [ ] `check:family`, `check:release`, `check:docs-code`, `check:examples`, eess-crossvalidate's
       suite and `npm run validate` green; durations reported
-- [ ] The examples gate's `notExist()` row (from plan 0458): a clean fixture holding documents with no elements reds the load-bearing row, naming the example
-- [ ] Close: this plan → `completed/`; boards
-- [ ] deferred→[plan 0464](./0464-the-dialects-notexist-copies-move-onto-the-kernels.md) (the five
+- [x] The examples gate's `notExist()` row (from plan 0458): a clean fixture holding documents with no elements reds the load-bearing row, naming the example
+      (`examples/md-load-bearing-reds-on-an-empty-population` in `scripts/check-nonvacuity.mjs`)
+- [x] Close: this plan → `completed/`; boards
+- [ ] deferred→[plan 0464](../0464-the-dialects-notexist-copies-move-onto-the-kernels.md) (the five
       copies' migration)
 - [ ] deferred→bug 0463 (eess-mermaid reports no empty source)
 - [x] done-otherwise: bug 0465 was fixed by PR #236 before this plan was built; this plan keeps the

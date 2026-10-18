@@ -98,7 +98,7 @@ it must not be skipped silently, which would read as a clean bill (bug 0268's cl
 
 Deferred: none.
 
-**Added 2026-10-18: a condition on this fix.** [Plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md)
+**Added 2026-10-18: a condition on this fix.** [Plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md)
 makes eess-md's `resideInFolder` and `resideInFile` declare their globs with the kernel's existing
 `'normalized'` base, which describes md's matching inexactly (md compares repository-relative paths,
 where a leading `/` can never match). Nothing reads that base until this bug's fix makes `doctor` read

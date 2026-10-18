@@ -1187,6 +1187,45 @@ function gateExamplesMdLoadBearingRedsOnOrphanFolder() {
   }
 }
 
+function gateExamplesMdLoadBearingRedsOnAnEmptyPopulation() {
+  // Plan 0456: a `notExist()` example examines nothing when it holds, so its clean: test proves its
+  // population through a wider `.select()`. A clean/ whose documents hold no element must fail that.
+  const example =
+    "import { corpus, taskItems } from '@nielspeter/eess-md'\n" +
+    "import { describe, expect, it } from 'vitest'\n" +
+    "import { fixture } from './fixture.js'\n" +
+    `const NAME = '${LB_PROBE}'\n` +
+    "const boxes = (cwd: string) => taskItems(corpus({ cwd, roots: ['**/*.md'] }))\n" +
+    'const rule = (cwd: string) => boxes(cwd).that().areOpen().should().notExist()\n' +
+    "describe('probe', () => {\n" +
+    "  it('clean: no open box', () => {\n" +
+    "    expect(rule(fixture(NAME, 'clean')).violations()).toHaveLength(0)\n" +
+    "    const all = boxes(fixture(NAME, 'clean')).select({ label: 'box', identify: (t) => ({ name: t.text }) })\n" +
+    '    expect(all.elements.length).toBeGreaterThan(0)\n' +
+    '  })\n' +
+    "  it('violating-open: reported', () => { expect(rule(fixture(NAME, 'violating-open')).violations()).toHaveLength(1) })\n" +
+    '})\n'
+  const r = withProbeDir(LB_FIXTURES, LB_TEST, example, () => {
+    const pages = { clean: '# G\n\nNo boxes here.\n', 'violating-open': '# G\n\n- [ ] open\n' }
+    try {
+      for (const [folder, text] of Object.entries(pages)) {
+        mkdirSync(join(LB_FIXTURES, folder), { recursive: true })
+        writeFileSync(join(LB_FIXTURES, folder, 'g.md'), text)
+      }
+      return examplesMdLoadBearing(LB_PROBE)
+    } finally {
+      rmSync(LB_TEST, { force: true })
+    }
+  })
+  const named = r.findings.some(
+    (f) => f.includes(LB_PROBE) && f.includes('"clean: no open box" fails unswapped'),
+  )
+  return {
+    ok: !r.ok && named,
+    detail: `a notExist() example whose clean/ holds no element → ${named ? 'named' : `not named (${r.detail})`}`,
+  }
+}
+
 function gateExamplesMdLoadBearingRedsOnNested() {
   const nestedDir = join(repoRoot, 'examples', 'md', LB_PROBE)
   const r = withProbeDir(
@@ -4109,6 +4148,10 @@ const gates = [
   ],
   ['examples/md-load-bearing-reds-on-a-weak-clean-test', gateExamplesMdLoadBearingRedsOnAWeakClean],
   ['examples/md-load-bearing-reds-on-a-nested-example', gateExamplesMdLoadBearingRedsOnNested],
+  [
+    'examples/md-load-bearing-reds-on-an-empty-population',
+    gateExamplesMdLoadBearingRedsOnAnEmptyPopulation,
+  ],
   ['arch/examples-md-uses-a-block', gateExamplesMdUsesABlock],
   ['arch/examples-md-public-blocks-only', gateExamplesMdPublicBlocksOnly],
   ['arch/examples-md-no-hand-built-rules', gateExamplesMdNoHandBuiltRules],
@@ -4471,6 +4514,7 @@ const GATE_FOR = {
     'examples/md-load-bearing-reds-on-an-orphan-folder',
     'examples/md-load-bearing-reds-on-a-weak-clean-test',
     'examples/md-load-bearing-reds-on-a-nested-example',
+    'examples/md-load-bearing-reds-on-an-empty-population',
   ],
   // Two rows, because the script scans several populations — `docs/` + package
   // READMEs, `.changeset/**`, and the repo-root docs (bug 0273) — and one row per

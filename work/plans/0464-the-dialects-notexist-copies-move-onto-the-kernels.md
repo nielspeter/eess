@@ -10,7 +10,7 @@
 - **Priority:** Low.
 - **Effort:** Small. Five call sites and their characterisation tests, in two packages.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0456](./0456-kernel-notexist-and-dead-glob.md), which adds the kernel's
+- **Builds after:** [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md), which adds the kernel's
   `notExistCondition` behind `@nielspeter/eess/internal`. It takes a `name(element, ctx)` and the
   dialect's own `toViolation`, so each copy keeps its finding's shape.
 

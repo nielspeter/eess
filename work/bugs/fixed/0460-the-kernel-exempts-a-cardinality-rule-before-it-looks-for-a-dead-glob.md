@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 from PR #235's enforcement and testing reviews. Fix planned
-  in [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md), at the maintainer's decision.
+- **State:** Fixed — 2026-10-18, in PR #239 with [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md),
+  which adds the kernel's `cardinalitySelectorFault()` hook and eess-md's answer to it. Recorded
+  2026-10-18 from PR #235's enforcement and testing reviews.
 - **Severity:** Medium — a cardinality rule whose glob is decidably broken (rooted, or naming Markdown
   the corpus never loaded) passes. eess-ts guards against it on its own; any other dialect that ships
   a cardinality condition inherits the silent pass. A typo naming nothing stays green after the fix
@@ -37,12 +38,12 @@ eess-ts closed the same class in its own dialect, with a disk discriminator (bug
 syntactic clause (bug 0362). The kernel has neither, and eess-md has no cardinality condition yet,
 so the exposure arrives with proposal 017's block 6. eess-mermaid's selectors are class names,
 not paths, so this kernel order does not reach it; its empty-diagram pass is
-[bug 0463](./0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
+[bug 0463](../0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
 
 ## Fix
 
 In the kernel, a cardinality rule that examined zero first asks the dialect whether its selector is
-at fault, under [bug 0355](./fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)'s
+at fault, under [bug 0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)'s
 ruling: a fault decidable from the glob text (a leading `/`, a `../` segment, or a `./` segment after the
 first; picomatch strips a leading `./`, so that one is not a fault, measured in plan 0456), a
 backslashes used as path separators (including before `*` or `?`, so `guides\**` is caught), every
@@ -51,7 +52,7 @@ none, or a glob naming
 Markdown the repository holds that the corpus did not load, is a finding. A glob that names nothing in
 the repository cannot be told from a ratchet that holds (a deleted folder), so it stays green; a
 mistyped folder is caught where the folder is the corpus root, since an empty corpus is now a finding.
-Planned in [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md).
+Planned in [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md).
 
 ## Verification
 
@@ -59,9 +60,16 @@ Each red-first row drives the entry point that compiles on main: eess-md's publi
 with a cardinality-marked condition built from `@nielspeter/eess/internal`, so it fails on the defect
 and not on the API plan 0456 adds.
 
-- [ ] Red first, measured at build: a cardinality rule over a rooted `/guides/**` glob passes today
-- [ ] Red first, measured at build: a cardinality rule over a folder holding Markdown the corpus did not load passes today
-- [ ] Green: both red, naming the glob; a glob naming no file in the repository stays green, pinned
-- [ ] Green: a corpus rooted at a mistyped folder loads nothing and reds as an empty source
+- [x] Red first, measured at build: a cardinality rule over a rooted `/guides/**` glob passes today
+      (`packages/md/tests/selector-fault.test.ts`, committed failing as 57259275: zero findings,
+      `declaredEmpty: true`)
+- [x] Red first, measured at build: a cardinality rule over a folder holding Markdown the corpus did
+      not load passes today (measured on main 8feb4d1b: `roots: ['docs/**']`,
+      `resideInFolder('guides/**')` over a repository holding `guides/a.md`, zero findings)
+- [x] Green: both red, naming the glob; a glob naming no file in the repository stays green, pinned
+      (`selector-fault.test.ts`: the text-fault rows, the unloaded-Markdown row, and
+      `it('a ratchet that holds is green: no folder of that name anywhere')`)
+- [x] Green: a corpus rooted at a mistyped folder loads nothing and reds as an empty source
+      (`packages/md/tests/not-exist.test.ts`, the empty-source row of each corpus builder)
 
 Deferred: none
