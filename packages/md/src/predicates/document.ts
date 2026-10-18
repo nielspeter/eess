@@ -46,3 +46,13 @@ export function haveNameMatching(re: RegExp): Predicate<MdDocument> {
 export function haveSectionPredicate(name: string | RegExp): Predicate<MdDocument> {
   return { description: `have section "${String(name)}"`, test: (d) => hasSection(d, name) }
 }
+
+/** Documents `corpus()` marked frozen: matched by its `frozen` globs (plan 0457). */
+export function areFrozen(): Predicate<MdDocument> {
+  return { description: 'are frozen', test: (d) => d.frozen }
+}
+
+/** Documents `corpus()` did not mark frozen (plan 0457). */
+export function areLive(): Predicate<MdDocument> {
+  return { description: 'are live', test: (d) => !d.frozen }
+}

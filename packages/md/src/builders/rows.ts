@@ -17,6 +17,8 @@ import { matchTableRows, type MdRow, type RowMatchOptions } from '../model/rows.
  * inherited, so rows are also directly rule-able.
  */
 export class RowsRuleBuilder extends CorpusRuleBuilder<MdRow> {
+  protected readonly noun = 'rows'
+
   constructor(
     corpus: Corpus,
     private readonly opts: RowMatchOptions,

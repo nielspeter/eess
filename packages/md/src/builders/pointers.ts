@@ -22,6 +22,8 @@ const areFrozen = (): Predicate<MdPointer> => ({
  * Rule builder over the corpus's `path:line` code pointers.
  */
 export class PointerRuleBuilder extends CorpusRuleBuilder<MdPointer> {
+  protected readonly noun = 'pointers'
+
   protected getElements(): MdPointer[] {
     return stampedByDocument<MdPointerRef>(this.project, (doc) =>
       extractPointers(doc.text, doc.root),

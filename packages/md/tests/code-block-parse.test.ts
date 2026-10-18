@@ -307,6 +307,7 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
         blocks: [],
         failure: null,
         documentsLoaded: 1,
+        documents: [],
         summary: () => '',
       }
       expect(() => codeBlocks(forged)).toThrow(/parseCodeBlocks/)
