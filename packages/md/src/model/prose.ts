@@ -117,6 +117,14 @@ function codeBlocks(text: string, root: Root): { first: number; last: number; sh
 }
 
 /**
+ * The shape of the code block that holds `line` (1-based), or `undefined` when no code block holds
+ * it: so a finding about a line set aside as code can say which kind of code set it aside.
+ */
+export function codeShapeAt(text: string, root: Root, line: number): CodeShape | undefined {
+  return codeBlocks(text, root).find((b) => line >= b.first && line <= b.last)?.shape
+}
+
+/**
  * The closed fences written inside an HTML block. CommonMark reads such a fence as raw HTML, so the
  * parser has no code node for it; but the author fenced it as an example, and the copies this owner
  * replaced set aside a simple one there — mis-reading a longer one, as they did everywhere else (bug

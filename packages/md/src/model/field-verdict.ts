@@ -9,7 +9,7 @@ import {
   type FieldOptions,
 } from './fields.js'
 import { wrappedLabelOf } from './label.js'
-import { proseText } from './prose.js'
+import { codeShapeAt, proseText } from './prose.js'
 
 /** How a caller's allowed set judges one value: `ok`, and the clause a finding says when it fails. */
 interface AllowedJudge {
@@ -114,14 +114,24 @@ export function fieldVerdict(
     return { has: refused.length === 0, causes: [...prose, ...unread, ...disallowed] }
   }
   if (unread.length > 0) return { has: false, causes: unread }
-  // Read past an unclosed fence, the value is there: say so, rather than "no field".
-  const [pastFence] = readFields(doc, spec, 'closed-fences')
-  if (pastFence !== undefined) {
+  // Read past code that is not certainly an example (a fence that never closes, an indented block),
+  // the label is there, in a form the rule reads or not: say so, naming the code, rather than "no
+  // field".
+  const [inCode] = [
+    ...readFields(doc, spec, 'closed-fences').map((o) => o.line),
+    ...unreadFields(doc, spec, 'closed-fences').map((u) => u.line),
+  ].sort((a, b) => a - b)
+  if (inCode !== undefined) {
+    const shape = codeShapeAt(doc.text, doc.root, inCode)
+    const where =
+      shape === 'indented'
+        ? 'sits in an indented code block (four spaces or a tab); unindent it'
+        : 'follows a code fence that never closes; close the fence'
     return one({
       kind: 'unreadable',
-      element: at(pastFence.line),
-      line: pastFence.line,
-      message: `${spec.label} at line ${String(pastFence.line)} follows a code fence that never closes; close the fence`,
+      element: at(inCode),
+      line: inCode,
+      message: `${spec.label} at line ${String(inCode)} ${where}`,
     })
   }
   const labels = [spec.label, ...(spec.aliases ?? [])]

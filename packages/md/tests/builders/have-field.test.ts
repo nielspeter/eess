@@ -250,4 +250,18 @@ describe('the review round (plan 0469)', () => {
       "bugs/b.md: no Status field (read as bold); line 3 has `Status: fixed`, a plain line this rule does not read: add 'plain' to forms, or write it as `**Status:** v`",
     ])
   })
+
+  it('a label in an unread form after an unclosed fence is reported, not dropped', () => {
+    const c = one(['# B', '', '```', '**Status: fixed**'])
+    expect(said(docs(c).that().haveField(spec()).should().haveSection('X').violations())).toEqual([
+      'bugs/b.md:4: Status at line 4 follows a code fence that never closes; close the fence',
+    ])
+  })
+
+  it('a value in an indented code block names the indented block, not a fence', () => {
+    const c = one(['# B', '', 'Some prose.', '', '    **Status:** fixed'])
+    expect(asCondition(c, spec())).toEqual([
+      'bugs/b.md:5: Status at line 5 sits in an indented code block (four spaces or a tab); unindent it',
+    ])
+  })
 })

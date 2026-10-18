@@ -40,7 +40,8 @@ export function unnamedFormFindings(
   }
   return matchingElements(candidates, [...predicates]).flatMap((t) => {
     const u = unread.get(t)
-    if (u === undefined) return []
+    // Unreachable: `matchingElements` returns the candidates themselves. A finding must not vanish.
+    if (u === undefined) throw new Error('fields(): an unread-label candidate lost its record')
     return [
       mdViolation({
         element: `${t.doc.relPath}:${String(t.line)}`,
