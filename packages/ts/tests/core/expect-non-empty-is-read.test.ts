@@ -53,8 +53,12 @@ describe('eess-ts reads .expectNonEmpty() on a notExist() rule (bugs 0467, 0466)
       .should()
       .notExist()
       .violations()
+    expect(found.map((v) => v.element)).toEqual([
+      'that have name matching /^fetchOrders$/ should not exist',
+      'fetchOrders',
+    ])
     expect(found[0]?.message).toContain('can never pass')
-    expect(found.length).toBeGreaterThan(1)
+    expect(found[1]?.message).toBe('fetchOrders should not exist')
   })
 
   it('a dead glob outranks it: the selector finding is reported, not the declaration', () => {
@@ -65,7 +69,7 @@ describe('eess-ts reads .expectNonEmpty() on a notExist() rule (bugs 0467, 0466)
       .should()
       .notExist()
       .violations()
-    expect(found.length).toBeGreaterThan(0)
-    expect(found.every((v) => !v.message.includes('can never pass'))).toBe(true)
+    expect(found.map((v) => v.element)).toEqual(['./nowhere-0467/**'])
+    expect(found[0]?.message).toContain('can never match anything')
   })
 })

@@ -55,8 +55,8 @@ follow-up — 2026-10-18").
 reader in the preset. A blank label is refused. Two findings close the silent pass:
 
 - **`ledger/state-under-another-label`**, per record. The record has no state line under the labels
-  in force, but a wrapped label in its header holds a value from the state vocabulary
-  (`**Status:** Done`). With default options this names 0002 and 0005 in the table above, where
+  in force, but a label in its header, wrapped or plain, holds a value from the state vocabulary
+  (`**Status:** Done`, `Status: Done`). With default options this names 0002 and 0005 in the table above, where
   before nothing was said. It keys on the caller's own vocabulary, so a stateless document's labels
   (`**Status:** draft-mail`) stay quiet.
 - **`ledger/no-readable-state`**, once per call, when no examined document carries a state line in
@@ -74,10 +74,21 @@ Four existing tests asserted that a stateless single document passes. They now a
 finding. This is the flagged break. The `check:nonvacuity` rows
 `corpus/ledger/{state-under-another-label,no-readable-state}` guard both findings at the gate tier.
 
+Residuals, each recorded:
+
+- **A record that writes its state as a heading** (`## Status: Done`) gets no finding when other
+  records in the call are readable: [bug 0476](../0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md).
+- **A non-record document** with no state line, whose header holds a state word under a label
+  (`**Questions:** Open`), is reported. It is loud, not silent, and its remedy names `boardFiles`.
+  A test row pins it.
+- **Both labels in one header**, when the caller names both, resolve to whichever comes first,
+  silently. Plan 0469's conflict finding is the home for that shape.
+
 ## Verification
 
 - [x] Red first: the five-record table above, through the public preset (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`). With default options 0002 and 0005 got no finding on main.
 - [x] Green: every record is pinned by `[rule, record]`, with default options, with `aliases: ['Status']`, and with `label` together with `aliases`. Each finding has a `check:nonvacuity` row.
 - [x] done-otherwise: each call is a lane, since the preset has no lane list (Resolution). A stateless folder beside records gives no finding, and a stateless-only call gives one, with "narrow the corpus" as its remedy.
+- [ ] deferred→bug 0476 — a heading-form state beside readable records is still silent
 
-Deferred: none
+Deferred: bug 0476

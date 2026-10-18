@@ -784,7 +784,9 @@ document like that in `boardFiles`.
 The last two are about a state the preset could not read at all (bug 0444):
 
 - **`ledger/state-under-another-label`**: a record with no `State:` line whose header holds a
-  value from the vocabulary under another wrapped label, such as `**Status:** Done`.
+  value from the vocabulary under another label, such as `**Status:** Done` or `Status: Done`. A
+  page that is not a record but carries such a line (`**Questions:** Open`) is reported too; list
+  it in `boardFiles`.
 - **`ledger/no-readable-state`**: a call in which no document carries a state line at all.
   Raised once per call. Its first remedy is to narrow the corpus you pass to the folders that hold
   records, because the preset has no lane list: each call is one lane.

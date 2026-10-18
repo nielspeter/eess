@@ -19,7 +19,8 @@ Move the check into the kernel, beside `walkFiles` in `@nielspeter/eess/internal
 (`packages/core/src/internal.ts`): "which of these root globs matches no walked, non-ignored file".
 Then have eess-md's `corpus()` (bug 0465) and eess-gherkin's loader call it, with the refusal message
 and the "only when another root loads" rule moving with it. Plan 0455's text corpus would be the third
-caller.
+caller. The helper should also treat a negated root (`'!drafts/**'`), which never matches a file, as
+not a dead root (PR #236's review).
 
 ## Verification
 

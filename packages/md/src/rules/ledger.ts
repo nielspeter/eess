@@ -276,8 +276,11 @@ function findStateRe(
   return stateIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary, label)
 }
 
+/** A plain `Label:` opening a line, after an optional bullet: the label's text. */
+const PLAIN_LABEL = /^\s*(?:[-*+]\s+)?([A-Za-z][A-Za-z ]{0,40}?)\s*:/
+
 /**
- * A state value from the vocabulary written in the header under a wrapped label
+ * A state value from the vocabulary written in the header under a label
  * the preset does not read (bug 0444): `**Status:** Done` while the preset reads
  * `State:`. Keyed on the vocabulary, so a stateless document's own labels
  * (`**Status:** draft-mail`) are not mistaken for one.
@@ -297,7 +300,10 @@ function stateUnderAnotherLabel(
       if (seenHeading > 1) break
       continue
     }
-    const found = wrappedLabelOf(line)?.trim()
+    // Wrapped labels, and the plain form too: unlike `wrappedLabelOf`'s other callers this one
+    // only fires when the value is a word of the state vocabulary, so prose opening "Note: …"
+    // stays quiet unless it says a state.
+    const found = (wrappedLabelOf(line) ?? PLAIN_LABEL.exec(line)?.[1])?.trim()
     if (found === undefined || found === '' || read.has(found.toLowerCase())) continue
     const hit = stateMatcher(vocabulary, stateLabel([found])).exec(line)
     if (hit?.[1] !== undefined) return { label: found, state: hit[1], line: i + 1 }

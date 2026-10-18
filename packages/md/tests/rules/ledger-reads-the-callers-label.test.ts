@@ -66,6 +66,18 @@ describe('honestyAtClose reads the caller’s label (bug 0444)', () => {
     expect(found[0]?.suggestion).toContain('## Status: Done')
   })
 
+  it('a plain Status: line is named too, beside records the preset reads', () => {
+    expect(pairs('ledger-plain')).toEqual([
+      [MISMATCH, 'a.md'],
+      [UNDER, 'c.md'],
+    ])
+  })
+
+  it('a non-record whose header holds a state word is reported, not skipped', () => {
+    // The finding cannot tell such a page from a record; its remedy names boardFiles.
+    expect(pairs('ledger-non-record')).toEqual([[UNDER, 'faq.md']])
+  })
+
   it('a stateless folder beside records with a state gives no lane finding', () => {
     expect(pairs('ledger-status-mixed', {}, ['plans/**', 'mails/**'])).toEqual([])
   })
