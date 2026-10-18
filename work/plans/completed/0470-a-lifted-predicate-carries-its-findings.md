@@ -2,16 +2,16 @@
 
 ## Status
 
-- **State:** Done — the spike ran 2026-10-18 as a throwaway prototype in two revisions, each
-  reviewed, with the three adopters' answers measured: [spike 0485](../../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md).
+- **State:** Done — the spike ran 2026-10-18 as a throwaway prototype in two revisions (the first
+  reviewed by three lenses, the second in PR #243's review), with the three adopters' answers measured: [spike 0485](../../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md).
   Decided the same day: [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md).
   The build is [plan 0486](../0486-a-predicate-that-cannot-judge-says-so.md).
 - **Implements:** proposal 017
 - **Priority:** Medium. Block 12's own example, "documents whose Status is done hold no open box", needs
   it. So do adopter 1's most-wanted rule and the rebuild of `honestyAtClose` from public blocks
   (proposal 017, the second Review, decision 3).
-- **Effort:** Small. A time-boxed spike of about an hour that brings a design back for a decision. The
-  build is filed as its own plan after the ruling, not here.
+- **Effort:** Planned as a time-boxed spike of about an hour. It took two prototype revisions, a
+  round of questions to the three adopters, and two review rounds, most of a day.
 - **Created:** 2026-10-18
 - **Builds after:** [plan 0457](../0457-a-rule-limited-to-the-documents-the-caller-chooses.md)
   (`inDocuments`) and [plan 0469](./0469-havefield-a-document-has-a-value.md) (`haveField`).
@@ -43,7 +43,7 @@ findings on. So `haveField` lifted onto `taskItems()` would drop an unreadable d
 
 - [x] Spike: the questions above measured, recorded under `work/spikes/`
       ([spike 0485](../../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md): two
-      prototype revisions, three reviews, the three adopters' answers, the cost measured)
+      prototype revisions, two review rounds, the three adopters' answers, the cost measured)
 - [x] A design brought back for a decision, and the build plan filed after the ruling
       ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md);
       [plan 0486](../0486-a-predicate-that-cannot-judge-says-so.md), which also owns the two items

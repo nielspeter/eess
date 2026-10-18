@@ -18,83 +18,97 @@ selector.
 Plan 0469 kept the finding by keying it on the predicate's identity inside one builder. The spike
 measured where that fails: inside every `not()`/`and()`/`or()`, which build new objects; through
 `.select()`, which hands back elements and nothing else; in eess-ts's own builder and combinators;
-through a hand-written wrapper around `test`; and inside eess-md's own `inScope`. The question is
-whether a predicate may say "I cannot judge this subject", and what every part of the family must do
-when it does.
+through a hand-written wrapper around `test`; and in eess-md's `inScope` and `fields()` scans. The
+question is whether a predicate may say "I cannot judge this subject", and what every part of the
+family must do when it does.
 
 ## Decision
 
 **A predicate may declare that it cannot judge a subject. Its subject is then neither selected nor
-dropped silently: it is a finding, and every door either reports it or refuses to run.**
+dropped silently: every application of a rule's predicates either reports it or refuses to run.**
 
-1. **The member.** `Predicate<T>` gains an optional method, `undecided?(element: T): readonly
-Undecided[]`. A non-empty result means the predicate cannot judge that element, and says why: each
-   `Undecided` carries a file, a line, an element and a message. The method takes no rule context, so
-   a producer can memoize it per subject; the builder makes the finding. It is method syntax, as
-   `test` is, so `Predicate<T>` stays bivariant. That is deliberate: a property would make it
-   invariant and break every builder that widens its predicates.
-2. **Membership is strong Kleene, decided once.** One kernel function evaluates a rule's predicates
+1. **The member.** `Predicate<T>` gains an optional method, `undecided?(this: void, element: T):
+readonly Undecided[]`. A non-empty result means the predicate cannot judge that element, and says
+   why: each `Undecided` carries a file, a line, an element and a message. It takes no rule context,
+   so a producer can memoize it per subject; the builder makes the finding. It is method syntax, as
+   `test` is, so `Predicate<T>` stays bivariant; a function-typed property would make it invariant
+   and break every builder that widens its predicates.
+2. **Membership is strong Kleene, from one truth table.** One kernel function evaluates predicates
    for a subject in three values. `and` is false when any input is decided false, otherwise unknown
-   when any is unknown. `or` is true when any input is decided true, otherwise unknown when any is
-   unknown. `not` keeps unknown unknown. Every combinator in the family takes its `test` and
-   `undecided` from that one truth table, so selection and reporting cannot disagree.
-3. **Only a definitely-selected subject is selected.** An undecided subject is not passed to the
-   rule's conditions and not counted in `examined` (ADR-010). Its causes represent it.
-4. **A cause is reported where the verdict depends on it, and only there.** A subject that another
-   input decides (a folder that excludes it, or an `or` branch that is true) is decided, and its
-   unreadable value is not this rule's finding. A rule that wants every value readable asserts it in
-   condition position.
-5. **The finding is unsuppressable and appears once per cause.** It is about the instrument, not
-   about the subject's content, as with ADR-016's exhausted walk and plan 0454's unread box. So it
-   carries `bypassFilters`, and no `.excluding()`, `.warn()`, baseline or diff-aware mode removes it.
-   Within a rule, one cause is one finding however many subjects it affects (ADR-009 rule 4).
-6. **A door that hands no findings back refuses.** `matchingElements`, `.select()`, and a diagnosing
-   predicate's own `test` called on a subject it cannot judge each throw an `ArchConfigError` naming
-   the first cause. That is ADR-014's existing rule ("throws on every door that hands nothing back"),
-   applied to a door it did not yet reach.
-7. **A rule that reports undecided subjects is never green on them.** That holds even when nothing was
-   selected: the findings are made before the empty-selection return. The channel can only add
-   findings, never remove an element or a violation.
+   when any is unknown; `or` is true when any input is decided true, otherwise unknown when any is
+   unknown; `not` keeps unknown unknown. Every combinator in the family takes its `undecided` from
+   that table, and its `test` either from the table or, for `not`, by refusing an unknown input, so
+   selection and reporting cannot disagree.
+3. **Only a definitely-selected subject reaches the rule's conditions and `examined`** (ADR-010). An
+   undecided subject is represented by its causes. A finding about what the rule's own instrument
+   could not read (a box mark no rule declared, a label in a form the rule does not read) still
+   reaches a subject whose membership is undecided: there the undecided case is in scope, fail-closed.
+4. **A cause is reported where the verdict depends on it, and only there.** A subject another input
+   decides (a folder that excludes it, an `or` branch that is true) is decided, and its unreadable
+   value is not this rule's finding. A value that resolved is decided even beside a cause about the
+   document (prose that disagrees, a label in another form): the verdict does not depend on it. A
+   rule that wants every value readable and consistent asserts it in condition position.
+5. **The finding is unsuppressable, one per cause per rule.** It is about the instrument, not about
+   the subject's content, as with ADR-016's exhausted walk and plan 0454's unread box, so it carries
+   `bypassFilters`: `.excluding()`, `.warn()`, an exclusion comment, a baseline and diff-aware mode do
+   not remove it (only removing the rule does). It is one finding per cause **within a rule**, however
+   many subjects share it (ADR-009 rule 4), and deliberately not one per cause across rules, which
+   is where it departs from ADR-016 rule 3: whether a verdict depends on a cause is decided per rule,
+   so each rule that depends on it says so.
+6. **A door that hands no findings back refuses.** `matchingElements`, `.select()`, and a predicate's
+   `test` called on a subject its `undecided` reports each throw an `ArchConfigError` naming the door
+   and the first cause. That is ADR-014's rule for a door that hands nothing back. `.select()` is
+   usually called while a rule file loads, so its refusal stops that file, not one rule: it fails
+   closed, naming the first of the causes. Carrying the findings through a selection instead is
+   reopened when a consumer needs a side of `correspondence()` filtered by a predicate that can be
+   undecided. **A producer's contract:** a predicate that declares `undecided` must not answer from
+   `test` on a subject it reports; the family's own producers refuse there.
+7. **A rule that reports undecided subjects is never green on them,** even when nothing was selected:
+   the findings are made before the empty-selection return, and no generic zero-examined finding or
+   declared emptiness is added beside them. The channel only adds findings; it never removes an
+   element or a violation.
 
 ## Why this, and not the alternatives
 
 - **A dialect registry keyed on identity** (the spike's candidate A, and plan 0469's mechanism) is
   lost inside every combinator, because the combinators are kernel code. A dialect cannot reach them.
 - **Report every unreadable subject the rule read** (scope (a)) fails closed but reports what the
-  rule's verdict does not depend on. The three adopters measured 54, 89 and 14 such records in their
-  frozen folders. Each one an adopter excludes by hand is a place a later real defect hides.
-- **Report through a findings field on `Selection`.** No adopter binds a field-filtered set through
+  rule's verdict does not depend on. Of the records each adopter's field rules do not target, 54, 89
+  and 14 have an unreadable Status. Each one an adopter excludes by hand is a place a later real
+  defect hides.
+- **A suppressible finding,** as revision 1's architecture review argued ("correct for a data
+  defect"), is overruled: the finding says the rule could not judge, and a rule that is told to stop
+  saying so judges nothing about that subject. Records a rule does not depend on are already out of
+  it by clause 4, which is what made suppression look necessary.
+- **A findings field on `Selection`.** No adopter binds a field-filtered set through
   `correspondence()`, and a reader of `.elements` would still drop silently. Refusing closes the door
-  with no new public member. Carrying can be added when a consumer asks.
+  with no new public member (clause 6 says when it reopens).
 - **Refuse the lift altogether** (candidate C). It is fail-closed, but it makes "done records hold no
   open box" two rules, and it is the rule all three adopters want.
 
 ## Consequences
 
-- `@nielspeter/eess` gains a root-API member and `Undecided`, a minor and additive change: no
-  existing predicate declares the member, so no existing rule changes. The evaluation helpers live in
-  `/internal`.
-- eess-ts's `not`/`and`/`or` forward the member from the kernel's truth table. eess-ts's builders
-  refuse an undecided subject through `matchingElements`. That is the floor; honouring it in
-  eess-ts's own `collectViolations` can follow when an eess-ts predicate declares the member.
-- eess-md's `haveField` declares the member for every unreadable cause and is exported as a free
-  predicate. Plan 0469's identity-keyed override is deleted.
-- A third-party predicate that declares the member and whose `test` does not refuse an undecided
-  subject can still be wrapped silently by hand. The kernel cannot reach a raw object. The member's
-  documentation states the contract, and the family's own producers keep it.
+- `@nielspeter/eess` gains a root-API member and `Undecided`, an additive change: no existing
+  predicate declares the member, so no existing rule changes. The evaluation helpers are `/internal`.
+- eess-ts's builders do not report undecided subjects themselves; they refuse them through
+  `matchingElements`. That is the floor clause 6 allows.
+- The one door left is a raw predicate whose `test` answers on a subject its `undecided` reports,
+  wrapped by hand in a raw `{ test }`: the kernel never sees the member. Clause 6's producer contract
+  is the mechanism, and it is a requirement on producers, not a check.
 
 ## Enforcement
 
-The build is [plan 0486](../work/plans/0486-a-predicate-that-cannot-judge-says-so.md), so every
-row is `pending` until it lands. Each row names the test or gate the build owes.
+The build is [plan 0486](../work/plans/0486-a-predicate-that-cannot-judge-says-so.md). Every row is
+`pending` until it lands, and names what the build owes. Rows that need a lift onto boxes use one
+built in the test, forwarding `undecided`, as plan 0457's `inDocuments` will.
 
-| Clause                                                                                | Tier | Mechanism                                                                                                                                                                                                                                                                     | Status  |
-| ------------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| **1** — The member is optional, method syntax, context-free                           | 1    | `tsc` over `packages/core/src/predicate.ts`, and eess-ts's build, which widens predicates and broke on a property member in the spike                                                                                                                                         | pending |
-| **2** — One truth table for every combinator in the family                            | 2    | Kernel and eess-ts combinator tests over `not`/`and`/`or` with a decided-false, a decided-true and an unknown input, each through `packages/core/src/combinators.ts` and `packages/ts/src/core/combinators.ts`; sabotage: either combinator stops forwarding, and a test reds | pending |
-| **3** — Only a definitely-selected subject is selected; `examined` excludes undecided | 2    | A `not(haveField)` rule over a document with three boxes reports the cause once, no box, and `examined` counts only decided subjects; sabotage: membership by `test` alone, and the test reds                                                                                 | pending |
-| **4** — A cause is reported only where the verdict depends on it                      | 2    | `and(folder, haveField)` with the document outside the folder, and `or(haveField, decided-true)`, report nothing; sabotage: the short-circuit removed, and both red                                                                                                           | pending |
-| **5** — Unsuppressable, once per cause                                                | 2    | `.excluding()` naming the cause leaves it reported; `.warn()` with an undecided subject exits non-zero; the block-12 rule over three boxes of one document reports one finding                                                                                                | pending |
-| **6** — A door that hands no findings back refuses                                    | 2    | `.select()` over an undecided subject throws naming the cause; a hand wrapper around `test` throws; an eess-ts rule with `not(<a predicate that cannot judge>)` throws; sabotage: `matchingElements` filters by `test`, and all three red                                     | pending |
-| **7** — Never green on undecided subjects, even when nothing was selected             | 2    | A rule whose every subject is undecided reports each cause; a `check:nonvacuity` fixture plants a live record with two State lines under this repository's own lifted rule and requires the cause by its rule id                                                              | pending |
-| Rationale: why not a registry, scope (a), a carry or a refusal                        | 5    | Context; the measurements are in the spike                                                                                                                                                                                                                                    | n/a     |
+| Clause                                                                                                                             | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                | Status  |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **1** — The member is optional, method syntax with `this: void`, and takes the element only                                        | 1    | `tsc` over `packages/core/src/predicate.ts` and eess-ts's build, which widens predicates; a type-level test pins the parameter list                                                                                                                                                                                                      | pending |
+| **2** — One truth table; `not`'s `test` refuses an unknown input                                                                   | 2    | Kernel and eess-ts tests of `not`/`and`/`or` over decided-false, decided-true and unknown inputs, through `packages/core/src/combinators.ts` and `packages/ts/src/core/combinators.ts`, including `not` over a predicate whose `test` does not refuse; sabotage: a combinator stops forwarding, and `not`'s `test` goes back to negating | pending |
+| **3** — Only a definitely-selected subject reaches conditions and `examined`; instrument findings still reach an undecided subject | 2    | A `not()` rule over a document with three boxes reports the cause once, no box, `examined` decided-only; a document whose only box is unread reports the cause and the unread-box finding; sabotage: membership by `test` alone, and `inScope` back to two values                                                                        | pending |
+| **4** — Reported only where the verdict depends on it; a resolved value is decided                                                 | 2    | `and(folder, p)` with the subject outside the folder and `or(decided-true, p)` report nothing; a resolved value beside disagreeing prose is selected; sabotage: the short-circuit removed                                                                                                                                                | pending |
+| **5** — Unsuppressable, one per cause per rule                                                                                     | 2    | `.excluding()` naming the cause leaves it reported; `.warn()` fails; the finding carries the unsuppressable sentence; one cause over three boxes is one finding; baseline and diff-aware mode refuse it through `bypassFilters`, as for every such finding                                                                               | pending |
+| **6** — A door that hands no findings back refuses; producers' `test` refuses                                                      | 2    | `.select()` throws naming `select()` and the cause; an eess-ts rule throws; `fields()` and `inScope` report rather than throw; `haveField`'s `test` throws on its own undecided subject; sabotage: `matchingElements` filters by `test`, and `haveField`'s `test` stops refusing, each red on the test it guards                         | pending |
+| **7** — Never green on undecided subjects, even when nothing was selected                                                          | 2    | A rule whose every subject is undecided reports each cause and no generic zero-examined finding; a `check:nonvacuity` fixture plants a live record with two State lines under this repository's own selector-position rule and requires the cause on that rule's id                                                                      | pending |
+| Rationale: why not a registry, scope (a), suppression, a carry or a refusal                                                        | 5    | Context; the measurements are in the spike                                                                                                                                                                                                                                                                                               | n/a     |

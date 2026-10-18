@@ -2,7 +2,11 @@
 
 Measured 2026-10-18 for [plan 0470](../plans/completed/0470-a-lifted-predicate-carries-its-findings.md),
 after plan 0469 shipped `haveField` as a `docs()` method only. It ran as a throwaway prototype in a
-scratch worktree, in two revisions, each reviewed. Nothing here is built. The ruling is recorded in
+scratch worktree, branch `spike/0470-prototype` from `feat/0469-have-field`, on Node 24.14.0, in two
+revisions. Revision 1 is commit d18215f, reviewed by three lenses (architect, enforcement,
+product). Revision 2 was the uncommitted working tree on top of it, first reviewed in PR #243's
+review (architect, enforcement, method). Nothing here is built. The box-level measurements used a
+prototype-only `inDocuments` written for the spike, since plan 0457 is not built. The ruling is recorded in
 [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md), and the build is
 [plan 0486](../plans/0486-a-predicate-that-cannot-judge-says-so.md).
 
@@ -49,18 +53,18 @@ and `correspondence()` do with it, and which public predicate `haveField` then e
 
 The three adopters behind proposal 017 were each asked the same four questions.
 
-|                                                                                               | adopter 1                    | adopter 2                  | adopter 3                   |
-| --------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------- | --------------------------- |
-| records                                                                                       | 360                          | 1,828                      | 312                         |
-| unreadable Status                                                                             | 54                           | 97                         | 15                          |
-| of those, outside the folders their field rules target                                        | 54                           | 89                         | 14                          |
-| selects other elements by a field today                                                       | by folder; wants it by field | by folder                  | yes, two rules              |
-| NOT / OR on a field                                                                           | both, within one field       | both, within one condition | OR in a gate, NOT in a view |
-| binds a field-filtered set through `correspondence()`                                         | no                           | no                         | no                          |
-| wants (a) report every unreadable subject, or (b) only where the rule's verdict depends on it | (b)                          | (b)                        | (b)                         |
+|                                                                                               | adopter 1                                              | adopter 2                  | adopter 3                   |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------- | --------------------------- |
+| records                                                                                       | 360                                                    | 1,828                      | about 312                   |
+| unreadable Status                                                                             | 54 of the 258 closed records (every live record reads) | 97                         | 15                          |
+| of those, outside the folders their field rules target                                        | 54                                                     | 89                         | 14                          |
+| selects other elements by a field today                                                       | by folder; wants it by field                           | by folder                  | yes, two rules              |
+| NOT / OR on a field                                                                           | both, within one field                                 | both, within one condition | OR in a gate, NOT in a view |
+| binds a field-filtered set through `correspondence()`                                         | no                                                     | no                         | no                          |
+| wants (a) report every unreadable subject, or (b) only where the rule's verdict depends on it | (b)                                                    | (b)                        | (b)                         |
 
-Under (a), the three would see 54, 89 or more, and 15 findings respectively on records their rules do
-not cover.
+Under (a), the three would see 54, 89 or more, and 15 findings respectively; of those, 54, 89 and 14
+are on records their field rules do not target. The ADR cites the second figures.
 
 ## Revision 1: a kernel field, three-valued for reporting
 
@@ -72,12 +76,15 @@ conjunction came out unknown, and `select()` attached a thunk that `corresponden
 - All 23 of plan 0469's `haveField` tests passed with the kernel mechanism replacing eess-md's
   identity-keyed override.
 - On this repository's `work/` corpus of 447 documents, scope (a) yields 2 undecided documents, both
-  proposals, and Kleene yields 0.
+  proposals. Kleene, measured with revision 1 over the live bugs and plans folders only (the
+  block-12 rule's scope), yields 0.
 - A property-syntax member made `Predicate<T>` invariant and broke eess-ts's build, so the member
   uses method syntax, as `test` does.
 
 Three reviewers (architect, enforcement, product) agreed on the kernel placement and on Kleene, and
-found the channel fail-open everywhere it was not called:
+found the channel fail-open everywhere it was not called. They disagreed on one point: the architect
+judged the finding suppressible, as a data defect; the enforcement review judged it unsuppressable,
+as the unread-box finding is. The ADR takes the second (its "Why" says why). The doors:
 
 - eess-ts's builder and combinators ignored it;
 - `inScope` applied predicates two-valued, so a document whose only box is unread lost both its
@@ -105,27 +112,36 @@ message }`; the builder makes them findings with the rule's context, `bypassFilt
 
 Measured, each by a test in the prototype:
 
-| door                                                        | revision 1                                             | revision 2                                                      |
-| ----------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------- |
-| block 12, a conflicting Status                              | reported once                                          | reported once                                                   |
-| a document whose only box is unread                         | both findings lost                                     | both reported                                                   |
-| `not()` over a document with three boxes                    | three "should not exist" plus the cause                | the cause once; `examined` 1                                    |
-| `or()` decided by the other branch                          | not reported                                           | not reported                                                    |
-| `and()` with a folder that excludes the document            | not reported                                           | not reported                                                    |
-| every subject undecided                                     | the cause                                              | the cause, plus the generic zero-examined finding (to be named) |
-| `.select()`                                                 | carried to `correspondence()` only; `.elements` silent | throws, naming the cause                                        |
-| `satisfy({ test: d => done.test(d) })`                      | silent                                                 | throws, naming the cause                                        |
-| `.excluding('<the cause>')`                                 | hides it                                               | cannot hide it                                                  |
-| an eess-ts rule with `not(<a predicate that cannot judge>)` | silent                                                 | throws                                                          |
+| door                                                        | revision 1                                             | revision 2                                                        |
+| ----------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------- |
+| block 12, a conflicting Status                              | reported once                                          | reported once                                                     |
+| a document whose only box is unread                         | both findings lost                                     | both reported                                                     |
+| `not()` over a document with three boxes                    | three "should not exist" plus the cause                | the cause once; `examined` 1                                      |
+| `or()` decided by the other branch                          | not exercised (both branches read the same field)      | not exercised; the build tests a branch that reads something else |
+| `and()` with a folder that excludes the document            | not reported                                           | not reported                                                      |
+| every subject undecided                                     | the cause                                              | the cause, plus the generic zero-examined finding (to be named)   |
+| `.select()`                                                 | carried to `correspondence()` only; `.elements` silent | throws, naming the cause                                          |
+| `satisfy({ test: d => done.test(d) })`                      | silent                                                 | throws, naming the cause                                          |
+| `.excluding('<the cause>')`                                 | hides it                                               | cannot hide it                                                    |
+| an eess-ts rule with `not(<a predicate that cannot judge>)` | silent                                                 | throws                                                            |
 
 - **Cost.** On a synthetic corpus of 2,000 records with 5 boxes each, the lifted rule takes 450 ms
   against 42 ms for the same rule with a plain text predicate, because each box recomputes its
-  document's verdict several times. Both report the same 1,333 open boxes. The build memoizes the
-  verdict per document and spec.
+  document's verdict several times; the method review reproduced 431 ms against 40. Both report the
+  same 1,333 open boxes. The corpus has no undecided document, so the figure measures the recomputed
+  verdict, not the undecided path. The build memoizes the verdict per document.
 - **What revision 2 changes in plan 0469's tests:** five of 23 assertions move. Four `.select()`
-  calls over an undecided document now throw where they dropped it, and an undecided document is no
-  longer asserted against by the rule's condition. Each is the change the reviews asked for.
-  `haveField` is unreleased, so this rides its pending changeset.
+  calls over an undecided document now throw where they dropped it. The fifth is a document whose
+  value **resolved** beside disagreeing prose: revision 2 counted every unreadable cause as
+  undecided, so that document stopped being selected and its condition's finding was lost. No review
+  asked for that, and the method review of PR #243 caught it. The ADR decides it the other way
+  (clause 4): a value that resolved is decided. `haveField` is unreleased, so the change rides its
+  pending changeset.
+- **Found in PR #243's review of revision 2:** `fields()` applies predicates to its unread-label
+  candidates through `matchingElements`, as `inScope` did, so it threw naming `select()`, a door the
+  caller never used. `not()`'s `test` negated a guess when the input's own `test` did not refuse. The
+  finding named no remedy and not that it cannot be suppressed. Nested combinators re-evaluated each
+  level, 8 to 424 leaf calls from depth 1 to 6. Each is answered in the ADR or the build.
 
 ## Decision
 
@@ -133,9 +149,9 @@ Decided by the coordinator from ADR-009, ADR-010 and ADR-014 and the measurement
 maintainer asked ("decide it yourself"). Overrulable. The binding part is
 [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md):
 
-1. **Revision 2's design.** It is a kernel member of `Predicate`, membership is strong Kleene with
+1. **Revision 2's design, with PR #243's review answered.** It is a kernel member of `Predicate`, membership is strong Kleene with
    only definitely-true subjects selected, every undecided subject is one unsuppressable finding per
-   cause, and every door that hands no findings back throws.
+   cause within a rule, and every application of a rule's predicates reports it or refuses.
 2. **Scope is (b), by construction.** A cause is reported only where the rule's membership of a
    subject depends on it. The adopters chose this unanimously, and Kleene is the only candidate that
    computes it inside a combinator.
@@ -145,18 +161,19 @@ maintainer asked ("decide it yourself"). Overrulable. The binding part is
 4. **The member is root API** (ADR-011), because it is a member of a root type. The evaluation
    helpers stay in `/internal`.
 5. **`haveField` is exported as a free predicate** beside `docs().haveField()`. It declares
-   `undecided` for every unreadable cause.
+   `undecided` when its value cannot be read; a value that resolved is decided (ADR-021 clause 4).
 6. **Plan 0457's `inDocuments` forwards `undecided`.** Candidate C's interim refusal is not needed
    if 0486 lands first; if 0457 lands first, it refuses a predicate that declares the member.
 
 Candidate A, an eess-md registry keyed on identity, is rejected. It fails open inside every
 combinator, and the reviews showed the same is true of every door that does not consult it.
 
-## Deferred
+## Not decided here
 
 - **Carrying findings through `Selection`**, for a `correspondence()` side that should report rather
-  than throw. There is no consumer. → [plan 0486](../plans/0486-a-predicate-that-cannot-judge-says-so.md)'s Out of scope.
-- **Plan 0457's `SCOPES` registry** has the same combinator blindness. It is recorded for 0457's own
-  review, not changed here.
+  than throw: dropped on purpose, with no consumer. ADR-021 clause 6 says when it reopens.
+- **Plan 0457's `SCOPES` registry** has the same combinator blindness: recorded in
+  [plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), with what its
+  `inDocuments` owes this decision.
 - **A second producer.** The undecided heritage walk of bugs 0373/0375/0383 (ADR-017) is the natural
-  second user. It is not built here.
+  second user: dropped on purpose until one of those bugs is decided; the member is there for it.
