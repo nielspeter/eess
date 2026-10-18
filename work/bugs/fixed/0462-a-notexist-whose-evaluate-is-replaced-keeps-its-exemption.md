@@ -34,11 +34,15 @@ marked condition, so it ships as a kernel minor without a break marker).
 
 ## Verification
 
-- [x] Red first: the replaced `notExist()` above passes over an empty selection
-      (`packages/ts/tests/conditions/not-exist-frozen.test.ts`, committed failing as 57259275: the
-      assignment did not throw)
+- [x] Red first: done-otherwise. The committed red test (57259275) pins the mechanism, not the
+      symptom: `it('assigning evaluate on a returned notExist() throws')` failed on main because the
+      assignment did not throw. The symptom row above was measured when the bug was recorded, not
+      re-run as a test.
 - [x] Green: assigning `evaluate` on a returned `notExist()` throws, so the exemption only ever
       belongs to the condition as shipped; a plain no-op condition over the same empty selection still reds
-      (the same file, both rows; the freeze itself in `packages/core/tests/cardinality.test.ts`)
+      (`packages/ts/tests/conditions/not-exist-frozen.test.ts`; the freeze itself in
+      `packages/core/tests/cardinality.test.ts`). Through the public entry: a `notExist()` someone
+      tried to empty still reports a selected class
+      (`it('a notExist() someone tried to empty still judges a selection through the public entry')`).
 
 Deferred: none

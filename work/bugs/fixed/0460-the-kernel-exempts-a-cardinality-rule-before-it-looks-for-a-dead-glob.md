@@ -64,8 +64,10 @@ and not on the API plan 0456 adds.
       (`packages/md/tests/selector-fault.test.ts`, committed failing as 57259275: zero findings,
       `declaredEmpty: true`)
 - [x] Red first, measured at build: a cardinality rule over a folder holding Markdown the corpus did
-      not load passes today (measured on main 8feb4d1b: `roots: ['docs/**']`,
-      `resideInFolder('guides/**')` over a repository holding `guides/a.md`, zero findings)
+      not load passes today (measured on main 8feb4d1b with a throwaway vitest file in
+      `packages/md/tests/`, removed after: a temp repository holding `guides/a.md` and `docs/b.md`,
+      `corpus({ roots: ['docs/**'] })`, `docs(c).that().resideInFolder('guides/**').should()
+  .satisfy(marksAssertsCardinality({ description: 'p', evaluate: () => [] }))`: zero findings)
 - [x] Green: both red, naming the glob; a glob naming no file in the repository stays green, pinned
       (`selector-fault.test.ts`: the text-fault rows, the unloaded-Markdown row, and
       `it('a ratchet that holds is green: no folder of that name anywhere')`)

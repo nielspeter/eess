@@ -22,6 +22,10 @@ Measured on plan 0456's branch, before `honestyAtClose` was changed to return ea
 corpus: over a corpus whose roots match nothing, the preset's three rules each reported the empty
 source, and the merge added a fourth finding, `emitter/source-empty`. Four findings, one cause.
 
+Since plan 0456 every eess-md corpus builder reports an empty source, so any caller who merges two
+or more md rules over an empty corpus meets this. `honestyAtClose` is shaped around it: it returns
+early on an empty corpus (`packages/md/src/rules/ledger.ts`), which a fix here can undo.
+
 ## Fix
 
 The merge adds `emitter/source-empty` only when no member that is source-empty already carries a

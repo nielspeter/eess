@@ -202,10 +202,14 @@ protect:
 - **A glob that names nothing in the repository** is green on an absence rule, wherever it is
   written: it is also what a holding ratchet looks like.
 
-What is reported on an absence rule that examined nothing: a glob that can never match a path
-relative to the corpus's `cwd` (a leading `/`, a `../`, or a `./` after the first segment; a
-leading `./` works); a glob that names Markdown files the corpus did not load (outside its `roots`,
-or excluded by its `ignore`); and a `\` written as a path separator. A glob is matched with
+What is reported on an absence rule that examined nothing, for each glob a selector declares: a
+glob that can never match a path relative to the corpus's `cwd` (a leading `/`, a `../`, or a `./`
+after the first segment; a leading `./` works); a glob that names Markdown files the corpus did not
+load (outside its `roots`, or excluded by its `ignore`); and a `\` written as a path separator.
+`docs()` and `terms()` declare the globs of their own `resideInFolder`/`resideInFile`. On
+`codeBlocks()` only the glob's text is judged. `links()`, `pointers()`, `rows()` and `taskItems()`
+have no location method: a predicate you pass to `satisfy()` is judged only when it declares its
+glob (`globs: globNode({ glob, kind: 'file-path' })`); one that does not is never reported. A glob is matched with
 picomatch, which reads `\` as an escape: `guides\**` that selects nothing while `guides/**`
 selects files is reported as a separator. To name a literal `*` or `?` in a file name, write `[*]`
 or `[?]`.

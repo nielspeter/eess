@@ -1187,9 +1187,10 @@ function gateExamplesMdLoadBearingRedsOnOrphanFolder() {
   }
 }
 
-function gateExamplesMdLoadBearingRedsOnAnEmptyPopulation() {
-  // Plan 0456: a `notExist()` example examines nothing when it holds, so its clean: test proves its
-  // population through a wider `.select()`. A clean/ whose documents hold no element must fail that.
+function gateExamplesMdLoadBearingNamesAFailingCleanTest() {
+  // Plan 0456: a clean: test that fails as written is named. The probe is the case that needs it, a
+  // `notExist()` example whose clean/ holds no element and whose population assertion fails. The
+  // gate does not check that an example HAS a population assertion: that is review-held (plan 0458).
   const example =
     "import { corpus, taskItems } from '@nielspeter/eess-md'\n" +
     "import { describe, expect, it } from 'vitest'\n" +
@@ -1222,7 +1223,7 @@ function gateExamplesMdLoadBearingRedsOnAnEmptyPopulation() {
   )
   return {
     ok: !r.ok && named,
-    detail: `a notExist() example whose clean/ holds no element → ${named ? 'named' : `not named (${r.detail})`}`,
+    detail: `a clean: test failing unswapped (an empty population) → ${named ? 'named' : `not named (${r.detail})`}`,
   }
 }
 
@@ -4149,8 +4150,8 @@ const gates = [
   ['examples/md-load-bearing-reds-on-a-weak-clean-test', gateExamplesMdLoadBearingRedsOnAWeakClean],
   ['examples/md-load-bearing-reds-on-a-nested-example', gateExamplesMdLoadBearingRedsOnNested],
   [
-    'examples/md-load-bearing-reds-on-an-empty-population',
-    gateExamplesMdLoadBearingRedsOnAnEmptyPopulation,
+    'examples/md-load-bearing-names-a-failing-clean-test',
+    gateExamplesMdLoadBearingNamesAFailingCleanTest,
   ],
   ['arch/examples-md-uses-a-block', gateExamplesMdUsesABlock],
   ['arch/examples-md-public-blocks-only', gateExamplesMdPublicBlocksOnly],
@@ -4514,7 +4515,7 @@ const GATE_FOR = {
     'examples/md-load-bearing-reds-on-an-orphan-folder',
     'examples/md-load-bearing-reds-on-a-weak-clean-test',
     'examples/md-load-bearing-reds-on-a-nested-example',
-    'examples/md-load-bearing-reds-on-an-empty-population',
+    'examples/md-load-bearing-names-a-failing-clean-test',
   ],
   // Two rows, because the script scans several populations — `docs/` + package
   // READMEs, `.changeset/**`, and the repo-root docs (bug 0273) — and one row per

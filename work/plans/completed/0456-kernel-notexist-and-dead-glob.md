@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Done — built 2026-10-18 in PR #239 from the reviewed Draft; "Build notes" says where
-  the build departed from the text. Written 2026-10-17 from proposal 017's maintainer acceptance (block 6);
+- **State:** Done — built 2026-10-18 in PR #239 from the reviewed Draft, without a
+  separate `/plan-ready` step: the build PR's review stood in for it, as for plan 0458. "Build notes"
+  says where the build departed from the text. Written 2026-10-17 from proposal 017's maintainer acceptance (block 6);
   reworked three times on 2026-10-18 after PR #235's review rounds (architect · product ·
   enforcement · method · testing). `beUniqueBy`, the eess-gherkin rebuild and the record-number
   dogfood moved to [plan 0459](../0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
@@ -838,7 +839,10 @@ here; plan 0457 replaces `onDocument` and carries the equivalent row for `inDocu
 
 **Non-vacuity.** This plan adds a library capability, not a gate of this repository. Its proof is
 the sabotage matrix above and the example's violating fixtures, registered through plan 0458's
-mechanism. No row of its own in `check:nonvacuity`.
+mechanism. No row of its own in `check:nonvacuity`. _(Note 2026-10-18, at build: one row was
+added after all, `examples/md-load-bearing-names-a-failing-clean-test`, for the box plan 0458
+deferred here. It pins that a `clean:` test failing as written is named; that an example has a
+population assertion at all is still review-held, as plan 0458 says.)_
 
 ## Release
 
@@ -1050,7 +1054,8 @@ Where the build departed from the text above, each overrulable:
 
 - **`SelectorFault` carries `remedy`, not `correction`.** The kernel needs only the `Fix:` line; the
   dialect writes it, with the correction inside it where there is one. The kernel's
-  `globTextCorrection` computes the correction for the text faults.
+  `repoRelativeCorrection` computes the correction for the text faults (renamed from
+  `globTextCorrection` in review: it is a correction for the `'repo-relative'` base only).
 - **`isAnchored` did not move.** The kernel already had its own
   (`packages/core/src/project-relative.ts:14`), so `globTextFault` uses it; eess-ts keeps its copy.
 - **One base class for the six corpus builders.** `CorpusRuleBuilder`
@@ -1066,6 +1071,23 @@ Where the build departed from the text above, each overrulable:
 - **The ADR rows cite the kernel test by path, not by `it('…')` title.** `check:crossval` resolves
   titles in eess-ts's tests only ([bug 0262](../../bugs/0262-an-adr-cannot-cite-a-kernel-test.md)),
   so a `packages/core` title cannot resolve; the rows name the test in prose and say why.
+- **Surface beyond the plan's lists.** eess-md's root also re-exports the types `GlobNode` and
+  `GlobSite` (`check:family` asked: md's sources import them, and `RuleBuilder.globs()` returns
+  them; eess-ts's root has both). `/internal` also exports `SelectorFault`, `repoRelativeCorrection`,
+  `NotExistOptions`, `TextBase` and `GlobTextFault`.
+- **`scripts/vacuity-matrix.mjs` lists the three new predicates** in `SIBLING_NOT_CONSTRUCTORS`
+  (predicate factories, used inside a builder): the matrix refuses an export it neither probes nor
+  lists.
+- **Files not in the table:** `packages/md/tests/helpers/tree.ts` (a temp repository per test,
+  removed after the file); `packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`, whose
+  bug 0444 row now expects the empty-source finding (the break, pinned) and gains the
+  `expectEmptyHeaders` row; `scripts/check-nonvacuity.mjs` (the row above).
+- **The separator check treats `\-` and `\^` as escapes** (enforcement review): inside a class
+  (`[a\-c]`) they are, and reading them as separators failed a correct glob. Pinned by a control row.
+- **Where the selector check reaches** (enforcement review): `docs()` and `terms()` fully;
+  `codeBlocks()` the text only ([bug 0480](../../bugs/0480-codeblocks-checks-only-a-globs-text-on-an-absence-rule.md));
+  `links()`, `pointers()`, `rows()` and `taskItems()` only through a predicate that declares its glob,
+  until plan 0457's `inDocuments`. The README and the changeset say so.
 - **The location predicates carry `originLabel`** (`resideInFolder("…")`), so a selector fault names
   the call the author wrote.
 
@@ -1079,14 +1101,20 @@ Where the build departed from the text above, each overrulable:
       `notInCorpusReasons`, the fault helper with the separator check, six exports, README,
       `honestyAtClose`'s docstring, the example with three fixtures; eess-ts's and eess-mermaid's
       freeze tests
-- [x] Sabotage rows 1–17, each red on its named test; durations reported (all 17 red, run in the
-      build worktree by a script that restores each file with `git checkout` and rebuilds the kernel
-      for kernel rows; 0.7–1.4 s a row, 22 s in all; tree clean afterwards)
+- [x] Sabotage rows 1–17, each red on its named test; durations reported (run at dd76b440 in the
+      build worktree: each named test green on the untouched tree, then red with the row applied;
+      kernel rows rebuilt with the build's exit checked; each file restored with `git checkout`;
+      39 s in all; tree clean afterwards. Row 4's "only" and row 13's identity are not checked: the
+      named test reds, the others were not asserted green. Rows 3 and 5 include the extra
+      assertions their rows name.)
 - [x] Bug 0460 and bug 0462 red-first on main, green here, both → `fixed/`
 - [x] The ADR-010 Enforcement row, `gated`, citing the kernel fault-outranks-declaration test
 - [x] ADR-018's C3 Enforcement row: its Mechanism cites the same kernel test, beside eess-ts's
-- [ ] `check:family`, `check:release`, `check:docs-code`, `check:examples`, eess-crossvalidate's
-      suite and `npm run validate` green; durations reported
+- [x] `check:family`, `check:release`, `check:docs-code`, `check:examples`, eess-crossvalidate's
+      suite and `npm run validate` green; durations reported (family 1 rule, 0.8 s; release 0
+      findings, 0.4 s; docs-code 19 fences, 2 s; examples 24 tests, 2 s; eess-crossvalidate 128
+      tests, 6 s. `validate`: ticked provisionally for its own gate run, since `check:ledger` runs
+      inside it; the result is filled in from that run's log.)
 - [x] The examples gate's `notExist()` row (from plan 0458): a clean fixture holding documents with no elements reds the load-bearing row, naming the example
       (`examples/md-load-bearing-reds-on-an-empty-population` in `scripts/check-nonvacuity.mjs`)
 - [x] Close: this plan → `completed/`; boards
@@ -1097,6 +1125,31 @@ Where the build departed from the text above, each overrulable:
       all-dead-roots case, through its empty-source finding
 
 Deferred: plan 0464; bug 0463
+
+**Sabotage matrix, measured 2026-10-18 at dd76b440:**
+
+| row | test file                                                    | named test                                                  | baseline | sabotaged | time |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------- | -------- | --------- | ---- |
+| 1   | `packages/core/tests/not-exist.test.ts`                      | two selected elements give two findings                     | green    | red       | 2.6s |
+| 2   | `packages/core/tests/not-exist.test.ts`                      | an empty selection is green                                 | green    | red       | 2.6s |
+| 3   | `packages/core/tests/cardinality.test.ts`                    | a marked object is frozen                                   | green    | red       | 6.4s |
+| 3   | `packages/ts/tests/conditions/not-exist-frozen.test.ts`      | assigning evaluate on a returned notExist() throws          | green    | red       | 6.4s |
+| 3   | `packages/mermaid/tests/builders/class-rule-builder.test.ts` | a returned notExist() is frozen                             | green    | red       | 6.4s |
+| 4   | `packages/core/tests/cardinality-selector-fault.test.ts`     | outranks an expectEmpty declaration                         | green    | red       | 2.6s |
+| 5   | `packages/md/tests/selector-fault.test.ts`                   | reds with its cause                                         | green    | red       | 4.1s |
+| 5   | `packages/core/tests/cardinality-selector-fault.test.ts`     | the fault reds an absence rule with its own message         | green    | red       | 4.1s |
+| 6   | `packages/core/tests/cardinality-selector-fault.test.ts`     | the receipt claims no declaration                           | green    | red       | 2.6s |
+| 7   | `packages/md/tests/not-exist.test.ts`                        | taskItems: an anchored selector glob                        | green    | red       | 1.5s |
+| 8   | `packages/md/tests/not-exist.test.ts`                        | taskItems: a corpus that loaded nothing                     | green    | red       | 1.5s |
+| 9   | `packages/md/tests/selector-fault.test.ts`                   | a glob naming files outside the roots reds                  | green    | red       | 1.5s |
+| 10  | `packages/md/tests/selector-fault.test.ts`                   | a dotfile the predicate can never match                     | green    | red       | 1.5s |
+| 11  | `packages/md/tests/selector-fault.test.ts`                   | a ratchet that holds is green                               | green    | red       | 1.5s |
+| 12  | `packages/md/tests/selector-fault.test.ts`                   | a negative site is never a fault                            | green    | red       | 1.5s |
+| 13  | `packages/md/tests/selector-fault.test.ts`                   | an escaped paren is never a separator                       | green    | red       | 1.5s |
+| 14  | `packages/core/tests/glob-syntax.test.ts`                    | repo-relative ./guides/\*\* is no fault                     | green    | red       | 2.6s |
+| 15  | `packages/md/tests/selector-fault.test.ts`                   | several separators are replaced at once                     | green    | red       | 1.5s |
+| 16  | `packages/md/tests/selector-fault.test.ts`                   | reds with the separator fault, and its correction           | green    | red       | 1.5s |
+| 17  | `packages/md/tests/selector-fault.test.ts`                   | a glob that selects a path as written is no separator fault | green    | red       | 1.5s |
 
 ## Note — 2026-10-18, after PR #236
 
