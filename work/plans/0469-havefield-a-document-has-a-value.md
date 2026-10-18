@@ -195,8 +195,10 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 - **The condition:** each message above, word for word, and one cause per document.
 - **The predicate:**
   - it selects the documents that have the field, and with `oneOf` only the allowed ones;
-  - a conflicted document, an unnamed-form document and a field outside the header (`region:
-'header'`) are each not selected **and** reported;
+  - a conflicted document, an unnamed-form document and a field outside the header (with
+    `region: 'header'`) are each not selected **and** reported;
+  - `forms: ['bold']`, `region: 'header'`, and the only Status is `## Status: fixed` after a `## Notes`
+    heading: reported as outside the region;
   - an `open` bug under `oneOf: /fixed/i` is not selected and not reported;
   - a document outside the other predicates is not reported.
 - **The example:** red on a fixed bug with no `Verification` section; green once the section is added.

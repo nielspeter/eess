@@ -1015,6 +1015,9 @@ overruled them.
 > - **The carried "prose defined by the caller's named forms and region".** Plan 0469 defines prose
 >   by form, and offers one region, `region: 'header'` (before the first section), added after the
 >   adopters' follow-up below. Any other region waits for block 11.
+> - **Decision 2's "a losing occurrence that disagrees is its own finding".** Under `region`, an
+>   occurrence outside the region is not read, so a disagreeing one there is not reported. The caller
+>   opts into this by naming the region.
 > - **Block 12 lifting block 2.** `haveField` is a method on `docs()` and ships no exported
 >   `Predicate<MdDocument>`. Through `inDocuments` its findings would be dropped, so lifting it waits
 >   for [plan 0470](../plans/0470-a-lifted-predicate-carries-its-findings.md), which gives `inDocuments`
@@ -1030,7 +1033,8 @@ All three adopters were sent the build order and plans 0468 to 0470, and answere
 - **A register inside a record.** One adopter's plan carries its real `**Status:**` on line 3 and
   ten feedback items written `- **Status:** open.` below it. Plan 0469 would have read this as a
   conflict, so it gains `region: 'header'`. A "first occurrence wins" option was rejected, because it
-  would hide a real second header value.
+  would hide a second value even inside the header. The region hides only what lies outside the
+  header, and only when the caller opts in.
 - **Two labels in one header.** The other adopter has 33 closed bugs that carry both `**State:**`
   and `**Status:**`, from a period when its close step wrote both. This is not a conflict as planned:
   labels and aliases belong to each rule, and a label the rule does not name is not counted.
@@ -1049,8 +1053,12 @@ All three adopters were sent the build order and plans 0468 to 0470, and answere
   - It needs every `## Label: value` heading treated as part of the header, because 1,080 of its
     1,137 `## Status:` records go on with `## Severity:`, `## Priority:` and similar headings.
     Adopted.
-  - That reads one frozen record too far, which then gives a finding rather than passing silently.
-    Accepted.
+  - That reads one frozen record too far. When that record's header already has a value, the result
+    is a reported conflict. When the header has none, a body value below the heading is read as the
+    header's, and nothing is reported. That is a known limit, recorded in plan 0468.
+    - Reporting it as its own cause was considered and not adopted: it would have to tell adopter
+      3's legitimate `## Severity:`/`## Priority:` chain apart from a body value read too far, and
+      nothing has measured that distinction.
   - The region has to bound the unnamed-form scan as well, or 67 per-phase status lines would each
     give a finding. Adopted, by making the region a reader option.
   - 51 records hold `- **State:**` under a `## Status` section with no colon. They need a
