@@ -46,6 +46,9 @@ export {
 // two). `check:family` cannot ask for them: this package's source does not use
 // them.
 export { and, or } from '@nielspeter/eess'
+// The glob types the location predicates declare and `RuleBuilder.globs()` returns, as eess-ts's
+// root has them.
+export type { GlobNode, GlobSite } from '@nielspeter/eess'
 // The document predicates, for `satisfy()` and the combinators. The same names
 // exist on eess-ts's root with a different anchor: eess-md matches a path
 // relative to the corpus's `cwd` (`'guides/**'`), eess-ts an absolute one

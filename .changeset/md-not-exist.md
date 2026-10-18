@@ -6,6 +6,6 @@
 
 New: `.should().notExist()` on `docs()`, `links()`, `pointers()`, `rows()`, `terms()`, `taskItems()` and `codeBlocks()`. Each selected element is a finding at its own line. An absence rule whose folder or file glob is broken is reported, naming the call: a glob that can never match a path relative to the corpus's `cwd` (a leading `/`, a `../`, a `./` after the first segment), a glob naming Markdown the corpus did not load (outside its `roots`, or `ignore`d), or a `\` written as a path separator. A glob naming nothing in the repository stays green, since that is also what a holding ratchet looks like.
 
-New on the root: `resideInFolder`, `resideInFile` and `haveNameMatching` as predicates for `satisfy()`, `and` and `or` beside `not`, and `globNode`. eess-md's `resideInFolder('guides/**')` is relative to the corpus's `cwd`; eess-ts's predicates of the same names match absolute paths.
+New on the root: `resideInFolder`, `resideInFile` and `haveNameMatching` as predicates for `satisfy()`, `and` and `or` beside `not`, `globNode`, and the `GlobNode` and `GlobSite` types. eess-md's `resideInFolder('guides/**')` is relative to the corpus's `cwd`; eess-ts's predicates of the same names match absolute paths.
 
 Plan 0454 ships a second eess-md break (undeclared box marks). If both land in one release, read both.
