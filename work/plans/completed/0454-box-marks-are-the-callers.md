@@ -11,7 +11,7 @@
 - **Implements:** proposal 017
 - **Fixes:** [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)
 - **Priority:** Medium, bug 0445's severity: a closed record whose boxes are all `[~]` passes the
-  closing check, and this repository carries four such boxes today.
+  closing check, and this repository carried four such boxes when this was written (2026-10-17).
 - **Effort:** Medium — one model function, one builder, one preset option, two repository scripts,
   fixtures. eess-md only, no kernel change; a minor with a flagged break.
 - **Created:** 2026-10-17
@@ -547,8 +547,6 @@ Each finding of the round-two reviews about this plan, and what changed:
   deleted from the test inventory.
 - **Narrowed:** none.
 
-## Progress ledger
-
 ## Build notes — 2026-10-18
 
 Where the build departed from the text above, each overrulable:
@@ -569,6 +567,26 @@ Where the build departed from the text above, each overrulable:
   to taskItems() or honestyAtClose()", since the same finding comes from either.
 - **`bad-ledger.mjs` prints each finding's file and line,** so the two new rows' `mustSay` can pin
   the line, not only the id. Its document count is 8.
+- **Line pointers in this plan are as of 2026-10-17's main.** PRs #236, #237 and #239 moved code
+  after it was written (method review); the function and file names are authoritative, the line
+  numbers are not re-measured.
+- **The parsed-tree count of four excludes this plan's own fixtures,** measured before they were
+  added; at the build's head the same scan also finds the deliberate unread boxes in
+  `scripts/nonvacuity/bad-ledger/`, `bad-finished-not-closed/marks-*/` and `examples/md/fixtures/box-marks/`.
+- **The red-first test is a new file,** `packages/md/tests/rules/box-marks-in-a-closed-record.test.ts`,
+  not `ledger.test.ts`, which is untouched; `bad-ledger.mjs` keys fired rules on `ruleId ?? rule`,
+  which every bad-ledger row now reads.
+- **Review round, 2026-10-18 (architect · enforcement · testing · method):**
+  - `check:ledger` passes each lane's `marks` to `finished-not-closed` too; the plan's Phase 3 box
+    claimed it before it was so.
+  - `finished-not-closed` reports an unread box on an open record whose read boxes are all done,
+    under `md/undeclared-box-mark` / `md/malformed-box`, instead of passing it as "not finished";
+    the two-lane fixture asserts the report.
+  - Remedies keep the author's mark (`[${mark}]`) and say `[x]` and `'done'` claim finished work.
+  - A tab or a line ending after a mark reads as GFM reads it after `[x]`; `[` , `]` and whitespace
+    are refused as declared marks.
+  - The declaration is copied and frozen at construction; `collectTaskItems` requires `source`;
+    `checkedOf` derives `checked` in one place; `ReadBox`/`UnreadBox` live in the model.
 - **The tilde probe's line is 9,** the box in the probe record; the row requires `check:ledger` to
   exit 1 with `ledger/silent-open-box` on that line.
 

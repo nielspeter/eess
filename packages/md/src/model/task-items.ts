@@ -64,7 +64,7 @@ export function validateMarks(
     if (graphemes(key).length !== 1) {
       throw new ArchConfigError(
         caller,
-        `box mark '${key}' is not one character; a mark is the one character between the brackets.`,
+        `box mark '${key}' is not one grapheme; a mark is the one character a reader sees between the brackets.`,
       )
     }
     if (key === '[' || key === ']' || (/^\s$/u.test(key) && key !== ' ')) {

@@ -378,7 +378,7 @@ describe('the model and the declaration (plan 0454)', () => {
   })
 
   const refused: [string, Record<string, unknown>, RegExp][] = [
-    ['two characters', { ab: 'open' }, /'ab' is not one character/],
+    ['two characters', { ab: 'open' }, /'ab' is not one grapheme/],
     ['a space', { ' ': 'open' }, /' ' is GFM's own/],
     ['x', { x: 'done' }, /'x' is GFM's own/],
     ['X', { X: 'done' }, /'X' is GFM's own/],

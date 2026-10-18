@@ -5,7 +5,7 @@
 - **State:** Fixed — 2026-10-18, in PR #240 with [plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md)
   (proposal 017 block 17): box marks beyond GFM's are declared by the caller, and an undeclared one is
   a finding. Recorded 2026-10-16; reproduced on main's build.
-- **Severity:** Medium — a false green: a closed record whose items are all `[~]` passes the closing check. In this repository, four `[~]` items sit in closed records that `check:ledger` cannot see: `work/bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md:160`, `:167` and `:201`, and `work/bugs/fixed/0256-the-spike-lane-is-run-but-never-declared.md:130`. Adopters report more (as reported, not measured here).
+- **Severity:** Medium — a false green: a closed record whose items are all `[~]` passes the closing check. In this repository, at report time, four `[~]` items sat in closed records that `check:ledger` could not see: `work/bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md:160`, `:167` and `:201`, and `work/bugs/fixed/0256-the-spike-lane-is-run-but-never-declared.md:130`. Adopters report more (as reported, not measured here).
 - **Origin:** inbound · two adopter monorepos (unnamed), feedback on proposal 017, verified here.
 - **Reported:** 2026-10-16
 
