@@ -82,6 +82,8 @@ import type {
   MdTerm,
   Vocabulary,
   VocabularyOptions,
+  FieldForm,
+  FieldOptions,
 } from '@nielspeter/eess-md'
 import { corpus, docs, links, pointers, rows, taskItems, terms } from '@nielspeter/eess-md'
 // The dialect-side half, and the reason this file subsumes bug 0225. `check:family`
@@ -164,6 +166,8 @@ type MdSurface = {
   term: MdTerm
   vocab: Vocabulary
   vocabOptions: VocabularyOptions
+  fieldForm: FieldForm
+  fieldOptions: FieldOptions
 }
 
 /** A dialect that exposes a function must expose the types of its arguments. */

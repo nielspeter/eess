@@ -674,7 +674,8 @@ regex locating a labeled reference on a line (e.g. `/Bounded Context:/`);
 `value` (default: strip markdown emphasis characters and trim) extracts the
 referenced value from the text following the label match. It returns a
 `TermRuleBuilder`, whose elements are `MdTerm` (`value`, `raw` — the line's
-text after the label, before cleanup — `doc`, `line`). `.resideInFile(glob)`
+text after the label, before cleanup — `doc`, `line`, and since plan 0468 `label` and
+`form: 'pattern'`). `.resideInFile(glob)`
 scopes to a file pattern; `.resolveAgainst(vocab)` is the condition — every
 reference's `value` must be a term of the given `Vocabulary`.
 
@@ -701,6 +702,53 @@ terms(c, { label: /Bounded Context:/ })
   .resolveAgainst(contexts)
   .check()
 ```
+
+## A labelled value: `fields()`
+
+`fields(corpus, options)` reads a labelled value (`Status`, `Severity`, `Owner`) in the forms your
+corpus writes, which you name: eess-md has no default form.
+
+| form        | reads                              |
+| ----------- | ---------------------------------- |
+| `bold`      | `**X:** v`, `**X**: v`, `__X__: v` |
+| `heading`   | `## X: v`, at any heading depth    |
+| `bold-line` | `**X: v**`, a whole line in bold   |
+| `plain`     | `X: v`                             |
+
+Each form may sit behind up to three spaces, and every form but `heading` after a list marker. The
+label is compared ignoring ASCII case and runs of whitespace; `aliases` adds other spellings, each
+reported under its own name. `region: 'header'` reads only the record's header: lines before the
+first heading of depth 2 or more that is not itself a `## Label: value` heading, so `## Status:
+open` followed by `## Severity: High` stays one header. Fenced code is not read. A value continues
+over lines until a blank line, a heading, another label, or the end of its list item; a `heading`
+or `bold-line` value is one line.
+
+The elements are `MdTerm`s, as `terms()` gives, with the `label` as written and the `form` it was
+read in. The value is `cleanValue` of the text after the label by default: paired emphasis and a
+leading or trailing pictograph removed, whitespace collapsed, nothing cut. Pass `value` to cut it,
+composing the exported helpers: `untilDelimiter(['—'])` cuts at the first delimiter, and
+`longestOf(words)` takes the longest of your words the text starts with as a whole word, or the
+whole text when none matches, so the check reports it. `split` turns one value into several.
+
+```typescript
+import { corpus, fields, longestOf, vocabulary } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/bugs/**'] })
+const states = ['Draft', 'Ready', 'Fixed', 'Rejected']
+
+fields(c, { label: 'State', forms: ['bold', 'heading'], value: longestOf(states) })
+  .should()
+  .resolveAgainst(vocabulary(c, { terms: states }))
+  .check()
+```
+
+`resolveAgainst` takes a `Vocabulary` or a `RegExp`, which must match the whole value. A field's
+finding names the value, the label and the line, never the whole set: `'Shipped' (Status, line 3)
+does not resolve against the vocabulary (4 terms)`. A label your rule's selection holds in a
+wrapped form it does not read is a finding, not a silent skip: ``found `## Status: open` at line 3,
+in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line``. The
+`plain` form is never scanned for, since prose often opens "status: …". This repository's own
+`check:corpus` reads every live plan's and bug's State this way.
 
 ## ADR enforcement tables
 
