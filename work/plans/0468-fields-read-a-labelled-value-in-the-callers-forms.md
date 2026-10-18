@@ -2,49 +2,58 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-18 from proposal 017's block 1.
+- **State:** Draft — written 2026-10-18 from proposal 017's block 1; revised the same day after one
+  review round (architect · product · enforcement · method).
 - **Implements:** proposal 017
-- **Priority:** High. All three adopters asked for it, and among the asks it would replace the most
-  code they wrote by hand (proposal 017, "Consumer feedback").
-- **Effort:** Medium. It adds one constructor and one condition on an existing builder, plus three
-  label forms in the model.
+- **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
+  feedback"). The maintainer asked for these two to be planned on 2026-10-18.
+- **Effort:** Medium. One per-document reader in the model, one new constructor, two new label
+  forms beside the two the shared grammar already reads, and a scan for forms the caller did not
+  name.
 - **Created:** 2026-10-18
-- **Builds after:** [bug 0403](../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), a
-  precondition the second Review set for block 1: the vacuity matrix must enumerate eess-md before
-  eess-md gains a constructor. Where it sits among proposal 017's plans is for the maintainer to set.
-- **Followed by:** [plan 0469](./0469-havefield-a-document-has-a-value.md), `haveField`, which uses
-  this reader.
+- **Builds after:**
+  - [bug 0403](../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
+    the second Review set for block 1: the vacuity matrix covers eess-md before eess-md gains a
+    constructor;
+  - [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
+    gate, which decision 3 makes the condition for every accepted block.
+
+  Where this sits among proposal 017's plans is the maintainer's to set.
+
+- **Followed by:** [plan 0469](./0469-havefield-a-document-has-a-value.md), `haveField`, which
+  resolves this reader's occurrences.
 
 ## Problem
 
-Every adopter reads a record's labelled value, such as `Status`, `Severity` or `Owner`, with a
-reader it wrote itself. eess-md has two readers:
+Every adopter reads a record's labelled value (`Status`, `Severity`, `Owner`) with a reader it wrote
+itself. eess-md has two readers, and neither does the job:
 
 - `terms()` (`packages/md/src/builders/vocabulary.ts:178`) takes a regex and returns the text after
-  it. It knows nothing about label forms. Its default value cuts at `·—–|`, and it reports nothing
-  when a label is written in a way the regex does not match.
-- `honestyAtClose` reads only the `State` label (bug 0444).
+  it. It knows no label forms, cuts its default value at `·—–|`, and reports nothing about a label
+  written in a way its regex misses.
+- `honestyAtClose` reads only `State` (bug 0444).
 
-The forms adopters actually write, counted by adopter 3 across live and frozen records:
+Adopter 3 counted the forms it uses (live / frozen):
 
-| form              | live | frozen |
-| ----------------- | ---- | ------ |
-| `## Status: v`    | 601  | 536    |
-| `**Status:** v`   | 124  | 311    |
-| `- **Status:** v` | 28   | 59     |
-| `**Status**: v`   | 0    | 40     |
-| `**Status: v**`   | 0    | 14     |
+| form                                  | live | frozen |
+| ------------------------------------- | ---- | ------ |
+| `## Status: v`                        | 601  | 536    |
+| `**Status:** v`                       | 124  | 311    |
+| `- **Status:** v` or `- **State:** v` | 28   | 59     |
+| `**Status**: v`                       | 0    | 40     |
+| `**Status: v**`                       | 0    | 14     |
 
-Adopter 2 indents fields up to three spaces. Values carry emoji, emphasis and trailing prose, and one
-value runs over four lines.
+Adopter 2 indents up to three spaces. Values carry emoji, emphasis and trailing prose, and one value
+spans four lines.
 
 ## Design
 
-Decisions 1 and 2 of proposal 017 ("Consumer feedback") settle the shape: the element is **field**,
-there is one element type with two constructors, and where a value ends is the caller's choice.
+Proposal 017's "Decisions this settles" 1 and 2 give the shape. They are the coordinator's decisions,
+and the maintainer has not overruled them. The element is a **field**: one element type with two
+constructors, and the caller decides where a value ends.
 
 ```ts
-export type FieldForm = 'bold' | 'heading' | 'bold-value' | 'plain'
+export type FieldForm = 'bold' | 'heading' | 'bold-line' | 'plain'
 
 export interface FieldOptions {
   /** The label, compared ignoring ASCII case and runs of whitespace. */
@@ -52,7 +61,7 @@ export interface FieldOptions {
   readonly aliases?: readonly string[]
   /** The forms to read. Required: eess-md has no default form. */
   readonly forms: readonly FieldForm[]
-  /** Where the value ends and how it is cleaned. Default: `cleanValue`. */
+  /** Where the value ends and how it is cleaned. Replaces the default, `cleanValue`. */
   readonly value?: (raw: string) => string
   /** Splits one value into several, after `value` has cut it. */
   readonly split?: (value: string) => readonly string[]
@@ -63,131 +72,168 @@ export function fields(corpus: Corpus, options: FieldOptions): TermRuleBuilder
 
 **The forms.** Each form may follow a list marker and up to three spaces of indent.
 
-| form         | reads                                                                        |
-| ------------ | ---------------------------------------------------------------------------- |
-| `bold`       | `**X:** v`, `**X**: v`, `__X__: v` (the wrapped forms of the shared grammar) |
-| `heading`    | `## X: v`, at any heading depth                                              |
-| `bold-value` | `**X: v**`                                                                   |
-| `plain`      | `X: v`                                                                       |
+| form        | reads                                                                  |
+| ----------- | ---------------------------------------------------------------------- |
+| `bold`      | `**X:** v`, `**X**: v`, `__X__: v`: the shared grammar's wrapped forms |
+| `heading`   | `## X: v`, at any heading depth                                        |
+| `bold-line` | `**X: v**`, a whole line in bold                                       |
+| `plain`     | `X: v`                                                                 |
 
-These are new fragments in `packages/md/src/model/label.ts`. `labelPattern`, which the ledger and
-`links().areLabelled()` share, does not change. That keeps the second Review's rule that the shared
-grammar is never widened.
+**One reader, in the model.** `readFields(doc, options)` in `packages/md/src/model/fields.ts` returns
+every occurrence in one document:
 
-**Elements.** `MdTerm` gains two required fields:
+- each occurrence carries the label as written, its form, its line, its raw text, its cut value and
+  its split values;
+- `fields()` uses it through `stampedByDocument` (`packages/md/src/builders/links.ts:37`);
+- plan 0469's resolver and the unnamed-form scan use the same function, so there is one
+  labelled-value reader (decision 4).
 
-- `label`: the label as it was written;
+`labelPattern`, which the ledger and `links().areLabelled()` share, does not change. The `heading` and
+`bold-line` fragments are new and opt-in.
+
+**What the reader reads:**
+
+- Fenced code is skipped (`proseText`).
+- Frozen documents are read (decision 3: each rule chooses its own documents).
+- An HTML block is read as prose. That is bug 0293, a known limit of every eess-md reader, and
+  this plan does not fix it.
+- A value over several lines continues until a blank line, a heading, a line that is itself a label
+  in any form, or the end of its list item. A `heading` value is one line. The element's `line` is
+  the label's line.
+
+**Elements.** `MdTerm` gains two fields:
+
+- `label`: the label's text, without the colon and without emphasis, for both constructors;
 - `form`: a `FieldForm`, or `'pattern'` for a `terms()` element.
 
-`value` stays the normalised value and `raw` stays the text before normalising. `fields()` yields
-every occurrence as its own element, on its own line. Choosing between occurrences is the resolver's
-job in plan 0469, not the reader's. `terms()` reads exactly what it reads today; its elements gain
-`label` (the matched text) and `form: 'pattern'`.
+`value` is the cut value and `raw` the text before cutting. A field with `split` yields one element
+per value, all on the label's line. `terms()` reads exactly what it reads today.
 
-**Where the value is read:**
-
-- Fenced code is skipped (`proseText`, as `terms()` does).
-- Frozen documents are read: each rule chooses its own documents (proposal 017, decision 3).
-
-**A value over several lines** continues until the next blank line, heading or line that is itself a
-label in any form, or the end of its list item. The element's `line` is the label's line.
-
-**The value and its end.** The default, `cleanValue`, removes markdown emphasis, backticks, and a
-leading or trailing emoji or symbol, then trims and collapses whitespace. It cuts nothing. Two helpers
+**The value.** The default, `cleanValue`, removes paired emphasis delimiters (`**x**`, `_x_`,
+`` `x` ``), never a lone `_` inside a word. It removes a leading or trailing pictograph with its
+variation selector, then trims and collapses whitespace. So `in_progress` and `C++` survive. It cuts
+nothing. A caller's `value` replaces it; `cleanValue` is exported for a caller to compose. Two helpers
 are exported, and neither is a default:
 
-- `untilDelimiter(chars)` cuts the value at the first of the given delimiters;
+- `untilDelimiter(chars)` cuts at the first delimiter;
 - `longestOf(allowed)` takes the longest allowed value the text starts with.
 
-**One condition: `beOneOf(allowed: readonly string[] | RegExp)`.** Values are compared exactly after
-the caller's normaliser, so a caller who wants case-insensitive matching lowercases there. The
-finding names the value, the label as written, its line and the allowed set:
+**Checking a value: `resolveAgainst`, extended, not a second condition.** `TermRuleBuilder`
+already checks set membership (`packages/md/src/builders/vocabulary.ts:172`), normalising both
+sides with the vocabulary's `normalize`. It gains one input type:
+
+- `resolveAgainst(allowed: Vocabulary | RegExp)`;
+- a `RegExp` must match the whole value, and a copy is compiled without `g`/`y`;
+- the finding names the value as written, the label and the line:
 
 ```
-'Shipped' (Status, line 3) is not one of: open, fixed, closed
+'Shipped' (Status, line 3) is not in the allowed set (open, fixed, closed)
 ```
 
 **A form the caller did not name is a finding, never a silent skip.** This is the second Review's
-enforcement condition. It follows `links()`'s declaration findings
-(`packages/md/src/builders/links.ts:141`): `collectViolations` adds them, and they do not raise
-`examined`. For example:
+enforcement condition. The scan:
+
+- covers `bold`, `heading` and `bold-line`. It never covers `plain`: prose that opens "status: …" is
+  common, which is why `wrappedLabelOf` leaves the plain form out (`packages/md/src/model/label.ts:60`);
+- covers **only the documents the rule selects**. A candidate element for the unnamed occurrence is
+  passed through the rule's predicates, so a rule scoped to `bugs/**` never reds on a README's
+  `## Status: beta`;
+- adds its findings in `collectViolations` without raising `examined`, as `links()` does
+  (`packages/md/src/builders/links.ts:140-150`).
 
 ```
 found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line
 ```
 
-The scan covers the structured forms (`bold`, `heading` and `bold-value`) and never `plain`. Prose that
-starts "status: …" is common, which is why `wrappedLabelOf` already leaves the plain form out
-(`packages/md/src/model/label.ts:60`). A label that matches nothing at all gives the kernel's
-zero-examined finding (ADR-010).
+A label matching nothing at all gives the kernel's zero-examined finding (ADR-010). Narrowed, and
+recorded in proposal 017: an alias the caller did not name cannot be known. Plan 0469's "no field"
+finding lists the wrapped labels the document does carry instead.
 
-**Dogfooding.** `check:corpus` gains a rule that every `Severity` value on this repository's bugs is
-one of the declared levels, written with `untilDelimiter(['—'])`. The rule gets a `check:nonvacuity`
-row that changes one bug's Severity to `Hgh`. How many values the rule examines and whether any is off
-the set today are measured in Phase 3. Any value that is off the set is fixed in the build or recorded,
+**Dogfooding.** `check:corpus` gains a rule over the `Severity` values on this repository's live bugs.
+It is written with `untilDelimiter(['—'])` and `resolveAgainst(/(Critical|High|Medium|Low)\b.*/)`. A
+`check:nonvacuity` row changes one bug's Severity to `Hgh`. Live values include `Low-to-medium` and
+`Medium under Bun` (measured 2026-10-18). Both match the pattern, which is the reason it is a pattern
+and not a set. Phase 3 measures the count, and any value outside the pattern is fixed or recorded,
 never excluded silently.
 
 ## Phases
 
-1. **Reader.** The label fragments, `fields()`, the wider `MdTerm`, multi-line values, `cleanValue`
-   and the two helpers.
-2. **Findings.** `beOneOf` and the scan for unnamed forms.
-3. **Dogfood and release.** The `check:corpus` rule, its `check:nonvacuity` row, the eess-md README
-   section, a changeset, and, if plan 0458 has shipped, an example under `examples/md/`.
+1. **Reader.** `model/fields.ts`, the two new fragments, `fields()`, the extended `MdTerm`,
+   `cleanValue` and the two helpers.
+2. **Findings.** `resolveAgainst` with a `RegExp`, the new message, and the unnamed-form scan scoped to
+   the selection.
+3. **Dogfood, docs, release.** The `check:corpus` rule and its `check:nonvacuity` row, an example under
+   `examples/md/`, the eess-md README, `docs/markdown.md`, a changeset.
 
 ## Files changed
 
+- `packages/md/src/model/fields.ts` (new)
 - `packages/md/src/model/label.ts`
 - `packages/md/src/builders/vocabulary.ts`
 - `packages/md/src/index.ts`
+- `examples/public-surface.test.ts` (`FieldOptions`, `FieldForm`)
+- `examples/md/fields/` (new: clean and violating fixtures)
 - `packages/md/tests/builders/fields.test.ts` (new)
 - `scripts/check-corpus.mjs`
 - `scripts/check-nonvacuity.mjs`
 - `packages/md/README.md`
+- `docs/markdown.md`
 - `.changeset/md-fields.md`
 
 ## Test inventory
 
-- **Each form read, with its line:** `bold` in all three spellings, `- **Status:** v`, three spaces of
-  indent, `heading` at depths 2 and 4, `bold-value`, `plain`.
-- **What is not read:** a fenced example; a label inside a paragraph.
-- **Several occurrences:** every occurrence is yielded. An alias is reported with `label` as it was
-  written.
-- **Multi-line values:** stop at a blank line, a heading, another label and the end of a list item.
-- **`cleanValue`:** `✅ Fixed`, `**Fixed**` and `` `Fixed` `` all give `Fixed`; a typographic
-  apostrophe is kept.
-- **The helpers:** `untilDelimiter` on `High — reason`; `longestOf` on `In progress (blocked)`.
+- **Each form read, with its line:**
+  - `bold` in all three spellings;
+  - `- **Status:** v`, and three spaces of indent;
+  - `heading` at depths 2 and 4;
+  - `bold-line`;
+  - `plain`.
+- **Not read:** a fenced example, and a label in the middle of a paragraph.
+- **Every occurrence yielded.** An alias is reported with its own `label`.
+- **Multi-line values:** stop at a blank line, a heading, another label, and the end of the list item.
+  A `heading` value stops at its own line.
+- **`cleanValue`:** `✅ Fixed`, `**Fixed**` and `` `Fixed` `` give `Fixed`; `in_progress` and `C++`
+  stay as they are; a typographic apostrophe is kept.
+- **Helpers:** `untilDelimiter` on `High — reason`; `longestOf` on `In progress (blocked)`.
 - **`split`:** one element per value, each on the label's line.
-- **`beOneOf`:** the message above, word for word, for both a set and a regex.
-- **Unnamed forms:** `forms: ['bold']` over a `## Status:` document gives the finding. An unnamed
-  `plain` line gives none.
-- **`terms()`:** its existing tests pass unedited; a new test shows `form: 'pattern'`.
+- **`resolveAgainst`:**
+  - the message above, verbatim, for both a set and a `RegExp`;
+  - `/fixed/` rejects `unfixed`, because the match is whole-value;
+  - a `/g` pattern gives the same result on its second document.
+- **Unnamed forms:**
+  - `forms: ['bold']` over a selected `## Status:` document gives the finding;
+  - the same document outside the selection gives none;
+  - an unnamed `plain` line gives none.
+- **`terms()`:** existing tests pass unedited; `form: 'pattern'` and `label` without the colon.
 - **Sabotage rows**, each turning its named test red:
   1. drop the `heading` fragment;
   2. disable the unnamed-form scan;
-  3. let a continuation run past a blank line.
+  3. let the scan ignore the selection;
+  4. let a continuation run past a blank line.
 
 ## Release
 
-`@nielspeter/eess-md` minor, additive. `MdTerm` gains two required fields. That only breaks code that
-builds an `MdTerm` literal itself; no package in the family does (measured with
-`git grep MdTerm -- packages`).
+`@nielspeter/eess-md` minor, flagged `**Breaking**`. `MdTerm` gains two required fields, so an
+adopter's test that builds an `MdTerm` literal stops compiling. The fix is one line: add `label` and
+`form`. No package in the family builds one (`git grep MdTerm -- packages examples`). The changeset
+names the dependants that release requires (bug 0185).
 
 ## Out of scope
 
-- **Presence, precedence between occurrences, and conflicts:** plan 0469.
+- **Presence, precedence and conflicts:** plan 0469.
 - **Frontmatter:** adopter 3 counts 0 uses, and no adopter asked for it.
-- **`honestyAtClose`'s own reader:** bug 0444, and the preset's rebuild from public blocks
-  (proposal 017, second Review, decision 1).
+- **`honestyAtClose`'s reader:** bug 0444, and the preset rebuild (the second Review, decision 1).
 - **A value agreeing with its folder:** block 5, after its ADR.
+- **A census of allowed values that no document uses** (a carried item, report-only): left to the
+  first adopter who asks.
 
 ## Progress ledger
 
-- [ ] Bug 0403 fixed (precondition)
+- [ ] Preconditions: bug 0403 fixed, plan 0458 shipped
 - [ ] Phase 1: reader
-- [ ] Phase 2: `beOneOf` and the unnamed-form findings
-- [ ] Phase 3: dogfood rule, non-vacuity row, README, changeset, example
-- [ ] Sabotage rows 1–3 red on their named tests; suites green; durations reported
+- [ ] Phase 2: `resolveAgainst` and the unnamed-form scan
+- [ ] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
+- [ ] Sabotage rows 1–4 red on their named tests; suites green; durations reported
 - [ ] Close: this plan → `completed/`; boards
 
 Deferred: none

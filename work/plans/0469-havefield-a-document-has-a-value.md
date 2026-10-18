@@ -2,97 +2,139 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-18 from proposal 017's block 2.
+- **State:** Draft — written 2026-10-18 from proposal 017's block 2; revised the same day after one
+  review round (architect · product · enforcement · method).
 - **Implements:** proposal 017
-- **Priority:** High. All three adopters asked for it, and it is the block that lets a caller write
-  "documents whose `Status` is `fixed` have a `Verification` section" in their own words (proposal
-  017, "Consumer feedback").
-- **Effort:** Medium. One dual-use method on `docs()`, a resolver for each document, and its findings.
+- **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
+  feedback"). This is the block that lets a caller write "documents whose `Status` is `fixed` have a
+  `Verification` section" in their own words.
+- **Effort:** Medium. One dual-use method on `docs()`, a resolver for each document, and its
+  findings.
 - **Created:** 2026-10-18
 - **Builds after:** [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md), whose
-  reader it resolves.
+  reader it resolves, and therefore after 0468's own preconditions.
 
 ## Problem
 
 Block 1 yields every occurrence of a value. It cannot report a document that carries none, because
-such a document yields no element. Two questions are still unanswered:
+such a document yields no element. Two questions are left open:
 
 - whether a document has the value at all;
 - which value counts when a document carries several.
 
-Adopter 3 hit the second one: a `State:` in prose at line 220 beat the header at line 3. Today every
-adopter answers both in code of its own.
+Adopter 3 hit the second: a `State:` in prose at line 220 beat the header at line 3. Every adopter
+answers both questions with its own code.
 
 ## Design
 
 ```ts
 export interface HaveFieldOptions extends FieldOptions {
-  /** The allowed value, after the caller's normaliser: a set or a pattern. */
-  readonly value?: readonly string[] | RegExp
+  /** The allowed values, after the caller's `value`: the same type `resolveAgainst` takes. */
+  readonly oneOf?: Vocabulary | RegExp
 }
 
-docs(c).that().haveField(spec) // a predicate: documents whose resolved value exists (and matches)
+docs(c).that().haveField(spec) // a predicate: documents whose resolved value exists (and is allowed)
 docs(c).should().haveField(spec) // a condition: every selected document has it
 ```
 
-The method is dual-use by phase, as `haveSection` is (`packages/md/src/builders/docs.ts:45`).
+`value` keeps its meaning from plan 0468 (the caller's normaliser), so adopters 1 and 2 keep their
+own value end. The method is dual-use by phase, as `haveSection` is
+(`packages/md/src/builders/docs.ts:45`).
 
-**The resolver**, one per document (`packages/md/src/model/field-resolve.ts`, internal). Block 5
-will use it later, so precedence is decided in one place, never as a filter in the reader (proposal
-017, decision 2). It reads the occurrences that plan 0468's reader yields for that document:
+**The resolver.** It lives in `packages/md/src/model/field-resolve.ts` and is internal. It resolves
+one document from 0468's `readFields` **occurrences**, not from the split elements, so a
+multi-valued field is one occurrence and never a conflict with itself. Block 5 will reuse it, so
+precedence is decided in one place (decision 2).
 
-- **Structured forms** (`bold`, `heading`, `bold-value`) win over `plain`.
-- **Exactly one structured occurrence** resolves the value. A `plain` occurrence that disagrees with
-  it is a finding at its own line, and the resolved value stands.
-- **Two or more structured occurrences**, whether they agree or not, are a conflict: one finding
-  naming both lines.
-- **Only `plain` occurrences:** one resolves the value. Several that disagree are a conflict.
-- **No occurrence:** the document has no value.
+1. **Structured beats plain.** `bold`, `heading` and `bold-line` win over `plain`.
+2. **One structured occurrence** resolves the value. A `plain` occurrence that disagrees with it is a
+   finding at its own line, and the resolved value stands.
+3. **Two or more structured occurrences**, agreeing or not, are a conflict: one finding naming both
+   lines.
+4. **Only `plain` occurrences:** if they all agree, they resolve the value. If they disagree, it is a
+   conflict.
+5. **No occurrence:** the document has no value.
 
-A document in conflict is never matched by the predicate and never passes the condition. Its finding
-is added by the builder's `collectViolations`, as `links()` adds its declaration findings
-(`packages/md/src/builders/links.ts:141`). So a rule that uses `haveField` only as a selector still
-reports the conflict instead of dropping the document without a word.
+With `oneOf`, a field with several values is allowed only when every value is.
 
-**Findings from the condition**, one cause each (ADR-009 rule 2):
+**Every cause is reported, in either position.** `haveField` used as a selector must not drop a
+document without saying so (ADR-009). So the builder's `collectViolations` reports four causes, in
+both phases, as `links()` reports its declaration findings (`packages/md/src/builders/links.ts:140-150`):
+
+- the conflict;
+- the unnamed form;
+- the disagreeing prose;
+- a resolved value outside `oneOf`.
+
+They cover the documents the rule's **other** predicates keep, so a bugs-only rule never reports a
+README.
+
+Each document gets one cause (ADR-009 rule 2). An unnamed-form finding replaces "no field" for that
+document. These are the messages:
 
 ```
-work/bugs/0001.md: no Status field (read as bold, heading)
+work/bugs/0001.md: no Status field (read as bold, heading); its labels: Severity, State
 work/bugs/0001.md: found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line
-work/bugs/0001.md:3: Status is 'Shipped', not one of: open, fixed
+work/bugs/0001.md:3: 'Shipped' (Status, line 3) is not in the allowed set (open, fixed)
 work/bugs/0001.md:3,9: Status is given twice (line 3 'open', line 9 'fixed'); keep one
 work/bugs/0001.md:220: prose says Status 'open', but the field at line 3 says 'fixed'
 ```
 
-A predicate that selects no document gives the kernel's zero-examined finding on a positive rule
-(ADR-010).
+- **Labels.** "Its labels" lists the wrapped labels the document carries (`wrappedLabelOf`), so a
+  record that writes `State` where the rule reads `Status` points at the real label. An alias the
+  caller did not name cannot be known, so that is how the second Review's alias condition is met;
+  the narrowing is recorded in proposal 017.
+- **Values.** The allowed-value message is the one `resolveAgainst` prints (plan 0468): one concept,
+  one message.
+- **Withheld documents.** Decision 2 says a withheld document is "counted as withheld". Here each
+  withheld document gets one finding, and the findings are the count. No separate summary number is
+  added. This is recorded in proposal 017.
+
+A predicate that selects no document gives the kernel's zero-examined finding (ADR-010).
 
 **The example the block exists for:**
 
 ```ts
 docs(c)
   .that()
-  .resideInFolder('bugs/**')
+  .resideInFolder('bugs/*')
   .and()
-  .haveField({ label: 'Status', forms: ['bold', 'heading'], value: ['fixed'] })
+  .haveField({
+    label: 'Status',
+    forms: ['bold', 'heading'],
+    value: untilDelimiter(['—']),
+    oneOf: /fixed/i,
+  })
   .should()
   .haveSection('Verification')
   .check()
 ```
 
-**Dogfooding.** `check:corpus` gains a rule: every live plan, bug and proposal has a `State` field in
-the `bold` form. Measured 2026-10-18, every one does today. The rule also gets a `check:nonvacuity`
-row that removes the State line from one live bug. This is the first check here that reds when a
-record carries no state at all: `honestyAtClose` counts such records but never refuses (bug 0444).
+A bug written `**Status: fixed**` (the `bold-line` form, not named) is not selected, and it is
+reported. A bug whose Status is `Fxed` is not selected either. The README pairs this rule with
+`fields(...).resolveAgainst(allStates)`, which reports the misspelling: a filter alone cannot tell a
+misspelt value from a different one.
+
+**Dogfooding.** `check:corpus` gains a rule: every live plan and bug (`work/plans/*.md`,
+`work/bugs/*.md`, the board files excluded by name) has one `State` field in the `bold` form.
+Measured 2026-10-18 with fences stripped, every one has exactly one except
+[bug 0293](../bugs/0293-an-example-inside-an-html-block-is-read-as-prose.md), whose examples sit in
+HTML blocks that the reader reads as prose. That record is excluded with `.excluding()`, citing bug 0293. Under ADR-018 the exclusion becomes a finding once 0293 is fixed. A `check:nonvacuity` row
+removes the State line from one live bug.
+
+Proposals are left out. Two of them (010 and 016) keep their original submission, with its own
+`**State:**` line, below the current one, as the lane's rule asks. Telling those apart needs a
+region, which waits for block 11; it is recorded in proposal 017. This is the first check here that
+reds when a record has no state at all: `honestyAtClose` counts such a record but never refuses it
+(bug 0444).
 
 ## Phases
 
-1. **Resolver.** `field-resolve.ts` over plan 0468's reader, with its five outcomes.
-2. **`haveField`.** The predicate and condition forms, the conflict findings in `collectViolations`,
-   and the messages above.
-3. **Dogfood and release.** The `check:corpus` rule, its `check:nonvacuity` row, the eess-md README
-   (with the example above), a changeset, and an example under `examples/md/` if plan 0458 has
-   shipped.
+1. **Resolver.** `field-resolve.ts` over `readFields`, with its five outcomes.
+2. **`haveField`.** The predicate and condition forms, `collectViolations` in both phases, and the
+   messages above.
+3. **Dogfood, docs, release.** The `check:corpus` rule and its `check:nonvacuity` row, an example under
+   `examples/md/`, the eess-md README with the paired rule, `docs/markdown.md`, a changeset.
 
 ## Files changed
 
@@ -100,44 +142,58 @@ record carries no state at all: `honestyAtClose` counts such records but never r
 - `packages/md/src/predicates/document.ts`
 - `packages/md/src/conditions/structure.ts`
 - `packages/md/src/builders/docs.ts`
+- `packages/md/src/index.ts`
+- `examples/public-surface.test.ts` (`HaveFieldOptions`)
+- `examples/md/have-field/` (new: clean and violating fixtures)
 - `packages/md/tests/builders/have-field.test.ts` (new)
 - `scripts/check-corpus.mjs`
 - `scripts/check-nonvacuity.mjs`
 - `packages/md/README.md`
+- `docs/markdown.md`
 - `.changeset/md-have-field.md`
 
 ## Test inventory
 
-- **The resolver:** one row per outcome, plus a structured occurrence beating an earlier `plain` one
-  (adopter 3's line 220 case).
-- **The condition:** each message above, word for word.
-- **The predicate:** selects the documents with the field; with a `value` set, only matching
-  documents; a conflicted document is not selected and its finding is still reported.
-- **The example:** red on a fixed bug with no `Verification` section, green once the section is
-  added.
+- **The resolver:**
+  - one row per outcome;
+  - a structured occurrence beating an earlier `plain` one (adopter 3's line-220 case);
+  - several agreeing `plain` occurrences;
+  - a split field resolving as one occurrence.
+- **The condition:** each message above, word for word, and one cause per document.
+- **The predicate:**
+  - it selects the documents that have the field, and with `oneOf` only the allowed ones;
+  - a conflicted document, an unnamed-form document and a disallowed-value document are each not
+    selected **and** reported;
+  - a document outside the other predicates is not reported.
+- **The example:** red on a fixed bug with no `Verification` section; green once the section is added.
 - **A selection of nothing:** the zero-examined finding.
 - **Sabotage rows**, each turning its named test red:
-  1. the resolver prefers the first occurrence over a structured one;
-  2. `collectViolations` drops the conflict findings;
-  3. the condition passes a document with no field.
+  1. the resolver prefers the first occurrence;
+  2. `collectViolations` skips the predicate phase;
+  3. the condition passes a document with no field;
+  4. the resolver counts split elements.
 
 ## Release
 
-`@nielspeter/eess-md` minor, additive.
+`@nielspeter/eess-md` minor, additive. It ships after plan 0468's flagged release.
 
 ## Out of scope
 
-- **A value agreeing with its folder:** block 5, after its ADR. It will reuse this resolver.
-- **`honestyAtClose` rebuilt on `haveField`:** proposal 017, second Review, decision 1, and bug 0444.
-- **Making the dogfood rule cover `Severity`:** 22 live bugs carry none (measured 2026-10-18), and
-  giving each one a level is a judgement per bug, not part of this build.
+- **A value agreeing with its folder:** block 5, after its ADR. It reuses this resolver.
+- **An exported `Predicate<MdDocument>` for `inDocuments`.** Lifting `haveField` onto other elements
+  through block 12 would drop these findings, because `inDocuments` has no door for them. Exporting it
+  waits until that door is decided. It is recorded in proposal 017.
+- **`honestyAtClose` rebuilt on `haveField`:** the second Review's decision 1, and bug 0444.
+- **A region limiting where a field is read:** block 11.
+- **Requiring `Severity`:** 22 live bugs carry none (measured 2026-10-18). Giving each one a level is a
+  judgement per bug, not part of this build.
 
 ## Progress ledger
 
 - [ ] Phase 1: resolver
-- [ ] Phase 2: `haveField` and its findings
-- [ ] Phase 3: dogfood rule, non-vacuity row, README, changeset, example
-- [ ] Sabotage rows 1–3 red on their named tests; suites green; durations reported
+- [ ] Phase 2: `haveField` and its findings in both phases
+- [ ] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
+- [ ] Sabotage rows 1–4 red on their named tests; suites green; durations reported
 - [ ] Close: this plan → `completed/`; boards
 
 Deferred: none

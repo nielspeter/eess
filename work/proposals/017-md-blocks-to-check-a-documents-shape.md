@@ -8,8 +8,8 @@ then its asks were rewritten the same day at the maintainer's instruction (see "
 **Ruling: Split and sequence**; "Review — 2026-10-16 (second)" is the operative section. Blocks 6,
 7, 12, 13 and 17, accepted by the maintainer, are owned by plans 0454 to 0457 and 0459; the examples
 gate, decision 3's condition on them, by plan 0458 (2026-10-17/18). Blocks 1 and 2, also accepted, are
-owned by plans 0468 and 0469 (2026-10-18), built after bug 0403. Block 5, also accepted, waits on its
-ADR.
+owned by plans 0468 and 0469 (2026-10-18), built after bug 0403 and plan 0458. Block 5, also accepted,
+waits on block 1 and its ADR.
 **Priority:** Medium — the manifesto's Schema Layer is marked partial and its generic part is not
 built, so every adopter that wants a document checked for its shape writes the check by hand, and
 this repository does without one. No shipped rule claims to check a document's shape, so nothing
@@ -942,7 +942,7 @@ the plan order now splits, and add the new blocks:
 | ------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **6, 13** — kernel `notExist`, `beUniqueBy` | **Accepted, reshaped** | Block 6: [plan 0456](../plans/0456-kernel-notexist-and-dead-glob.md); block 13: [plan 0459](../plans/0459-kernel-beuniqueby-and-gherkins-unique-titles.md); both filed 2026-10-17/18, split at review. Reshaped 2026-10-18: the kernel conditions live behind `@nielspeter/eess/internal`, not re-exported per dialect; block 6 carries bug 0460's fix |
 | **12** — `inDocuments`, `isFrozen()`        | **Accepted, reshaped** | [Plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), filed 2026-10-17. Reshaped 2026-10-18: `isFrozen()` ships as `areFrozen()`/`areLive()`, and a scope matching no document is not a finding on a cardinality rule (ADR-010 §3, ADR-018 C3)                                                                             |
-| **1, 2** — labelled values, `haveField`     | **Accepted**           | [Plan 0468](../plans/0468-fields-read-a-labelled-value-in-the-callers-forms.md) (block 1, `fields()`) and [plan 0469](../plans/0469-havefield-a-document-has-a-value.md) (block 2, `haveField`), filed 2026-10-18; both after bug 0403                                                                                                                 |
+| **1, 2** — labelled values, `haveField`     | **Accepted**           | [Plan 0468](../plans/0468-fields-read-a-labelled-value-in-the-callers-forms.md) (block 1, `fields()`) and [plan 0469](../plans/0469-havefield-a-document-has-a-value.md) (block 2, `haveField`), filed 2026-10-18; both after bug 0403 and plan 0458                                                                                                   |
 | **17** — box marks                          | **Accepted**           | [Plan 0454](../plans/0454-box-marks-are-the-callers.md), filed 2026-10-17, bug 0445's fix                                                                                                                                                                                                                                                              |
 | **18** — boxes by section                   | **Held**               | Not accepted; after block 11 is planned                                                                                                                                                                                                                                                                                                                |
 
@@ -993,11 +993,28 @@ condition repeats its selection, which reds only when nothing is selected: that 
 does, but a condition that states it directly would be clearer. Recorded here so the next block chosen
 from this proposal can weigh it.
 
-**Blocks 1 and 2, planned 2026-10-18.** After the plans above, the maintainer asked for the two blocks
-that would remove the most hand-written code. All three adopters want blocks 1 and 2, and these six
-plans do not include them. [Plan 0468](../plans/0468-fields-read-a-labelled-value-in-the-callers-forms.md)
-is the reader, `fields()`, and [plan 0469](../plans/0469-havefield-a-document-has-a-value.md) is
-`haveField` with the per-document resolver. Both build after bug 0403, the second Review's
-precondition. Their place in the build order above is the maintainer's to set. The three open
-questions on the second Review's "1, 2" row (the noun, where a value ends, frozen documents) were
-settled by "Decisions this settles", 1 to 3.
+**Blocks 1 and 2, planned 2026-10-18.** After the plans above, the maintainer asked for these two to be
+planned. All three adopters want blocks 1 and 2, and the six plans above do not include them.
+[Plan 0468](../plans/0468-fields-read-a-labelled-value-in-the-callers-forms.md) is the reader, `fields()`;
+[plan 0469](../plans/0469-havefield-a-document-has-a-value.md) is `haveField` with the per-document
+resolver. Both build after bug 0403 and plan 0458. Bug 0403 is a precondition for building, not for
+planning, so this supersedes the "Not yet: blocks 1 and 2" sentence under "The maintainer's
+acceptance". Their place in the build order above is the maintainer's to set. The three open questions
+on the second Review's "1, 2" row (the noun, where a value ends, frozen documents) are answered by
+"Decisions this settles", 1 to 3. Those are the coordinator's decisions, and the maintainer has not
+overruled them.
+
+> **Narrowed (plans 0468 and 0469's review, 2026-10-18).** These change conditions set above:
+>
+> - **The second Review's first condition.** A value in a form the caller did not name is a finding
+>   for the `bold`, `heading` and `bold-line` forms, never for `plain`: prose opening "status: …" is
+>   common, as `wrappedLabelOf` already records. A value under an alias the caller did not name
+>   cannot be known. Instead, the "no field" finding lists the wrapped labels the document does carry.
+> - **Decision 2's "counted as withheld".** Each withheld document gets one finding, and those
+>   findings are the count. No separate summary number is added.
+> - **The carried "prose defined by the caller's named forms and region".** Plan 0469 defines prose
+>   by form only. A region waits for block 11. Until then, a record that keeps an earlier
+>   submission below its current header (proposals 010 and 016 do) resolves as a conflict.
+> - **Block 12 lifting block 2.** `haveField` is a method on `docs()` and ships no exported
+>   `Predicate<MdDocument>`. Through `inDocuments` its findings would be dropped, so lifting it waits
+>   until `inDocuments` has a way to carry them.
