@@ -1124,7 +1124,6 @@ Where the build departed from the text above, each overrulable:
       `examples/md-load-bearing-names-a-failing-clean-test`: a `clean:` test that fails as written
       (its probe is a `notExist()` example whose clean fixture holds no element) is named. That an
       example has a population assertion at all stays review-held, as plan 0458 says.
-      (`examples/md-load-bearing-reds-on-an-empty-population` in `scripts/check-nonvacuity.mjs`)
 - [x] Close: this plan → `completed/`; boards
 - [ ] deferred→[plan 0464](../0464-the-dialects-notexist-copies-move-onto-the-kernels.md) (the five
       copies' migration)
