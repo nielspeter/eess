@@ -31,8 +31,6 @@ answers both questions with its own code.
 export interface HaveFieldOptions extends FieldOptions {
   /** The allowed values, after the caller's `value`: the same type `resolveAgainst` takes. */
   readonly oneOf?: Vocabulary | RegExp
-  /** `'header'`: read the field only before the document's first section. Default: the whole document. */
-  readonly region?: 'header'
 }
 
 docs(c).that().haveField(spec) // a predicate: documents whose resolved value exists (and is allowed)
@@ -59,9 +57,9 @@ precedence is decided in one place (decision 2).
 
 With `oneOf`, a field with several values is allowed only when every value is.
 
-**The header region.** With `region: 'header'`, the resolver reads only occurrences before the
-document's first heading of depth 2 or more, not counting a `heading`-form occurrence of the field
-itself. Two adopters' records need it, and so do two of this repository's:
+**The header region.** `region: 'header'` is a `FieldOptions` option (plan 0468), so the reader, the
+resolver and the unnamed-form scan all read the same lines. Two adopters' records need it, and so do
+two of this repository's:
 
 - **A register inside a record.** An adopter's plan carries its real `**Status:**` on line 3, then ten
   feedback items each written `- **Status:** open.`.

@@ -65,6 +65,8 @@ export interface FieldOptions {
   readonly value?: (raw: string) => string
   /** Splits one value into several, after `value` has cut it. */
   readonly split?: (value: string) => readonly string[]
+  /** `'header'`: read only the document's header (below). Default: the whole document. */
+  readonly region?: 'header'
 }
 
 export function fields(corpus: Corpus, options: FieldOptions): TermRuleBuilder
@@ -92,6 +94,19 @@ every occurrence in one document:
 `bold-line` fragments are new and opt-in.
 
 **What the reader reads:**
+
+- **The header region.** With `region: 'header'`, only lines before the header's end are read. The
+  header ends at the first heading of depth 2 or more that is not itself written as `## Label: value`.
+  So `## Status: open` followed by `## Severity: High` and `## Priority: 2` stays one header. This
+  covers 1,080 of adopter 3's 1,137 `## Status:` records.
+  - Any `## Label: value` heading counts, not only the labels the caller declares. Adopter 3 measured
+    one record where this reads too far (`## ⚠️ RETRACTED: …`, frozen). A record read too far gives a
+    reported finding, never a silent pass.
+  - The unnamed-form scan reads the same region. With the header region, a per-phase `**Status:**`
+    further down is neither read nor reported.
+  - A field that sits under a named section (`## Status`, with `- **State:** v` under it; 51 of
+    adopter 3's records, 7 of them live) is outside the header. `haveField` reports such a record as
+    "no field", never skipping it. A named-section region waits for block 11.
 
 - Fenced code is skipped (`proseText`).
 - Frozen documents are read (decision 3: each rule chooses its own documents).
@@ -202,6 +217,9 @@ Giving each of those a level is a judgement per bug, and not part of this build.
   - `heading` at depths 2 and 4;
   - `bold-line`;
   - `plain`.
+- **The header region:** `## Status:` then `## Severity:` stays one header; a `## Notes` heading ends
+  it; a per-phase `**Status:**` after it is neither read nor reported; `## Status` (no colon) with
+  `- **State:** v` under it is outside the header.
 - **Not read:** a fenced example; a label in the middle of a paragraph; a heading with no colon,
   such as `## Status at a glance`.
 - **Every occurrence yielded.** An alias is reported with its own `label`.

@@ -1025,8 +1025,7 @@ overruled them.
 
 ## Consumer follow-up — 2026-10-18
 
-Two adopters were sent the build order and plans 0468 to 0470, and answered read-only. Adopter 3
-could not be reached that day.
+All three adopters were sent the build order and plans 0468 to 0470, and answered read-only.
 
 - **A register inside a record.** One adopter's plan carries its real `**Status:**` on line 3 and
   ten feedback items written `- **Status:** open.` below it. Plan 0469 would have read this as a
@@ -1046,5 +1045,17 @@ could not be reached that day.
   value. The other wants both: it has had a closed bug left in the live folder and an open bug in the
   closed folder. With adopter 3's one-way answer, that makes two for one direction and one for both.
   Decision 4's `Direction` option serves both; this is input for block 5's ADR.
+- **Adopter 3, later the same day.** It measured the header region over 1,735 records.
+  - It needs every `## Label: value` heading treated as part of the header, because 1,080 of its
+    1,137 `## Status:` records go on with `## Severity:`, `## Priority:` and similar headings.
+    Adopted.
+  - That reads one frozen record too far, which then gives a finding rather than passing silently.
+    Accepted.
+  - The region has to bound the unnamed-form scan as well, or 67 per-phase status lines would each
+    give a finding. Adopted, by making the region a reader option.
+  - 51 records hold `- **State:**` under a `## Status` section with no colon. They need a
+    named-section region, which waits for block 11; until then `haveField` reports them as "no
+    field".
+  - It read `fields()` as missing the `**X**:` form, but that form is part of `bold`.
 - **Git history.** The second adopter reads it only in a view, not a check, so it is not yet a need
   shared by more than one adopter.
