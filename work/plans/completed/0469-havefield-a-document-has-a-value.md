@@ -277,23 +277,28 @@ Where the build departed from the text above, each overrulable:
     built before either runs, disagreeing prose and an unread label as a selector, `oneOf` with
     `split`, the unclosed fence, and the plain-line hint; sabotage rows 7–11.
   - **Recorded, not fixed:** the dogfood rule exercises only the condition position (a
-    selector-position dogfood is plan 0481's to consider); the rule's records are chosen with a
-    path prefix rather than a glob, so a changed lane root reds as zero examined without naming the
-    glob; a `## State:` heading is reported by both `corpus/state-present` and
-    `corpus/state-in-a-form-not-read`, counted twice in the summary; `.select()` carries none of
-    these findings (plan 0470's question); the outside-the-header cause reads structured forms only,
-    so a plain or loosely formatted label below the header is "no field" (plan 0468's region limit);
-    each `haveField` use computes a document's verdict more than once.
+    selector-position dogfood → [plan 0470](../0470-a-lifted-predicate-carries-its-findings.md),
+    where the lifted form is built); the rule's records are chosen with a path prefix rather than a
+    glob, so a changed lane root reds as zero examined without naming the glob
+    ([bug 0484](../../bugs/0484-state-present-picks-records-by-a-path-prefix.md)); a `## State:`
+    heading is reported by both `corpus/state-present` and `corpus/state-in-a-form-not-read`,
+    counted twice in the summary ([bug 0483](../../bugs/0483-a-state-heading-is-counted-twice.md));
+    `.select()` carries none of these findings (plan 0470's question); the outside-the-header cause
+    reads structured forms only, so a plain or loosely formatted label below the header is "no
+    field" (plan 0468's region limit); each `haveField` use computes a document's verdict more than
+    once (→ plan 0470, whose lift multiplies it per box).
 - **Review verification, 2026-10-18:** each reviewer re-checked their findings against the fix pass.
   Fixed from it: the fence fallback also scans for labels in forms the rule does not read, so such a
   label after a code fence that never closes is reported, not dropped; the message names the code
   that hides the line, a fence that never closes or an indented block (`codeShapeAt` in
   `model/prose.ts`); a lost unread-label record throws instead of vanishing. Sabotage rows 12–13.
-  Recorded, not fixed: the tests' `said()` helper drops line-0 findings, so an extra configuration
-  finding beside an expected list is not seen; no test pins aliases (with `region` or in a conflict
-  message, which names `spec.label`), an empty value under `oneOf`, a `split` that yields only empty
-  values, a CRLF record, or `.excluding()` against a selector finding; "it carries no wrapped label"
-  is untested; the matrix's exact edits live in the session's `scratchpad/sab0456/matrix0469.py`, not
+  Recorded, not fixed ([bug 0482](../../bugs/0482-the-havefield-tests-cannot-see-an-extra-finding.md)):
+  the tests' `said()` helper drops line-0 findings, so an extra configuration finding beside an
+  expected list is not seen; no test pins aliases (with `region` or in a conflict message, which
+  names `spec.label`), an empty value under `oneOf`, a `split` that yields only empty values, a CRLF
+  record, or `.excluding()` against a selector finding; "it carries no wrapped label" is untested;
+  the `ArchConfigError` for a lost unread-label record is unreachable through `matchingElements` and
+  untested; the matrix's exact edits live in the session's `scratchpad/sab0456/matrix0469.py`, not
   in the repository, so the table's "sabotage" column is the record of what each row broke.
 - **Files beyond the plan's list:** `packages/md/src/model/field-verdict.ts`, `field-unread.ts` and
   `builders/have-field.ts` (new); `FieldOccurrence` exported from `model/fields.ts`;
@@ -325,7 +330,11 @@ Where the build departed from the text above, each overrulable:
       md 481 tests)
 - [x] Close: this plan → `completed/`; boards
 
-Deferred: none
+Deferred: plan 0470 (selector-position dogfood, one verdict per use), bug 0482, bug 0483, bug 0484
+
+The SHAs above are this branch's commits before its rebase and squash merge (PR #242), so they do
+not resolve on `main`. What they evidence holds for the merged tree: the tree validated at 9ec9c2a
+differs from the PR's merged tree only in this record (`git diff --stat`, measured 2026-10-18).
 
 **Sabotage matrix, measured 2026-10-18 at 12c3323 (after the review and its verification):**
 
