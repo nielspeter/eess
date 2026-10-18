@@ -1,10 +1,20 @@
 import picomatch from 'picomatch'
-import { globNode, type Condition, type Predicate, type ArchViolation } from '@nielspeter/eess'
+import {
+  collectResult,
+  globNode,
+  type ArchViolation,
+  type CollectResult,
+  type Condition,
+  type Predicate,
+} from '@nielspeter/eess'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import { proseText } from '../model/prose.js'
+import { stampedByDocument } from '../model/by-document.js'
+import { readFields, type FieldForm, type FieldOptions } from '../model/fields.js'
+import { unnamedFormFindings } from './field-findings.js'
 
 /**
  * Controlled-vocabulary primitive (plan 0069 Phase 4): derive a term set from
@@ -84,6 +94,10 @@ export interface MdTerm {
   readonly raw: string
   readonly doc: MdDocument
   readonly line: number
+  /** The label as written, without its colon or emphasis (plan 0468). */
+  readonly label: string
+  /** The form it was read in; `'pattern'` for a `terms()` element (plan 0468). */
+  readonly form: FieldForm | 'pattern'
 }
 
 export interface TermsOptions {
@@ -118,7 +132,10 @@ function collectTerms(corpus: Corpus, options: TermsOptions): MdTerm[] {
       if (!m) continue
       const raw = line.slice(m.index + m[0].length)
       const value = extract(raw)
-      if (value !== '') out.push({ value, raw, doc, line: i + 1 })
+      const written = m[0].replace(/[*_:]/g, '').replace(/\s+/g, ' ').trim()
+      if (value !== '') {
+        out.push({ value, raw, doc, line: i + 1, label: written, form: 'pattern' })
+      }
     }
   }
   return out
@@ -135,37 +152,107 @@ const resideInFile = (glob: string): Predicate<MdTerm> => {
   }
 }
 
-const resolveAgainst = (vocab: Vocabulary): Condition<MdTerm> => ({
-  description: 'resolve against the vocabulary',
-  evaluate: (elements, ctx) =>
-    elements
-      .filter((t) => !vocab.terms.has(vocab.normalize(t.value)))
-      .map(
-        (t): ArchViolation => ({
-          rule: ctx.rule,
-          ...(ctx.ruleId !== undefined && { ruleId: ctx.ruleId }),
-          element: `${t.doc.relPath}:${t.line}`,
-          file: t.doc.file,
-          line: t.line,
-          message: `'${t.value}' does not resolve against the vocabulary (${vocab.terms.size} terms)`,
-          ...(ctx.because !== undefined && { because: ctx.because }),
-          ...(ctx.suggestion !== undefined && { suggestion: ctx.suggestion }),
-          ...(ctx.docs !== undefined && { docs: ctx.docs }),
-        }),
-      ),
-})
+/** A vocabulary, or a pattern the whole value must match (plan 0468). */
+type Allowed = Vocabulary | RegExp
+
+/** Whether a value is allowed, and the clause a finding says when it is not. */
+function judge(allowed: Allowed): { ok: (value: string) => boolean; says: string } {
+  if (allowed instanceof RegExp) {
+    // A copy without `g`/`y`, so a caller's stateful pattern judges every value alike; anchored, so
+    // `/fixed/` does not pass `unfixed`; without `m`, so `^…$` spans the whole value, not one line.
+    const whole = new RegExp(`^(?:${allowed.source})$`, allowed.flags.replace(/[gym]/g, ''))
+    return { ok: (v) => whole.test(v), says: `does not match ${String(allowed)}` }
+  }
+  return {
+    ok: (v) => allowed.terms.has(allowed.normalize(v)),
+    says: `does not resolve against the vocabulary (${String(allowed.terms.size)} terms)`,
+  }
+}
+
+const resolveAgainst = (allowed: Allowed): Condition<MdTerm> => {
+  const { ok, says } = judge(allowed)
+  return {
+    description:
+      allowed instanceof RegExp ? `match ${String(allowed)}` : 'resolve against the vocabulary',
+    evaluate: (elements, ctx) =>
+      elements
+        .filter((t) => !ok(t.value))
+        .map(
+          (t): ArchViolation => ({
+            rule: ctx.rule,
+            ...(ctx.ruleId !== undefined && { ruleId: ctx.ruleId }),
+            element: `${t.doc.relPath}:${t.line}`,
+            file: t.doc.file,
+            line: t.line,
+            // A field names its label and line; it never lists the set, which can be hundreds long.
+            message: valueMessage(t, says),
+            ...(ctx.because !== undefined && { because: ctx.because }),
+            ...(ctx.suggestion !== undefined && { suggestion: ctx.suggestion }),
+            ...(ctx.docs !== undefined && { docs: ctx.docs }),
+          }),
+        ),
+  }
+}
+
+/**
+ * A value finding. A field names its label and line; one whose value is empty after cutting (an
+ * emoji-only `✅`, a `### Status:` with the value elsewhere, a cut that kept nothing) says so, with
+ * the text it read, so the author is not sent to a vocabulary for a value that is not there.
+ */
+function valueMessage(t: MdTerm, says: string): string {
+  if (t.form === 'pattern') return `'${t.value}' ${says}`
+  const where = `(${t.label}, line ${String(t.line)})`
+  if (t.value === '') {
+    const read = t.raw.replace(/\s+/g, ' ').trim()
+    return `${where} has no value this rule can read${read === '' ? '' : ` in '${read}'`}`
+  }
+  return `'${t.value}' ${where} ${says}`
+}
+
+/** What a `TermRuleBuilder` reads: a `terms()` pattern, or a `fields()` label in named forms. */
+type Source =
+  | { readonly kind: 'pattern'; readonly options: TermsOptions }
+  | { readonly kind: 'fields'; readonly options: FieldOptions }
+
+function fieldTerms(corpus: Corpus, options: FieldOptions): MdTerm[] {
+  return stampedByDocument(corpus, (doc) =>
+    readFields(doc, options).flatMap((f) =>
+      f.values.map((value) => ({ value, raw: f.raw, line: f.line, label: f.label, form: f.form })),
+    ),
+  )
+}
 
 /** Rule builder over labeled named references in the corpus's prose. */
 export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
   constructor(
     corpus: Corpus,
-    private readonly opts: TermsOptions,
+    private readonly source: Source,
   ) {
     super(corpus)
   }
 
   protected getElements(): MdTerm[] {
-    return collectTerms(this.project, this.opts)
+    return this.source.kind === 'pattern'
+      ? collectTerms(this.project, this.source.options)
+      : fieldTerms(this.project, this.source.options)
+  }
+
+  /**
+   * The base result, plus a finding for each label this `fields()` rule's selection holds in a form
+   * it does not read. The scan examines nothing the rule asserts over, so it does not raise
+   * `examined` (as `links()`'s declaration scan).
+   */
+  protected override collectViolations(): CollectResult {
+    const base = super.collectViolations()
+    if (this.source.kind !== 'fields') return base
+    const findings = unnamedFormFindings(
+      this.project,
+      this.source.options,
+      this._predicates,
+      this.buildConditionContext(),
+    )
+    if (findings.length === 0) return base
+    return collectResult([...base, ...findings], base)
   }
   protected locate(e: MdTerm): MdLocation {
     return atLine(e)
@@ -176,13 +263,25 @@ export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
     return this.addPredicate(resideInFile(glob))
   }
 
-  /** Assert every reference's value is a term of the vocabulary. */
-  resolveAgainst(vocab: Vocabulary): this {
-    return this.addCondition(resolveAgainst(vocab))
+  /**
+   * Assert every value is allowed: a term of the vocabulary, or a whole-value match of the pattern.
+   * A field's finding names its label and line, never the set.
+   */
+  resolveAgainst(allowed: Vocabulary | RegExp): this {
+    return this.addCondition(resolveAgainst(allowed))
   }
 }
 
 /** Entry point: build rules over labeled named references (`Label: Value` lines). */
 export function terms(corpus: Corpus, options: TermsOptions): TermRuleBuilder {
-  return new TermRuleBuilder(corpus, options)
+  return new TermRuleBuilder(corpus, { kind: 'pattern', options })
+}
+
+/**
+ * Entry point: rules over a labelled value, read in the forms the caller names (plan 0468):
+ * `fields(c, { label: 'Status', forms: ['bold', 'heading'] }).should().resolveAgainst(states)`.
+ * A label the rule's selection writes with markup it does not read is reported; plain prose is not.
+ */
+export function fields(corpus: Corpus, options: FieldOptions): TermRuleBuilder {
+  return new TermRuleBuilder(corpus, { kind: 'fields', options })
 }

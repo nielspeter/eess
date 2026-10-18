@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-18 from proposal 017's block 1; revised the same day after one
+- **State:** Done — built 2026-10-18 in PR #241 from the reviewed Draft, without a separate
+  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458 and 0456 (and 0454, PR #240).
+  "Build notes" says where the build departed from the text. Written 2026-10-18 from proposal 017's block 1; revised the same day after one
   review round (architect · product · enforcement · method).
 - **Implements:** proposal 017
 - **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
@@ -12,15 +14,15 @@
   name.
 - **Created:** 2026-10-18
 - **Builds after:**
-  - [bug 0403](../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
+  - [bug 0403](../../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), the precondition
     the second Review set for block 1: the vacuity matrix covers eess-md before eess-md gains a
     constructor;
-  - [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
+  - [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
     gate, which decision 3 makes the condition for every accepted block.
 
   Where this sits among proposal 017's plans is the maintainer's to set.
 
-- **Followed by:** [plan 0469](./0469-havefield-a-document-has-a-value.md), `haveField`, which
+- **Followed by:** [plan 0469](../0469-havefield-a-document-has-a-value.md), `haveField`, which
   resolves this reader's occurrences.
 
 ## Problem
@@ -104,7 +106,7 @@ every occurrence in one document:
   - Any `## Label: value` heading counts, not only the labels the caller declares. Adopter 3 measured
     one record where this reads too far (`## ⚠️ RETRACTED: …`, frozen). This is a known limit: when
     the real header has no value and a body line below such a heading has one, that body value is
-    read as the header's, and nothing is reported. It is [bug 0471](../bugs/0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md). When the header does have a value, reading too
+    read as the header's, and nothing is reported. It is [bug 0471](../../bugs/0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md). When the header does have a value, reading too
     far gives a conflict, which is reported.
   - The unnamed-form scan reads the same region. With the header region, a per-phase `**Status:**`
     further down is neither read nor reported.
@@ -254,7 +256,9 @@ Giving each of those a level is a judgement per bug, and not part of this build.
 `@nielspeter/eess-md` minor, flagged `**Breaking**`. `MdTerm` gains two required fields, so an
 adopter's test that builds an `MdTerm` literal stops compiling. The fix is one line: add `label` and
 `form`. No package in the family builds one (`git grep MdTerm -- packages examples`). The changeset
-names the dependants that release requires (bug 0185).
+names the dependants that release requires (bug 0185): none, since eess-crossvalidate takes eess-md
+only as an optional peer. _(At build, 2026-10-18: a second break, `TermRuleBuilder`'s constructor,
+which now takes a source; the changeset marks both.)_
 
 ## Out of scope
 
@@ -265,13 +269,114 @@ names the dependants that release requires (bug 0185).
 - **A census of allowed values that no document uses** (a carried item, report-only): left to the
   first adopter who asks.
 
+## Build notes — 2026-10-18
+
+Where the build departed from the text above, each overrulable:
+
+- **The dogfood rule reads whole documents, not the header region.** Measured on the build's base:
+  every live plan and bug writes `- **State:** …` under a `## Status` section, which ends the
+  header, so `region: 'header'` read none of them. Over whole documents each has exactly one bold
+  `State`, all in their lane's words; the rule was green on its first run. The gate prints the count
+  per lane on every run (`states 27 plans · 194 bugs` at the review round's head; the bugs count
+  includes the two `rejected/` records, which `check:corpus`'s `FROZEN` list does not freeze).
+- **The lane vocabularies moved to `scripts/lib/ledger-lanes.mjs`.** `check:ledger` and the new
+  `check:corpus` rule import one list (the plan cited `scripts/check-ledger.mjs:59-67`), so the two
+  gates read the same words; with the shared grammar below, the same label shapes. Each keeps its
+  own reader (the ledger's is bug 0444's). Moving it shortened `check-ledger.mjs`; bug 0283's pointer into it was
+  re-pointed.
+- **The unnamed-form finding is an ordinary finding,** with the rule's context (as `links()`'s
+  declaration findings are), not a configuration finding; the example asserts that.
+- **A plain label ends a multi-line value only when it is label-shaped** (the ledger's
+  `PLAIN_LABEL`: letters and spaces, then a colon), so prose holding a colon does not cut a value.
+- **`bold-line` does not read `**X:\*\* **v**`,** a bold label with a bold value; that is `bold`.
+- **`longestOf` matches a whole word:** `Drafted` is not `Draft`, so it is reported.
+- **`FieldOccurrence` is not exported:** nothing outside the model reads it yet (`no-unused-exports`);
+  plan 0469's resolver will.
+- **`fields()` is in the vacuity matrix** (over an empty corpus it gives a configuration finding),
+  and the three value helpers are listed as not constructors.
+- **Three sabotage rows beyond the plan's four:** whole-value matching (5), the scan's region (6), and
+  the dogfood rule checking nothing (7). Row 4 first stayed green: the only blank-line test had a
+  label after the blank, which ends the value anyway; a test with prose after the blank was added.
+- **Review round, 2026-10-18 (architect · enforcement · testing · method):**
+  - **One label grammar.** The build first restated the wrapped forms in `fields.ts` with its own
+    prefix (three spaces, numbered markers) beside `label.ts`'s (any indent, bullets only), against
+    decision 4; the copies disagreed on real lines. The forms, the prefix (any indent, a bullet or a
+    numbered marker), `LABEL_HEADING` and `PLAIN_LABEL` now live in `packages/md/src/model/label.ts`,
+    read by the ledger and by `fields()`. The ledger's shared grammar therefore also reads a label
+    after a numbered marker; the changeset says so.
+  - **What was skipped is read or reported:** CRLF lines are read (a trailing `\r` is dropped); a
+    value that is empty after cutting is yielded and reported as having no value, not dropped; a
+    thematic break ends a value; and the unnamed-form scan is wider than the reader: any line in the
+    selection naming the label with markup before its colon that no named form read is reported,
+    with the form to add or, for a shape no form reads (a blockquote, a task box, `__X:__`,
+    `## **X:**`), a rewrite. Plain prose is never taken for a label. The docs' "never skipped" now
+    says exactly this.
+  - `longestOf` folds `’` to `'` and treats `-`, `_` and an apostrophe as word characters, as the
+    ledger does; the dogfood rule's vocabulary folds the apostrophe too.
+  - A `RegExp` given to `resolveAgainst` loses `m` as well as `g`/`y`, so it matches the whole value.
+  - The dogfood rule is one rule and one literal id per lane (`corpus/state-in-vocabulary-plans`,
+    `-bugs`), with a `suggestion` listing the lane's words; three non-vacuity rows (a misspelt bug
+    State, a plan carrying a bug's word, a heading-form State) read the gate's JSON by id, which is
+    what `rule-id coverage` counts (the first validate failed on it).
+  - `readFields` and `scanFields` take the fence mode (`SetAside`), so plan 0469's presence check can
+    pass `'code-blocks'` and not read past an unclosed fence as "present".
+  - `TermRuleBuilder`'s constructor changed its argument: a second **Breaking** line in the changeset.
+  - The scan's candidates use the rule's own `value`, and patterns are compiled once per scan.
+- **Review verification, 2026-10-18:** each reviewer re-checked their findings against the fix
+  pass. Fixed from it: the shared `LABEL_HEADING` reads depths 2 to 6 behind up to three spaces (it
+  had been `##` only, so a `### Severity:` heading ended a `fields()` header); the loose scan needs
+  emphasis touching the label or heading hashes, so `* Status: open` and a quoted `> Status: …` are
+  not reported; the pictograph pattern is an alternation (lint); `ScannedField` and `escapeRe` stay
+  module-private. Recorded, not fixed (each fails closed or is a stated limit): a label in a table
+  cell is neither read nor reported; a continuation also ends at a label-shaped prose line
+  (`Note: …`), so a multi-line value is cut short; an indented code block is read as prose (only
+  closed fences are blanked); a line no form reads is given the rule's first form as its `form`;
+  each `fields()` rule derives a document's prose three times; a prose heading such as
+  `### State: what the reader holds` in a live record would red the whole-document dogfood rule;
+  no test pins an alias overlapping the label or a `split` that yields nothing.
+- **Departures from the Design's text, besides the above:** `heading` takes no list marker (a list
+  item is not a heading); a `bold-line` value is one line, like a `heading` value; the scan lives in
+  a new file, `packages/md/src/builders/field-findings.ts`; `honestyAtClose`'s own reader was not
+  absorbed (Problem said `readFields` "should absorb" it; Out of scope keeps it with bug 0444).
+- **The example is `examples/md/a-record-states-its-status.test.ts`,** with two judgements (an unknown
+  value, a form the rule does not read), not a folder `examples/md/fields/`.
+
 ## Progress ledger
 
 - [x] Preconditions: bug 0403 fixed (PR #237), plan 0458 built (the examples gate)
-- [ ] Phase 1: reader
-- [ ] Phase 2: `resolveAgainst` and the unnamed-form scan
-- [ ] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
-- [ ] Sabotage rows 1–4 red on their named tests; suites green; durations reported
-- [ ] Close: this plan → `completed/`; boards
+- [x] Phase 1: reader
+- [x] Phase 2: `resolveAgainst` and the unnamed-form scan
+- [x] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
+      (three non-vacuity rows, read by id from `check:corpus --format json`; the load-bearing check
+      proves 5 of 5 judgements across 3 examples)
+- [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–12 in the
+      table below, run at 71824ceb after the review round and its verification: each named check green on the untouched
+      tree and red with its row applied, files restored by `git checkout`, tree clean, 49 s for the
+      run; row 7 is one sabotage checked by two non-vacuity rows, so its time is printed on both)
+- [x] `npm run validate` green; duration reported (at bf237fec, with this box ticked provisionally
+      because `check:ledger` runs inside it: exit 0 in 14 min 21 s; 217 non-vacuity fixtures; tests
+      core 331, crossvalidate 128, gherkin 11, md 417, mermaid 173, eess-ts 3,977, examples 27,
+      test:matrix 48. An earlier run on the pre-review code failed on `rule-id coverage`, fixed in
+      the review round. Rebased onto main after PR #240 (plan 0454) merged, the combined tree was
+      validated again at 11a3d6c: exit 0 in 14 min 26 s, 220 fixtures, md 458 tests)
+- [x] Close: this plan → `completed/`; boards
 
 Deferred: none
+
+**Sabotage matrix, measured 2026-10-18 at 71824ceb (after the review round and its verification):**
+
+| row | sabotage                                      | checked by                                                                   | named test                                                                               | baseline | sabotaged | time  |
+| --- | --------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------- | --------- | ----- |
+| 1   | the heading fragment dropped                  | `packages/md/tests/builders/fields.test.ts`                                  | heading at depths 2 and 4                                                                | green    | red       | 1.5s  |
+| 2   | the unnamed-form scan disabled                | `packages/md/tests/builders/fields.test.ts`                                  | forms: [bold] over a selected heading document reports the heading, with the line quoted | green    | red       | 1.5s  |
+| 3   | the scan ignores the selection                | `packages/md/tests/builders/fields.test.ts`                                  | the same document outside the selection gives no finding                                 | green    | red       | 1.4s  |
+| 4   | a continuation runs past a blank line         | `packages/md/tests/builders/fields.test.ts`                                  | a blank line ends a value even when prose follows it                                     | green    | red       | 1.4s  |
+| 5   | whole-value matching dropped                  | `packages/md/tests/builders/fields.test.ts`                                  | a pattern must match the whole value: /fixed/ rejects unfixed                            | green    | red       | 1.4s  |
+| 6   | the scan reads past the header region         | `packages/md/tests/builders/fields.test.ts`                                  | a per-phase bold Status after the header is neither read nor reported                    | green    | red       | 1.4s  |
+| 7   | check:corpus's State rule checks nothing      | `QA_ONLY=corpus/state-in-vocabulary-bugs node scripts/check-nonvacuity.mjs`  | corpus/state-in-vocabulary-bugs                                                          | green    | red       | 22.9s |
+| 7   | check:corpus's State rule checks nothing      | `QA_ONLY=corpus/state-in-vocabulary-plans node scripts/check-nonvacuity.mjs` | corpus/state-in-vocabulary-plans                                                         | green    | red       | 22.9s |
+| 8   | the CRLF strip dropped                        | `packages/md/tests/builders/fields.test.ts`                                  | a CRLF file is read as an LF one, in every form                                          | green    | red       | 1.4s  |
+| 9   | an empty value skipped again                  | `packages/md/tests/builders/fields.test.ts`                                  | an emoji-only value is reported as having no value, not skipped                          | green    | red       | 1.4s  |
+| 10  | the wider scan dropped                        | `packages/md/tests/builders/fields.test.ts`                                  | shapes no form reads are reported, with a rewrite remedy                                 | green    | red       | 1.5s  |
+| 11  | fields() back to its own three-space indent   | `packages/md/tests/builders/fields.test.ts`                                  | a nested, a tab-indented and a numbered label are read, as the ledger reads them         | green    | red       | 1.4s  |
+| 12  | the scan reads the heading form into a remedy | `QA_ONLY=corpus/state-in-a-form-not-read node scripts/check-nonvacuity.mjs`  | corpus/state-in-a-form-not-read                                                          | green    | red       | 11.4s |

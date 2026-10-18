@@ -10,7 +10,7 @@ import type { MdDocument } from '../model/document.js'
 import type { ArchViolation } from '../model/violation.js'
 import type { Root } from 'mdast'
 import { collectTaskItems, validateMarks, type TaskItemOptions } from '../model/task-items.js'
-import { labelPattern, wrappedLabelOf } from '../model/label.js'
+import { LABEL_HEADING, PLAIN_LABEL, labelPattern, wrappedLabelOf } from '../model/label.js'
 import { proseText, unterminatedFence } from '../model/prose.js'
 import { docs } from '../builders/docs.js'
 import { taskItems, type MdTaskItem } from '../builders/task-items.js'
@@ -289,15 +289,7 @@ function findStateRe(
 /** A heading's text without its `##` marker, so `## Status: Done` reads as `Status: Done`. */
 const headingAsLabel = (line: string): string => line.replace(/^##\s+/, '')
 
-/**
- * A `## Label: value` heading: its label and value. Such a heading continues the header rather than
- * ending it, as a run of field headings (`## Status: Open` then `## Severity: High`) is one header
- * (plan 0468's header rule; bug 0476).
- */
-const LABEL_HEADING = /^##\s+([A-Za-z][A-Za-z ]{0,40}?)\s*:\s*(\S.*?)\s*$/
-
-/** A plain `Label:` opening a line, after an optional bullet: the label's text. */
-const PLAIN_LABEL = /^\s*(?:[-*+]\s+)?([A-Za-z][A-Za-z ]{0,40}?)\s*:/
+// `LABEL_HEADING` and `PLAIN_LABEL` live in `../model/label.js`, shared with `fields()` (plan 0468).
 
 /**
  * A state value from the vocabulary written in the header under a label

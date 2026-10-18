@@ -151,7 +151,7 @@ denominator.
 findings, `ledger/unterminated-fence` and `ledger/state-in-code`, are built
 outside the helper (`:377`, `:408`) and carry a `suggestion` of their own,
 which the kernel's formats render as a `Fix:` line. The five above still carry
-none. This repo's own gate never shows either line: `scripts/check-ledger.mjs:270-273`
+none. This repo's own gate never shows either line: `scripts/check-ledger.mjs:220-223`
 prints only the first line of each message — the same gap, one layer out.
 
 ## The committed position this contradicts

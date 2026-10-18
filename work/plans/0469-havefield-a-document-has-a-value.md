@@ -11,7 +11,7 @@
 - **Effort:** Medium. One dual-use method on `docs()`, a resolver for each document, and its
   findings.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md), whose
+- **Builds after:** [plan 0468](./completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md), whose
   reader it resolves, and therefore after 0468's own preconditions.
 
 ## Problem
@@ -26,6 +26,10 @@ Adopter 3 hit the second: a `State:` in prose at line 220 beat the header at lin
 answers both questions with its own code.
 
 ## Design
+
+_(Note 2026-10-18, from plan 0468's review: `readFields(doc, options, setAside)` takes the fence
+mode. A presence check should pass `'code-blocks'`: the default, `'closed-fences'`, reads past an
+unclosed fence, which errs toward "present" for this plan's question.)_
 
 ```ts
 export interface HaveFieldOptions extends FieldOptions {

@@ -102,7 +102,10 @@ export type { MdTaskItem } from './builders/task-items.js'
 export { collectTaskItems } from './model/task-items.js'
 export type { MdTaskItemRef, BoxMarkState, TaskItemOptions } from './model/task-items.js'
 export { UNDECLARED_BOX_MARK, MALFORMED_BOX } from './builders/box-mark-findings.js'
-export { vocabulary, terms, TermRuleBuilder } from './builders/vocabulary.js'
+export { vocabulary, terms, fields, TermRuleBuilder } from './builders/vocabulary.js'
+// Plan 0468: a labelled value in the forms the caller names, and the helpers that cut one.
+export { cleanValue, untilDelimiter, longestOf } from './model/fields.js'
+export type { FieldForm, FieldOptions } from './model/fields.js'
 // Plan 0412: a code block parses with the parser the caller names.
 export { parseCodeBlocks, DEFAULT_CODE_BLOCK_BUDGET } from './model/code-block-parse.js'
 export type {

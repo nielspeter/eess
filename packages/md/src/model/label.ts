@@ -9,8 +9,11 @@
  * when it compiles the pattern: the ledger reads `**state:**` as `State`,
  * `areLabelled` matches the declared spelling exactly.
  *
- * Accepted forms, each optionally after a list marker: `**Label:**`, `**Label**:`,
- * `__Label__:`, `Label:`. **The colon is required in every form.** Making it
+ * Accepted forms, each optionally after a list marker (a bullet or an ordered `1.`/`1)`), behind
+ * any indent: `**Label:**`, `**Label**:`, `__Label__:`, `Label:`. `fields()` (plan 0468) reads two
+ * more forms from the same fragments, `## Label: v` and `**Label: v**`; the ledger and `fields()`
+ * share the prefix, the label headings and the plain-label shape defined here, so they cannot read a
+ * line differently. **The colon is required in every form.** Making it
  * optional turned any line beginning with the word into a declaration: the ledger
  * read `Stateless rendering is the default` as the state `less`, and `State
  * machine transitions are documented` as `machine`.
@@ -22,15 +25,43 @@
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-/** Leading space and an optional bullet marker — the ledger's raw-line prefix. */
-const PREFIX = String.raw`^\s*(?:[-*+]\s+)?`
+/** Any indent and an optional list marker (bullet or ordered): every reader's raw-line prefix. */
+export const PREFIX = String.raw`^\s*(?:(?:[-*+]|\d+[.)])\s+)?`
 
 /** The three wrapped forms over a label body (a regex source). */
-const wrapped = (body: string): string =>
+export const wrapped = (body: string): string =>
   String.raw`\*\*${body}:\*\*|\*\*${body}\*\*\s*:|__${body}__\s*:`
 
 /** The plain form over a label body (a regex source). */
-const plain = (body: string): string => String.raw`${body}\s*:`
+export const plain = (body: string): string => String.raw`${body}\s*:`
+
+/** A heading form over a label body: `## Label: v`, any depth (a regex source, no prefix). */
+export const heading = (body: string): string => String.raw`^\s*#{1,6}\s+${body}\s*:`
+
+/**
+ * A whole line in bold over a label body: `**Label: v**` (a regex source, after the prefix). Not
+ * `**Label:** **v**`, a bold label with a bold value, which is the wrapped form.
+ */
+export const boldLine = (body: string): string =>
+  String.raw`\*\*${body}\s*:(?!\*\*)\s*((?:(?!\*\*).)*?)\*\*\s*$`
+
+/** A label's body: any run of whitespace in the label matches any other (case is the caller's flag). */
+export const labelBody = (label: string): string =>
+  label
+    .trim()
+    .split(/\s+/)
+    .map(escapeRe)
+    .join(String.raw`\s+`)
+
+/**
+ * A `## Label: value` heading, at depth 2 to 6: its label and value. Such a heading continues a record's header
+ * rather than ending it, as a run of field headings (`## Status: Open` then `## Severity: High`) is
+ * one header (bug 0476). One definition, read by the ledger and by `fields()`.
+ */
+export const LABEL_HEADING = /^ {0,3}#{2,6}\s+([A-Za-z][A-Za-z ]{0,40}?)\s*:\s*(\S.*?)\s*$/
+
+/** A plain `Label:` opening a line, after the prefix: the label's text. Label-shaped, not prose. */
+export const PLAIN_LABEL = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?([A-Za-z][A-Za-z ]{0,40}?)\s*:/
 
 /**
  * Any label's body. A plain body may be anything up to a colon: it is read only
@@ -61,6 +92,16 @@ export function wrappedLabelOf(line: string): string | undefined {
   const m = WRAPPED_LABEL.exec(line)
   if (m === null) return undefined
   return m[1] ?? m[2] ?? m[3]
+}
+
+const BOLD_LINE_ANY = new RegExp(`${PREFIX}${boldLine(ANY_WRAPPED)}`)
+
+/**
+ * Whether `line` opens with a label of any shape a reader would take for one: wrapped, a whole bold
+ * line, or a label-shaped plain `Label:`. A value continued over lines ends at such a line.
+ */
+export function opensWithLabelShape(line: string): boolean {
+  return WRAPPED_LABEL.test(line) || BOLD_LINE_ANY.test(line) || PLAIN_LABEL.test(line)
 }
 
 /** True when `line` is a label in any form and nothing else follows it. */
