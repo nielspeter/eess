@@ -112,18 +112,18 @@ message }`; the builder makes them findings with the rule's context, `bypassFilt
 
 Measured, each by a test in the prototype:
 
-| door                                                        | revision 1                                             | revision 2                                                                               |
-| ----------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| block 12, a conflicting Status                              | reported once                                          | reported once                                                                            |
-| a document whose only box is unread                         | both findings lost                                     | both reported                                                                            |
-| `not()` over a document with three boxes                    | three "should not exist" plus the cause                | the cause once; `examined` 1                                                             |
-| `or()` decided by the other branch                          | not exercised (both branches read the same field)      | not exercised; the build tests a branch that reads something else                        |
-| `and()` with a folder that excludes the document            | not reported                                           | not reported                                                                             |
-| every subject undecided                                     | the cause                                              | the cause, plus the generic zero-examined finding (the build drops it, ADR-021 clause 7) |
-| `.select()`                                                 | carried to `correspondence()` only; `.elements` silent | throws, naming the cause                                                                 |
-| `satisfy({ test: d => done.test(d) })`                      | silent                                                 | throws, naming the cause                                                                 |
-| `.excluding('<the cause>')`                                 | hides it                                               | cannot hide it                                                                           |
-| an eess-ts rule with `not(<a predicate that cannot judge>)` | silent                                                 | throws                                                                                   |
+| door                                                        | revision 1                                             | revision 2                                                                                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| block 12, a conflicting Status                              | reported once                                          | reported once                                                                                                                                |
+| a document whose only box is unread                         | both findings lost                                     | both reported                                                                                                                                |
+| `not()` over a document with three boxes                    | three "should not exist" plus the cause                | the cause once; `examined` 1                                                                                                                 |
+| `or()` decided by the other branch                          | not exercised (both branches read the same field)      | not exercised; the build tests a branch that reads something else                                                                            |
+| `and()` with a folder that excludes the document            | not reported                                           | not reported                                                                                                                                 |
+| every subject undecided                                     | the cause                                              | the cause, plus the generic zero-examined finding (the build drops it, ADR-021 clause 7)                                                     |
+| `.select()`                                                 | carried to `correspondence()` only; `.elements` silent | throws, naming the cause                                                                                                                     |
+| `satisfy({ test: d => done.test(d) })`                      | silent                                                 | throws, naming the cause, because `done` is `haveField`, whose `test` refuses; a third party's `test` that answers is the door the ADR names |
+| `.excluding('<the cause>')`                                 | hides it                                               | cannot hide it                                                                                                                               |
+| an eess-ts rule with `not(<a predicate that cannot judge>)` | silent                                                 | throws                                                                                                                                       |
 
 - **Cost.** On a synthetic corpus of 2,000 records with 5 boxes each, the lifted rule takes 450 ms
   against 42 ms for the same rule with a plain text predicate, because each box recomputes its

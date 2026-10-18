@@ -148,7 +148,10 @@ Kernel (`packages/core/tests/undecided.test.ts`):
   the same for an absence rule.
 - `.excluding()` naming the cause leaves it; `.warn()` fails; the suggestion names the remedy and
   `UNSUPPRESSABLE`.
-- `matchingElements` and `.select()` refuse, `.select()` naming `select()`.
+- `matchingElements` and `.select()` refuse, `.select()` naming `select()`; eess-ts's refusal names
+  its own door and a remedy true there.
+- The suggestion names the cause's fix and `UNSUPPRESSABLE`, never the rule's own suggestion; two
+  rules with ids each report the cause.
 - A type-level test pins the member's parameter list.
 
 eess-ts (`packages/ts/tests/core/a-predicate-that-cannot-judge-is-refused.test.ts`): `not()` carries
@@ -175,12 +178,15 @@ Sabotage rows, each red on the test it guards:
 5. `membership` loses its short-circuit.
 6. Membership by `test` alone in `partition`.
 7. `matchingElements` filters by `test`.
+   7b. `selectMatching` filters by `test`.
 8. `haveField`'s `test` stops refusing.
 9. The empty-selection return drops the causes.
 10. `bypassFilters` removed.
 11. `inScope` back to two values.
 12. `unnamedFormFindings` back to `matchingElements`.
 13. The memo keyed wrongly (returns another document's causes).
+14. `kleene`'s one-element cache ignores the element (answers for the last one).
+15. The finding inherits the rule's own suggestion.
 
 ## Out of scope
 
@@ -192,6 +198,10 @@ Sabotage rows, each red on the test it guards:
 - **A kernel constructor that builds `test` and `undecided` from one three-valued function**, so a
   third party cannot write a `test` that does not refuse. It would close ADR-021's last door. Dropped
   on purpose until a third-party producer exists.
+- **Two rules with the same description and no id** would share `dedupeConfigFindings`' key
+  (`file`, `ruleId ?? rule`, `element`) and collapse under its "N rules" note. Rules with ids keep
+  their findings apart, and a test pins that; the id-less case is dropped on purpose, since two
+  rules with one description are already indistinguishable in every report.
 - **Recorded from the review:** the "unused exclusion" warning for a refused exclusion
   ([bug 0487](../bugs/0487-an-exclusion-refused-by-an-unsuppressable-finding-is-called-stale.md)),
   and `kind: 'configuration'` on a finding whose fix is in a record
