@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { diagram } from '../../src/core/diagram.js'
 import { classes, ClassRuleBuilder } from '../../src/builders/class-rule-builder.js'
 import { ArchRuleError } from '@nielspeter/eess'
+import { notExist } from '../../src/conditions/class.js'
 
 const KITCHEN_SINK = [
   'classDiagram',
@@ -56,6 +57,10 @@ describe('ClassRuleBuilder', () => {
       expect(() => {
         classes(d).that().haveNameEndingWith('Repository').should().notExist().check()
       }).toThrow(ArchRuleError)
+    })
+
+    it('a returned notExist() is frozen, so it cannot be emptied (bug 0462)', () => {
+      expect(Object.isFrozen(notExist())).toBe(true)
     })
 
     it('notExist() passes when the predicate legitimately matches nothing', () => {

@@ -179,6 +179,15 @@ function fileTarget(path: string, link: LinkToResolve, corpus: Corpus): LinkTarg
   if (path === link.doc.relPath) return { kind: 'self' }
   const doc = indexes(corpus).documents.get(path)
   if (doc !== undefined) return { kind: 'document', path, doc }
+  return { kind: 'not-in-corpus', path, reasons: notInCorpusReasons(corpus, path) }
+}
+
+/**
+ * Why a file in the repository is not one of the corpus's documents. One owner,
+ * read by link resolution and by the selector-fault check (plan 0456), so
+ * `outside-roots` and `ignored` mean one thing in both.
+ */
+export function notInCorpusReasons(corpus: Corpus, path: string): NotInCorpusReason[] {
   const matchers = matchersOf.get(corpus)
   const reasons: NotInCorpusReason[] = []
   if (!path.endsWith('.md')) reasons.push('not-markdown')
@@ -188,7 +197,7 @@ function fileTarget(path: string, link: LinkToResolve, corpus: Corpus): LinkTarg
   // not ignore, so one of the three always applies. Should a hand-built
   // `Corpus` disagree, `outside-roots` is the reason that names a remedy.
   if (reasons.length === 0) reasons.push('outside-roots')
-  return { kind: 'not-in-corpus', path, reasons }
+  return reasons
 }
 
 /**

@@ -89,6 +89,10 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
    * real document appears, `examined > 0` while this is still declared `true`
    * is itself reported ("the declaration has expired"), so remove it once
    * the lane has real content.
+   *
+   * It does not cover a corpus that loaded no document at all: that is an
+   * empty source, which outranks every declaration (ADR-010 §3, plan 0456). A
+   * lane needs at least its board file on disk.
    */
   readonly expectEmptyHeaders?: boolean
   /**
@@ -886,6 +890,9 @@ export function honestyAtClose(
     .satisfy(headerStateCondition(doneFolders, closeInPlace, states, terminalStates, label, names))
   if (expectEmptyHeaders) headerRule = headerRule.expectEmpty()
   const headerViolations = headerRule.violations()
+  // A corpus that loaded no document is one cause: the header rule reports it
+  // as an empty source (plan 0456), and the two box rules would only repeat it.
+  if (corpus.documents().length === 0) return finishPreset(headerViolations, options)
 
   // Open task items, collected once and reused for both peeks below. "Any
   // done item exists" is too coarse a signal on its own — most done items

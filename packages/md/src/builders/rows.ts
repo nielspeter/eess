@@ -1,4 +1,5 @@
-import { RuleBuilder } from '@nielspeter/eess'
+import { atLine, type MdLocation } from '../conditions/not-exist.js'
+import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
 import { matchTableRows, type MdRow, type RowMatchOptions } from '../model/rows.js'
 
@@ -15,7 +16,7 @@ import { matchTableRows, type MdRow, type RowMatchOptions } from '../model/rows.
  * The standard `.that().satisfy(…)` / `.should().satisfy(…)` surface is
  * inherited, so rows are also directly rule-able.
  */
-export class RowsRuleBuilder extends RuleBuilder<MdRow, Corpus> {
+export class RowsRuleBuilder extends CorpusRuleBuilder<MdRow> {
   constructor(
     corpus: Corpus,
     private readonly opts: RowMatchOptions,
@@ -25,6 +26,9 @@ export class RowsRuleBuilder extends RuleBuilder<MdRow, Corpus> {
 
   protected getElements(): MdRow[] {
     return this.project.documents().flatMap((doc) => matchTableRows(doc, this.opts))
+  }
+  protected locate(e: MdRow): MdLocation {
+    return atLine(e)
   }
 
   // `RowMatchOptions` is carried as an own property, so the base `fork()`

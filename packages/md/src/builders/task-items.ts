@@ -1,8 +1,10 @@
-import { RuleBuilder, type Predicate } from '@nielspeter/eess'
+import type { Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import { collectTaskItems, type MdTaskItemRef } from '../model/task-items.js'
 import { stampedByDocument } from '../model/by-document.js'
+import { atLine, type MdLocation } from '../conditions/not-exist.js'
+import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 
 /** A task-item element: a task-list item plus its containing document. */
 export interface MdTaskItem extends MdTaskItemRef {
@@ -21,9 +23,13 @@ const areChecked = (): Predicate<MdTaskItem> => ({
 /**
  * Rule builder over the corpus's GFM task-list items (`- [ ]` / `- [x]`).
  */
-export class TaskItemRuleBuilder extends RuleBuilder<MdTaskItem, Corpus> {
+export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
   protected getElements(): MdTaskItem[] {
     return stampedByDocument(this.project, (doc) => collectTaskItems(doc.root))
+  }
+
+  protected locate(t: MdTaskItem): MdLocation {
+    return atLine(t)
   }
 
   /** Filter to open boxes (`- [ ]`). */

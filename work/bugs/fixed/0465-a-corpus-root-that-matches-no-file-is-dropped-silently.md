@@ -38,7 +38,7 @@ What it deliberately does not refuse:
 
 - **A corpus whose every root is dead.** The first version refused it, and the non-vacuity gate
   measured four fixtures breaking that build such corpora on purpose. Today most builders report it
-  only as zero examined units. [Plan 0456](../../plans/0456-kernel-notexist-and-dead-glob.md) makes it
+  only as zero examined units. [Plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md) makes it
   a named empty-source finding, and owns that case.
 - **A root that matches files but no Markdown**, beside a live one. Such a root contributes nothing.
   Refusing it broke existing callers, which list code globs (`src/**/*.ts`) as roots beside their

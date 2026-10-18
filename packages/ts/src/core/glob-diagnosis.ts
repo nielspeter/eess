@@ -1,5 +1,6 @@
 import picomatch from 'picomatch'
 import type { GlobSite } from '@nielspeter/eess'
+import { globTextFault } from '@nielspeter/eess/internal'
 import type { PathUniverse } from './path-universe.js'
 import type { DiskSet, OnDisk } from './disk-set.js'
 import { contradictsAbsence } from './disk-set.js'
@@ -42,7 +43,6 @@ export const GLOB_DOCS = 'https://github.com/nielspeter/eess/blob/main/docs/slic
  * where it belonged anyway.
  */
 export { isAnchored } from './project-relative.js'
-import { isAnchored } from './project-relative.js'
 
 /**
  * The faults decidable from the glob string alone, with no project to compare
@@ -58,22 +58,11 @@ export function syntacticFault(
   kind: GlobSite['kind'],
   base: GlobSite['base'] = 'absolute',
 ): 'dot-segment' | 'unanchored' | undefined {
-  // A './' anywhere — not just leading — makes the glob unmatchable, and
-  // adding '**/' in front of it does not help ('**/./src/**' still matches
-  // nothing). True for every base.
-  if (/(?:^|\/)\.\//.test(glob)) return 'dot-segment'
-
-  // Exempt for the kinds that are not paths: after the bug 0014 fix,
-  // `notImportFrom('fastify')` is a working rule and `isAnchored('fastify')`
-  // is false.
-  const isPathKind = kind === 'file-path' || kind === 'parent-dir'
-
-  // And exempt for the bases where a relative glob is the CORRECT spelling.
-  // `slices().matching()` strips and re-adds the anchor, and `resolvers()`
-  // resolves against the tsconfig directory; telling either of them to anchor
-  // would be telling the user to break a working rule.
-  if (isPathKind && base === 'absolute' && !isAnchored(glob)) return 'unanchored'
-  return undefined
+  // The rules live in the kernel (plan 0456), shared with eess-md. For eess-ts's
+  // three bases the kernel answers only these two, and the guard narrows to
+  // them without a cast (ADR-005).
+  const fault = globTextFault(glob, kind, base)
+  return fault === 'dot-segment' || fault === 'unanchored' ? fault : undefined
 }
 
 /**

@@ -36,7 +36,7 @@ export interface RuleFacts {
  *   exempt these explicitly (see `diff-aware.ts`).
  * - `suggestion` is the message — its own remedy, never the author's (bug 0021).
  */
-function configFinding(facts: RuleFacts, message: string): ArchViolation {
+function configFinding(facts: RuleFacts, message: string, suggestion = message): ArchViolation {
   const described = facts.describeRule()
   const name = described.id ?? described.rule ?? facts.ruleClass.name
   return {
@@ -46,7 +46,7 @@ function configFinding(facts: RuleFacts, message: string): ArchViolation {
     file: '',
     line: 0,
     message,
-    suggestion: message,
+    suggestion,
     because: facts.reason,
     bypassFilters: true,
   }
@@ -116,4 +116,35 @@ export function expiredExpectEmptyViolation(facts: RuleFacts, examined: number):
     `declaration has expired. If the corpus legitimately grew past empty, remove ` +
     `.expectEmpty() from this rule; the underlying violations (if any) above still stand.`
   return configFinding(facts, message)
+}
+
+/**
+ * Why a cardinality rule's selector cannot be trusted to have selected nothing
+ * (bug 0460): a dialect's answer to `TerminalBuilder.cardinalitySelectorFault()`.
+ */
+export interface SelectorFault {
+  /** The selector site, as written: `resideInFolder("/guides/**")`. */
+  readonly origin: string
+  /** One sentence, from the dialect: why the site can never select what it names. */
+  readonly cause: string
+  /** The dialect's remedy for this cause: the finding's `Fix:` line. */
+  readonly remedy: string
+}
+
+/**
+ * The configuration finding for a cardinality rule (an absence rule) that
+ * examined zero units because its selector is broken (bug 0460). It outranks
+ * `.expectEmpty()` and the cardinality exemption: "zero" here is the fault, not
+ * the assertion holding. Its remedy never suggests `.expectEmpty()`, which no
+ * longer silences it and on an absence rule would never lapse.
+ */
+export function cardinalitySelectorFaultViolation(
+  facts: RuleFacts,
+  fault: SelectorFault,
+): ArchViolation {
+  const message =
+    `This absence rule examined nothing because its selector ${fault.origin} is broken: ` +
+    `${fault.cause}. It has not been enforcing anything. Correct the selector; do not ` +
+    `delete the rule.`
+  return configFinding(facts, message, fault.remedy)
 }

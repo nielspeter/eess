@@ -38,7 +38,22 @@ export {
   isArchConfigError,
   // Bug 0284: `honestyAtClose` throws it for a half-declared vocabulary.
   ArchConfigError,
+  // Plan 0456: the location predicates now declare their globs.
+  globNode,
 } from '@nielspeter/eess'
+// Plan 0456: `and`/`or` beside `not`, so a selection can be composed from this
+// package alone (block 6's recipe: every page claimed by one selection, none by
+// two). `check:family` cannot ask for them: this package's source does not use
+// them.
+export { and, or } from '@nielspeter/eess'
+// The glob types the location predicates declare and `RuleBuilder.globs()` returns, as eess-ts's
+// root has them.
+export type { GlobNode, GlobSite } from '@nielspeter/eess'
+// The document predicates, for `satisfy()` and the combinators. The same names
+// exist on eess-ts's root with a different anchor: eess-md matches a path
+// relative to the corpus's `cwd` (`'guides/**'`), eess-ts an absolute one
+// (`'**/guides/**'`).
+export { resideInFolder, resideInFile, haveNameMatching } from './predicates/document.js'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —
 // review found it manually), but this README's own "Binding a spec table to

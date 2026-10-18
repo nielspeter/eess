@@ -1,19 +1,40 @@
 import { basename } from 'node:path'
-import type { Predicate } from '@nielspeter/eess'
+import { globNode, type Predicate } from '@nielspeter/eess'
 import picomatch from 'picomatch'
 import type { MdDocument } from '../model/document.js'
 import { hasSection } from '../model/query.js'
 
+/**
+ * The glob a location predicate declares (plan 0456), so an absence rule's
+ * selector can be diagnosed. `'normalized'` is the nearest root base: md
+ * matches a path relativised from the corpus's `cwd`. md's own check never
+ * reads the base; it judges the glob as `'repo-relative'`.
+ */
+function located(
+  call: 'resideInFolder' | 'resideInFile',
+  description: string,
+  glob: string,
+): Predicate<MdDocument> {
+  const match = picomatch(glob)
+  return {
+    description,
+    test: (d) => match(d.relPath),
+    globs: globNode({ glob, kind: 'file-path', base: 'normalized' }),
+    originLabel: `${call}("${glob}")`,
+  }
+}
+
+/** Documents whose repository-relative path matches the folder glob, e.g. `'guides/**'`. */
 export function resideInFolder(glob: string): Predicate<MdDocument> {
-  const match = picomatch(glob)
-  return { description: `reside in folder ${glob}`, test: (d) => match(d.relPath) }
+  return located('resideInFolder', `reside in folder ${glob}`, glob)
 }
 
+/** Documents whose repository-relative path matches the file glob, e.g. `'guides/*.md'`. */
 export function resideInFile(glob: string): Predicate<MdDocument> {
-  const match = picomatch(glob)
-  return { description: `reside in file ${glob}`, test: (d) => match(d.relPath) }
+  return located('resideInFile', `reside in file ${glob}`, glob)
 }
 
+/** Documents whose file name (not its folder) matches the pattern. */
 export function haveNameMatching(re: RegExp): Predicate<MdDocument> {
   return {
     description: `have name matching ${String(re)}`,

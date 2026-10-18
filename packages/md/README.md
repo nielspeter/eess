@@ -158,6 +158,66 @@ eess-md defines no document shape. A rule about what your plans, bugs or pages m
 the blocks above in your own words; [the Markdown dialect's docs](../../docs/markdown.md#a-documents-shape-built-from-blocks)
 show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/examples/md) with passing and failing fixtures are in eess's repository.
 
+## Every page claimed once: `notExist()`
+
+Every builder over a corpus (`docs`, `links`, `pointers`, `rows`, `terms`, `taskItems`, and
+`codeBlocks`) has `.should().notExist()`: each selected element is a finding at its own line. Two
+absence rules state that a folder's pages each belong to exactly one of your selections:
+
+```ts
+import { and, corpus, docs, haveNameMatching, not, or, resideInFolder } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['guides/**'] }) // its only root: a typo is an empty source
+const howTo = resideInFolder('guides/how-to/**')
+const reference = resideInFolder('guides/reference/**')
+const tutorial = haveNameMatching(/^tutorial-/)
+
+// Every page is claimed by a selection.
+docs(c)
+  .that()
+  .satisfy(not(or(howTo, reference, tutorial)))
+  .should()
+  .notExist()
+  .check()
+
+// No page is claimed by two.
+docs(c)
+  .that()
+  .satisfy(or(and(howTo, reference), and(howTo, tutorial), and(reference, tutorial)))
+  .should()
+  .notExist()
+  .check()
+```
+
+The second rule grows with the square of the selections (three pairs for three). It also guards
+the first: a selection widened to match everything claims every page twice.
+
+A `notExist()` rule cannot tell a folder that names nothing from a ratchet that holds. Load the
+folder as the corpus's only root, as here, so a typo is an empty source: a corpus that loaded no
+document is reported, and `.expectEmpty()` cannot declare it away. Two shapes this does not
+protect:
+
+- **A folder named in `.that()` over a wider corpus.** `resideInFolder('gudies/**')` over
+  `roots: ['**/*.md']` is green when no `gudies/` exists anywhere.
+- **A glob that names nothing in the repository** is green on an absence rule, wherever it is
+  written: it is also what a holding ratchet looks like.
+
+What is reported on an absence rule that examined nothing, for each glob a selector declares: a
+glob that can never match a path relative to the corpus's `cwd` (a leading `/`, a `../`, or a `./`
+after the first segment; a leading `./` works); a glob that names Markdown files the corpus did not
+load (outside its `roots`, or excluded by its `ignore`); and a `\` written as a path separator.
+`docs()` and `terms()` declare the globs of their own `resideInFolder`/`resideInFile`. On
+`codeBlocks()` only the glob's text is judged. `links()`, `pointers()`, `rows()` and `taskItems()`
+have no location method: a predicate you pass to `satisfy()` is judged only when it declares its
+glob (`globs: globNode({ glob, kind: 'file-path' })`); one that does not is never reported. A glob is matched with
+picomatch, which reads `\` as an escape: `guides\**` that selects nothing while `guides/**`
+selects files is reported as a separator. To name a literal `*` or `?` in a file name, write `[*]`
+or `[?]`.
+
+`resideInFolder`, `resideInFile` and `haveNameMatching` are on this package's root for
+`satisfy()` and the combinators. eess-ts has the same names for its own elements, matched against
+absolute paths (`'**/guides/**'`); here a glob is relative to the corpus's `cwd` (`'guides/**'`).
+
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match

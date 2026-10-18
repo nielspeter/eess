@@ -1,5 +1,7 @@
 import picomatch from 'picomatch'
-import { RuleBuilder, type Condition, type Predicate, type ArchViolation } from '@nielspeter/eess'
+import { globNode, type Condition, type Predicate, type ArchViolation } from '@nielspeter/eess'
+import { atLine, type MdLocation } from '../conditions/not-exist.js'
+import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import { proseText } from '../model/prose.js'
@@ -127,6 +129,9 @@ const resideInFile = (glob: string): Predicate<MdTerm> => {
   return {
     description: `reside in file '${glob}'`,
     test: (t) => matches(t.doc.relPath),
+    // Declared, so an absence rule over a broken glob is diagnosed (plan 0456).
+    globs: globNode({ glob, kind: 'file-path', base: 'normalized' }),
+    originLabel: `resideInFile("${glob}")`,
   }
 }
 
@@ -151,7 +156,7 @@ const resolveAgainst = (vocab: Vocabulary): Condition<MdTerm> => ({
 })
 
 /** Rule builder over labeled named references in the corpus's prose. */
-export class TermRuleBuilder extends RuleBuilder<MdTerm, Corpus> {
+export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
   constructor(
     corpus: Corpus,
     private readonly opts: TermsOptions,
@@ -161,6 +166,9 @@ export class TermRuleBuilder extends RuleBuilder<MdTerm, Corpus> {
 
   protected getElements(): MdTerm[] {
     return collectTerms(this.project, this.opts)
+  }
+  protected locate(e: MdTerm): MdLocation {
+    return atLine(e)
   }
 
   /** Filter to references in documents whose path matches the glob. */

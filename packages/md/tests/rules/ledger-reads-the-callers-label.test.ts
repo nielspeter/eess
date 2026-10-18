@@ -82,11 +82,20 @@ describe('honestyAtClose reads the caller’s label (bug 0444)', () => {
     expect(pairs('ledger-status-mixed', {}, ['plans/**', 'mails/**'])).toEqual([])
   })
 
-  it('an empty lane is one zero-examined finding, not two', () => {
+  it('an empty lane is one empty-source finding, not two', () => {
+    // Plan 0456: a corpus that loaded no document is an empty source.
     const empty = corpus({ cwd: path.join(fixtures, 'ledger-status'), roots: ['nope/**'] })
     const found = honestyAtClose(empty, { report: 'return' })
     expect(found).toHaveLength(1)
-    expect(found[0]?.message).toContain('examined zero units')
+    expect(found[0]?.message).toContain("this rule's source loaded zero units")
+  })
+
+  it('expectEmptyHeaders does not cover a corpus that loaded nothing', () => {
+    const empty = corpus({ cwd: path.join(fixtures, 'ledger-status'), roots: ['nope/**'] })
+    const found = honestyAtClose(empty, { expectEmptyHeaders: true, report: 'return' })
+    expect(found.map((v) => v.message)).toEqual([
+      expect.stringContaining("this rule's source loaded zero units"),
+    ])
   })
 
   it('an empty or blank label is refused, not read as nothing', () => {
