@@ -10,7 +10,7 @@ predates. This is the "missing twin" `ts-archunit` ADR-010 names and eess never
 wrote: eess ADR-008 is a different decision ("caller owns reporting"), so the
 ported doctrine lands here, at ADR-009, not at a collided number.
 
-**Extended by:** [ADR-016](./016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
+**Extended by:** [ADR-016](./016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) · [ADR-021](./021-a-predicate-that-cannot-judge-a-subject-says-so.md)
 
 ## Context
 
