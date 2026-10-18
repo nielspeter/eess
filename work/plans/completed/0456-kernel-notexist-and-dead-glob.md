@@ -1063,6 +1063,9 @@ Where the build departed from the text above, each overrulable:
   reported it, and the kernel's merge added a fourth finding; bug 0444's test pins "one finding, not
   two". The preset now returns the header rule's one empty-source finding. The merge's repeat is
   [bug 0479](../../bugs/0479-a-merge-repeats-an-empty-source-its-member-already-reported.md).
+- **The ADR rows cite the kernel test by path, not by `it('…')` title.** `check:crossval` resolves
+  titles in eess-ts's tests only ([bug 0262](../../bugs/0262-an-adr-cannot-cite-a-kernel-test.md)),
+  so a `packages/core` title cannot resolve; the rows name the test in prose and say why.
 - **The location predicates carry `originLabel`** (`resideInFolder("…")`), so a selector fault names
   the call the author wrote.
 
