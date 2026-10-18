@@ -353,8 +353,11 @@ Where the build departed from the text above, each overrulable:
       table below, run at 71824ceb after the review round and its verification: each named check green on the untouched
       tree and red with its row applied, files restored by `git checkout`, tree clean, 49 s for the
       run; row 7 is one sabotage checked by two non-vacuity rows, so its time is printed on both)
-- [x] `npm run validate` green; duration reported (ticked provisionally for its own gate run, since
-      `check:ledger` runs inside it; the result and duration are filled in from that run)
+- [x] `npm run validate` green; duration reported (at bf237fec, with this box ticked provisionally
+      because `check:ledger` runs inside it: exit 0 in 14 min 21 s; 217 non-vacuity fixtures; tests
+      core 331, crossvalidate 128, gherkin 11, md 417, mermaid 173, eess-ts 3,977, examples 27,
+      test:matrix 48. An earlier run on the pre-review code failed on `rule-id coverage`, fixed in
+      the review round)
 - [x] Close: this plan → `completed/`; boards
 
 Deferred: none
