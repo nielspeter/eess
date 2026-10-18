@@ -1,4 +1,4 @@
-import type { ConditionContext, Predicate } from '@nielspeter/eess'
+import { ArchConfigError, type ConditionContext, type Predicate } from '@nielspeter/eess'
 import { matchingElements } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import { cleanValue, type FieldOptions } from '../model/fields.js'
@@ -41,7 +41,12 @@ export function unnamedFormFindings(
   return matchingElements(candidates, [...predicates]).flatMap((t) => {
     const u = unread.get(t)
     // Unreachable: `matchingElements` returns the candidates themselves. A finding must not vanish.
-    if (u === undefined) throw new Error('fields(): an unread-label candidate lost its record')
+    if (u === undefined) {
+      throw new ArchConfigError(
+        'fields',
+        'an unread-label candidate lost its record; report this as an eess-md bug',
+      )
+    }
     return [
       mdViolation({
         element: `${t.doc.relPath}:${String(t.line)}`,
