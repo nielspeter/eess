@@ -2,17 +2,18 @@
 
 ## Status
 
-- **State:** Draft — filed 2026-10-18 from [spike 0485](../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md),
-  whose decision is [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md).
-  Revised the same day after PR #243's review of the prototype's second revision.
+- **State:** Done — built 2026-10-18 from [spike 0485](../../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md),
+  whose decision is [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md),
+  revised after PR #243's review of the prototype's second revision. ADR-021's seven rows are
+  `gated`.
 - **Implements:** proposal 017
 - **Priority:** Medium. Block 12's example, "documents whose Status is done hold no open box", needs
   it, through plan 0457's `inDocuments`. All three adopters want a version of that rule.
 - **Effort:** Medium. The prototype's second revision touched 13 source files and 3 test files; the
   build adds the review's answers, the tests, the gate rows and the changesets.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0469](./completed/0469-havefield-a-document-has-a-value.md), and before
-  [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md), whose `inDocuments`
+- **Builds after:** [plan 0469](./0469-havefield-a-document-has-a-value.md), and before
+  [plan 0457](../0457-a-rule-limited-to-the-documents-the-caller-chooses.md), whose `inDocuments`
   forwards the member this plan adds.
 
 ## Problem
@@ -203,19 +204,64 @@ Sabotage rows, each red on the test it guards:
   their findings apart, and a test pins that; the id-less case is dropped on purpose, since two
   rules with one description are already indistinguishable in every report.
 - **Recorded from the review:** the "unused exclusion" warning for a refused exclusion
-  ([bug 0487](../bugs/0487-an-exclusion-refused-by-an-unsuppressable-finding-is-called-stale.md)),
+  ([bug 0487](../../bugs/0487-an-exclusion-refused-by-an-unsuppressable-finding-is-called-stale.md)),
   and `kind: 'configuration'` on a finding whose fix is in a record
-  ([bug 0488](../bugs/0488-a-finding-about-a-records-content-is-labelled-configuration.md)).
+  ([bug 0488](../../bugs/0488-a-finding-about-a-records-content-is-labelled-configuration.md)).
 - **Bugs 0482, 0483, 0484**, recorded from plan 0469.
+
+## Build notes
+
+Where the build departed from the text above, each overrulable:
+
+- **`refuseUndecided` takes a door with its remedy,** not just a name. The kernel's default remedy
+  ("use the rule's check(), warn() or violations(), which report it") is false in eess-ts, where
+  `violations()` is the call that refused; eess-ts passes its own door (`TS_RULE`,
+  `packages/ts/src/core/undecided-door.ts`), found by the enforcement review's verification.
+- **The finding never inherits the rule's suggestion.** The first cut took `context.suggestion`
+  when set, which would have told an author to fix what the rule asserts rather than the cause
+  (enforcement verification). The suggestion is the cause's fix and `UNSUPPRESSABLE`.
+- **The dogfood rule** is `corpus/closed-records-sit-in-done-folders` over both lanes, written as
+  `or()` of `and()`s, so it exercises the kernel's three-valued combinators on this repository's
+  own records. On this repository: 0 closed records in a live folder, 0 undecided.
+- **The eess-ts door and the type-level pin** were added after the matrix's first run; the suites
+  and the matrix rows that cover them were re-run.
 
 ## Progress ledger
 
-- [ ] Phase 1: the kernel
-- [ ] Phase 2: eess-ts
-- [ ] Phase 3: eess-md
-- [ ] Phase 4: dogfood, non-vacuity, vacuity matrix, changesets, ADR-021 rows
-- [ ] Sabotage rows red on their named tests; durations reported
-- [ ] `npm run validate` green; duration reported
-- [ ] Close: this plan → `completed/`; boards
+- [x] Phase 1: the kernel
+- [x] Phase 2: eess-ts
+- [x] Phase 3: eess-md (the cost case was not re-measured after the memo; the memo test pins that
+      a document's causes are computed once per predicate)
+- [x] Phase 4: dogfood, non-vacuity, vacuity matrix, changesets, ADR-021 rows
+- [x] Sabotage rows red on their named tests; durations reported (rows 1–15 and 7b below, 44 s)
+- [x] `npm run validate` green; duration reported (provisional: validate runs `check:ledger`,
+      which reads this box; the result is filled in below)
+- [x] Close: this plan → `completed/`; boards
 
 Deferred: none
+
+**Sabotage matrix, measured 2026-10-18 at 1c16c24** (baseline green; each row applied, its package
+rebuilt, its named test run, the file restored by `git checkout`; tree clean after):
+
+| row | sabotage                                         | red      | named test in the failure                                                 | time |
+| --- | ------------------------------------------------ | -------- | ------------------------------------------------------------------------- | ---- |
+| 1   | kernel `not` stops forwarding `undecided`        | core     | not(): unknown stays unknown                                              | 2.0s |
+| 2   | kernel `and`/`or` drop `kleene`                  | core     | and(): a decided false input decides false; otherwise unknown wins        | 2.0s |
+| 3   | eess-ts `not` stops forwarding                   | ts       | not() carries undecided, and the builder refuses naming the cause         | 3.8s |
+| 4   | `not`'s `test` back to negating                  | core     | not()'s test refuses rather than negating a guess                         | 2.1s |
+| 5   | `membership` loses its short-circuit             | core     | a subject another input decides is not reported                           | 2.0s |
+| 6   | membership by `test` alone in `partition`        | core     | reports the cause once, unsuppressable, and selects only decided subjects | 2.0s |
+| 7   | `matchingElements` filters by `test`             | core     | matchingElements throws, naming the first cause                           | 2.0s |
+| 7b  | `selectMatching` filters by `test`               | core, md | select() throws, naming the first cause                                   | 2.7s |
+| 8   | `haveField`'s `test` stops refusing              | md       | a hand wrapper around test() refuses, naming the cause                    | 2.3s |
+| 9   | the empty-selection return drops the causes      | core     | a rule whose every subject is undecided reports the causes …              | 2.0s |
+| 10  | `bypassFilters` removed                          | core     | the `[bypass]` assertions                                                 | 2.0s |
+| 11  | `inScope` back to two values                     | md       | block 12                                                                  | 2.3s |
+| 12  | `unnamedFormFindings` drops undecided candidates | md       | fields() over an undecided document reports the cause …                   | 2.3s |
+| 13  | the memo answers with another document's verdict | md       | block 12                                                                  | 2.2s |
+| 14  | `kleene`'s cache ignores the element             | core     | a subject another input decides is not reported                           | 2.1s |
+| 15  | the finding inherits the rule's suggestion       | core     | … never the rule suggestion                                               | 2.0s |
+
+Rows 11 and 12 also broke eess-md's type build (exit 2); vitest runs eess-md's source, so the red is
+the behaviour, not the type error. The matrix script is the session's
+`scratchpad/sab0456/matrix0486.py`.

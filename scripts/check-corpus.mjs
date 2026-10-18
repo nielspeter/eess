@@ -1190,7 +1190,9 @@ line(
 line(
   'closed',
   `${String(closedLive.examined)} closed record(s) in a live folder · ${String(closedLive.undecided ?? 0)} undecided · ${
-    closedLive.length === 0 ? '✓ every closed record sits in a done folder' : `✗ ${closedLive.length} finding(s)`
+    closedLive.length === 0
+      ? '✓ every closed record sits in a done folder'
+      : `✗ ${closedLive.length} finding(s)`
   }`,
 )
 line(

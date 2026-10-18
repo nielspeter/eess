@@ -8,7 +8,7 @@ product). Revision 2 was the uncommitted working tree on top of it, first review
 review (architect, enforcement, method). Nothing here is built. The box-level measurements used a
 prototype-only `inDocuments` written for the spike, since plan 0457 is not built. The ruling is recorded in
 [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md), and the build is
-[plan 0486](../plans/0486-a-predicate-that-cannot-judge-says-so.md).
+[plan 0486](../plans/completed/0486-a-predicate-that-cannot-judge-says-so.md).
 
 ## The question
 
