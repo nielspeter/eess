@@ -268,8 +268,8 @@ document the filter does not keep: pair the selector with a `.should().haveField
 rule over the same documents, which reports it, and with `fields(...).resolveAgainst(...)` for a
 misspelt value.
 
-`haveField(options)` is also exported as a predicate, for `satisfy()`, `not`/`and`/`or`, and a lift
-onto the boxes or links of a document. A document whose value cannot be read is **undecided**
+`haveField(options)` is also exported as a predicate, for `satisfy()` and `not`/`and`/`or` (a lift
+onto a document's boxes or links is plan 0457's `inDocuments`, not yet shipped). A document whose value cannot be read is **undecided**
 (ADR-021): the rule neither keeps nor drops it, but reports the cause once, as a finding no
 `.excluding()` or `.warn()` removes, wherever the rule's verdict depends on it. `.select()` over an
 undecided document throws, naming the cause, since a selection has no way to report it.
