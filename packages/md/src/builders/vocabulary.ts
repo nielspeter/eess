@@ -153,10 +153,10 @@ const resideInFile = (glob: string): Predicate<MdTerm> => {
 }
 
 /** A vocabulary, or a pattern the whole value must match (plan 0468). */
-type Allowed = Vocabulary | RegExp
+export type Allowed = Vocabulary | RegExp
 
 /** Whether a value is allowed, and the clause a finding says when it is not. */
-function judge(allowed: Allowed): { ok: (value: string) => boolean; says: string } {
+export function judge(allowed: Allowed): { ok: (value: string) => boolean; says: string } {
   if (allowed instanceof RegExp) {
     // A copy without `g`/`y`, so a caller's stateful pattern judges every value alike; anchored, so
     // `/fixed/` does not pass `unfixed`; without `m`, so `^…$` spans the whole value, not one line.

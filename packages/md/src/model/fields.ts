@@ -48,7 +48,7 @@ export interface FieldOptions {
 }
 
 /** One labelled value found in a document. */
-interface FieldOccurrence {
+export interface FieldOccurrence {
   /** The label as written, without its colon or emphasis. */
   readonly label: string
   readonly form: FieldForm
