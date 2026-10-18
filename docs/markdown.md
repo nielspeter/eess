@@ -813,7 +813,15 @@ decided, even beside prose that disagrees: the condition form reports that. `.se
 throws, naming the cause.
 
 ```typescript
-import { and, corpus, docs, haveField, longestOf, or } from '@nielspeter/eess-md'
+import {
+  and,
+  corpus,
+  docs,
+  haveField,
+  longestOf,
+  type MdDocument,
+  type Predicate,
+} from '@nielspeter/eess-md'
 
 const c = corpus({ roots: ['work/**'] })
 const closed = haveField({
@@ -822,7 +830,10 @@ const closed = haveField({
   value: longestOf(['Done', 'Draft']),
   oneOf: /^Done$/,
 })
-const live = { description: 'are live plans', test: (d) => !d.relPath.includes('/completed/') }
+const live: Predicate<MdDocument> = {
+  description: 'are live plans',
+  test: (d) => !d.relPath.includes('/completed/'),
+}
 
 // No closed plan sits in a live folder; a plan whose State cannot be read is reported, not skipped.
 docs(c).that().satisfy(and(live, closed)).should().notExist().check()

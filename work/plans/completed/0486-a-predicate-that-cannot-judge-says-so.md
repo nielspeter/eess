@@ -275,7 +275,10 @@ whose anchors the review fixes moved, ran at fa68d93 after re-anchoring; rows 6,
 91dfebd after a change to `rule-builder.ts`. Row 20 as first written removed the guard that leaves
 out the generic finding, which reds a different test than the one it named (its own output said so,
 and PR #244's testing and method verifications caught the table claiming otherwise); it was
-rewritten to the first cut's line, and it and row 23 ran at 0b7651e. Each row: baseline green, sabotage applied, its package
+rewritten to the first cut's line, and it and row 23 ran at 0b7651e. The SHAs here are this branch's commits before
+its rebase onto PR #243 and its squash merge; the package trees they ran on are the ones that
+merge (fa68d93 and 91dfebd match their rebased 67f7d68 and e1cabf1, `git diff` empty under
+`packages/`). Each row: baseline green, sabotage applied, its package
 rebuilt, its named test run, the file restored by `git checkout`, tree clean after. The full run
 took 54 s, its 21 rows 47 s and the baseline the rest. Rows 11 and 12 are type-correct mutants (an
 earlier run's were not, and broke eess-md's type build).
