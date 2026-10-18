@@ -85,7 +85,7 @@ export const FINISHED_NOT_CLOSED_RULE = 'ledger/finished-not-closed'
 export const FINISHED_NOT_CLOSED_VACUOUS_RULE = 'ledger/finished-not-closed-examined-nothing'
 
 /**
- * @param {Array<{roots: readonly string[], doneFolders?: readonly string[], states?: readonly string[], terminalStates: readonly string[], cwd?: string}>} lanes
+ * @param {Array<{roots: readonly string[], marks?: Readonly<Record<string, "open" | "done">>, doneFolders?: readonly string[], states?: readonly string[], terminalStates: readonly string[], cwd?: string}>} lanes
  * @returns {{violations: object[], examined: number}}
  */
 export function findFinishedNotClosed(lanes) {
@@ -113,7 +113,9 @@ export function findFinishedNotClosed(lanes) {
       if (lane.terminalStates.includes(found.state)) continue
 
       laneExamined += 1
-      const boxes = collectTaskItems(doc.root)
+      // The lane's declared marks (plan 0454): a declared done mark counts as done. An undeclared
+      // mark counts as not done, so the record is not called finished: the conservative reading.
+      const boxes = collectTaskItems(doc.root, { marks: lane.marks, source: doc.text })
       if (boxes.length === 0) continue
       const open = boxes.filter((b) => !b.checked)
       if (open.length > 0) continue

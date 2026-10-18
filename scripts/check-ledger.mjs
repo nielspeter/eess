@@ -64,6 +64,9 @@ const LANES = [
     roots: ['work/bugs/**'],
     doneFolders: ['/fixed/', '/rejected/'],
     boardFiles: ['BUGS.md', 'README.md'],
+    // Plan 0454: this lane writes `[~]` for a box that is half done; it blocks a close like `[ ]`.
+    // Declared per lane, since each lane builds its own corpus: merging lanes must carry it.
+    marks: { '~': 'open' },
     states: ['Draft', 'Ready', 'Fixed', 'Rejected', 'Parked'],
     terminalStates: ['Fixed', 'Rejected'],
   },
@@ -93,6 +96,7 @@ const scans = LANES.map((lane) => {
     states: lane.states,
     terminalStates: lane.terminalStates,
     closeInPlace: lane.closeInPlace,
+    marks: lane.marks,
   }
   // The denominator comes from the preset, not from a copy of its logic here.
   // The previous version re-derived it with the pre-0119 region expression, so it
