@@ -223,8 +223,6 @@ Where the build departed from the text above, each overrulable:
 - **The dogfood rule** is `corpus/closed-records-sit-in-done-folders` over both lanes, written as
   `or()` of `and()`s, so it exercises the kernel's three-valued combinators on this repository's
   own records. On this repository: 0 closed records in a live folder, 0 undecided.
-- **The eess-ts door and the type-level pin** were added after the matrix's first run; the suites
-  and the matrix rows that cover them were re-run.
 
 ## Progress ledger
 
