@@ -166,6 +166,9 @@
  *                 ratchet stripped to `[]`, turning schemaFromSDL()'s already-
  *                 real, already-ratcheted fail-open into an unratcheted one →
  *                 the mutated matrix must exit 1 naming exactly that export.
+ *   vacuity-matrix/{sibling-fail-open,unaccounted-export,stale-entry,probe-crash} (bug 0403)
+ *                 scripts/nonvacuity/bad-vacuity-matrix-sibling.mjs mutates a copy so a sibling
+ *                 dialect's probe passes silently, or an export drops out of the accounted list.
  *
  * THE FIXTURE CONTRACT (bug 0109). A node fixture must print its own
  * `bad-<name>:` sentinel on EVERY exit path, and exit 1 only for the specific
@@ -3683,6 +3686,44 @@ const gates = [
         '__synthetic_fail_open__() (builder) is fail-open with no KNOWN_FAIL_OPEN entry',
       ),
   ],
+  // Bug 0403: the matrix's sibling-dialect half — a sibling constructor that passes over its empty
+  // input, and an export that is neither probed nor accounted for, must each fail the build.
+  [
+    'vacuity-matrix/sibling-fail-open',
+    () =>
+      gateNode(
+        'bad-vacuity-matrix-sibling.mjs',
+        '@nielspeter/eess-md::docs (sibling) is fail-open with no KNOWN_FAIL_OPEN entry',
+        ['sibling-fail-open'],
+      ),
+  ],
+  [
+    'vacuity-matrix/unaccounted-export',
+    () =>
+      gateNode(
+        'bad-vacuity-matrix-sibling.mjs',
+        '@nielspeter/eess-md::vocabulary is exported and neither probed nor listed',
+        ['unaccounted'],
+      ),
+  ],
+  [
+    'vacuity-matrix/stale-entry',
+    () =>
+      gateNode(
+        'bad-vacuity-matrix-sibling.mjs',
+        '@nielspeter/eess-md::noSuchExport is listed but not exported',
+        ['stale-entry'],
+      ),
+  ],
+  [
+    'vacuity-matrix/probe-crash',
+    () =>
+      gateNode(
+        'bad-vacuity-matrix-sibling.mjs',
+        '@nielspeter/eess-md::docs (sibling) threw for a reason other than a configuration finding',
+        ['probe-crash'],
+      ),
+  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -3752,7 +3793,14 @@ const GATE_FOR = {
   // that the matrix's own coverage is held by its `EMITTER_PROBES` entries —
   // six of them, one per emitter id, including the fifth added here — not by
   // this row's length.
-  'check:vacuity': ['vacuity-matrix', 'emitter/remedy-remediates'],
+  'check:vacuity': [
+    'vacuity-matrix',
+    'vacuity-matrix/sibling-fail-open',
+    'vacuity-matrix/unaccounted-export',
+    'vacuity-matrix/stale-entry',
+    'vacuity-matrix/probe-crash',
+    'emitter/remedy-remediates',
+  ],
   'check:spec': ['spec'],
   'check:crossval': [
     'crossval',

@@ -63,7 +63,7 @@ describe('honestyAtClose reads the caller’s label (bug 0444)', () => {
     expect(found.map((v) => v.rule)).toEqual(['ledger/no-readable-state'])
     expect(found[0]?.suggestion).toContain('narrow the corpus')
     expect(found[0]?.suggestion).toContain('`State:`')
-    expect(found[0]?.suggestion).toContain('## Status: Done')
+    expect(found[0]?.suggestion).toContain('`## Status: Done` is read under the labels in force')
   })
 
   it('a plain Status: line is named too, beside records the preset reads', () => {
@@ -105,5 +105,55 @@ describe('honestyAtClose reads the caller’s label (bug 0444)', () => {
     expect(stats({})).toBe(2)
     expect(stats({ label: 'Status' })).toBe(3)
     expect(stats({ aliases: ['Status'] })).toBe(5)
+  })
+})
+
+/**
+ * Bug 0476 — a record that writes its state as a heading (`## Status: Done`) was never read, and in a
+ * call where other records were readable nothing said so. The heading form is now read under the
+ * labels in force, and reported under any other label.
+ */
+describe('honestyAtClose reads a heading-form state (bug 0476)', () => {
+  it('with label: Status, a ## Status: heading is read and checked against its folder', () => {
+    expect(pairs('ledger-heading', { label: 'Status', aliases: ['State'] })).toEqual([
+      [BOX, '0002-heading-done-open-box.md'],
+      [MISMATCH, '0001-heading-done-live.md'],
+    ])
+  })
+
+  it('with default options, a ## Status: heading beside a readable record is reported, not skipped', () => {
+    expect(pairs('ledger-heading')).toEqual([
+      [BOX, '0002-heading-done-open-box.md'],
+      [UNDER, '0001-heading-done-live.md'],
+      [UNDER, '0002-heading-done-open-box.md'],
+    ])
+  })
+
+  it('a ## Label: heading continues the header, and a value outside the vocabulary is reported', () => {
+    expect(pairs('ledger-heading-more', { label: 'Status' })).toEqual([
+      [MISMATCH, '0001-status-after-severity.md'],
+      ['ledger/unknown-state', '0002-status-shipped.md'],
+    ])
+  })
+
+  it('a heading under another label is reported only when its whole value is a state word', () => {
+    // 0003's only label is `## Background: Open questions`: not a state, so not reported.
+    expect(pairs('ledger-heading-body')).toEqual([])
+  })
+
+  it('a field-shaped heading after a section heading is body, not header', () => {
+    // 0002's `- **State:** Done` sits under `## Option A: Keep`, below `## Problem`: an option's
+    // state, not the record's, so it is not read (else it would be a mismatch in a live folder).
+    expect(pairs('ledger-heading-body', { report: 'return' })).not.toContainEqual([
+      MISMATCH,
+      '0002-option-state.md',
+    ])
+  })
+
+  it('## State: of the art under the label in force is reported as an unknown state, not skipped', () => {
+    expect(pairs('ledger-heading-more', { label: 'Status' })).toContainEqual([
+      'ledger/unknown-state',
+      '0002-status-shipped.md',
+    ])
   })
 })

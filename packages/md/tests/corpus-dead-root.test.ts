@@ -53,3 +53,58 @@ describe('a corpus root that matches no file is refused (bug 0465)', () => {
     ).toThrow(/'site\/\*\*'.*ignored/s)
   })
 })
+
+/**
+ * Bug 0475 — a root that is empty on purpose had no way to say so. Its only remedy was to remove
+ * the root, after which the folder is silently unexamined once it fills. `expectEmptyRoots` names
+ * such roots; the declaration expires, as `.expectEmpty()` does (ADR-010 §3).
+ */
+describe('a root can be declared empty, and the declaration expires (bug 0475)', () => {
+  it('a declared root that matches no file loads beside a live root', () => {
+    const c = corpus({
+      cwd: fixture,
+      roots: ['docs/**', 'empty-on-purpose/**'],
+      expectEmptyRoots: ['empty-on-purpose/**'],
+    })
+    expect(c.documents().length).toBeGreaterThan(0)
+  })
+
+  it('a declared root that now loads documents is refused: the declaration has expired', () => {
+    expect(() =>
+      corpus({ cwd: fixture, roots: ['docs/**', 'site/**'], expectEmptyRoots: ['site/**'] }),
+    ).toThrow(/'site\/\*\*'.*declared empty.*loads documents/s)
+  })
+
+  it('a declared root that matches files but no Markdown stays declared', () => {
+    // A lane holding only a .gitkeep, or code, has no records yet.
+    expect(() =>
+      corpus({ cwd: fixture, roots: ['docs/**', 'src/**'], expectEmptyRoots: ['src/**'] }),
+    ).not.toThrow()
+  })
+
+  it('a typo beside a declared-empty root, with no live root, is still named', () => {
+    expect(() =>
+      corpus({
+        cwd: fixture,
+        roots: ['empty-on-purpose/**', 'typo/**'],
+        expectEmptyRoots: ['empty-on-purpose/**'],
+      }),
+    ).toThrow(/'typo\/\*\*'/)
+  })
+
+  it('a declared name that is not one of the roots is refused as stale', () => {
+    expect(() =>
+      corpus({ cwd: fixture, roots: ['docs/**'], expectEmptyRoots: ['nope/**'] }),
+    ).toThrow(/'nope\/\*\*'.*not one of this corpus's roots/s)
+  })
+
+  it('an undeclared dead root beside a declared one is still refused', () => {
+    expect(() =>
+      corpus({
+        cwd: fixture,
+        roots: ['docs/**', 'empty-on-purpose/**', 'typo/**'],
+        expectEmptyRoots: ['empty-on-purpose/**'],
+      }),
+    ).toThrow(/'typo\/\*\*'/)
+  })
+})

@@ -42,7 +42,7 @@ What it deliberately does not refuse:
   a named empty-source finding, and owns that case.
 - **A root that matches files but no Markdown**, beside a live one. Such a root contributes nothing.
   Refusing it broke existing callers, which list code globs (`src/**/*.ts`) as roots beside their
-  documents. Recorded in [bug 0475](../0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md).
+  documents. Recorded in [bug 0475](./0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md).
 - **A root that is legitimately empty for now** (a lane with no records yet). It has no way to be
   declared, so its author can only remove it, and the folder is silently unexamined once it appears.
   Also bug 0475.

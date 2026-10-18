@@ -35,6 +35,7 @@
  *       nothing about real exports below this point can be trusted
  */
 import path from 'node:path'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -288,6 +289,185 @@ const PRESET_PROBES = {
     tsPresets.recommended(zeroFileProject, { report: 'throw' }),
 }
 
+// --- Sibling dialects (bug 0403) ---
+//
+// ADR-010's row binds every rule family, and this matrix used to import eess-ts alone. Each sibling's
+// check-constructors are probed bare over that dialect's own empty input. Every other exported
+// function is either a re-export of a kernel function (recognised by identity; the kernel's own
+// check-constructor, `correspondence()`, is probed below) or named in SIBLING_NOT_CONSTRUCTORS with
+// a reason. Anything else is an unaccounted export and fails the matrix. Whether a listed export
+// really is not a constructor is a reviewer's judgement, which the reason column makes checkable.
+// Exported classes (a capitalised name) are skipped: each builder class is reached through its
+// factory, which is probed.
+
+// Derived from each sibling package's own exports map, so a new subpath is imported and its
+// functions enumerated without anyone listing it. `./internal` is family plumbing behind ADR-011,
+// not adopter surface, so it is left out.
+/** The nearest `node_modules/@nielspeter` above this script: the family as installed. */
+function familyScopeDir() {
+  let dir = path.dirname(fileURLToPath(import.meta.url))
+  for (;;) {
+    const candidate = path.join(dir, 'node_modules', '@nielspeter')
+    if (existsSync(candidate)) return candidate
+    const parent = path.dirname(dir)
+    if (parent === dir) throw new Error('vacuity-matrix: cannot find node_modules/@nielspeter')
+    dir = parent
+  }
+}
+// Every installed family package except the kernel and eess-ts, which the halves above probe. Listed
+// from the scope directory, so a new dialect is enumerated without anyone naming it.
+const SIBLING_PACKAGES = readdirSync(familyScopeDir())
+  .map((d) => `@nielspeter/${d}`)
+  .filter((name) => name !== '@nielspeter/eess' && name !== '@nielspeter/eess-ts')
+  .sort()
+/**
+ * A package's own package.json, found the way Node finds the package: the nearest
+ * `node_modules/<name>` above this script. Works for a copy run from elsewhere, and for a package
+ * with no root (`.`) export, such as eess-crossvalidate.
+ */
+function packageJsonOf(name) {
+  let dir = path.dirname(fileURLToPath(import.meta.url))
+  for (;;) {
+    const candidate = path.join(dir, 'node_modules', name, 'package.json')
+    if (existsSync(candidate)) return JSON.parse(readFileSync(candidate, 'utf8'))
+    const parent = path.dirname(dir)
+    if (parent === dir) throw new Error(`vacuity-matrix: cannot find ${name}'s package.json`)
+    dir = parent
+  }
+}
+const SIBLING_MODULES = {}
+for (const name of SIBLING_PACKAGES) {
+  const pkg = packageJsonOf(name)
+  for (const sub of Object.keys(pkg.exports ?? { '.': null })) {
+    if (sub === './internal') continue
+    const spec = sub === '.' ? name : `${name}${sub.slice(1)}`
+    SIBLING_MODULES[spec] = await import(spec)
+  }
+}
+const md = SIBLING_MODULES['@nielspeter/eess-md']
+const mermaid = SIBLING_MODULES['@nielspeter/eess-mermaid']
+const gherkin = SIBLING_MODULES['@nielspeter/eess-gherkin']
+const cv = (sub) => SIBLING_MODULES[`@nielspeter/eess-crossvalidate/${sub}`]
+
+// Each dialect's empty input: the zero-file project's own directory, which holds a tsconfig and no
+// Markdown or feature file. Derived from VACUITY_TSCONFIG so a mutated copy run from elsewhere
+// (scripts/nonvacuity/) reads the same directory.
+const EMPTY_DIR = path.dirname(VACUITY_TSCONFIG)
+const emptyCorpus = md.corpus({ cwd: EMPTY_DIR, roots: ['**/*.md'] })
+const emptyDiagram = mermaid.diagram('classDiagram\n')
+const emptyFeatures = gherkin.features({ cwd: EMPTY_DIR, roots: ['**/*.feature'] })
+/** A preset that returns a receipt is reported the way a caller reports it. */
+const reported = (result) => kernel.finishPreset(result)
+
+/** `export name` → the bare probe. Keys are `package::export`. */
+const SIBLING_PROBES = {
+  // The kernel's own check-constructor, re-exported by eess-md and eess-crossvalidate: a join of two
+  // empty selections. Bug 0477.
+  '@nielspeter/eess::correspondence': () => {
+    const side = (label) =>
+      md.docs(emptyCorpus).select({ label, identify: (d) => ({ name: d.relPath }) })
+    kernel
+      .correspondence({ left: side('left'), right: side('right') })
+      .should()
+      .beComplete()
+      .check()
+  },
+  '@nielspeter/eess-md::docs': () => md.docs(emptyCorpus).check(),
+  '@nielspeter/eess-md::links': () => md.links(emptyCorpus).check(),
+  '@nielspeter/eess-md::pointers': () => md.pointers(emptyCorpus).check(),
+  '@nielspeter/eess-md::rows': () => md.rows(emptyCorpus, { columns: { name: /Name/ } }).check(),
+  '@nielspeter/eess-md::taskItems': () => md.taskItems(emptyCorpus).check(),
+  '@nielspeter/eess-md::terms': () => md.terms(emptyCorpus, { label: /Term:/ }).check(),
+  '@nielspeter/eess-md/rules/adr::adrEnforcement': () =>
+    SIBLING_MODULES['@nielspeter/eess-md/rules/adr'].adrEnforcement(emptyCorpus),
+  '@nielspeter/eess-md/rules/ledger::honestyAtClose': () =>
+    SIBLING_MODULES['@nielspeter/eess-md/rules/ledger'].honestyAtClose(emptyCorpus),
+  '@nielspeter/eess-mermaid::classes': () => mermaid.classes(emptyDiagram).check(),
+  '@nielspeter/eess-gherkin::scenarios': () => gherkin.scenarios(emptyFeatures).check(),
+  '@nielspeter/eess-crossvalidate/mermaid-ts::diagramMatchesCode': () =>
+    cv('mermaid-ts').diagramMatchesCode(emptyDiagram, zeroFileProject),
+  '@nielspeter/eess-crossvalidate/md-ts::adrCitationsResolve': () =>
+    cv('md-ts').adrCitationsResolve(emptyCorpus, zeroFileProject),
+  '@nielspeter/eess-crossvalidate/md-mermaid::embeddedDiagramsMatchCode': () =>
+    reported(cv('md-mermaid').embeddedDiagramsMatchCode(emptyCorpus, zeroFileProject)),
+  '@nielspeter/eess-crossvalidate/md-gherkin::scenarioCitationsResolve': () =>
+    reported(cv('md-gherkin').scenarioCitationsResolve(emptyCorpus, emptyFeatures)),
+  '@nielspeter/eess-crossvalidate/gherkin-ts::scenarioTestsResolve': () =>
+    reported(cv('gherkin-ts').scenarioTestsResolve(zeroFileProject, emptyFeatures)),
+  '@nielspeter/eess-crossvalidate/gherkin-ts::scenariosCovered': () =>
+    reported(cv('gherkin-ts').scenariosCovered(zeroFileProject, emptyFeatures)),
+  '@nielspeter/eess-crossvalidate/gherkin-ts::scenarioExemptionsCurrent': () =>
+    reported(
+      cv('gherkin-ts').scenarioExemptionsCurrent(zeroFileProject, emptyFeatures, {
+        isExempt: () => false,
+      }),
+    ),
+  '@nielspeter/eess-crossvalidate/md-mermaid-er::tableErAgree': () =>
+    reported(
+      cv('md-mermaid-er').tableErAgree(emptyCorpus, {
+        table: { section: /Properties/, name: /Name/ },
+        entity: () => undefined,
+      }),
+    ),
+}
+
+/**
+ * Exported functions that are not check-constructors, each with why it is not probed here. A
+ * constructor listed here to dodge the matrix would be a hand-picked exemption, so each reason says
+ * what the export is, and where its emptiness is proven if it can be empty at all.
+ */
+const SIBLING_NOT_CONSTRUCTORS = {
+  '@nielspeter/eess-md::corpus': 'input loader: the empty corpus the probes above use',
+  '@nielspeter/eess-md::parseCodeBlocks': 'input loader for codeBlocks()',
+  '@nielspeter/eess-md::codeBlocks':
+    'needs a parser with canaries to construct; its zero-blocks case is check:nonvacuity corpus/code-block-parse/zero-blocks',
+  '@nielspeter/eess-md::collectTaskItems': 'model reader, returns task items',
+  '@nielspeter/eess-md::haveSection': 'condition factory, used inside a builder',
+  '@nielspeter/eess-md::haveTable': 'condition factory, used inside a builder',
+  '@nielspeter/eess-md::haveTableRowsSatisfying': 'condition factory, used inside a builder',
+  '@nielspeter/eess-md::matchTableRows': 'model reader',
+  '@nielspeter/eess-md::presentExternalRoots': 'option helper for pointers().resolve()',
+  '@nielspeter/eess-md::resolveLink': 'model reader',
+  '@nielspeter/eess-md::vocabulary': 'data builder, returns a term set',
+  '@nielspeter/eess-md/rules/ledger::findState': 'model reader',
+  '@nielspeter/eess-md/rules/ledger::ledgerStats': 'statistics, not a verdict',
+  '@nielspeter/eess-mermaid::diagram': 'input loader: the empty diagram the probes above use',
+  '@nielspeter/eess-mermaid::fromDiagram': 'bridge, returns selections for correspondence()',
+  '@nielspeter/eess-mermaid::collectClasses': 'model reader',
+  '@nielspeter/eess-mermaid::collectEntities': 'model reader',
+  '@nielspeter/eess-mermaid::collectErRelationships': 'model reader',
+  '@nielspeter/eess-mermaid::collectRelationships': 'model reader',
+  '@nielspeter/eess-mermaid::diagramKind': 'model reader',
+  '@nielspeter/eess-mermaid::findDirective': 'model reader',
+  '@nielspeter/eess-mermaid::mermaidParser': 'parser for eess-md parseCodeBlocks()',
+  '@nielspeter/eess-mermaid::parseClassDiagram': 'parser',
+  '@nielspeter/eess-mermaid::parseDirectives': 'parser',
+  '@nielspeter/eess-mermaid::parseErDiagram': 'parser',
+  '@nielspeter/eess-mermaid::validateReferences': 'parser diagnostics over a parsed diagram',
+  '@nielspeter/eess-mermaid::createViolation': 'finding constructor for custom conditions',
+  '@nielspeter/eess-mermaid::defineConfig': 'CLI configuration helper (identity)',
+  '@nielspeter/eess-gherkin::features': 'input loader: the empty feature set the probes above use',
+  '@nielspeter/eess-gherkin::parseFeature': 'parser',
+  '@nielspeter/eess-crossvalidate/md-ts::adrCitationStats': 'statistics, not a verdict',
+  '@nielspeter/eess-crossvalidate/md-mermaid::embeddedDiagramStats': 'statistics, not a verdict',
+  '@nielspeter/eess-crossvalidate/files::files': 'selection source for correspondence()',
+  '@nielspeter/eess-crossvalidate/md-gherkin::defaultExtract': 'option helper',
+  '@nielspeter/eess-crossvalidate/md-gherkin::scenarioCitationStats': 'statistics, not a verdict',
+  '@nielspeter/eess-crossvalidate/gherkin-ts::citedScenarioSites': 'model reader',
+  '@nielspeter/eess-crossvalidate/gherkin-ts::defaultExtract': 'option helper',
+  '@nielspeter/eess-crossvalidate/gherkin-ts::scenarioTestStats': 'statistics, not a verdict',
+  '@nielspeter/eess-crossvalidate/md-mermaid-er::tableErStats': 'statistics, not a verdict',
+}
+
+/** Every exported function of every sibling subpath, as `package::export`, minus kernel re-exports. */
+const kernelFunctions = new Set(Object.values(kernel).filter((v) => typeof v === 'function'))
+const siblingExports = Object.entries(SIBLING_MODULES).flatMap(([pkg, mod]) =>
+  Object.entries(mod)
+    .filter(([, v]) => typeof v === 'function' && !/^[A-Z]/.test(v.name ?? ''))
+    .filter(([, v]) => !kernelFunctions.has(v))
+    .map(([name]) => `${pkg}::${name}`),
+)
+
 /**
  * Known, tracked, dated debt. An entry here suppresses a `fail-open`
  * finding for exactly the named export — every other export must be
@@ -296,13 +476,24 @@ const PRESET_PROBES = {
  * fresh reason if it's still real and still accepted.
  */
 const KNOWN_FAIL_OPEN = [
-  // Empty — and it should stay that way. The single entry that lived here,
-  // `schemaFromSDL()`, described bug 0155 verbatim: called bare it "hits
-  // RuleBuilder's own 'predicates but no conditions' assertion-less path
-  // (console.warn'd, not silent, but not a thrown finding either) and passes",
-  // filed as no bug and dated to expire 2026-11-15. Bug 0155 filed it and
-  // fixed it — an assertion-less rule is now a configuration finding in every
-  // builder — so the exemption is retired rather than renewed.
+  {
+    name: '@nielspeter/eess::correspondence',
+    reason: 'bug 0477: a join of two empty selections passes',
+    expires: '2026-12-31',
+  },
+  // Both found the day the matrix first probed the sibling dialects (bug 0403), and both for one
+  // reason: `correspondence().beComplete()` carries the cardinality mark, so a join of two empty
+  // sides examines nothing and passes. Recorded as bug 0477.
+  {
+    name: '@nielspeter/eess-crossvalidate/mermaid-ts::diagramMatchesCode',
+    reason: 'bug 0477: an empty diagram against a zero-file project passes',
+    expires: '2026-12-31',
+  },
+  {
+    name: '@nielspeter/eess-crossvalidate/md-ts::adrCitationsResolve',
+    reason: 'bug 0477: an empty corpus against a zero-file project passes',
+    expires: '2026-12-31',
+  },
 ]
 
 function checkExpiry(entry, today) {
@@ -321,10 +512,39 @@ for (const [name, thunk] of Object.entries(PRESET_PROBES)) {
 for (const [name, thunk] of Object.entries(EMITTER_PROBES)) {
   results.push({ name, kind: 'emitter', verdict: classify(thunk) })
 }
+for (const [name, thunk] of Object.entries(SIBLING_PROBES)) {
+  results.push({ name, kind: 'sibling', verdict: classify(thunk) })
+}
 
 const today = new Date().toISOString().slice(0, 10)
 const knownByName = new Map(KNOWN_FAIL_OPEN.map((e) => [e.name, e]))
 const findings = []
+
+// Completeness over the siblings: an export neither probed nor accounted for is a finding, and so is
+// an entry in either table that names no export (a stale entry hides nothing, but it lies).
+// A sibling probe that throws for an unrelated reason (an option renamed, an input that no longer
+// loads) has stopped testing its constructor. That is a finding, not a pass.
+for (const r of results.filter((x) => x.kind === 'sibling' && x.verdict === 'other-throw')) {
+  findings.push(
+    `${r.name} (sibling) threw for a reason other than a configuration finding — the probe no longer reaches its check; fix the probe`,
+  )
+}
+const accounted = new Set(
+  [...Object.keys(SIBLING_PROBES), ...Object.keys(SIBLING_NOT_CONSTRUCTORS)].filter(
+    (name) => !name.startsWith('@nielspeter/eess::'),
+  ),
+)
+for (const name of siblingExports) {
+  if (!accounted.has(name)) {
+    findings.push(
+      `${name} is exported and neither probed nor listed in SIBLING_NOT_CONSTRUCTORS — probe it if it builds a check, or list it with a reason`,
+    )
+  }
+}
+const exported = new Set(siblingExports)
+for (const name of accounted) {
+  if (!exported.has(name)) findings.push(`${name} is listed but not exported — a stale entry`)
+}
 
 for (const r of results) {
   if (r.verdict !== 'fail-open') continue
@@ -364,7 +584,7 @@ for (const known of KNOWN_FAIL_OPEN) {
 
 console.error('')
 console.error(
-  'vacuity-matrix · every published eess-ts check-constructor, probed bare over a zero-file project',
+  "vacuity-matrix · every published check-constructor, probed bare over its dialect's empty input",
 )
 console.error('')
 for (const r of results) {
@@ -382,5 +602,5 @@ if (findings.length > 0) {
 }
 
 console.error(
-  `✓ vacuity matrix — ${results.length} exports probed (${Object.keys(BUILDER_PROBES).length} builders + ${Object.keys(PRESET_PROBES).length} presets + ${Object.keys(EMITTER_PROBES).length} emitters), ${KNOWN_FAIL_OPEN.length} tracked KNOWN_FAIL_OPEN entr${KNOWN_FAIL_OPEN.length === 1 ? 'y' : 'ies'}, 0 unaccounted fail-open`,
+  `✓ vacuity matrix — ${results.length} exports probed (${Object.keys(BUILDER_PROBES).length} builders + ${Object.keys(PRESET_PROBES).length} presets + ${Object.keys(EMITTER_PROBES).length} emitters + ${Object.keys(SIBLING_PROBES).length} sibling-dialect constructors, ${siblingExports.length} sibling exports accounted for), ${KNOWN_FAIL_OPEN.length} tracked KNOWN_FAIL_OPEN entr${KNOWN_FAIL_OPEN.length === 1 ? 'y' : 'ies'}, 0 unaccounted fail-open`,
 )

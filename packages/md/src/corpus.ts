@@ -36,6 +36,13 @@ export interface CorpusOptions {
   readonly ignore?: readonly string[]
   /** Repo root the globs and pointers resolve against. Defaults to `process.cwd()`. */
   readonly cwd?: string
+  /**
+   * Roots that are empty on purpose: a lane with no records yet, or a test fixture that writes only
+   * the folder its rule reads. A named root may match no file beside live roots without being
+   * refused. The declaration expires (ADR-010 §3): a named root that matches files is refused, so
+   * the folder is never silently unexamined once it fills. Each name must be one of `roots`.
+   */
+  readonly expectEmptyRoots?: readonly string[]
 }
 
 /**
@@ -79,7 +86,18 @@ export function corpus(options: CorpusOptions): Corpus {
   // what every rule judged. Refused here, once, naming each dead root and why:
   // one authored mistake, one finding, through every door that loads a corpus
   // (ADR-009, refuse and say so).
+  const declaredEmpty = new Set(options.expectEmptyRoots ?? [])
+  const declarationFaults = declaredEmptyFaults(
+    options.roots,
+    declaredEmpty,
+    allFiles,
+    matchesIgnore,
+  )
+  if (declarationFaults.length > 0) {
+    throw new ArchConfigError('corpus', declarationFaults.join(' '))
+  }
   const dead = options.roots.flatMap((glob) => {
+    if (declaredEmpty.has(glob)) return []
     const why = deadRootReason(glob, allFiles, matchesIgnore)
     return why === undefined ? [] : [`'${glob}' ${why}`]
   })
@@ -87,11 +105,13 @@ export function corpus(options: CorpusOptions): Corpus {
   // nothing at all: an empty source, which gates build on purpose to test its own
   // report. Today most builders report it only as zero examined units; plan 0456
   // makes it a named empty-source finding (bug 0465's Resolution).
+  // A declared-empty root counts as another root here, so a typo beside it is still named.
   if (dead.length > 0 && dead.length < options.roots.length) {
     throw new ArchConfigError(
       'corpus',
       `corpus root${dead.length > 1 ? 's' : ''} ${dead.join('; ')} — so every rule over this corpus ` +
-        `would judge less than you named. Correct the glob, or remove the root.`,
+        `would judge less than you named. Correct the glob, remove the root, or name it in ` +
+        `expectEmptyRoots if it is empty on purpose.`,
     )
   }
 
@@ -136,4 +156,42 @@ function deadRootReason(
   // globs (`src/**/*.ts`) as roots beside their documents, harmlessly. It still
   // contributes nothing, which bug 0465's Resolution records as a residual.
   return undefined
+}
+
+/**
+ * What is wrong with `expectEmptyRoots` (bug 0475): a name that is not one of the roots (stale), or a
+ * declared root that loads documents (expired). Each is one sentence.
+ */
+function declaredEmptyFaults(
+  roots: readonly string[],
+  declared: ReadonlySet<string>,
+  allFiles: readonly string[],
+  ignored: (rel: string) => boolean,
+): string[] {
+  const faults: string[] = []
+  for (const glob of declared) {
+    if (!roots.includes(glob)) {
+      faults.push(
+        `expectEmptyRoots names '${glob}', which is not one of this corpus's roots — remove it, or add the root.`,
+      )
+    } else if (loadsADocument(glob, allFiles, ignored)) {
+      faults.push(
+        `corpus root '${glob}' is declared empty in expectEmptyRoots, but it loads documents now — remove it from expectEmptyRoots so they are read.`,
+      )
+    }
+  }
+  return faults
+}
+
+/**
+ * Whether a root loads at least one Markdown document. A declared-empty root expires on this, not on
+ * matching any file: a lane holding only a `.gitkeep` is still empty of records.
+ */
+function loadsADocument(
+  glob: string,
+  allFiles: readonly string[],
+  ignored: (rel: string) => boolean,
+): boolean {
+  const matches = picomatch(glob)
+  return allFiles.some((rel) => rel.endsWith('.md') && matches(rel) && !ignored(rel))
 }
