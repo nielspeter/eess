@@ -145,7 +145,7 @@ function continuation(lines: readonly string[], from: number, end: number): stri
 }
 
 /** One label line a scan found. */
-export interface ScannedField {
+interface ScannedField {
   readonly label: string
   readonly form: FieldForm
   readonly line: number

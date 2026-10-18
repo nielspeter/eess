@@ -23,7 +23,7 @@
  * optional bullet marker is kept for the ledger, which reads raw lines.
  */
 
-export const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** Any indent and an optional list marker (bullet or ordered): every reader's raw-line prefix. */
 export const PREFIX = String.raw`^\s*(?:(?:[-*+]|\d+[.)])\s+)?`
