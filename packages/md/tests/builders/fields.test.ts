@@ -143,6 +143,18 @@ describe('multi-line values (plan 0468)', () => {
     ])
   })
 
+  it('a blank line ends a value even when prose follows it', () => {
+    const c = one([
+      '# B',
+      '',
+      '**Status:** open',
+      'and waiting',
+      '',
+      'Prose that is not part of it.',
+    ])
+    expect(read(c, { forms: ['bold'] })).toEqual(['bold Status=open and waiting @3'])
+  })
+
   it('a heading value is one line', () => {
     const c = one(['# B', '', '## Status: open', 'not part of it'])
     expect(read(c, { forms: ['heading'] })).toEqual(['heading Status=open @3'])
