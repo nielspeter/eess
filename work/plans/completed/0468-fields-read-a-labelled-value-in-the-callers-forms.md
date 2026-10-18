@@ -256,7 +256,9 @@ Giving each of those a level is a judgement per bug, and not part of this build.
 `@nielspeter/eess-md` minor, flagged `**Breaking**`. `MdTerm` gains two required fields, so an
 adopter's test that builds an `MdTerm` literal stops compiling. The fix is one line: add `label` and
 `form`. No package in the family builds one (`git grep MdTerm -- packages examples`). The changeset
-names the dependants that release requires (bug 0185).
+names the dependants that release requires (bug 0185): none, since eess-crossvalidate takes eess-md
+only as an optional peer. _(At build, 2026-10-18: a second break, `TermRuleBuilder`'s constructor,
+which now takes a source; the changeset marks both.)_
 
 ## Out of scope
 
@@ -320,6 +322,18 @@ Where the build departed from the text above, each overrulable:
     pass `'code-blocks'` and not read past an unclosed fence as "present".
   - `TermRuleBuilder`'s constructor changed its argument: a second **Breaking** line in the changeset.
   - The scan's candidates use the rule's own `value`, and patterns are compiled once per scan.
+- **Review verification, 2026-10-18:** each reviewer re-checked their findings against the fix
+  pass. Fixed from it: the shared `LABEL_HEADING` reads depths 2 to 6 behind up to three spaces (it
+  had been `##` only, so a `### Severity:` heading ended a `fields()` header); the loose scan needs
+  emphasis touching the label or heading hashes, so `* Status: open` and a quoted `> Status: …` are
+  not reported; the pictograph pattern is an alternation (lint); `ScannedField` and `escapeRe` stay
+  module-private. Recorded, not fixed (each fails closed or is a stated limit): a label in a table
+  cell is neither read nor reported; a continuation also ends at a label-shaped prose line
+  (`Note: …`), so a multi-line value is cut short; an indented code block is read as prose (only
+  closed fences are blanked); a line no form reads is given the rule's first form as its `form`;
+  each `fields()` rule derives a document's prose three times; a prose heading such as
+  `### State: what the reader holds` in a live record would red the whole-document dogfood rule;
+  no test pins an alias overlapping the label or a `split` that yields nothing.
 - **Departures from the Design's text, besides the above:** `heading` takes no list marker (a list
   item is not a heading); a `bold-line` value is one line, like a `heading` value; the scan lives in
   a new file, `packages/md/src/builders/field-findings.ts`; `honestyAtClose`'s own reader was not
@@ -337,7 +351,8 @@ Where the build departed from the text above, each overrulable:
       proves 5 of 5 judgements across 3 examples)
 - [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–12 in the
       table below, run at e34bbe60 after the review round: each named check green on the untouched
-      tree and red with its row applied, files restored by `git checkout`, tree clean, 49 s)
+      tree and red with its row applied, files restored by `git checkout`, tree clean, 49 s for the
+      run; row 7 is one sabotage checked by two non-vacuity rows, so its time is printed on both)
 - [x] `npm run validate` green; duration reported (ticked provisionally for its own gate run, since
       `check:ledger` runs inside it; the result and duration are filled in from that run)
 - [x] Close: this plan → `completed/`; boards

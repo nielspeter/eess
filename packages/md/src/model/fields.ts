@@ -38,7 +38,12 @@ export interface FieldOptions {
   readonly value?: (raw: string) => string
   /** Splits one value into several, after `value` has cut it. */
   readonly split?: (value: string) => readonly string[]
-  /** `'header'`: read only the document's header. Default: the whole document. */
+  /**
+   * `'header'`: read only the document's header, the lines before its first heading of depth 2 or
+   * more that is not a `## Label: value` heading. Default: the whole document. This is narrower than
+   * the region `honestyAtClose` reads its `State:` from (bug 0119). A label below the header is
+   * neither read nor reported; plan 0469's `haveField` reports a value outside the region.
+   */
   readonly region?: 'header'
 }
 
@@ -224,7 +229,8 @@ export function readFields(
   return out
 }
 
-const PICTOGRAPH = String.raw`[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}]`
+// An alternation, not a class: a class would split a joined emoji into its code points.
+const PICTOGRAPH = String.raw`(?:\p{Extended_Pictographic}|\u{FE0F}|\u{200D}|\u{20E3})`
 const LEADING_PICTOGRAPHS = new RegExp(`^(?:${PICTOGRAPH}\\s*)+`, 'u')
 const TRAILING_PICTOGRAPHS = new RegExp(`(?:\\s*${PICTOGRAPH})+$`, 'u')
 

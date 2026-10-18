@@ -18,13 +18,14 @@ const SCANNED: readonly FieldForm[] = ['bold', 'heading', 'bold-line']
 /**
  * A line naming the label with markup before its colon, in any shape: behind any indent, a
  * blockquote, a list marker or a task box, under heading hashes, in any emphasis. Wider than every
- * form, so a shape no form reads is still seen. The markup is required before the colon, so plain
- * prose ("Status: see the **note**") is not taken for a label.
+ * form, so a shape no form reads is still seen. Emphasis touching the label, or heading hashes, is
+ * required (a bullet `*` or a quote `>` does not count), so plain prose ("Status: see the
+ * **note**", "* Status: open", "> Status: …") is not taken for a label.
  */
 function looseLabel(label: string): RegExp {
   const L = labelBody(label)
   return new RegExp(
-    String.raw`^(?=[^:\n]*[*_#>~])\s*(?:>\s*)*(?:(?:[-*+]|\d+[.)])\s+)?(?:\[[ xX]\]\s+)?(?:#{1,6}\s+)?[*_~]{0,3}\s*(${L})\s*[*_~]{0,3}\s*:(.*)$`,
+    String.raw`^\s*(?:>\s*)*(?:(?:[-*+]|\d+[.)])\s+)?(?:\[[ xX]\]\s+)?(?:#{1,6}\s+[*_~]{0,3}|[*_~]{1,3})(${L})\s*[*_~]{0,3}\s*:(.*)$`,
     'i',
   )
 }

@@ -54,11 +54,11 @@ export const labelBody = (label: string): string =>
     .join(String.raw`\s+`)
 
 /**
- * A `## Label: value` heading: its label and value. Such a heading continues a record's header
+ * A `## Label: value` heading, at depth 2 to 6: its label and value. Such a heading continues a record's header
  * rather than ending it, as a run of field headings (`## Status: Open` then `## Severity: High`) is
  * one header (bug 0476). One definition, read by the ledger and by `fields()`.
  */
-export const LABEL_HEADING = /^##\s+([A-Za-z][A-Za-z ]{0,40}?)\s*:\s*(\S.*?)\s*$/
+export const LABEL_HEADING = /^ {0,3}#{2,6}\s+([A-Za-z][A-Za-z ]{0,40}?)\s*:\s*(\S.*?)\s*$/
 
 /** A plain `Label:` opening a line, after the prefix: the label's text. Label-shaped, not prose. */
 export const PLAIN_LABEL = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?([A-Za-z][A-Za-z ]{0,40}?)\s*:/

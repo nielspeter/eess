@@ -27,6 +27,10 @@ answers both questions with its own code.
 
 ## Design
 
+_(Note 2026-10-18, from plan 0468's review: `readFields(doc, options, setAside)` takes the fence
+mode. A presence check should pass `'code-blocks'`: the default, `'closed-fences'`, reads past an
+unclosed fence, which errs toward "present" for this plan's question.)_
+
 ```ts
 export interface HaveFieldOptions extends FieldOptions {
   /** The allowed values, after the caller's `value`: the same type `resolveAgainst` takes. */

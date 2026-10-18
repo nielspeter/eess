@@ -13,6 +13,7 @@ import {
   vocabulary,
   type FieldOptions,
 } from '../../src/index.js'
+import { findState } from '../../src/rules/ledger.js'
 import { tree } from '../helpers/tree.js'
 
 const one = (lines: readonly string[], path = 'bugs/b.md') =>
@@ -403,5 +404,35 @@ describe('the review round: what was skipped is read or reported (plan 0468)', (
       .resolveAgainst(/fixed/m)
       .violations()
     expect(found.map((v) => v.line)).toEqual([3])
+  })
+})
+
+describe('the review verification (plan 0468)', () => {
+  it('a deeper label heading continues the header, as the shared rule reads it', () => {
+    const c = one([
+      '# B',
+      '',
+      '## Status: open',
+      '### Severity: High',
+      '',
+      '**Status:** in the body',
+    ])
+    expect(read(c, { forms: ['heading', 'bold'], region: 'header' })).toEqual([
+      'heading Status=open @3',
+      'bold Status=in the body @6',
+    ])
+  })
+
+  it('a bullet star or a quote around plain prose is not taken for a label', () => {
+    const c = one(['# B', '', '**Status:** open', '', '* Status: open', '> Status: the old system'])
+    const found = fields(c, { label: 'Status', forms: ['bold'] })
+      .should()
+      .resolveAgainst(/open/)
+      .violations()
+    expect([...found]).toEqual([])
+  })
+
+  it('the shared grammar reads a State after a numbered marker in the ledger too', () => {
+    expect(findState('# A\n\n1. **State:** Done\n', ['Draft', 'Done'])?.state).toBe('Done')
   })
 })
