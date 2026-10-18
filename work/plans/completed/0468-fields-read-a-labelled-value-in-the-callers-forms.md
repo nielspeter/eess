@@ -350,7 +350,7 @@ Where the build departed from the text above, each overrulable:
       (three non-vacuity rows, read by id from `check:corpus --format json`; the load-bearing check
       proves 5 of 5 judgements across 3 examples)
 - [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–12 in the
-      table below, run at e34bbe60 after the review round: each named check green on the untouched
+      table below, run at 71824ceb after the review round and its verification: each named check green on the untouched
       tree and red with its row applied, files restored by `git checkout`, tree clean, 49 s for the
       run; row 7 is one sabotage checked by two non-vacuity rows, so its time is printed on both)
 - [x] `npm run validate` green; duration reported (ticked provisionally for its own gate run, since
@@ -359,12 +359,12 @@ Where the build departed from the text above, each overrulable:
 
 Deferred: none
 
-**Sabotage matrix, measured 2026-10-18 at e34bbe60 (after the review round):**
+**Sabotage matrix, measured 2026-10-18 at 71824ceb (after the review round and its verification):**
 
 | row | sabotage                                      | checked by                                                                   | named test                                                                               | baseline | sabotaged | time  |
 | --- | --------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------- | --------- | ----- |
-| 1   | the heading fragment dropped                  | `packages/md/tests/builders/fields.test.ts`                                  | heading at depths 2 and 4                                                                | green    | red       | 1.4s  |
-| 2   | the unnamed-form scan disabled                | `packages/md/tests/builders/fields.test.ts`                                  | forms: [bold] over a selected heading document reports the heading, with the line quoted | green    | red       | 1.4s  |
+| 1   | the heading fragment dropped                  | `packages/md/tests/builders/fields.test.ts`                                  | heading at depths 2 and 4                                                                | green    | red       | 1.5s  |
+| 2   | the unnamed-form scan disabled                | `packages/md/tests/builders/fields.test.ts`                                  | forms: [bold] over a selected heading document reports the heading, with the line quoted | green    | red       | 1.5s  |
 | 3   | the scan ignores the selection                | `packages/md/tests/builders/fields.test.ts`                                  | the same document outside the selection gives no finding                                 | green    | red       | 1.4s  |
 | 4   | a continuation runs past a blank line         | `packages/md/tests/builders/fields.test.ts`                                  | a blank line ends a value even when prose follows it                                     | green    | red       | 1.4s  |
 | 5   | whole-value matching dropped                  | `packages/md/tests/builders/fields.test.ts`                                  | a pattern must match the whole value: /fixed/ rejects unfixed                            | green    | red       | 1.4s  |
