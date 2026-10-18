@@ -378,6 +378,8 @@ const SIBLING_PROBES = {
   '@nielspeter/eess-md::rows': () => md.rows(emptyCorpus, { columns: { name: /Name/ } }).check(),
   '@nielspeter/eess-md::taskItems': () => md.taskItems(emptyCorpus).check(),
   '@nielspeter/eess-md::terms': () => md.terms(emptyCorpus, { label: /Term:/ }).check(),
+  '@nielspeter/eess-md::fields': () =>
+    md.fields(emptyCorpus, { label: 'Status', forms: ['bold'] }).check(),
   '@nielspeter/eess-md/rules/adr::adrEnforcement': () =>
     SIBLING_MODULES['@nielspeter/eess-md/rules/adr'].adrEnforcement(emptyCorpus),
   '@nielspeter/eess-md/rules/ledger::honestyAtClose': () =>
@@ -429,6 +431,9 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::resideInFile': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::haveNameMatching': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::matchTableRows': 'model reader',
+  '@nielspeter/eess-md::cleanValue': 'value helper for fields(), cuts a string (plan 0468)',
+  '@nielspeter/eess-md::untilDelimiter': 'value helper for fields(), cuts a string (plan 0468)',
+  '@nielspeter/eess-md::longestOf': 'value helper for fields(), cuts a string (plan 0468)',
   '@nielspeter/eess-md::presentExternalRoots': 'option helper for pointers().resolve()',
   '@nielspeter/eess-md::resolveLink': 'model reader',
   '@nielspeter/eess-md::vocabulary': 'data builder, returns a term set',

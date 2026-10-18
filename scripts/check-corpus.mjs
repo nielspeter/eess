@@ -28,10 +28,13 @@ import {
   corpus,
   correspondence,
   docs,
+  fields,
   links,
+  longestOf,
   matchTableRows,
   pointers,
   rows,
+  vocabulary,
 } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 import {
@@ -59,6 +62,7 @@ import { nonTerminalFreezes, frozenScopeRefusal } from './lib/frozen-scope.mjs'
 import { laneDirectories } from './lib/lane-coverage.mjs'
 // Extracted so the labels can be tested — they have been wrong twice in place.
 import { pointerSummary } from './lib/pointer-classes.mjs'
+import { LANES } from './lib/ledger-lanes.mjs'
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
 // the others so bug history is not held to today's code (its pointers are not
@@ -287,6 +291,37 @@ const extendsRule = links(corpus({ roots: ['adr/**'] }))
       'an ADR that extends another must be linked back by it, or the extended one reads as complete',
   })
 const extendsViolations = extendsRule.violations()
+
+// Plan 0468, dogfooding `fields()`: every live plan and bug writes its State in its lane's own
+// words. The words are the lanes `check:ledger` reads (`./lib/ledger-lanes.mjs`), so the two gates
+// cannot disagree. `longestOf` cuts the value at the state (`Draft — written …` is `Draft`); a state
+// that is not a lane word stays whole and is reported. Whole documents, not the header region: the
+// State line sits under a `## Status` section here. A State written in a form the rule does not
+// read (a `## State:` heading, a whole bold line) is reported by `fields()` itself.
+const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name === 'bugs').map(
+  (lane) => {
+    const prefix = lane.roots[0].replace(/\*\*$/, '')
+    const words = [...lane.states]
+    return fields(c, { label: 'State', forms: ['bold'], value: longestOf(words) })
+      .that()
+      .satisfy({
+        description: `are in a live ${lane.name} record`,
+        test: (t) =>
+          !t.doc.frozen &&
+          t.doc.relPath.startsWith(prefix) &&
+          !lane.boardFiles.some((b) => t.doc.relPath.endsWith(`/${b}`)),
+      })
+      .should()
+      .resolveAgainst(vocabulary(c, { terms: words }))
+      .rule({
+        id: 'corpus/state-in-vocabulary',
+        because: `a ${lane.name} record's State is read by the ledger only in the lane's own words`,
+      })
+  },
+)
+const stateResults = stateRules.map((r) => r.violations())
+const stateViolations = stateResults.flatMap((r) => [...r])
+const statesExamined = stateResults.reduce((n, r) => n + r.examined, 0)
 
 // Proposal → plan linkage (bug 0141 / plan 0142): an accepted proposal
 // (Ruling: Ship as-is / Ship with changes) must have at least one plan that
@@ -1022,6 +1057,7 @@ const receipt = mergeCollectResults([
   collectResult(unparseableImplementsViolations, { examined: planDocsCount }),
   collectResult(danglingImplementsViolations, { examined: planDocsCount }),
   collectResult(laneViolations, { examined: laneRows.length }),
+  ...stateResults.map((r) => collectResult([...r], { examined: r.examined })),
 ])
 
 // ADR-008: this script owns its reporting on the terminal path, so the gate runs
@@ -1063,6 +1099,14 @@ line(
 line(
   'ADRs',
   `${adrDocs.length} enforced · ${adrError ? '✗ invalid' : '✓ tables + citations resolve'}`,
+)
+line(
+  'states',
+  `${statesExamined} live plan and bug State line(s) · ${
+    stateViolations.length === 0
+      ? "✓ each in its lane's words"
+      : `✗ ${stateViolations.length} finding(s)`
+  }`,
 )
 line(
   'extends',
@@ -1111,6 +1155,7 @@ line(
 )
 
 const problems = [
+  ...stateViolations,
   ...broken,
   ...stale,
   ...proposalPlanViolations,

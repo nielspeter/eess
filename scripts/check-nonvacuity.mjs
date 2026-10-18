@@ -1964,6 +1964,29 @@ function gateCorpusOneDeadCheck() {
 }
 
 /**
+ * Plan 0468: `check:corpus` reads every live bug's State with `fields()` and the lane's words. A
+ * probe bug whose State is `Drfat` must red the gate, naming the value, the label and the line.
+ */
+function gateCorpusStateInVocabulary() {
+  const probe = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_state.md')
+  const text = ['# Bug 9998: a probe', '', '## Status', '', '- **State:** Drfat', ''].join('\n')
+  const r = withProbe(probe, text, () =>
+    sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  )
+  const named = r.stderr
+    .split('\n')
+    .some(
+      (l) =>
+        l.includes('__nonvacuity_probe_state.md:5') &&
+        l.includes("'Drfat' (State, line 5) does not resolve against the vocabulary"),
+    )
+  return {
+    ok: r.code === 1 && named,
+    detail: `a live bug whose State is Drfat → exit ${r.code}, named at its line: ${named}`,
+  }
+}
+
+/**
  * ADR-014's "every hand-assembled check supplies evidence", on `check:ledger`'s
  * DEFAULT path — the path the row names, and the one that had no emitter on it
  * before plan 0263 Phase 1.
@@ -3372,6 +3395,7 @@ const gates = [
     () => gateNode('bad-crossval-gherkin-e2e.mjs', 'crossval/scenarios-covered'),
   ],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
+  ['corpus/state-in-vocabulary', gateCorpusStateInVocabulary],
   // Three rows, one per rule the fixture must make fire. The fixture exits 0
   // unless ALL three do, so any one of them going quiet reddens all three rows —
   // and the gate list NAMES what is proven, instead of one row standing in for a
@@ -4343,6 +4367,7 @@ const GATE_FOR = {
     'crossval/md-mermaid-er',
   ],
   'check:corpus': [
+    'corpus/state-in-vocabulary',
     'corpus/dead-root',
     'corpus/undocumented-waiver',
     'corpus/adr',
