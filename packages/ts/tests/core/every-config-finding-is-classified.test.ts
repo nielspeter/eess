@@ -130,6 +130,11 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'behavioural: dead-selector-fails.test.ts and the-floor.test.ts — it delegates its text to zeroSubjectsViolation (one text for one state) while keeping its own attribution, and the shared remedy is proven to remediate there',
   },
+  'src/core/rule-builder.ts::unmetNonEmptyViolation': {
+    remedy: 'own',
+    verified:
+      'behavioural: expect-non-empty-is-read.test.ts — the finding fires only on a cardinality rule that declared .expectNonEmpty() over zero subjects, and its remedy (remove the declaration) turns that rule green, as the row without the declaration shows',
+  },
   'src/core/vacuity-diagnosis.ts::zeroSubjectsViolationOf': {
     remedy: 'own',
     verified:

@@ -83,13 +83,19 @@ export function deadGlobViolation(facts: RuleFacts, deadGlob: string): ArchViola
  * condition itself would otherwise tolerate.
  */
 export function unmetExpectNonEmptyViolation(facts: RuleFacts): ArchViolation {
-  const message =
-    `this rule declared .expectNonEmpty() but examined zero units — the corpus this ` +
-    `rule asserted should never be empty is empty right now. If that's still true, fix ` +
-    `the selection (a glob typo, a missing folder); if the corpus legitimately can be ` +
-    `empty, remove .expectNonEmpty().`
-  return configFinding(facts, message)
+  return configFinding(facts, UNMET_EXPECT_NON_EMPTY)
 }
+
+/**
+ * The text of `unmetExpectNonEmptyViolation`, exported (behind `/internal`) so
+ * a dialect that reports the same state from its own empty-selection path says
+ * it in the same words. eess-ts used to read nothing at all here (bug 0467).
+ */
+export const UNMET_EXPECT_NON_EMPTY =
+  `this rule declared .expectNonEmpty() but examined zero units — the corpus this ` +
+  `rule asserted should never be empty is empty right now. If that's still true, fix ` +
+  `the selection (a glob typo, a missing folder); if the corpus legitimately can be ` +
+  `empty, remove .expectNonEmpty().`
 
 /**
  * The configuration finding for the ADR-010 part 3 precedence case: the

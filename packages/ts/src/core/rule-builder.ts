@@ -1,5 +1,6 @@
 import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
 import { conditionContextFrom } from '@nielspeter/eess/internal'
+import { UNMET_EXPECT_NON_EMPTY } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
   assertionAdviceOf,
@@ -17,6 +18,32 @@ import type { RuleDescription } from '@nielspeter/eess'
 import type { Selection, ElementInfo } from '@nielspeter/eess'
 import { TerminalBuilder } from './terminal-builder.js'
 import { assertsCardinality, collectResult } from '@nielspeter/eess'
+
+/**
+ * The finding for an unmet `.expectNonEmpty()` on a cardinality rule (bug 0467;
+ * bug 0466 for why its remedy is removal). Attributed as the
+ * empty-selection finding is; worded by the kernel's owner of this state, so
+ * the two families cannot drift apart (plan 0070's shape). Outside the class so
+ * the class stays under `check:arch`'s size floor.
+ */
+function unmetNonEmptyViolation(
+  description: string,
+  ruleId: string | undefined,
+  because: string | undefined,
+): ArchViolation {
+  return {
+    rule: description,
+    ruleId,
+    element: ruleId ?? description,
+    file: '',
+    line: 0,
+    message: UNMET_EXPECT_NON_EMPTY,
+    suggestion:
+      'remove .expectNonEmpty() — on a .notExist() rule it can never pass (a selected subject fails the condition, an empty selection fails the declaration); to catch a glob typo, add a positive rule over the same population',
+    because,
+    bypassFilters: true,
+  }
+}
 
 /**
  * Abstract base class for the predicate/condition rule builders.
@@ -470,8 +497,16 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
       // silencer: the non-empty branch below fails the day it matches.
       if (this._expectEmpty) return []
       // Every condition is satisfied BY emptiness — `.should().notExist()`, the
-      // pre-emptive guard. `.every()`, because `andShould()` ANDs.
-      if (this.assertsCardinality()) return []
+      // pre-emptive guard. `.every()`, because `andShould()` ANDs. Unless the
+      // author declared `.expectNonEmpty()`: that is the one rule shape where the
+      // declaration changes the verdict, and it used to be set and never read
+      // (bug 0467). On a positive rule the empty selection is a finding anyway,
+      // with the right remedy, so the declaration is not read there.
+      if (this.assertsCardinality()) {
+        if (!this._requireNonEmpty) return []
+        const description = buildRuleDescription(this.asDeclared()) || 'selector'
+        return [unmetNonEmptyViolation(description, this._metadata?.id, this._reason)]
+      }
       return [this.emptySelectionViolation()]
     }
 
