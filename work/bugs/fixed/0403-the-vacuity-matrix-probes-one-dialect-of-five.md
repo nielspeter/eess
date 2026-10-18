@@ -61,8 +61,9 @@ The matrix probes the sibling dialects too (`scripts/vacuity-matrix.mjs`, "Sibli
   called bare over that dialect's own empty input: an empty corpus, an empty diagram, an empty
   feature set. So is the kernel's own check-constructor, `correspondence()`, which eess-md and
   eess-crossvalidate re-export.
-- **Modules.** The modules come from each package's exports map, leaving out `./internal`, so a new
-  subpath is enumerated without anyone listing it.
+- **Modules.** The sibling packages are every installed `@nielspeter/*` package except the kernel and
+  eess-ts, and their modules come from each package's exports map, leaving out `./internal`. A new
+  dialect or subpath is enumerated without anyone listing it.
 - **Accounting.** Every other exported function is either a kernel re-export, recognised by identity,
   or listed in `SIBLING_NOT_CONSTRUCTORS` with a reason. An export that is neither is a finding, and
   so is a stale entry. Whether a listed export really is not a constructor is a reviewer's
@@ -81,7 +82,7 @@ construct, and its zero-blocks case is `check:nonvacuity`'s `corpus/code-block-p
 ## Verification
 
 - [x] done-otherwise: the red proof is a non-vacuity row, not a unit test. `vacuity-matrix/sibling-fail-open` replaces eess-md's `docs` probe with one that passes silently, and the matrix fails naming it.
-- [x] The matrix's own non-vacuity proof covers the sibling half: `vacuity-matrix/{sibling-fail-open,unaccounted-export,stale-entry,probe-crash}`.
+- [x] The matrix's own non-vacuity proof covers the sibling half: `vacuity-matrix/{sibling-fail-open,unaccounted-export,stale-entry,probe-crash}`. The kernel's `setCorrespondence()` is not probed: it returns data, not a check.
 - [x] `npm run validate` green.
 - [ ] deferred→bug 0477 — `correspondence()` and two crossvalidate presets pass over two empty inputs
 

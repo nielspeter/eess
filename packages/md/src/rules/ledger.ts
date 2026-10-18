@@ -309,7 +309,7 @@ function stateUnderAnotherLabel(
     if (/^##\s/.test(raw)) {
       // A `## Label: value` heading under another label is reported only when its whole value is a
       // state word: `## Status: Done` is, `## Background: Open questions` is not (bug 0476).
-      const field = LABEL_HEADING.exec(raw)
+      const field = seenHeading === 0 ? LABEL_HEADING.exec(raw) : null
       if (field !== null) {
         const [, label = '', value = ''] = field
         const fold = (t: string): string => t.toLowerCase().replace(/’/g, "'")
@@ -366,8 +366,10 @@ function stateIn(
         const raw = unreadHeading[1]
         return { raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 }
       }
-      // Any other `## Label: value` heading continues the header; any other heading is a section.
-      if (LABEL_HEADING.test(rawLine)) continue
+      // Any other `## Label: value` heading continues the header, but only while still in it: once a
+      // plain section heading has been seen, a field-shaped heading (`## Option A: Keep`) is part of
+      // the body and ends the region like any other heading.
+      if (LABEL_HEADING.test(rawLine) && seenHeading === 0) continue
       seenHeading += 1
       if (seenHeading > 1) break
       continue

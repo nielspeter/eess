@@ -160,7 +160,7 @@ function deadRootReason(
 
 /**
  * What is wrong with `expectEmptyRoots` (bug 0475): a name that is not one of the roots (stale), or a
- * declared root that matches files (expired). Each is one sentence.
+ * declared root that loads documents (expired). Each is one sentence.
  */
 function declaredEmptyFaults(
   roots: readonly string[],

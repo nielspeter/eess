@@ -31,7 +31,9 @@ itself. eess-md has two readers, and neither does the job:
 - `terms()` (`packages/md/src/builders/vocabulary.ts:178`) takes a regex and returns the text after
   it. It knows no label forms, cuts its default value at `·—–|`, and reports nothing about a label
   written in a way its regex misses.
-- `honestyAtClose` reads only `State` (bug 0444).
+- `honestyAtClose` read only `State` (bug 0444). It now takes `label` and `aliases`, and reads a
+  `## Label: value` heading in a record's header (bug 0476): a second header reader this plan's
+  `readFields` should absorb, with the same header rule.
 
 Adopter 3 counted the forms it uses (live / frozen):
 
@@ -265,7 +267,7 @@ names the dependants that release requires (bug 0185).
 
 ## Progress ledger
 
-- [ ] Preconditions: bug 0403 fixed, plan 0458 shipped
+- [ ] Preconditions: plan 0458 shipped (bug 0403 was fixed in PR #237)
 - [ ] Phase 1: reader
 - [ ] Phase 2: `resolveAgainst` and the unnamed-form scan
 - [ ] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset

@@ -35,7 +35,7 @@
  *       nothing about real exports below this point can be trusted
  */
 import path from 'node:path'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -303,12 +303,23 @@ const PRESET_PROBES = {
 // Derived from each sibling package's own exports map, so a new subpath is imported and its
 // functions enumerated without anyone listing it. `./internal` is family plumbing behind ADR-011,
 // not adopter surface, so it is left out.
-const SIBLING_PACKAGES = [
-  '@nielspeter/eess-md',
-  '@nielspeter/eess-mermaid',
-  '@nielspeter/eess-gherkin',
-  '@nielspeter/eess-crossvalidate',
-]
+/** The nearest `node_modules/@nielspeter` above this script: the family as installed. */
+function familyScopeDir() {
+  let dir = path.dirname(fileURLToPath(import.meta.url))
+  for (;;) {
+    const candidate = path.join(dir, 'node_modules', '@nielspeter')
+    if (existsSync(candidate)) return candidate
+    const parent = path.dirname(dir)
+    if (parent === dir) throw new Error('vacuity-matrix: cannot find node_modules/@nielspeter')
+    dir = parent
+  }
+}
+// Every installed family package except the kernel and eess-ts, which the halves above probe. Listed
+// from the scope directory, so a new dialect is enumerated without anyone naming it.
+const SIBLING_PACKAGES = readdirSync(familyScopeDir())
+  .map((d) => `@nielspeter/${d}`)
+  .filter((name) => name !== '@nielspeter/eess' && name !== '@nielspeter/eess-ts')
+  .sort()
 /**
  * A package's own package.json, found the way Node finds the package: the nearest
  * `node_modules/<name>` above this script. Works for a copy run from elsewhere, and for a package

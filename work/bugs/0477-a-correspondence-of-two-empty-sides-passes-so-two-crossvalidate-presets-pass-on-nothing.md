@@ -33,7 +33,9 @@ Candidates:
 - a join whose two sides both select nothing is an empty source, reported as such;
 - or each preset reports an empty input on either side.
 
-Decide which against ADR-010 §3 and ADR-014. `preserveRelations()` carries the same mark.
+Decide which against ADR-010 §3 and ADR-014. `preserveRelations()` carries the same mark. Related
+limits of the join: [bug 0400](./0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) and
+[bug 0402](./0402-correspondence-checks-leak-between-rules-built-from-one-base.md).
 
 ## Verification
 

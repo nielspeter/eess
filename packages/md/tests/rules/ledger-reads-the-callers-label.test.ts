@@ -137,9 +137,23 @@ describe('honestyAtClose reads a heading-form state (bug 0476)', () => {
   })
 
   it('a heading under another label is reported only when its whole value is a state word', () => {
-    // `## Background: Open questions…` is not a state; 0003's **Status:** Draft is read.
-    expect(pairs('ledger-heading-more', { aliases: ['Status'] }).map((p) => p[1])).not.toContain(
-      '0003-background.md',
-    )
+    // 0003's only label is `## Background: Open questions`: not a state, so not reported.
+    expect(pairs('ledger-heading-body')).toEqual([])
+  })
+
+  it('a field-shaped heading after a section heading is body, not header', () => {
+    // 0002's `- **State:** Done` sits under `## Option A: Keep`, below `## Problem`: an option's
+    // state, not the record's, so it is not read (else it would be a mismatch in a live folder).
+    expect(pairs('ledger-heading-body', { report: 'return' })).not.toContainEqual([
+      MISMATCH,
+      '0002-option-state.md',
+    ])
+  })
+
+  it('## State: of the art under the label in force is reported as an unknown state, not skipped', () => {
+    expect(pairs('ledger-heading-more', { label: 'Status' })).toContainEqual([
+      'ledger/unknown-state',
+      '0002-status-shipped.md',
+    ])
   })
 })

@@ -40,6 +40,13 @@ A `## Label: value` heading under a label not in force is reported as
 is reported. `## Background: Open questions` is not, because a heading shaped like a field is common
 prose.
 
+A field-shaped heading continues the header only before the first plain section heading. After it,
+`## Option A: Keep` is body, so a state under it is an option's, not the record's.
+
+Under a label in force, a heading's value is matched from its start, as a label line's is:
+`## Status: Done (2026-10-01)` reads `Done`. `## State: of the art` now reports an unknown state where
+it used to be skipped as a heading. That fails closed.
+
 Not measured: how many of the adopter's heading-form records this reads. That is the adopter's to
 run on upgrade.
 

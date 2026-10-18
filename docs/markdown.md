@@ -800,7 +800,9 @@ The last two are about a state the preset could not read at all (bug 0444):
 
 A corpus that writes its state under another label passes `label: 'Status'`, or adds it with
 `aliases: ['Status']`. A record whose header carries its state as a heading, `## Status: Done`, is read too, under the
-labels in force; a run of `## Label: value` headings is one header (bug 0476).
+labels in force; a run of `## Label: value` headings before the first plain section heading is one
+header (bug 0476). As with a label line, the value is matched from its start, so `## Status: Open
+questions` reads `Open`.
 
 The vocabulary finding, `ledger/unknown-state`, is the one a new adopter meets first, and it is a **violation,
 not an ignore**: the default vocabulary is `Draft | Ready | Open | Done |
