@@ -84,6 +84,7 @@ import type {
   VocabularyOptions,
   FieldForm,
   FieldOptions,
+  HaveFieldOptions,
 } from '@nielspeter/eess-md'
 import { corpus, docs, links, pointers, rows, taskItems, terms } from '@nielspeter/eess-md'
 import { cleanValue, fields, longestOf, untilDelimiter } from '@nielspeter/eess-md'
@@ -169,6 +170,7 @@ type MdSurface = {
   vocabOptions: VocabularyOptions
   fieldForm: FieldForm
   fieldOptions: FieldOptions
+  haveFieldOptions: HaveFieldOptions
 }
 
 /** A dialect that exposes a function must expose the types of its arguments. */

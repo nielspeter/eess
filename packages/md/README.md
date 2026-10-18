@@ -258,6 +258,14 @@ value that is empty after cutting.
 `cleanValue`, `untilDelimiter` and `longestOf` cut a value. [The Markdown dialect's docs](../../docs/markdown.md#a-labelled-value-fields)
 cover the region, multi-line values and the findings.
 
+`docs(c).that().haveField({ label, forms, oneOf? })` selects the documents whose value resolves (and
+is allowed); `.should().haveField(...)` asserts every selected document has it. One value per
+document: a structured form beats plain prose, and two structured values are a conflict. A document
+whose value cannot be read (a conflict, a form the rule does not read, a value outside the header,
+an empty value) is reported in either position, never left out silently. A misspelt value is a
+different value, so a selector alone cannot tell it: pair it with `fields(...).resolveAgainst(...)`.
+A selection taken with `.select()` carries none of these findings.
+
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match

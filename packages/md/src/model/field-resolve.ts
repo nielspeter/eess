@@ -16,7 +16,7 @@ import { readFields, type FieldOccurrence, type FieldOptions } from './fields.js
  * conflict with itself. Fenced code is set aside with `'code-blocks'`: for a presence question,
  * reading past an unclosed fence would err toward "present".
  */
-export type FieldResolution =
+type FieldResolution =
   | {
       readonly kind: 'value'
       readonly occurrence: FieldOccurrence

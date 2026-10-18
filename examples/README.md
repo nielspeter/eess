@@ -68,12 +68,13 @@ proposal 017's claim that the blocks are enough (plan 0458). Each one is execute
 - `eess/examples-md-no-rule-constructors`: no `definePredicate`, `defineCondition`, `createRequire`,
   verdict-assembly seam or module load that bypasses the import graph, whatever its import.
 
-| Example                                                                                | Judgement                                                           |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [md/a-page-has-a-required-section.test.ts](./md/a-page-has-a-required-section.test.ts) | every page under `guides/` has a `Prerequisites` section            |
-| [md/unclaimed-and-double-claimed.test.ts](./md/unclaimed-and-double-claimed.test.ts)   | every page is claimed by one selection, and none by two             |
-| [md/box-marks.test.ts](./md/box-marks.test.ts)                                         | in closed records, a declared `[~]` counts as open                  |
-| [md/a-record-states-its-status.test.ts](./md/a-record-states-its-status.test.ts)       | every record's Status is open or closed, in the forms it is written |
+| Example                                                                                          | Judgement                                                           |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| [md/a-page-has-a-required-section.test.ts](./md/a-page-has-a-required-section.test.ts)           | every page under `guides/` has a `Prerequisites` section            |
+| [md/unclaimed-and-double-claimed.test.ts](./md/unclaimed-and-double-claimed.test.ts)             | every page is claimed by one selection, and none by two             |
+| [md/box-marks.test.ts](./md/box-marks.test.ts)                                                   | in closed records, a declared `[~]` counts as open                  |
+| [md/a-record-states-its-status.test.ts](./md/a-record-states-its-status.test.ts)                 | every record's Status is open or closed, in the forms it is written |
+| [md/a-fixed-bug-shows-its-verification.test.ts](./md/a-fixed-bug-shows-its-verification.test.ts) | every bug whose Status is fixed has a Verification section          |
 
 **The contract an example meets.**
 

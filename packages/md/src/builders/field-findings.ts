@@ -32,7 +32,7 @@ function looseLabel(label: string): RegExp {
 }
 
 /** A label line in a document that the rule's forms did not read, and what reads it if anything. */
-export interface UnreadField {
+interface UnreadField {
   readonly line: number
   readonly text: string
   readonly label: string
