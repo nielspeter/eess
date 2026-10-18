@@ -1113,8 +1113,13 @@ Where the build departed from the text above, each overrulable:
 - [x] `check:family`, `check:release`, `check:docs-code`, `check:examples`, eess-crossvalidate's
       suite and `npm run validate` green; durations reported (family 1 rule, 0.8 s; release 0
       findings, 0.4 s; docs-code 19 fences, 2 s; examples 24 tests, 2 s; eess-crossvalidate 128
-      tests, 6 s. `validate`: ticked provisionally for its own gate run, since `check:ledger` runs
-      inside it; the result is filled in from that run's log.)
+      tests, 6 s. `validate` at 92743b25, with this box ticked provisionally because `check:ledger`
+      runs inside it: every step through `lint` green in 12 min 32 s, including `check:ledger` (0
+      findings) and `check:nonvacuity` (214 fixtures); `format:check` then failed on one line of bug
+      0460's record. After that one-line reformat, the steps it touches and the ones it did not reach
+      were re-run: `check:corpus`, `check:ledger`, `format:check`, `test` (core 331, crossvalidate
+      128, gherkin 11, md 380, mermaid 173, eess-ts 3,977), `test:matrix` (48) and `check:surface`,
+      all green.)
 - [x] The examples gate's `notExist()` row (from plan 0458): a clean fixture holding documents with no elements reds the load-bearing row, naming the example
       (`examples/md-load-bearing-reds-on-an-empty-population` in `scripts/check-nonvacuity.mjs`)
 - [x] Close: this plan → `completed/`; boards

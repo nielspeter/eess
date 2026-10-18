@@ -67,7 +67,7 @@ and not on the API plan 0456 adds.
       not load passes today (measured on main 8feb4d1b with a throwaway vitest file in
       `packages/md/tests/`, removed after: a temp repository holding `guides/a.md` and `docs/b.md`,
       `corpus({ roots: ['docs/**'] })`, `docs(c).that().resideInFolder('guides/**').should()
-  .satisfy(marksAssertsCardinality({ description: 'p', evaluate: () => [] }))`: zero findings)
+.satisfy(marksAssertsCardinality({ description: 'p', evaluate: () => [] }))`: zero findings)
 - [x] Green: both red, naming the glob; a glob naming no file in the repository stays green, pinned
       (`selector-fault.test.ts`: the text-fault rows, the unloaded-Markdown row, and
       `it('a ratchet that holds is green: no folder of that name anywhere')`)
