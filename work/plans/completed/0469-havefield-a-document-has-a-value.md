@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Done — built 2026-10-18 in PR #242 from the reviewed Draft, without a separate
-  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458, 0456, 0454 and 0468. "Build notes" says where the build departed from the text. Written 2026-10-18 from proposal 017's block 2; revised the same day after one
+  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458 and 0456 (and 0454, PR #240, and 0468, PR #241). "Build notes" says where the build departed from the text. Written 2026-10-18 from proposal 017's block 2; revised the same day after one
   review round (architect · product · enforcement · method).
 - **Implements:** proposal 017
 - **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
@@ -249,12 +249,46 @@ Where the build departed from the text above, each overrulable:
   document" holds for the documents that are not selected.
 - **"No field" names the labels the document carries,** or says it carries none.
 - **The dogfood rule is `corpus/state-present` over live plans and bugs** (the lanes from
-  `scripts/lib/ledger-lanes.mjs`), green on its first run over 222 records. Two non-vacuity rows: a
+  `scripts/lib/ledger-lanes.mjs`), green on its first run. "Live" first meant "not in
+  `check:corpus`'s `FROZEN` list", which does not freeze `rejected/`, so it counted two terminal
+  bugs (222 records); review moved both State rules onto the lane's own `doneFolders` (219 records
+  at the review round's head; the gate prints the count on every run). Two non-vacuity rows: a
   live bug with no State, and one with two. Proposals are left out, as the Design allows.
 - **The findings module is `packages/md/src/builders/have-field.ts`,** not
   `predicates/document.ts` and `conditions/structure.ts`: one verdict per document feeds the
   predicate, the condition and the selector's findings. The unnamed-form scan was split into a
   per-document helper (`unreadFields`) so `haveField` reuses it.
+- **Review round, 2026-10-18 (architect · enforcement · testing · method):**
+  - **One fence mode.** The resolver read with `'code-blocks'` and the unread-label scan with
+    `'closed-fences'`, so a value after a code fence that never closes was seen by neither and, as a
+    selector, the document was dropped silently. The whole verdict now reads with `'code-blocks'`,
+    and a value only a reading past the fence finds is its own reported cause.
+  - **The model owns the verdict.** The resolver gained the `'empty'` outcome; the verdict,
+    `labelsOf` and the unread-label scan moved to `packages/md/src/model/field-verdict.ts` and
+    `field-unread.ts`, so block 5 reuses them without importing a builder. `STRUCTURED_FORMS` is one
+    constant. The builder module keeps `HaveFieldOptions`, the predicate and the condition; `judge`
+    stays in `builders/vocabulary.ts` and is passed in.
+  - **The docs say what is reported.** "Never left out silently" claimed too much: as a selector, a
+    document with no field, or a misspelt label, is left out like any document the filter does not
+    keep. The README and `docs/markdown.md` pair the selector with a `.should().haveField()` rule
+    for that; the no-field finding names a plain line the rule does not read. The predicate's
+    description names its `oneOf`.
+  - **Tests that can fail:** the dedupe through a selected document, fork safety with both rules
+    built before either runs, disagreeing prose and an unread label as a selector, `oneOf` with
+    `split`, the unclosed fence, and the plain-line hint; sabotage rows 7–11.
+  - **Recorded, not fixed:** the dogfood rule exercises only the condition position (a
+    selector-position dogfood is plan 0481's to consider); the rule's records are chosen with a
+    path prefix rather than a glob, so a changed lane root reds as zero examined without naming the
+    glob; a `## State:` heading is reported by both `corpus/state-present` and
+    `corpus/state-in-a-form-not-read`, counted twice in the summary; `.select()` carries none of
+    these findings (plan 0470's question); the outside-the-header cause reads structured forms only,
+    so a plain or loosely formatted label below the header is "no field" (plan 0468's region limit);
+    each `haveField` use computes a document's verdict more than once.
+- **Files beyond the plan's list:** `packages/md/src/model/field-verdict.ts`, `field-unread.ts` and
+  `builders/have-field.ts` (new); `FieldOccurrence` exported from `model/fields.ts`;
+  `examples/README.md`. The README's region limit and the frozen-records glob were already
+  documented (plan 0468's README section and `packages/md/README.md`'s `corpus()` text); this
+  plan's README paragraph points at them rather than repeating them.
 - **The example is `examples/md/a-fixed-bug-shows-its-verification.test.ts`,** with two judgements (a
   fixed bug missing the section, a Status in a form the rule does not read).
 - **Sabotage row 6 is beyond the plan's five:** the dogfood rule checking nothing. Row 3's first
@@ -266,24 +300,31 @@ Where the build departed from the text above, each overrulable:
 - [x] Phase 2: `haveField` and its findings in both phases
 - [x] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset (the load-bearing
       check proves 7 of 7 judgements across 4 examples, 10 s)
-- [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–6 in the
-      table below, run at 54ec94d6 in the build worktree: each named check green on the untouched
-      tree and red with its row applied, files restored by `git checkout`, tree clean, 35 s)
+- [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–11 in
+      the table below, run at d12cd4ea after the review round by
+      `scratchpad/sab0456/matrix0469.py`, which holds each row's exact edit: each named check green
+      on the untouched tree and red with its row applied, files restored by `git checkout`, tree
+      clean, 39 s; a row's time covers all its checks, so row 6's two lines share one figure)
 - [x] `npm run validate` green; duration reported (ticked provisionally for its own gate run, since
       `check:ledger` runs inside it; the result and duration are filled in from that run)
 - [x] Close: this plan → `completed/`; boards
 
 Deferred: none
 
-**Sabotage matrix, measured 2026-10-18 at 54ec94d6:**
+**Sabotage matrix, measured 2026-10-18 at d12cd4ea (after the review round):**
 
 | row | sabotage                                         | checked by                                                                | named test                                                                                                | baseline | sabotaged | time  |
 | --- | ------------------------------------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------- | --------- | ----- |
-| 1   | the resolver prefers the first occurrence        | `packages/md/tests/builders/have-field.test.ts`                           | two structured occurrences conflict, agreeing or not                                                      | green    | red       | 1.6s  |
-| 2   | collectViolations skips the predicate phase      | `packages/md/tests/builders/have-field.test.ts`                           | a value only below the header is reported as outside the region, in either position                       | green    | red       | 3.0s  |
-| 2   | collectViolations skips the predicate phase      | `packages/md/tests/builders/have-field.test.ts`                           | selects only the allowed documents; reports the unreadable ones; is silent on an open bug and on a README | green    | red       | 3.0s  |
+| 1   | the resolver prefers the first occurrence        | `packages/md/tests/builders/have-field.test.ts`                           | two structured occurrences conflict, agreeing or not                                                      | green    | red       | 1.5s  |
+| 2   | collectViolations skips the predicate phase      | `packages/md/tests/builders/have-field.test.ts`                           | a value only below the header is reported as outside the region, in either position                       | green    | red       | 2.9s  |
+| 2   | collectViolations skips the predicate phase      | `packages/md/tests/builders/have-field.test.ts`                           | selects only the allowed documents; reports the unreadable ones; is silent on an open bug and on a README | green    | red       | 2.9s  |
 | 3   | the condition passes a document with no field    | `packages/md/tests/builders/have-field.test.ts`                           | no occurrence: no field, naming the labels the document does carry                                        | green    | red       | 1.5s  |
-| 4   | the resolver counts split elements               | `packages/md/tests/builders/have-field.test.ts`                           | a split field is one occurrence, never a conflict with itself                                             | green    | red       | 1.7s  |
-| 5   | the outside-the-region cause dropped             | `packages/md/tests/builders/have-field.test.ts`                           | a value only below the header is reported as outside the region, in either position                       | green    | red       | 1.7s  |
-| 6   | check:corpus's State-present rule checks nothing | `QA_ONLY=corpus/state-present node scripts/check-nonvacuity.mjs`          | corpus/state-present                                                                                      | green    | red       | 25.6s |
-| 6   | check:corpus's State-present rule checks nothing | `QA_ONLY=corpus/state-present-conflict node scripts/check-nonvacuity.mjs` | corpus/state-present-conflict                                                                             | green    | red       | 25.6s |
+| 4   | the resolver counts split elements               | `packages/md/tests/builders/have-field.test.ts`                           | a split field is one occurrence, never a conflict with itself                                             | green    | red       | 1.4s  |
+| 5   | the outside-the-region cause dropped             | `packages/md/tests/builders/have-field.test.ts`                           | a value only below the header is reported as outside the region, in either position                       | green    | red       | 1.4s  |
+| 6   | check:corpus's State-present rule checks nothing | `QA_ONLY=corpus/state-present node scripts/check-nonvacuity.mjs`          | corpus/state-present                                                                                      | green    | red       | 23.0s |
+| 6   | check:corpus's State-present rule checks nothing | `QA_ONLY=corpus/state-present-conflict node scripts/check-nonvacuity.mjs` | corpus/state-present-conflict                                                                             | green    | red       | 23.0s |
+| 7   | a value after an unclosed fence taken as absent  | `packages/md/tests/builders/have-field.test.ts`                           | a value after a code fence that never closes is reported, in either position, not taken as absent         | green    | red       | 1.5s  |
+| 8   | the dedupe between positions dropped             | `packages/md/tests/builders/have-field.test.ts`                           | the same spec in both positions gives one finding for a selected document with disagreeing prose          | green    | red       | 1.5s  |
+| 9   | specs pushed onto the shared array               | `packages/md/tests/builders/have-field.test.ts`                           | two rules forked from one base do not share their haveField specs                                         | green    | red       | 1.4s  |
+| 10  | an unread label beside a resolved value dropped  | `packages/md/tests/builders/have-field.test.ts`                           | a selector reports disagreeing prose and an unread label beside a resolved value                          | green    | red       | 1.4s  |
+| 11  | oneOf allows a field when any value is allowed   | `packages/md/tests/builders/have-field.test.ts`                           | with split and oneOf, a field is allowed only when every value is                                         | green    | red       | 1.4s  |
