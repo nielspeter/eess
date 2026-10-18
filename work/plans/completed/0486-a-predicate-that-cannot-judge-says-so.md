@@ -13,7 +13,7 @@
   build adds the review's answers, the tests, the gate rows and the changesets.
 - **Created:** 2026-10-18
 - **Builds after:** [plan 0469](./0469-havefield-a-document-has-a-value.md), and before
-  [plan 0457](../0457-a-rule-limited-to-the-documents-the-caller-chooses.md), whose `inDocuments`
+  [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md), whose `inDocuments`
   forwards the member this plan adds.
 
 ## Problem

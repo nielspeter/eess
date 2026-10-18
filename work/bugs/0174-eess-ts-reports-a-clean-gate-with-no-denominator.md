@@ -107,7 +107,7 @@ built here:
 Whichever is chosen applies to `eess-mermaid` too — its existing line has the
 same blind spot.
 
-**Added 2026-10-18: eess-md inherits it.** [Plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s
+**Added 2026-10-18: eess-md inherits it.** [Plan 0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s
 `inDocuments` scope reports its counts (documents matched, elements examined) only when a rule
 examined zero, inside the finding. On a green run no CLI prints them, which is this bug's open half.
 The plan narrows proposal 017's "reports both counts" to the zero path and leaves the green-path

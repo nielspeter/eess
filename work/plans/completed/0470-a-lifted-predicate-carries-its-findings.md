@@ -13,7 +13,7 @@
 - **Effort:** Planned as a time-boxed spike of about an hour. It took two prototype revisions, a
   round of questions to the three adopters, and two review rounds, most of a day.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0457](../0457-a-rule-limited-to-the-documents-the-caller-chooses.md)
+- **Builds after:** [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)
   (`inDocuments`) and [plan 0469](./0469-havefield-a-document-has-a-value.md) (`haveField`).
 
 ## Problem
