@@ -32,7 +32,8 @@ const ROOT = 'scripts/nonvacuity/bad-finished-not-closed'
 
 try {
   const { violations: found, examined } = findFinishedNotClosed([
-    { roots: [`${ROOT}/**`], terminalStates: ['Fixed', 'Rejected'], states: ['Draft'] },
+    // The top-level records only: the two `marks-*` folders are read as their own lanes below.
+    { roots: [`${ROOT}/*.md`], terminalStates: ['Fixed', 'Rejected'], states: ['Draft'] },
   ])
   const named = found.map((v) => v.element)
   if (examined === 0) {
@@ -154,10 +155,13 @@ try {
     )
     process.exit(0)
   }
-  if (undeclared.length > 0) {
+  // Undeclared, `[→]` is neither read as done (the record is not called finished) nor passed over:
+  // the record cannot be judged, so the mark is reported once, at its first box.
+  const undeclaredIds = undeclared.map((v) => `${v.ruleId ?? v.rule}@${v.line}`)
+  if (undeclaredIds.join(',') !== 'md/undeclared-box-mark@9') {
     console.error(
-      `bad-finished-not-closed: an undeclared mark was read as done (${undeclared[0].element}) — ` +
-        `an unknown box must not make a record look finished`,
+      `bad-finished-not-closed: an undeclared mark on an otherwise finished open record must be ` +
+        `reported once as md/undeclared-box-mark at line 9; saw [${undeclaredIds.join(', ')}]`,
     )
     process.exit(0)
   }
@@ -168,7 +172,7 @@ try {
   console.error(
     `bad-finished-not-closed: OK — ${FINISHED_NOT_CLOSED_RULE} fired on the ` +
       `finished-but-open record, silent on work-in-progress and on a properly closed one; ` +
-      `a declared done mark counts as done, an undeclared one does not`,
+      `a declared done mark counts as done, an undeclared one is reported`,
   )
   process.exit(1)
 } catch (err) {

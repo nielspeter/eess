@@ -1,20 +1,12 @@
 import type { ArchViolation, Predicate } from '@nielspeter/eess'
 import { matchingElements } from '@nielspeter/eess/internal'
 import type { MdDocument } from '../model/document.js'
-import type { BoxMarkState, MdTaskItemRef } from '../model/task-items.js'
+import { checkedOf, type BoxMarkState, type ReadBox, type UnreadBox } from '../model/task-items.js'
 
 /** A box mark no rule was told about: one finding per document and mark (plan 0454). */
 export const UNDECLARED_BOX_MARK = 'md/undeclared-box-mark'
 /** A near-GFM box (`[ x ]`, `[x]done`, an empty `- [ ]`): one finding per box (plan 0454). */
 export const MALFORMED_BOX = 'md/malformed-box'
-
-/** A box a rule cannot judge, with its document. */
-export type UnreadBox = MdTaskItemRef & { readonly doc: MdDocument }
-/** A box read as open or done: what a `taskItems()` rule sees. */
-export type ReadBox = Omit<MdTaskItemRef, 'state'> & {
-  readonly state: BoxMarkState
-  readonly doc: MdDocument
-}
 
 const NOT_A_BOX = 'If it is not a box, write the bracket escaped (`\\[`) or in inline code.'
 
@@ -31,7 +23,7 @@ export function inScope(
   const readAs =
     (state: BoxMarkState) =>
     (box: UnreadBox): ReadBox => {
-      const copy: ReadBox = { ...box, state, checked: state === 'done' }
+      const copy: ReadBox = { ...box, state, checked: checkedOf(state) }
       origin.set(copy, box)
       return copy
     }
@@ -93,7 +85,9 @@ export function unreadFindings(
           box.doc,
           box.line,
           `this box reads like a box (mark \`${box.mark}\`), but GFM does not read it as one, so it is neither open nor done.${why}`,
-          "Write it as `[x]` (or `[ ]`) followed by a space and the item's text. " +
+          `Write the mark you meant as \`[${box.mark}]\` followed by a space and the item's text` +
+            `${box.mark === ' ' || box.mark === 'x' || box.mark === 'X' ? '' : ", and declare it if it is not GFM's"}` +
+            '. Write `[x]` only if the work is done. ' +
             NOT_A_BOX +
             " A template's blank box (an issue or PR checklist) is given text, or left out of the rule's selection by its own predicates.",
         ),
@@ -118,8 +112,9 @@ export function unreadFindings(
         first.line,
         `\`[${first.mark}]\` is not a box mark this rule was told about (${count} ${listLines(lines)}), so ` +
           `${group.length === 1 ? 'it is' : 'they are'} neither open nor done and no rule can judge ${group.length === 1 ? 'it' : 'them'}.${why}`,
-        `Declare it in the rule's \`marks\`: { '${first.mark}': 'open' } (or 'done'), passed to taskItems() or ` +
-          `honestyAtClose(). Or rewrite each box as \`[ ]\` or \`[x]\`. ${NOT_A_BOX}`,
+        `Declare the state it means in the rule's \`marks\`, passed to taskItems() or honestyAtClose(): ` +
+          `{ '${first.mark}': 'open' } if the work is not finished (in a closed record an open box then needs ` +
+          `a disposition), or 'done' only if it is. Or rewrite each box as \`[ ]\`, or \`[x]\` if done. ${NOT_A_BOX}`,
       ),
     )
   }

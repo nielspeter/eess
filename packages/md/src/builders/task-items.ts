@@ -4,16 +4,19 @@ import {
   collectTaskItems,
   validateMarks,
   type BoxMarkState,
+  type ReadBox,
   type TaskItemOptions,
+  type UnreadBox,
 } from '../model/task-items.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
-import { inScope, unreadFindings, type ReadBox, type UnreadBox } from './box-mark-findings.js'
+import { inScope, unreadFindings } from './box-mark-findings.js'
 
 /**
  * A read box: what a `taskItems()` rule sees. Its `state` is only `'open'` or `'done'`; an unread
- * box is reported, never handed to a rule. To select an undeclared box, test `t.mark`.
+ * box is reported, never handed to a rule. A predicate on `t.mark` decides which undeclared boxes a
+ * rule reports: under either reading, open or done, it reaches them.
  */
 export type MdTaskItem = ReadBox
 
@@ -34,16 +37,17 @@ const areChecked = (): Predicate<MdTaskItem> => ({
  * whose predicates reach it reports it.
  */
 export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
-  constructor(
-    corpus: Corpus,
-    private readonly opts: TaskItemOptions = {},
-  ) {
+  /** A frozen copy of the declaration: validated once, so it cannot change after. */
+  private readonly marks: TaskItemOptions['marks']
+
+  constructor(corpus: Corpus, options: TaskItemOptions = {}) {
     super(corpus)
-    validateMarks(opts.marks, 'taskItems')
+    validateMarks(options.marks, 'taskItems')
+    this.marks = Object.freeze({ ...options.marks })
   }
 
   private boxes(): UnreadBox[] {
-    const marks = this.opts.marks
+    const marks = this.marks
     return stampedByDocument(this.project, (doc) =>
       collectTaskItems(doc.root, { marks, source: doc.text }),
     )

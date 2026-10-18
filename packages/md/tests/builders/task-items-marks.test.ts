@@ -4,6 +4,7 @@
  */
 import path from 'node:path'
 import { describe, it, expect } from 'vitest'
+import { isArchRuleError } from '@nielspeter/eess'
 import { dedupeConfigFindings } from '@nielspeter/eess/internal'
 import {
   collectTaskItems,
@@ -70,6 +71,8 @@ describe('proposal 017 block 17: acceptance rows', () => {
     expect([...honestyAtClose(at(files), { marks: { '~': 'open' }, report: 'return' })]).toEqual([])
   })
 
+  // Reads this repository's live records: an edit above line 160 of bug 0249 or line 130 of bug 0256
+  // moves these lines. Update the lines; do not delete the row.
   it('this repository reads its four [~] boxes once declared', () => {
     const repo = path.resolve(import.meta.dirname, '../../../..')
     const c = corpus({ cwd: repo, roots: ['work/bugs/**'] })
@@ -103,7 +106,16 @@ describe('bug 0445', () => {
 
   it('a done record whose boxes are all [~] reds a notExist() rule through check()', () => {
     const c = at({ 'completed/b.md': DONE(['- [~] a']) })
-    expect(() => rule(c).check()).toThrow(/Architecture violation \(1 found\)/)
+    let thrown: unknown
+    try {
+      rule(c).check()
+    } catch (e) {
+      thrown = e
+    }
+    // Emission, not only the receipt: the thrown error carries the finding itself.
+    expect(isArchRuleError(thrown) ? pairs(thrown.violations) : thrown).toEqual([
+      `${UNDECLARED_BOX_MARK} @ ${String(L)}`,
+    ])
     expect(pairs(rule(c).violations())).toEqual([`${UNDECLARED_BOX_MARK} @ ${String(L)}`])
   })
 
@@ -115,16 +127,52 @@ describe('bug 0445', () => {
   })
 })
 
+describe('a declared mark carrying a deferral (plan 0454)', () => {
+  it('a declared open [~] disposed deferred→ beside Deferred: none is the deferral lie', () => {
+    const c = at({ 'completed/b.md': DONE(['- [~] deferred→bug 0001', '', 'Deferred: none']) })
+    expect(pairs(honestyAtClose(c, { marks: { '~': 'open' }, report: 'return' }))).toEqual([
+      `ledger/deferred-none-lie @ ${String(L + 2)}`,
+    ])
+  })
+})
+
 describe('the builder reports what it cannot read (plan 0454)', () => {
+  it('a .warn() rule carrying an unread box still fails', () => {
+    expect(() => rule(page(['- [?] a'])).warn()).toThrow(/Architecture violation/)
+  })
+
+  it('a declared mark written padded is malformed, and its declaration does not clear it', () => {
+    expect(pairs(rule(page(['- [ ~ ] a']), { '~': 'open' }).violations())).toEqual([
+      `${MALFORMED_BOX} @ ${String(P)}`,
+    ])
+  })
+
+  it('a tab or a line ending after a mark reads as GFM reads it after [x]', () => {
+    const c = page(['- [~]\ttabbed', '- [~]', '  wrapped'])
+    expect(boxes(c, { '~': 'open' })).toEqual([`~:open@${String(P)}`, `~:open@${String(P + 1)}`])
+  })
+
+  it("the remedy for a malformed box keeps the author's mark and offers [x] only for done work", () => {
+    const [finding] = rule(page(['- [~]done'])).violations()
+    expect(finding?.suggestion).toContain('`[~]`')
+    expect(finding?.suggestion).toContain('Write `[x]` only if the work is done.')
+  })
+
   it('a positive rule whose every box is unread names the boxes as the cause beside the kernel finding', () => {
     const c = page(['- [?] a'])
     const found = taskItems(c)
       .should()
       .satisfy({ description: 'anything', evaluate: () => [] })
       .violations()
-    const ids = found.map((v) => v.ruleId ?? v.rule)
-    expect(ids).toContain(UNDECLARED_BOX_MARK)
-    expect(found.some((v) => v.message.includes('examined zero units'))).toBe(true)
+    expect(
+      found.map((v) => [v.ruleId === UNDECLARED_BOX_MARK ? v.ruleId : 'kernel', v.line]).sort(),
+    ).toEqual([
+      ['kernel', 0],
+      [UNDECLARED_BOX_MARK, P],
+    ])
+    expect(found.find((v) => v.ruleId !== UNDECLARED_BOX_MARK)?.message).toContain(
+      'examined zero units',
+    )
     const mark = found.find((v) => v.ruleId === UNDECLARED_BOX_MARK)
     expect(mark?.message).toContain('They are why this rule examined nothing.')
   })
@@ -197,9 +245,12 @@ describe('the builder reports what it cannot read (plan 0454)', () => {
     expect([...rule(c).violations()]).toEqual([])
   })
 
-  it('limit: [~] beside a link definition [~]: url yields no element', () => {
+  it('limit: [~] beside a link definition [~]: url yields no element, declared or not', () => {
+    // mdast reads `[~]` as a reference to the definition, so it is not a box at all; pinned so a
+    // change here is a decision.
     const c = page(['- [~] a', '', '[~]: https://example.com'])
-    expect(boxes(c)).toEqual([])
+    expect(boxes(c, { '~': 'open' })).toEqual([])
+    expect([...rule(c).violations()]).toEqual([])
   })
 
   it('[…] is an undeclared mark, cleared by the escape', () => {
@@ -332,6 +383,8 @@ describe('the model and the declaration (plan 0454)', () => {
     ['x', { x: 'done' }, /'x' is GFM's own/],
     ['X', { X: 'done' }, /'X' is GFM's own/],
     ['a state other than open or done', { '~': 'half' }, /'~' is declared "half"/],
+    ['a bracket', { ']': 'open' }, /"\]" can never be read as a mark/],
+    ['a tab', { '\t': 'open' }, /"\\t" can never be read as a mark/],
   ]
   for (const [what, marks, says] of refused) {
     it(`a declaration with ${what} is refused, naming the key`, () => {

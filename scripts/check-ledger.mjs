@@ -152,6 +152,8 @@ const finishedNotClosed = findFinishedNotClosed(
     doneFolders: s.lane.doneFolders,
     states: s.lane.states,
     terminalStates: s.lane.terminalStates,
+    // The same declaration `honestyAtClose` reads (plan 0454), so the two directions agree.
+    marks: s.lane.marks,
   })),
 )
 const finishedNotClosedViolations = finishedNotClosed.violations

@@ -1,5 +1,6 @@
 import { ArchConfigError } from '@nielspeter/eess'
 import type { ListItem, Nodes, Root } from 'mdast'
+import type { MdDocument } from './document.js'
 import { textOf } from './text-of.js'
 
 /** What a box mark declares: open (it blocks a close) or done. */
@@ -28,6 +29,18 @@ export interface MdTaskItemRef {
   readonly line: number
 }
 
+/** `checked` from `state`: the one place it is derived, so the two cannot drift. */
+export const checkedOf = (state: MdTaskItemRef['state']): boolean => state === 'done'
+
+/** A box a rule cannot judge (undeclared or malformed), with its document. */
+export type UnreadBox = MdTaskItemRef & { readonly doc: MdDocument }
+
+/** A box read as open or done, with its document: what a `taskItems()` rule sees. */
+export type ReadBox = Omit<MdTaskItemRef, 'state'> & {
+  readonly state: BoxMarkState
+  readonly doc: MdDocument
+}
+
 const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
 
 /** The graphemes of `s`, so `[→]` and a combining sequence are each one mark. */
@@ -52,6 +65,12 @@ export function validateMarks(
       throw new ArchConfigError(
         caller,
         `box mark '${key}' is not one character; a mark is the one character between the brackets.`,
+      )
+    }
+    if (key === '[' || key === ']' || (/^\s$/u.test(key) && key !== ' ')) {
+      throw new ArchConfigError(
+        caller,
+        `box mark ${JSON.stringify(key)} can never be read as a mark: a bracket ends the box, and GFM reads whitespace as its own.`,
       )
     }
     if (GFM_MARKS.has(key)) {
@@ -84,16 +103,15 @@ type Box = Pick<MdTaskItemRef, 'mark' | 'state' | 'text'>
  */
 function readBoxMark(
   item: ListItem,
-  source: string | undefined,
+  source: string,
   marks: Readonly<Record<string, BoxMarkState>>,
 ): Box | null {
   const paragraph = item.children[0]?.type === 'paragraph' ? item.children[0] : undefined
   if (typeof item.checked === 'boolean') {
+    // Only the item's own text is read, so a large document is not copied once per box.
     const at = item.position?.start.offset
-    const written =
-      source !== undefined && at !== undefined
-        ? /\[([ xX])\]/.exec(source.slice(at))?.[1]
-        : undefined
+    const end = item.position?.end.offset
+    const written = at !== undefined ? /\[([ xX])\]/.exec(source.slice(at, end))?.[1] : undefined
     const mark = written ?? (item.checked ? 'x' : ' ')
     const text = (paragraph ? textOf(paragraph) : textOf(item)).trim()
     return { mark, state: item.checked ? 'done' : 'open', text }
@@ -101,7 +119,7 @@ function readBoxMark(
   const first = paragraph?.children[0]
   if (paragraph === undefined || first?.type !== 'text' || !first.value.startsWith('[')) return null
   const start = paragraph.position?.start.offset
-  if (source !== undefined && start !== undefined && source.charAt(start) === '\\') return null
+  if (start !== undefined && source.charAt(start) === '\\') return null
   const close = first.value.indexOf(']')
   if (close < 0) return null
   const inner = first.value.slice(1, close)
@@ -115,7 +133,8 @@ function readBoxMark(
   const declared = marks[mark]
   const known = GFM_MARKS.has(mark) || declared !== undefined
   if (!known && LETTER_OR_DIGIT.test(mark)) return null
-  const exact = inner === mark && after.startsWith(' ') && text !== ''
+  // GFM takes a space, a tab or a line ending after the box; so does a mark.
+  const exact = inner === mark && /^\s/u.test(after) && text !== ''
   if (exact && !GFM_MARKS.has(mark)) {
     return { mark, state: declared ?? 'undeclared', text }
   }
@@ -129,12 +148,12 @@ function readBoxMark(
  * mdast supplies for free the false-positive guards a line-regex scanner has to emulate by hand: a
  * box inside fenced code is part of a `code` node, never a `listItem`; one inside a blockquote is
  * skipped here, as a quoted box is not a live ledger entry. A box's `text` is its first paragraph,
- * so a nested sub-item is its own box. Pass the document's `source` so an escaped `\[` is read as
- * text; without it, an escaped bracket reads as a box.
+ * so a nested sub-item is its own box. `source` is the document's text: mdast resolves an escaped
+ * `\[` to `[`, so the escape is read from the source.
  */
 export function collectTaskItems(
   root: Root,
-  options: TaskItemOptions & { readonly source?: string } = {},
+  options: TaskItemOptions & { readonly source: string },
 ): MdTaskItemRef[] {
   const marks = options.marks ?? {}
   const out: MdTaskItemRef[] = []
@@ -146,7 +165,7 @@ export function collectTaskItems(
     if (node.type === 'listItem' && !inBlockquote) {
       const box = readBoxMark(node, options.source, marks)
       if (box !== null) {
-        out.push({ ...box, checked: box.state === 'done', line: node.position?.start.line ?? 0 })
+        out.push({ ...box, checked: checkedOf(box.state), line: node.position?.start.line ?? 0 })
       }
     }
     if ('children' in node) {
