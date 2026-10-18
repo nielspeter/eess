@@ -22,7 +22,7 @@
 
   Where this sits among proposal 017's plans is the maintainer's to set.
 
-- **Followed by:** [plan 0469](../0469-havefield-a-document-has-a-value.md), `haveField`, which
+- **Followed by:** [plan 0469](./0469-havefield-a-document-has-a-value.md), `haveField`, which
   resolves this reader's occurrences.
 
 ## Problem

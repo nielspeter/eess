@@ -11,7 +11,7 @@
   build is filed as its own plan after the ruling, not here.
 - **Created:** 2026-10-18
 - **Builds after:** [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)
-  (`inDocuments`) and [plan 0469](./0469-havefield-a-document-has-a-value.md) (`haveField`).
+  (`inDocuments`) and [plan 0469](./completed/0469-havefield-a-document-has-a-value.md) (`haveField`).
 
 ## Problem
 

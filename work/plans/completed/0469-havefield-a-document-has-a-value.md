@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-18 from proposal 017's block 2; revised the same day after one
+- **State:** Done — built 2026-10-18 in PR #242 from the reviewed Draft, without a separate
+  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458, 0456, 0454 and 0468. "Build notes" says where the build departed from the text. Written 2026-10-18 from proposal 017's block 2; revised the same day after one
   review round (architect · product · enforcement · method).
 - **Implements:** proposal 017
 - **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
@@ -11,7 +12,7 @@
 - **Effort:** Medium. One dual-use method on `docs()`, a resolver for each document, and its
   findings.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0468](./completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md), whose
+- **Builds after:** [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md), whose
   reader it resolves, and therefore after 0468's own preconditions.
 
 ## Problem
@@ -224,18 +225,64 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 - **A value agreeing with its folder:** block 5, after its ADR. It reuses this resolver.
 - **An exported `Predicate<MdDocument>` for `inDocuments`.** Lifting `haveField` onto other elements
   through block 12 would drop these findings, because `inDocuments` has no door for them. That door is
-  [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md).
+  [plan 0470](../0470-a-lifted-predicate-carries-its-findings.md).
 - **`honestyAtClose` rebuilt on `haveField`:** the second Review's decision 1, and bug 0444.
 - **Any region other than the header** (a named section, for example): block 11.
 - **Requiring `Severity`:** 22 live bugs carry none (measured 2026-10-18). Giving each one a level is a
   judgement per bug, not part of this build.
 
+## Build notes — 2026-10-18
+
+Where the build departed from the text above, each overrulable:
+
+- **The allowed-value message is `resolveAgainst`'s** (`'Shipped' (Status, line 3) does not match
+/open|fixed/`), not the Design's `is not in the allowed set (open, fixed)`: the Design also says
+  "one concept, one message", and the two cannot both hold. `judge` is shared from
+  `packages/md/src/builders/vocabulary.ts`.
+- **An empty value is a fifth unreadable cause:** `Status at line 3 has no value this rule can read`.
+  Plan 0468's review made `readFields` yield an empty value rather than drop it, so the resolver
+  sees it; a document whose only value is empty is not selected and is reported.
+- **The resolver reads with `'code-blocks'`,** as plan 0468's review asked: reading past an unclosed
+  fence would err toward "present".
+- **A selected document can still carry findings:** prose that disagrees, a label elsewhere in a
+  form the rule does not read, and (as a condition) a value outside `oneOf`. "One cause per
+  document" holds for the documents that are not selected.
+- **"No field" names the labels the document carries,** or says it carries none.
+- **The dogfood rule is `corpus/state-present` over live plans and bugs** (the lanes from
+  `scripts/lib/ledger-lanes.mjs`), green on its first run over 222 records. Two non-vacuity rows: a
+  live bug with no State, and one with two. Proposals are left out, as the Design allows.
+- **The findings module is `packages/md/src/builders/have-field.ts`,** not
+  `predicates/document.ts` and `conditions/structure.ts`: one verdict per document feeds the
+  predicate, the condition and the selector's findings. The unnamed-form scan was split into a
+  per-document helper (`unreadFields`) so `haveField` reuses it.
+- **The example is `examples/md/a-fixed-bug-shows-its-verification.test.ts`,** with two judgements (a
+  fixed bug missing the section, a Status in a form the rule does not read).
+- **Sabotage row 6 is beyond the plan's five:** the dogfood rule checking nothing. Row 3's first
+  mutation broke the file's syntax (the test was "absent", not red); a cleaner one was used.
+
 ## Progress ledger
 
-- [ ] Phase 1: resolver
-- [ ] Phase 2: `haveField` and its findings in both phases
-- [ ] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
-- [ ] Sabotage rows 1–4 red on their named tests; suites green; durations reported
-- [ ] Close: this plan → `completed/`; boards
+- [x] Phase 1: resolver
+- [x] Phase 2: `haveField` and its findings in both phases
+- [x] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset (the load-bearing
+      check proves 7 of 7 judgements across 4 examples, 10 s)
+- [x] Sabotage rows 1–4 red on their named tests; suites green; durations reported (rows 1–6 in the
+      table below, run at 54ec94d6 in the build worktree: each named check green on the untouched
+      tree and red with its row applied, files restored by `git checkout`, tree clean, 35 s)
+- [ ] `npm run validate` green; duration reported
+- [x] Close: this plan → `completed/`; boards
 
 Deferred: none
+
+**Sabotage matrix, measured 2026-10-18 at 54ec94d6:**
+
+| row | sabotage                                         | checked by                                                                | named test                                                                                                | baseline | sabotaged | time  |
+| --- | ------------------------------------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------- | --------- | ----- |
+| 1   | the resolver prefers the first occurrence        | `packages/md/tests/builders/have-field.test.ts`                           | two structured occurrences conflict, agreeing or not                                                      | green    | red       | 1.6s  |
+| 2   | collectViolations skips the predicate phase      | `packages/md/tests/builders/have-field.test.ts`                           | a value only below the header is reported as outside the region, in either position                       | green    | red       | 3.0s  |
+| 2   | collectViolations skips the predicate phase      | `packages/md/tests/builders/have-field.test.ts`                           | selects only the allowed documents; reports the unreadable ones; is silent on an open bug and on a README | green    | red       | 3.0s  |
+| 3   | the condition passes a document with no field    | `packages/md/tests/builders/have-field.test.ts`                           | no occurrence: no field, naming the labels the document does carry                                        | green    | red       | 1.5s  |
+| 4   | the resolver counts split elements               | `packages/md/tests/builders/have-field.test.ts`                           | a split field is one occurrence, never a conflict with itself                                             | green    | red       | 1.7s  |
+| 5   | the outside-the-region cause dropped             | `packages/md/tests/builders/have-field.test.ts`                           | a value only below the header is reported as outside the region, in either position                       | green    | red       | 1.7s  |
+| 6   | check:corpus's State-present rule checks nothing | `QA_ONLY=corpus/state-present node scripts/check-nonvacuity.mjs`          | corpus/state-present                                                                                      | green    | red       | 25.6s |
+| 6   | check:corpus's State-present rule checks nothing | `QA_ONLY=corpus/state-present-conflict node scripts/check-nonvacuity.mjs` | corpus/state-present-conflict                                                                             | green    | red       | 25.6s |
