@@ -11,9 +11,9 @@
 
 A live record whose State is written as a heading (`## State: Done`) is reported by both
 `corpus/state-present` (`scripts/check-corpus.mjs:336`), whose `haveField` reads the bold form only,
-and `corpus/state-in-a-form-not-read`, the per-lane rule's report of a label in a form it does not
-read (`scripts/check-corpus.mjs:309`). One cause, two findings (ADR-016's one per cause), and the
-gate's summary counts both.
+and the per-lane rule `corpus/state-in-vocabulary-<lane>` (`scripts/check-corpus.mjs:309`), which
+reports a label in a form it does not read. That is one cause and two findings, and the gate's
+summary counts both.
 
 ## Fix
 

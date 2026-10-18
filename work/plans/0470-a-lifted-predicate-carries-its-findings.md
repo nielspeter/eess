@@ -28,6 +28,9 @@ findings on. So `haveField` lifted onto `taskItems()` would drop an unreadable d
   examined.
 - **How `.select()` and `correspondence()` behave**, since neither goes through `collectViolations`.
 - **Which public predicate `haveField` then exports.**
+- **Taken over from plan 0469:** a dogfood rule that uses `haveField` in selector position, and one
+  verdict per document and use (each use recomputes it, and a lift recomputes it per element). The
+  build plan this spike files owns both.
 
 ## Out of scope
 

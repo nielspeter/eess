@@ -281,7 +281,7 @@ Where the build departed from the text above, each overrulable:
     where the lifted form is built); the rule's records are chosen with a path prefix rather than a
     glob, so a changed lane root reds as zero examined without naming the glob
     ([bug 0484](../../bugs/0484-state-present-picks-records-by-a-path-prefix.md)); a `## State:`
-    heading is reported by both `corpus/state-present` and `corpus/state-in-a-form-not-read`,
+    heading is reported by both `corpus/state-present` and `corpus/state-in-vocabulary-<lane>`,
     counted twice in the summary ([bug 0483](../../bugs/0483-a-state-heading-is-counted-twice.md));
     `.select()` carries none of these findings (plan 0470's question); the outside-the-header cause
     reads structured forms only, so a plain or loosely formatted label below the header is "no
@@ -334,7 +334,7 @@ Deferred: plan 0470 (selector-position dogfood, one verdict per use), bug 0482, 
 
 The SHAs above are this branch's commits before its rebase and squash merge (PR #242), so they do
 not resolve on `main`. What they evidence holds for the merged tree: the tree validated at 9ec9c2a
-differs from the PR's merged tree only in this record (`git diff --stat`, measured 2026-10-18).
+differs from the PR's merged tree only in records under `work/` (`git diff --stat`, measured 2026-10-18).
 
 **Sabotage matrix, measured 2026-10-18 at 12c3323 (after the review and its verification):**
 
