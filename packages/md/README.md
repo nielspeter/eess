@@ -162,7 +162,9 @@ show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/exa
 
 Every element that belongs to a document (a box, a link, a pointer, a row, a term, a code block)
 carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
-and `areFrozen()` read the `frozen` globs you pass `corpus()`; `haveSectionPredicate(name)` is the
+and `areFrozen()` read the `frozen` globs you pass `corpus()`, or, when you pass none, its default
+(`DEFAULT_FROZEN`: `**/completed/**` and `**/archived/**`), so a page under `completed/` is not live
+unless you pass `frozen` yourself; `haveSectionPredicate(name)` is the
 predicate form of `haveSection` (the bare name is the condition; it may be renamed when sections
 become elements). A rule over boxes in the live pages that have a `Verification` section, and its
 guard:
@@ -210,8 +212,12 @@ simplification `.that().satisfy(areLive()).should().haveSection(SECTION)` is a d
 claim (every live document has the section). `.expectNonEmpty()` on the ratchet does not do this
 job: in eess-md a `notExist()` rule that declares it can never be green, since it reds on every
 element it examines and on examining none. (eess-ts reports that combination as a finding of its
-own.) A folder scope is different: a broken glob (`inDocuments(resideInFolder('/work/**'))`) is
-reported on an absence rule exactly as the bare predicate is on `docs()`.
+own.) A scope built from `resideInFolder` or `resideInFile` is different: a broken glob
+(`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
+predicate is on `docs()`. `areFrozen()` and `areLive()` are not: nothing checks the `frozen` globs
+`corpus()` takes, so a broken one (`frozen: ['/archive/**']`) leaves an absence rule over
+`inDocuments(areFrozen())` green, and on a positive rule the finding names the predicate, not the
+`frozen` option.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
 haveSectionPredicate('Verificaton'))).should().resolve()` reds with `inDocuments(have section

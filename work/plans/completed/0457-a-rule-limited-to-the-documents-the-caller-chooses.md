@@ -14,7 +14,8 @@
   to a folder but not to "documents whose `Status` is `done`", so that judgement exists only inside
   `honestyAtClose`, with its fixed label.
 - **Effort:** Medium. One lifting predicate (taking over `codeBlocks()`' private copy), two frozen
-  predicates, one section predicate exported, a diagnosis override in six builders, one field on
+  predicates, one section predicate exported, a diagnosis override in the corpus builders' shared
+  base and in `codeBlocks()` (the plan said six builders; see Build notes), one field on
   `ParsedCodeBlocks`, one example. The kernel changes by one docstring only.
 - **Created:** 2026-10-17
 - **Builds after:** plans 0458, 0456 and 0454, in the build order the maintainer set on 2026-10-18
@@ -274,11 +275,12 @@ by plan 0456's check, because the lift forwards `globs` and the kernel walks com
 **What ADR-021 asks of the lift (recorded 2026-10-18 from spike 0485).** A document predicate can
 declare that it cannot judge a document (`Predicate.undecided`), as `haveField` does. The lift
 forwards it: `undecided(e)` is `p.undecided(e.doc)`, memoized per document like the verdict, and the
-lifted `test` never asks `p.test` of a document `p.undecided` reports. If this plan lands before
-[plan 0486](./0486-a-predicate-that-cannot-judge-says-so.md), `inDocuments` refuses a predicate
-that declares the member instead, so the lift never ships fail-open. `SCOPES` has the same
-combinator blindness ADR-021 rejected a registry for; it only sharpens a message on a rule that is
-red anyway, so it may stay, and the build says so.
+lifted `test` never asks `p.test` of a document `p.undecided` reports. (This paragraph first said
+what to do if this plan landed before [plan 0486](./0486-a-predicate-that-cannot-judge-says-so.md);
+0486 landed first, so the lift forwards the member, as the Build notes record.) `SCOPES` has the
+same combinator blindness ADR-021 rejected a registry for. It stays: it only changes the words of a
+finding on a rule that is red anyway, never a verdict or its suppressibility (PR #245's enforcement
+review checked this), and a scope inside a combinator gets the generic finding, pinned by a test.
 
 **`.select()` with a dead scope** gives an empty `correspondence()` side with no scope named; the
 correspondence's own empty-side finding speaks. Documented beside the combinator limit.
@@ -291,9 +293,12 @@ carries `examined` as the elements count. It computes no frozen-excluded count o
 green-path printing and the frozen-excluded count are deferred to bug 0174 and recorded on that bug
 in this PR. That is a narrowing of the proposal's wording.
 
-**Not dogfooded here.** This repository's one document-scoped judgement is `check:ledger`'s, made
-by `honestyAtClose`; rebuilding it from public blocks waits on blocks 1, 2 and 5 (proposal 017,
-second Review decision 1).
+**Dogfooded in `check:corpus`.** This plan first said nothing here could use it, which was wrong
+(PR #245's enforcement review): `scripts/check-corpus.mjs` lifted a live-record test onto `fields()`
+lines by hand, and wrote `!d.frozen` for `areLive()` on `docs()`. Its three State rules now select
+live records with `areLive()`, `resideInFolder`/`resideInFile` and `not`/`or`, lifted onto lines with
+`inDocuments`; see Build notes. `check:ledger`'s own judgement, made by `honestyAtClose`, still waits
+on blocks 1, 2 and 5 (proposal 017, second Review decision 1).
 
 ## Phases
 
@@ -413,21 +418,23 @@ reading the declaration was bug 0467, both fixed in PR #236.
 
 ## Files Changed
 
-| file                                                                                     | change                                                          |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `packages/md/src/predicates/in-documents.ts`                                             | new: `liftToDocument`, `inDocuments`, `scopeDiagnosis`          |
-| `packages/md/src/predicates/document.ts`                                                 | `areFrozen()`, `areLive()`                                      |
-| `packages/md/src/builders/code-blocks.ts`                                                | `onDocument` removed; `liftToDocument`; override                |
-| `packages/md/src/model/code-block-parse.ts`                                              | `ParsedCodeBlocks.documents`                                    |
-| `packages/md/src/builders/{task-items,links,pointers,rows,vocabulary}.ts`                | `deadGlobDiagnosis()` override                                  |
-| `packages/md/src/index.ts`                                                               | four exports                                                    |
-| `packages/md/tests/in-documents.test.ts`, `packages/md/tests/fixtures/in-documents/`     | new                                                             |
-| `examples/public-surface.test.ts`, checked by `scripts/check-surface.mjs`                | the new names                                                   |
-| `examples/md/in-documents.test.ts`, `examples/md/fixtures/in-documents/` (three folders) | new (plan 0458's gate; no row of its own in `check:nonvacuity`) |
-| `docs/markdown.md`, `packages/md/README.md`                                              | the section                                                     |
-| `work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md`                     | the owed green-path counts, recorded (this PR, at review)       |
-| `packages/core/src/rule-builder.ts`                                                      | `deadGlobDiagnosis()`'s docstring (comment only)                |
-| `.changeset/md-in-documents.md`                                                          | `@nielspeter/eess-md`: minor; `'@nielspeter/eess': none`        |
+| file                                                                                     | change                                                           |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `packages/md/src/predicates/in-documents.ts`                                             | new: `liftToDocument`, `inDocuments`, `scopeDiagnosis`           |
+| `packages/md/src/predicates/document.ts`                                                 | `areFrozen()`, `areLive()`                                       |
+| `packages/md/src/builders/code-blocks.ts`                                                | `onDocument` removed; `liftToDocument`; override                 |
+| `packages/md/src/model/code-block-parse.ts`                                              | `ParsedCodeBlocks.documents`                                     |
+| `packages/md/src/builders/corpus-rule-builder.ts`                                        | the `deadGlobDiagnosis()` override, once for the corpus builders |
+| `packages/md/src/builders/{docs,task-items,links,pointers,rows,vocabulary}.ts`           | each builder's `noun`                                            |
+| `packages/md/src/index.ts`                                                               | four exports                                                     |
+| `packages/md/tests/in-documents.test.ts`                                                 | new (its corpora are built in the test with `tree()`)            |
+| `scripts/check-corpus.mjs`                                                               | live-record selection from the public predicates (PR #245)       |
+| `examples/public-surface.test.ts`, checked by `scripts/check-surface.mjs`                | the new names                                                    |
+| `examples/md/in-documents.test.ts`, `examples/md/fixtures/in-documents/` (three folders) | new (plan 0458's gate; no row of its own in `check:nonvacuity`)  |
+| `docs/markdown.md`, `packages/md/README.md`                                              | the section                                                      |
+| `work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md`                     | the owed green-path counts, recorded (this PR, at review)        |
+| `packages/core/src/rule-builder.ts`                                                      | `deadGlobDiagnosis()`'s docstring (comment only)                 |
+| `.changeset/md-in-documents.md`                                                          | `@nielspeter/eess-md`: minor; `'@nielspeter/eess': none`         |
 
 ## Test inventory
 
@@ -527,8 +534,18 @@ peer, not a dependency, so it does not move. The four names land in the surface 
   block 11/3's public-name decision, held in proposal 017.
 - Green-path counts, the frozen-documents-excluded count included: bug 0174.
 - Changing `corpus()`'s frozen default: proposal 017, second Review decision 2.
-- `haveField` (block 2), the predicate the proposal's headline example uses: blocks 1 and 2 are not
-  yet plannable.
+- `haveField` (block 2), the predicate the proposal's headline example uses: built since by plan
+  0469 and plan 0486; this plan's lift carries it.
+- Checking the `frozen` globs `corpus()` takes: a broken one empties `inDocuments(areFrozen())` or
+  `inDocuments(areLive())` with no finding under `notExist()`. Recorded as
+  [bug 0499](../../bugs/0499-corpus-does-not-check-its-frozen-globs.md); the docs say so.
+- A kernel combinator for lifting a predicate along a projection: one dialect needs it today. When a
+  second does, it belongs beside `not`/`and`/`or` rather than as a second hand copy (PR #245's
+  architect review, m-5).
+- The leftovers PR #245's architect review found (the kernel hook's name, two hand lifts beside
+  `liftToDocument`, `documentsLoaded`): [bug 0501](../../bugs/0501-md-and-kernel-leftovers-from-plan-0457.md).
+- eess-md's `notExist()` with `.expectNonEmpty()`, which can never be green:
+  [bug 0500](../../bugs/0500-eess-md-notexist-with-expectnonempty-can-never-be-green.md).
 - Teaching kernel combinators to forward a scope: the remedy is composing inside the scope.
 - The kernel's `cardinalitySelectorFault()` (bug 0460), md's glob-based override of it, and the
   empty-corpus source finding: plan 0456.
@@ -690,7 +707,8 @@ Where the build departed from the text above, each overrulable:
 
 - **Built from Draft.** The plan's State was Draft when the coordinator ordered the build; the
   `plan-build` ritual would refuse that. Its review rounds had settled every open question, and the
-  departures below are the ones the code met.
+  departures below are the ones the code met. Whether the maintainer approved skipping `Ready` is
+  not recorded here: the order came from the coordinator, and this record does not claim more.
 - **The lift is three-valued (ADR-021, built by plan 0486 since this plan was written).** The memo
   holds the kernel's `Membership` per document, computed by the kernel's `membership([p], 'all', d)`,
   not a boolean. `liftToDocument` declares `undecided` (`p.undecided(e.doc)`, from the same memo)
@@ -738,7 +756,46 @@ Where the build departed from the text above, each overrulable:
   override), 13 to 16 (ADR-021's forwarding, the lift never asking `test` of an undecided document,
   the lift's refusal, the memo) and 17 (`codeBlocks()`' own predicates registered as scopes, which
   would change their rule text).
-- **Measured:** the md suite is 524 tests in about 2.5 s; `in-documents.test.ts` holds 32 of them.
+- **Measured:** the md suite was 524 tests in about 2.5 s at the first build, with 32 in
+  `in-documents.test.ts`; after PR #245's fixes it is 529, with 37 there.
+
+### PR #245's review, 2026-10-19
+
+The coordinator's decisions on the five reviews, each built here:
+
+- **A rule with no scope no longer extracts its elements twice (architect I-1).** `scopeDiagnosis`
+  takes the elements as a thunk and returns before calling it when the rule has no scope. Measured
+  on this repository's corpus (523 documents under `work/`, `adr/`, `docs/`), best of 7 after a warm
+  run: `links(c).that().satisfy(none).should().notExist()` took 39.7 ms before and 17.9 ms after
+  (19.6 ms on a second run); the same rule on `taskItems` 23.2 ms before and 10.5 ms after (15.1 ms
+  on a second run).
+- **The docs say which scopes the selector check judges (enforcement I1, product M1).** Only
+  `resideInFolder`/`resideInFile`; `areFrozen()`/`areLive()` read globs nothing checks, and the docs
+  name `DEFAULT_FROZEN` (`**/completed/**`, `**/archived/**`). The defect is
+  [bug 0499](../../bugs/0499-corpus-does-not-check-its-frozen-globs.md), with its measurements.
+- **`check:corpus` dogfoods it (enforcement I2).** One `liveRecordIn(lane)`, built as
+  `and(areLive(), resideInFolder(root), not(or(done folders)), not(or(board files)))`, serves the
+  per-lane State rules (through `inDocuments`), `corpus/state-present` and
+  `corpus/closed-records-sit-in-done-folders`. Its summary prints the same counts before and after
+  (24 plans · 196 bugs State lines in 220 records; 0 closed of 220 live records, 0 undecided). The
+  eight `check:nonvacuity` rows over those rules each fail on their violating input (49 s,
+  `QA_ONLY`). The comment saying `rows()` has no per-document filter is corrected.
+- **ADR-021's Enforcement paragraph** carries a dated correction note: the eess-md test drives
+  `inDocuments`, and rows 13 to 16 below prove the forwarding.
+- **The messages (product M5, architect m-4).** One scope says "the scope matched K of N"; several
+  say "the scopes together matched K of N"; an empty intersection says "no document matches every
+  scope (each matches some of the corpus's N)".
+- **Testing M1 to M5.** New rows: two live scopes counted as their intersection, and the empty
+  intersection; the "(U could not be judged)" note counting only dead scopes; `frozen: []` rebuilt
+  on a `completed/` path the default would freeze, with identity assertions; a scope over a corpus
+  that loaded nothing gives the empty-source finding; `.select()` through the lift refuses an
+  undecided document; `not()` around a scope gives the generic finding; the memo rows assert
+  elements, not counts. Rows 18 to 20 of the matrix are the reviewer's mutants, each red on its row.
+- **Records:** bugs [0499](../../bugs/0499-corpus-does-not-check-its-frozen-globs.md),
+  [0500](../../bugs/0500-eess-md-notexist-with-expectnonempty-can-never-be-green.md) (no earlier record
+  covers eess-md; bug 0473 is eess-ts's) and
+  [0501](../../bugs/0501-md-and-kernel-leftovers-from-plan-0457.md), on the board.
+- **Not here:** the predicate-and-condition naming (product I1) is plan 0496's.
 
 ## Progress ledger
 
@@ -746,43 +803,54 @@ Where the build departed from the text above, each overrulable:
 - [x] Phase 2: `ParsedCodeBlocks.documents` and the diagnosis (one base override and one in
       `codeBlocks()`, see Build notes)
 - [x] Phase 3: example under plan 0458's gate, docs
-- [x] Sabotage rows run, each red then green (19 rows below)
+- [x] Sabotage rows run, each red then green (22 rows below)
 - [x] `deferred→bug 0174` green-path counts (documents matched, elements examined) and the
       frozen-documents-excluded count on every path, recorded on that bug in PR #235
-- [ ] validation-owed: `npm run validate` green at the branch head; duration reported (it runs after
-      this record is written; its result is in the hand-off, and CI is the gate)
+- [x] `npm run validate` green, done otherwise: exit 0 in 897 s at 4625486, the branch head before
+      the rebase onto main, whose tree is the same as 15a5d21's. PR #245's fixes after it are gated
+      by CI on the PR.
 - [x] Close: this plan → `completed/`; ROADMAP row
 
 Deferred: bug 0174
 
-**Sabotage matrix, 2026-10-18,** at 5b1e2f2. Each row: baseline green (the three test files
-below), sabotage applied, eess-md rebuilt, its tests run, the file restored by `git checkout`, tree
-clean after. The run took 33 s, the baseline 3 s of it. `in-documents` is
-`packages/md/tests/in-documents.test.ts`; `have-field-undecided` is
-`packages/md/tests/builders/have-field-undecided.test.ts`; `example` is
-`examples/md/in-documents.test.ts`.
+**Sabotage matrix.** First run 2026-10-18 at 5b1e2f2, a commit from before the branch was rebased
+onto main; its `packages/`, `examples/` and `scripts/` tree is identical to b1a193c's (`git diff`
+empty). Run again 2026-10-19 at dcff39f, after PR #245's code fixes, with rows 18 to 20 added and
+every row running all three test files, so each red set is whole; the commits after dcff39f change
+nothing under `packages/` or `examples/`. That run is the table below: 22 rows, 73 s, baseline green,
+each sabotage applied, eess-md rebuilt, the three files run, the file restored by `git checkout`,
+tree clean after. `in-documents` is `packages/md/tests/in-documents.test.ts` (37 tests);
+`have-field-undecided` is `packages/md/tests/builders/have-field-undecided.test.ts`; `example` is
+`examples/md/in-documents.test.ts`. The red column counts failing tests per file. Each mutant is
+one line in `packages/md/src` unless the row says otherwise.
 
-| row | sabotage                                                  | red                                | named test in the failure                                          | time |
-| --- | --------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------ | ---- |
-| 1   | `inDocuments`' `test` returns `true`                      | in-documents                       | the scoped rule is green where the unscoped one is red             | 1.5s |
-| 2   | `inDocuments`' `test` returns `false`                     | in-documents, example              | violating-open-box-in-scope: …                                     | 2.2s |
-| 3   | the memo keys on `relPath`                                | in-documents                       | two corpora holding the same relPath with opposite verdicts …      | 1.5s |
-| 4   | `scopeDiagnosis` returns `undefined`                      | in-documents                       | a dead scope under a positive rule reds with the reason naming it  | 1.5s |
-| 5   | a content scope faulted under `notExist()`                | in-documents                       | a dead content scope under notExist() is green …                   | 1.5s |
-| 6   | `liftToDocument` drops `globs`                            | in-documents                       | a folder scope under notExist() is judged …                        | 1.5s |
-| 7   | step 1 checks only the first scope                        | in-documents                       | two scopes, the second dead: …                                     | 1.5s |
-| 7b  | step 1 names only the first dead scope                    | in-documents                       | every dead scope is named, not only the first                      | 1.5s |
-| 8   | step 2's `before` check removed                           | in-documents                       | a non-scope predicate that emptied the selection …                 | 1.5s |
-| 9   | the override removed from `CorpusRuleBuilder`             | in-documents                       | taskItems(), links(), pointers(), rows(), terms()                  | 1.5s |
-| 9b  | the override removed from `CodeBlockRuleBuilder`          | in-documents                       | codeBlocks(), counting every document …                            | 1.5s |
-| 10  | `areFrozen` reads `!d.frozen`                             | in-documents                       | select by the corpus's frozen globs, lifted onto boxes             | 1.5s |
-| 11  | `codeBlocks()` counts documents from `blocks`             | in-documents                       | codeBlocks(), counting every document …                            | 1.5s |
-| 12  | the guard's fixture loads nothing (the example's `roots`) | example                            | violating-scope-matches-nothing: …                                 | 1.5s |
-| 13  | the lift stops forwarding `undecided`                     | in-documents, have-field-undecided | block 12: …                                                        | 2.2s |
-| 14  | the lifted `test` asks `p.test` of every document         | in-documents                       | forwards undecided, memoized per document, and never asks test() … | 1.5s |
-| 15  | the lifted `test` does not refuse                         | in-documents                       | the lifted test() refuses an undecided document, naming the cause  | 1.5s |
-| 16  | the memo is bypassed                                      | in-documents                       | runs the inner predicate once per document, …                      | 1.5s |
-| 17  | `codeBlocks()`' own predicates registered as scopes       | in-documents                       | codeBlocks() keeps its own predicates' rule text …                 | 1.5s |
+| row | mutant                                                                                                                    | red (failing tests)                                     | named test in the failure                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 1   | `liftToDocument`'s `test` body becomes `return true`                                                                      | in-documents 26, have-field-undecided 2, example 3 (31) | the scoped rule is green where the unscoped one is red                              |
+| 2   | `liftToDocument`'s `test` body becomes `return false`                                                                     | in-documents 11, have-field-undecided 2, example 1      | violating-open-box-in-scope: …                                                      |
+| 3   | the memo is a `Map` keyed on `doc.relPath`                                                                                | in-documents 1                                          | two corpora holding the same relPath with opposite verdicts …                       |
+| 4   | `scopeDiagnosis` returns `undefined` first                                                                                | in-documents 15                                         | a dead scope under a positive rule reds with the reason naming it                   |
+| 5   | `CorpusRuleBuilder.cardinalitySelectorFault()` returns a fault when `scopeDiagnosis` gives a reason (does not type-check) | in-documents 5, have-field-undecided 2, example 2       | a dead content scope under notExist() is green …                                    |
+| 6   | `liftToDocument` stops forwarding `globs`                                                                                 | in-documents 1                                          | a folder scope under notExist() is judged …                                         |
+| 7   | step 1 filters `scopes.slice(0, 1)` (only the first scope checked)                                                        | in-documents 3                                          | two scopes, the second dead: …                                                      |
+| 7b  | step 1 names `dead.slice(0, 1)` (only the first dead scope named)                                                         | in-documents 1                                          | every dead scope is named, not only the first                                       |
+| 8   | step 2's `if (before === 0) return undefined` removed                                                                     | in-documents 1                                          | a non-scope predicate that emptied the selection …                                  |
+| 9   | `CorpusRuleBuilder`'s `deadGlobDiagnosis()` override removed                                                              | in-documents 14                                         | taskItems(), links(), pointers(), rows(), terms()                                   |
+| 9b  | `CodeBlockRuleBuilder`'s `deadGlobDiagnosis()` override removed                                                           | in-documents 1                                          | codeBlocks(), counting every document …                                             |
+| 10  | `areFrozen`'s test reads `!d.frozen`                                                                                      | in-documents 2                                          | select by the corpus's frozen globs, lifted onto boxes                              |
+| 11  | `codeBlocks()` passes the documents of its blocks, not `project.documents`                                                | in-documents 1                                          | codeBlocks(), counting every document …                                             |
+| 12  | the example's `load` uses `roots: ['nothing/**']` (`examples/md/in-documents.test.ts`)                                    | example 3                                               | violating-scope-matches-nothing: …                                                  |
+| 13  | `liftToDocument` stops declaring `undecided`                                                                              | in-documents 2, have-field-undecided 4                  | block 12: …; in in-documents, forwards undecided … and .select() through the lift … |
+| 14  | the lifted `test` calls `p.test(element.doc)` before reading the memo                                                     | in-documents 3                                          | forwards undecided, memoized per document, and never asks test() …                  |
+| 15  | the lifted `test` returns `false` for an undecided document instead of refusing                                           | in-documents 1                                          | the lifted test() refuses an undecided document, naming the cause                   |
+| 16  | the memo's `if (known !== undefined) return known` removed                                                                | in-documents 2                                          | runs the inner predicate once per document, …                                       |
+| 17  | `codeBlocks().resideInFolder` registers `inDocuments(p)` instead of `liftToDocument(p, p.description)`                    | in-documents 1                                          | codeBlocks() keeps its own predicates' rule text …                                  |
+| 18  | step 2 counts documents with `scopes.some` for `scopes.every`                                                             | in-documents 2                                          | two live scopes count the documents that match every scope                          |
+| 19  | `corpus()` falls back to `DEFAULT_FROZEN` when `frozen` is empty (`packages/md/src/corpus.ts`)                            | in-documents 1                                          | a corpus built with frozen: [] has no frozen document, …                            |
+| 20  | the undecided note counts over `scopes.some`, not `dead.some`                                                             | in-documents 1                                          | only a dead scope counts the documents it could not judge                           |
 
-The matrix script and its output are this session's scratch files, not kept in the repository: the
-table is the record.
+The 2026-10-18 run at 5b1e2f2 ran each row's named files only, so its row 1 listed in-documents
+alone; PR #245's enforcement review measured 29 failing tests on that tree (24, 2 and 3), and the run
+above counts 31 (26, 2 and 3) with the five rows added since. The matrix script and its output are
+this session's scratch files, not kept in the repository; the mutant column is written so a row can
+be rebuilt.
