@@ -220,6 +220,24 @@ describe('corpusFromText: pointers resolve in memory', () => {
   })
 })
 
+describe('corpusFromText: frozen globs are judged as corpus() judges them (bug 0499)', () => {
+  const files = { 'docs/a.md': '# A\n', 'docs/b.md': '# B\n' }
+
+  it('an explicit frozen glob that marks nothing is refused, and accepted once declared', () => {
+    expect(() => corpusFromText(files, { frozen: ['**/wont-do/**'] })).toThrow(
+      "corpus frozen glob '**/wont-do/**' marks none of the corpus's 2 documents",
+    )
+    const c = corpusFromText(files, {
+      frozen: ['**/wont-do/**'],
+      expectEmptyFrozen: ['**/wont-do/**'],
+    })
+    expect(c.documents().map((d) => [d.relPath, d.frozen])).toEqual([
+      ['docs/a.md', false],
+      ['docs/b.md', false],
+    ])
+  })
+})
+
 describe('corpusFromText: roots', () => {
   it('defaults to every .md key', () => {
     const c = corpusFromText({ 'a.md': '# A\n', 'src/b.ts': 'export {}\n' })

@@ -330,7 +330,8 @@ parity test compares sets, not arrays.
 
 - A text corpus that reads part of its files from disk (Design: one source).
 - Reading waivers from memory. That is a kernel capability (ADR-012's shape: source text the kernel
-  takes from its caller), refused here instead. If a caller needs it, it is a record of its own.
+  takes from its caller), refused here instead:
+  [bug 0520](../../bugs/0520-waivers-in-a-text-corpus-are-refused.md).
 - Git tracking (bug 0446). A text corpus has no untracked files; whatever bug 0446 decides for
   `corpus()` either passes through `assembleCorpus` or is disk-only, and that bug says which.
 - `DEFAULT_FROZEN` (017's second Review, decision 2): this plan shares it and does not change it.
@@ -402,6 +403,13 @@ overrulable:
 - **`expectEmptyRoots` (bug 0475) passes through:** it landed after this plan was written, and
   `assembleCorpus` holds the dead-root and declared-empty checks it feeds, so `TextCorpusOptions`
   carries it with `corpus()`'s meaning. The dead-root refusal applies to both constructors.
+- **`expectEmptyFrozen` (bug 0499) passes through too, the coordinator's decision (2026-10-19, PR
+  #251):** combining this branch with bug 0499's, `TextCorpusOptions` carries `expectEmptyFrozen`,
+  and both constructors share bug 0499's frozen-glob judgement through `assembleCorpus`. So a text
+  corpus whose explicit `frozen` marks none of its documents is refused unless the glob is declared
+  in `expectEmptyFrozen`, as `corpus()` refuses it; the omitted default is not judged, on either
+  constructor. Held by the row "an explicit frozen glob that marks nothing is refused, and accepted
+  once declared" in `packages/md/tests/corpus-from-text.test.ts`. It reds both ways (measured 2026-10-19): with `corpusFromText` dropping `expectEmptyFrozen`, and with it dropping `frozen`.
 - **The path refusals are one notion, "not one canonical repo-relative POSIX path":** beyond the
   table, an empty key, `a/./b.md`, a trailing `/` and a Windows drive letter are refused too. The
   waiver refusal names the earliest directive line among the kernel's exclusions and warnings.

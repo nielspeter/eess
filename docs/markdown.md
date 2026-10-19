@@ -125,7 +125,9 @@ same files on disk; a parity test over this package's own fixture trees holds th
 options, `TextCorpusOptions`, are `corpus()`'s, with two differences: `roots` defaults to every `.md` key in the map, and
 there is no `cwd`. `frozen` keeps its default, so a document under `completed/` is frozen here too.
 A pointer's target is in the map or it is not there: the text corpus never reads your real code.
-`root` (what each document reports in `file`) defaults to `/__eess_text_corpus__`.
+`root` (what each document reports in `file`) defaults to `/__eess_text_corpus__`. So a test asserts
+on a finding's `element` or a document's `relPath`, or sets `root` itself, rather than on `file`,
+which carries that placeholder.
 
 What cannot behave as on disk is refused with an `ArchConfigError`, never silently different:
 
