@@ -1,6 +1,7 @@
 import type { Nodes } from 'mdast'
 import { headingName, type MdDocument, type MdSection } from './document.js'
 import { matchName } from './name-match.js'
+import { isNearMiss } from './label.js'
 
 /**
  * A section (plan 0496): a heading at the top level of a document, and the lines it governs. Named
@@ -157,15 +158,15 @@ interface HeadingNote {
   /** The heading's text. */
   readonly heading: string
   /** At another depth than the one asked, or inside a container. */
-  readonly kind: 'depth' | HeadingContainer
+  readonly kind: 'depth' | 'near miss' | HeadingContainer
   readonly depth: number
   readonly note: string
 }
 
 /**
  * Why a heading of `name` that exists did not count, within lines `from`..`to` of the document: a
- * section of the name at another depth than `depth` (when one is asked), and a heading of the name
- * inside a container. One owner of the wording, read by the conditions and the section-name scan.
+ * section of the name at another depth than `depth` (when one is asked), a section that misses a
+ * string name only by case or spacing, and a heading of the name inside a container. One owner of the wording, read by the conditions and the section-name scan.
  */
 export function headingNotes(
   doc: MdDocument,
@@ -185,6 +186,20 @@ export function headingNotes(
         kind: 'depth',
         depth: s.depth,
         note: `"${s.name}" at line ${String(s.line)} is at depth ${String(s.depth)}`,
+      })
+    }
+  }
+  // A string name's near miss by case or spacing (PR #252's enforcement review): the finding names
+  // it and cites its line, so the section-name scan does not report the same heading again.
+  if (typeof name === 'string') {
+    for (const s of doc.sections) {
+      if (!within(s.line) || !isNearMiss(s.name, name)) continue
+      notes.push({
+        line: s.line,
+        heading: s.name,
+        kind: 'near miss',
+        depth: s.depth,
+        note: `the heading "${s.name}" at line ${String(s.line)} differs from "${name}" only by case or spacing`,
       })
     }
   }

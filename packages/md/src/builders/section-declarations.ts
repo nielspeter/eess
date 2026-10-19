@@ -81,6 +81,8 @@ export function sectionDeclarationFindings(scan: SectionScan): ArchViolation[] {
       // subsections or other sections, not a misplaced one.
       const atDepth = d.depth === undefined || hasSection(doc, d.name, d.depth)
       for (const n of headingNotes(doc, d.name, atDepth ? {} : { depth: d.depth })) {
+        // A near miss is the corpus-wide pass's, above.
+        if (n.kind === 'near miss') continue
         if (n.kind === 'depth') {
           report(
             doc,

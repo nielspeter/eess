@@ -418,6 +418,39 @@ describe('a break class per new way to fail', () => {
   })
 })
 
+describe('a near miss is one finding, the condition’s (PR #252)', () => {
+  it('haveSection with a depth names the near miss and the scan does not repeat it', () => {
+    const c = of({ 'a.md': '# A\n\n## status\n' })
+    expect(said(docs(c).should().haveSection('Status', { depth: 2 }).violations())).toEqual([
+      'a.md: missing section "Status" at depth 2; the heading "status" at line 3 differs from "Status" only by case or spacing',
+    ])
+  })
+
+  it('haveSubsection names the near miss inside the section, once', () => {
+    const c = of({ 'plans/a.md': '## Phase 1\n\n### Files Changed\n' })
+    const v = sections(c)
+      .that()
+      .areNamed('Phase 1')
+      .should()
+      .haveSubsection('Files changed')
+      .violations()
+    expect(said(v)).toEqual([
+      'plans/a.md:1: section "Phase 1" has no subsection "Files changed"; the heading "Files Changed" at line 3 differs from "Files changed" only by case or spacing',
+    ])
+  })
+
+  it('a field region names the near miss, once', () => {
+    const c = of({ 'bugs/b.md': '# B\n\n## status\n\n- **State:** open\n' })
+    const v = docs(c)
+      .should()
+      .haveField({ label: 'State', forms: ['bold'], region: { section: 'Status' } })
+      .violations()
+    expect(said(v)).toEqual([
+      'bugs/b.md: no section "Status" to read State from (region); the heading "status" at line 3 differs from "Status" only by case or spacing',
+    ])
+  })
+})
+
 describe('unchanged behaviour', () => {
   it('haveSection without options keeps its verdict and message', () => {
     const c = of({ 'a.md': '# A\n\n### Deep\n' })
