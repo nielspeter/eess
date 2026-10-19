@@ -78,10 +78,42 @@ vocabulary; the declaration makes that a choice instead of an omission.
 
 ### Adopter 3 rerun
 
-MEASURED-A3
+On adopter 3's trial copy, with this branch's eess-md and kernel builds in place of the release
+candidate's and one edit, `'?': 'unjudged'` added to the adopter's shared `BOX_MARKS` constant. The
+adopter's `corpus:rules` (248 tests, 205 s):
+
+|                              | Release candidate, `[?]` undeclared | This branch, `[?]` unjudged |
+| ---------------------------- | ----------------------------------- | --------------------------- |
+| Failing tests                | 5                                   | 2                           |
+| `md/undeclared-box-mark`     | 218                                 | 0                           |
+| `silent-open-box` from `[?]` | n/a (3,344 when declared `'open'`)  | 0                           |
+| `silent-open-box` from `[~]` | 9                                   | the same 9                  |
+
+- All 218 undeclared-mark findings are gone, and none became a silent open box.
+- Three of the adopter's own tests turned green: a `[?]` on a pre-convention record is exempt, and a
+  `[?]` on a current-era record (plain or ordered list) is reported. The adopter reports a
+  current-era `[?]` with its own text scan; an unjudged mark leaves that rule's selection intact.
+- The 2 tests still failing carry only the 9 partly done `[~]` boxes in closed records, the trial's
+  difference D13: real findings for the adopter, not this bug.
+
+The trial copy was restored afterwards: the edit reverted and the release candidate's packages put
+back.
 
 ### Sabotage matrix
 
-MATRIX-0525
+Committed before the run (`7ef8e39a`); each mutant was applied, the named file run, and the source
+restored with `git checkout`. 9 rows, 9 red, in 12 s with bug 0526's two rows.
+
+| Row | Mutant                                                | Named test (in `unjudged-box-mark.test.ts`)                                           | Result |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------- | ------ |
+| S1  | `validateMarks` accepts any state                     | a declaration with an undefined state is refused, naming the three states             | red    |
+| S2  | an undeclared mark defaults to `'unjudged'`           | an undeclared [?] beside a mark declared unjudged is still a finding                  | red    |
+| S3  | `areOpen()` selects unjudged (`state !== 'done'`)     | in a done record it is neither a silent open box nor an undeclared mark               | red    |
+| S4  | `areChecked()` selects unjudged (`state !== 'open'`)  | areOpen() and areChecked() do not select an unjudged box                              | red    |
+| S5  | an unjudged box is not an element (`isRead` drops it) | an unjudged box is still an element, selected by its state or by its mark             | red    |
+| S6  | `inScope` reads an unread box only as open or done    | a predicate selecting the unjudged state reaches an undeclared box                    | red    |
+| S7  | `collectTaskItems` does not validate its marks        | a declaration with a state in another letter case is refused, naming the three states | red    |
+| S8  | an unjudged box carrying `deferred→` defers           | an unjudged box carrying a deferral is not a deferral                                 | red    |
+| S9  | the remedy does not name `'unjudged'`                 | the undeclared mark's remedy names unjudged beside open and done                      | red    |
 
 Deferred: none

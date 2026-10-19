@@ -43,6 +43,12 @@ The order of the findings themselves is not changed; it is the reporter's.
 
 ### Sabotage matrix
 
-MATRIX-0526
+Committed before the run (`e80aeb82`). The core test reads the kernel's `dist` (bug 0519), so each
+mutant was rebuilt before its run and the build restored after. 2 rows, 2 red.
+
+| Row | Mutant                                                    | Named test (in `unique-by.test.ts`)                                                        | Result |
+| --- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------ |
+| T1  | the others are not sorted                                 | the others are listed by location, whatever order the elements load in (bug 0526)          | red    |
+| T2  | the others sort by code unit, a digit run not as a number | above ten others, the ten named are the first by location, not the first loaded (bug 0526) | red    |
 
 Deferred: none

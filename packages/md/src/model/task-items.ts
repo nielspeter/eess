@@ -48,7 +48,7 @@ export const checkedOf = (state: MdTaskItemRef['state']): boolean => state === '
 /** A box a rule cannot judge (undeclared or malformed), with its document. */
 export type UnreadBox = MdTaskItemRef & { readonly doc: MdDocument }
 
-/** A box read as open or done, with its document: what a `taskItems()` rule sees. */
+/** A box read as open, done or unjudged, with its document: what a `taskItems()` rule sees. */
 export type ReadBox = Omit<MdTaskItemRef, 'state'> & {
   readonly state: BoxMarkState
   readonly doc: MdDocument
