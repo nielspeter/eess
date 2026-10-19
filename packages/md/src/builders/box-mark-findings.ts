@@ -120,7 +120,8 @@ export function unreadFindings(
           `${group.length === 1 ? 'it is' : 'they are'} neither open nor done and no rule can judge ${group.length === 1 ? 'it' : 'them'}.${why}`,
         `Declare the state it means in the rule's \`marks\`, passed to taskItems() or honestyAtClose(): ` +
           `{ '${first.mark}': 'open' } if the work is not finished (in a closed record an open box then needs ` +
-          `a disposition), 'done' only if it is, or 'unjudged' if no close rule should judge it, open or done. ` +
+          `a disposition), 'done' only if it is, or 'unjudged' only if it never blocks a close in any record: ` +
+          `it then leaves every close rule for good, so never for unfinished work. ` +
           `Or rewrite each box as \`[ ]\`, or \`[x]\` if done. ${NOT_A_BOX}`,
       ),
     )

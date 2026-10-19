@@ -118,6 +118,8 @@ describe('unjudged is declared, never a default (bug 0525, ADR-009)', () => {
       .violations()
     const mark = found.find((v) => v.ruleId === UNDECLARED_BOX_MARK)
     expect(mark?.suggestion).toContain("'unjudged'")
+    // The remedy states the cost in the sentence that offers it (release review, enforcement I3).
+    expect(mark?.suggestion).toMatch(/'unjudged' only if it never blocks a close in any record/)
   })
 
   const refused: [string, Record<string, unknown>][] = [
