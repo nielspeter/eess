@@ -12,10 +12,12 @@ import {
   resideInFile,
   haveNameMatching,
   predicateHaveSection,
+  documentsTitled,
 } from '../predicates/document.js'
 import {
   haveSection as haveSectionCondition,
   haveTable as haveTableCondition,
+  haveTitle as haveTitleCondition,
   type HaveSectionOptions,
   type HaveTableOptions,
 } from '../conditions/structure.js'
@@ -94,6 +96,16 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   haveField(spec: HaveFieldOptions): this {
     if (this._phase === 'condition') return this.addCondition(haveFieldCondition(spec))
     return this.addPredicate(predicateHaveField(spec))
+  }
+
+  /**
+   * Dual-use (plan 0522): the document's title is its first heading, at depth 1, matching `name`
+   * when given (a string exactly, or a `RegExp`). After `.should()` a document with no heading, a
+   * first heading at another depth, or a title that does not match is a finding naming which.
+   */
+  haveTitle(name?: string | RegExp): this {
+    if (this._phase === 'condition') return this.addCondition(haveTitleCondition(name))
+    return this.addPredicate(documentsTitled(name))
   }
 
   /** Assert each matched document contains a GFM table with the required columns. */

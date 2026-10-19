@@ -6,6 +6,7 @@ import { hasSection } from '../model/query.js'
 import { checkDepth } from '../model/name-match.js'
 import { declaresSections } from '../model/section-declarations.js'
 import type { HaveSectionOptions } from '../model/sections.js'
+import { titleFault } from '../conditions/structure.js'
 
 /**
  * The glob a location predicate declares (plan 0456), so an absence rule's
@@ -72,4 +73,12 @@ export function areFrozen(): Predicate<MdDocument> {
 /** Documents `corpus()` did not mark frozen (plan 0457). */
 export function areLive(): Predicate<MdDocument> {
   return { description: 'are live', test: (d) => !d.frozen }
+}
+
+/** Plan 0522: documents whose title (first heading, at depth 1) exists and matches `name` if given. */
+export function documentsTitled(name?: string | RegExp): Predicate<MdDocument> {
+  return {
+    description: name === undefined ? 'have a title' : `have the title "${String(name)}"`,
+    test: (d) => titleFault(d, name) === undefined,
+  }
 }

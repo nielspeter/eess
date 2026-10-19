@@ -566,12 +566,40 @@ docs(c)
 | `areInSection(name)`               | selector | some enclosing heading matches, at any depth: what `links().areInSection()` reads |
 | `haveSubsection(name, { depth? })` | both     | after `.that()`, sections holding one; after `.should()`, every section holds one |
 | `haveTable({ columns })`           | assert   | every selected section holds a table with the columns                             |
+| `haveContent()`                    | both     | the section holds a block after its heading (not a heading, a rule or a comment)  |
+| `haveCodeBlock({ lang? })`         | both     | it holds a code block, tagged `lang` in any letter case when given                |
+| `haveListItem()`                   | both     | it holds a list item, at any depth                                                |
+| `haveLink()`                       | both     | it holds an inline link                                                           |
+| `haveCodePointer()`                | both     | it holds a code pointer (that it is live is a `pointers()` rule)                  |
 | `notExist()`                       | assert   | each selected section reported at its heading                                     |
 
 `docs().haveTable({ section, columns })` passes when any table under a heading of the name has the
 columns; `sections().haveTable({ columns })` asserts it of every selected section, and refuses a
 `section` option. `haveSection(name, { depth })` (the condition, `docs().haveSection()` and
 `predicateHaveSection`) counts only a heading at that level. A depth that is not 1 to 6 is refused.
+
+What a section holds is read after its heading through its last line, subsections included, so a
+block in the next section never counts. A document's title is `docs().haveTitle(name?)`: its first
+heading at the top level, which must be at depth 1, and match `name` when given (a string exactly, or
+a `RegExp`); a document with no heading, or whose first heading is at depth 2, is a finding saying
+which. A live code pointer under a named section is two rules reading one `const`:
+
+```ts
+import { corpus, inSections, pointers, sections, sectionsNamed } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['adr/**/*.md'] })
+const ENFORCEMENT = 'Enforcement'
+
+// The section holds a pointer: a pointer rule alone is green on a section that has none.
+sections(c).that().areNamed(ENFORCEMENT).should().haveCodePointer().check()
+// Each pointer in it is live.
+pointers(c)
+  .that()
+  .satisfy(inSections(sectionsNamed(ENFORCEMENT)))
+  .should()
+  .resolve()
+  .check()
+```
 
 **What is not a section.** A heading inside a list item, a blockquote or a footnote definition does
 not start one: it cannot govern anything after its container closes. Neither does an `<h2>` in an HTML

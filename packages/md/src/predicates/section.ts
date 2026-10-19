@@ -2,6 +2,7 @@ import type { Predicate } from '@nielspeter/eess'
 import { checkDepth, matchName } from '../model/name-match.js'
 import { contains, sectionsOf, type MdSectionElement } from '../model/sections.js'
 import { declaresSections } from '../model/section-declarations.js'
+import { holdingText, holds, type SectionHolding } from '../model/section-holds.js'
 import { areInSectionPredicate } from './declared-block.js'
 
 /**
@@ -71,4 +72,9 @@ export function sectionsWithSubsection(
     },
     [{ name, ...(options.depth === undefined ? {} : { depth: options.depth }) }],
   )
+}
+
+/** Plan 0522: sections that hold what `h` names (`.that().haveLink()` and its siblings). */
+export function sectionsHolding(h: SectionHolding): Predicate<MdSectionElement> {
+  return { description: `hold ${holdingText(h)}`, test: (s) => holds(s, h) }
 }

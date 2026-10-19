@@ -3,12 +3,15 @@ import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import {
   haveSubsection as haveSubsectionCondition,
   sectionHaveTable,
+  sectionHolds,
   type SectionTableOptions,
 } from '../conditions/section.js'
+import type { SectionHolding } from '../model/section-holds.js'
 import { sectionsOf, type MdSectionElement } from '../model/sections.js'
 import { areInSectionPredicate } from '../predicates/declared-block.js'
 import {
   sectionsAtDepth,
+  sectionsHolding,
   sectionsNamed,
   sectionsWithSubsection,
   type SubsectionOptions,
@@ -80,6 +83,53 @@ export class SectionRuleBuilder extends CorpusRuleBuilder<MdSectionElement> {
   haveTable(options: SectionTableOptions): this {
     return this.addCondition(sectionHaveTable(options))
   }
+
+  /** Dual-use, read in either phase as `haveSubsection` is: the section holds what `h` names. */
+  private holding(h: SectionHolding): this {
+    return this._phase === 'condition'
+      ? this.addCondition(sectionHolds(h))
+      : this.addPredicate(sectionsHolding(h))
+  }
+
+  /**
+   * Dual-use (plan 0522): the section holds something after its heading, subsections included: a
+   * block other than a heading, a thematic break or an HTML comment.
+   */
+  haveContent(): this {
+    return this.holding({ kind: 'content' })
+  }
+
+  /** Dual-use (plan 0522): the section holds a code block, tagged `lang` when given (any letter case). */
+  haveCodeBlock(options: SectionCodeBlockOptions = {}): this {
+    return this.holding(
+      options.lang === undefined
+        ? { kind: 'code block' }
+        : { kind: 'code block', lang: options.lang },
+    )
+  }
+
+  /** Dual-use (plan 0522): the section holds a list item, at any depth. */
+  haveListItem(): this {
+    return this.holding({ kind: 'list item' })
+  }
+
+  /** Dual-use (plan 0522): the section holds an inline link, as `links()` reads one. */
+  haveLink(): this {
+    return this.holding({ kind: 'link' })
+  }
+
+  /**
+   * Dual-use (plan 0522): the section holds a code pointer, as `pointers()` reads one. Whether it is
+   * live is `pointers(c).that().satisfy(inSections(…)).should().resolve()`, a second rule.
+   */
+  haveCodePointer(): this {
+    return this.holding({ kind: 'code pointer' })
+  }
+}
+
+/** Options for `haveCodeBlock`: the language its tag must name, compared as ADR-019 says. */
+export interface SectionCodeBlockOptions {
+  readonly lang?: string
 }
 
 /** Entry point: build rules over the corpus's sections (plan 0496). */

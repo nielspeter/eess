@@ -429,6 +429,7 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::collectTaskItems': 'model reader, returns task items',
   '@nielspeter/eess-md::haveSection': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::haveTable': 'condition factory, used inside a builder',
+  '@nielspeter/eess-md::haveTitle': 'condition factory, used inside a builder (plan 0522)',
   '@nielspeter/eess-md::haveTableRowsSatisfying': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::resideInFolder': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::predicateHaveField':

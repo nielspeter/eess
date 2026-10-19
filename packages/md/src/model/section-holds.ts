@@ -1,0 +1,73 @@
+import type { Nodes } from 'mdast'
+import { tagIsLanguage } from './code-block-tag.js'
+import { linksOf } from './links.js'
+import { extractPointers } from './pointers.js'
+import type { MdSectionElement } from './sections.js'
+
+/**
+ * Plan 0522 (proposal 017 block 14): what a section holds. Each reads the section's lines after its
+ * heading through `endLine`, subsections included, so a block in the next section never counts.
+ */
+export type SectionHolding =
+  | { readonly kind: 'content' }
+  | { readonly kind: 'code block'; readonly lang?: string }
+  | { readonly kind: 'list item' }
+  | { readonly kind: 'link' }
+  | { readonly kind: 'code pointer' }
+
+const lineOf = (n: { readonly position?: { readonly start: { readonly line: number } } }): number =>
+  n.position?.start.line ?? 0
+
+/** After the heading, through `endLine`. */
+const inBody = (s: MdSectionElement, line: number): boolean => s.line < line && line <= s.endLine
+
+const HTML_COMMENT = /^\s*<!--[\s\S]*-->\s*$/
+
+/** Does the section hold what `h` names? */
+export function holds(s: MdSectionElement, h: SectionHolding): boolean {
+  const doc = s.doc
+  switch (h.kind) {
+    case 'content':
+      return doc.root.children.some(
+        (n) =>
+          inBody(s, lineOf(n)) &&
+          n.type !== 'heading' &&
+          n.type !== 'thematicBreak' &&
+          !(n.type === 'html' && HTML_COMMENT.test(n.value)),
+      )
+    case 'code block':
+      return doc.codeBlocks.some(
+        (b) => inBody(s, b.line) && (h.lang === undefined || tagIsLanguage(b.lang, h.lang)),
+      )
+    case 'list item': {
+      let found = false
+      const walk = (n: Nodes): void => {
+        if (found) return
+        if (n.type === 'listItem' && inBody(s, lineOf(n))) found = true
+        if ('children' in n) for (const c of n.children) walk(c)
+      }
+      walk(doc.root)
+      return found
+    }
+    case 'link':
+      return linksOf(doc).some((l) => inBody(s, l.line))
+    case 'code pointer':
+      return extractPointers(doc.text, doc.root).some((p) => inBody(s, p.line))
+  }
+}
+
+/** How a finding or a description names it: `a code block tagged "mermaid"`. */
+export function holdingText(h: SectionHolding): string {
+  switch (h.kind) {
+    case 'content':
+      return 'content'
+    case 'code block':
+      return h.lang === undefined ? 'a code block' : `a code block tagged "${h.lang}"`
+    case 'list item':
+      return 'a list item'
+    case 'link':
+      return 'a link'
+    case 'code pointer':
+      return 'a code pointer'
+  }
+}

@@ -5,6 +5,7 @@ import { contains, headingNotes, type MdSectionElement } from '../model/sections
 import { citesHeadings, declaresSections } from '../model/section-declarations.js'
 import { subsectionsOf, subsectionText, type SubsectionOptions } from '../predicates/section.js'
 import { columnsText, hasColumns } from './structure.js'
+import { holdingText, holds, type SectionHolding } from '../model/section-holds.js'
 
 /**
  * Plan 0496: the conditions over sections. Each finding is at the section's heading, named
@@ -86,6 +87,33 @@ export function sectionHaveTable(options: SectionTableOptions): Condition<MdSect
             file: s.doc.file,
             line: s.line,
             message: `section "${s.name}" has no table with the required columns (${cols})`,
+            sourceText: s.doc.text,
+            context: ctx,
+          }),
+        ),
+  }
+}
+
+/**
+ * Plan 0522: every selected section holds what `h` names (proposal 017 block 14), read after its
+ * heading through its last line, subsections included.
+ */
+export function sectionHolds(h: SectionHolding): Condition<MdSectionElement> {
+  const what = holdingText(h)
+  return {
+    description: `hold ${what}`,
+    evaluate: (sections, ctx) =>
+      sections
+        .filter((s) => !holds(s, h))
+        .map((s) =>
+          mdViolation({
+            element: where(s),
+            file: s.doc.file,
+            line: s.line,
+            message:
+              h.kind === 'content'
+                ? `section "${s.name}" is empty`
+                : `section "${s.name}" holds no ${what.replace(/^an? /, '')}`,
             sourceText: s.doc.text,
             context: ctx,
           }),

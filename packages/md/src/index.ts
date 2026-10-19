@@ -118,6 +118,7 @@ export type {
   MdSectionElement,
   SubsectionOptions,
   SectionTableOptions,
+  SectionCodeBlockOptions,
 } from './builders/sections.js'
 export { taskItems, TaskItemRuleBuilder } from './builders/task-items.js'
 export type { MdTaskItem } from './builders/task-items.js'
@@ -156,7 +157,7 @@ export {
 export type { Vocabulary, VocabularyOptions, MdTerm, TermsOptions } from './builders/vocabulary.js'
 
 // Conditions (for composing custom rules / presets)
-export { haveSection, haveTable } from './conditions/structure.js'
+export { haveSection, haveTable, haveTitle } from './conditions/structure.js'
 export type { HaveTableOptions, HaveSectionOptions } from './conditions/structure.js'
 export { haveTableRowsSatisfying } from './conditions/table-rows.js'
 export type { HaveTableRowsOptions, TableRowContext } from './conditions/table-rows.js'
