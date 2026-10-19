@@ -91,7 +91,7 @@ Sabotage matrix (mutant applied to `packages/crossvalidate/src/md-ts.ts`, then r
 - [x] Red first: the third row above examines 4 and reports all four documents — done-otherwise
       for eess-md by plan 0496: md's matcher strips `g`/`y` once per `RegExp` (`stateless`,
       `packages/md/src/model/name-match.ts`); the row is `bug 0506, md: a g-flagged haveSection
-  selector examines all four documents` (`packages/md/tests/sections.test.ts`), red with `g`
+selector examines all four documents` (`packages/md/tests/sections.test.ts`), red with `g`
       kept (`examined` 2) and green with it stripped; plan 0496's changeset carries the verdict
       change
 - [x] Red first: the crossvalidate ADR binding with a `g`-flagged section finds the table in every

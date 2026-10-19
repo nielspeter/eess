@@ -156,7 +156,7 @@ after the fix: 2,611 links, and the same section path for every one (a hash of
 - [x] Red first, the over-selection: `areInSection('Listed')` selected `z`; the link's `sectionPath`
       was `['Top', 'Listed']` where the table's is `['Top', 'Real', 'Sub']`
 - [x] The links-only exception decided (none), with its row: `a link inside the container is not in
-  the container's heading either; the rule names it`
+the container's heading either; the rule names it`
 - [x] Green, with the release note (`.changeset/md-links-read-sections.md`, marked Breaking)
 - [ ] `npm run validate` green — validation-owed: it runs once, at the pull request's final head;
       its exit, duration and SHA are in the pull request's description
