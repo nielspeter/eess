@@ -986,13 +986,10 @@ The maintainer decided, on 2026-10-18:
    on every md builder, the public document predicates, `and`/`or`) →
    [0454](../plans/completed/0454-box-marks-are-the-callers.md) (block 17) →
    [0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (block 12) →
-<<<<<<< HEAD
    [0455](../plans/0455-a-corpus-built-from-text.md) (block 7) →
    [0459](../plans/completed/0459-kernel-beuniqueby-and-gherkins-unique-titles.md) (block 13). This supersedes
-=======
    [0455](../plans/completed/0455-a-corpus-built-from-text.md) (block 7) →
    [0459](../plans/0459-kernel-beuniqueby-and-gherkins-unique-titles.md) (block 13). This supersedes
->>>>>>> 7ebe8c01 (docs: close plan 0455, a corpus built from text)
    "Plannable now … in order" above.
 2. **Bug 0460** (the kernel exempts a cardinality rule before it looks for a dead glob) is fixed inside
    plan 0456, first.
