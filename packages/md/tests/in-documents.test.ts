@@ -11,7 +11,7 @@ import {
   codeBlocks,
   corpus,
   docs,
-  haveSectionPredicate,
+  predicateHaveSection,
   inDocuments,
   links,
   not,
@@ -64,8 +64,8 @@ const c = corpus({
   roots: ['**/*.md'],
 })
 
-const verification = haveSectionPredicate('Verification')
-const typo = haveSectionPredicate('Verificaton')
+const verification = predicateHaveSection('Verification')
+const typo = predicateHaveSection('Verificaton')
 const DEAD_TYPO = `inDocuments(have section "Verificaton") matched none of the corpus's 3 documents`
 
 /** A positive condition that holds for every element, for builders that ship none. */
@@ -192,8 +192,8 @@ describe('inDocuments: a positive rule a scope emptied names it', () => {
   it('every dead scope is named, not only the first', () => {
     const [finding] = links(c)
       .that()
-      .satisfy(inDocuments(haveSectionPredicate('A')))
-      .satisfy(inDocuments(haveSectionPredicate('B')))
+      .satisfy(inDocuments(predicateHaveSection('A')))
+      .satisfy(inDocuments(predicateHaveSection('B')))
       .should()
       .resolve()
       .violations()
@@ -226,7 +226,7 @@ describe('inDocuments: a positive rule a scope emptied names it', () => {
       .that()
       .areOpen()
       .satisfy(inDocuments(verification))
-      .satisfy(inDocuments(haveSectionPredicate('Notes')))
+      .satisfy(inDocuments(predicateHaveSection('Notes')))
       .should()
       .satisfy(holds())
       .violations()
@@ -403,8 +403,8 @@ describe('inDocuments: a positive rule a scope emptied names it', () => {
   })
 
   it('a scope inside a combinator is not named; composed inside the scope, it is', () => {
-    const a = haveSectionPredicate('A')
-    const b = haveSectionPredicate('B')
+    const a = predicateHaveSection('A')
+    const b = predicateHaveSection('B')
     const around = links(c)
       .that()
       .satisfy(or(inDocuments(a), inDocuments(b)))
@@ -439,7 +439,7 @@ describe('inDocuments: the guard pair', () => {
       .that()
       .areOpen()
       .satisfy(inDocuments(areLive()))
-      .satisfy(inDocuments(haveSectionPredicate(SECTION)))
+      .satisfy(inDocuments(predicateHaveSection(SECTION)))
       .should()
       .notExist()
   const guard = (cwd: string, roots = ['**/*.md']) =>

@@ -1,5 +1,5 @@
 import type { Corpus } from '../corpus.js'
-import { haveFieldCondition, haveFieldPredicate, type HaveFieldOptions } from './have-field.js'
+import { haveFieldCondition, predicateHaveField, type HaveFieldOptions } from './have-field.js'
 import type { MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { MdDocument } from '../model/document.js'
@@ -7,7 +7,7 @@ import {
   resideInFolder,
   resideInFile,
   haveNameMatching,
-  haveSectionPredicate,
+  predicateHaveSection,
 } from '../predicates/document.js'
 import {
   haveSection as haveSectionCondition,
@@ -55,7 +55,7 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
     if (this._phase === 'condition') {
       return this.addCondition(haveSectionCondition(name))
     }
-    return this.addPredicate(haveSectionPredicate(name))
+    return this.addPredicate(predicateHaveSection(name))
   }
 
   /**
@@ -69,7 +69,7 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
    */
   haveField(spec: HaveFieldOptions): this {
     if (this._phase === 'condition') return this.addCondition(haveFieldCondition(spec))
-    return this.addPredicate(haveFieldPredicate(spec))
+    return this.addPredicate(predicateHaveField(spec))
   }
 
   /** Assert each matched document contains a GFM table with the required columns. */

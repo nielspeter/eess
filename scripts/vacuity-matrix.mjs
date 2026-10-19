@@ -428,13 +428,13 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::haveTable': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::haveTableRowsSatisfying': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::resideInFolder': 'predicate factory, used inside a builder (plan 0456)',
-  '@nielspeter/eess-md::haveField':
+  '@nielspeter/eess-md::predicateHaveField':
     'predicate factory, used inside a builder; its undecided subjects are the builder findings (plan 0486)',
   '@nielspeter/eess-md::resideInFile': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::haveNameMatching': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::areFrozen': 'predicate factory, used inside a builder (plan 0457)',
   '@nielspeter/eess-md::areLive': 'predicate factory, used inside a builder (plan 0457)',
-  '@nielspeter/eess-md::haveSectionPredicate':
+  '@nielspeter/eess-md::predicateHaveSection':
     'predicate factory, used inside a builder (plan 0457)',
   '@nielspeter/eess-md::inDocuments':
     'predicate lift, used inside a builder; a dead scope on a positive rule is the builder finding (plan 0457)',

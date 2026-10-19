@@ -21,6 +21,13 @@
  * (`packages/ts/tests/standalone-surface.test.ts`, which runs only under
  * `npm run test`). A gate that hides other gates is worse than the drift it
  * catches, so this one is deliberately the last step.
+ *
+ * **ADR-023 clause 2 rides along.** A predicate and a condition that share a word: the plain name
+ * keeps its first kind, and the twin of the other kind takes the prefix `predicate` or `condition`
+ * (`conditionResideInFile`), never a suffix. So a value export named `<base>Predicate` or
+ * `<base>Condition` whose `<base>` is itself an export of the same package is a finding, and it
+ * blocks. Names like `definePredicate` or `satisfyPairCondition` are not twins (`define`,
+ * `satisfyPair` are not exports), so the rule needs no list of exceptions.
  */
 import { undocumentedExports, exportsOf } from './lib/public-surface.mjs'
 
@@ -31,6 +38,21 @@ const { missing, public: publicExports } = undocumentedExports(process.cwd())
 const kernel = missing.filter((e) => e.pkg === 'core')
 const dialects = missing.filter((e) => e.pkg !== 'core')
 const kernelTotal = exportsOf(process.cwd(), 'core').length
+
+// ADR-023 clause 2: a twin named by suffix, in any package, kernel included.
+const PACKAGES = ['core', 'ts', 'md', 'mermaid', 'gherkin', 'crossvalidate']
+let scannedForTwins = 0
+const suffixTwins = PACKAGES.flatMap((pkg) => {
+  const values = exportsOf(process.cwd(), pkg).filter((e) => !e.typeOnly)
+  scannedForTwins += values.length
+  const names = new Set(values.map((e) => e.name))
+  return values.flatMap((e) => {
+    const m = /^(.+)(Predicate|Condition)$/.exec(e.name)
+    if (m === null || !names.has(m[1])) return []
+    const prefixed = `${m[2] === 'Predicate' ? 'predicate' : 'condition'}${m[1][0].toUpperCase()}${m[1].slice(1)}`
+    return [{ pkg, name: e.name, prefixed }]
+  })
+})
 
 // The census is printed whether or not the gate reds: a number nobody can see is
 // a number nobody pays down.
@@ -50,6 +72,23 @@ if (dialects.length > 0) {
     // on. Review caught the contradiction between the comment and the code.
     console.error(`        ${[...names].sort().join(', ')}`)
   }
+}
+
+if (suffixTwins.length > 0) {
+  console.error('')
+  console.error(
+    `  ✗ ADR-023 — ${suffixTwins.length} export(s) name the twin of a published name by suffix:`,
+  )
+  for (const t of suffixTwins) {
+    console.error(
+      `      @nielspeter/${t.pkg === 'core' ? 'eess' : `eess-${t.pkg}`}: ${t.name} → ${t.prefixed}`,
+    )
+  }
+  console.error('')
+  console.error(
+    '      Fix: the twin takes the prefix `predicate` or `condition` (ADR-023 clause 2).',
+  )
+  console.error('')
 }
 
 if (kernel.length > 0) {
@@ -76,9 +115,10 @@ if (kernel.length > 0) {
   console.error('')
   process.exit(1)
 }
+if (suffixTwins.length > 0) process.exit(1)
 
 console.error(
   `  ✓ kernel public surface — ${kernelTotal} root exports all documented · ` +
     `${publicExports.length} family exports scanned, ${dialects.length} dialect-side undocumented ` +
-    `(reported) (${elapsed()})`,
+    `(reported) · ${scannedForTwins} value exports, 0 twins named by suffix (ADR-023) (${elapsed()})`,
 )

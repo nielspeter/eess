@@ -1,5 +1,5 @@
 /**
- * ADR-021 (plan 0486) in eess-md: `haveField` as a free predicate declares what it cannot judge, and
+ * ADR-021 (plan 0486) in eess-md: `predicateHaveField`, `haveField` as a free predicate declares what it cannot judge, and
  * every place eess-md applies predicates reports or refuses it. The lift onto boxes is plan 0457's
  * `inDocuments`, which forwards `undecided`.
  */
@@ -8,7 +8,7 @@ import {
   corpus,
   docs,
   taskItems,
-  haveField,
+  predicateHaveField,
   fields,
   inDocuments,
   not,
@@ -31,7 +31,7 @@ const c = corpus({
   }),
   roots: ['**/*.md'],
 })
-const done = haveField({ label: 'Status', forms: ['bold'], oneOf: /^done$/ })
+const done = predicateHaveField({ label: 'Status', forms: ['bold'], oneOf: /^done$/ })
 const said = (vs: readonly ArchViolation[]): string[] =>
   vs.map((v) => `${v.element}: ${v.message}${v.bypassFilters === true ? ' [bypass]' : ''}`)
 const conflict =
@@ -39,7 +39,7 @@ const conflict =
 const tilde =
   "bugs/tilde.md:3,4: Status is given twice (line 3 'done', line 4 'open'); keep one [bypass]"
 
-describe('haveField as a predicate (ADR-021)', () => {
+describe('predicateHaveField, haveField as a predicate (ADR-021)', () => {
   it('block 12: done documents hold no open box; each unreadable Status reported once', () => {
     const found = taskItems(c)
       .that()
@@ -107,7 +107,7 @@ describe('haveField as a predicate (ADR-021)', () => {
       cwd: tree({ 'b.md': '# B\n\nStatus: open\n\n**Status:** done\n' }),
       roots: ['**/*.md'],
     })
-    const both = haveField({ label: 'Status', forms: ['bold', 'plain'], oneOf: /^done$/ })
+    const both = predicateHaveField({ label: 'Status', forms: ['bold', 'plain'], oneOf: /^done$/ })
     const found = docs(one).that().satisfy(both).should().notExist().violations()
     expect(said(found)).toEqual(['b.md: b.md should not exist'])
   })

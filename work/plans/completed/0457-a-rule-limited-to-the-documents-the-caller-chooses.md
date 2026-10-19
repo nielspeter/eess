@@ -532,6 +532,10 @@ peer, not a dependency, so it does not move. The four names land in the surface 
 - `inSections()` (block 18): not accepted; it needs block 11's section elements.
 - md's predicate-and-condition naming: decided by plan 0496 (PR #247). In eess-md a plain name is
   the condition and `xPredicate` is the predicate form, so `haveSectionPredicate` is final.
+  Superseded 2026-10-19 by [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md),
+  before either name shipped: a twin takes a prefix, so the section predicate is `predicateHaveSection`
+  and the root `haveField` predicate is `predicateHaveField`. The names elsewhere in this record are
+  the ones it was built with.
 - Green-path counts, the frozen-documents-excluded count included: bug 0174.
 - Changing `corpus()`'s frozen default: proposal 017, second Review decision 2.
 - `haveField` (block 2), the predicate the proposal's headline example uses: built since by plan

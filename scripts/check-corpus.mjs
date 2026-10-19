@@ -31,7 +31,7 @@ import {
   correspondence,
   docs,
   fields,
-  haveField,
+  predicateHaveField,
   inDocuments,
   links,
   longestOf,
@@ -357,14 +357,14 @@ const statePresentRule = docs(c)
   })
 const statePresent = statePresentRule.violations()
 
-// Plan 0486, dogfooding `haveField` in selector position (ADR-021): no plan or bug whose State is a
+// Plan 0486, dogfooding `predicateHaveField` in selector position (ADR-021): no plan or bug whose State is a
 // closing word sits in a live folder, since the close ritual moves it. One rule over both lanes, as
 // `or()` of `and()`s, so a record whose State cannot be read (given twice, empty, in a form this rule
 // does not read) is undecided and reported on this rule's id rather than dropped, through the
 // kernel's three-valued combinators. A State outside the vocabulary is decided false here: the
 // per-lane `corpus/state-in-vocabulary-*` rules above report it.
 const closingStateIn = (lane) =>
-  haveField({
+  predicateHaveField({
     label: 'State',
     forms: ['bold'],
     value: longestOf([...lane.states]),

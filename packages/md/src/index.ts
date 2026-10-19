@@ -55,9 +55,9 @@ export type { GlobNode, GlobSite } from '@nielspeter/eess'
 // relative to the corpus's `cwd` (`'guides/**'`), eess-ts an absolute one
 // (`'**/guides/**'`).
 export { resideInFolder, resideInFile, haveNameMatching } from './predicates/document.js'
-// Plan 0457: frozenness as each rule's choice, and the section predicate (block 11 may rename it:
-// the bare `haveSection` is the condition below).
-export { areFrozen, areLive, haveSectionPredicate } from './predicates/document.js'
+// Plan 0457: frozenness as each rule's choice, and the section predicate. ADR-023: the plain
+// `haveSection` is the condition below, so its predicate twin takes the prefix.
+export { areFrozen, areLive, predicateHaveSection } from './predicates/document.js'
 // Plan 0457: a document predicate lifted onto any element that carries its document.
 export { inDocuments } from './predicates/in-documents.js'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
@@ -115,7 +115,7 @@ export type { FieldForm, FieldOptions } from './model/fields.js'
 // Plan 0469: `docs().haveField()`, a document has a value.
 export type { HaveFieldOptions } from './builders/have-field.js'
 // ADR-021: the predicate form, for `satisfy()`, the combinators and a lift onto other elements.
-export { haveFieldPredicate as haveField } from './builders/have-field.js'
+export { predicateHaveField } from './builders/have-field.js'
 // Plan 0412: a code block parses with the parser the caller names.
 export { parseCodeBlocks, DEFAULT_CODE_BLOCK_BUDGET } from './model/code-block-parse.js'
 export type {

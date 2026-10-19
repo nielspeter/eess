@@ -49,7 +49,7 @@ const describe = (spec: HaveFieldOptions): string =>
  * predicate lifted onto a document's boxes reads the document once (spike 0485: 450 ms against 42 ms
  * on 10,000 boxes before the memo).
  */
-export function haveFieldPredicate(spec: HaveFieldOptions): Predicate<MdDocument> {
+export function predicateHaveField(spec: HaveFieldOptions): Predicate<MdDocument> {
   const verdicts = new WeakMap<MdDocument, { has: boolean; undecided: readonly Undecided[] }>()
   const read = (d: MdDocument): { has: boolean; undecided: readonly Undecided[] } => {
     const known = verdicts.get(d)

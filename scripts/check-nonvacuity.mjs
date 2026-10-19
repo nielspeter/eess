@@ -4253,6 +4253,13 @@ const gates = [
       ]),
   ],
   [
+    'surface/suffix-twin',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'surface/suffix-twin red on its own subject', [
+        'surface/suffix-twin',
+      ]),
+  ],
+  [
     'docs-code/fence-does-not-compile',
     () =>
       gateNode('bad-waived-gates.mjs', 'docs-code/fence-does-not-compile red on its own subject', [
@@ -4713,7 +4720,7 @@ const GATE_FOR = {
   ],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
   // sabotages the KERNEL ROOT — the only population this gate blocks on.
-  'check:surface': ['surface/undocumented-export'],
+  'check:surface': ['surface/undocumented-export', 'surface/suffix-twin'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.
