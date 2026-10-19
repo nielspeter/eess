@@ -68,7 +68,7 @@ export { inDocuments } from './predicates/in-documents.js'
 export { inSections } from './predicates/in-documents.js'
 export { sectionsNamed, sectionsAtDepth, sectionsWithSubsection } from './predicates/section.js'
 export { sectionsInSection } from './predicates/section.js'
-export { haveTextMatching } from './predicates/text.js'
+export { predicateHaveTextMatching } from './predicates/text.js'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —
 // review found it manually), but this README's own "Binding a spec table to

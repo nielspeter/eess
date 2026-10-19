@@ -97,7 +97,12 @@ import type {
 } from '@nielspeter/eess-md'
 import { corpus, docs, links, pointers, rows, taskItems, terms } from '@nielspeter/eess-md'
 import { sections, SectionRuleBuilder } from '@nielspeter/eess-md'
-import { inSections, sectionsNamed, sectionsAtDepth, haveTextMatching } from '@nielspeter/eess-md'
+import {
+  inSections,
+  sectionsNamed,
+  sectionsAtDepth,
+  predicateHaveTextMatching,
+} from '@nielspeter/eess-md'
 import { sectionsInSection, sectionsWithSubsection, haveTitle } from '@nielspeter/eess-md'
 import { cleanValue, fields, longestOf, untilDelimiter } from '@nielspeter/eess-md'
 import { areFrozen, areLive, predicateHaveSection, inDocuments } from '@nielspeter/eess-md'
@@ -237,7 +242,7 @@ it('every published entry point still exposes the surface a consumer names', () 
     sectionsAtDepth,
     sectionsInSection,
     sectionsWithSubsection,
-    haveTextMatching,
+    predicateHaveTextMatching,
     haveTitle,
     diagram,
     mermaidClasses,

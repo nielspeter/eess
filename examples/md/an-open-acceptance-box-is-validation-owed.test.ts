@@ -2,7 +2,7 @@
  * Adopter 1's rule (proposal 017, blocks 11, 12 and 18 composed): in a closed record, an open box
  * under the acceptance criteria may carry only `validation-owed`. `inDocuments` limits the boxes to
  * closed records, `inSections` to the acceptance criteria and every section inside them, and
- * `haveTextMatching` reads what each box says, in the adopter's own words.
+ * `predicateHaveTextMatching` reads what each box says, in the adopter's own words.
  *
  * The ratchet is an absence rule, and an absence rule whose section scope matches nothing is green
  * (ADR-010 §3). Two guards stand beside it, each reading the section name from the ratchet's const:
@@ -13,7 +13,7 @@
 import {
   corpus,
   docs,
-  haveTextMatching,
+  predicateHaveTextMatching,
   inDocuments,
   inSections,
   not,
@@ -40,7 +40,7 @@ const ratchet = (cwd: string) =>
     .and()
     .satisfy(inSections(sectionsNamed(ACCEPTANCE)))
     .and()
-    .satisfy(not(haveTextMatching(VALIDATION_OWED)))
+    .satisfy(not(predicateHaveTextMatching(VALIDATION_OWED)))
     .should()
     .notExist()
     .because('a closed record leaves acceptance work open only when its validation is owed')

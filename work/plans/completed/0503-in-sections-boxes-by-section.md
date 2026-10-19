@@ -342,6 +342,12 @@ reading the same `const`, with `clean/` and a `violating-<judgement>/` per judge
 misspelt-section fixture and a misspelt-pattern fixture, each asserting the ratchet green and the
 guard red.
 
+**Renamed 2026-10-19 (PR #252's product review, I1).** The free predicate shipped here as
+`haveTextMatching` is `predicateHaveTextMatching`: `taskItems().haveTextMatching()` is a dual-use
+method, so under ADR-023 clause 2 the method keeps the plain word and its free twin takes the prefix,
+as `predicateHaveField` did beside `docs().haveField()`. The text above keeps the name it was built
+under.
+
 **Sabotage matrix**, run in a worktree at build, each red on its named test:
 
 1. Only the nearest enclosing section is tested: the subsection row reds.

@@ -1,13 +1,13 @@
 /**
  * Plan 0503: `inSections(p)` limits a rule over any element on a line of its document to the
- * elements inside the sections `p` selects; `haveTextMatching` selects or asserts a box's text. Every
+ * elements inside the sections `p` selects; `predicateHaveTextMatching` selects or asserts a box's text. Every
  * row drives the public entry points over a throwaway tree.
  */
 import { describe, it, expect } from 'vitest'
 import {
   corpus,
   docs,
-  haveTextMatching,
+  predicateHaveTextMatching,
   inDocuments,
   inSections,
   links,
@@ -49,7 +49,7 @@ const ratchet = (c: ReturnType<typeof of>, acceptance: RegExp = ACCEPTANCE) =>
     .and()
     .satisfy(inSections(sectionsNamed(acceptance)))
     .and()
-    .satisfy(not(haveTextMatching(VALIDATION_OWED)))
+    .satisfy(not(predicateHaveTextMatching(VALIDATION_OWED)))
     .should()
     .notExist()
 const guard = (c: ReturnType<typeof of>, acceptance: RegExp = ACCEPTANCE) =>
@@ -298,7 +298,7 @@ describe('inSections: the elements inside matching sections (plan 0503)', () => 
   })
 })
 
-describe('haveTextMatching (plan 0503)', () => {
+describe('predicateHaveTextMatching (plan 0503)', () => {
   it('as a condition, a box whose text does not match is a finding quoting it', () => {
     const c = of({ 'a.md': ['## A', '', '- [ ] x — validation-owed', '- [ ] y'] })
     const v = taskItems(c)
@@ -339,7 +339,7 @@ describe('haveTextMatching (plan 0503)', () => {
     expect(v).toHaveLength(4)
     const w = taskItems(c)
       .that()
-      .satisfy(haveTextMatching(/owed/y))
+      .satisfy(predicateHaveTextMatching(/owed/y))
       .should()
       .notExist()
       .violations()

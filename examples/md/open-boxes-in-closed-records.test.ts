@@ -14,7 +14,7 @@
 import {
   corpus,
   docs,
-  haveTextMatching,
+  predicateHaveTextMatching,
   inDocuments,
   inSections,
   not,
@@ -45,7 +45,7 @@ const undisposed = (cwd: string) =>
     .and()
     .satisfy(inSections(sectionsNamed(ACCEPTANCE)))
     .and()
-    .satisfy(not(haveTextMatching(DISPOSED)))
+    .satisfy(not(predicateHaveTextMatching(DISPOSED)))
     .should()
     .notExist()
 const acceptanceGuard = (cwd: string) =>

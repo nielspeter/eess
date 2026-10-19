@@ -13,7 +13,7 @@ import { stampedByDocument } from '../model/by-document.js'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import { inScope, unreadFindings } from './box-mark-findings.js'
-import { haveTextMatching, haveTextMatchingCondition } from '../predicates/text.js'
+import { haveTextMatchingCondition, predicateHaveTextMatching } from '../predicates/text.js'
 
 /**
  * A read box: what a `taskItems()` rule sees. Its `state` is only `'open'` or `'done'`; an unread
@@ -108,7 +108,7 @@ export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
     if (this._phase === 'condition') {
       return this.addCondition(haveTextMatchingCondition<MdTaskItem>(re, 'box'))
     }
-    return this.addPredicate(haveTextMatching<MdTaskItem>(re))
+    return this.addPredicate(predicateHaveTextMatching<MdTaskItem>(re))
   }
 }
 

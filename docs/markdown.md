@@ -638,7 +638,8 @@ predicate. An element is under every section that contains its line, so a box un
 inside `## Acceptance criteria` is under both. The section predicates for it are on the root:
 `sectionsNamed(name)`, `sectionsAtDepth(depth)`, `sectionsInSection(name)` and
 `sectionsWithSubsection(name, { depth? })`, the `sections()` methods of the same meaning.
-`haveTextMatching(re)` selects the elements whose `text` matches your pattern; on `taskItems()` it is
+`predicateHaveTextMatching(re)` selects the elements whose `text` matches your pattern; on `taskItems()`,
+`haveTextMatching(re)` is the method, and it is
 also a condition, every selected box's text must match. A box's text is all of its own content, its
 second paragraph and plain sub-bullets included, its nested boxes excepted. eess-md fixes no words:
 you pass your own.
@@ -647,7 +648,7 @@ you pass your own.
 import {
   corpus,
   docs,
-  haveTextMatching,
+  predicateHaveTextMatching,
   inDocuments,
   inSections,
   not,
@@ -672,7 +673,7 @@ taskItems(c)
   .and()
   .satisfy(inSections(sectionsNamed(ACCEPTANCE)))
   .and()
-  .satisfy(not(haveTextMatching(VALIDATION_OWED)))
+  .satisfy(not(predicateHaveTextMatching(VALIDATION_OWED)))
   .should()
   .notExist()
   .check()
@@ -696,7 +697,7 @@ the `const` reaches both, and the guard reds; a literal copied into each can be 
 **What stays silent, plainly.** Under `notExist()`, a section name with no near miss by case or spacing
 (`'Acceptence'`) and no guard beside it is green; so is a pattern that selects (`haveTextMatching` in
 front of `notExist()`) when it is misspelt, or the notation drifts from it, since no scan exists for
-text. A pattern used to exclude (`not(haveTextMatching(…))`) fails closed. A guard on a selecting
+text. A pattern used to exclude (`not(predicateHaveTextMatching(…))`) fails closed. A guard on a selecting
 pattern is a rule of the same tautology shape over the same elements. A section predicate wrapped in
 `not()`, `and()` or `or()` inside `inSections` is not seen by the section-name scan.
 
