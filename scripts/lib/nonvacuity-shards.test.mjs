@@ -54,7 +54,8 @@ function merge(edit = (reports) => reports) {
     digest: p.digest,
     selected: [...s.selected],
     failed: [],
-    assertedRuleIds: s.shard === 1 ? [...CORPUS_IDS] : [],
+    // Spread across the shards, so only their union covers every id.
+    assertedRuleIds: CORPUS_IDS.filter((_, k) => k % 4 === s.shard - 1),
   }))
   const dir = mkdtempSync(join(tmpdir(), 'nonvacuity-merge-'))
   try {
@@ -163,10 +164,10 @@ test('an empty report directory fails the merge', () => {
   assert.match(r.out, /no shard report found/)
 })
 
-test('rule-id coverage reads the union of the shards', () => {
+test('a rule id no shard asserted fails the merge', () => {
   const missing = CORPUS_IDS[0]
   const r = merge((reports) => {
-    reports[0].assertedRuleIds = reports[0].assertedRuleIds.filter((id) => id !== missing)
+    for (const x of reports) x.assertedRuleIds = x.assertedRuleIds.filter((id) => id !== missing)
     return reports
   })
   assert.equal(r.code, 1, r.out)
