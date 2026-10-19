@@ -12,15 +12,15 @@ npm install -D @nielspeter/eess-md
 
 ## Example
 
-Neutral, universal conventions — a `docs/**` corpus, English headers, a minimal frozen set:
+Neutral, universal conventions — a `docs/**` corpus, English headers, and the default frozen set
+(`**/completed/**`, `**/archived/**`):
 
 ```typescript
 import { corpus, docs, links, pointers } from '@nielspeter/eess-md'
 
-const c = corpus({
-  roots: ['docs/**'],
-  frozen: ['**/completed/**', '**/archived/**'], // historical: links still checked, pointers not
-})
+// `frozen` omitted: the default freezes `completed/` and `archived/` folders
+// (historical: links still checked, pointers not)
+const c = corpus({ roots: ['docs/**'] })
 
 // markdown-to-markdown links resolve
 links(c).that().areInternal().should().resolve().check()
@@ -49,7 +49,7 @@ something you pass to a builder:
 ```typescript
 import { corpus } from '@nielspeter/eess-md'
 
-const c = corpus({ roots: ['docs/**'], frozen: ['**/archived/**'] })
+const c = corpus({ roots: ['docs/**'] })
 
 // Every document the globs matched, parsed — the denominator behind your rules.
 for (const d of c.documents()) {
@@ -220,8 +220,8 @@ own.) A scope built from `resideInFolder` or `resideInFile` is different: a brok
 (`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
 predicate is on `docs()`. `areFrozen()` and `areLive()` carry no glob; `corpus()` judges the
 `frozen` globs it is given instead, and refuses one that can never match (`frozen: ['/archive/**']`)
-or that marks none of the documents it loaded (bug 0499). eess-md's default frozen globs are not
-judged.
+or that marks none of the documents it loaded (bug 0499), unless it is named in `expectEmptyFrozen`.
+Writing the default list out makes it yours, and it is judged; the omitted default is not.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
 predicateHaveSection('Verificaton'))).should().resolve()` reds with `inDocuments(have section
@@ -391,13 +391,17 @@ have the direction table and every finding.
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match
-by pattern (non-English works), and frozen folders are globs:
+by pattern (non-English works), and frozen folders are globs. Each glob you pass must mark a
+loaded document, or be named in `expectEmptyFrozen` while its folder is empty. Removing it instead
+is not safe: a record filed there later is read as live, and a rule over the frozen documents never
+sees it. Writing the default list out makes it yours, and it is judged; the omitted default is not.
 
 ```typescript
 const c = corpus({
   roots: ['work/**', 'docs/**'], // plans live under work/
-  // each must mark a loaded document: corpus() refuses one that marks none
-  frozen: ['**/completed/**', '**/delivered/**', '**/wont-do/**', '**/archived/**'],
+  // this tree's closed records sit in completed/ and delivered/; wont-do/ holds none yet
+  frozen: ['**/completed/**', '**/delivered/**', '**/wont-do/**'],
+  expectEmptyFrozen: ['**/wont-do/**'], // expires once a record is filed there
   ignore: ['node_modules/**', '.git/**', '.nuxt/**'],
 })
 
