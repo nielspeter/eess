@@ -17,8 +17,9 @@
 Every dialect at this release depends on the kernel at `^0.8.0`, which on `0.x` does not admit 0.7.x,
 and the dialects import members that are new in kernel 0.8.0 (`globTextFault`,
 `repoRelativeCorrection`, `kleene`). A dialect left at its old version installs a second kernel
-beside it. **Upgrade the packages you use together.** `eess-crossvalidate` 0.10.0 keeps its peer
-floors at `eess-ts` 0.13.1, `eess-md` 0.11.0, `eess-mermaid` 0.8.0 and `eess-gherkin` 0.6.0.
+beside it. **Upgrade the packages you use together.** `eess-crossvalidate` 0.10.0 raises its peer
+floors to this release's dialects: `eess-ts` 0.14.0, `eess-md` 0.12.0, `eess-mermaid` 0.8.1 and
+`eess-gherkin` 0.7.0 or later. An older dialect installed beside it is a peer-dependency conflict.
 
 **Most of the work is in `eess-md`.** It carries nine breaking changesets, and nearly all of them
 make a check that used to pass over nothing say so. Expect findings on documents you did not
