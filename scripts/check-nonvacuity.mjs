@@ -4768,6 +4768,7 @@ const GATE_FOR = {
     'corpus/proposal-number-duplicated',
     'corpus/accepted-denominator-empty',
     'corpus/proposal-criteria',
+    'corpus/proposal-criteria-depth',
     'corpus/docs-only-owner',
     'corpus/promoted-names-no-owner',
     'corpus/promoted-not-dispatchable',
