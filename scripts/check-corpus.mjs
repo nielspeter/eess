@@ -165,12 +165,20 @@ const elapsed = () => {
 // paths; gating those as live pointers would demand it be kept current, which
 // is the opposite of what a terminal record is for.
 //
-// Only folders that hold a record today. `corpus()` refuses a frozen glob that
-// marks no loaded document (bug 0499), so `**/wont-do/**` and `**/archived/**`
-// left this list when that landed: no record under `work/` sits in either. When
-// one does, its pointers are checked as live and red, which says to add the glob
-// back; `TERMINAL_FOLDER_NAMES` already admits both.
-const FROZEN = ['**/completed/**', '**/fixed/**', 'work/spikes/**']
+// `corpus()` refuses a frozen glob that marks no loaded document (bug 0499).
+// No record under `work/` sits in a `wont-do/` or `archived/` folder yet, so those
+// two are declared in `EMPTY_FROZEN` rather than removed: removed, the first
+// record filed there would be read as live, and no rule over the frozen documents
+// would see it. The declaration expires: once a record lands there, `corpus()`
+// refuses until the glob is dropped from `EMPTY_FROZEN`.
+const FROZEN = [
+  '**/completed/**',
+  '**/wont-do/**',
+  '**/fixed/**',
+  '**/archived/**',
+  'work/spikes/**',
+]
+const EMPTY_FROZEN = ['**/wont-do/**', '**/archived/**']
 
 // `frozen` is this gate's only subtraction, and until bug 0249's review nothing
 // checked what it took. Appending `'work/**'` here drops live pointers from 463
@@ -188,6 +196,7 @@ if (overBroadFreezes.length > 0) {
 const c = corpus({
   roots: ROOTS,
   frozen: FROZEN,
+  expectEmptyFrozen: EMPTY_FROZEN,
 })
 const relTo = (file) =>
   file.startsWith(c.root) ? file.slice(c.root.length).replace(/^[/\\]/, '') : file
