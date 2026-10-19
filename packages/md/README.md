@@ -435,14 +435,14 @@ asymmetry: `pointers(c).that().areFrozen()` is a method; everywhere else it is
 ## Box marks beyond `[ ]` and `[x]`
 
 GFM reads three box marks: `[ ]`, `[x]` and `[X]`. Any other mark is yours to declare, open (it
-blocks a close, like `[ ]`) or done (like `[x]`). Declare them once and pass the same object to every
-rule that reads boxes:
+blocks a close, like `[ ]`), done (like `[x]`), or unjudged: neither, on purpose, so no close rule
+judges it (bug 0525). Declare them once and pass the same object to every rule that reads boxes:
 
 ```ts
 import { corpus, taskItems } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
-const marks = { '~': 'open', '→': 'done' } as const
+const marks = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
 const c = corpus({ cwd: process.cwd(), roots: ['work/**'] })
 
 taskItems(c, { marks }).that().areOpen().should().notExist().check()
@@ -455,8 +455,13 @@ naming every line. A near-GFM box (`[ x ]`, `[x]done`, or a `- [ ]` with no text
 `.excluding()` cannot hide them, and they fail a `.warn()` rule. A rule reports such a box only when
 its predicates could have reached it, read as open or as done.
 
-A rule never sees an unread box: a `taskItems()` element's `state` is only `'open'` or `'done'`. To
-select an undeclared box, test `t.mark`. Not a box at all: an undeclared letter or digit (`[o]`,
+An unjudged box is not open, so `honestyAtClose` does not ask it for a disposition, and it is not done,
+so it does not count as finished work. `areOpen()` and `areChecked()` do not select it; it is still an
+element, so a rule selects it by `t.mark === '?'` or `t.state === 'unjudged'`. Only a declaration makes
+a mark unjudged: an undeclared one stays a finding.
+
+A rule never sees an unread box: a `taskItems()` element's `state` is only `'open'`, `'done'` or
+`'unjudged'`. To select an undeclared box, test `t.mark`. Not a box at all: an undeclared letter or digit (`[o]`,
 `[1]`), a link or a defined reference (`[ref]`), a bracket escaped (`\[`) or in inline code, and a box
 in a blockquote. A mark that is also a link definition's label (`[~]: url`) is read as a link
 reference, not a box. A correspondence side built with `.select()` drops unread boxes without a

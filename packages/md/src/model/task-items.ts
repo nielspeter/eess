@@ -3,12 +3,21 @@ import type { ListItem, Nodes, Root } from 'mdast'
 import type { MdDocument } from './document.js'
 import { textOf } from './text-of.js'
 
-/** What a box mark declares: open (it blocks a close) or done. */
-export type BoxMarkState = 'open' | 'done'
+/**
+ * What a box mark declares: open (it blocks a close), done, or unjudged (bug 0525): a box no close
+ * rule judges, neither open nor done, that a rule can still select by its mark or its state.
+ */
+export type BoxMarkState = 'open' | 'done' | 'unjudged'
+
+/** The states a mark can be declared, in the order a message names them. */
+const DECLARABLE: readonly string[] = ['open', 'done', 'unjudged'] satisfies BoxMarkState[]
 
 /** How a caller reads box marks beyond GFM's (plan 0454). */
 export interface TaskItemOptions {
-  /** Box marks beyond GFM's `[ ]` and `[x]`, each declared open (it blocks a close) or done. */
+  /**
+   * Box marks beyond GFM's `[ ]` and `[x]`, each declared open (it blocks a close), done, or
+   * unjudged (no close rule judges it).
+   */
   readonly marks?: Readonly<Record<string, BoxMarkState>>
 }
 
@@ -57,8 +66,9 @@ const GFM_MARKS = new Set([' ', 'x', 'X'])
 
 /**
  * Refuse a declaration that cannot mean what it says (ADR-009): a key that is not one grapheme, or
- * is GFM's own space, `x` or `X`, or a state other than `'open'` or `'done'`. Each refusal names the
- * key. Shared by `taskItems()` and `honestyAtClose()`.
+ * is GFM's own space, `x` or `X`, or a state other than `'open'`, `'done'` or `'unjudged'`. No state
+ * is filled in for a mark, so `'unjudged'` is only ever declared (bug 0525). Each refusal names the
+ * key. Shared by `taskItems()`, `honestyAtClose()` and `collectTaskItems()`.
  */
 export function validateMarks(
   marks: Readonly<Record<string, unknown>> | undefined,
@@ -83,10 +93,10 @@ export function validateMarks(
         `box mark '${key}' is GFM's own; GFM reads [ ] as open and [x] as done, so it cannot be declared.`,
       )
     }
-    if (value !== 'open' && value !== 'done') {
+    if (typeof value !== 'string' || !DECLARABLE.includes(value)) {
       throw new ArchConfigError(
         caller,
-        `box mark '${key}' is declared ${JSON.stringify(value)}; declare it 'open' or 'done'.`,
+        `box mark '${key}' is declared ${value === undefined ? 'undefined' : JSON.stringify(value)}; declare it 'open', 'done' or 'unjudged'.`,
       )
     }
   }
@@ -193,6 +203,7 @@ export function collectTaskItems(
   root: Root,
   options: TaskItemOptions & { readonly source: string },
 ): MdTaskItemRef[] {
+  validateMarks(options.marks, 'collectTaskItems')
   const marks = options.marks ?? {}
   const out: MdTaskItemRef[] = []
   const visit = (node: Nodes, inBlockquote: boolean): void => {
