@@ -67,6 +67,14 @@ Decided in the build, against the record:
   published `ReportMode` type, and that run was printing real violations above a zero exit. Bug
   0284's refusal was flagged because it refused values its type admitted; this one admits nothing
   new and refuses nothing typed. The changeset is a patch for `eess` and `eess-ts`.
+- **eess-ts refuses first, with all four modes** (review fix). The kernel's message lists its three
+  modes, so an eess-ts caller who misspelt `'builders'` was told to choose among modes that did not
+  include the one they meant. `deliver` (`packages/ts/src/presets/shared.ts`) now refuses a value
+  outside `PresetDelivery` before it compares `'builders'`, naming `'throw'`, `'return'`, `'warn'`,
+  `'builders'`. The kernel keeps its own refusal for every other caller, and takes no hint about a
+  dialect's extra modes.
+- **eess-crossvalidate is named in the changeset** (review fix): its bindings finish through
+  `finishPreset`, so its JavaScript callers get the refusal too.
 - **Non-string values are shown by type** (`a value of type object`), not stringified: a lint rule
   (`no-base-to-string`) rejects `String(value)` on an unknown, and `[object Object]` would say less.
 
@@ -77,11 +85,15 @@ Decided in the build, against the record:
 - [x] eess-ts's `deliver` with `report: 'thorw'` refuses, run through `eess-ts check` so the exit code is measured — `packages/ts/tests/cli/unknown-report-mode.test.ts` drives `runCheck` over `tests/fixtures/rule-files/unknown-report-mode.rules.ts`; before the fix `runCheck` returned 0
 - [x] sabotage: the refusal removed turns the test red
 
-Sabotage matrix (mutant applied to `packages/core/src/report.ts`, core rebuilt, then restored):
+Sabotage matrix (rows 1-2: mutant applied to `packages/core/src/report.ts`, core rebuilt, then
+restored; row 3: mutant in `packages/ts/src/presets/shared.ts`). Row 1 was re-run after eess-ts
+began refusing first: it now reds the two kernel tests only, since `deliver` refuses before the
+kernel is reached; before that change it also redded `fails eess-ts check and names the mode`.
 
-| row | mutant                                                            | red                                                                                                                                                                 |
-| --- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `const mode: ReportMode = options.report ?? 'throw'` (no refusal) | `refuses an unknown report mode instead of printing and passing`, `refuses retrun and false before the return comparison`, `fails eess-ts check and names the mode` |
-| 2   | `null` no longer read as the default                              | `reads an undefined or null report mode as throw`                                                                                                                   |
+| row | mutant                                                                                              | red                                                                                                                       |
+| --- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `const mode: ReportMode = options.report ?? 'throw'` (no refusal)                                   | `refuses an unknown report mode instead of printing and passing`, `refuses retrun and false before the return comparison` |
+| 2   | `null` no longer read as the default                                                                | `reads an undefined or null report mode as throw`                                                                         |
+| 3   | eess-ts's `refuseUnknownDelivery` call removed (the kernel's three-mode message reaches the caller) | `fails eess-ts check and names the mode`                                                                                  |
 
 Deferred: none

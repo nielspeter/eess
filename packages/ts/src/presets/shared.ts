@@ -12,6 +12,7 @@ import type { CollectResult } from '@nielspeter/eess'
 export type PresetDelivery = ReportMode | 'builders'
 import {
   finishPreset,
+  ArchConfigError,
   ArchRuleError,
   validateOverrides,
   mergeCollectResults,
@@ -434,6 +435,29 @@ export function atPath<T extends Located>(glob: string, option?: string): Predic
 }
 
 /**
+ * Refuse a `report` value outside `PresetDelivery`, naming all four modes (bug 0508). The kernel's
+ * `finishPreset` refuses an unknown mode too, but lists its own three: a caller who misspelt
+ * `'builders'` was told to pick among modes that did not include the one they meant. Refused here
+ * first, before `'builders'` is compared, so the kernel's message is never the one an eess-ts caller
+ * reads. `undefined` and `null` mean `'throw'`, as in the kernel.
+ */
+function refuseUnknownDelivery(value: unknown): void {
+  if (value === undefined || value === null) return
+  if (value === 'throw' || value === 'return' || value === 'warn' || value === 'builders') return
+  const shown =
+    typeof value === 'string'
+      ? `'${value}'`
+      : typeof value === 'boolean' || typeof value === 'number'
+        ? String(value)
+        : `a value of type ${typeof value}`
+  throw new ArchConfigError(
+    'report',
+    `report: ${shown} is not a report mode; the modes are 'throw', 'return', 'warn', 'builders'. ` +
+      'An unknown mode used to print the violations and pass.',
+  )
+}
+
+/**
  * A preset's return value, honouring `report` when the caller named one.
  *
  * One definition, called by all five presets — the pre-copy code had this logic
@@ -443,6 +467,7 @@ export function deliver(
   builders: RuleBuilderLike[],
   options: { report?: PresetDelivery; format?: OutputFormat; reason?: string } | undefined,
 ): RuleBuilderLike[] | CollectResult {
+  refuseUnknownDelivery(options?.report)
   // Only an EXPLICIT 'builders' returns without running. Omission falls through
   // to `finishPreset`, whose own default is 'throw' — so a preset called with no
   // options enforces, which is what ADR-008 states and what the docs teach.

@@ -31,5 +31,7 @@ describe('a preset given an unknown report mode', () => {
     })
     expect(code).not.toBe(0)
     expect(stderr.join('')).toMatch(/report: 'thorw' is not a report mode/)
+    // eess-ts's presets take 'builders' too, which the kernel's list does not know (review, enf M1).
+    expect(stderr.join('')).toMatch(/'throw', 'return', 'warn', 'builders'/)
   })
 })
