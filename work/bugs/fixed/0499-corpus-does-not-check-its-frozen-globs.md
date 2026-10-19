@@ -74,18 +74,28 @@ Decided in the build, from bug 0465's fix and ADR-016/018:
   ten times. One authored mistake, one refusal, on every door that loads a corpus.
 - **"Marks no loaded document", not "matches no file".** A frozen glob outside the roots, or one
   matching only non-Markdown files, freezes nothing a rule reads; it is as dead as a typo.
-- **No declaration for an empty frozen folder**, unlike `expectEmptyRoots` (bug 0475). A dead root
-  leaves a folder unexamined when it fills; a missing frozen glob leaves its documents live, so
-  every live-scoped rule reads them. Removing the glob fails closed, so the refusal's remedy is
-  "correct it, or remove it".
-- **The default globs are not judged.** `**/completed/**` and `**/archived/**` are eess-md's
-  convention (ADR-018 C4), not a string the caller wrote, and most corpora lack one of them.
+- **A declaration for an empty frozen folder, `expectEmptyFrozen`** (corrected after review; the
+  first build had none). The first build argued that removing a dead frozen glob fails closed, since
+  its documents are read as live. That holds only for rules over live documents. For the rule this
+  bug exists to protect, an absence rule over the frozen documents
+  (`taskItems(c).that().areOpen().satisfy(inDocuments(areFrozen())).should().notExist()`), removal
+  fails open: the first record filed in the folder is outside `areFrozen()`, and its open box reds
+  nothing. So the remedy is a declaration, as `expectEmptyRoots` is for a root (bug 0475):
+  `corpus({ expectEmptyFrozen })` names frozen globs that may mark nothing. A name that is not one of
+  `frozen` is refused (with `frozen` omitted, every name is, since the default is not the caller's
+  to declare); a declared glob that marks a document is refused, telling the caller to drop the
+  declaration (ADR-010 §3); a declaration does not excuse a text fault.
+- **The default globs are not judged when `frozen` is omitted.** `**/completed/**` and
+  `**/archived/**` are eess-md's convention (ADR-018 C4), not a string the caller wrote, and most
+  corpora lack one of them. Written out, the same list is the caller's and is judged; the docs'
+  quickstarts passed it explicitly and were changed to omit it (review, PR for this batch).
 - **A corpus that loads nothing is not judged for dead frozen globs.** Every glob marks nothing
   there; the empty source is its own finding (bug 0465's precedent). Text faults are still refused.
 - **Flagged as an eess-md break** (a minor): it reds corpora that loaded before. It red this
   repository's own `check:corpus`, whose `FROZEN` listed `**/wont-do/**` and `**/archived/**` with
-  no record under either; both left the list (`scripts/check-corpus.mjs`), with a note to add each
-  back when a record lands there. `check:corpus` counted 3991 checks before the removal and after it (measured before this record's own pointers were added), so nothing it examined moved.
+  no record under either. The first build removed both; after review they are back, declared in
+  `EMPTY_FROZEN` (`scripts/check-corpus.mjs`), so the first record filed in either folder is
+  frozen, and the declaration then expires.
 - **Plan 0457's guard-pair test** loaded `frozen: ['archive/**']` over a corpus with no archive; it
   now holds an archived page outside the ratchet's live scope (`packages/md/tests/in-documents.test.ts`).
 
@@ -109,5 +119,16 @@ Sabotage matrix (mutant applied to `packages/md/src/corpus.ts`, then restored wi
 | 2   | the dead check skipped          | `a frozen glob that marks no loaded document is refused, naming it`, `every faulted frozen glob is named, in one refusal`                           |
 | 3   | the loads-nothing guard removed | `a corpus that loads nothing is left to the empty-source report`                                                                                    |
 | 4   | the default globs judged too    | `the default frozen globs are a convention and are not judged`                                                                                      |
+
+`expectEmptyFrozen` (review fix), red first: 5 of its 6 tests failed before the option existed
+(the text-fault row already held). Mutants applied to `packages/md/src/corpus.ts`, restored with
+`git checkout`:
+
+| row | mutant                             | red in `corpus-frozen-globs.test.ts`                                                                                                                            |
+| --- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 5   | the declaration's expiry removed   | `the declaration expires: a declared glob that marks a document is refused`                                                                                     |
+| 6   | a name outside `frozen` accepted   | `a declared glob that is not one of the frozen globs is refused`, `declaring a glob with frozen omitted is refused: the default is not the caller's to declare` |
+| 7   | a declaration excuses a text fault | `a declaration does not excuse a text fault`                                                                                                                    |
+| 8   | the declaration ignored            | `a declared frozen glob that marks no document loads`, `the declaration expires: a declared glob that marks a document is refused`                              |
 
 Deferred: bug 0510

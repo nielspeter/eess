@@ -87,3 +87,76 @@ describe("a corpus's frozen globs are judged at load (bug 0499)", () => {
     ).toThrow(/frozen glob '\/archive\/\*\*'/)
   })
 })
+
+/**
+ * A lifecycle folder with no record yet (`wont-do/` before anything is filed there). Removing its
+ * glob is not a remedy: a record that lands there later is read as live, and an absence rule over
+ * the frozen documents never sees it. `expectEmptyFrozen` declares such globs, as
+ * `expectEmptyRoots` declares a root (bug 0475), and the declaration expires (ADR-010 §3).
+ */
+describe('expectEmptyFrozen: a frozen glob that marks nothing on purpose (bug 0499)', () => {
+  it('a declared frozen glob that marks no document loads', () => {
+    expect(() =>
+      corpus({
+        cwd: tree(files),
+        roots: ['**/*.md'],
+        frozen: ['archive/**', 'wont-do/**'],
+        expectEmptyFrozen: ['wont-do/**'],
+      }),
+    ).not.toThrow()
+  })
+
+  it('the refusal of an undeclared dead glob names expectEmptyFrozen as the remedy', () => {
+    const said = refusal(() =>
+      corpus({ cwd: tree(files), roots: ['**/*.md'], frozen: ['archive/**', 'wont-do/**'] }),
+    )
+    expect(said).toContain("frozen glob 'wont-do/**' marks none of the corpus's 2 documents")
+    expect(said).toContain('expectEmptyFrozen')
+  })
+
+  it('the declaration expires: a declared glob that marks a document is refused', () => {
+    const said = refusal(() =>
+      corpus({
+        cwd: tree(files),
+        roots: ['**/*.md'],
+        frozen: ['archive/**'],
+        expectEmptyFrozen: ['archive/**'],
+      }),
+    )
+    expect(said).toContain("'archive/**' is declared in expectEmptyFrozen, but it marks 1 document")
+    expect(said).toContain('drop it from expectEmptyFrozen')
+  })
+
+  it('a declared glob that is not one of the frozen globs is refused', () => {
+    const said = refusal(() =>
+      corpus({
+        cwd: tree(files),
+        roots: ['**/*.md'],
+        frozen: ['archive/**'],
+        expectEmptyFrozen: ['wont-do/**'],
+      }),
+    )
+    expect(said).toContain(
+      "expectEmptyFrozen names 'wont-do/**', which is not one of the frozen globs",
+    )
+  })
+
+  it("declaring a glob with frozen omitted is refused: the default is not the caller's to declare", () => {
+    expect(() =>
+      corpus({ cwd: tree(files), roots: ['**/*.md'], expectEmptyFrozen: ['**/archived/**'] }),
+    ).toThrow(
+      /expectEmptyFrozen names '\*\*\/archived\/\*\*', which is not one of the frozen globs/,
+    )
+  })
+
+  it('a declaration does not excuse a text fault', () => {
+    expect(() =>
+      corpus({
+        cwd: tree(files),
+        roots: ['**/*.md'],
+        frozen: ['archive/**', '/wont-do/**'],
+        expectEmptyFrozen: ['/wont-do/**'],
+      }),
+    ).toThrow(/frozen glob '\/wont-do\/\*\*': a leading `\/` can never match/)
+  })
+})

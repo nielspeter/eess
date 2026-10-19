@@ -2674,7 +2674,11 @@ function gateCorpusWorkPointer() {
  */
 function gateCorpusFrozenScope() {
   const original = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
-  const mutated = original.replace("'work/spikes/**']", "'work/spikes/**', 'work/**']")
+  // Either layout prettier gives the list: one line, or one glob per line with a trailing comma.
+  const mutated = original.replace(
+    /'work\/spikes\/\*\*',?(\s*)\]/,
+    "'work/spikes/**', 'work/**',$1]",
+  )
   if (mutated === original) {
     return {
       ok: false,

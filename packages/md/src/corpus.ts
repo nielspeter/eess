@@ -31,9 +31,11 @@ export interface CorpusOptions {
    *
    * Globs you pass are judged at load (bug 0499): one that can never match a
    * path under `cwd` (a leading `/`, a `../`), or that marks none of the
-   * documents the corpus loaded, is refused with an `ArchConfigError`. List a
-   * lifecycle folder once it holds a record; until then its documents are live.
-   * The default is not judged.
+   * documents the corpus loaded, is refused with an `ArchConfigError`. A folder
+   * that holds no record yet is declared in `expectEmptyFrozen`, not removed:
+   * removed, a record that lands there later is read as live, and an absence
+   * rule over the frozen documents never sees it. The omitted default is not
+   * judged; the same list written out is yours, and it is.
    */
   readonly frozen?: readonly string[]
   /**
@@ -50,6 +52,13 @@ export interface CorpusOptions {
    * the folder is never silently unexamined once it fills. Each name must be one of `roots`.
    */
   readonly expectEmptyRoots?: readonly string[]
+  /**
+   * Frozen globs that mark no document on purpose: a lifecycle folder with no record yet
+   * (`'**\/wont-do/**'` before anything is filed there). A named glob may mark nothing without being
+   * refused. The declaration expires (ADR-010 §3): a named glob that marks a document is refused, so
+   * the declaration is dropped once the folder fills. Each name must be one of `frozen` (bug 0499).
+   */
+  readonly expectEmptyFrozen?: readonly string[]
 }
 
 /**
@@ -142,20 +151,17 @@ export function corpus(options: CorpusOptions): Corpus {
   // `inDocuments(areFrozen())` and an absence rule over it was green. Refused
   // here, as a dead root is. Only the caller's globs: the default is a
   // convention that may name no folder in this repository.
-  if (options.frozen !== undefined) {
-    const faults = frozenGlobFaults(
-      options.frozen,
-      documents.map((d) => d.relPath),
+  const frozenFaults = frozenGlobFaults(
+    options.frozen,
+    options.expectEmptyFrozen ?? [],
+    documents.map((d) => d.relPath),
+  )
+  if (frozenFaults.length > 0) {
+    throw new ArchConfigError(
+      'corpus',
+      `${frozenFaults.join(' ')} A frozen glob that marks nothing leaves a rule over the frozen ` +
+        `documents judging fewer than you named, and an absence rule over them passing on none.`,
     )
-    if (faults.length > 0) {
-      throw new ArchConfigError(
-        'corpus',
-        `corpus frozen glob${faults.length > 1 ? 's' : ''} ${faults.join('; ')} — so a rule over ` +
-          `the frozen documents judges fewer than you named, and an absence rule over them can ` +
-          `pass on none. Correct the glob, or remove it: a document no frozen glob marks is ` +
-          `checked as live.`,
-      )
-    }
   }
 
   const loaded: Corpus = {
@@ -225,17 +231,49 @@ function loadsADocument(
 }
 
 /**
- * What is wrong with the caller's `frozen` globs (bug 0499), one phrase per glob: a text fault
- * that can never match, judged always; or no loaded document marked, judged only when the
- * corpus loaded one (a corpus that loads nothing is the empty-source report, as in bug 0465).
+ * What is wrong with the caller's `frozen` globs and `expectEmptyFrozen` (bug 0499), one sentence
+ * each. A text fault can never match and is judged always, declared or not. A glob that marks no
+ * loaded document is judged only when the corpus loaded one (a corpus that loads nothing is the
+ * empty-source report, as in bug 0465), and only when it is not declared. A declaration names one
+ * of `frozen`, and expires once its glob marks a document. With `frozen` omitted the default is not
+ * judged, and nothing can be declared against it.
  */
-function frozenGlobFaults(globs: readonly string[], loaded: readonly string[]): string[] {
-  return globs.flatMap((glob) => {
+function frozenGlobFaults(
+  globs: readonly string[] | undefined,
+  declared: readonly string[],
+  loaded: readonly string[],
+): string[] {
+  const faults: string[] = []
+  const frozen = globs ?? []
+  for (const glob of declared) {
+    if (!frozen.includes(glob)) {
+      faults.push(
+        `expectEmptyFrozen names '${glob}', which is not one of the frozen globs — remove it, or add the glob to frozen.`,
+      )
+    }
+  }
+  for (const glob of frozen) {
     const text = repoRelativeTextProblem(glob)
-    if (text !== undefined) return [`'${glob}': ${text.cause}. ${text.remedy}`]
-    if (loaded.length === 0) return []
+    if (text !== undefined) {
+      faults.push(`corpus frozen glob '${glob}': ${text.cause}. ${text.remedy}`)
+      continue
+    }
     const matches = picomatch(glob)
-    if (loaded.some((rel) => matches(rel))) return []
-    return [`'${glob}' marks none of the corpus's ${String(loaded.length)} documents`]
-  })
+    const marked = loaded.filter((rel) => matches(rel)).length
+    if (declared.includes(glob)) {
+      if (marked > 0) {
+        faults.push(
+          `corpus frozen glob '${glob}' is declared in expectEmptyFrozen, but it marks ` +
+            `${String(marked)} document${marked === 1 ? '' : 's'} now — drop it from expectEmptyFrozen.`,
+        )
+      }
+    } else if (loaded.length > 0 && marked === 0) {
+      faults.push(
+        `corpus frozen glob '${glob}' marks none of the corpus's ${String(loaded.length)} documents — ` +
+          `correct the glob, or name it in expectEmptyFrozen if its folder holds no record yet. ` +
+          `Removing it is not the same: a record that lands there later is read as live.`,
+      )
+    }
+  }
+  return faults
 }
