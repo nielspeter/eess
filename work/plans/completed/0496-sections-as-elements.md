@@ -27,7 +27,7 @@
 - **Builds after:** [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (PR #245,
   merged as `7ef7a1d`; this plan was rebased onto it). It needs from it: `inDocuments` and its
   per-document memo, the `noun` and `scopeDiagnosis` hooks on `CorpusRuleBuilder`, and the section
-  predicate on md's root. Also after the naming pull request that lands ADR-023 (forthcoming PR):
+  predicate on md's root. Also after the naming pull request that lands ADR-023 (#248, merged):
   this plan uses the names that ADR gives (`predicateHaveSection`, `predicateHaveField`), and
   renames nothing itself. Also after
   [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) (built:
@@ -352,9 +352,9 @@ work/proposals/006-x.md: missing section "Acceptance criteria" at depth 2; it is
 - **`haveSection(name, options?)`** (the root condition, and `docs().haveSection()` in both phases)
   reads `sectionsOf(doc)`, with `HaveSectionOptions { readonly depth?: number }`. Without options its
   verdicts are unchanged (the same walk); the option is additive. The section predicate on md's root,
-  `predicateHaveSection` under ADR-023 (forthcoming PR), takes the same option.
+  `predicateHaveSection` under ADR-023 (#248, merged), takes the same option.
 - **Names.** This plan renames nothing. The family's predicate/condition naming is ADR-023's
-  (forthcoming PR): a plain name keeps the kind it was first published as, and a twin of the other
+  (#248, merged): a plain name keeps the kind it was first published as, and a twin of the other
   kind takes `predicate`/`condition` as a prefix, eess-ts's precedent (`predicateNotImportFrom`,
   `conditionResideInFile`). That PR renames the unreleased `haveSectionPredicate` and the root
   `haveField` predicate to `predicateHaveSection` and `predicateHaveField`; every example in this plan
@@ -586,7 +586,7 @@ or removed. This plan ships in the same release as bug 0502's fix, or after it, 
 - **A named-section region for `fields()`/`haveField`** (017's consumer follow-up: 51 of adopter 3's
   records): [plan 0505](./0505-a-field-read-inside-a-named-section.md), in this release batch, built
   on this plan's extents.
-- **The predicate/condition names**: ADR-023 and its rename (forthcoming PR).
+- **The predicate/condition names**: ADR-023 and its rename (#248, merged).
 - **crossvalidate's copy of `matchName`**: bug 0506.
 - **The rest of block 3**: `haveTitle`, and "a live code pointer under a named section".
 - **The rest of block 14** (non-empty, a code block, a list item, a link) and **block 15** (order).
@@ -722,7 +722,7 @@ across 325 documents, 0 violations, 6.4 s. The new non-vacuity row (`corpus/prop
 `missing section "Acceptance criteria" at depth 2; "Acceptance criteria" at line 200 is at depth 3`,
 checked by hand before the row was committed.
 
-**Sabotage matrix.** Run 2026-10-19 at `1621af4` (after bug 0502's fix, which row 14 needs: before it,
+**Sabotage matrix.** Run 2026-10-19 on the pre-rebase original of `1621af4` (after bug 0502's fix, which row 14 needs: before it,
 `links()` did not read `contains`), in this worktree, tree clean before and after: each mutant applied
 to one file under `packages/md/src`, the named tests run with `vitest -t`, the file restored by
 `git checkout`. 17 rows (the plan's 16 and bug 0502's) in 18.5 s; every row red. `sections` is
@@ -763,9 +763,7 @@ files; the mutant column is written so a row can be rebuilt.
       `sections.test.ts`); its crossvalidate half was fixed in #251, so the bug is closed in this
       pull request, its last box deferred to bug 0511 as #251 left it
 - [ ] `check:corpus`, `check:nonvacuity`, `check:vacuity`, `check:examples`, `check:family`,
-      `check:release` and `npm run validate` green — validation-owed: `npm run validate` runs once,
-      at the pull request's final head; its exit, duration and SHA are in the pull request's
-      description, and CI gates the merge
+      `check:release` and `npm run validate` green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
 - [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
 
 Deferred: none

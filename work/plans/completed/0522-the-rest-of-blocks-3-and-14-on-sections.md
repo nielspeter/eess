@@ -81,7 +81,7 @@ title's pattern ignored; each content condition reading the whole document inste
 
 ## Build notes — 2026-10-19
 
-Built on maintainer order 2026-10-19. Decisions, each so it can be overruled:
+Built on maintainer order 2026-10-19. Not design-reviewed: written and built in the same pass, and reviewed in PR #252. Decisions, each so it can be overruled:
 
 - **Block 3 asks for three things**, read from proposal 017's text: the depth (plan 0496), the title,
   and "a document can be required to hold a live code pointer under a section the caller names".
@@ -131,8 +131,7 @@ is adopted in this pull request: each needs its own non-vacuity row, and none wa
 - [x] `haveTitle` on `docs()` and the root
 - [x] `haveContent`, `haveCodeBlock`, `haveListItem`, `haveLink`, `haveCodePointer` on `sections()`
 - [x] Tests, sabotage rows, docs, changeset; the dogfood measured (no rule adopted, reasons above)
-- [ ] `npm run validate` green — validation-owed: it runs once, at the pull request's final head;
-      its exit, duration and SHA are in the pull request's description
+- [ ] `npm run validate` green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
 - [x] Close: this plan → `completed/`; ROADMAP and proposal 017's rows
 
 Deferred: none

@@ -34,7 +34,7 @@
     a deferral on a box's second line is not part of it;
   - [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md): `inDocuments`, its
     memo, and `scopeDiagnosis`, which this plan generalises;
-  - the ADR-023 pull request (forthcoming): the names `predicateHaveField` and
+  - the ADR-023 pull request (#248, merged before this build): the names `predicateHaveField` and
     `predicateHaveSection` used below.
 
   All of them are in this release batch.
@@ -60,7 +60,7 @@ passes.
 ### The adopters' rules, as they will be written
 
 Each adopter passes its own patterns. eess-md exports no disposition words: they are a working-method
-shape, which the md root does not fix (ADR-022, forthcoming PR, clause 1; 017's second Review,
+shape, which the md root does not fix (ADR-022, merged, clause 1; 017's second Review,
 decision 1). `honestyAtClose`'s private `DEFERRED_DISPOSITION_RE`
 (`packages/md/src/rules/ledger.ts:253`) stays private.
 
@@ -198,7 +198,7 @@ the example.
   `areInSectionPredicate`, so it composes with `not()`, `and()` and `or()`, as the adopters' rules
   above need, and the plain name stays true when links, fields or terms (which also carry `text`,
   `packages/md/src/model/links.ts:12`, `packages/md/src/model/fields.ts:65`) gain the method later. It is first published as a
-  predicate, so under ADR-023 (forthcoming) the plain name is the predicate; the builder method's
+  predicate, so under ADR-023 (#248, merged) the plain name is the predicate; the builder method's
   condition phase is its twin by phase, as `haveSection` is on `docs()`.
 - **The caller's pattern, read once:** `g` and `y` stripped, as plan 0496's section matcher does, so
   `lastIndex` never carries from one box to the next.
@@ -217,7 +217,7 @@ the example.
 - **A new shape, acknowledged.** md's other root predicates are verb-first and share the builder
   method's name (`resideInFolder`, `areFrozen`, `inDocuments`). These put the element's noun first,
   because their only callers are lifts (`inSections(…)`) where a bare verb would be ambiguous between
-  element kinds. ADR-023 (forthcoming) governs predicate/condition twins only, so this is the plan's
+  element kinds. ADR-023 (#248, merged) governs predicate/condition twins only, so this is the plan's
   choice; it is offered to that ADR's author as a rule for the next non-document element ("a root
   predicate over a non-document element carries the element's noun when the method name is generic").
 - **They compose** with `and`, `or` and `not`. Each is registered in plan 0496's section-name
@@ -433,7 +433,7 @@ hold none of the 1 task items the rest of this rule selects`. A document scope's
   has no mechanism; it is held by review, as the plan says.
 - **Red first.** The tests were written after the code, so their red is the sabotage matrix below.
 
-**Sabotage matrix**, run 2026-10-19 at `ee7eb19` (row 6 again with its test name matched), each mutant
+**Sabotage matrix**, run 2026-10-19 on the pre-rebase original of `ee7eb19` (row 6 again with its test name matched), each mutant
 applied to one file under `packages/md/src`, the named test in `packages/md/tests/in-sections.test.ts`
 run, the file restored by `git checkout`, tree clean after; 9 rows, every one red:
 
@@ -457,8 +457,7 @@ run, the file restored by `git checkout`, tree clean after; 9 rows, every one re
 - [x] Sabotage rows 1–9, each red on its named test
 - [ ] The break-class row "a section name under `not()`" — deferred→bug 0512
 - [ ] `check:examples`, `check:vacuity`, `check:family`, `check:release` and `npm run validate`
-      green — validation-owed: `npm run validate` runs once, at the pull request's final head; its
-      exit, duration and SHA are in the pull request's description
+      green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
 - [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
 
 Deferred: bug 0512

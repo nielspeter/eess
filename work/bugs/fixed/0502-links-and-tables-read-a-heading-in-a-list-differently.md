@@ -158,7 +158,6 @@ after the fix: 2,611 links, and the same section path for every one (a hash of
 - [x] The links-only exception decided (none), with its row: `a link inside the container is not in
 the container's heading either; the rule names it`
 - [x] Green, with the release note (`.changeset/md-links-read-sections.md`, marked Breaking)
-- [ ] `npm run validate` green — validation-owed: it runs once, at the pull request's final head;
-      its exit, duration and SHA are in the pull request's description
+- [ ] `npm run validate` green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
 
 Deferred: none

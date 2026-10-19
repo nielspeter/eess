@@ -78,8 +78,7 @@ in a code sample is not a deferral); and the first paragraph's own line breaks a
 which changes one existing expectation (`packages/md/tests/frontmatter.test.ts`, a box written over
 three lines now reads as one).
 
-Measured on this repository with eess-md's build before and after: `check:ledger` reads 432 records
-and 190 done-items, with 0 findings, both times. Released as a break (`.changeset/md-box-text.md`).
+Measured on this repository with eess-md's build before and after: `check:ledger` reads 444 records and 197 done-items, with 0 findings, both times (measured by PR #252's method review at `54204c8` and its parent `63d6f17`; the build-time figures, 432 and 190, came from the tree before the rebase). Released as a break (`.changeset/md-box-text.md`).
 
 **Sabotage**, each red on its named test in
 `packages/md/tests/rules/a-box-reads-all-its-own-text.test.ts`: `restOfItem` returns nothing (red on
@@ -92,9 +91,7 @@ the second-paragraph, sub-bullet and second-line-disposition rows); a nested box
       now give one `ledger/deferred-none-lie` each; the second-line disposition was a false
       `ledger/silent-open-box`, and is now read
 - [x] A nested box is still its own box, with its own text
-- [x] The release note, and this repository's corpus measured before and after (432 records, 0
-      findings both times)
-- [ ] `npm run validate` green — validation-owed: it runs once, at the pull request's final head;
-      its exit, duration and SHA are in the pull request's description
+- [x] The release note, and this repository's corpus measured before and after (444 records, 0 findings both times)
+- [ ] `npm run validate` green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
 
 Deferred: none

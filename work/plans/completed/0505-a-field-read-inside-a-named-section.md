@@ -155,7 +155,7 @@ records and reports 0, without the region and with `region: { section: 'Status' 
 (`corpus/state-present-outside-status`) was checked by hand before it was committed: a probe with its
 State under `## Symptom` gives exactly `State at line 9 is outside the "Status" section (region); …`.
 
-**Sabotage**, run 2026-10-19 at `680dcf0` (row 6 again at `63d6f17`), each red on its named test in
+**Sabotage**, run 2026-10-19 on the pre-rebase originals of `680dcf0` (row 6 again on `63d6f17`'s), each red on its named test in
 `field-section-region.test.ts`, 5.4 s:
 
 | row | mutant                                         | red (named test)                                |
@@ -173,8 +173,7 @@ State under `## Symptom` gives exactly `State at line 9 is outside the "Status" 
 - [x] Phase 2: dogfood (229 records, 0 before and after), non-vacuity row, example, docs, changeset
 - [x] Sabotage rows, each red on its named test; 5.4 s
 - [ ] `check:corpus`, `check:nonvacuity`, `check:examples`, `check:release` and `npm run validate`
-      green — validation-owed: `npm run validate` runs once, at the pull request's final head; its
-      exit, duration and SHA are in the pull request's description
+      green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
 - [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
 
 Deferred: none
