@@ -82,7 +82,8 @@ describe('a line-1 `---` block that is not front matter is read as Markdown (bug
 
   it('valid YAML whose continuation lines carry a task box and a link: both stay visible', () => {
     expect(firstNode('indented.md')).not.toBe('yaml')
-    expect(openBoxes('indented.md')).toEqual([[4, 'still open\nNext: finish\nthe migration']])
+    // Bug 0507: a box's text is collapsed across its lines.
+    expect(openBoxes('indented.md')).toEqual([[4, 'still open Next: finish the migration']])
     expect(linkUrls('indented.md')).toEqual(['missing-indented.md'])
   })
 
