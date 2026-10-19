@@ -347,7 +347,10 @@ unless it misses the name only by case or spacing.
 A note on names first. A plain name on this package's root keeps the kind it was first published as:
 `haveSection` is the condition, and `resideInFolder` the predicate. Where a word is needed in the other
 kind, the twin carries the prefix: `predicateHaveSection`, and `predicateHaveField` beside the
-`docs().haveField()` method. (eess-ts's plain names lean the other way.)
+`docs().haveField()` method, and `predicateHaveTextMatching` beside `taskItems().haveTextMatching()`.
+A free predicate over an element other than the builder's own subject is named element-first
+(`sectionsNamed`), so a lift reads `inSections(sectionsNamed('X'))`. (eess-ts's plain names lean the
+other way.)
 
 Every element that belongs to a document (a box, a link, a pointer, a row, a term, a code block)
 carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
