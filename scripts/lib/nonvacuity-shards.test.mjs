@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkNonvacuityJobs } from './nonvacuity-shards.mjs'
+import { checkNonvacuityJobs, duplicateNames } from './nonvacuity-shards.mjs'
 
 // Plan 0509. These drive the harness itself — its shard, merge and plan modes —
 // not the helpers, so a harness that stops calling the helpers goes red here.
@@ -53,6 +53,7 @@ function merge(edit = (reports) => reports) {
     of: 4,
     digest: p.digest,
     selected: [...s.selected],
+    ran: [...s.selected],
     failed: [],
     // Spread across the shards, so only their union covers every id.
     assertedRuleIds: CORPUS_IDS.filter((_, k) => k % 4 === s.shard - 1),
@@ -103,14 +104,21 @@ test('a complete set of shard reports merges green', () => {
   assert.equal(r.code, 0, r.out)
   assert.match(r.out, /harness self-check — OK/)
   assert.match(r.out, /gate coverage — OK/)
-  assert.match(r.out, /shard partition — OK · \d+ fixtures across 4 shards/)
+  const fixtures = plan(4).fixtures
+  assert.ok(
+    r.out.includes(`shard partition — OK · ${fixtures} fixtures ran across 4 shards`),
+    r.out,
+  )
+  assert.ok(r.out.includes(`${fixtures} fixtures each fired`), r.out)
   assert.match(r.out, /rule-id coverage — OK/)
 })
 
 test('a fixture that ran in no shard fails the merge', () => {
   let dropped
   const r = merge((reports) => {
+    // A selector that drops it: the shard neither selects nor runs it.
     dropped = reports[2].selected.pop()
+    reports[2].ran.pop()
     return reports
   })
   assert.equal(r.code, 1, r.out)
@@ -122,6 +130,7 @@ test('a fixture that ran in two shards fails the merge', () => {
   const r = merge((reports) => {
     twice = reports[0].selected[0]
     reports[1].selected.push(twice)
+    reports[1].ran.push(twice)
     return reports
   })
   assert.equal(r.code, 1, r.out)
@@ -206,4 +215,56 @@ test('a merge job that does not wait for the shards is refused', () => {
   const early = CI.replace(/^ {4}needs: nonvacuity-shard\n/m, '')
   assert.notEqual(early, CI)
   assert.match(checkNonvacuityJobs(early).join('\n'), /does not wait for `nonvacuity-shard`/)
+})
+
+// C1 of PR #250's enforcement review: the partition was checked against what each
+// shard SELECTED, so a shard whose loop ran nothing still read green. These two
+// pin the evidence: a real shard reports what it ran, and the merge refuses a
+// report whose `ran` falls short of its `selected`.
+test('a report whose ran omits a selected fixture fails the merge', () => {
+  let skipped
+  const r = merge((reports) => {
+    skipped = reports[1].ran.pop()
+    return reports
+  })
+  assert.equal(r.code, 1, r.out)
+  assert.ok(r.out.includes(`selected but not run: ${skipped}`), r.out)
+  // And the partition is built from what ran, so the same fixture ran nowhere.
+  assert.ok(r.out.includes(`fixture "${skipped}" ran in no shard`), r.out)
+})
+
+// One real fixture, chosen for being fast (about 35 ms) and needing no build:
+// shard k+1 of T, with T the number of fixtures, selects exactly position k.
+const FAST_FIXTURE = 'bun-load/ci-needs'
+test('a shard runs and reports the fixture it selected', () => {
+  const all = plan(1).shards[0].selected
+  const k = all.indexOf(FAST_FIXTURE)
+  assert.notEqual(k, -1, `${FAST_FIXTURE} is no longer a fixture; pick another fast one`)
+  const dir = mkdtempSync(join(tmpdir(), 'nonvacuity-shard-'))
+  try {
+    const reportPath = join(dir, 'report.json')
+    const r = harness({
+      EESS_NONVACUITY_SHARD: `${k + 1}/${all.length}`,
+      EESS_NONVACUITY_REPORT: reportPath,
+    })
+    assert.equal(r.code, 0, r.out)
+    const report = JSON.parse(readFileSync(reportPath, 'utf8'))
+    assert.deepEqual(report.selected, [FAST_FIXTURE])
+    assert.deepEqual(report.ran, [FAST_FIXTURE])
+    assert.deepEqual(report.failed, [])
+    assert.match(r.out, /shard \d+\/\d+ — 1 fixtures each fired/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('duplicate fixture names are found', () => {
+  assert.deepEqual(duplicateNames(['a', 'b', 'a', 'c', 'b']), ['a', 'b'])
+  assert.deepEqual(duplicateNames(['a', 'b']), [])
+})
+
+test('a shard job that writes no report is refused', () => {
+  const noReport = CI.replace(/^ +EESS_NONVACUITY_REPORT:.*\n/m, '')
+  assert.notEqual(noReport, CI)
+  assert.match(checkNonvacuityJobs(noReport).join('\n'), /does not set EESS_NONVACUITY_REPORT/)
 })

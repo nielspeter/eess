@@ -236,6 +236,7 @@ import {
   parseShard,
   selectShard,
 } from './lib/nonvacuity-shards.mjs'
+const SHARD_TESTS_LINK = 'node --test scripts/lib/nonvacuity-shards.test.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EESS_TS = join(repoRoot, 'node_modules', '.bin', 'eess-ts')
@@ -4835,6 +4836,12 @@ function gateCoverage() {
   // checks the partition and the whole-set audits. A workflow that drops or
   // softens the merge leaves every shard green over an unchecked split.
   for (const p of checkNonvacuityJobs(ci)) problems.push(`nonvacuity CI jobs: ${p}`)
+  // The shard and merge tests run only as the tail of `check:nonvacuity`; no other
+  // runner picks them up. Dropping that tail would leave them running nowhere, in
+  // silence (enforcement review of PR #250, I2).
+  if (!String(pkg.scripts?.['check:nonvacuity'] ?? '').includes(SHARD_TESTS_LINK)) {
+    problems.push(`check:nonvacuity no longer runs \`${SHARD_TESTS_LINK}\``)
+  }
   const dupNames = duplicateNames(gates.map(([n]) => n))
   if (dupNames.length > 0) problems.push(`duplicate gate names: ${dupNames.join(', ')}`)
   // The guard's Bun breaks run only in that job, so a deleted break would read
@@ -5021,12 +5028,25 @@ if (SHARD_SPEC !== undefined) {
   const runs = new Map(gates)
   const failed = []
   const durations = {}
+  // What actually ran, recorded as it runs. The selection is a declaration; this
+  // is the evidence (ADR-010), and the shard and the merge both read it, never
+  // `selected`, for what ran (enforcement review of PR #250, C1).
+  const ran = []
   for (const name of selected) {
     const t0 = Date.now()
     if (!runGate(name, runs.get(name))) failed.push(name)
+    ran.push(name)
     durations[name] = Date.now() - t0
   }
   const durationMs = Date.now() - started
+  const notRun = selected.filter((n) => !ran.includes(n))
+  if (notRun.length > 0 || ran.length !== selected.length) {
+    allOk = false
+    console.log(
+      `nonvacuity: shard ${index}/${total} — FAILED · selected ${selected.length} fixtures but ran ` +
+        `${ran.length}; not run: ${notRun.join(', ') || '(a fixture ran twice)'}`,
+    )
+  }
   const reportPath = process.env[REPORT_ENV]
   if (reportPath !== undefined) {
     mkdirSync(dirname(reportPath), { recursive: true })
@@ -5037,6 +5057,7 @@ if (SHARD_SPEC !== undefined) {
         of: total,
         digest,
         selected,
+        ran,
         failed,
         assertedRuleIds: [...ASSERTED_RULE_IDS].sort(),
         durationMs,
@@ -5046,11 +5067,11 @@ if (SHARD_SPEC !== undefined) {
   }
   console.log(
     allOk
-      ? `\nnonvacuity: shard ${index}/${total} — ${gateCount} fixtures each fired on their ` +
+      ? `\nnonvacuity: shard ${index}/${total} — ${ran.length} fixtures each fired on their ` +
           `violating input (${(durationMs / 1000).toFixed(1)}s). The whole-set checks — harness ` +
           'self-check, gate coverage, rule-id coverage and the shard partition — run in the merge.'
-      : `\nnonvacuity: shard ${index}/${total} — at least one fixture did NOT fire on its violating ` +
-          'input — see above.',
+      : `\nnonvacuity: shard ${index}/${total} — FAILED: a fixture did not fire, or did not run — ` +
+          'see above.',
   )
   process.exit(allOk ? 0 : 1)
 }
@@ -5079,11 +5100,12 @@ if (MERGE_DIR !== undefined) {
   if (problems.length > 0) allOk = false
   console.log(
     problems.length === 0
-      ? `nonvacuity: shard partition — OK · ${FIXTURE_NAMES.length} fixtures across ` +
+      ? `nonvacuity: shard partition — OK · ${merged.fired} fixtures ran across ` +
           `${merged.shards} shards, each fixture in exactly one`
       : `nonvacuity: shard partition — FAILED · ${problems.join(' · ')}`,
   )
-  gateCount = problems.length === 0 ? FIXTURE_NAMES.length : 0
+  // The count is what the shards ran and saw fire, never the length of the list.
+  gateCount = problems.length === 0 ? merged.fired : 0
   mergedRuleIds = merged.assertedRuleIds
 } else {
   for (const [name, run] of gates) {
