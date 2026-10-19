@@ -1,8 +1,11 @@
+import { uniqueByCondition } from '@nielspeter/eess/internal'
+import { collectResult, type CollectResult } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import { haveFieldCondition, predicateHaveField, type HaveFieldOptions } from './have-field.js'
 import type { MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { MdDocument } from '../model/document.js'
+import { mdViolation } from '../model/violation.js'
 import {
   resideInFolder,
   resideInFile,
@@ -14,6 +17,7 @@ import {
   haveTable as haveTableCondition,
   type HaveTableOptions,
 } from '../conditions/structure.js'
+import { FolderAgreement, type AgreeWithFolderOptions } from '../conditions/agree-with-folder.js'
 
 /**
  * Rule builder over the corpus's markdown documents.
@@ -25,6 +29,8 @@ import {
  */
 export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   protected readonly noun = 'documents'
+  /** The `agreeWithFolder` conditions, kept for their declaration findings and evidence (plan 0495). */
+  private _agreements: FolderAgreement[] = []
 
   protected getElements(): MdDocument[] {
     return this.project.documents()
@@ -75,6 +81,58 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   /** Assert each matched document contains a GFM table with the required columns. */
   haveTable(opts: HaveTableOptions): this {
     return this.addCondition(haveTableCondition(opts))
+  }
+
+  /**
+   * Assert no two matched documents share `key`'s value (plan 0459). Every member of a group is a
+   * finding at its own line 1, naming the others; `what` names the value in the message. Exact match:
+   * normalise in `key`. Remove a document without a value with `.that()` first.
+   */
+  beUniqueBy(key: (d: MdDocument) => string, what: string): this {
+    return this.addCondition(
+      uniqueByCondition<MdDocument>({
+        key,
+        what,
+        locate: (d) => ({ name: d.relPath, at: `${d.relPath}:1` }),
+        toViolation: (d, message, context) =>
+          mdViolation({ element: d.relPath, file: d.file, line: 1, message, context }),
+      }),
+    )
+  }
+
+  /**
+   * Plan 0495 (proposal 017, block 5): each document's value and the folder it sits in say the same
+   * thing. `groups` bind values to folders, one group may bind `'rest'`, and the values are a closed
+   * set within the bound folders: a value no group names, in a folder a group binds, is reported. A
+   * document in no group's folders whose value is in no group is not judged; add a `'rest'` group to
+   * close the set everywhere. `direction` is the kernel's: left is the value, right is the folder.
+   * The value is read as `fields()` reads it and resolved as `haveField` resolves it, so a value that
+   * cannot be read is reported, never judged by its first occurrence. An agreement that selected
+   * documents and judged none is its own finding.
+   */
+  agreeWithFolder(options: AgreeWithFolderOptions): this {
+    const agreement = new FolderAgreement(this.project, options)
+    const next = this.addCondition(agreement.condition)
+    next._agreements = [...next._agreements, agreement]
+    return next
+  }
+
+  /**
+   * The kernel's verdict and evidence, unchanged, plus each `agreeWithFolder`'s own findings:
+   * its declaration's (refused or reported even over an empty selection) and, when it selected
+   * documents and judged none, that one. The kernel's `examined` stands, so a declared emptiness
+   * expires as the kernel decides.
+   */
+  protected override collectViolations(): CollectResult {
+    if (this._agreements.length === 0) return super.collectViolations()
+    for (const a of this._agreements) a.start()
+    const base = super.collectViolations()
+    const context = this.buildConditionContext()
+    const own = this._agreements.flatMap((a) => [
+      ...a.declarationFindings(context),
+      ...a.judgedNone(context),
+    ])
+    return own.length === 0 ? base : collectResult([...base, ...own], base)
   }
 }
 

@@ -34,6 +34,8 @@ export interface FieldVerdict {
   readonly has: boolean
   /** The value resolved (allowed or not): the reading is decided, whatever else is said (ADR-021). */
   readonly resolved: boolean
+  /** The occurrence the value resolved to, set exactly when `resolved` (plan 0495). */
+  readonly occurrence?: FieldOccurrence
   readonly causes: readonly FieldCause[]
 }
 
@@ -120,6 +122,7 @@ export function fieldVerdict(
     return {
       has: refused.length === 0,
       resolved: true,
+      occurrence: o,
       causes: [...prose, ...unread, ...disallowed],
     }
   }

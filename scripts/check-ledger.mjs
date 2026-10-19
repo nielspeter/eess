@@ -23,7 +23,8 @@ import {
 } from '@nielspeter/eess'
 import { findUncoveredLanes, findLaneDoneVacuity, laneDirectories } from './lib/lane-coverage.mjs'
 import { findFinishedNotClosed } from './lib/finished-not-closed.mjs'
-import { LANES } from './lib/ledger-lanes.mjs'
+import { laneClaims } from './lib/lane-claims.mjs'
+import { LANES, UNLANED } from './lib/ledger-lanes.mjs'
 
 // The lanes and their vocabularies live in `./lib/ledger-lanes.mjs`, shared with `check:corpus`.
 
@@ -64,6 +65,11 @@ const uncoveredLaneViolations = findUncoveredLanes('work', claimedTopSegments)
 // records) stays inside findUncoveredLanes; this only counts what's on disk,
 // through the same shared enumeration both gates now use.
 const workDirCount = laneDirectories('work').length
+
+// Plan 0481: every document under work/ is claimed by exactly one selection, a lane or a declared
+// unlaned folder, stated as two eess-md `notExist()` rules. Beside `findUncoveredLanes`, which
+// judges folders by the records they hold; `scripts/lib/lane-claims.mjs` says what each catches.
+const claims = laneClaims(LANES, UNLANED)
 
 // This repo's own corpus has carried done-items in every lane with a real
 // terminalStates vocabulary for its entire history — a lane reporting 0 is
@@ -136,6 +142,8 @@ const receipt = mergeCollectResults([
   // round-3 finding, applied to the evidence rather than to the done-count.
   ...scans.map((s) => s.violations),
   uncoveredLaneViolations,
+  claims.unclaimed,
+  claims.claimedTwice,
   laneDoneVacuousViolations,
   collectResult(finishedNotClosedViolations, { examined: finishedNotClosed.examined }),
 ])
@@ -143,6 +151,8 @@ const receipt = mergeCollectResults([
 const violations = [
   ...scans.flatMap((s) => s.violations),
   ...uncoveredLaneViolations,
+  ...claims.unclaimed,
+  ...claims.claimedTwice,
   ...laneDoneVacuousViolations,
   ...finishedNotClosedViolations,
 ]
@@ -198,6 +208,12 @@ line(
   'lanes',
   `${LANES.length} declared · ${workDirCount} work/ director${workDirCount === 1 ? 'y' : 'ies'} · ` +
     `${uncoveredLaneViolations.length} uncovered`,
+)
+line(
+  'claims',
+  `${claims.documents} documents under work/ · ${claims.selections} selections ` +
+    `(${LANES.length} lanes + ${UNLANED.length} unlaned) · ${claims.unclaimed.length} unclaimed · ` +
+    `${claims.claimedTwice.length} claimed twice`,
 )
 
 // The same receipt the machine-readable path used, so the two exits cannot

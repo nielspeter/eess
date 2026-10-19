@@ -15,10 +15,9 @@ npm install -D @nielspeter/eess-md
 ```typescript
 import { corpus, links, pointers } from '@nielspeter/eess-md'
 
-const c = corpus({
-  roots: ['docs/**'],
-  frozen: ['**/completed/**', '**/archived/**'], // historical: links still checked, pointers not
-})
+// `frozen` omitted: the default freezes `completed/` and `archived/` folders
+// (historical: links still checked, pointers not)
+const c = corpus({ roots: ['docs/**'] })
 
 // markdown-to-markdown links resolve
 links(c).that().areInternal().should().resolve().check()
@@ -36,7 +35,7 @@ something you pass to a builder:
 ```typescript
 import { corpus } from '@nielspeter/eess-md'
 
-const c = corpus({ roots: ['docs/**'], frozen: ['**/archived/**'] })
+const c = corpus({ roots: ['docs/**'] })
 
 // Every document the globs matched, parsed — the denominator behind your rules.
 for (const d of c.documents()) {
@@ -63,6 +62,14 @@ A root that matches no file, or only ignored files, while another root loads is 
 writes only the folder its rule reads, is named in `expectEmptyRoots`. That declaration expires: once
 the root loads a document, it is refused until you remove the name (bug 0475). A test fixture that
 builds a shared multi-root corpus can pass `ROOTS.filter((r) => r !== populatedRoot)`.
+
+A `frozen` glob you pass is judged the same way (bug 0499): one that can never match (a leading `/`,
+a `../`) is refused with its correction, and one that marks none of the loaded documents is refused
+unless it is named in `expectEmptyFrozen`, the declaration for a lifecycle folder with no record yet.
+That declaration expires too: once the glob marks a document, it is refused until you drop the name.
+Do not remove a dead frozen glob instead: a record filed there later is read as live, and an absence
+rule over the frozen documents never sees it. Writing the default list out makes it yours, and it is
+judged; the omitted default is not.
 
 `ignore` is narrower than it sounds, in three ways worth knowing before you rely
 on it. It is a **glob over repo-relative file paths**, so a bare directory name
@@ -94,6 +101,54 @@ Two things worth knowing:
 
 `@nielspeter/eess-gherkin`'s `features()` returns the same shape of answer — `root`,
 `features()` and `scenarios()` — for the same reason.
+
+## A corpus from text, for tests
+
+To test a rule without a directory on disk, build the corpus from text. `corpusFromText(files)`
+takes a map of repo-relative POSIX path → text: the documents, and any other file a link or
+pointer names. It returns an ordinary `Corpus`, so every builder, condition and preset takes it.
+
+```typescript
+import { corpusFromText, links, pointers } from '@nielspeter/eess-md'
+
+const c = corpusFromText({
+  'docs/guide.md': '# Guide\n\nSee [setup](./setup.md) and `src/app.ts:2`.\n',
+  'docs/setup.md': '# Setup\n',
+  'src/app.ts': 'export const a = 1\nexport const b = 2\n',
+})
+links(c).should().resolve().check()
+pointers(c).that().areLive().should().resolve().check()
+```
+
+It is `corpus()` with the walk swapped out, so links and pointers resolve as they would over the
+same files on disk; a parity test over this package's own fixture trees holds that (plan 0455). The
+options, `TextCorpusOptions`, are `corpus()`'s, with two differences: `roots` defaults to every `.md` key in the map, and
+there is no `cwd`. `frozen` keeps its default, so a document under `completed/` is frozen here too.
+A pointer's target is in the map or it is not there: the text corpus never reads your real code.
+`root` (what each document reports in `file`) defaults to `/__eess_text_corpus__`. So a test asserts
+on a finding's `element` or a document's `relPath`, or sets `root` itself, rather than on `file`,
+which carries that placeholder.
+
+What cannot behave as on disk is refused with an `ArchConfigError`, never silently different:
+
+- **a waiver directive in a loaded document** (`<!-- eess-exclude … -->`): the kernel reads waivers
+  from the file on disk, so here it would not apply. A directive inside a fenced code block, which
+  the kernel does not read as one, is accepted. Test waivers with `corpus()` over a fixture;
+- **a key that is not one repo-relative path**: absolute, with `..`, `./` or `\`, or not
+  normalised (`a//b.md`);
+- **a key that is also the directory of another** (`a` beside `a/b.md`);
+- **two keys that differ only in letter case** (`docs/a.md` beside `docs/A.md`, or `Docs/` beside
+  `docs/`): a case-insensitive disk, the macOS and Windows default, cannot hold both;
+- **a key under a directory `corpus()` never walks** (`node_modules/`, `.git/`, `dist/`, …);
+- **a `root` that exists on disk**;
+- **`pointers(c).should().resolve({ externalRoots })` over it**: external roots are read from the
+  real disk, so the test would ground on one checkout and skip on another. Test them with
+  `corpus()` over a fixture.
+
+An empty map loads no documents, as `corpus()` over an empty tree does, and a rule over it gets the
+empty-source configuration finding, which outranks `.expectEmpty()`. A rule meant to pass on "no
+matching documents" needs at least one document in the map, so that the source is not empty and
+the selection is.
 
 ## What it checks
 
@@ -489,6 +544,7 @@ import {
 } from '@nielspeter/eess-md'
 
 const SECTION = 'Verification'
+// your archive folder; while it holds no page, also pass expectEmptyFrozen: ['archive/**']
 const c = corpus({ cwd: process.cwd(), roots: ['**/*.md'], frozen: ['archive/**'] })
 
 // The ratchet: no open box in a live document that has the section.
@@ -523,10 +579,10 @@ job: in eess-md a `notExist()` rule that declares it can never be green, since i
 element it examines and on examining none. (eess-ts reports that combination as a finding of its
 own.) A scope built from `resideInFolder` or `resideInFile` is different: a broken glob
 (`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
-predicate is on `docs()`. `areFrozen()` and `areLive()` are not: nothing checks the `frozen` globs
-`corpus()` takes, so a broken one (`frozen: ['/archive/**']`) leaves an absence rule over
-`inDocuments(areFrozen())` green, and on a positive rule the finding names the predicate, not the
-`frozen` option.
+predicate is on `docs()`. `areFrozen()` and `areLive()` carry no glob; `corpus()` judges the
+`frozen` globs it is given instead, and refuses one that can never match (`frozen: ['/archive/**']`)
+or that marks none of the documents it loaded (bug 0499), unless it is named in `expectEmptyFrozen`.
+Writing the default list out makes it yours, and it is judged; the omitted default is not.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
 predicateHaveSection('Verificaton'))).should().resolve()` reds with `inDocuments(have section
@@ -920,6 +976,132 @@ docs(c).that().satisfy(and(live, closed)).should().notExist().check()
 
 This repository's `check:corpus` states a version of the same rule over its plans and bugs
 (`corpus/closed-records-sit-in-done-folders`).
+
+### A value agrees with its folder: `agreeWithFolder`
+
+`docs(c).should().agreeWithFolder({ field, groups, direction, normalize? })` says that a document's
+labelled value and the folder it sits in agree: a closed bug is in `fixed/`, and nothing in `fixed/`
+is open. `field` is read as `fields()` reads it and resolved as `haveField` resolves it, one value per
+document (`split` is not taken). Each group binds its `values` to its `folders`, globs relative to the
+corpus's `cwd` as `resideInFolder` takes them; one group may say `folders: 'rest'`, every selected
+document no other group's folders hold. Every group, folder and label is yours: there is no default.
+
+```typescript
+import { corpus, docs, longestOf } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/bugs/**'], frozen: [] })
+const words = ['Draft', 'Ready', 'Parked', 'Fixed', 'Rejected']
+
+docs(c)
+  .that()
+  .resideInFolder('work/bugs/**')
+  .should()
+  .agreeWithFolder({
+    field: { label: 'State', forms: ['bold'], value: longestOf(words) },
+    groups: [
+      { values: ['Draft', 'Ready', 'Parked'], folders: 'rest' },
+      { values: ['Fixed'], folders: ['work/bugs/fixed/**'] },
+      { values: ['Rejected'], folders: ['work/bugs/rejected/**'] },
+    ],
+    direction: 'both', // value → folder and folder → value
+  })
+  .rule({ id: 'bugs/state-agrees-with-folder' })
+  .check()
+```
+
+**`direction` is required.** It is the kernel's `Direction`, as `correspondence()` reads it, with the
+value on the left and the folder on the right; write the arrow beside it, as above, and every
+finding's rule text prints it (`agree with their folder (State, value → folder)`). Adopters split on
+it, one way or both, so it has no default:
+
+| the document                            | `left-to-right` (value → folder) | `right-to-left` (folder → value) | `both`        |
+| --------------------------------------- | -------------------------------- | -------------------------------- | ------------- |
+| in K's folders, value in K              | —                                | —                                | —             |
+| in K's folders, value in another J      | wrong folder                     | wrong folder                     | one finding   |
+| in no group's folders, value in K       | belongs in K's folders           | —                                | belongs in    |
+| in K's folders, value in no group       | unknown value                    | unknown value                    | unknown value |
+| in no group's folders, no group's value | —                                | —                                | —             |
+| in K's folders, no value                | —                                | no value                         | no value      |
+| a value that cannot be read             | reported                         | reported in a bound folder       | reported      |
+
+With a `'rest'` group every selected document is bound, so direction changes only the no-value and
+unreadable rows. A one-way rule, such as "a closed folder holds no live value", is then made by the
+selection: select the closed folders and read `right-to-left`.
+
+**The findings,** each at the value's line:
+
+- `` `Fixed` (State, line 3) belongs in work/bugs/fixed/**; work/other/9.md is in none of its folders. Move it or change the value. ``
+- ``wrong folder: `Draft` (State, line 3) belongs outside work/bugs/fixed/**, work/bugs/rejected/**; work/bugs/fixed/10.md is in Fixed's folders. Move it or change the value.``
+- `` `Shipped` at line 3 is none of the declared values (Draft, Ready, Parked, Fixed, Rejected); fix the spelling, or add it to a group ``: the values are a closed set within the bound folders. A
+  document in no group's folders whose value is in no group is not judged; add a `'rest'` group to
+  close the set everywhere.
+- `work/bugs/fixed/14.md is in Fixed's folders and has no State field (read as bold); its labels: Status`.
+- A value that cannot be read is reported with `haveField`'s message (given twice, empty, in a form
+  the rule does not read, outside the header) and never judged by its first occurrence. A value that
+  resolved still carries `haveField`'s other findings (prose that disagrees, a label in a form the
+  rule does not read): every rule that reads the field reports them, under its own id.
+
+**Not this rule's:** a document in no group's folders whose value is in no group. No group claims it
+and no folder binds it. To judge it, bind its folder, add a `'rest'` group, or pair the rule with
+`fields(...).resolveAgainst(vocabulary(...))`.
+
+**The declaration's own findings,** once per rule, which no `.excluding()`, comment or baseline
+removes: two groups whose folders both hold a selected document (bind each folder to one group, or
+make one `'rest'`); a folder glob that matches no path in the corpus, or one that can never match
+(a leading `/`), one finding per glob instead of one per record; and, reading folder → value, a group
+whose folders hold no document in the corpus. Malformed groups are refused when the rule runs, naming
+the option: no groups, a group with no values or no folders, an empty value, a value (after
+`normalize`) in two groups, one glob in two groups, two `'rest'` groups.
+
+`normalize` is applied to the value read and to every declared value; it defaults to none, so values
+compare exactly. `examined` is the kernel's, the documents the rule selected. An agreement that
+selected documents and judged none, because a misspelt label, the wrong `forms` or a `region` the
+value is not in reads no value, is its own finding (`selected 3 documents, judged none: the field read
+no value (check its label, forms or region)`), which no suppression removes and which fires whatever
+other conditions sit beside it. When the values were read but every selected document sits in no
+group's folders and carries a value no group names, the finding says so instead (`2 selected
+documents carry values no group names (Draft, Open) and sit in no group's folders: declare them in a
+'rest' group, or select a folder a group binds`). Frozen documents are judged like any other: a done
+folder is usually frozen, and it is the folder this rule most needs to read; select with `areLive()`
+to leave them out. [`examples/md/a-record-sits-in-its-states-folder.test.ts`](../examples/md/a-record-sits-in-its-states-folder.test.ts)
+shows three shapes, each reading its value with `region: 'header'` so a status further down the
+record is not read. This repository's `check:corpus` holds each lane's done folders to its done
+values this way (`corpus/done-folders-hold-done-values-*`).
+
+### Unique values: `beUniqueBy`
+
+`beUniqueBy(key, what)` says that no two selected elements share `key`'s value. Every member of a
+group is a finding at its own line, naming the others (ten at most, then "and N more"), so an
+exclusion or a baseline entry for one member cannot hide the group. Values compare exactly: `key` is
+where you normalise. `what` names the value in the message. It has two forms:
+
+- **Keyed by the value under a label**, on `fields()` (and `terms()`): each occurrence is an element,
+  reported at its own line. A value the rule cannot read (empty after cutting) is reported as
+  `resolveAgainst` reports it, never grouped with another.
+- **Keyed by the document**, on `docs()`: each document is an element, reported at its line 1. Use it
+  when the key comes from the document itself, such as a slug or a number in its file name.
+
+```typescript
+import { corpus, docs, fields, type MdDocument, type MdTerm } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/**', 'guides/**'] })
+
+// No two records carry the same Id. Leading zeros carry no meaning here, so `066` and `0066` collide.
+const id = (f: MdTerm): string => f.value.replace(/^0+(?=\d)/, '')
+fields(c, { label: 'Id', forms: ['bold'] })
+  .should()
+  .beUniqueBy(id, 'Id')
+  .check()
+
+// No two guides publish at one slug.
+const slug = (d: MdDocument): string => d.relPath.replace(/^.*\/|\.md$/g, '')
+docs(c).that().resideInFolder('guides/**').should().beUniqueBy(slug, 'slug').check()
+```
+
+A finding reads `records/b.md:3 has the same Id as 1 other: records/a.md:3`. A selection with no
+element is red, as for any rule; one element is green. [`examples/md/unique-ids.test.ts`](../examples/md/unique-ids.test.ts)
+and [`examples/md/unique-slugs.test.ts`](../examples/md/unique-slugs.test.ts) show both forms. This
+repository's `check:corpus` keeps record numbers unique this way (`corpus/record-number-unique`).
 
 ## ADR enforcement tables
 

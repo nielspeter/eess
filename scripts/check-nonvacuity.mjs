@@ -373,6 +373,9 @@ const PROBE_CORPUS_WORK_ROOT = join(repoRoot, 'work', '__nonvacuity_probe_work_r
 // `**` reaches.
 const PROBE_CORPUS_WORK_POINTER_DIR = join(repoRoot, 'work', '__nonvacuity_probe_nested__')
 const PROBE_CORPUS_WORK_POINTER = join(PROBE_CORPUS_WORK_POINTER_DIR, 'pointer.md')
+// Plan 0459: a record number claimed twice. In a directory of its own, because the rule keys a
+// file whose name starts with digits and the probe's path must still carry `__nonvacuity_probe`.
+const PROBE_CORPUS_DUP_DIR = join(repoRoot, 'work', '__nonvacuity_probe_dup__')
 // A COPY of the real gate with one const widened — not a document probe. The
 // frozen list is a hard-coded config, so nothing a probe file can contain will
 // exercise the guard that reads it; running a mutated copy of the script from
@@ -1806,6 +1809,60 @@ function gateCorpusProbe(probePath, probeContent, ruleId, fileFragment) {
   }
 }
 
+/**
+ * `gateCorpusProbe` for a probe that needs its own directory (`withProbeDir`), asserting the rule
+ * fired on EVERY fragment, so a rule that fires on the probe alone cannot pass (plan 0459). The
+ * terminal run must also print `terminalSays`: a probe directory under `work/` can red another rule
+ * (the Lanes table reads `work/`'s directories), and exit 1 alone would then be borrowed.
+ */
+function gateCorpusProbeDir(dir, probePath, probeContent, ruleId, fileFragments, terminalSays) {
+  const { json, terminal } = withProbeDir(dir, probePath, probeContent, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const ok =
+    json.code === 1 &&
+    fileFragments.every((f) => firedOn(json, ruleId, f)) &&
+    terminal.code === 1 &&
+    terminal.stderr.includes(terminalSays)
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId}, ${fileFragments.join(' + ')})`,
+  }
+}
+
+const CORPUS_PROBE_DUP_MD = '# Non-vacuity probe\n\nA record that reuses a number already taken.\n'
+
+/** Plan 0459: a flat record's number (a fixed bug's), reused. Both members must be named. */
+function gateCorpusRecordNumberFlat() {
+  return gateCorpusProbeDir(
+    PROBE_CORPUS_DUP_DIR,
+    join(PROBE_CORPUS_DUP_DIR, '0439-dup.md'),
+    CORPUS_PROBE_DUP_MD,
+    'corpus/record-number-unique',
+    [
+      'work/__nonvacuity_probe_dup__/0439-dup.md',
+      'work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md',
+    ],
+    'has the same record number as 1 other',
+  )
+}
+
+/** Plan 0459: the directory-form record's number (`work/spikes/0001-…/README.md`), reused. */
+function gateCorpusRecordNumberDirForm() {
+  return gateCorpusProbeDir(
+    PROBE_CORPUS_DUP_DIR,
+    join(PROBE_CORPUS_DUP_DIR, '0001-dup.md'),
+    CORPUS_PROBE_DUP_MD,
+    'corpus/record-number-unique',
+    [
+      'work/__nonvacuity_probe_dup__/0001-dup.md',
+      'work/spikes/0001-eess-over-ts-archunit/README.md',
+    ],
+    'has the same record number as 1 other',
+  )
+}
+
 const CORPUS_PROBE_LINK_MD =
   '# Non-vacuity probe\n\nSee the [missing page](./__nonvacuity_does_not_exist__.md).\n'
 
@@ -2122,6 +2179,61 @@ function gateLedgerTildeIsOpen() {
   return {
     ok: r.code === 1 && named,
     detail: `a closed bug with an undisposed [~] → exit ${r.code}, silent-open-box at its line: ${named}`,
+  }
+}
+
+/**
+ * Plan 0481: `check:ledger` requires every document under `work/` to be claimed by one selection.
+ * A probe page in a folder no lane claims and `UNLANED` does not declare must red the first rule at
+ * its path. The probe holds no `State:` line, so `findUncoveredLanes` (records only) stays quiet on
+ * it: this row proves the rule, not the older check.
+ */
+const UNCLAIMED_PROBE_DIR = join(repoRoot, 'work', '__nonvacuity_probe_unclaimed')
+const UNCLAIMED_PROBE = join(UNCLAIMED_PROBE_DIR, 'notes.md')
+
+function gateLedgerUnclaimed() {
+  const r = withProbeDir(
+    UNCLAIMED_PROBE_DIR,
+    UNCLAIMED_PROBE,
+    '# Notes\n\nNo lane reads this.\n',
+    () => sh(process.execPath, [join('scripts', 'check-ledger.mjs'), '--format', 'json']),
+  )
+  const named = firedOn(r, 'ledger/unclaimed-document', '__nonvacuity_probe_unclaimed/notes.md')
+  return {
+    ok: r.code === 1 && named,
+    detail: `a page under an unclaimed work/ folder → exit ${r.code}, ledger/unclaimed-document at its path: ${named}`,
+  }
+}
+
+/**
+ * The pair covers each other (plan 0481's sabotage row, kept as a gate row): `UNLANED` "fixed" with
+ * a glob too wide, one that claims the probe's folder and a lane's folder too. The first rule goes
+ * quiet on the probe, and the second reds the lane's pages, now claimed twice. It doubles the
+ * proposals lane rather than every lane, so the JSON stays small: `check-ledger.mjs` exits right
+ * after writing it, and a pipe on macOS dropped everything past 64 KiB when every page under
+ * `work/` was claimed twice (measured). The rewrite edits a tracked file, restored by
+ * `withRewrittenFile`.
+ */
+function gateLedgerClaimedTwice() {
+  const lanes = join(repoRoot, 'scripts', 'lib', 'ledger-lanes.mjs')
+  const widen = (text) =>
+    text.replace(
+      "  { name: 'work notes', glob: 'work/*.md' },\n",
+      "  { name: 'work notes', glob: 'work/*.md' },\n" +
+        "  { name: 'too wide', glob: 'work/{proposals,__nonvacuity_probe_unclaimed}/**' },\n",
+    )
+  const r = withRewrittenFile(lanes, widen, () =>
+    withProbeDir(UNCLAIMED_PROBE_DIR, UNCLAIMED_PROBE, '# Notes\n\nNo lane reads this.\n', () =>
+      sh(process.execPath, [join('scripts', 'check-ledger.mjs'), '--format', 'json']),
+    ),
+  )
+  const unclaimedQuiet = !firedOn(r, 'ledger/unclaimed-document', '__nonvacuity_probe_unclaimed')
+  const twice = firedOn(r, 'ledger/claimed-twice', 'work/proposals/')
+  return {
+    ok: r.code === 1 && unclaimedQuiet && twice,
+    detail:
+      `UNLANED widened over the probe and a lane → exit ${r.code}, unclaimed-document quiet on ` +
+      `the probe: ${unclaimedQuiet}, claimed-twice on a proposal: ${twice}`,
   }
 }
 
@@ -2562,7 +2674,11 @@ function gateCorpusWorkPointer() {
  */
 function gateCorpusFrozenScope() {
   const original = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
-  const mutated = original.replace("  'work/spikes/**',\n]", "  'work/spikes/**',\n  'work/**',\n]")
+  // Either layout prettier gives the list: one line, or one glob per line with a trailing comma.
+  const mutated = original.replace(
+    /'work\/spikes\/\*\*',?(\s*)\]/,
+    "'work/spikes/**', 'work/**',$1]",
+  )
   if (mutated === original) {
     return {
       ok: false,
@@ -3548,6 +3664,41 @@ const gates = [
         "State is given twice (line 5 'Fixed', line 6 'Draft'); keep one",
       ),
   ],
+  // Plan 0495: `agreeWithFolder`, one row per lane's done-folder rule. An open State in a done folder
+  // belongs outside it (F2); a done-folder record with no State is F4; a proposal reads its header.
+  [
+    'corpus/done-folders-hold-done-values-plans',
+    () =>
+      gateCorpusStateProbe(
+        'plans/completed',
+        '__nonvacuity_probe_done_folder_draft.md',
+        [...STATE_PROBE_HEAD, '- **State:** Draft'],
+        'corpus/done-folders-hold-done-values-plans',
+        'wrong folder: `Draft` (State, line 5) belongs outside work/plans/completed/**',
+      ),
+  ],
+  [
+    'corpus/done-folders-hold-done-values-bugs',
+    () =>
+      gateCorpusStateProbe(
+        'bugs/fixed',
+        '__nonvacuity_probe_done_folder_no_state.md',
+        [...STATE_PROBE_HEAD, 'No State line here.'],
+        'corpus/done-folders-hold-done-values-bugs',
+        "is in Fixed's folders and has no State field (read as bold)",
+      ),
+  ],
+  [
+    'corpus/done-folders-hold-done-values-proposals',
+    () =>
+      gateCorpusStateProbe(
+        'proposals/promoted',
+        '__nonvacuity_probe_done_folder_proposal.md',
+        ['# A probe', '', '- **State:** Draft', '', '## Body'],
+        'corpus/done-folders-hold-done-values-proposals',
+        'wrong folder: `Draft` (State, line 3) belongs outside work/proposals/promoted/**',
+      ),
+  ],
   [
     'corpus/state-in-a-form-not-read',
     () =>
@@ -3578,6 +3729,9 @@ const gates = [
     () => gateNode('bad-ledger.mjs', 'md/undeclared-box-mark · 0007-undeclared-mark.md:10'),
   ],
   ['corpus/ledger/tilde-is-open', gateLedgerTildeIsOpen],
+  // Plan 0481: every document under work/ is claimed by exactly one selection.
+  ['corpus/ledger/unclaimed-document', gateLedgerUnclaimed],
+  ['corpus/ledger/claimed-twice', gateLedgerClaimedTwice],
   [
     'corpus/ledger/malformed-box',
     () => gateNode('bad-ledger.mjs', 'md/malformed-box · 0008-malformed-box.md:10'),
@@ -3925,6 +4079,8 @@ const gates = [
   // mutation that stops examining the region's 445 pointers. A pointer probe in
   // the widened root is what separates "reachable" from "examined".
   ['corpus/pointers/work-root', gateCorpusWorkPointer],
+  ['corpus/record-number-unique', gateCorpusRecordNumberFlat],
+  ['corpus/record-number-unique/directory-form', gateCorpusRecordNumberDirForm],
   // Bug 0249's review, I2: `frozen` is the gate's only subtraction and had no
   // guard. Runs a copy of the real script with the list widened — the unit test
   // proves the classifier, only this proves the gate calls it.
@@ -4545,11 +4701,16 @@ const GATE_FOR = {
     'crossval/md-mermaid-er',
   ],
   'check:corpus': [
+    'corpus/record-number-unique',
+    'corpus/record-number-unique/directory-form',
     'corpus/state-present',
     'corpus/state-present-conflict',
     'corpus/closed-records-sit-in-done-folders',
     'corpus/closed-records-undecided',
     'corpus/closed-records-plans',
+    'corpus/done-folders-hold-done-values-plans',
+    'corpus/done-folders-hold-done-values-bugs',
+    'corpus/done-folders-hold-done-values-proposals',
     'corpus/state-in-vocabulary-bugs',
     'corpus/state-in-vocabulary-plans',
     'corpus/state-in-a-form-not-read',
@@ -4706,6 +4867,8 @@ const GATE_FOR = {
     'corpus/ledger/undeclared-mark',
     'corpus/ledger/malformed-box',
     'corpus/ledger/tilde-is-open',
+    'corpus/ledger/unclaimed-document',
+    'corpus/ledger/claimed-twice',
     'corpus/ledger/dead-selector',
     'corpus/ledger/half-vocabulary',
     'corpus/ledger/uncovered-lane',

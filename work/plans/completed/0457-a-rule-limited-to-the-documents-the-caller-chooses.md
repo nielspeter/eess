@@ -542,7 +542,7 @@ peer, not a dependency, so it does not move. The four names land in the surface 
   0469 and plan 0486; this plan's lift carries it.
 - Checking the `frozen` globs `corpus()` takes: a broken one empties `inDocuments(areFrozen())` or
   `inDocuments(areLive())` with no finding under `notExist()`. Recorded as
-  [bug 0499](../../bugs/0499-corpus-does-not-check-its-frozen-globs.md); the docs say so.
+  [bug 0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md); the docs say so.
 - A kernel combinator for lifting a predicate along a projection: one dialect needs it today. When a
   second does, it belongs beside `not`/`and`/`or` rather than as a second hand copy (PR #245's
   architect review, m-5).
@@ -776,7 +776,7 @@ The coordinator's decisions on the five reviews, each built here:
 - **The docs say which scopes the selector check judges (enforcement I1, product M1).** Only
   `resideInFolder`/`resideInFile`; `areFrozen()`/`areLive()` read globs nothing checks, and the docs
   name `DEFAULT_FROZEN` (`**/completed/**`, `**/archived/**`). The defect is
-  [bug 0499](../../bugs/0499-corpus-does-not-check-its-frozen-globs.md), with its measurements.
+  [bug 0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md), with its measurements.
 - **`check:corpus` dogfoods it (enforcement I2).** One `liveRecordIn(lane)`, built as
   `and(areLive(), resideInFolder(root), not(or(done folders)), not(or(board files)))`, serves the
   per-lane State rules (through `inDocuments`), `corpus/state-present` and
@@ -796,7 +796,7 @@ The coordinator's decisions on the five reviews, each built here:
   that loaded nothing gives the empty-source finding; `.select()` through the lift refuses an
   undecided document; `not()` around a scope gives the generic finding; the memo rows assert
   elements, not counts. Rows 18 to 20 of the matrix are the reviewer's mutants, each red on its row.
-- **Records:** bugs [0499](../../bugs/0499-corpus-does-not-check-its-frozen-globs.md),
+- **Records:** bugs [0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md),
   [0500](../../bugs/0500-eess-md-notexist-with-expectnonempty-can-never-be-green.md) (no earlier record
   covers eess-md; bug 0473 is eess-ts's) and
   [0501](../../bugs/0501-md-and-kernel-leftovers-from-plan-0457.md), on the board.

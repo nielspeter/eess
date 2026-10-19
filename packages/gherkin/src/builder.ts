@@ -1,4 +1,11 @@
-import { RuleBuilder, type Condition, type Predicate, type ArchViolation } from '@nielspeter/eess'
+import {
+  RuleBuilder,
+  type ArchViolation,
+  type Condition,
+  type ConditionContext,
+  type Predicate,
+} from '@nielspeter/eess'
+import { uniqueByCondition } from '@nielspeter/eess/internal'
 import picomatch from 'picomatch'
 import type { FeatureSet } from './load.js'
 import type { GherkinScenario } from './model.js'
@@ -16,35 +23,35 @@ const resideInFeatureFile = (glob: string): Predicate<GherkinScenario> => {
   }
 }
 
-// Duplicate titles within one feature file make a `file · 'title'` citation
-// ambiguous — the same reason `check:crossval` demands unique it() titles.
-const haveUniqueTitles = (): Condition<GherkinScenario> => ({
-  description: 'have unique titles within their feature file',
-  evaluate: (elements, ctx) => {
-    const seen = new Map<string, GherkinScenario>()
-    const out: ArchViolation[] = []
-    for (const s of elements) {
-      const key = `${s.relPath}\0${s.title}`
-      const first = seen.get(key)
-      if (first) {
-        out.push({
-          rule: ctx.rule,
-          ...(ctx.ruleId !== undefined && { ruleId: ctx.ruleId }),
-          element: `${s.relPath} › ${s.title}`,
-          file: s.file,
-          line: s.line,
-          message: `duplicate scenario title "${s.title}" (first at line ${first.line}) — ambiguous for citation resolution`,
-          ...(ctx.because !== undefined && { because: ctx.because }),
-          ...(ctx.suggestion !== undefined && { suggestion: ctx.suggestion }),
-          ...(ctx.docs !== undefined && { docs: ctx.docs }),
-        })
-      } else {
-        seen.set(key, s)
-      }
-    }
-    return out
-  },
+/** gherkin's one finding constructor: a scenario, named by its file, line and title. */
+const scenarioViolation = (
+  s: GherkinScenario,
+  message: string,
+  ctx: ConditionContext,
+): ArchViolation => ({
+  rule: ctx.rule,
+  ...(ctx.ruleId !== undefined && { ruleId: ctx.ruleId }),
+  element: `${s.relPath}:${String(s.line)} › ${s.title}`,
+  file: s.file,
+  line: s.line,
+  message,
+  ...(ctx.because !== undefined && { because: ctx.because }),
+  ...(ctx.suggestion !== undefined && { suggestion: ctx.suggestion }),
+  ...(ctx.docs !== undefined && { docs: ctx.docs }),
 })
+
+// Duplicate titles within one feature file make a `file · 'title'` citation
+// ambiguous — the same reason `check:crossval` demands unique it() titles. The
+// kernel's condition (plan 0459) reports every member of a group, each naming
+// the others; the key is per file.
+const haveUniqueTitles = (): Condition<GherkinScenario> =>
+  uniqueByCondition<GherkinScenario>({
+    key: (s) => `${s.relPath}\0${s.title}`,
+    locate: (s) => ({ name: `${s.relPath} › ${s.title}`, at: `${s.relPath}:${String(s.line)}` }),
+    what: 'title',
+    why: 'titles must be unique within a feature file, or a citation of one is ambiguous',
+    toViolation: scenarioViolation,
+  })
 
 /** Rule builder over a feature set's scenarios. */
 export class ScenarioRuleBuilder extends RuleBuilder<GherkinScenario, FeatureSet> {

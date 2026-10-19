@@ -1,9 +1,10 @@
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Condition } from '@nielspeter/eess'
+import { ArchConfigError, type Condition } from '@nielspeter/eess'
 import { pathSuffixIndex } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import type { MdPointer } from '../model/pointers.js'
+import { isTextCorpus, readCorpusFile } from '../model/corpus-internals.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 
 /** How a pointer path resolves against the repo file index. */
@@ -74,6 +75,17 @@ export function pointerResolves(
 ): Condition<MdPointer> {
   const mode = options.paths ?? 'suffix'
   const externalRoots = options.externalRoots ?? []
+  // Plan 0455: external roots are read from the real disk, so over a corpus built from text the
+  // verdict would depend on the checkout a test runs in, grounding on one machine and skipped on
+  // another. Refused rather than mixed (one corpus, one source).
+  if (externalRoots.length > 0 && isTextCorpus(corpus)) {
+    throw new ArchConfigError(
+      'pointers',
+      `pointers().resolve({ externalRoots }) over a corpus built by corpusFromText: external roots ` +
+        `are read from the real disk, so the test would ground on one checkout and skip on ` +
+        `another. Test external roots with corpus() over a fixture.`,
+    )
+  }
   // Bug 0257: one resolver, shared with `eess-crossvalidate`. This file used to
   // carry its own basename index and its own three-way match type; both were the
   // kernel's `pathSuffixIndex` written a second time, down to the exact-wins
@@ -86,7 +98,7 @@ export function pointerResolves(
   const lineCount = (rel: string): number => {
     const cached = lineCountCache.get(rel)
     if (cached !== undefined) return cached
-    const n = readFileSync(join(corpus.root, rel), 'utf8').split('\n').length
+    const n = readCorpusFile(corpus, rel).split('\n').length
     lineCountCache.set(rel, n)
     return n
   }

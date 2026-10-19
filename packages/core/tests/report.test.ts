@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { ArchRuleError } from '../src/errors.js'
-import { reportViolations, finishPreset } from '../src/report.js'
+import { ArchConfigError, ArchRuleError } from '../src/errors.js'
+import { reportViolations, finishPreset, readReportMode } from '../src/report.js'
 import { type CollectResult, collectResult } from '../src/collect-result.js'
 
 /**
@@ -82,5 +82,49 @@ describe('finishPreset()', () => {
     const out = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     expect(() => finishPreset(v(1), { format: 'json' })).toThrow(ArchRuleError)
     expect(out).toHaveBeenCalledOnce()
+  })
+
+  // Bug 0508: a mode outside `ReportMode` used to fall through both comparisons,
+  // print the violations and return, so the process exited 0. TypeScript rejects
+  // these values; a JavaScript rule file, or a mode read from config, does not.
+  it('refuses an unknown report mode instead of printing and passing', () => {
+    const err = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    // @ts-expect-error — the misspelling a caller without the type check makes.
+    expect(() => finishPreset(v(1), { report: 'thorw' })).toThrow(ArchConfigError)
+    // @ts-expect-error — see above.
+    expect(() => finishPreset(v(1), { report: 'thorw' })).toThrow(
+      /'thorw'.*'throw', 'return', 'warn'/s,
+    )
+    expect(err).not.toHaveBeenCalled()
+  })
+
+  it('refuses retrun and false before the return comparison', () => {
+    // @ts-expect-error — `'retrun'` must not slip past the `'return'` check.
+    expect(() => finishPreset(v(1), { report: 'retrun' })).toThrow(ArchConfigError)
+    // @ts-expect-error — the shape bug 0507's reproduction passed.
+    expect(() => finishPreset(v(1), { report: false })).toThrow(ArchConfigError)
+  })
+
+  it('reads an undefined or null report mode as throw', () => {
+    vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    expect(() => finishPreset(v(1), { report: undefined })).toThrow(ArchRuleError)
+    // @ts-expect-error — null is not in the type; `??` reads it as the default.
+    expect(() => finishPreset(v(1), { report: null })).toThrow(ArchRuleError)
+  })
+})
+
+// The one reader of a mode (bug 0508). A dialect whose presets take more modes passes them, so its
+// refusal lists every mode its door accepts and it keeps no second list by hand.
+describe('readReportMode()', () => {
+  it("accepts a dialect's extra mode and lists it in the refusal", () => {
+    expect(readReportMode('builders', ['builders'])).toBe('builders')
+    expect(readReportMode(undefined, ['builders'])).toBe('throw')
+    expect(() => readReportMode('builder', ['builders'])).toThrow(
+      /report: 'builder' is not a report mode; the modes are 'throw', 'return', 'warn', 'builders'\./,
+    )
+  })
+
+  it('refuses an extra mode no caller declared', () => {
+    expect(() => readReportMode('builders')).toThrow(ArchConfigError)
   })
 })

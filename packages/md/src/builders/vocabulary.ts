@@ -5,12 +5,15 @@ import {
   type ArchViolation,
   type CollectResult,
   type Condition,
+  type ConditionContext,
   type Predicate,
 } from '@nielspeter/eess'
+import { uniqueByCondition } from '@nielspeter/eess/internal'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
+import { mdViolation } from '../model/violation.js'
 import { proseText } from '../model/prose.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { readFields, type FieldForm, type FieldOptions } from '../model/fields.js'
@@ -209,6 +212,39 @@ function valueMessage(t: MdTerm, says: string): string {
   return `'${t.value}' ${where} ${says}`
 }
 
+/**
+ * `beUniqueBy` over labelled values (plan 0459's addendum; proposal 017, block 13): no two values
+ * share `key`'s value, through the kernel's one condition, each occurrence at its own line. A value
+ * the rule cannot read (empty after cutting) is reported as `resolveAgainst` reports it, never keyed:
+ * two unreadable values are not "the same".
+ */
+const uniqueBy = (key: (t: MdTerm) => string, what: string): Condition<MdTerm> => {
+  const finding = (t: MdTerm, message: string, context: ConditionContext): ArchViolation =>
+    mdViolation({
+      element: atLine(t).name,
+      file: t.doc.file,
+      line: t.line,
+      message,
+      context,
+    })
+  const unique = uniqueByCondition<MdTerm>({
+    key,
+    what,
+    locate: (t) => ({ name: atLine(t).name, at: atLine(t).name }),
+    toViolation: finding,
+  })
+  return Object.freeze({
+    description: unique.description,
+    evaluate: (elements: MdTerm[], ctx: ConditionContext): ArchViolation[] => [
+      ...elements.filter((t) => t.value === '').map((t) => finding(t, valueMessage(t, ''), ctx)),
+      ...unique.evaluate(
+        elements.filter((t) => t.value !== ''),
+        ctx,
+      ),
+    ],
+  })
+}
+
 /** What a `TermRuleBuilder` reads: a `terms()` pattern, or a `fields()` label in named forms. */
 type Source =
   | { readonly kind: 'pattern'; readonly options: TermsOptions }
@@ -280,6 +316,15 @@ export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
    */
   resolveAgainst(allowed: Vocabulary | RegExp): this {
     return this.addCondition(resolveAgainst(allowed))
+  }
+
+  /**
+   * Assert no two values share `key`'s value (plan 0459's addendum), each occurrence a finding at its
+   * own line naming the others. Exact match: normalise in `key` (`066` and `0066` differ unless it
+   * does). A value this rule cannot read is reported on its own, never grouped.
+   */
+  beUniqueBy(key: (t: MdTerm) => string, what: string): this {
+    return this.addCondition(uniqueBy(key, what))
   }
 }
 

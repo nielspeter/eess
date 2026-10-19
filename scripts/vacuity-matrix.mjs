@@ -420,6 +420,8 @@ const SIBLING_PROBES = {
  */
 const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::corpus': 'input loader: the empty corpus the probes above use',
+  '@nielspeter/eess-md::corpusFromText':
+    'input loader: corpus() with the walk swapped for a map of text (plan 0455); it builds no check',
   '@nielspeter/eess-md::parseCodeBlocks': 'input loader for codeBlocks()',
   '@nielspeter/eess-md::codeBlocks':
     'needs a parser with canaries to construct; its zero-blocks case is check:nonvacuity corpus/code-block-parse/zero-blocks',

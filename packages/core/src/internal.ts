@@ -38,6 +38,8 @@ export { discoverIdentityRoot, normalizeIdentityText } from './identity-root.js'
 export { discoverNamedRepository, portableTokens } from './identity-root.js'
 export type { NamedRepository } from './identity-root.js'
 export { escapeGitHub } from './format-github.js'
+// The one reader of a preset's `report` mode (bug 0508), for a dialect whose presets take more modes.
+export { readReportMode } from './report.js'
 export { hashViolation } from './baseline.js'
 export { identityCollisions } from './violation.js'
 export { isAnchored, isProjectRelative } from './project-relative.js'
@@ -58,6 +60,10 @@ export { marksAssertsCardinality } from './cardinality.js'
 // (plan 0456). Family plumbing: an adopter writes `.should().notExist()`.
 export { notExistCondition } from './not-exist.js'
 export type { NotExistOptions } from './not-exist.js'
+// One `beUniqueBy` condition, the same way (plan 0459): an adopter writes
+// `.should().beUniqueBy(…)` on a dialect's builder.
+export { uniqueByCondition } from './unique-by.js'
+export type { UniqueByOptions } from './unique-by.js'
 // The selector fault a dialect reports for an absence rule (bug 0460).
 export type { SelectorFault } from './vacuity-findings.js'
 // One owner of the glob-text rules, eess-ts's and eess-md's (plan 0456).

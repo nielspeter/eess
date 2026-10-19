@@ -12,15 +12,15 @@ npm install -D @nielspeter/eess-md
 
 ## Example
 
-Neutral, universal conventions — a `docs/**` corpus, English headers, a minimal frozen set:
+Neutral, universal conventions — a `docs/**` corpus, English headers, and the default frozen set
+(`**/completed/**`, `**/archived/**`):
 
 ```typescript
 import { corpus, docs, links, pointers } from '@nielspeter/eess-md'
 
-const c = corpus({
-  roots: ['docs/**'],
-  frozen: ['**/completed/**', '**/archived/**'], // historical: links still checked, pointers not
-})
+// `frozen` omitted: the default freezes `completed/` and `archived/` folders
+// (historical: links still checked, pointers not)
+const c = corpus({ roots: ['docs/**'] })
 
 // markdown-to-markdown links resolve
 links(c).that().areInternal().should().resolve().check()
@@ -49,7 +49,7 @@ something you pass to a builder:
 ```typescript
 import { corpus } from '@nielspeter/eess-md'
 
-const c = corpus({ roots: ['docs/**'], frozen: ['**/archived/**'] })
+const c = corpus({ roots: ['docs/**'] })
 
 // Every document the globs matched, parsed — the denominator behind your rules.
 for (const d of c.documents()) {
@@ -76,6 +76,10 @@ Two things worth knowing:
 
 `@nielspeter/eess-gherkin`'s `features()` returns the same shape of answer — `root`,
 `features()` and `scenarios()` — for the same reason.
+
+To test a rule without a directory on disk, `corpusFromText({ 'docs/a.md': '# A\n', … })` builds the
+same `Corpus` from a map of path → text, resolving links and pointers as `corpus()` does
+([docs](https://github.com/nielspeter/eess/blob/main/docs/markdown.md#a-corpus-from-text-for-tests)).
 
 ## Binding a spec table to code: `rows()` + `correspondence()`
 
@@ -184,6 +188,7 @@ import {
 } from '@nielspeter/eess-md'
 
 const SECTION = 'Verification'
+// your archive folder; while it holds no page, also pass expectEmptyFrozen: ['archive/**']
 const c = corpus({ cwd: process.cwd(), roots: ['**/*.md'], frozen: ['archive/**'] })
 
 // The ratchet: no open box in a live document that has the section.
@@ -218,10 +223,10 @@ job: in eess-md a `notExist()` rule that declares it can never be green, since i
 element it examines and on examining none. (eess-ts reports that combination as a finding of its
 own.) A scope built from `resideInFolder` or `resideInFile` is different: a broken glob
 (`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
-predicate is on `docs()`. `areFrozen()` and `areLive()` are not: nothing checks the `frozen` globs
-`corpus()` takes, so a broken one (`frozen: ['/archive/**']`) leaves an absence rule over
-`inDocuments(areFrozen())` green, and on a positive rule the finding names the predicate, not the
-`frozen` option.
+predicate is on `docs()`. `areFrozen()` and `areLive()` carry no glob; `corpus()` judges the
+`frozen` globs it is given instead, and refuses one that can never match (`frozen: ['/archive/**']`)
+or that marks none of the documents it loaded (bug 0499), unless it is named in `expectEmptyFrozen`.
+Writing the default list out makes it yours, and it is judged; the omitted default is not.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
 predicateHaveSection('Verificaton'))).should().resolve()` reds with `inDocuments(have section
@@ -331,6 +336,28 @@ or `[?]`.
 `satisfy()` and the combinators. eess-ts has the same names for its own elements, matched against
 absolute paths (`'**/guides/**'`); here a glob is relative to the corpus's `cwd` (`'guides/**'`).
 
+## No two pages share a value: `beUniqueBy()`
+
+`docs(c).should().beUniqueBy(key, what)` states that no two selected documents share `key`'s value.
+Every member of a group is a finding at its own line, naming the others, so excluding one member
+does not hide the group. Values compare exactly (`066` and `0066` differ): normalise in `key`.
+Select away a document without a value with `.that()` first.
+
+For a value under a label (an Id, a number in a `**No:**` line), use the same method on `fields()`:
+`fields(c, { label: 'Id', forms: ['bold'] }).should().beUniqueBy((f) => f.value, 'Id')` reports each
+occurrence at its own line. [The Markdown dialect's docs](../../docs/markdown.md#unique-values-beuniqueby)
+cover both forms.
+
+```ts
+import { corpus, docs } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['guides/**'] })
+const slug = (d: { relPath: string }): string => d.relPath.replace(/^.*\/|\.md$/g, '')
+
+// `guides/a/install.md` and `guides/b/install.md` would publish at one URL.
+docs(c).should().beUniqueBy(slug, 'slug').check()
+```
+
 ## A labelled value: `fields()`
 
 `fields(corpus, { label, forms })` reads a value such as `Status` in the forms your corpus writes:
@@ -357,15 +384,35 @@ misspelt value.
 `.excluding()` or `.warn()` removes, wherever the rule's verdict depends on it. `.select()` over an
 undecided document throws, naming the cause, since a selection has no way to report it.
 
+`docs(c).should().agreeWithFolder({ field, groups, direction, normalize? })` says a document's value and
+its folder agree: each group binds its values to its folders (one group may bind `'rest'`), and the
+values are a closed set within the bound folders: a value no group names, in a folder a group binds,
+is reported as a misspelling. Add a `'rest'` group to close the set everywhere. `direction` is the kernel's `Direction` with the value on the left and the folder on the
+right (write the arrow beside it: `direction: 'right-to-left', // folder → value`). It is required,
+unlike `correspondence()`'s, because adopters split between one way and both. A document in no
+group's folders whose value is in no group is not this rule's: bind its folder, add a `'rest'` group,
+or pair the rule with `fields(...).resolveAgainst(...)`. A resolved value's side findings (prose that
+disagrees) are reported by every rule that reads the field. An agreement that selected documents
+and judged none is its own finding, which no suppression removes: it read no value (a misspelt
+label, the wrong forms or region), or every selected document sits in no group's folders with a
+value no group names (declare those values in a `'rest'` group).
+[The Markdown dialect's docs](../../docs/markdown.md#a-value-agrees-with-its-folder-agreewithfolder)
+have the direction table and every finding.
+
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match
-by pattern (non-English works), and frozen folders are globs:
+by pattern (non-English works), and frozen folders are globs. Each glob you pass must mark a
+loaded document, or be named in `expectEmptyFrozen` while its folder is empty. Removing it instead
+is not safe: a record filed there later is read as live, and a rule over the frozen documents never
+sees it. Writing the default list out makes it yours, and it is judged; the omitted default is not.
 
 ```typescript
 const c = corpus({
   roots: ['work/**', 'docs/**'], // plans live under work/
-  frozen: ['**/completed/**', '**/delivered/**', '**/wont-do/**', '**/archived/**'],
+  // this tree's closed records sit in completed/ and delivered/; wont-do/ holds none yet
+  frozen: ['**/completed/**', '**/delivered/**', '**/wont-do/**'],
+  expectEmptyFrozen: ['**/wont-do/**'], // expires once a record is filed there
   ignore: ['node_modules/**', '.git/**', '.nuxt/**'],
 })
 

@@ -5,10 +5,10 @@
 - **Context:** [proposal 017](../work/proposals/017-md-blocks-to-check-a-documents-shape.md) (second
   Review, decisions 1 to 3; "Consumer feedback", decisions 2 and 4),
   [plan 0458](../work/plans/completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md),
-  [plan 0495](../work/plans/0495-a-value-agrees-with-its-folder.md),
+  [plan 0495](../work/plans/completed/0495-a-value-agrees-with-its-folder.md),
   [plan 0498](../work/plans/0498-honestyatclose-places-a-record-with-block-5.md),
   [plan 0504](../work/plans/0504-honestyatclose-boxes-and-deferrals-from-public-blocks.md),
-  [plan 0455](../work/plans/0455-a-corpus-built-from-text.md),
+  [plan 0455](../work/plans/completed/0455-a-corpus-built-from-text.md),
   [bug 0497](../work/bugs/0497-corpus-freezes-two-folder-names-by-default.md)
 - **Supersedes nothing.**
 
@@ -112,9 +112,9 @@ not fixing one.
   and `model/prose.ts` edges, and owns proposal 017 decision 3's closing proof (`honestyAtClose`
   built from public blocks with its fixtures unchanged, measured against the fixtures as plan 0498's
   declared break leaves them).
-- Block 5 ([plan 0495](../work/plans/0495-a-value-agrees-with-its-folder.md)) is a root block, so it
+- Block 5 ([plan 0495](../work/plans/completed/0495-a-value-agrees-with-its-folder.md)) is a root block, so it
   takes its groups, folders, label and direction from the caller, with no default.
-- [Plan 0455](../work/plans/0455-a-corpus-built-from-text.md)'s `corpusFromText` is a new root
+- [Plan 0455](../work/plans/completed/0455-a-corpus-built-from-text.md)'s `corpusFromText` is a new root
   block and bound by clause 1: it may share `corpus()`'s frozen default only as the exception clause
   1 names, and loses it with bug 0497.
 - `corpus()`'s default frozen folders stay until bug 0497 ships its break.

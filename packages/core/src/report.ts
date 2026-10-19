@@ -10,7 +10,7 @@ import {
 } from './emitter-findings.js'
 
 import type { OutputFormat } from './check-options.js'
-import { ArchRuleError } from './errors.js'
+import { ArchConfigError, ArchRuleError } from './errors.js'
 import { formatViolations } from './format.js'
 import { formatViolationsJson } from './format-json.js'
 import { formatViolationsGitHub } from './format-github.js'
@@ -236,6 +236,47 @@ export function reportViolations(
   return gated
 }
 
+/** `ReportMode`'s values, in the order a refusal lists them. */
+const REPORT_MODES: readonly ReportMode[] = ['throw', 'return', 'warn']
+
+/**
+ * Read a caller's delivery mode, refusing one outside `ReportMode` and the
+ * dialect's own `extraModes` — bug 0508.
+ *
+ * `undefined` and `null` are the default, as `??` reads them. Anything else
+ * that is not a mode used to fall through every comparison in `finishPreset`:
+ * the violations were printed and nothing threw, so a caller without
+ * TypeScript's check (a JavaScript rule file, a mode read from config) that
+ * misspelt `'throw'` exited 0 over real violations (ADR-009). Read once, before
+ * any comparison, or `'retrun'` slips past the `'return'` one.
+ *
+ * The one reader of a mode in the family: a dialect whose presets take more
+ * modes (eess-ts's `'builders'`) passes them as `extraModes`, so the refusal
+ * lists every mode that door accepts and no second list is kept by hand.
+ */
+export function readReportMode<E extends string = never>(
+  value: unknown,
+  extraModes: readonly E[] = [],
+): ReportMode | E {
+  if (value === undefined || value === null) return 'throw'
+  const known = REPORT_MODES.find((m) => m === value)
+  if (known !== undefined) return known
+  const extra = extraModes.find((m) => m === value)
+  if (extra !== undefined) return extra
+  const shown =
+    typeof value === 'string'
+      ? `'${value}'`
+      : typeof value === 'boolean' || typeof value === 'number'
+        ? String(value)
+        : `a value of type ${typeof value}`
+  const modes = [...REPORT_MODES, ...extraModes].map((m) => `'${m}'`).join(', ')
+  throw new ArchConfigError(
+    'report',
+    `report: ${shown} is not a report mode; the modes are ${modes}. ` +
+      'An unknown mode used to print the violations and pass.',
+  )
+}
+
 /**
  * Finish a preset: deliver its aggregated violations per the requested mode
  * (plan 0070). `throw` (default) emits then throws; `return` hands the
@@ -247,7 +288,7 @@ export function finishPreset(
   violations: CollectResult,
   options: PresetReportOptions = {},
 ): CollectResult {
-  const mode: ReportMode = options.report ?? 'throw'
+  const mode = readReportMode(options.report)
   // A caller's declaration reaches the gate ON the receipt (ADR-014 §3), never
   // as a delivery option the gate reads separately — one boolean beside a sum
   // cannot be weighed against that sum's parts.

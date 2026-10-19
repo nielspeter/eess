@@ -58,3 +58,14 @@ export const LANES = [
     terminalStates: ['Promoted', 'Rejected'],
   },
 ]
+
+/**
+ * The documents under `work/` that no lane reads, on purpose (plan 0481): the spike lane, whose
+ * dated reports carry no `State:` (`findUncoveredLanes` checks that they still carry none), and
+ * the notes at `work/`'s top level. With `LANES`, these are every selection a document under
+ * `work/` may belong to; `check:ledger` requires each document in exactly one.
+ */
+export const UNLANED = [
+  { name: 'spikes', glob: 'work/spikes/**' },
+  { name: 'work notes', glob: 'work/*.md' },
+]

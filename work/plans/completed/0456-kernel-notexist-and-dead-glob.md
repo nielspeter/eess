@@ -7,7 +7,7 @@
   says where the build departed from the text. Written 2026-10-17 from proposal 017's maintainer acceptance (block 6);
   reworked three times on 2026-10-18 after PR #235's review rounds (architect · product ·
   enforcement · method · testing). `beUniqueBy`, the eess-gherkin rebuild and the record-number
-  dogfood moved to [plan 0459](../0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
+  dogfood moved to [plan 0459](./0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
 - **Implements:** proposal 017
 - **Fixes:** [bug 0460](../../bugs/fixed/0460-the-kernel-exempts-a-cardinality-rule-before-it-looks-for-a-dead-glob.md)
   (first, at the maintainer's decision 2026-10-18) and
@@ -891,7 +891,7 @@ population assertion at all is still review-held, as plan 0458 says.)_
   the recipe's roots-scoped corpus is the remedy, and the README states the limit.
 - **Making md's declared base exact.** `GlobBase` stays unchanged (Kernel (4)); the gap reaches no
   reader until bug 0396 is fixed, and is a condition on that fix.
-- `beUniqueBy`, the gherkin rebuild and the record-number dogfood: [plan 0459](../0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
+- `beUniqueBy`, the gherkin rebuild and the record-number dogfood: [plan 0459](./0459-kernel-beuniqueby-and-gherkins-unique-titles.md).
 
 ## Records this plan depends on
 

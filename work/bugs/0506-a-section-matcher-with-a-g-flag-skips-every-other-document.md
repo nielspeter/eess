@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-10-19 on main's build (`9675402`); recorded from proposal 017's
-  "Records owed" and PR #247's enforcement review (I1). No red test written yet.
+- **State:** Draft — the crossvalidate half fixed 2026-10-19 on branch `fix/fail-open-batch`; the
+  md half is plan 0496's. Reproduced 2026-10-19 on main's build (`9675402`); recorded from proposal
+  017's "Records owed" and PR #247's enforcement review (I1).
 - **Severity:** Medium — a silent drop in selector position, so a rule can be green on documents it
   never examined. It needs the caller to pass a `g` or `y` flag, which nothing refuses.
 - **Origin:** self-found · proposal 017's second Review (records owed); reproduced while revising
@@ -53,11 +54,42 @@ import md's matcher (through `@nielspeter/eess-md/internal`, as it already does 
 rather than keep a second one. The md verdict change ships in plan 0496's release note; if this bug
 is fixed first, it takes both copies and plan 0496 only relies on it.
 
+## Progress
+
+**The crossvalidate half (2026-10-19, branch `fix/fail-open-batch`).** `extractCitations`
+(`packages/crossvalidate/src/md-ts.ts`) takes the `section` option once through `nonGlobal`, which
+drops `g` and `y`; `adrCitationsResolve` and `adrCitationStats` both read through it. Measured red
+first: four ADRs, each holding only `## Enforcement` and a table citing a missing test, gave
+`citations` 2 and reported `gone-1` and `gone-3` only under `/^enforcement$/gi`. A title heading
+above `## Enforcement` hides the defect: the non-matching heading is tested first and resets
+`lastIndex`, so the test's ADRs carry none.
+
+Released as a marked break (`minor`, `**Breaking:**`), corrected after review: a green
+`adrCitationsResolve` with a `g`-flagged `section` can now red on a citation it used to skip, the
+same reason plan 0496 marks md's half a break.
+
+Decided against the record: crossvalidate keeps a non-global copy of its own instead of importing
+md's matcher. md's `matchName` is not exported, and `packages/md/src/model/query.ts` is plan 0496's
+to change in a build running beside this one. The third box below is bug 0511's: it owns the one
+shared non-global helper both packages read (moved from plan 0496 after review, since that plan's
+ledger never took the crossvalidate side).
+
+The same hazard on paths this bug does not name (a caller's column matchers in eess-md and
+eess-crossvalidate, and `md-mermaid-er`'s section matcher) is
+[bug 0511](./0511-a-g-flagged-column-or-table-matcher-skips-tables.md).
+
+Sabotage matrix (mutant applied to `packages/crossvalidate/src/md-ts.ts`, then restored):
+
+| row | mutant                     | red in `packages/crossvalidate/tests/md-ts.test.ts`                                                                                                        |
+| --- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `section` taken as given   | `finds the table in every ADR, whatever flags the section matcher carries`, `reports the dangling citation in every ADR under a g-flagged section matcher` |
+| 2   | only `g` dropped, `y` kept | `finds the table in every ADR, whatever flags the section matcher carries`                                                                                 |
+
 ## Verification
 
-- [ ] Red first: the third row above examines 4 and reports all four documents
-- [ ] Red first: the crossvalidate ADR binding with a `g`-flagged section finds the table in every
-      document
-- [ ] One matcher for both packages; `npm run validate` green
+- [ ] Red first: the third row above examines 4 and reports all four documents — deferred→plan 0496 (the md half; its ledger disposes this box)
+- [x] Red first: the crossvalidate ADR binding with a `g`-flagged section finds the table in every
+      document — `packages/crossvalidate/tests/md-ts.test.ts`, red on the unfixed code
+- [ ] One matcher for both packages — deferred→bug 0511 (it owns one shared non-global helper, exported through `@nielspeter/eess-md/internal`, that md's `matchName` and crossvalidate's `nonGlobal` are both replaced by)
 
-Deferred: none
+Deferred: plan 0496, bug 0511

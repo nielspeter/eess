@@ -1,6 +1,7 @@
 import { posix } from 'node:path'
 import type { ArchFix } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
+import { corpusInternals } from './corpus-internals.js'
 import type { MdDocument } from './document.js'
 import type { MdLink } from './links.js'
 
@@ -83,23 +84,6 @@ export type LinkTarget =
     }
   | { readonly kind: 'directory'; readonly path: string }
   | { readonly kind: 'missing'; readonly tried: readonly string[] }
-
-/** How `corpus()` decided which files to load, kept so a resolver can say why one was not. */
-interface CorpusMatchers {
-  readonly inRoots: (relPath: string) => boolean
-  readonly ignored: (relPath: string) => boolean
-}
-
-const matchersOf = new WeakMap<Corpus, CorpusMatchers>()
-
-/**
- * Record how `corpus()` filtered its files. Called by `corpus()` only; a
- * `Corpus` built any other way has no matchers, and an unloaded `.md` file in
- * it is reported as `outside-roots`.
- */
-export function registerCorpusMatchers(corpus: Corpus, matchers: CorpusMatchers): void {
-  matchersOf.set(corpus, matchers)
-}
 
 interface CorpusIndexes {
   /** Every directory reachable from `fileIndex` (the repo root itself excluded). */
@@ -188,7 +172,7 @@ function fileTarget(path: string, link: LinkToResolve, corpus: Corpus): LinkTarg
  * `outside-roots` and `ignored` mean one thing in both.
  */
 export function notInCorpusReasons(corpus: Corpus, path: string): NotInCorpusReason[] {
-  const matchers = matchersOf.get(corpus)
+  const matchers = corpusInternals(corpus)
   const reasons: NotInCorpusReason[] = []
   if (!path.endsWith('.md')) reasons.push('not-markdown')
   if (matchers?.ignored(path) === true) reasons.push('ignored')

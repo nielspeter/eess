@@ -6,8 +6,8 @@
 // from `@nielspeter/eess-md/rules/adr`.
 
 // Corpus loader
-export { corpus } from './corpus.js'
-export type { CorpusOptions, Corpus } from './corpus.js'
+export { corpus, corpusFromText } from './corpus.js'
+export type { CorpusOptions, Corpus, TextCorpusOptions } from './corpus.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): every kernel
 // symbol this package's own sources import, so a caller writing a custom
@@ -39,6 +39,8 @@ export {
   isArchConfigError,
   // Bug 0284: `honestyAtClose` throws it for a half-declared vocabulary.
   ArchConfigError,
+  // Plan 0455: `corpusFromText` refuses a waiver by the kernel's own parse.
+  parseExclusionComments,
   // Plan 0456: the location predicates now declare their globs.
   globNode,
 } from '@nielspeter/eess'
@@ -114,6 +116,10 @@ export { cleanValue, untilDelimiter, longestOf } from './model/fields.js'
 export type { FieldForm, FieldOptions } from './model/fields.js'
 // Plan 0469: `docs().haveField()`, a document has a value.
 export type { HaveFieldOptions } from './builders/have-field.js'
+// Plan 0495: `docs().should().agreeWithFolder()`, a value agrees with its folder. `Direction` is the
+// kernel's, re-exported so a caller names it from this package alone (plan 0089).
+export type { AgreeWithFolderOptions, FolderGroup } from './conditions/agree-with-folder.js'
+export type { Direction } from '@nielspeter/eess'
 // ADR-021: the predicate form, for `satisfy()`, the combinators and a lift onto other elements.
 export { predicateHaveField } from './builders/have-field.js'
 // Plan 0412: a code block parses with the parser the caller names.
