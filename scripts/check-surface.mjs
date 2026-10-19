@@ -34,14 +34,22 @@
  */
 import { undocumentedExports, exportsOf, PACKAGES } from './lib/public-surface.mjs'
 
-/** Value exports that end in a kind's name and are not twins, each with the reason. */
+/**
+ * Value exports that end in a kind's name and are not twins, keyed `<package>:<name>`, each with the
+ * reason. Keyed by package, so the entry for one package exempts nothing in another; an entry that
+ * matches no export it was written for is stale and a finding, so it cannot wait to exempt a twin
+ * that later takes its name.
+ */
+const DEFINE_P = 'constructs a predicate from a description and a test; no word is shared'
+const DEFINE_C = 'constructs a condition from a description and an evaluate; no word is shared'
 const NOT_A_TWIN = new Map([
-  ['definePredicate', 'constructs a predicate from a description and a test; no word is shared'],
-  [
-    'defineCondition',
-    'constructs a condition from a description and an evaluate; no word is shared',
-  ],
-  ['satisfyPairCondition', "eess-ts's condition over a `PairCondition`; the type names it"],
+  ['core:definePredicate', DEFINE_P],
+  ['core:defineCondition', DEFINE_C],
+  ['ts:definePredicate', DEFINE_P],
+  ['ts:defineCondition', DEFINE_C],
+  ['ts:satisfyPairCondition', "eess-ts's condition over a `PairCondition`; the type names it"],
+  ['mermaid:definePredicate', DEFINE_P],
+  ['mermaid:defineCondition', DEFINE_C],
 ])
 
 const t0 = Date.now()
@@ -55,6 +63,7 @@ const kernelTotal = exportsOf(process.cwd(), 'core').length
 // ADR-023 clause 2: a name ending in a kind is a twin unless a reviewer listed it, in any package,
 // kernel included, from the census's one package list.
 let suffixNamed = 0
+const listedSeen = new Set()
 const suffixTwins = PACKAGES.flatMap((pkg) =>
   exportsOf(process.cwd(), pkg)
     .filter((e) => !e.typeOnly)
@@ -62,11 +71,17 @@ const suffixTwins = PACKAGES.flatMap((pkg) =>
       const m = /^(.+)(Predicate|Condition)$/.exec(e.name)
       if (m === null) return []
       suffixNamed += 1
-      if (NOT_A_TWIN.has(e.name)) return []
+      const key = `${pkg}:${e.name}`
+      if (NOT_A_TWIN.has(key)) {
+        listedSeen.add(key)
+        return []
+      }
       const prefixed = `${m[2] === 'Predicate' ? 'predicate' : 'condition'}${m[1][0].toUpperCase()}${m[1].slice(1)}`
       return [{ pkg, name: e.name, prefixed }]
     }),
 )
+
+const staleListed = [...NOT_A_TWIN.keys()].filter((key) => !listedSeen.has(key))
 
 // The census is printed whether or not the gate reds: a number nobody can see is
 // a number nobody pays down.
@@ -106,6 +121,19 @@ if (suffixTwins.length > 0) {
   console.error('')
 }
 
+if (staleListed.length > 0) {
+  console.error('')
+  console.error(
+    `  ✗ ADR-023 — ${staleListed.length} NOT_A_TWIN entr${staleListed.length === 1 ? 'y matches' : 'ies match'} no export:`,
+  )
+  console.error(`      ${staleListed.join(', ')}`)
+  console.error('')
+  console.error(
+    '      Fix: remove the entry from NOT_A_TWIN in scripts/check-surface.mjs, or correct its package.',
+  )
+  console.error('')
+}
+
 if (kernel.length > 0) {
   console.error('')
   console.error(
@@ -130,11 +158,11 @@ if (kernel.length > 0) {
   console.error('')
   process.exit(1)
 }
-if (suffixTwins.length > 0) process.exit(1)
+if (suffixTwins.length > 0 || staleListed.length > 0) process.exit(1)
 
 console.error(
   `  ✓ public surface — ${kernelTotal} kernel root exports all documented · ` +
     `${publicExports.length} family exports scanned, ${dialects.length} dialect-side undocumented ` +
-    `(reported) · ${suffixNamed} suffix-named value exports examined, ${NOT_A_TWIN.size} names listed ` +
-    `as not twins, 0 twins (ADR-023) (${elapsed()})`,
+    `(reported) · ${suffixNamed} suffix-named value exports examined, ${NOT_A_TWIN.size} listed ` +
+    `as not twins (each matched), 0 twins (ADR-023) (${elapsed()})`,
 )
