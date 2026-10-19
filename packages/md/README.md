@@ -392,8 +392,9 @@ unlike `correspondence()`'s, because adopters split between one way and both. A 
 group's folders whose value is in no group is not this rule's: bind its folder, add a `'rest'` group,
 or pair the rule with `fields(...).resolveAgainst(...)`. A resolved value's side findings (prose that
 disagrees) are reported by every rule that reads the field. An agreement that selected documents
-and judged none (a misspelt label, the wrong forms or region) is its own finding, which no
-suppression removes.
+and judged none is its own finding, which no suppression removes: it read no value (a misspelt
+label, the wrong forms or region), or every selected document sits in no group's folders with a
+value no group names (declare those values in a `'rest'` group).
 [The Markdown dialect's docs](../../docs/markdown.md#a-value-agrees-with-its-folder-agreewithfolder)
 have the direction table and every finding.
 

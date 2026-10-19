@@ -1050,7 +1050,10 @@ compare exactly. `examined` is the kernel's, the documents the rule selected. An
 selected documents and judged none, because a misspelt label, the wrong `forms` or a `region` the
 value is not in reads no value, is its own finding (`selected 3 documents, judged none: the field read
 no value (check its label, forms or region)`), which no suppression removes and which fires whatever
-other conditions sit beside it. Frozen documents are judged like any other: a done
+other conditions sit beside it. When the values were read but every selected document sits in no
+group's folders and carries a value no group names, the finding says so instead (`2 selected
+documents carry values no group names (Draft, Open) and sit in no group's folders: declare them in a
+'rest' group, or select a folder a group binds`). Frozen documents are judged like any other: a done
 folder is usually frozen, and it is the folder this rule most needs to read; select with `areLive()`
 to leave them out. [`examples/md/a-record-sits-in-its-states-folder.test.ts`](../examples/md/a-record-sits-in-its-states-folder.test.ts)
 shows three shapes, each reading its value with `region: 'header'` so a status further down the

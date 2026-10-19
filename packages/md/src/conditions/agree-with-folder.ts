@@ -43,14 +43,6 @@ export interface AgreeWithFolderOptions {
   readonly normalize?: (value: string) => string
 }
 
-/**
- * Groups whose folders a preset supplies as its own defaults (plan 0495, decision E3). Such a group's
- * dead glob is not the caller's typo, so F7 reports it only when every one of its globs is dead.
- * Module-private and, for now, never added to: no caller can mark a group, so every glob is judged
- * as the caller's. Plan 0498 decides how a root-only preset (ADR-022 clause 3) reaches it.
- */
-const presetDefaults = new WeakSet<FolderGroup>()
-
 const ARROW: Readonly<Record<Direction, string>> = {
   'left-to-right': 'value → folder',
   'right-to-left': 'folder → value',
@@ -64,7 +56,6 @@ interface Group {
   readonly values: readonly string[]
   readonly globs: readonly string[] | 'rest'
   readonly match: (relPath: string) => boolean
-  readonly defaults: boolean
 }
 
 /** What one run decided about the declaration, before any document is judged. */
@@ -142,7 +133,6 @@ function groupsOf(o: AgreeWithFolderOptions): Group[] {
     values: g.values,
     globs: g.folders,
     match: g.folders === 'rest' ? (): boolean => false : picomatch([...g.folders]),
-    defaults: presetDefaults.has(g),
   }))
 }
 
@@ -185,17 +175,6 @@ function prepare(corpus: Corpus, o: AgreeWithFolderOptions): Prepared {
     if (g.globs === 'rest') continue
     const why = g.globs.map((glob) => ({ glob, why: deadGlob(corpus, g, glob) }))
     const gone = why.filter((w) => w.why !== undefined)
-    if (g.defaults) {
-      if (gone.length < g.globs.length) continue
-      dead.add(g.at)
-      reports.push({
-        element: `${g.name}'s folders`,
-        message:
-          `${g.name}'s folders ${g.globs.join(', ')} match no path in the corpus; file the first ` +
-          'record in one of them, or leave the group out',
-      })
-      continue
-    }
     for (const { glob, why: cause } of gone) {
       dead.add(g.at)
       reports.push({
@@ -239,7 +218,7 @@ function prepare(corpus: Corpus, o: AgreeWithFolderOptions): Prepared {
 export class FolderAgreement {
   readonly condition: Condition<MdDocument>
   private prepared: Prepared | undefined
-  private last: { readonly selected: number; readonly judged: number } | undefined
+  private last: LastRun | undefined
 
   constructor(
     private readonly corpus: Corpus,
@@ -264,21 +243,20 @@ export class FolderAgreement {
 
   /**
    * Plan 0495, decision D1 as rebuilt after review: an agreement that ran over a non-empty selection
-   * and gave no document a verdict read no value (a misspelt label, the wrong forms or region). It
-   * is this agreement's own finding, unsuppressable, whatever conditions sit beside it, so a broken
-   * agreement cannot hide behind another condition's count, or another agreement's.
+   * and gave no document a verdict is this agreement's own finding, unsuppressable, whatever
+   * conditions sit beside it, so a broken agreement cannot hide behind another condition's count,
+   * or another agreement's. It names one of two causes: values were read, but each sits outside
+   * every group's folders and no group names it (the live values are undeclared, or the selection
+   * misses the bound folders); or no value was read (a misspelt label, the wrong forms or region).
    */
   judgedNone(context: ConditionContext): ArchViolation[] {
     const last = this.last
     if (last === undefined || last.selected === 0 || last.judged > 0) return []
-    const label = this.options.field.label
-    return [
-      declarationViolation(
-        `agreeWithFolder → ${label}`,
-        `selected ${String(last.selected)} documents, judged none: the field read no value (check its label, forms or region)`,
-        context,
-      ),
-    ]
+    const message =
+      last.unplaced.count > 0
+        ? `${String(last.unplaced.count)} selected documents carry values no group names (${[...last.unplaced.values].join(', ')}) and sit in no group's folders: declare them in a 'rest' group, or select a folder a group binds`
+        : `selected ${String(last.selected)} documents, judged none: the field read no value (check its label, forms or region)`
+    return [declarationViolation(`agreeWithFolder → ${this.options.field.label}`, message, context)]
   }
 
   private evaluate(elements: readonly MdDocument[], context: ConditionContext): ArchViolation[] {
@@ -286,6 +264,7 @@ export class FolderAgreement {
     const out: ArchViolation[] = []
     const judged = new Set<MdDocument>()
     const overlaps = new Map<string, Overlap>()
+    const unplaced = { count: 0, values: new Set<string>() }
     for (const d of elements) {
       const hits = j.groups.filter((g) => g.match(d.relPath))
       if (hits.length > 1) {
@@ -295,14 +274,26 @@ export class FolderAgreement {
       }
       const verdict = judgeDocument(j, d, hits[0] ?? j.rest)
       if (verdict.judged) judged.add(d)
+      if (verdict.unplaced !== undefined) {
+        unplaced.count += 1
+        unplaced.values.add(verdict.unplaced)
+      }
       for (const f of verdict.findings) {
         out.push(mdViolation({ ...f, file: d.file, context }))
       }
     }
     out.push(...overlapFindings(overlaps, context))
-    this.last = { selected: elements.length, judged: judged.size }
+    this.last = { selected: elements.length, judged: judged.size, unplaced }
     return out
   }
+}
+
+/** What the last evaluation saw, for `judgedNone`. */
+interface LastRun {
+  readonly selected: number
+  readonly judged: number
+  /** Documents whose value was read, in no group's folders, and named by no group. */
+  readonly unplaced: { readonly count: number; readonly values: ReadonlySet<string> }
 }
 
 /** One run's reading of the declaration, shared by every document it judges. */
@@ -350,6 +341,8 @@ interface DocVerdict {
   /** Given a verdict, and so counted in `examined` (D1). */
   readonly judged: boolean
   readonly findings: readonly DocFinding[]
+  /** The value read, when the document sits in no group's folders and no group names it. */
+  readonly unplaced?: string
 }
 
 const belongs = (j: Judge, g: Group): string =>
@@ -367,11 +360,14 @@ function judgeDocument(j: Judge, d: MdDocument, bound: Group | undefined): DocVe
   )
   if (v.resolved && v.occurrence !== undefined) {
     const placed = judgeValue(j, d, bound, v.occurrence)
+    const raw = v.occurrence.values.join(', ')
+    const named = j.byValue.has(j.norm(raw))
     // A resolved value's side causes (prose that disagrees, a label in a form the rule does not
     // read) are reported wherever the document is judged.
-    return placed === undefined
-      ? { judged: false, findings: [] }
-      : { judged: true, findings: [...placed, ...causes] }
+    if (placed !== undefined) return { judged: true, findings: [...placed, ...causes] }
+    return bound === undefined && !named
+      ? { judged: false, findings: [], unplaced: raw }
+      : { judged: false, findings: [] }
   }
   if (v.causes.some((c) => c.kind === 'unreadable')) {
     // F5: withheld, never counted as agreeing.
