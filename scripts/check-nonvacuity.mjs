@@ -768,6 +768,43 @@ function gateArchOneLinkResolver() {
   }
 }
 
+// --- Gate: arch/md-layers-point-down (PR #252's architect review) ---
+// Mutates real files: an upward import planted in a predicate module and in a model module must
+// each red the rule on that file.
+function gateArchMdLayersPointDown() {
+  const probes = [
+    [
+      join(repoRoot, 'packages', 'md', 'src', 'predicates', 'document.ts'),
+      'predicates/document.ts',
+      "import { haveTable as __probe } from '../conditions/structure.js'",
+    ],
+    [
+      join(repoRoot, 'packages', 'md', 'src', 'model', 'query.ts'),
+      'model/query.ts',
+      "import { docs as __probe } from '../builders/docs.js'",
+    ],
+  ].map(([file, name, line]) => {
+    const bad = withMutatedFile(file, line, () =>
+      sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+    )
+    return {
+      name,
+      code: bad.code,
+      fired: bad.code === 1 && firedOn(bad, 'eess/md-layers-point-down', name),
+    }
+  })
+  const ok = probes.every((p) => p.fired)
+  return {
+    ok,
+    detail: probes
+      .map(
+        (p) =>
+          `${p.name} → exit ${p.code}${p.fired ? ' (eess/md-layers-point-down)' : ' (did not fire)'}`,
+      )
+      .join(' · '),
+  }
+}
+
 // --- Gate: arch/md-rules-import-only-the-root (ADR-022 clause 3) ---
 // Mutates the real presets: the rule selects packages/md/src/rules/**, and the edge it judges is an
 // import a preset makes. Three probes: an internal import planted in adr.ts must red the allowlist
@@ -3542,6 +3579,7 @@ const gates = [
   ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['arch/md-one-link-resolver', gateArchOneLinkResolver],
+  ['arch/md-layers-point-down', gateArchMdLayersPointDown],
   ['arch/md-rules-import-only-the-root', gateArchMdRulesRootOnly],
   ['arch/one-code-block-tag-comparison', gateArchOneTagComparison],
   ['internal arch', gateInternalArch],
@@ -4676,6 +4714,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'arch/md-one-link-resolver',
+    'arch/md-layers-point-down',
     'arch/md-rules-import-only-the-root',
     'arch/one-code-block-tag-comparison',
     'internal arch',

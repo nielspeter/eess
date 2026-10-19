@@ -2,8 +2,8 @@ import type { Condition } from '@nielspeter/eess'
 import type { MdDocument, MdTable } from '../model/document.js'
 import { mdViolation } from '../model/violation.js'
 import { hasSection, tableInSection } from '../model/query.js'
-import { checkDepth, matchName } from '../model/name-match.js'
-import { headingNotes, sectionsOf, type HaveSectionOptions } from '../model/sections.js'
+import { checkDepth } from '../model/name-match.js'
+import { headingNotes, sectionsOf, titleFault, type HaveSectionOptions } from '../model/sections.js'
 import { citesHeadings, declaresSections } from '../model/section-declarations.js'
 
 export type { HaveSectionOptions } from '../model/sections.js'
@@ -83,24 +83,6 @@ export function haveTable(opts: HaveTableOptions): Condition<MdDocument> {
         ]
       }),
   }
-}
-
-/**
- * Plan 0522 (proposal 017 block 3): why a document has no title matching `name`, or `undefined`
- * when it has one. The title is the document's first section, a heading at its top level; it must be
- * at depth 1, and match `name` when one is given (a string exactly, or a `RegExp`, as `haveSection`
- * matches).
- */
-export function titleFault(doc: MdDocument, name?: string | RegExp): string | undefined {
-  const [first] = sectionsOf(doc)
-  if (first === undefined) return 'no title: the document has no heading'
-  if (first.depth !== 1) {
-    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}`
-  }
-  if (name !== undefined && !matchName(first.name, name)) {
-    return `the title "${first.name}" (line ${String(first.line)}) is not "${String(name)}"`
-  }
-  return undefined
 }
 
 /** Condition: every matched document has a title (a first heading at depth 1), matching `name` if given. */

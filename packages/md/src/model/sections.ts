@@ -185,3 +185,21 @@ export function headingNotes(
   }
   return notes.sort((a, b) => a.line - b.line)
 }
+
+/**
+ * Plan 0522 (proposal 017 block 3): why a document has no title matching `name`, or `undefined`
+ * when it has one. The title is the document's first section, a heading at its top level; it must be
+ * at depth 1, and match `name` when one is given (a string exactly, or a `RegExp`, as `haveSection`
+ * matches).
+ */
+export function titleFault(doc: MdDocument, name?: string | RegExp): string | undefined {
+  const [first] = sectionsOf(doc)
+  if (first === undefined) return 'no title: the document has no heading'
+  if (first.depth !== 1) {
+    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}`
+  }
+  if (name !== undefined && !matchName(first.name, name)) {
+    return `the title "${first.name}" (line ${String(first.line)}) is not "${String(name)}"`
+  }
+  return undefined
+}

@@ -6,7 +6,7 @@ import { hasSection } from '../model/query.js'
 import { checkDepth } from '../model/name-match.js'
 import { declaresSections } from '../model/section-declarations.js'
 import type { HaveSectionOptions } from '../model/sections.js'
-import { titleFault } from '../conditions/structure.js'
+import { titleFault } from '../model/sections.js'
 
 /**
  * The glob a location predicate declares (plan 0456), so an absence rule's
