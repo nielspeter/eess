@@ -6,10 +6,10 @@
  *
  * Each section name and selecting pattern is bound once, to a const the rule and its guards read:
  * a typo reaches both, so the existence guard reds; one record's drifted heading is caught by the
- * per-document guard, which holds because every closed record carries both sections. A pattern used to exclude (`DISPOSED`) fails closed
- * when misspelt and needs no guard. `DEFERRAL` selects and has none: a clean corpus may hold no
- * deferral at all, so a guard on it would red on a clean corpus. A typo in it, or the adopter's
- * notation drifting from it (`deferred to record 3`), stays green.
+ * per-document guard, which holds because every closed record carries both sections. A pattern used
+ * to exclude (`DISPOSED`) fails closed when misspelt and needs no guard. `DEFERRAL` selects and has
+ * none: a clean corpus may hold no deferral at all, so a guard on it would red on a clean corpus. It
+ * is `honestyAtClose`'s own pattern, so `deferred to record 3` is read and `deferred: none` is not.
  */
 import {
   corpus,
@@ -33,7 +33,8 @@ const ACCEPTANCE = /^Acceptance/
 const OPEN_QUESTIONS = /^Open questions$/i
 const DISPOSED = /\b(done-otherwise|validation-owed)\b/
 const DONE_OTHERWISE = /\bdone-otherwise\b/
-const DEFERRAL = /deferred\s*(?:→|->|:)/
+// honestyAtClose's own reading of a deferral: an arrow, a colon or "to", then a home that is not "none".
+const DEFERRAL = /deferred\s*(?:→|->|:|\bto\b)\s*(?!none\b)\S/i
 
 // (a) An open box under acceptance is only done-otherwise or validation-owed.
 const undisposed = (cwd: string) =>
