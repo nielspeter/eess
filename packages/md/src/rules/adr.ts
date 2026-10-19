@@ -7,10 +7,14 @@ import {
   type PresetBaseOptions,
   mergeCollectResults,
 } from '@nielspeter/eess'
-import type { Corpus } from '../corpus.js'
-import { docs } from '../builders/docs.js'
-import { haveNameMatching } from '../predicates/document.js'
-import { haveTableRowsSatisfying, type TableRowContext } from '../conditions/table-rows.js'
+// ADR-022: a preset is built from the md root's public blocks, as an adopter's rule is.
+import {
+  docs,
+  haveNameMatching,
+  haveTableRowsSatisfying,
+  type Corpus,
+  type TableRowContext,
+} from '../index.js'
 
 // The ADR directory's index/schema doc (README.md, index.md) is not an ADR —
 // exempt it so it isn't required to carry an `## Enforcement` table. the external repo's

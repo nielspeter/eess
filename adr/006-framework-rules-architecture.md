@@ -4,6 +4,8 @@
 
 **Accepted** (March 2026)
 
+**Extended by:** [ADR-022](./022-eess-mds-root-fixes-no-documents-shape.md)
+
 ## Context
 
 ts-archunit needs a strategy for framework-specific rules (Fastify, Drizzle, Express, NestJS, etc.). These rules are the highest-value rules for real projects but shouldn't bloat the core package.

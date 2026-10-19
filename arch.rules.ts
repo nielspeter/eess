@@ -15,6 +15,7 @@ import {
   project,
   modules,
   not,
+  dependOn,
   resideInFile,
   type ExpressionMatcher,
 } from '@nielspeter/eess-ts'
@@ -27,6 +28,17 @@ const p = workspace([
   'packages/gherkin/tsconfig.build.json',
   'packages/crossvalidate/tsconfig.build.json',
 ])
+
+/**
+ * ADR-022 clause 3. The md root, and the eess-md modules `honestyAtClose` still imports past it (one
+ * entry per edge: plan 0498 removes `label`, plan 0504 `prose` and `task-items`). An exclusion matches
+ * the edge's message by its module; which symbols cross each edge is pinned by
+ * `packages/md/tests/rules/ledger-debt.test.ts`.
+ */
+const MD_ROOT = '**/packages/md/src/index.ts'
+const LEDGER_DEBT = ['label', 'prose', 'task-items']
+const ledgerEdge = (m: string): RegExp =>
+  new RegExp(`^ledger\\.ts imports "[^"]*/packages/md/src/model/${m}\\.ts"`)
 
 const only = (pkg: string): string => `**/packages/${pkg}/src/**`
 const inPkg = (pkg: string): string => `**/packages/${pkg}/**`
@@ -290,6 +302,46 @@ export default [
       suggestion:
         'resolve the link with resolveLink() from model/resolve-link.ts, and keep path arithmetic there',
     }),
+
+  // ADR-022 clause 3 — eess-md's presets are built from the md root and the kernel root only, the
+  // blocks an adopter has. Any other import is an edge into eess-md's own modules or the kernel's
+  // `/internal`, which an adopter is not promised. Type imports count: a type the root does not
+  // export is a block it does not offer. Third-party packages and Node builtins are refused too:
+  // the root names the parsed tree (`MdDocument['root']`), and a preset reads the disk through
+  // `corpus()`, so neither is needed, and none is imported today.
+  //
+  // The three exclusions are `honestyAtClose`'s debt, one per edge, each matched by its exact
+  // module so a fourth edge from ledger.ts still reds. A stale one prints an "Unused exclusion"
+  // warning and does not red (ADR-018 is Proposed), so the rules below pin each edge: paying one
+  // down reds its pin, and the pin and its exclusion go together.
+  //
+  // What it cannot see (ADR-016 rule 7): a dynamic import of a computed string
+  // (`const s = '../model/x.js'; import(s)`) is no edge to eess-ts, here or in any edge rule.
+  modules(p)
+    .that()
+    .resideInFolder('**/packages/md/src/rules/**')
+    .should()
+    .onlyImportFrom(MD_ROOT, '@nielspeter/eess')
+    .excluding(...LEDGER_DEBT.map((m) => ledgerEdge(m)))
+    .rule({
+      id: 'md/rules-import-only-the-root',
+      because:
+        "ADR-022: a preset under rules/* is built from eess-md's public root, as an adopter's rule is; an internal import is a block the root does not offer",
+      suggestion:
+        "import it from '../index.js', or build it from root blocks; if the root lacks a block, add one whose every value the caller names (ADR-022 clause 1), never plumbing",
+    }),
+  ...LEDGER_DEBT.map((m) =>
+    modules(p)
+      .that()
+      .resideInFile('**/packages/md/src/rules/ledger.ts')
+      .should()
+      .satisfy(dependOn(`**/packages/md/src/model/${m}.ts`))
+      .rule({
+        id: `md/rules-ledger-debt-is-current-${m}`,
+        because: `ADR-022: ledger.ts's import of model/${m}.ts is excluded from md/rules-import-only-the-root; once it is gone the exclusion would let it back silently`,
+        suggestion: `delete LEDGER_DEBT's '${m}' entry in arch.rules.ts, which removes this pin and its exclusion together`,
+      }),
+  ),
 
   // ADR-019 C3 — one owner of the tag comparison. What it cannot see, stated rather than implied
   // (ADR-016 rule 7): the tag passed as an argument, or used as an operand of anything but an

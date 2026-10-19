@@ -5,15 +5,25 @@ import {
   mergeCollectResults,
 } from '@nielspeter/eess'
 import type { Condition, ConditionContext, Predicate } from '@nielspeter/eess'
-import type { Corpus } from '../corpus.js'
-import type { MdDocument } from '../model/document.js'
-import type { ArchViolation } from '../model/violation.js'
-import type { Root } from 'mdast'
-import { collectTaskItems, validateMarks, type TaskItemOptions } from '../model/task-items.js'
+// ADR-022: a preset is built from the md root's public blocks, as an adopter's rule is.
+import {
+  collectTaskItems,
+  docs,
+  taskItems,
+  type ArchViolation,
+  type Corpus,
+  type MdDocument,
+  type MdTaskItem,
+  type TaskItemOptions,
+} from '../index.js'
+// ADR-022's three ratcheted edges (`md/rules-import-only-the-root` in arch.rules.ts): no root block
+// does what these do yet. They leave when `honestyAtClose` is rebuilt on public blocks (plan 0498).
+import { validateMarks } from '../model/task-items.js'
 import { LABEL_HEADING, PLAIN_LABEL, labelPattern, wrappedLabelOf } from '../model/label.js'
 import { proseText, unterminatedFence } from '../model/prose.js'
-import { docs } from '../builders/docs.js'
-import { taskItems, type MdTaskItem } from '../builders/task-items.js'
+
+/** The parsed tree, named through the root's document type rather than a direct `mdast` import. */
+type Root = MdDocument['root']
 
 /**
  * `honestyAtClose` — the ledger-reconciliation gate for an engineering corpus.
