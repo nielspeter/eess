@@ -1005,6 +1005,41 @@ shows three shapes, each reading its value with `region: 'header'` so a status f
 record is not read. This repository's `check:corpus` holds each lane's done folders to its done
 values this way (`corpus/done-folders-hold-done-values-*`).
 
+### Unique values: `beUniqueBy`
+
+`beUniqueBy(key, what)` says that no two selected elements share `key`'s value. Every member of a
+group is a finding at its own line, naming the others (ten at most, then "and N more"), so an
+exclusion or a baseline entry for one member cannot hide the group. Values compare exactly: `key` is
+where you normalise. `what` names the value in the message. It has two forms:
+
+- **Keyed by the value under a label**, on `fields()` (and `terms()`): each occurrence is an element,
+  reported at its own line. A value the rule cannot read (empty after cutting) is reported as
+  `resolveAgainst` reports it, never grouped with another.
+- **Keyed by the document**, on `docs()`: each document is an element, reported at its line 1. Use it
+  when the key comes from the document itself, such as a slug or a number in its file name.
+
+```typescript
+import { corpus, docs, fields, type MdDocument, type MdTerm } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/**', 'guides/**'] })
+
+// No two records carry the same Id. Leading zeros carry no meaning here, so `066` and `0066` collide.
+const id = (f: MdTerm): string => f.value.replace(/^0+(?=\d)/, '')
+fields(c, { label: 'Id', forms: ['bold'] })
+  .should()
+  .beUniqueBy(id, 'Id')
+  .check()
+
+// No two guides publish at one slug.
+const slug = (d: MdDocument): string => d.relPath.replace(/^.*\/|\.md$/g, '')
+docs(c).that().resideInFolder('guides/**').should().beUniqueBy(slug, 'slug').check()
+```
+
+A finding reads `records/b.md:3 has the same Id as 1 other: records/a.md:3`. A selection with no
+element is red, as for any rule; one element is green. [`examples/md/unique-ids.test.ts`](../examples/md/unique-ids.test.ts)
+and [`examples/md/unique-slugs.test.ts`](../examples/md/unique-slugs.test.ts) show both forms. This
+repository's `check:corpus` keeps record numbers unique this way (`corpus/record-number-unique`).
+
 ## ADR enforcement tables
 
 `eess-md` ships an `adrEnforcement()` preset that validates the `## Enforcement` table convention: every ADR ends with a **Clause | Tier | Mechanism | Status** table, tiers are valid, and cited file paths resolve. It does **not** check that a cited `it('…')` title names a real test: that is `eess-crossvalidate`'s `adrCitationsResolve`, which reads the test AST — see [`eess-crossvalidate`](/crossvalidate). If your ADRs cite test titles, run it too; with `eess-md` alone, a title citation is not verified by anything.
