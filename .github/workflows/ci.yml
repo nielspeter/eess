@@ -10,6 +10,16 @@ on:
   # Stacked branches are how this repo works, so every PR gets the chain.
   pull_request:
 
+# A PR run on a superseded commit is cancelled (plan 0509). Every other run gets a
+# group of its own, its commit: GitHub keeps one running and one pending run per
+# group and cancels the pending one when a third arrives, whatever
+# `cancel-in-progress` says, so a shared group for main would drop the middle
+# commit of three quick merges. On pull_request `github.ref` is
+# `refs/pull/N/merge`, one group per PR, so stacked PRs do not cancel each other.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -72,12 +82,8 @@ jobs:
       # comment below claimed a meta-check prevented exactly this; it could not
       # (see `gateCoverage`), and now does.
       - run: npm run check:vacuity
-      # Every gate above is proven non-vacuous: violating fixtures must make it exit 1.
-      # Also proves every step of `validate` runs here — this list and the chain
-      # in package.json are two lists of one thing, and were allowed to drift (0129,
-      # and again with check:vacuity until PR #72). `gateCoverage` now reads THIS
-      # file, so the claim is checked rather than asserted.
-      - run: npm run check:nonvacuity
+      # `check:nonvacuity` runs in the `nonvacuity-shard` and `nonvacuity` jobs
+      # below, in parallel with this one (plan 0509).
       - run: npm run typecheck
       # The vacuity matrix imports from `dist`, so it cannot join the pre-build
       # suite and lives behind its own script. It ran on NO path until PR #72's
@@ -98,6 +104,77 @@ jobs:
       # version and stopped `lint`, `format:check` and every test from running —
       # including the one ADR-011 row 2 names as its `gated` mechanism.
       - run: npm run check:surface
+
+  # Every gate is proven non-vacuous: violating fixtures must make it exit 1.
+  # Also proves every step of `validate` runs in this file — that list and the
+  # chain in package.json are two lists of one thing, and were allowed to drift
+  # (0129, and again with check:vacuity until PR #72). `gateCoverage` reads THIS
+  # file, so the claim is checked rather than asserted.
+  #
+  # Plan 0509: the fixtures run in series and took 31.9 of the `test` job's ~43
+  # minutes, so they run here as shards, in parallel with `test`. Shard i of N
+  # runs every N-th fixture of the harness's own list; N is the matrix's length.
+  # Each shard reds on a fixture that does not fire and on selecting none, and
+  # writes what it ran. The `nonvacuity` job below is the only place the split is
+  # checked — every fixture in exactly one shard — and the only place the
+  # whole-set checks run. `gateCoverage` reads both jobs and reds if the merge
+  # is dropped, stops waiting for the shards, or can be skipped or softened.
+  nonvacuity-shard:
+    runs-on: ubuntu-latest
+    # About 10.5 min in CI at the slowest shard; a hung fixture must not hold four
+    # runners for the 6 h default.
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The release fixtures read a base ref, as `check:release` does in `test`.
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm rebuild
+      - run: npm run check:nonvacuity
+        env:
+          EESS_NONVACUITY_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+          EESS_NONVACUITY_REPORT: nonvacuity-reports/shard-${{ matrix.shard }}.json
+      # A failed shard still sends its report, so the merge can name what failed.
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: nonvacuity-shard-${{ matrix.shard }}
+          path: nonvacuity-reports/shard-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 1
+
+  # The whole-set half: harness self-check, gate coverage, rule-id coverage over
+  # the union of what the shards asserted, and the partition. It runs when a
+  # shard failed too, and reds on a missing report. Node builtins only, so no
+  # `npm ci`.
+  nonvacuity:
+    needs: nonvacuity-shard
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: nonvacuity-shard-*
+          path: nonvacuity-reports
+          merge-multiple: true
+      - run: npm run check:nonvacuity
+        env:
+          EESS_NONVACUITY_MERGE: nonvacuity-reports
 
   # Every published package of the family loads under Bun (ADR-020 rule 2; plan
   # 0448, bug 0439). Its own job, deliberately: a step inside `test` would sit
