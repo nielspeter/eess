@@ -3536,6 +3536,41 @@ const gates = [
         "State is given twice (line 5 'Fixed', line 6 'Draft'); keep one",
       ),
   ],
+  // Plan 0495: `agreeWithFolder`, one row per lane's done-folder rule. An open State in a done folder
+  // belongs outside it (F2); a done-folder record with no State is F4; a proposal reads its header.
+  [
+    'corpus/done-folders-hold-done-values-plans',
+    () =>
+      gateCorpusStateProbe(
+        'plans/completed',
+        '__nonvacuity_probe_done_folder_draft.md',
+        [...STATE_PROBE_HEAD, '- **State:** Draft'],
+        'corpus/done-folders-hold-done-values-plans',
+        'wrong folder: `Draft` (State, line 5) belongs outside work/plans/completed/**',
+      ),
+  ],
+  [
+    'corpus/done-folders-hold-done-values-bugs',
+    () =>
+      gateCorpusStateProbe(
+        'bugs/fixed',
+        '__nonvacuity_probe_done_folder_no_state.md',
+        [...STATE_PROBE_HEAD, 'No State line here.'],
+        'corpus/done-folders-hold-done-values-bugs',
+        "is in Fixed's folders and has no State field (read as bold)",
+      ),
+  ],
+  [
+    'corpus/done-folders-hold-done-values-proposals',
+    () =>
+      gateCorpusStateProbe(
+        'proposals/promoted',
+        '__nonvacuity_probe_done_folder_proposal.md',
+        ['# A probe', '', '- **State:** Draft', '', '## Body'],
+        'corpus/done-folders-hold-done-values-proposals',
+        'wrong folder: `Draft` (State, line 3) belongs outside work/proposals/promoted/**',
+      ),
+  ],
   [
     'corpus/state-in-a-form-not-read',
     () =>
@@ -4538,6 +4573,9 @@ const GATE_FOR = {
     'corpus/closed-records-sit-in-done-folders',
     'corpus/closed-records-undecided',
     'corpus/closed-records-plans',
+    'corpus/done-folders-hold-done-values-plans',
+    'corpus/done-folders-hold-done-values-bugs',
+    'corpus/done-folders-hold-done-values-proposals',
     'corpus/state-in-vocabulary-bugs',
     'corpus/state-in-vocabulary-plans',
     'corpus/state-in-a-form-not-read',

@@ -85,6 +85,9 @@ import type {
   FieldForm,
   FieldOptions,
   HaveFieldOptions,
+  AgreeWithFolderOptions,
+  FolderGroup,
+  Direction as MdDirection,
 } from '@nielspeter/eess-md'
 import { corpus, docs, links, pointers, rows, taskItems, terms } from '@nielspeter/eess-md'
 import { cleanValue, fields, longestOf, untilDelimiter } from '@nielspeter/eess-md'
@@ -172,6 +175,9 @@ type MdSurface = {
   fieldForm: FieldForm
   fieldOptions: FieldOptions
   haveFieldOptions: HaveFieldOptions
+  agreeWithFolderOptions: AgreeWithFolderOptions
+  folderGroup: FolderGroup
+  direction: MdDirection
 }
 
 /** A dialect that exposes a function must expose the types of its arguments. */

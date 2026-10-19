@@ -921,6 +921,90 @@ docs(c).that().satisfy(and(live, closed)).should().notExist().check()
 This repository's `check:corpus` states a version of the same rule over its plans and bugs
 (`corpus/closed-records-sit-in-done-folders`).
 
+### A value agrees with its folder: `agreeWithFolder`
+
+`docs(c).should().agreeWithFolder({ field, groups, direction, normalize? })` says that a document's
+labelled value and the folder it sits in agree: a closed bug is in `fixed/`, and nothing in `fixed/`
+is open. `field` is read as `fields()` reads it and resolved as `haveField` resolves it, one value per
+document (`split` is not taken). Each group binds its `values` to its `folders`, globs relative to the
+corpus's `cwd` as `resideInFolder` takes them; one group may say `folders: 'rest'`, every selected
+document no other group's folders hold. Every group, folder and label is yours: there is no default.
+
+```typescript
+import { corpus, docs, longestOf } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/bugs/**'], frozen: [] })
+const words = ['Draft', 'Ready', 'Parked', 'Fixed', 'Rejected']
+
+docs(c)
+  .that()
+  .resideInFolder('work/bugs/**')
+  .should()
+  .agreeWithFolder({
+    field: { label: 'State', forms: ['bold'], value: longestOf(words) },
+    groups: [
+      { values: ['Draft', 'Ready', 'Parked'], folders: 'rest' },
+      { values: ['Fixed'], folders: ['work/bugs/fixed/**'] },
+      { values: ['Rejected'], folders: ['work/bugs/rejected/**'] },
+    ],
+    direction: 'both', // value → folder and folder → value
+  })
+  .rule({ id: 'bugs/state-agrees-with-folder' })
+  .check()
+```
+
+**`direction` is required.** It is the kernel's `Direction`, as `correspondence()` reads it, with the
+value on the left and the folder on the right; write the arrow beside it, as above, and every
+finding's rule text prints it (`agree with their folder (State, value → folder)`). Adopters split on
+it, one way or both, so it has no default:
+
+| the document                            | `left-to-right` (value → folder) | `right-to-left` (folder → value) | `both`        |
+| --------------------------------------- | -------------------------------- | -------------------------------- | ------------- |
+| in K's folders, value in K              | —                                | —                                | —             |
+| in K's folders, value in another J      | wrong folder                     | wrong folder                     | one finding   |
+| in no group's folders, value in K       | belongs in K's folders           | —                                | belongs in    |
+| in K's folders, value in no group       | unknown value                    | unknown value                    | unknown value |
+| in no group's folders, no group's value | —                                | —                                | —             |
+| in K's folders, no value                | —                                | no value                         | no value      |
+| a value that cannot be read             | reported                         | reported in a bound folder       | reported      |
+
+With a `'rest'` group every selected document is bound, so direction changes only the no-value and
+unreadable rows. A one-way rule, such as "a closed folder holds no live value", is then made by the
+selection: select the closed folders and read `right-to-left`.
+
+**The findings,** each at the value's line:
+
+- `` `Fixed` (State, line 3) belongs in work/bugs/fixed/**; work/other/9.md is in none of its folders. Move it or change the value. ``
+- ``wrong folder: `Draft` (State, line 3) belongs outside work/bugs/fixed/**, work/bugs/rejected/**; work/bugs/fixed/10.md is in Fixed's folders. Move it or change the value.``
+- `` `Shipped` at line 3 is none of the declared values (Draft, Ready, Parked, Fixed, Rejected); fix the spelling, or add it to a group ``: the values are a closed set in every direction.
+- `work/bugs/fixed/14.md is in Fixed's folders and has no State field (read as bold); its labels: Status`.
+- A value that cannot be read is reported with `haveField`'s message (given twice, empty, in a form
+  the rule does not read, outside the header) and never judged by its first occurrence. A value that
+  resolved still carries `haveField`'s other findings (prose that disagrees, a label in a form the
+  rule does not read): every rule that reads the field reports them, under its own id.
+
+**Not this rule's:** a document in no group's folders whose value is in no group. No group claims it
+and no folder binds it. To judge it, bind its folder, add a `'rest'` group, or pair the rule with
+`fields(...).resolveAgainst(vocabulary(...))`.
+
+**The declaration's own findings,** once per rule, which no `.excluding()`, comment or baseline
+removes: two groups whose folders both hold a selected document (bind each folder to one group, or
+make one `'rest'`); a folder glob that matches no path in the corpus, or one that can never match
+(a leading `/`), one finding per glob instead of one per record; and, reading folder → value, a group
+whose folders hold no document in the corpus. Malformed groups are refused when the rule runs, naming
+the option: no groups, a group with no values or no folders, an empty value, a value (after
+`normalize`) in two groups, one glob in two groups, two `'rest'` groups.
+
+`normalize` is applied to the value read and to every declared value; it defaults to none, so values
+compare exactly. `examined` counts the documents the rule judged, not the documents it selected: a
+misspelt label, the wrong `forms` or a `region` the value is not in reads no value, and a
+value → folder rule that judged nothing is red. Frozen documents are judged like any other: a done
+folder is usually frozen, and it is the folder this rule most needs to read; select with `areLive()`
+to leave them out. [`examples/md/a-record-sits-in-its-states-folder.test.ts`](../examples/md/a-record-sits-in-its-states-folder.test.ts)
+shows three shapes, each reading its value with `region: 'header'` so a status further down the
+record is not read. This repository's `check:corpus` holds each lane's done folders to its done
+values this way (`corpus/done-folders-hold-done-values-*`).
+
 ## ADR enforcement tables
 
 `eess-md` ships an `adrEnforcement()` preset that validates the `## Enforcement` table convention: every ADR ends with a **Clause | Tier | Mechanism | Status** table, tiers are valid, and cited file paths resolve. It does **not** check that a cited `it('…')` title names a real test: that is `eess-crossvalidate`'s `adrCitationsResolve`, which reads the test AST — see [`eess-crossvalidate`](/crossvalidate). If your ADRs cite test titles, run it too; with `eess-md` alone, a title citation is not verified by anything.
