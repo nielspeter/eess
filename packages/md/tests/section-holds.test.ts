@@ -67,6 +67,17 @@ describe('haveTitle (block 3)', () => {
     expect(docs(c).should().haveTitle('Real').violations()).toHaveLength(0)
   })
 
+  it('a title written inside a blockquote or a list item is named', () => {
+    const quoted = of({ 'a.md': ['> # Title', '', 'text'] })
+    expect(said(docs(quoted).should().haveTitle().violations())).toEqual([
+      'a.md: no title: the document has no heading; the heading "Title" at line 1 is inside a blockquote, which does not start a section',
+    ])
+    const listed = of({ 'a.md': ['- # Title', '', '## Status'] })
+    expect(said(docs(listed).should().haveTitle().violations())).toEqual([
+      'a.md: no title: the first heading, "Status" at line 3, is at depth 2; the heading "Title" at line 1 is inside a list item, which does not start a section',
+    ])
+  })
+
   it('a g-flagged pattern reads every document', () => {
     const c = of({ 'a.md': ['# Plan'], 'b.md': ['# Plan'], 'c.md': ['# Plan'], 'd.md': ['# Plan'] })
     expect(
@@ -94,6 +105,8 @@ describe('what a section holds (block 14)', () => {
         .haveContent()
         .violations(),
     ).toHaveLength(0)
+    const ruled = of({ 'a.md': ['## A', '', '---', '', '## C', '', 'text'] })
+    expect(said(A(ruled).haveContent().violations())).toEqual(['a.md:1: section "A" is empty'])
     const empty = of({ 'a.md': ['## A', '', '<!-- todo -->', '', '### B', '', '## C', '', 'text'] })
     expect(said(A(empty).haveContent().violations())).toEqual(['a.md:1: section "A" is empty'])
     // Content in a subsection is the section's content too.

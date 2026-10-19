@@ -327,6 +327,12 @@ describe('haveTextMatching (plan 0503)', () => {
     expect(said(v)).toEqual(['records/closed/1.md:3: records/closed/1.md:3 should not exist'])
   })
 
+  it('as a condition, a g-flagged pattern judges every box alike', () => {
+    const c = of({ 'a.md': ['- [ ] owed', '- [ ] owed', '- [ ] owed', '- [ ] owed'] })
+    expect(taskItems(c).should().haveTextMatching(/owed/g).violations()).toHaveLength(0)
+    expect(taskItems(c).should().haveTextMatching(/owed/y).violations()).toHaveLength(0)
+  })
+
   it('a g-flagged pattern reads every box', () => {
     const c = of({ 'a.md': ['- [ ] owed', '- [ ] owed', '- [ ] owed', '- [ ] owed'] })
     const v = taskItems(c).that().haveTextMatching(/owed/g).should().notExist().violations()

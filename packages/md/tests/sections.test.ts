@@ -506,6 +506,33 @@ describe('the near miss reads only what the rule can see (PR #252)', () => {
   })
 })
 
+describe('what docs() can see (PR #252)', () => {
+  it('a docs() rule sees the documents its own predicates select, not the section-reading ones', () => {
+    const c = of({
+      'p/live.md': '# Live\n\n### Acceptance criteria\n',
+      'notes/other.md': '# Other\n\n### Acceptance criteria\n',
+    })
+    // The rule selects p/ only: notes/other.md's depth-3 heading is not its to report.
+    const v = docs(c)
+      .that()
+      .resideInFolder('p/**')
+      .should()
+      .haveSection('Acceptance criteria', { depth: 2 })
+      .violations()
+    expect(v.map((x) => x.element)).toEqual(['p/live.md'])
+    // A section-reading predicate does not narrow what it sees: the document it drops is still read.
+    const w = docs(c)
+      .that()
+      .resideInFolder('p/**')
+      .and()
+      .haveSection('Acceptance criteria', { depth: 2 })
+      .should()
+      .notExist()
+      .violations()
+    expect(w.map((x) => x.element)).toEqual(['p/live.md → section "Acceptance criteria" (depth 3)'])
+  })
+})
+
 describe('unchanged behaviour', () => {
   it('haveSection without options keeps its verdict and message', () => {
     const c = of({ 'a.md': '# A\n\n### Deep\n' })

@@ -250,8 +250,13 @@ that misses a string name only by case or spacing, a heading of the name inside 
 name read at a depth, a document that has it only at other depths, each in the documents the rule can
 see: those its `inDocuments` scopes admit (for `docs()`, those its own predicates select). A heading in
 a document the rule's scope excludes is never its to correct. A `notExist()` rule over a section hidden in a
-blockquote is therefore red, not green. What the scan does not see: a predicate you build by hand, and
-a name with no near miss (`'Acceptence'`) on an absence rule. A section name's `RegExp` may carry `g`
+blockquote is therefore red, not green. What the scan does not see: a predicate you build by hand; a name with no near miss
+(`'Acceptence'`) on an absence rule; a name given as a `RegExp`, which states its own tolerance and
+turns the near-miss note off (so each user picks their own case); `docs().haveSection(name)` without a
+`depth`, which records nothing, so a released rule gains no finding; a `## Status` inside a fence or an
+`<h2>` in an HTML block, which is not a heading to the parser and gets no note. `haveContent()` counts
+any block that is not a heading, a thematic break or an HTML comment, so a link-reference definition or
+a lone `<br>` is content. A section name's `RegExp` may carry `g`
 or `y`; it is read without them.
 
 **Do not join sections to other elements by hand.** A predicate testing `s.doc` and a line range, fed

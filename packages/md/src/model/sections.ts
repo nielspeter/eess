@@ -224,9 +224,17 @@ export function headingNotes(
  */
 export function titleFault(doc: MdDocument, name?: string | RegExp): string | undefined {
   const [first] = sectionsOf(doc)
-  if (first === undefined) return 'no title: the document has no heading'
+  // A depth-1 heading in a container, before the first section, is the title its author meant.
+  const meant = containedHeadings(doc).find(
+    (h) => h.depth === 1 && (first === undefined || h.line < first.line),
+  )
+  const note =
+    meant === undefined
+      ? ''
+      : `; the heading "${meant.name}" at line ${String(meant.line)} is inside a ${meant.container}, which does not start a section`
+  if (first === undefined) return `no title: the document has no heading${note}`
   if (first.depth !== 1) {
-    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}`
+    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}`
   }
   if (name !== undefined && !matchName(first.name, name)) {
     return `the title "${first.name}" (line ${String(first.line)}) is not "${String(name)}"`
