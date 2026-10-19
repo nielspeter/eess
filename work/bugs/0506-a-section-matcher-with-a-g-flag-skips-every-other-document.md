@@ -64,6 +64,10 @@ first: four ADRs, each holding only `## Enforcement` and a table citing a missin
 above `## Enforcement` hides the defect: the non-matching heading is tested first and resets
 `lastIndex`, so the test's ADRs carry none.
 
+Released as a marked break (`minor`, `**Breaking:**`), corrected after review: a green
+`adrCitationsResolve` with a `g`-flagged `section` can now red on a citation it used to skip, the
+same reason plan 0496 marks md's half a break.
+
 Decided against the record: crossvalidate keeps a non-global copy of its own instead of importing
 md's matcher. md's `matchName` is not exported, and `packages/md/src/model/query.ts` is plan 0496's
 to change in a build running beside this one. The third box below is bug 0511's: it owns the one
