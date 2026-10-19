@@ -75,10 +75,11 @@ Where the build departed from the text above, each overrulable:
   `spawnSync`), so the row could not parse it. It adds one selection too wide for the probe's
   folder and the proposals lane, which keeps the point (the first rule goes quiet on the probe, the
   second reds the doubled pages) and 18 findings. The truncation is a defect of `check:ledger`'s
-  JSON path on any output past 64 KiB; it is not filed here (this batch had two record numbers and
-  used both), and is reported to the batch lead to record.
-- **`check:corpus`'s `FROZEN` lost `**/wont-do/**`and`**/archived/**`** in bug 0499's commit, not
-  this one; this plan's corpus passes no frozen globs.
+  JSON path on any output past 64 KiB, and of six other gates with the same shape; it is recorded
+  as [bug 0517](../../bugs/0517-a-gates-json-past-64-kib-is-cut-through-a-pipe.md).
+- **Not this plan's:** the change to `check:corpus`'s `FROZEN` list (`**/wont-do/**` and
+  `**/archived/**` removed, then restored and declared in `EMPTY_FROZEN` after review) belongs to
+  bug 0499's commits; this plan's corpus passes no frozen globs.
 
 ## Progress ledger
 
