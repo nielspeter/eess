@@ -1,5 +1,35 @@
 # @nielspeter/eess-crossvalidate
 
+## 0.10.0
+
+### Minor Changes
+
+- dca04d0: **Breaking (@nielspeter/eess-crossvalidate):** the peer floors rise to this release's dialects: `@nielspeter/eess-ts` >=0.14.0, `@nielspeter/eess-mermaid` >=0.8.1, `@nielspeter/eess-md` >=0.12.0 and `@nielspeter/eess-gherkin` >=0.7.0. Each of them depends on kernel `^0.8.0`, and an older dialect beside this version would install a second kernel. An older dialect installed beside eess-crossvalidate 0.10.0 is now a peer-dependency conflict at install (`ERESOLVE`).
+
+  To migrate: upgrade the dialects you use together with eess-crossvalidate.
+
+- 27e7542: **Breaking:** `adrCitationsResolve` and `adrCitationStats` find the enforcement table in every ADR when the `section` matcher carries a `g` or `y` flag (bug 0506). The flag made the match stateful, so one `RegExp` shared across ADRs skipped every other document's table and its cited titles were never checked. The flags are now dropped where the option is read, so a green `adrCitationsResolve` with a `g`-flagged `section` can go red on a dangling citation it used to skip.
+
+  To migrate: fix or remove each dangling citation it now reports. Dropping `g`/`y` from `section` changes nothing; the flags are ignored.
+
+### Patch Changes
+
+- 27e7542: A preset given a `report` mode other than `'throw'`, `'return'` or `'warn'` now throws `ArchConfigError` naming the value (bug 0508). It used to print the violations and pass, so a JavaScript rule file or a mode read from config that misspelt `'throw'` exited 0 over real violations. Omitting `report`, or passing `undefined` or `null`, still means `'throw'`.
+  - eess-ts's presets (`recommended`, `agentGuardrails` and the rest) refuse the same way, and their message lists `'builders'` beside the other three, since they take it too.
+  - eess-md's presets `honestyAtClose` and `adrEnforcement` finish through `finishPreset`, so a misspelt mode now throws there too (`honestyAtClose(c, { report: 'thorw' })` is this bug's reproduction).
+  - eess-crossvalidate's bindings that finish through the kernel's `finishPreset` (`scenarioTestsResolve`, `scenariosCovered`, `scenarioExemptionsCurrent`, `scenarioCitationsResolve`, `tableErAgree`) refuse a misspelt mode the same way.
+
+  TypeScript already rejected these values, so a caller whose rule file type-checks sees no change.
+
+- Updated dependencies [e80aeb8]
+- Updated dependencies [d6978d3]
+- Updated dependencies [94685a7]
+- Updated dependencies [9675402]
+- Updated dependencies [27e7542]
+- Updated dependencies [27e7542]
+- Updated dependencies [7ef7a1d]
+  - @nielspeter/eess@0.8.0
+
 ## 0.9.0
 
 ### Minor Changes

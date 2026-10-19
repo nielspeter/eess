@@ -1,6 +1,6 @@
 {
   "name": "@nielspeter/eess-crossvalidate",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Cross-validation presets for the eess family — bind two dialects' artifacts and fail when they drift.",
   "type": "module",
   "exports": {
@@ -63,14 +63,14 @@
     "markdown"
   ],
   "dependencies": {
-    "@nielspeter/eess": "^0.7.1",
+    "@nielspeter/eess": "^0.8.0",
     "picomatch": "^4.0.4"
   },
   "peerDependencies": {
-    "@nielspeter/eess-ts": ">=0.13.1",
-    "@nielspeter/eess-mermaid": ">=0.8.0",
-    "@nielspeter/eess-md": ">=0.11.0",
-    "@nielspeter/eess-gherkin": ">=0.6.0"
+    "@nielspeter/eess-ts": ">=0.14.0",
+    "@nielspeter/eess-mermaid": ">=0.8.1",
+    "@nielspeter/eess-md": ">=0.12.0",
+    "@nielspeter/eess-gherkin": ">=0.7.0"
   },
   "peerDependenciesMeta": {
     "@nielspeter/eess-ts": {

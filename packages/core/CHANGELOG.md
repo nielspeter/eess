@@ -1,5 +1,29 @@
 # @nielspeter/eess
 
+## 0.8.0
+
+### Minor Changes
+
+- 94685a7: A dialect can now report why an absence rule (a `notExist()`, or any condition the kernel marks as satisfied by an empty selection) examined nothing: a new protected hook, `cardinalitySelectorFault()`, is asked after an empty source and before `.expectEmpty()`, so a broken selector is red even when declared empty (bug 0460). It is inert by default; eess-md's builders answer it. New on `@nielspeter/eess/internal` for dialect authors: `notExistCondition`, `globTextFault`, `repoRelativeCorrection`, and the types `SelectorFault`, `NotExistOptions`, `TextBase` and `GlobTextFault`. No root export changes; the hook's return type, `SelectorFault`, is on `/internal` only, so a dialect that overrides it imports it from there.
+
+  A condition marked as asserting cardinality (a returned `notExist()`, a `correspondence` side) is now frozen. Assigning to one was never supported: `notExist().evaluate = () => []` kept the empty-selection exemption on a condition that checked nothing (bug 0462).
+
+  eess-ts's `syntacticFault` now reads the kernel's glob-text rules; its signature and results are unchanged.
+
+- 9675402: New (ADR-021, plan 0486): a predicate may declare that it cannot judge a subject, with the optional `Predicate.undecided(element)` returning `Undecided[]` (each a file, a line, an element and a message). `not`/`and`/`or` evaluate it in strong Kleene logic, in the kernel and in eess-ts alike. A rule selects only subjects it can decide, and reports each cause once as a finding no `.excluding()`, `.warn()`, baseline or diff-aware mode removes, wherever the rule's verdict depends on it. `.select()`, `matchingElements` and eess-ts's builders, which hand back no findings, throw an `ArchConfigError` naming the cause instead. `not(p).test` refuses a subject `p` cannot judge. The receipt carries `undecided`, the number of such causes. No existing predicate declares the member, so no existing rule changes. `matchingElements` now takes the door's name from its caller (`/internal`; every caller in the family passes one). New in `@nielspeter/eess/internal`, for dialect authors: `membership`, `partition`, `kleene`, `negatedTest`, `undecidedViolations`, `refuseUndecided`, and the types `Membership` and `Door`. eess-ts and eess-gherkin re-export `Undecided`.
+- 27e7542: New on `@nielspeter/eess/internal` for dialect authors: `uniqueByCondition` and its options type `UniqueByOptions` (plan 0459, proposal 017 block 13). It is the one condition behind a dialect's `beUniqueBy`: no two selected elements share a key. Every member of a group is a finding at its own place through the dialect's own violation constructor, naming the others (at most ten, then "and N more"), so excluding one member cannot hide the group. Keys compare exactly; normalising is the caller's. It is not satisfied by an empty selection: zero elements is the kernel's zero-examined finding. No root export changes.
+
+### Patch Changes
+
+- e80aeb8: `beUniqueBy`'s message names the other members of a group in location order, a run of digits compared as a number, instead of in the order the elements loaded (bug 0526). The same duplicates now give the same message on every runtime, and in a group of more than eleven the ten others named are the first by location.
+- d6978d3: The `expectNonEmpty()` docstring no longer recommends `.expectNonEmpty()` as a glob-typo guard for a `.notExist()`-shaped rule (bug 0466). On such a rule the declaration can never pass: a selected element fails the condition, and an empty selection fails the declaration. The docstring now says so, and points to a positive rule over the same population as the guard.
+- 27e7542: A preset given a `report` mode other than `'throw'`, `'return'` or `'warn'` now throws `ArchConfigError` naming the value (bug 0508). It used to print the violations and pass, so a JavaScript rule file or a mode read from config that misspelt `'throw'` exited 0 over real violations. Omitting `report`, or passing `undefined` or `null`, still means `'throw'`.
+  - eess-ts's presets (`recommended`, `agentGuardrails` and the rest) refuse the same way, and their message lists `'builders'` beside the other three, since they take it too.
+  - eess-md's presets `honestyAtClose` and `adrEnforcement` finish through `finishPreset`, so a misspelt mode now throws there too (`honestyAtClose(c, { report: 'thorw' })` is this bug's reproduction).
+  - eess-crossvalidate's bindings that finish through the kernel's `finishPreset` (`scenarioTestsResolve`, `scenariosCovered`, `scenarioExemptionsCurrent`, `scenarioCitationsResolve`, `tableErAgree`) refuse a misspelt mode the same way.
+
+  TypeScript already rejected these values, so a caller whose rule file type-checks sees no change.
+
 ## 0.7.1
 
 ### Patch Changes

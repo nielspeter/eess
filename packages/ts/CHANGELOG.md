@@ -1,5 +1,44 @@
 # @nielspeter/eess-ts
 
+## 0.14.0
+
+### Minor Changes
+
+- 9675402: New (ADR-021, plan 0486): a predicate may declare that it cannot judge a subject, with the optional `Predicate.undecided(element)` returning `Undecided[]` (each a file, a line, an element and a message). `not`/`and`/`or` evaluate it in strong Kleene logic, in the kernel and in eess-ts alike. A rule selects only subjects it can decide, and reports each cause once as a finding no `.excluding()`, `.warn()`, baseline or diff-aware mode removes, wherever the rule's verdict depends on it. `.select()`, `matchingElements` and eess-ts's builders, which hand back no findings, throw an `ArchConfigError` naming the cause instead. `not(p).test` refuses a subject `p` cannot judge. The receipt carries `undecided`, the number of such causes. No existing predicate declares the member, so no existing rule changes. `matchingElements` now takes the door's name from its caller (`/internal`; every caller in the family passes one). New in `@nielspeter/eess/internal`, for dialect authors: `membership`, `partition`, `kleene`, `negatedTest`, `undecidedViolations`, `refuseUndecided`, and the types `Membership` and `Door`. eess-ts and eess-gherkin re-export `Undecided`.
+- d6978d3: **Breaking:** `.expectNonEmpty()` on a `.notExist()` rule is now reported. It used to set a flag that nothing read, so the rule passed over zero subjects exactly as without it (bugs 0467 and 0466). The new finding says the rule can never pass: a selected subject fails `.notExist()`, and an empty selection fails the declaration. It is reported whether or not the selection is empty. An empty project or a dead glob is still reported first.
+
+  To migrate, remove `.expectNonEmpty()` from `.notExist()` rules. To catch a glob typo that empties the rule, add a positive rule over the same population beside it, for example:
+
+  ```ts
+  modules(p).that().resideInFolder('src/legacy/**').should().notImportFrom('src/app/**') // reds when it selects nothing
+  ```
+
+  On positive rules nothing changes: an empty selection was already a finding.
+
+### Patch Changes
+
+- 94685a7: A dialect can now report why an absence rule (a `notExist()`, or any condition the kernel marks as satisfied by an empty selection) examined nothing: a new protected hook, `cardinalitySelectorFault()`, is asked after an empty source and before `.expectEmpty()`, so a broken selector is red even when declared empty (bug 0460). It is inert by default; eess-md's builders answer it. New on `@nielspeter/eess/internal` for dialect authors: `notExistCondition`, `globTextFault`, `repoRelativeCorrection`, and the types `SelectorFault`, `NotExistOptions`, `TextBase` and `GlobTextFault`. No root export changes; the hook's return type, `SelectorFault`, is on `/internal` only, so a dialect that overrides it imports it from there.
+
+  A condition marked as asserting cardinality (a returned `notExist()`, a `correspondence` side) is now frozen. Assigning to one was never supported: `notExist().evaluate = () => []` kept the empty-selection exemption on a condition that checked nothing (bug 0462).
+
+  eess-ts's `syntacticFault` now reads the kernel's glob-text rules; its signature and results are unchanged.
+
+- 27e7542: A preset given a `report` mode other than `'throw'`, `'return'` or `'warn'` now throws `ArchConfigError` naming the value (bug 0508). It used to print the violations and pass, so a JavaScript rule file or a mode read from config that misspelt `'throw'` exited 0 over real violations. Omitting `report`, or passing `undefined` or `null`, still means `'throw'`.
+  - eess-ts's presets (`recommended`, `agentGuardrails` and the rest) refuse the same way, and their message lists `'builders'` beside the other three, since they take it too.
+  - eess-md's presets `honestyAtClose` and `adrEnforcement` finish through `finishPreset`, so a misspelt mode now throws there too (`honestyAtClose(c, { report: 'thorw' })` is this bug's reproduction).
+  - eess-crossvalidate's bindings that finish through the kernel's `finishPreset` (`scenarioTestsResolve`, `scenariosCovered`, `scenarioExemptionsCurrent`, `scenarioCitationsResolve`, `tableErAgree`) refuse a misspelt mode the same way.
+
+  TypeScript already rejected these values, so a caller whose rule file type-checks sees no change.
+
+- Updated dependencies [e80aeb8]
+- Updated dependencies [d6978d3]
+- Updated dependencies [94685a7]
+- Updated dependencies [9675402]
+- Updated dependencies [27e7542]
+- Updated dependencies [27e7542]
+- Updated dependencies [7ef7a1d]
+  - @nielspeter/eess@0.8.0
+
 ## 0.13.1
 
 ### Patch Changes
