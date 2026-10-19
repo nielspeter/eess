@@ -1362,7 +1362,7 @@ line(
   'proposals',
   `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ` +
     `${boardRowsExamined} of ${boardRowsTotal} board row(s) examined · ` +
-    `${promotedProposals.length} promoted · ${criteriaViolations.examined} criteria-checked · ` +
+    `${promotedProposals.length} promoted · ${criteriaViolations.examined} criteria-checked · ${criteriaContentViolations.examined} content-checked · ` +
     `${docsOnlyProposals.length} docs-only · ` +
     `${
       proposalLinkageOk && boardExaminedAll
