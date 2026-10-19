@@ -4,10 +4,13 @@
 
 - **State:** Draft — written 2026-10-19, with plan 0495 and ADR-022; revised the same day after
   PR #246's review (see "Review — 2026-10-19"). Not reviewed again.
-- **Note 2026-10-19 (plan 0495's build):** plan 0495 put the default-glob mark on
-  `@nielspeter/eess-md/internal` (`markDefaultFolders`), as its decision E3 says, but ADR-022 clause
-  3 lets `packages/md/src/rules/ledger.ts` import only the md root and the kernel root, gated by
-  `md/rules-import-only-the-root`. This plan decides how the preset reaches the mark.
+- **Note 2026-10-19 (plan 0495's build, revised by the batch review):** plan 0495's decision E3
+  marks a preset's default folder globs so F7 fires only when all are dead. The mark has no home:
+  `markDefaultFolders` shipped briefly on `@nielspeter/eess-md/internal` and was removed, because
+  ADR-022 clause 3 lets `packages/md/src/rules/ledger.ts` import only the md root and the kernel
+  root (`md/rules-import-only-the-root`), and on `/internal` any adopter could turn F7 off for its
+  own globs. The condition keeps a module-private `WeakSet` that nothing adds to. This plan decides
+  where the mark lives before it can use it.
 - **Implements:** proposal 017
 - **Priority:** Medium. Proposal 017's block 5 row: "`honestyAtClose`'s placement half is then
   rebuilt on it, so there is one placement check". It also removes ADR-022's `model/label.ts` edge.
