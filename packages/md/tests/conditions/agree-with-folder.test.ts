@@ -13,7 +13,6 @@ import {
   type Direction,
   type FolderGroup,
 } from '../../src/index.js'
-import { markDefaultFolders } from '../../src/internal.js'
 import { tree } from '../helpers/tree.js'
 
 const record = (state: string | undefined, extra: readonly string[] = []): string =>
@@ -117,6 +116,20 @@ describe('agreeWithFolder: no value, or one that cannot be read (F4, F5)', () =>
     expect(said(run(c, opts('left-to-right')))).toEqual([])
   })
 
+  it('F4: a record with no value is judged, so a selection of only such records is not judged none', () => {
+    const c = lane({ 'work/bugs/fixed/0014-x.md': record(undefined) })
+    const v = docs(c)
+      .that()
+      .resideInFile('work/bugs/fixed/0014-x.md')
+      .should()
+      .agreeWithFolder(opts('right-to-left'))
+      .violations()
+    expect(said(v)).toEqual([
+      "work/bugs/fixed/0014-x.md: work/bugs/fixed/0014-x.md is in Fixed's folders and has no State field (read as bold); it carries no wrapped label",
+    ])
+    expect(declared(v)).toEqual([])
+  })
+
   it('F4: a plain State line carries the plain-line hint', () => {
     const c = lane({ 'work/bugs/fixed/0015-x.md': record(undefined, ['State: Fixed']) })
     expect(said(run(c, opts('right-to-left')))).toEqual([
@@ -129,7 +142,7 @@ describe('agreeWithFolder: no value, or one that cannot be read (F4, F5)', () =>
     for (const direction of DIRECTIONS) expect(said(run(c, opts(direction, BOUND)))).toEqual([])
   })
 
-  it('F5: a value given twice, empty, or in an unread form is withheld and not counted', () => {
+  it('F5: a value given twice, empty, or in an unread form is withheld, never judged', () => {
     const c = lane({
       'work/bugs/fixed/0017-x.md': record('Fixed', ['', '**State:** Draft']),
       'work/bugs/fixed/0018-x.md': record(''),
@@ -142,9 +155,28 @@ describe('agreeWithFolder: no value, or one that cannot be read (F4, F5)', () =>
         'work/bugs/fixed/0018-x.md:3: State at line 3 has no value this rule can read',
         "work/bugs/fixed/0019-x.md:3: found `## State: Fixed` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
       ])
-      // The three base records are judged; the three withheld ones are not.
-      expect(v.examined).toBe(3)
+      expect(declared(v)).toEqual([])
     }
+    // A selection of only withheld records gave no verdict: that is the agreement's own finding.
+    const withheld = docs(c)
+      .that()
+      .resideInFile('work/bugs/fixed/001[789]-x.md')
+      .should()
+      .agreeWithFolder(opts('right-to-left'))
+      .violations()
+    expect(declared(withheld)).toEqual([
+      'selected 3 documents, judged none: the field read no value (check its label, forms or region)',
+    ])
+  })
+
+  it('F5: an unbound value that cannot be read is reported value to folder, not folder to value', () => {
+    const c = lane({ 'work/other/0030-x.md': record('Fixed', ['', '**State:** Draft']) })
+    const want = [
+      "work/other/0030-x.md:3,5: State is given twice (line 3 'Fixed', line 5 'Draft'); keep one",
+    ]
+    expect(said(run(c, opts('left-to-right', BOUND)))).toEqual(want)
+    expect(said(run(c, opts('both', BOUND)))).toEqual(want)
+    expect(said(run(c, opts('right-to-left', BOUND)))).toEqual([])
   })
 
   it('a resolved value carries its side causes wherever the document is judged', () => {
@@ -183,7 +215,8 @@ describe('agreeWithFolder: the declaration (F6, F7, F8, refusals)', () => {
   })
 
   it('F7: a dead folder glob is one finding naming it, and no F1 per record, in every direction', () => {
-    const c = lane({})
+    // A record of the dead group's value in another group's folder is not told it belongs in the typo.
+    const c = lane({ 'work/bugs/0031-x.md': record('Fixed') })
     const groups: readonly FolderGroup[] = [
       { values: ['Draft', 'Ready', 'Parked'], folders: ['work/bugs/*.md'] },
       { values: ['Fixed'], folders: ['work/bugs/fxed/**'] },
@@ -206,22 +239,6 @@ describe('agreeWithFolder: the declaration (F6, F7, F8, refusals)', () => {
     ]
     expect(declared(run(lane({}), opts('both', groups)))).toEqual([
       "Fixed's folder /work/bugs/fixed/**: a leading `/` can never match a path relative to the corpus's `cwd`. Write the glob as `work/bugs/fixed/**`.",
-    ])
-  })
-
-  it('F7: a preset default group reports only when every one of its globs is dead', () => {
-    const c = lane({})
-    const live = markDefaultFolders({
-      values: ['Fixed'],
-      folders: ['work/bugs/fixed/**', 'work/bugs/wontfix/**'],
-    })
-    const dead = markDefaultFolders({
-      values: ['Rejected'],
-      folders: ['work/bugs/nope/**', 'work/bugs/never/**'],
-    })
-    const v = run(c, opts('left-to-right', [{ values: ['Draft'], folders: 'rest' }, live, dead]))
-    expect(declared(v)).toEqual([
-      "Rejected's folders work/bugs/nope/**, work/bugs/never/** match no path in the corpus; file the first record in one of them, or leave the group out",
     ])
   })
 
@@ -305,6 +322,15 @@ describe('agreeWithFolder: the declaration (F6, F7, F8, refusals)', () => {
     },
   )
 
+  it('refuses an unknown direction when the rule runs, as a JavaScript caller can write one', () => {
+    const o: AgreeWithFolderOptions = {
+      ...opts('both'),
+      // @ts-expect-error a misspelt direction, which the type refuses and the rule must too
+      direction: 'left-to-rigth',
+    }
+    expect(() => run(lane({}), o)).toThrow(/agreeWithFolder: direction must be one of/)
+  })
+
   it('a value in two groups after normalize is refused', () => {
     const groups: readonly FolderGroup[] = [
       { values: ['fixed'], folders: ['a/**'] },
@@ -328,18 +354,12 @@ describe('agreeWithFolder: values, frozen records and evidence', () => {
 
   it('a frozen record in a bound folder is judged', () => {
     const c = lane({ 'work/bugs/fixed/0023-x.md': record('Draft') }, ['work/bugs/fixed/**'])
-    expect(said(run(c, opts('right-to-left')))).toHaveLength(1)
+    expect(said(run(c, opts('right-to-left')))).toEqual([
+      "work/bugs/fixed/0023-x.md:3: wrong folder: `Draft` (State, line 3) belongs outside work/bugs/fixed/**, work/bugs/rejected/**; work/bugs/fixed/0023-x.md is in Fixed's folders. Move it or change the value.",
+    ])
   })
 
-  it('a misspelt label reads no value: zero judged under value to folder is red', () => {
-    const c = lane({})
-    const v = run(c, opts('left-to-right', REST, { field: { label: 'Sate', forms: ['bold'] } }))
-    expect(v.examined).toBe(0)
-    expect(v.some((x) => /examined zero units/.test(x.message))).toBe(true)
-  })
-
-  it('value to folder counts only the documents given a verdict', () => {
-    // Two records with a value no group names, outside every bound folder: no verdict, not counted.
+  it('a selection whose values no group names, outside every bound folder, is judged none', () => {
     const c = corpus({
       cwd: tree({
         'work/other/a.md': record('Fixd'),
@@ -357,14 +377,10 @@ describe('agreeWithFolder: values, frozen records and evidence', () => {
         opts('left-to-right', [{ values: ['Fixed'], folders: ['work/bugs/fixed/**'] }]),
       )
       .violations()
-    expect(v.examined).toBe(0)
-    expect(v.some((x) => /examined zero units/.test(x.message))).toBe(true)
-  })
-
-  it('folder to value counts only the documents in a bound folder', () => {
-    const c = lane({ 'work/other/0024-x.md': record('Fixed') })
-    expect(run(c, opts('right-to-left', BOUND)).examined).toBe(3)
-    expect(run(c, opts('left-to-right', BOUND)).examined).toBe(4)
+    expect(v.examined).toBe(2)
+    expect(declared(v)).toEqual([
+      'selected 2 documents, judged none: the field read no value (check its label, forms or region)',
+    ])
   })
 
   it('the description names the field and the direction', () => {
@@ -377,5 +393,55 @@ describe('agreeWithFolder: values, frozen records and evidence', () => {
     expect(both?.rule).toBe(
       'should agree with their folder (State, value → folder and folder → value)',
     )
+  })
+})
+
+/**
+ * Plan 0495, decision D1 as rebuilt after the batch review: `examined` is the kernel's, and an
+ * agreement that selected documents and judged none is its own unsuppressable finding, whatever
+ * sits beside it. The four shapes the enforcement review measured green before.
+ */
+describe('agreeWithFolder: an agreement that judged none', () => {
+  const TYPO = opts('left-to-right', REST, { field: { label: 'Sate', forms: ['bold'] } })
+  const NONE =
+    'selected 3 documents, judged none: the field read no value (check its label, forms or region)'
+  const judgedNone = (found: readonly ArchViolation[]): ArchViolation[] =>
+    found.filter((v) => v.message === NONE)
+
+  it('a misspelt label alone is red, and no suppression removes it', () => {
+    const rule = docs(lane({})).should().agreeWithFolder(TYPO)
+    const v = rule.violations()
+    expect(v.examined).toBe(3)
+    expect(judgedNone(v)).toHaveLength(1)
+    expect(judgedNone(v)[0]?.bypassFilters).toBe(true)
+    expect(judgedNone(rule.excluding(/.*/).violations())).toHaveLength(1)
+  })
+
+  it('a misspelt label on a rule declared empty: the declaration expires, and the finding stands', () => {
+    const v = docs(lane({})).should().agreeWithFolder(TYPO).expectEmpty().violations()
+    expect(v.some((x) => /declared \.expectEmpty\(\) but examined 3/.test(x.message))).toBe(true)
+    expect(judgedNone(v)).toHaveLength(1)
+  })
+
+  it('a misspelt label beside another condition is red, and examined is the selection', () => {
+    const v = docs(lane({}))
+      .should()
+      .agreeWithFolder(TYPO)
+      .andShould()
+      .beUniqueBy((d) => d.relPath, 'path')
+      .violations()
+    expect(v.examined).toBe(3)
+    expect(judgedNone(v)).toHaveLength(1)
+  })
+
+  it('a misspelt label beside a good agreement is red on its own', () => {
+    const v = docs(lane({}))
+      .should()
+      .agreeWithFolder(opts('left-to-right'))
+      .andShould()
+      .agreeWithFolder(TYPO)
+      .violations()
+    expect(judgedNone(v)).toHaveLength(1)
+    expect(judgedNone(v)[0]?.element).toBe('agreeWithFolder → Sate')
   })
 })

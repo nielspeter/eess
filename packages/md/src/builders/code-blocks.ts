@@ -16,7 +16,7 @@ import { liftToDocument, scopeDiagnosis } from '../predicates/in-documents.js'
 import { mdViolation } from '../model/violation.js'
 import type { SelectorFault } from '@nielspeter/eess/internal'
 import { mdNotExist } from '../conditions/not-exist.js'
-import { mdSelectorFault } from './selector-fault.js'
+import { mdSelectorFault } from '../model/selector-fault.js'
 
 /** The instrument's identity: one constant, so several rules over one failed parse dedupe to one. */
 export const CODE_BLOCK_PARSER_INSTRUMENT = 'eess-md: code-block parser'

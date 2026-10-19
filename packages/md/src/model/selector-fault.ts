@@ -9,7 +9,7 @@ import {
 } from '@nielspeter/eess/internal'
 import picomatch from 'picomatch'
 import type { Corpus } from '../corpus.js'
-import { notInCorpusReasons } from '../model/resolve-link.js'
+import { notInCorpusReasons } from './resolve-link.js'
 
 /**
  * Why an eess-md absence rule examined nothing, when the reason is its

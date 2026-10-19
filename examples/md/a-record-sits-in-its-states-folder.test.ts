@@ -2,8 +2,8 @@
  * A record's state and the folder it sits in say the same thing (proposal 017, block 5): three
  * shapes, one per adopter. Each reads the Status in the record's header only (`region: 'header'`),
  * because each adopter's records carry other status lines further down: a register of feedback
- * items, per-phase status lines. The values are a closed set: a value no group names, in a folder a
- * group binds, is reported as a misspelling.
+ * items, per-phase status lines. The values are a closed set within the bound folders: a value no group
+ * names, in a folder a group binds, is reported as a misspelling.
  *
  * - **One direction** (`issues/`): a closed folder must not hold a live value. The rule selects the
  *   closed folder and reads folder → value; a closed issue left in `issues/` is not this rule's.

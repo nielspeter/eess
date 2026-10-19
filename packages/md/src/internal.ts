@@ -18,7 +18,3 @@
 
 export { proseText, unclosedFences, unterminatedFence, type SetAside } from './model/prose.js'
 export { tagIsLanguage } from './model/code-block-tag.js'
-
-// Plan 0495, decision E3: a preset marks the folder groups it supplies as its own defaults, so a dead
-// default glob is not reported as the caller's typo. No public option does this.
-export { markDefaultFolders } from './conditions/agree-with-folder.js'

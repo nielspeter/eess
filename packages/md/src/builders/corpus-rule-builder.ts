@@ -2,7 +2,7 @@ import { RuleBuilder } from '@nielspeter/eess'
 import type { SelectorFault } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import { mdNotExist, type MdLocation } from '../conditions/not-exist.js'
-import { mdSelectorFault } from './selector-fault.js'
+import { mdSelectorFault } from '../model/selector-fault.js'
 import { scopeDiagnosis } from '../predicates/in-documents.js'
 
 /**

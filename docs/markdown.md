@@ -976,7 +976,9 @@ selection: select the closed folders and read `right-to-left`.
 
 - `` `Fixed` (State, line 3) belongs in work/bugs/fixed/**; work/other/9.md is in none of its folders. Move it or change the value. ``
 - ``wrong folder: `Draft` (State, line 3) belongs outside work/bugs/fixed/**, work/bugs/rejected/**; work/bugs/fixed/10.md is in Fixed's folders. Move it or change the value.``
-- `` `Shipped` at line 3 is none of the declared values (Draft, Ready, Parked, Fixed, Rejected); fix the spelling, or add it to a group ``: the values are a closed set in every direction.
+- `` `Shipped` at line 3 is none of the declared values (Draft, Ready, Parked, Fixed, Rejected); fix the spelling, or add it to a group ``: the values are a closed set within the bound folders. A
+  document in no group's folders whose value is in no group is not judged; add a `'rest'` group to
+  close the set everywhere.
 - `work/bugs/fixed/14.md is in Fixed's folders and has no State field (read as bold); its labels: Status`.
 - A value that cannot be read is reported with `haveField`'s message (given twice, empty, in a form
   the rule does not read, outside the header) and never judged by its first occurrence. A value that
@@ -996,9 +998,11 @@ the option: no groups, a group with no values or no folders, an empty value, a v
 `normalize`) in two groups, one glob in two groups, two `'rest'` groups.
 
 `normalize` is applied to the value read and to every declared value; it defaults to none, so values
-compare exactly. `examined` counts the documents the rule judged, not the documents it selected: a
-misspelt label, the wrong `forms` or a `region` the value is not in reads no value, and a
-value → folder rule that judged nothing is red. Frozen documents are judged like any other: a done
+compare exactly. `examined` is the kernel's, the documents the rule selected. An agreement that
+selected documents and judged none, because a misspelt label, the wrong `forms` or a `region` the
+value is not in reads no value, is its own finding (`selected 3 documents, judged none: the field read
+no value (check its label, forms or region)`), which no suppression removes and which fires whatever
+other conditions sit beside it. Frozen documents are judged like any other: a done
 folder is usually frozen, and it is the folder this rule most needs to read; select with `areLive()`
 to leave them out. [`examples/md/a-record-sits-in-its-states-folder.test.ts`](../examples/md/a-record-sits-in-its-states-folder.test.ts)
 shows three shapes, each reading its value with `region: 'header'` so a status further down the

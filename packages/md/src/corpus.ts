@@ -6,7 +6,7 @@ import picomatch from 'picomatch'
 import { buildDocument, type MdDocument } from './model/document.js'
 import { parseMarkdown } from './model/prose.js'
 import { registerCorpusMatchers } from './model/resolve-link.js'
-import { repoRelativeTextProblem } from './builders/selector-fault.js'
+import { repoRelativeTextProblem } from './model/selector-fault.js'
 
 /**
  * Configuration for a markdown corpus.
