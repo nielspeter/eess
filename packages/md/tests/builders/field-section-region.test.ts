@@ -122,10 +122,7 @@ describe('a field read inside a named section (plan 0505)', () => {
 
   it('a g-flagged section name reads every record', () => {
     const files = Object.fromEntries(
-      [1, 2, 3, 4].map((n) => [
-        `bugs/000${String(n)}.md`,
-        ['# B', '', '## Status', '', '**State:** open'],
-      ]),
+      [1, 2, 3, 4].map((n) => [`bugs/000${String(n)}.md`, ['## Status', '', '**State:** open']]),
     )
     const c = of(files)
     const s = { ...STATE, region: { section: /^Status$/g } }
