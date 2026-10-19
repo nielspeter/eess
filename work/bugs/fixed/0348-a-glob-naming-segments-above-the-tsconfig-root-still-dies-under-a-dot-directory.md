@@ -291,7 +291,7 @@ form of it.
 The planted import is a **relative** specifier:
 
 ```ts
-import { JwtService } from '../../identity-gateway/src/services/jwt.service.js'
+import { JwtService } from '../../gateway/src/services/jwt.service.js'
 ```
 
 `candidatesFor` offers the raw specifier only when it is non-relative, so this one

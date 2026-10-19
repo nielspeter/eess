@@ -3,11 +3,11 @@
 ## Status
 
 - **State:** Fixed — 2026-10-19, on branch `fix/mark-not-judged`, at the coordinator's order before
-  the release.
+  the release; merged through PR #253.
 - **Severity:** High — it blocks one adopter's upgrade, and both declarations it allows are false:
   one invents thousands of findings, the other claims verification that never happened.
-- **Origin:** inbound · the release candidate's trial upgrade of the three adopters, 2026-10-19
-  (difference D12, issue E4 in its report), reproduced here.
+- **Origin:** inbound · the release candidate's trial upgrade of the three adopters, 2026-10-19:
+  difference D12, issue E4 in the trial upgrade report (scratchpad, not kept), reproduced here.
 - **Reported:** 2026-10-19
 
 ## Symptom
@@ -70,7 +70,9 @@ vocabulary; the declaration makes that a choice instead of an omission.
       12 of 13 failed. The 13th, "collectTaskItems yields it with state unjudged and checked false",
       passed before the fix because `collectTaskItems` did not validate its `marks`, which is the
       forgery this fix closes; its refusal row is held by the sabotage matrix below.
-- [x] Green: the same file, 14 passed, with the md suite (751) and the core suite (375)
+- [x] Green: the same file, 13 passed, with the md suite (751) and the core suite (375). Corrected
+      2026-10-19 from "14 passed" (release review, method I4): the file holds 13 tests, 9 `it` calls
+      and a 4-row refusal loop, re-measured as 13 passed
 - [x] Adopter 3's trial copy rerun with `'?': 'unjudged'` declared: see "Adopter 3 rerun" below
 - [x] Sabotage matrix: see below
 - [ ] `npm run validate` green — validation-owed: validate and CI at the pull request's merging head,

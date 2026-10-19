@@ -3,11 +3,11 @@
 ## Status
 
 - **State:** Fixed — 2026-10-19, on branch `fix/mark-not-judged`, at the coordinator's order before
-  the release.
+  the release; merged through PR #253.
 - **Severity:** Low — the findings are the same, and only their message text differs; no verdict
   changes. Above ten others it also decides which locations a message names.
 - **Origin:** inbound · the release candidate's trial upgrade of the three adopters, 2026-10-19
-  (issue E3 in its report): adopter 2's plan-number rule gave the same findings on Node and on Bun,
+  (issue E3 in the trial upgrade report, scratchpad, not kept): adopter 2's plan-number rule gave the same findings on Node and on Bun,
   with the others listed in a different order.
 - **Reported:** 2026-10-19
 
