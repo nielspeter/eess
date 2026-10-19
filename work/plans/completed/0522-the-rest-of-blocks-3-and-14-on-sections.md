@@ -100,7 +100,10 @@ Built on maintainer order 2026-10-19. Not design-reviewed: written and built in 
   thematic break or an HTML comment, subsections' content included.
 - **The section-holding methods are dual-use**, as `haveSubsection` is.
 - **No example** under `examples/md`: the composed pair is in the docs, and the conditions read as
-  the existing sections example does.
+  the existing sections example does. Superseded 2026-10-19 (PR #252's testing review,
+  minor 8): `examples/md/a-decision-holds-what-it-should.test.ts` drives the title, every
+  section-holding condition and the three-rule pointer recipe through the built package, one
+  violating fixture per judgement, under `examples/md-fixtures-are-load-bearing`.
 - **Tests after the code**; the red is the matrix below.
 
 - **Corrected 2026-10-19 (PR #252's testing review, I3): a section holds what its heading's text
