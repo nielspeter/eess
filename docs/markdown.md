@@ -256,13 +256,22 @@ by single spaces. The underlying extraction,
 `source` (mdast resolves an escaped `\[` away, and only the text tells it
 apart) and returns the doc-less `MdTaskItemRef`. It returns every box, including
 the ones a rule cannot read, so its `state` can also be `'undeclared'` or
-`'malformed'`, with `checked: false`. Filter on `state`, not on `!checked`:
+`'malformed'`, with `checked: false`. Pass your shared marks (see "Box marks"
+below), report a box you cannot read, and only then filter on `state`, never on
+`!checked`. A filter to `'open'` alone drops an undeclared mark without a word:
 
 ```ts
 import { collectTaskItems, corpus } from '@nielspeter/eess-md'
 
+const BOX_MARKS = { '~': 'open', '→': 'done' } as const
+
 for (const doc of corpus({ roots: ['work/**'] }).documents()) {
-  const open = collectTaskItems(doc.root, { source: doc.text }).filter((b) => b.state === 'open')
+  const boxes = collectTaskItems(doc.root, { marks: BOX_MARKS, source: doc.text })
+  const unread = boxes.filter((b) => b.state === 'undeclared' || b.state === 'malformed')
+  if (unread.length > 0) {
+    throw new Error(`${doc.relPath}: ${String(unread.length)} box(es) this caller cannot read`)
+  }
+  const open = boxes.filter((b) => b.state === 'open')
   console.log(doc.relPath, open.length)
 }
 ```
@@ -321,19 +330,29 @@ Declaring such a mark `'open'` asks for a disposition on every box, and
 declaring it `'done'` claims work that was never done. An unjudged box is neither:
 `.areOpen()` and `.areChecked()` do not select it, so `honestyAtClose` neither
 asks it for a disposition nor counts it as finished, and a `deferred→` written on
-it is not a deferral. It is still a `taskItems()` element, with `checked: false`,
-so a rule selects it by its mark or by its state:
+it is not a deferral.
+
+**Declare `'unjudged'` only if the box never blocks a close in any record:** it
+leaves every close rule for good, in live and closed records alike. `[~]` is the
+wrong use: it marks unfinished work, which is `'open'`.
+
+An unjudged box is still a `taskItems()` element, with `checked: false`, so a
+rule selects it by its mark or by its state. If your records stopped writing the
+mark, guard that it does not come back in a live record:
 
 ```ts
-import { corpus, taskItems } from '@nielspeter/eess-md'
+import { areLive, corpus, inDocuments, taskItems } from '@nielspeter/eess-md'
 
 export const BOX_MARKS = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
 
 const c = corpus({ roots: ['work/**'] })
-const unjudged = taskItems(c, { marks: BOX_MARKS })
+taskItems(c, { marks: BOX_MARKS })
   .that()
   .satisfy({ description: 'unjudged', test: (t) => t.state === 'unjudged' })
-unjudged.should().notExist().check()
+  .satisfy(inDocuments(areLive()))
+  .should()
+  .notExist()
+  .check()
 ```
 
 Only a declaration makes a mark unjudged. A mark nobody declared is still

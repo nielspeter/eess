@@ -20,7 +20,7 @@ and the dialects import members that are new in kernel 0.8.0 (`globTextFault`,
 beside it. **Upgrade the packages you use together.** `eess-crossvalidate` 0.10.0 keeps its peer
 floors at `eess-ts` 0.13.1, `eess-md` 0.11.0, `eess-mermaid` 0.8.0 and `eess-gherkin` 0.6.0.
 
-**Most of the work is in `eess-md`.** It carries ten breaking changesets, and nearly all of them
+**Most of the work is in `eess-md`.** It carries nine breaking changesets, and nearly all of them
 make a check that used to pass over nothing say so. Expect findings on documents you did not
 change. They are real: read them before you widen a declaration to make them go away.
 
@@ -31,19 +31,24 @@ change. They are real: read them before you widen a declaration to make them go 
 `collectTaskItems(root)` now requires `{ source }`, because mdast resolves an escaped `\[` away and
 only the text tells it apart. It also returns more elements than before: undeclared marks,
 malformed boxes and empty `- [ ]` / `- [x]`, each with `checked: false` and a `state` of
-`'undeclared'` or `'malformed'`. A caller that counted `!checked` as open sees its count rise, so
-filter on `state`:
+`'undeclared'` or `'malformed'`. A caller that counted `!checked` as open sees its count rise.
+
+Pass the shared `BOX_MARKS` (the next section), and report a box you cannot read before you filter
+to `'open'`. A filter on `'open'` alone drops an undeclared `[~]` without a word, which is the
+blindness this release removes:
 
 ```ts
 import { collectTaskItems } from '@nielspeter/eess-md'
 
-for (const box of collectTaskItems(doc.root, { source: doc.text })) {
+// BOX_MARKS is your one shared constant: see "declare your box marks once" below.
+for (const box of collectTaskItems(doc.root, { marks: BOX_MARKS, source: doc.text })) {
+  if (box.state === 'undeclared' || box.state === 'malformed') {
+    throw new Error(`${doc.relPath}:${box.line}: box [${box.mark}] is ${box.state}`)
+  }
   if (box.state !== 'open') continue
   // ...
 }
 ```
-
-In the trial, the edit was the call and the one filter line, and the ledger totals did not change.
 
 ### eess-md: declare your box marks once
 
@@ -77,7 +82,7 @@ code-span a bracket that is not a box.
 3,344 findings), and declaring it `'done'` claims work that was never done. An unjudged box is
 neither: `areOpen()` and `areChecked()` do not select it, `honestyAtClose` neither asks it for a
 disposition nor counts it as finished, and a `deferred→` on it is not a deferral. A rule still
-selects it by its mark or by `state === 'unjudged'`. Only a declaration makes a mark unjudged; an
+selects it by its mark or by `state === 'unjudged'`. Declare `'unjudged'` only if the box never blocks a close in any record: it leaves every close rule for good, in live and closed records alike. `[~]` is the wrong use: it marks unfinished work, which is `'open'`. Only a declaration makes a mark unjudged; an
 undeclared mark is still a finding. `collectTaskItems()` now validates its `marks` too, so a state
 that is not one of the three, `undefined` included, is refused there as well.
 
@@ -212,20 +217,23 @@ export function emptiesIn(cwd: string, roots: readonly string[], frozen: readonl
   }
 }
 
-export function workCorpus(cwd?: string) {
-  return corpus({
-    roots: ROOTS,
-    frozen: FROZEN,
-    ...(cwd === undefined
-      ? { expectEmptyFrozen: LIVE_EMPTY_FROZEN }
-      : { cwd, ...emptiesIn(cwd, ROOTS, FROZEN) }),
-  })
+// The live tree: a static declaration, and no cwd to pass.
+export function workCorpus() {
+  return corpus({ roots: ROOTS, frozen: FROZEN, expectEmptyFrozen: LIVE_EMPTY_FROZEN })
+}
+
+// A fixture tree only. Never call it on the live tree.
+export function fixtureCorpus(cwd: string) {
+  return corpus({ roots: ROOTS, frozen: FROZEN, cwd, ...emptiesIn(cwd, ROOTS, FROZEN) })
 }
 ```
 
-Computing the fixture's list from the fixture is safe where computing the live tree's would not be:
-the live list is the declaration that a folder is empty on purpose, so it stays written down and
-expires when a record lands there.
+Keep the two apart by name, not by whether a `cwd` was passed: CI, or a script run from another
+directory, passes the live tree's `cwd` too. **Computing the live tree's list would auto-declare a
+renamed folder.** Rename `fixed/` and its glob marks nothing; a computed list declares it empty, and
+the declaration never expires, which is the false green this release closes. The live list is the
+statement that a folder is empty on purpose, so it stays written down and expires when a record lands
+there.
 
 **Or mirror the live tree's emptiness in the fixture.** When the test runs a script that builds its
 own corpus, and the script carries the live tree's static declaration, make the fixture match it:
@@ -371,7 +379,7 @@ For dialect authors, the kernel adds `Predicate.undecided` (ADR-021): a predicat
 cannot judge a subject, and each cause is one unsuppressable finding wherever the verdict depends on
 it. New on `@nielspeter/eess/internal`: `uniqueByCondition`, `notExistCondition`,
 `cardinalitySelectorFault()`, `globTextFault`, `repoRelativeCorrection`, `membership`, `partition`,
-`kleene` and the rest named in the kernel's changelog. No root export changes.
+`kleene` and the rest named in the kernel's changelog. The kernel root gains the `Undecided` type.
 
 ## Package by package
 
