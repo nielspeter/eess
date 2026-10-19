@@ -60,9 +60,10 @@ export function sectionDeclarationFindings(scan: SectionScan): ArchViolation[] {
     )
   }
   for (const doc of scan.corpus.documents()) {
-    // Every note, the near miss included, reads only the documents the rule can see (PR #252):
-    // a document the rule's scopes exclude could never be selected, so its spelling is not this
-    // rule's to correct.
+    // Every note, the near miss included, reads only the documents the rule can see (PR #252): a
+    // document a folder or field scope excludes is not this rule's to correct. A scope that reads a
+    // section name does not narrow what is visible, since it drops a document exactly when that
+    // document's heading drifted.
     if (!visible.has(doc)) continue
     for (const d of scan.declarations) {
       if (typeof d.name !== 'string') continue

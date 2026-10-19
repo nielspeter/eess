@@ -2,7 +2,11 @@ import type { Predicate, Undecided } from '@nielspeter/eess'
 import { membership, partition, refuseUndecided, type Membership } from '@nielspeter/eess/internal'
 import type { MdDocument } from '../model/document.js'
 import { contains, sectionsOf, type MdSectionElement } from '../model/sections.js'
-import { declaresSections, sectionDeclarationsOf } from '../model/section-declarations.js'
+import {
+  declaresSections,
+  readsSections,
+  sectionDeclarationsOf,
+} from '../model/section-declarations.js'
 
 type HasDoc = { readonly doc: MdDocument }
 
@@ -65,6 +69,12 @@ interface Scope {
   readonly docMembership: (d: MdDocument) => Membership
   /** The sections of the document the scope decides true (a section scope only). */
   readonly sectionsIn?: (d: MdDocument) => number
+  /**
+   * The scope's inner predicate reads a section name. Such a scope does not narrow what the
+   * section-name scan reads: a document it drops because its heading drifted is the one whose near
+   * miss the scan exists to name (PR #252's verify round), the rule `docs()` applies to its own.
+   */
+  readonly readsSections?: boolean
 }
 /** The predicates `inDocuments` and `inSections` made, by identity. */
 const SCOPES = new WeakMap<object, Scope>()
@@ -83,8 +93,10 @@ export function inDocuments<T extends HasDoc>(p: Predicate<MdDocument>): Predica
     label: `inDocuments(${p.description})`,
     unit: 'documents',
     docMembership: lifted.docMembership,
+    readsSections: readsSections(p),
   })
-  return lifted
+  // The inner predicate's section names are the rule's too, so the scan reads them.
+  return declaresSections(lifted, sectionDeclarationsOf([p]))
 }
 
 type OnALine = { readonly doc: MdDocument; readonly line: number }
@@ -205,7 +217,8 @@ const decidedTrue = (m: Membership): boolean => m === true
 
 /**
  * The documents a rule's document scopes admit: those every `inDocuments` scope among its own
- * predicates decides true; every document when it has none (plan 0496's section-name scan).
+ * predicates decides true, leaving out a scope that reads a section name; every document when it
+ * has none (plan 0496's section-name scan).
  */
 export function admittedDocuments<T>(
   predicates: readonly Predicate<T>[],
@@ -213,7 +226,7 @@ export function admittedDocuments<T>(
 ): readonly MdDocument[] {
   const scopes = predicates.flatMap((p) => {
     const s = SCOPES.get(p)
-    return s === undefined || s.unit !== 'documents' ? [] : [s]
+    return s === undefined || s.unit !== 'documents' || s.readsSections === true ? [] : [s]
   })
   if (scopes.length === 0) return documents
   return documents.filter((d) => scopes.every((s) => decidedTrue(s.docMembership(d))))

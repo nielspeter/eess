@@ -48,7 +48,7 @@ export function haveNameMatching(re: RegExp): Predicate<MdDocument> {
 
 /**
  * Predicate form of `haveSection` — "documents that have section X", at `depth` when given (plan
- * 0496). With `depth`, the name is recorded for the section-name scan of the rule that holds it.
+ * 0496). The name is recorded for the section-name scan of the rule that holds it.
  */
 export function predicateHaveSection(
   name: string | RegExp,
@@ -60,9 +60,11 @@ export function predicateHaveSection(
     description: `have section "${String(name)}"${at}`,
     test: (d) => hasSection(d, name, options.depth),
   }
-  return options.depth === undefined
-    ? predicate
-    : declaresSections(predicate, [{ name, depth: options.depth }])
+  // Recorded with or without a depth (PR #252's verify round), so an absence rule over a drifted
+  // heading names it.
+  return declaresSections(predicate, [
+    { name, ...(options.depth === undefined ? {} : { depth: options.depth }) },
+  ])
 }
 
 /** Documents `corpus()` marked frozen: matched by its `frozen` globs (plan 0457). */

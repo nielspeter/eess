@@ -643,6 +643,51 @@ describe('the notes and the scan, pinned (PR #252’s testing review)', () => {
   })
 })
 
+describe('a scope that reads the section does not hide its own near miss (PR #252 verify)', () => {
+  it('taskItems: a drifted open-questions heading in a scoped document is still named', () => {
+    const c = of({
+      'a.md': '# A\n\n## Open questions\n\n- [x] settled\n',
+      'b.md': '# B\n\n## open questions\n\n- [ ] still open\n',
+    })
+    const v = taskItems(c)
+      .that()
+      .areOpen()
+      .and()
+      .satisfy(inDocuments(predicateHaveSection('Open questions', { depth: 2 })))
+      .and()
+      .satisfy(inSections(sectionsNamed('Open questions')))
+      .should()
+      .notExist()
+      .violations()
+    expect(v.map((x) => x.element)).toEqual(['b.md → section "open questions" (near miss)'])
+  })
+
+  it('links().areInSection(): the released near miss survives a section-reading document scope', () => {
+    const c = of({
+      'a.md': '# A\n\n## See also\n\n[b](b.md)\n',
+      'b.md': '# B\n\n## see also\n\n[a](a.md)\n',
+    })
+    const v = links(c)
+      .that()
+      .satisfy(inDocuments(predicateHaveSection('See also', { depth: 2 })))
+      .and()
+      .areInSection('See also')
+      .should()
+      .notExist()
+      .violations()
+    expect(said(v)).toEqual([
+      'a.md:5: a.md:5 should not exist',
+      'b.md → section "see also" (near miss): the heading "see also" is not the declared section "See also", so the links under it are not checked',
+    ])
+  })
+
+  it('docs().that().haveSection(name) without a depth records the name', () => {
+    const c = of({ 'a.md': '# A\n\n## status\n' })
+    const v = docs(c).that().haveSection('Status').should().notExist().violations()
+    expect(v.map((x) => x.element)).toEqual(['a.md → section "status" (near miss)'])
+  })
+})
+
 describe('unchanged behaviour', () => {
   it('haveSection without options keeps its verdict and message', () => {
     const c = of({ 'a.md': '# A\n\n### Deep\n' })
@@ -652,10 +697,11 @@ describe('unchanged behaviour', () => {
     expect(docs(c).should().haveSection('Deep').violations()).toHaveLength(0)
   })
 
-  it('haveSection without options records nothing: a near miss is not a new finding', () => {
+  it('the haveSection condition without options records nothing: a near miss is not a new finding', () => {
     const c = of({ 'a.md': '# A\n\n## Deep\n', 'b.md': '# B\n\n## deep\n' })
-    expect(said(docs(c).that().haveSection('Deep').should().notExist().violations())).toEqual([
-      'a.md: a.md should not exist',
+    // b.md fails the condition, which names its near miss; a.md passes, and nothing more is said.
+    expect(said(docs(c).should().haveSection('Deep').violations())).toEqual([
+      'b.md: missing section "Deep"; the heading "deep" at line 3 differs from "Deep" only by case or spacing',
     ])
   })
 })
