@@ -8,6 +8,7 @@ import {
   corpus,
   docs,
   inSections,
+  links,
   pointers,
   sections,
   sectionsNamed,
@@ -156,6 +157,21 @@ describe('what a section holds (block 14)', () => {
     expect(said(A(next).haveCodePointer().violations())).toEqual([
       'a.md:1: section "A" holds no code pointer',
     ])
+  })
+
+  it('a link or a pointer in the heading’s own text is the section’s, as inSections says', () => {
+    const c = of({
+      'a.md': ['# T', '', '## See [b](b.md) and `src/x.ts:1`', '', '## C', '', 'text'],
+      'b.md': ['# B'],
+    })
+    const see = () => sections(c).that().areNamed('See b and `src/x.ts:1`').should()
+    expect(see().haveLink().violations()).toHaveLength(0)
+    expect(see().haveCodePointer().violations()).toHaveLength(0)
+    const scoped = links(c)
+      .that()
+      .satisfy(inSections(sectionsNamed('See b and `src/x.ts:1`')))
+      .select({ label: 'l', identify: (l) => ({ name: l.url }) })
+    expect(scoped.elements.map((l) => l.line)).toEqual([3])
   })
 
   it('after .that(), the sections that hold it', () => {

@@ -3,11 +3,12 @@ import { tagIsLanguage } from './code-block-tag.js'
 import { linksOf } from './links.js'
 import { extractPointers } from './pointers.js'
 import type { MdDocument } from './document.js'
-import type { MdSectionElement } from './sections.js'
+import { contains, type MdSectionElement } from './sections.js'
 
 /**
- * Plan 0522 (proposal 017 block 14): what a section holds. Each reads the section's lines after its
- * heading through `endLine`, subsections included, so a block in the next section never counts.
+ * Plan 0522 (proposal 017 block 14): what a section holds. Each reads the section's lines from its
+ * heading through `endLine`, subsections included, so a block in the next section never counts; a
+ * link or a pointer in the heading's own text counts, as `inSections` places it.
  */
 export type SectionHolding =
   | { readonly kind: 'content' }
@@ -19,8 +20,11 @@ export type SectionHolding =
 const lineOf = (n: { readonly position?: { readonly start: { readonly line: number } } }): number =>
   n.position?.start.line ?? 0
 
-/** After the heading, through `endLine`. */
-const inBody = (s: MdSectionElement, line: number): boolean => s.line < line && line <= s.endLine
+/**
+ * The section's lines, its heading line included, as `contains` reads them: a link or a pointer in a
+ * heading's text is in that heading's section, the answer `inSections` gives (PR #252).
+ */
+const inBody = contains
 
 const HTML_COMMENT = /^\s*<!--[\s\S]*-->\s*$/
 

@@ -580,8 +580,9 @@ columns; `sections().haveTable({ columns })` asserts it of every selected sectio
 `section` option. `haveSection(name, { depth })` (the condition, `docs().haveSection()` and
 `predicateHaveSection`) counts only a heading at that level. A depth that is not 1 to 6 is refused.
 
-What a section holds is read after its heading through its last line, subsections included, so a
-block in the next section never counts. A document's title is `docs().haveTitle(name?)`: its first
+What a section holds is read from its heading through its last line, subsections included, so a
+block in the next section never counts, and a link or pointer in the heading's own text is the
+section's, as `inSections` places it. A document's title is `docs().haveTitle(name?)`: its first
 heading not inside a list item, blockquote or footnote, which must be at depth 1, and match `name`
 when given (a string exactly, or a `RegExp`); a document with no heading, or whose first heading is at
 depth 2, is a finding saying which, and a depth-1 heading written inside a container is named. A
