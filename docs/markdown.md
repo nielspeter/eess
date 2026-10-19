@@ -246,11 +246,28 @@ summary line rather than silently skipping unreachable pointers.
 
 `taskItems(c)` — a peer of `docs()`/`links()`/`pointers()` — builds a
 `TaskItemRuleBuilder` over the corpus's GFM task-list items (`- [ ]` /
-`- [x]`). Its elements are `MdTaskItem` (`checked`, `text`, `line`, `doc`);
-`.areOpen()` and `.areChecked()` filter on the box state. The underlying
-extraction, `collectTaskItems(root)`, returns the doc-less `MdTaskItemRef`
-(`checked`, `text`, `line`) that `MdTaskItem` adds `doc` to — a task item
-inside fenced code or a blockquote is excluded for free — but by two different
+`- [x]`), and any extra mark you declare (see "Box marks" below). Its elements
+are `MdTaskItem` (`mark`, `state`, `checked`, `text`, `line`, `doc`), with a
+`state` of `'open'` or `'done'`; `.areOpen()` selects `state === 'open'` and
+`.areChecked()` `state === 'done'`. A box's `text` is all of its own content:
+every paragraph of the item and every sub-item that is not itself a box, joined
+by single spaces. The underlying extraction,
+`collectTaskItems(root, { marks, source })`, takes the document's text as
+`source` (mdast resolves an escaped `\[` away, and only the text tells it
+apart) and returns the doc-less `MdTaskItemRef`. It returns every box, including
+the ones a rule cannot read, so its `state` can also be `'undeclared'` or
+`'malformed'`, with `checked: false`. Filter on `state`, not on `!checked`:
+
+```ts
+import { collectTaskItems, corpus } from '@nielspeter/eess-md'
+
+for (const doc of corpus({ roots: ['work/**'] }).documents()) {
+  const open = collectTaskItems(doc.root, { source: doc.text }).filter((b) => b.state === 'open')
+  console.log(doc.relPath, open.length)
+}
+```
+
+A task item inside fenced code or a blockquote is excluded for free — but by two different
 mechanisms, worth knowing if you ever debug a box that vanished. Fenced code is
 never a `listItem` in mdast at all, so it costs nothing. A blockquote **does**
 produce a `listItem`, and `collectTaskItems` skips it deliberately with an
@@ -258,6 +275,60 @@ produce a `listItem`, and `collectTaskItems` skips it deliberately with an
 ledger reconciliation is built from (see "Ledger reconciliation" below), and
 is exported for a caller who wants task items without going through the
 corpus builder chain.
+
+### Box marks
+
+GFM reads `[ ]` as open and `[x]` (or `[X]`) as done. A corpus that writes other
+marks, such as `[~]` for partly done or `[→]` for moved to another record,
+declares what each one means, as `'open'` or `'done'`:
+
+```ts
+import { corpus, taskItems } from '@nielspeter/eess-md'
+import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
+
+// One constant, passed to every call that reads boxes.
+export const BOX_MARKS = { '~': 'open', '→': 'done' } as const
+
+const c = corpus({ roots: ['work/**'] })
+
+taskItems(c, { marks: BOX_MARKS }).that().areOpen().should().notExist().check()
+honestyAtClose(c, { marks: BOX_MARKS })
+```
+
+A declared open mark is an open box, and needs a disposition in a closed record
+just as `[ ]` does. A declared done mark is a closed box, so declare `'done'`
+only for a mark that means the work is finished. A declaration that is not one
+grapheme, that is GFM's own space, `x` or `X`, that is a bracket or whitespace,
+or whose state is not one the dialect knows, is refused with an
+`ArchConfigError`.
+
+A mark nobody declared is `md/undeclared-box-mark`, reported once per document
+and mark. A near-GFM box (`[ x ]`, `[x]done`, an empty `- [ ]` or `- [x]`) is
+`md/malformed-box`, reported once per box. Both are configuration findings: a
+`.warn()` rule that carries one fails, and `.excluding()` does not hide them. A
+rule reports such a box only when its predicates could have reached it. To clear
+one, declare the mark, rewrite the box as `[ ]` or `[x]`, or escape (`\[`) or
+code-span a bracket that is not a box.
+
+**Declare the marks once, in one shared constant.** `taskItems()`,
+`honestyAtClose()` and `collectTaskItems()` each take `marks`, and a call that
+was not given the constant reports every extra mark as undeclared. Two copies of
+the declaration drift.
+
+<!-- TODO(bug 0525): confirm the third state's name and semantics against fix/mark-not-judged before tagging; rewrite this paragraph from its changeset. -->
+
+**A mark that records "not judged", such as `[?]`, is neither open nor done.**
+Declaring it `'open'` asks for a disposition on every such box, and declaring it
+`'done'` claims a verification that never happened. Declare it with the third
+state, `'unjudged'` (bug 0525):
+
+```ts
+import { taskItems } from '@nielspeter/eess-md'
+
+export const BOX_MARKS = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
+
+taskItems(c, { marks: BOX_MARKS })
+```
 
 ### Selecting the links a block declares: `areLabelled` and `areInSection`
 

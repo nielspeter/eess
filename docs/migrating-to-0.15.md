@@ -53,7 +53,7 @@ empty `- [ ]`) is `md/malformed-box`. Both are configuration findings: a `.warn(
 one fails, and `.excluding()` does not hide them. A rule reports such a box only when its predicates
 could have reached it.
 
-Declare each mark once, in one shared constant, and pass that constant to every `taskItems()` and
+Declare each mark once ([box marks](./markdown.md#box-marks)), in one shared constant, and pass that constant to every `taskItems()` and
 `honestyAtClose()` call. Two copies drift, and the call you forgot reports the mark as undeclared.
 
 ```ts
