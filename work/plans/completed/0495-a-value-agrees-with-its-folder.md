@@ -255,6 +255,18 @@ out`, one per group and glob, in every direction. A mistyped glob would otherwis
     legitimately be empty. A group's folder is different: it is where a value is required to sit, so
     a dead one turns every record carrying the value into a false F1/F2. Its text faults (a leading
     `/`, `../`, a backslash) are judged by the same `mdSelectorFault`, not a second copy.
+  - **Which glob position F7's globs are, and why** (batch review, architect M2). A group's folder
+    globs are not on the rule's glob tree: they are neither a `selector` (they select nothing; the
+    rule's `.that()` does) nor a `condition` glob in the kernel's sense (`isFaultPosition`, bug
+    0014: a dead condition glob is a satisfied assertion). They are closest to `discovery`: they
+    define the population a value is required to sit in, so a dead one judges nothing, and the
+    kernel calls a dead discovery glob a fault. To reuse md's text diagnosis, each is stamped as a
+    positive `selector` site for `mdSelectorFault` only; that label is a means of reaching the
+    diagnosis, not a claim about the glob. md now holds three stances on an empty glob, each argued
+    where it lives: a selector's is never a fault (bug 0355), a group folder's is F7 (here), and
+    `corpus({ frozen })` refuses a dead frozen glob ([bug 0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md)).
+    One record for all three belongs to ADR-018 once it is accepted; until then, kernel glob tooling
+    (`doctor`, the path universe) does not see a group's folders.
 - **F8 empty group.** Under `right-to-left`, `Fixed's folders hold no document in the corpus; the
 group judges nothing`. Computed over the corpus, not the selection, so a caller can narrow with
   `.that().resideInFolder(...)` and still declare every group (D2). A `'rest'` group has no globs,
@@ -575,13 +587,20 @@ Where the build departed from the text above, or decided what it left open, each
 - **Built from Draft, on maintainer order 2026-10-19.** The `plan-build` ritual refuses a Draft; the
   order came with the plan's two review rounds settled, and the decisions below are the ones the
   code met.
-- **`examined` is overridden only when every condition is an `agreeWithFolder`.** `DocsRuleBuilder`
-  keeps each one (`FolderAgreement`) beside its condition, as `links()` keeps its declarations, and
-  its `collectViolations` override sets `examined` to the documents any of them judged. Beside another
-  condition (`.should().haveField(…).andShould().agreeWithFolder(…)`), that condition judges every
-  selected document, so the kernel's count stands. A judged document is one that gets a verdict in
-  the table above (agrees, F1 to F4); a withheld one (F5), one under two groups (F6) and one whose
-  value's group has a dead folder (F7) are not counted.
+- **Decision D1, rebuilt after the batch review (2026-10-19).** The first build overrode
+  `examined` in `DocsRuleBuilder.collectViolations`: when every condition was an `agreeWithFolder`,
+  `examined` became the documents one of them judged, so a misspelt label read as zero examined.
+  The enforcement review measured three greens that design made or kept: with `.expectEmpty()`, a
+  rule that selected three documents and judged none read as "empty, as declared" and never
+  expired (C1); beside any other condition the kernel's count stood, so a broken agreement passed
+  (I1); and beside a second agreement the union hid the broken one (I1). The override is deleted:
+  the kernel's `examined` (the documents selected) stands, so a declaration expires as the kernel
+  decides. Instead each agreement that ran over a non-empty selection and gave no document a
+  verdict reports `selected N documents, judged none: the field read no value (check its label,
+forms or region)`, unsuppressable, whatever conditions sit beside it. A judged document is still
+  one that gets a verdict in the table above (agrees, F1 to F4); a withheld one (F5), one under two
+  groups (F6) and one whose value's group has a dead folder (F7) are not. The redundant `copy()`
+  override went with it (architect M5): `agreeWithFolder` always assigns a fresh array.
 - **F6 is computed over the selection,** the documents the rule would judge, and such a document gets
   no per-document verdict: the group pair is its one finding, at the first shared document (its file,
   line 1). F7 and F8 are about no document (file `''`, line 0), as `codeBlocks()`' instrument finding
@@ -601,11 +620,19 @@ Where the build departed from the text above, or decided what it left open, each
   it.
 - **A `'rest'` group is named with its marker** in F2 and F4: `bugs/8.md is in open's folders
 ('rest')`, since a `'rest'` group has no globs to name.
-- **The default mark is `markDefaultFolders(group)`,** on `@nielspeter/eess-md/internal`, tagging the
-  group object in a module-private `WeakSet`. **For plan 0498:** ADR-022 clause 3 lets a module under
-  `packages/md/src/rules/` import only the md root and the kernel root, and `md/rules-import-only-the-root`
-  gates it, so `honestyAtClose` cannot import this helper from `/internal` as this plan's E3 says.
-  Plan 0498 decides how the preset reaches it; recorded there.
+- **The default mark has no home yet.** The first build exported `markDefaultFolders(group)` on
+  `@nielspeter/eess-md/internal`. The batch review removed it (architect I1, enforcement I2): its
+  only planned caller, `honestyAtClose` under `packages/md/src/rules/`, may import only the md root
+  and the kernel root (ADR-022 clause 3, `md/rules-import-only-the-root`), and any adopter could
+  import `/internal` and turn F7 off for globs they wrote. The `WeakSet` stays module-private and
+  nothing adds to it, so every glob is judged as the caller's. Plan 0498 decides where the mark
+  lives; recorded there.
+- **The values are a closed set within the bound folders,** not "in every direction" as the first
+  JSDoc, README and docs said (enforcement I3): a document in no group's folders whose value is in no
+  group gets no verdict. A `'rest'` group closes the set everywhere. The claim is narrowed; the code
+  is unchanged.
+- **`mdSelectorFault` and `repoRelativeTextProblem` moved to `packages/md/src/model/selector-fault.ts`**
+  (architect M1), so `conditions/` and `corpus.ts` no longer import from `builders/`.
 - **The example is one file with five judgements,** each `violating-*` folder a copy of `clean/`
   with one defect, so swapping any of them into `clean/` reds that shape's clean test. Removing
   `region: 'header'` from the three rules reds all eight tests (measured): the register, the
@@ -621,7 +648,7 @@ Where the build departed from the text above, or decided what it left open, each
 
 ### Sabotage matrix
 
-Run at `af6a6cc4`, each mutant applied to `packages/md/src/conditions/agree-with-folder.ts` (row 11:
+Run at `af6a6cc4` (pre-rebase), each mutant applied to `packages/md/src/conditions/agree-with-folder.ts` (row 11:
 `packages/md/src/builders/docs.ts`), `tests/conditions/agree-with-folder.test.ts` run, and the file
 restored with `git checkout`. Every row red; the test named is the one its break class names.
 
@@ -636,16 +663,35 @@ restored with `git checkout`. Every row red; the test named is the one its break
 | 7   | the first matching group taken on overlap      | F6                                                                                              |
 | 8   | `both` reporting a J ≠ K document twice        | both F2 rows; the `'rest'` row (3)                                                              |
 | 9   | F8 dropped                                     | F8                                                                                              |
-| 10  | a withheld document counted as agreeing        | F5 (`examined` 3)                                                                               |
-| 11  | `examined` counting selected documents         | the `Sate` row; F5; both count rows (4)                                                         |
+| 10  | a withheld document counted as agreeing        | F5 (`examined` 3); re-run on the rebuilt D1: the F5 row's withheld-only selection               |
+| 11  | `examined` counting selected documents         | retired: since the batch review this is the design (see D1 above)                               |
 | 12  | F7 dropped, so a dead glob is reported as F1s  | both F7 rows (2)                                                                                |
 | 13  | F6 made suppressible (`bypassFilters` dropped) | F6 (`.excluding()` removed it)                                                                  |
 | 14  | the two-groups refusal removed                 | both value-in-two-groups refusals (2)                                                           |
 | 15  | frozen documents skipped                       | the frozen row                                                                                  |
 | 16  | F2 folded back into F3                         | both F2 rows; the `'rest'` row (3)                                                              |
 | 17  | the side causes dropped                        | the side-causes row                                                                             |
-| 18  | the preset-default mark ignored (not listed)   | "F7: a preset default group reports only when every one of its globs is dead"                   |
+| 18  | the preset-default mark ignored (not listed)   | retired with the mark's export and its test (batch review A2)                                   |
 | 19  | F1 dropped (not listed)                        | F1; the folder-to-value count row (2)                                                           |
+
+**Batch review fix pass, 2026-10-19,** on branch `batchfix/afw`, after the code commit. Same method;
+row 10 above was re-run here.
+
+| row | mutant                                                                   | red on                                                                                                        |
+| --- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| A1a | the judged-none finding dropped                                          | all four judged-none shapes; the F5 withheld-only selection; the unbound `Fixd` selection (6)                 |
+| A1b | the first design back: `examined` 0 when an agreement judged none        | "declared empty: the declaration expires, and the finding stands"; alone; beside `beUniqueBy`; F5; `Fixd` (5) |
+| A1c | judged none reported only when every condition is an agreement           | "a misspelt label beside another condition is red, and examined is the selection"                             |
+| A1d | judged none over the union of agreements                                 | "a misspelt label beside a good agreement is red on its own"                                                  |
+| A4  | an unbound unreadable value silent under value → folder (testing I1)     | "F5: an unbound value that cannot be read is reported value to folder, not folder to value"                   |
+| A5  | the `direction` refusal removed (testing I2)                             | "refuses an unknown direction when the rule runs, as a JavaScript caller can write one"                       |
+| A6  | a dead group's value reported in a bound folder (testing M1)             | the F7 dead-glob row, now with a `Fixed` record in a live folder                                              |
+| A14 | a no-value record not judged (testing M2)                                | "F4: a record with no value is judged, so a selection of only such records is not judged none"                |
+| M3  | a frozen record told it is misspelt (testing M3, the identity assertion) | "a frozen record in a bound folder is judged"                                                                 |
+
+Testing I3's mutant (`onlyAgreements` forced true) no longer has code to apply to; its rule,
+`examined` beside another condition is the selection, is pinned by the `beUniqueBy` row, red under
+A1b.
 
 The three `check:nonvacuity` rows were each run by hand before the gate: a `Draft` plan probe in
 `work/plans/completed/`, a stateless bug probe in `work/bugs/fixed/` and a `Draft` proposal probe in
@@ -653,10 +699,10 @@ The three `check:nonvacuity` rows were each run by hand before the gate: a `Draf
 
 ## Progress ledger
 
-- [x] Phase 1: the verdict's `occurrence`, the condition, F1 to F5, the side causes (`80fac1ef`)
-- [x] Phase 2: F6, F7, F8, `examined`, the description (`80fac1ef`)
+- [x] Phase 1: the verdict's `occurrence`, the condition, F1 to F5, the side causes (`80fac1ef`, pre-rebase)
+- [x] Phase 2: F6, F7, F8, `examined`, the description (`80fac1ef`, pre-rebase)
 - [x] Phase 3: dogfood rules and nonvacuity rows, the example with the three adopter shapes, docs,
-      changeset (`a8d1144c`, `af6a6cc4`)
+      changeset (`a8d1144c`, `af6a6cc4`, both pre-rebase)
 - [x] Sabotage matrix, rows 1 to 17, each recorded red here with the commit it ran on (and rows 18
       and 19, which the plan did not list)
 - [x] `deferred→proposal 017` sending the third worked example to adopter 3, with the question
