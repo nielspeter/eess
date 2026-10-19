@@ -625,15 +625,21 @@ describe('the notes and the scan, pinned (PR #252’s testing review)', () => {
       forms: ['bold'] as const,
       region: { section: 'S', depth },
     })
-    for (const bad of [7, 0, '2']) {
+    const cases: [unknown, RegExp][] = [
+      [7, /depth must be an integer from 1 to 6/],
+      [0, /depth must be an integer from 1 to 6/],
+      ['2', /a section region's depth must be a number/],
+    ]
+    for (const [bad, says] of cases) {
       // @ts-expect-error -- a JavaScript caller's depth
-      expect(() => fields(c, at(bad))).toThrow(/depth/)
+      expect(() => fields(c, at(bad))).toThrow(says)
       try {
         // @ts-expect-error -- a JavaScript caller's depth
         fields(c, at(bad))
       } catch (e) {
         expect(isArchConfigError(e)).toBe(true)
       }
+    }
     }
   })
 })
