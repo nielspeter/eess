@@ -55,6 +55,11 @@ export type { GlobNode, GlobSite } from '@nielspeter/eess'
 // relative to the corpus's `cwd` (`'guides/**'`), eess-ts an absolute one
 // (`'**/guides/**'`).
 export { resideInFolder, resideInFile, haveNameMatching } from './predicates/document.js'
+// Plan 0457: frozenness as each rule's choice, and the section predicate (block 11 may rename it:
+// the bare `haveSection` is the condition below).
+export { areFrozen, areLive, haveSectionPredicate } from './predicates/document.js'
+// Plan 0457: a document predicate lifted onto any element that carries its document.
+export { inDocuments } from './predicates/in-documents.js'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —
 // review found it manually), but this README's own "Binding a spec table to

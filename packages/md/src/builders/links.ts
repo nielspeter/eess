@@ -32,6 +32,8 @@ const areExternal = (): Predicate<MdLink> => ({
  * Rule builder over the corpus's markdown links.
  */
 export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
+  protected readonly noun = 'links'
+
   /** What `areLabelled()`/`areInSection()` declared, for the near-miss scan (plan 0405). */
   private _declarations: readonly LinkDeclaration[] = []
 

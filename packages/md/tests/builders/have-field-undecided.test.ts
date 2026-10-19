@@ -1,7 +1,7 @@
 /**
  * ADR-021 (plan 0486) in eess-md: `haveField` as a free predicate declares what it cannot judge, and
- * every place eess-md applies predicates reports or refuses it. The lift onto boxes is written here
- * by hand, as a caller (or plan 0457's `inDocuments`) would, forwarding `undecided`.
+ * every place eess-md applies predicates reports or refuses it. The lift onto boxes is plan 0457's
+ * `inDocuments`, which forwards `undecided`.
  */
 import { describe, it, expect } from 'vitest'
 import {
@@ -10,6 +10,7 @@ import {
   taskItems,
   haveField,
   fields,
+  inDocuments,
   not,
   and,
   type ArchViolation,
@@ -33,12 +34,6 @@ const c = corpus({
 const done = haveField({ label: 'Status', forms: ['bold'], oneOf: /^done$/ })
 const said = (vs: readonly ArchViolation[]): string[] =>
   vs.map((v) => `${v.element}: ${v.message}${v.bypassFilters === true ? ' [bypass]' : ''}`)
-/** A document predicate over anything that carries its document, forwarding `undecided`. */
-const lift = <E extends { readonly doc: MdDocument }>(p: Predicate<MdDocument>): Predicate<E> => ({
-  description: `in documents that ${p.description}`,
-  test: (e) => p.test(e.doc),
-  ...(p.undecided && { undecided: (e: E) => p.undecided?.(e.doc) ?? [] }),
-})
 const conflict =
   "bugs/conflict.md:3,4: Status is given twice (line 3 'done', line 4 'open'); keep one [bypass]"
 const tilde =
@@ -48,7 +43,7 @@ describe('haveField as a predicate (ADR-021)', () => {
   it('block 12: done documents hold no open box; each unreadable Status reported once', () => {
     const found = taskItems(c)
       .that()
-      .satisfy(lift(done))
+      .satisfy(inDocuments(done))
       .and()
       .areOpen()
       .should()
@@ -65,7 +60,7 @@ describe('haveField as a predicate (ADR-021)', () => {
   it('under not(), an undecided document is reported once and none of its boxes is asserted', () => {
     const found = taskItems(c)
       .that()
-      .satisfy(not(lift(done)))
+      .satisfy(not(inDocuments(done)))
       .should()
       .notExist()
       .violations()
@@ -134,7 +129,7 @@ describe('haveField as a predicate (ADR-021)', () => {
     })
     const found = fields(own, { label: 'Status', forms: ['bold'] })
       .that()
-      .satisfy(lift<MdTerm>(done))
+      .satisfy(inDocuments<MdTerm>(done))
       .should()
       .notExist()
       .violations()
@@ -150,7 +145,7 @@ describe('haveField as a predicate (ADR-021)', () => {
       }),
       roots: ['**/*.md'],
     })
-    const lifted: Predicate<{ readonly doc: MdDocument }> = lift(done)
+    const lifted: Predicate<{ readonly doc: MdDocument }> = inDocuments(done)
     const found = fields(own, { label: 'Priority', forms: ['bold'] })
       .that()
       .satisfy(lifted)

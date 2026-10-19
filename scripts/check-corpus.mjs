@@ -26,16 +26,21 @@
 import { join, resolve } from 'node:path'
 import {
   and,
+  areLive,
   corpus,
   correspondence,
   docs,
   fields,
   haveField,
+  inDocuments,
   links,
   longestOf,
   matchTableRows,
+  not,
   or,
   pointers,
+  resideInFile,
+  resideInFolder,
   rows,
   vocabulary,
 } from '@nielspeter/eess-md'
@@ -304,6 +309,16 @@ const extendsViolations = extendsRule.violations()
 // here. A State written in a shape the rule does not read (a `## State:` heading, a blockquote) is
 // reported by `fields()` itself. One rule and one id per lane, so a finding names its lane.
 const foldApostrophe = (v) => v.trim().replace(/’/g, "'")
+// A lane's live records, from eess-md's public document predicates (plan 0457): not frozen, in the
+// lane's folder, outside its done folders, and not one of its board files. The three rules below
+// read it, lifted onto a record's State lines by `inDocuments` where the elements are lines.
+const liveRecordIn = (lane) =>
+  and(
+    areLive(),
+    resideInFolder(lane.roots[0]),
+    not(or(...lane.doneFolders.map((f) => resideInFolder(`**${f}**`)))),
+    not(or(...lane.boardFiles.map((b) => resideInFile(`**/${b}`)))),
+  )
 // Literal ids, so `check:nonvacuity`'s rule-id coverage reads both from this source.
 const STATE_RULE_IDS = {
   plans: 'corpus/state-in-vocabulary-plans',
@@ -311,18 +326,10 @@ const STATE_RULE_IDS = {
 }
 const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name === 'bugs').map(
   (lane) => {
-    const prefix = lane.roots[0].replace(/\*\*$/, '')
     const words = [...lane.states]
     const rule = fields(c, { label: 'State', forms: ['bold'], value: longestOf(words) })
       .that()
-      .satisfy({
-        description: `are in a live ${lane.name} record`,
-        test: (t) =>
-          !t.doc.frozen &&
-          !lane.doneFolders.some((f) => t.doc.relPath.includes(f)) &&
-          t.doc.relPath.startsWith(prefix) &&
-          !lane.boardFiles.some((b) => t.doc.relPath.endsWith(`/${b}`)),
-      })
+      .satisfy(inDocuments(liveRecordIn(lane)))
       .should()
       .resolveAgainst(vocabulary(c, { terms: words, normalize: foldApostrophe }))
       .rule({
@@ -338,18 +345,9 @@ const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name ===
 // `honestyAtClose` counts but never refuses (bug 0444). One State per record, or it is a conflict.
 const statePresentRule = docs(c)
   .that()
-  .satisfy({
-    description: 'are live plan and bug records',
-    test: (d) =>
-      !d.frozen &&
-      LANES.some(
-        (lane) =>
-          (lane.name === 'plans' || lane.name === 'bugs') &&
-          !lane.doneFolders.some((f) => d.relPath.includes(f)) &&
-          d.relPath.startsWith(lane.roots[0].replace(/\*\*$/, '')) &&
-          !lane.boardFiles.some((b) => d.relPath.endsWith(`/${b}`)),
-      ),
-  })
+  .satisfy(
+    or(...LANES.filter((lane) => lane.name === 'plans' || lane.name === 'bugs').map(liveRecordIn)),
+  )
   .should()
   .haveField({ label: 'State', forms: ['bold'] })
   .rule({
@@ -365,14 +363,6 @@ const statePresent = statePresentRule.violations()
 // does not read) is undecided and reported on this rule's id rather than dropped, through the
 // kernel's three-valued combinators. A State outside the vocabulary is decided false here: the
 // per-lane `corpus/state-in-vocabulary-*` rules above report it.
-const liveRecordIn = (lane) => ({
-  description: `are live ${lane.name} records`,
-  test: (d) =>
-    !d.frozen &&
-    !lane.doneFolders.some((f) => d.relPath.includes(f)) &&
-    d.relPath.startsWith(lane.roots[0].replace(/\*\*$/, '')) &&
-    !lane.boardFiles.some((b) => d.relPath.endsWith(`/${b}`)),
-})
 const closingStateIn = (lane) =>
   haveField({
     label: 'State',
@@ -1019,9 +1009,10 @@ const docsOnlyOwnerViolations = docsOnlyProposals.flatMap((d) => {
 // closed; this rule reproduced it and now carries the same guard, plus a
 // fixture that reds on exactly that sabotage.
 //
-// The corpus is scoped to the one document that carries the map, for the same
-// reason: `rows()` has no per-document filter, and lane-ness is a claim this
-// file makes, not a shape any document may assert.
+// The corpus is scoped to the one document that carries the map: lane-ness is a
+// claim this file makes, not a shape any document may assert. (Since plan 0457
+// a `rows()` rule can also be scoped per document, with
+// `inDocuments(resideInFile('work/README.md'))`; this rule keeps its own corpus.)
 const laneDirs = laneDirectories(join(c.root, 'work'))
 const lanesCorpus = corpus({ roots: ['work/README.md'] })
 

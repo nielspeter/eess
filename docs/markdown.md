@@ -468,6 +468,84 @@ docs(pages)
 Worked examples, each using only eess-md's public exports and each with a passing fixture and a
 failing one, are in [`examples/md/`](https://github.com/nielspeter/eess/tree/main/examples/md).
 
+## Scoping a rule to documents: `inDocuments`
+
+Every element that belongs to a document (a box, a link, a pointer, a row, a term, a code block)
+carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
+and `areFrozen()` read the `frozen` globs you pass `corpus()`, or, when you pass none, its default
+(`**/completed/**`, `**/archived/**`), so a page under `completed/` is not live
+unless you pass `frozen` yourself; `haveSectionPredicate(name)` is the
+predicate form of `haveSection` (the bare name is the condition). A rule over boxes in the live pages that have a `Verification` section, and its
+guard:
+
+```ts
+import {
+  areLive,
+  corpus,
+  docs,
+  haveSectionPredicate,
+  inDocuments,
+  taskItems,
+} from '@nielspeter/eess-md'
+
+const SECTION = 'Verification'
+const c = corpus({ cwd: process.cwd(), roots: ['**/*.md'], frozen: ['archive/**'] })
+
+// The ratchet: no open box in a live document that has the section.
+taskItems(c)
+  .that()
+  .areOpen()
+  .satisfy(inDocuments(areLive()))
+  .satisfy(inDocuments(haveSectionPredicate(SECTION)))
+  .should()
+  .notExist()
+  .check()
+
+// The guard: its scope is not empty. notExist() does not check a section name; this does.
+// The condition repeats the selection on purpose: the rule fails only when nothing is selected.
+docs(c)
+  .that()
+  .satisfy(areLive())
+  .haveSection(SECTION)
+  .should()
+  .haveSection(SECTION)
+  .rule({ id: 'in-documents/verification-guard' })
+  .check()
+```
+
+**A `notExist()` rule does not check that its scope matches anything.** If the heading is renamed in
+the documents, or the name misspelt, the ratchet's scope matches no document and the rule stays
+green: an absence rule over nothing is satisfied (ADR-010 §3, ADR-018 C3). The guard is what catches
+it. Its condition repeats its selection, so it fails only when nothing is selected; the apparent
+simplification `.that().satisfy(areLive()).should().haveSection(SECTION)` is a different, stronger
+claim (every live document has the section). `.expectNonEmpty()` on the ratchet does not do this
+job: in eess-md a `notExist()` rule that declares it can never be green, since it reds on every
+element it examines and on examining none. (eess-ts reports that combination as a finding of its
+own.) A scope built from `resideInFolder` or `resideInFile` is different: a broken glob
+(`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
+predicate is on `docs()`. `areFrozen()` and `areLive()` are not: nothing checks the `frozen` globs
+`corpus()` takes, so a broken one (`frozen: ['/archive/**']`) leaves an absence rule over
+`inDocuments(areFrozen())` green, and on a positive rule the finding names the predicate, not the
+`frozen` option.
+
+**On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
+haveSectionPredicate('Verificaton'))).should().resolve()` reds with `inDocuments(have section
+"Verificaton") matched none of the corpus's N documents`, and a live scope whose documents hold none
+of the elements the rest of the rule selects says `the scopes matched K of N documents, and they hold
+none of the M links the rest of this rule selects`. Declare `.expectEmpty()` if that is expected; the
+declaration lapses the first time the rule examines an element.
+
+**Compose inside the scope.** `inDocuments(or(p, q))` and `inDocuments(not(p))` keep the scope one
+of the rule's own predicates, so a dead one is named; `or(inDocuments(p), inDocuments(q))` still
+reds, with the generic zero-examined finding. A scoped side of `correspondence()` built with
+`.select()` holds only the scoped documents' elements; when the scope matches nothing, the
+correspondence's own empty-side finding speaks, with no scope named.
+
+A document the predicate cannot judge (`haveField` over a Status given twice) leaves its elements
+undecided: each cause is reported once, and the elements are neither kept nor dropped. The one
+asymmetry: `pointers(c).that().areFrozen()` is a method; everywhere else it is
+`.satisfy(inDocuments(areFrozen()))`.
+
 ## Binding a table to code
 
 A markdown table is a spec — a package list, an ADR index. `rows()` turns its body rows into first-class elements, and `.select()` (inherited from the kernel on every eess builder) makes any selection one side of a [`correspondence()`](/crossvalidate). Bind the table to what it describes, and drift either way fails the build:
@@ -803,8 +881,9 @@ This repository's `check:corpus` requires one State in every live plan and bug t
 condition.
 
 **As a predicate.** `haveField(options)` is exported on its own, for `satisfy()` and the
-combinators. A lift onto a document's boxes or links is plan 0457's `inDocuments`, not yet
-shipped; a hand-written lift must forward `undecided`, or the predicate's `test` refuses. A document whose value cannot be read is **undecided**
+combinators. `inDocuments(haveField(…))` lifts it onto a document's boxes or links (see
+[Scoping a rule to documents](#scoping-a-rule-to-documents-indocuments)); a hand-written lift must
+forward `undecided`, or the predicate's `test` refuses. A document whose value cannot be read is **undecided**
 ([ADR-021](../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)): it is not selected, not
 dropped, and each cause is one finding that cannot be suppressed, reported wherever the rule's
 verdict depends on it. Combined with a predicate that decides the document anyway (a folder that

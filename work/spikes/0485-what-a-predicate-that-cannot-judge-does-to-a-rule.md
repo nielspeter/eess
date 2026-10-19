@@ -174,7 +174,7 @@ combinator, and the reviews showed the same is true of every door that does not 
 - **Carrying findings through `Selection`**, for a `correspondence()` side that should report rather
   than throw: dropped on purpose, with no consumer. ADR-021 clause 6 says when it reopens.
 - **Plan 0457's `SCOPES` registry** has the same combinator blindness: recorded in
-  [plan 0457](../plans/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), with what its
+  [plan 0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), with what its
   `inDocuments` owes this decision.
 - **A second producer.** The undecided heritage walk of bugs 0373/0375/0383 (ADR-017) is the natural
   second user: dropped on purpose until one of those bugs is decided; the member is there for it.

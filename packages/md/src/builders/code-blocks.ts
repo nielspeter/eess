@@ -5,7 +5,6 @@ import {
   type ArchViolation,
   type CollectResult,
   type Condition,
-  type Predicate,
 } from '@nielspeter/eess'
 import {
   isParsedCodeBlocks,
@@ -13,6 +12,7 @@ import {
   type ParsedCodeBlocks,
 } from '../model/code-block-parse.js'
 import { resideInFile, resideInFolder } from '../predicates/document.js'
+import { liftToDocument, scopeDiagnosis } from '../predicates/in-documents.js'
 import { mdViolation } from '../model/violation.js'
 import type { SelectorFault } from '@nielspeter/eess/internal'
 import { mdNotExist } from '../conditions/not-exist.js'
@@ -20,16 +20,6 @@ import { mdSelectorFault } from './selector-fault.js'
 
 /** The instrument's identity: one constant, so several rules over one failed parse dedupe to one. */
 export const CODE_BLOCK_PARSER_INSTRUMENT = 'eess-md: code-block parser'
-
-// Forwards the document predicate's declared globs, so an absence rule over a
-// broken folder glob is diagnosed here too (plan 0456). Plan 0457 replaces this
-// with `inDocuments`, which must forward them as well.
-const onDocument = (p: Predicate<ParsedCodeBlock['doc']>): Predicate<ParsedCodeBlock> => ({
-  description: p.description,
-  test: (b) => p.test(b.doc),
-  ...(p.globs !== undefined && { globs: p.globs }),
-  ...(p.originLabel !== undefined && { originLabel: p.originLabel }),
-})
 
 function bodyLineCount(value: string): number {
   return value === '' ? 0 : value.split('\n').length
@@ -126,6 +116,19 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
     return mdSelectorFault(this.globs(), undefined)
   }
 
+  /**
+   * Plan 0457: a positive rule emptied by an `inDocuments` scope names it, counted against every
+   * document the corpus loaded, not only those holding a block of the language.
+   */
+  protected override deadGlobDiagnosis(): string | undefined {
+    return scopeDiagnosis(
+      this._predicates,
+      () => this.getElements(),
+      this.project.documents,
+      'blocks',
+    )
+  }
+
   /** The kernel's verdict, plus the instrument finding once per rule when the parser failed. */
   protected override collectViolations(): CollectResult {
     const base = super.collectViolations()
@@ -150,12 +153,14 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
 
   /** Filter to blocks in documents whose repo-relative path matches the file glob. */
   resideInFile(glob: string): this {
-    return this.addPredicate(onDocument(resideInFile(glob)))
+    const p = resideInFile(glob)
+    return this.addPredicate(liftToDocument<ParsedCodeBlock>(p, p.description))
   }
 
   /** Filter to blocks in documents whose repo-relative path matches the folder glob. */
   resideInFolder(glob: string): this {
-    return this.addPredicate(onDocument(resideInFolder(glob)))
+    const p = resideInFolder(glob)
+    return this.addPredicate(liftToDocument<ParsedCodeBlock>(p, p.description))
   }
 
   /** The selection must be empty: each selected block is a finding, at its opening fence. */

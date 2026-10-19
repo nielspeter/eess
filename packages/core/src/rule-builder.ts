@@ -278,7 +278,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     return this.project
   }
 
-  /** A `globs()` tree diagnosably dead, when zero examined — same shape as `sourceEmpty()`. */
+  /** A diagnosable reason the selection is empty, when zero examined — same shape as `sourceEmpty()`. */
   protected deadGlobDiagnosis(): string | undefined {
     return undefined
   }

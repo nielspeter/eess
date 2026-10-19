@@ -106,6 +106,12 @@ Each sabotage named below is a row of plan 0486's matrix, red on the test it gua
 eess-md titles are not cited by `it('…')`, since `check:crossval` resolves eess-ts's tests only (bug
 0262).
 
+> **Correction, 2026-10-19 (plan 0457, PR #245).** The eess-md test no longer builds its own lift: it
+> drives the shipped `inDocuments`, and plan
+> [0457](../work/plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s
+> sabotage matrix rows 13 to 16 now prove the forwarding of `undecided` that plan 0486's rows proved
+> over the test-local lift. The paragraph above is kept as written.
+
 | Clause                                                                                                                             | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
 | ---------------------------------------------------------------------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | **1** — The member is optional, method syntax with `this: void`, and takes the element only                                        | 1    | `tsc` over `packages/core/src/predicate.ts` and eess-ts's build, which widens predicates; a type-level test in `packages/core/tests/undecided.test.ts` pins the parameter list and the return type                                                                                                                                                                                                                                                        | gated  |

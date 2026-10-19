@@ -432,6 +432,12 @@ const SIBLING_NOT_CONSTRUCTORS = {
     'predicate factory, used inside a builder; its undecided subjects are the builder findings (plan 0486)',
   '@nielspeter/eess-md::resideInFile': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::haveNameMatching': 'predicate factory, used inside a builder (plan 0456)',
+  '@nielspeter/eess-md::areFrozen': 'predicate factory, used inside a builder (plan 0457)',
+  '@nielspeter/eess-md::areLive': 'predicate factory, used inside a builder (plan 0457)',
+  '@nielspeter/eess-md::haveSectionPredicate':
+    'predicate factory, used inside a builder (plan 0457)',
+  '@nielspeter/eess-md::inDocuments':
+    'predicate lift, used inside a builder; a dead scope on a positive rule is the builder finding (plan 0457)',
   '@nielspeter/eess-md::matchTableRows': 'model reader',
   '@nielspeter/eess-md::cleanValue': 'value helper for fields(), cuts a string (plan 0468)',
   '@nielspeter/eess-md::untilDelimiter': 'value helper for fields(), cuts a string (plan 0468)',

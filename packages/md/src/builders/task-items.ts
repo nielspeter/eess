@@ -38,6 +38,8 @@ const areChecked = (): Predicate<MdTaskItem> => ({
  * whose predicates reach it reports it.
  */
 export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
+  protected readonly noun = 'task items'
+
   /** A frozen copy of the declaration: validated once, so it cannot change after. */
   private readonly marks: TaskItemOptions['marks']
 

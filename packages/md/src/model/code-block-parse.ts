@@ -98,6 +98,8 @@ export interface ParsedCodeBlocks {
   readonly blocks: readonly ParsedCodeBlock[]
   readonly failure: CodeBlockInstrumentFailure | null
   readonly documentsLoaded: number
+  /** Every document the corpus loaded, a block of the language or not (plan 0457). */
+  readonly documents: readonly MdDocument[]
   /**
    * "N mermaid blocks parsed with mermaid 11.17.2". When the parser failed, it says so and gives the
    * cause: no block was checked.
@@ -355,6 +357,7 @@ export async function parseCodeBlocks(
     blocks: Object.freeze(blocks),
     failure: finalFailure,
     documentsLoaded: documents.length,
+    documents: Object.freeze([...documents]),
     summary: () => summarise(language, identity, blocks, finalFailure),
   })
   REGISTERED.add(parsed)

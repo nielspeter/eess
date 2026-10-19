@@ -24,6 +24,8 @@ import {
  * dual-use methods in the TS dialect (plan 0041).
  */
 export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
+  protected readonly noun = 'documents'
+
   protected getElements(): MdDocument[] {
     return this.project.documents()
   }

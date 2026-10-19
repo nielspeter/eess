@@ -13,3 +13,8 @@ reports/
 # from its literal's line. Prettier collapsing a multi-line form moves those lines
 # and reds three tests — measured in plan 0165 Phase 1. A fixture is data, not code.
 packages/ts/tests/fixtures/module-edge-forms/src/forms.ts
+
+# Plan 0457: the in-scope page's section is a setext heading, so the example proves the scope reads
+# that form too. Prettier rewrites setext headings as ATX, which would make the fixture prove nothing
+# about it.
+examples/md/fixtures/in-documents/*/login.md

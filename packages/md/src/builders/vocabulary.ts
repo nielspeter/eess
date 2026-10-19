@@ -224,6 +224,8 @@ function fieldTerms(corpus: Corpus, options: FieldOptions): MdTerm[] {
 
 /** Rule builder over labeled named references in the corpus's prose. */
 export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
+  protected readonly noun = 'terms'
+
   constructor(
     corpus: Corpus,
     private readonly source: Source,
