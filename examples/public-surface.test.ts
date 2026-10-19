@@ -84,12 +84,26 @@ import type {
   VocabularyOptions,
   FieldForm,
   FieldOptions,
+  FieldRegion,
   HaveFieldOptions,
   AgreeWithFolderOptions,
   FolderGroup,
   Direction as MdDirection,
+  HaveSectionOptions,
+  MdSectionElement,
+  SubsectionOptions,
+  SectionTableOptions,
+  SectionCodeBlockOptions,
 } from '@nielspeter/eess-md'
 import { corpus, docs, links, pointers, rows, taskItems, terms } from '@nielspeter/eess-md'
+import { sections, SectionRuleBuilder } from '@nielspeter/eess-md'
+import {
+  inSections,
+  sectionsNamed,
+  sectionsAtDepth,
+  predicateHaveTextMatching,
+} from '@nielspeter/eess-md'
+import { sectionsInSection, sectionsWithSubsection, haveTitle } from '@nielspeter/eess-md'
 import { cleanValue, fields, longestOf, untilDelimiter } from '@nielspeter/eess-md'
 import { areFrozen, areLive, predicateHaveSection, inDocuments } from '@nielspeter/eess-md'
 // The dialect-side half, and the reason this file subsumes bug 0225. `check:family`
@@ -174,10 +188,17 @@ type MdSurface = {
   vocabOptions: VocabularyOptions
   fieldForm: FieldForm
   fieldOptions: FieldOptions
+  fieldRegion: FieldRegion
   haveFieldOptions: HaveFieldOptions
   agreeWithFolderOptions: AgreeWithFolderOptions
   folderGroup: FolderGroup
   direction: MdDirection
+  haveSectionOptions: HaveSectionOptions
+  sectionElement: MdSectionElement
+  subsectionOptions: SubsectionOptions
+  sectionTableOptions: SectionTableOptions
+  sectionCodeBlockOptions: SectionCodeBlockOptions
+  sectionBuilder: SectionRuleBuilder
 }
 
 /** A dialect that exposes a function must expose the types of its arguments. */
@@ -207,6 +228,7 @@ it('every published entry point still exposes the surface a consumer names', () 
     rows,
     taskItems,
     terms,
+    sections,
     fields,
     cleanValue,
     untilDelimiter,
@@ -215,6 +237,13 @@ it('every published entry point still exposes the surface a consumer names', () 
     areLive,
     predicateHaveSection,
     inDocuments,
+    inSections,
+    sectionsNamed,
+    sectionsAtDepth,
+    sectionsInSection,
+    sectionsWithSubsection,
+    predicateHaveTextMatching,
+    haveTitle,
     diagram,
     mermaidClasses,
     mdCorrespondence,

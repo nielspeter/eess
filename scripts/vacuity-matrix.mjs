@@ -377,6 +377,7 @@ const SIBLING_PROBES = {
   '@nielspeter/eess-md::pointers': () => md.pointers(emptyCorpus).check(),
   '@nielspeter/eess-md::rows': () => md.rows(emptyCorpus, { columns: { name: /Name/ } }).check(),
   '@nielspeter/eess-md::taskItems': () => md.taskItems(emptyCorpus).check(),
+  '@nielspeter/eess-md::sections': () => md.sections(emptyCorpus).check(),
   '@nielspeter/eess-md::terms': () => md.terms(emptyCorpus, { label: /Term:/ }).check(),
   '@nielspeter/eess-md::fields': () =>
     md.fields(emptyCorpus, { label: 'Status', forms: ['bold'] }).check(),
@@ -428,6 +429,7 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::collectTaskItems': 'model reader, returns task items',
   '@nielspeter/eess-md::haveSection': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::haveTable': 'condition factory, used inside a builder',
+  '@nielspeter/eess-md::haveTitle': 'condition factory, used inside a builder (plan 0522)',
   '@nielspeter/eess-md::haveTableRowsSatisfying': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::resideInFolder': 'predicate factory, used inside a builder (plan 0456)',
   '@nielspeter/eess-md::predicateHaveField':
@@ -438,6 +440,15 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::areLive': 'predicate factory, used inside a builder (plan 0457)',
   '@nielspeter/eess-md::predicateHaveSection':
     'predicate factory, used inside a builder (plan 0457)',
+  '@nielspeter/eess-md::inSections':
+    'predicate lift, used inside a builder; a dead section scope on a positive rule is the builder finding (plan 0503)',
+  '@nielspeter/eess-md::sectionsNamed': 'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::sectionsAtDepth': 'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::sectionsInSection': 'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::sectionsWithSubsection':
+    'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::predicateHaveTextMatching':
+    'predicate factory, used inside a builder (plan 0503)',
   '@nielspeter/eess-md::inDocuments':
     'predicate lift, used inside a builder; a dead scope on a positive rule is the builder finding (plan 0457)',
   '@nielspeter/eess-md::matchTableRows': 'model reader',

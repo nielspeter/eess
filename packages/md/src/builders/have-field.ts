@@ -6,7 +6,8 @@ import {
   type Undecided,
 } from '@nielspeter/eess'
 import type { MdDocument } from '../model/document.js'
-import type { FieldOptions } from '../model/fields.js'
+import { checkRegion, regionSection, type FieldOptions } from '../model/fields.js'
+import { citesHeadings, declaresSections } from '../model/section-declarations.js'
 import { fieldVerdict, type FieldCause, type FieldVerdict } from '../model/field-verdict.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 import { judge, type Allowed } from './vocabulary.js'
@@ -24,13 +25,33 @@ function verdictOf(doc: MdDocument, spec: HaveFieldOptions): FieldVerdict {
 
 /** A cause as a finding with the rule's context. */
 function causeViolation(doc: MdDocument, c: FieldCause, context: ConditionContext): ArchViolation {
-  return mdViolation({
-    element: c.element,
-    file: doc.file,
-    line: c.line,
-    message: c.message,
-    context,
-  })
+  return citesHeadings(
+    mdViolation({
+      element: c.element,
+      file: doc.file,
+      line: c.line,
+      message: c.message,
+      context,
+    }),
+    c.cites ?? [],
+  )
+}
+
+/**
+ * Validate the region, and record a section region's name for the section-name scan of the rule
+ * that holds `x` (plan 0505 on plan 0496's registry).
+ */
+function withRegion<X extends object>(x: X, spec: HaveFieldOptions, call: string): X {
+  checkRegion(spec.region, call)
+  const section = regionSection(spec.region)
+  return section === undefined
+    ? x
+    : declaresSections(x, [
+        {
+          name: section.section,
+          ...(section.depth === undefined ? {} : { depth: section.depth }),
+        },
+      ])
 }
 
 const describe = (spec: HaveFieldOptions): string =>
@@ -68,29 +89,37 @@ export function predicateHaveField(spec: HaveFieldOptions): Predicate<MdDocument
     verdicts.set(d, fresh)
     return fresh
   }
-  return {
-    description: describe(spec),
-    undecided: (d) => read(d).undecided,
-    test: (d) => {
-      const { has, undecided } = read(d)
-      const [first] = undecided
-      if (first !== undefined) {
-        throw new ArchConfigError(
-          first.element,
-          `predicateHaveField cannot judge ${first.element}: ${first.message}. Apply it through a rule, ` +
-            'which reports this, or forward its undecided() with its test() (ADR-021).',
-        )
-      }
-      return has
+  return withRegion<Predicate<MdDocument>>(
+    {
+      description: describe(spec),
+      undecided: (d) => read(d).undecided,
+      test: (d) => {
+        const { has, undecided } = read(d)
+        const [first] = undecided
+        if (first !== undefined) {
+          throw new ArchConfigError(
+            first.element,
+            `predicateHaveField cannot judge ${first.element}: ${first.message}. Apply it through a rule, ` +
+              'which reports this, or forward its undecided() with its test() (ADR-021).',
+          )
+        }
+        return has
+      },
     },
-  }
+    spec,
+    'predicateHaveField',
+  )
 }
 
 /** `haveField` after `.should()`: every selected document has the value; every cause is a finding. */
 export function haveFieldCondition(spec: HaveFieldOptions): Condition<MdDocument> {
-  return {
-    description: describe(spec),
-    evaluate: (docs, context) =>
-      docs.flatMap((d) => verdictOf(d, spec).causes.map((c) => causeViolation(d, c, context))),
-  }
+  return withRegion<Condition<MdDocument>>(
+    {
+      description: describe(spec),
+      evaluate: (docs, context) =>
+        docs.flatMap((d) => verdictOf(d, spec).causes.map((c) => causeViolation(d, c, context))),
+    },
+    spec,
+    'haveField',
+  )
 }

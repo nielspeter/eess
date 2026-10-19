@@ -5,15 +5,18 @@ import { isLabelAlone, isNearMiss, labelPattern, wrappedLabelOf } from '../model
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 import { decidingBlock } from '../predicates/declared-block.js'
 
-/** What an `areLabelled()`/`areInSection()` call declared, kept for the declaration scan. */
-export type LinkDeclaration =
-  | { readonly kind: 'label'; readonly label: string }
-  | { readonly kind: 'section'; readonly name: string | RegExp }
+/**
+ * What an `areLabelled()` call declared, kept for the declaration scan. A section name is not here:
+ * `areInSection()` records it in the section-name registry every corpus builder scans (plan 0496).
+ */
+export interface LinkDeclaration {
+  readonly kind: 'label'
+  readonly label: string
+}
 
 /** One key per distinct declaration, so a label declared twice is scanned once. */
 export function declarationKey(d: LinkDeclaration): string {
-  if (d.kind === 'label') return `label:${d.label}`
-  return typeof d.name === 'string' ? `section:${d.name}` : `section-re:${String(d.name)}`
+  return `label:${d.label}`
 }
 
 /**
@@ -34,9 +37,9 @@ export function declarationKey(d: LinkDeclaration): string {
  * - **reference-style links:** a declaration holding `[text][ref]` links, which
  *   eess-md does not read;
  * - **an empty declaration:** a wrapped label selecting no link — it names no
- *   record, or it stands alone with no list directly under it;
- * - **a near-miss section:** a heading that misses a string declaration by case
- *   or spacing (a `RegExp` states its own tolerance).
+ *   record, or it stands alone with no list directly under it.
+ *
+ * A near-miss section is the shared section-name scan's (`section-declarations.ts`, plan 0496).
  */
 export function declarationFindings(
   corpus: Corpus,
@@ -61,20 +64,6 @@ export function declarationFindings(
       )
     }
     for (const d of declarations) {
-      if (d.kind === 'section') {
-        if (typeof d.name !== 'string') continue
-        const declared = d.name
-        for (const section of doc.sections) {
-          if (!isNearMiss(section.name, declared)) continue
-          report(
-            section.line,
-            `${doc.relPath} → section "${section.name}" (near miss)`,
-            `the heading "${section.name}" is not the declared section "${declared}", so the links under it are not checked`,
-            `write it "${declared}"`,
-          )
-        }
-        continue
-      }
       const L = d.label
       const declared = new RegExp(labelPattern(L))
       const element = (found: string, kind: string): string =>

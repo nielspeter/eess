@@ -3,6 +3,10 @@ import { globNode, type Predicate } from '@nielspeter/eess'
 import picomatch from 'picomatch'
 import type { MdDocument } from '../model/document.js'
 import { hasSection } from '../model/query.js'
+import { checkDepth } from '../model/name-match.js'
+import { declaresSections } from '../model/section-declarations.js'
+import type { HaveSectionOptions } from '../model/sections.js'
+import { titleFault } from '../model/sections.js'
 
 /**
  * The glob a location predicate declares (plan 0456), so an absence rule's
@@ -42,9 +46,25 @@ export function haveNameMatching(re: RegExp): Predicate<MdDocument> {
   }
 }
 
-/** Predicate form of `haveSection` — "documents that have section X". */
-export function predicateHaveSection(name: string | RegExp): Predicate<MdDocument> {
-  return { description: `have section "${String(name)}"`, test: (d) => hasSection(d, name) }
+/**
+ * Predicate form of `haveSection` — "documents that have section X", at `depth` when given (plan
+ * 0496). The name is recorded for the section-name scan of the rule that holds it.
+ */
+export function predicateHaveSection(
+  name: string | RegExp,
+  options: HaveSectionOptions = {},
+): Predicate<MdDocument> {
+  checkDepth(options.depth, 'haveSection')
+  const at = options.depth === undefined ? '' : ` at depth ${String(options.depth)}`
+  const predicate: Predicate<MdDocument> = {
+    description: `have section "${String(name)}"${at}`,
+    test: (d) => hasSection(d, name, options.depth),
+  }
+  // Recorded with or without a depth (PR #252's verify round), so an absence rule over a drifted
+  // heading names it.
+  return declaresSections(predicate, [
+    { name, ...(options.depth === undefined ? {} : { depth: options.depth }) },
+  ])
 }
 
 /** Documents `corpus()` marked frozen: matched by its `frozen` globs (plan 0457). */
@@ -55,4 +75,12 @@ export function areFrozen(): Predicate<MdDocument> {
 /** Documents `corpus()` did not mark frozen (plan 0457). */
 export function areLive(): Predicate<MdDocument> {
   return { description: 'are live', test: (d) => !d.frozen }
+}
+
+/** Plan 0522: documents whose title (first heading, at depth 1) exists and matches `name` if given. */
+export function documentsTitled(name?: string | RegExp): Predicate<MdDocument> {
+  return {
+    description: name === undefined ? 'have a title' : `have the title "${String(name)}"`,
+    test: (d) => titleFault(d, name) === undefined,
+  }
 }

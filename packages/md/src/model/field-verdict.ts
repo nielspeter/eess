@@ -3,11 +3,14 @@ import { resolveField } from './field-resolve.js'
 import { unreadFieldMessage, unreadFields } from './field-unread.js'
 import {
   readFields,
+  regionSection,
+  regionSections,
   scanFields,
   STRUCTURED_FORMS,
   type FieldOccurrence,
   type FieldOptions,
 } from './fields.js'
+import { headingNotes } from './sections.js'
 import { wrappedLabelOf } from './label.js'
 import { codeShapeAt, proseText } from './prose.js'
 
@@ -27,6 +30,8 @@ export interface FieldCause {
   readonly element: string
   readonly line: number
   readonly message: string
+  /** The headings the message names as the cause (plan 0496's section-name scan skips them). */
+  readonly cites?: readonly number[]
 }
 
 /** A document's verdict: does it have the value, and what is said about it. */
@@ -71,6 +76,21 @@ export function fieldVerdict(
     resolved: false,
     causes: [cause],
   })
+  // Plan 0505: a section region with no section of its name is its own cause, never "no field".
+  const section = regionSection(spec.region)
+  if (section !== undefined && regionSections(doc, section).length === 0) {
+    const at = section.depth === undefined ? '' : ` at depth ${String(section.depth)}`
+    const notes = headingNotes(doc, section.section, { depth: section.depth })
+    return one({
+      kind: 'absent',
+      element: doc.relPath,
+      line: 1,
+      message:
+        `no section "${String(section.section)}"${at} to read ${spec.label} from (region)` +
+        notes.map((n) => `; ${n.note}`).join(''),
+      cites: notes.map((n) => n.line),
+    })
+  }
   const r = resolveField(doc, spec, 'code-blocks')
   const unread = unreadFields(doc, spec, 'code-blocks').map(
     (u): FieldCause => ({
@@ -148,6 +168,17 @@ export function fieldVerdict(
     })
   }
   const labels = [spec.label, ...(spec.aliases ?? [])]
+  if (section !== undefined) {
+    const [outside] = scanFields(doc, labels, STRUCTURED_FORMS, undefined, 'code-blocks')
+    if (outside !== undefined) {
+      return one({
+        kind: 'unreadable',
+        element: at(outside.line),
+        line: outside.line,
+        message: `${spec.label} at line ${String(outside.line)} is outside the "${String(section.section)}" section (region); move it into the section, or change the region`,
+      })
+    }
+  }
   if (spec.region === 'header') {
     const [outside] = scanFields(doc, labels, STRUCTURED_FORMS, undefined, 'code-blocks')
     if (outside !== undefined) {

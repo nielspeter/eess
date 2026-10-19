@@ -62,6 +62,13 @@ export { resideInFolder, resideInFile, haveNameMatching } from './predicates/doc
 export { areFrozen, areLive, predicateHaveSection } from './predicates/document.js'
 // Plan 0457: a document predicate lifted onto any element that carries its document.
 export { inDocuments } from './predicates/in-documents.js'
+// Plan 0503: a section predicate lifted onto any element on a line of its document, the section
+// predicates it takes (noun-first: their callers are lifts, where a bare verb would not say what is
+// selected), and an element's text matched against the caller's own pattern.
+export { inSections } from './predicates/in-documents.js'
+export { sectionsNamed, sectionsAtDepth, sectionsWithSubsection } from './predicates/section.js'
+export { sectionsInSection } from './predicates/section.js'
+export { predicateHaveTextMatching } from './predicates/text.js'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —
 // review found it manually), but this README's own "Binding a spec table to
@@ -105,6 +112,14 @@ export type { MdPointer } from './builders/pointers.js'
 export { presentExternalRoots } from './conditions/pointer-resolve.js'
 export type { PointerResolveOptions } from './conditions/pointer-resolve.js'
 export { rows, RowsRuleBuilder } from './builders/rows.js'
+// Plan 0496: sections as elements, so a rule runs inside each matching section.
+export { sections, SectionRuleBuilder } from './builders/sections.js'
+export type {
+  MdSectionElement,
+  SubsectionOptions,
+  SectionTableOptions,
+  SectionCodeBlockOptions,
+} from './builders/sections.js'
 export { taskItems, TaskItemRuleBuilder } from './builders/task-items.js'
 export type { MdTaskItem } from './builders/task-items.js'
 export { collectTaskItems } from './model/task-items.js'
@@ -113,7 +128,7 @@ export { UNDECLARED_BOX_MARK, MALFORMED_BOX } from './builders/box-mark-findings
 export { vocabulary, terms, fields, TermRuleBuilder } from './builders/vocabulary.js'
 // Plan 0468: a labelled value in the forms the caller names, and the helpers that cut one.
 export { cleanValue, untilDelimiter, longestOf } from './model/fields.js'
-export type { FieldForm, FieldOptions } from './model/fields.js'
+export type { FieldForm, FieldOptions, FieldRegion } from './model/fields.js'
 // Plan 0469: `docs().haveField()`, a document has a value.
 export type { HaveFieldOptions } from './builders/have-field.js'
 // Plan 0495: `docs().should().agreeWithFolder()`, a value agrees with its folder. `Direction` is the
@@ -142,7 +157,7 @@ export {
 export type { Vocabulary, VocabularyOptions, MdTerm, TermsOptions } from './builders/vocabulary.js'
 
 // Conditions (for composing custom rules / presets)
-export { haveSection, haveTable } from './conditions/structure.js'
-export type { HaveTableOptions } from './conditions/structure.js'
+export { haveSection, haveTable, haveTitle } from './conditions/structure.js'
+export type { HaveTableOptions, HaveSectionOptions } from './conditions/structure.js'
 export { haveTableRowsSatisfying } from './conditions/table-rows.js'
 export type { HaveTableRowsOptions, TableRowContext } from './conditions/table-rows.js'

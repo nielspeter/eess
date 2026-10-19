@@ -303,6 +303,21 @@ export default [
         'resolve the link with resolveLink() from model/resolve-link.ts, and keep path arithmetic there',
     }),
 
+  // PR #252's architect review — eess-md's layers run model → predicates → conditions → builders.
+  // A model or predicate module that imports a condition or a builder inverts that, which is how a
+  // predicate came to import `titleFault` from conditions/structure.ts before this rule existed.
+  modules(p)
+    .that()
+    .resideInFile('**/packages/md/src/{model,predicates}/*.ts')
+    .should()
+    .notImportFrom('**/packages/md/src/conditions/**', '**/packages/md/src/builders/**')
+    .rule({
+      id: 'eess/md-layers-point-down',
+      because:
+        "eess-md's model and predicates sit below its conditions and builders; an import upward makes the layers a cycle",
+      suggestion: 'move what both layers need into packages/md/src/model, and import it from there',
+    }),
+
   // ADR-022 clause 3 — eess-md's presets are built from the md root and the kernel root only, the
   // blocks an adopter has. Any other import is an edge into eess-md's own modules or the kernel's
   // `/internal`, which an adopter is not promised. Type imports count: a type the root does not

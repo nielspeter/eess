@@ -31,7 +31,11 @@ function readTree(dir: string): Record<string, string> {
   for (const e of readdirSync(dir, { recursive: true, withFileTypes: true })) {
     if (!e.isFile()) continue
     const abs = join(e.parentPath, e.name)
-    out[relative(dir, abs).split(sep).join('/')] = readFileSync(abs, 'utf8')
+    const rel = relative(dir, abs).split(sep).join('/')
+    // Bug 0524: corpus() never walks node_modules, and resolve-link.test.ts writes a transient
+    // node_modules file into one of these trees from another worker. Skip it as corpus() does.
+    if (rel.split('/').includes('node_modules')) continue
+    out[rel] = readFileSync(abs, 'utf8')
   }
   return out
 }

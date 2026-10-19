@@ -162,12 +162,198 @@ eess-md defines no document shape. A rule about what your plans, bugs or pages m
 the blocks above in your own words; [the Markdown dialect's docs](../../docs/markdown.md#a-documents-shape-built-from-blocks)
 show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/examples/md) with passing and failing fixtures are in eess's repository.
 
+## Inside each section: `sections()`
+
+A requirement that holds per section, not per document, is a rule over `sections(c)`. Each heading not inside a list
+item, blockquote or footnote, at any depth, is an element (`MdSectionElement`): its `name`, `depth` and `line`, the headings
+that enclose it (`sectionPath`), and `endLine`, the line before the next heading at its depth or
+shallower (else the document's last line). A section holds its heading line and every line to
+`endLine`, its subsections included; a depth skip nests (`#### B` under `## A` is in `A`).
+
+```ts
+import { corpus, docs, inDocuments, resideInFolder, sections } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['**/*.md'] })
+
+// Every phase of a plan has a `Files changed` subsection.
+sections(c)
+  .that()
+  .areNamed(/^Phase \d+/)
+  .and()
+  .satisfy(inDocuments(resideInFolder('plans/**')))
+  .should()
+  .haveSubsection('Files changed')
+  .check()
+
+// A plan with no phase at all is not a finding of a section rule: it is a second rule.
+docs(c)
+  .that()
+  .resideInFolder('plans/**')
+  .should()
+  .haveSection(/^Phase \d+/)
+  .check()
+```
+
+| method                             | phase    | meaning                                                                           |
+| ---------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `areNamed(name)`                   | selector | the heading text matches: a string exactly, or a `RegExp`, as `haveSection`       |
+| `areAtDepth(depth)`                | selector | the heading level is `depth` (1 to 6)                                             |
+| `areInSection(name)`               | selector | some enclosing heading matches, at any depth: what `links().areInSection()` reads |
+| `haveSubsection(name, { depth? })` | both     | after `.that()`, sections holding one; after `.should()`, every section holds one |
+| `haveTable({ columns })`           | assert   | every selected section holds a table with the columns                             |
+| `haveContent()`                    | both     | the section holds a block after its heading (not a heading, a rule or a comment)  |
+| `haveCodeBlock({ lang? })`         | both     | it holds a code block, tagged `lang` in any letter case when given                |
+| `haveListItem()`                   | both     | it holds a list item, at any depth                                                |
+| `haveLink()`                       | both     | it holds an inline link                                                           |
+| `haveCodePointer()`                | both     | it holds a code pointer (that it is live is a `pointers()` rule)                  |
+| `notExist()`                       | assert   | each selected section reported at its heading                                     |
+
+`docs().haveTable({ section, columns })` passes when any table under a heading of the name has the
+columns; `sections().haveTable({ columns })` asserts it of every selected section, and refuses a
+`section` option. `haveSection(name, { depth })` (the condition, `docs().haveSection()` and
+`predicateHaveSection`) counts only a heading at that level. A depth that is not 1 to 6 is refused.
+
+What a section holds is read from its heading through its last line, subsections included, so a
+block in the next section never counts, and a link or pointer in the heading's own text is the
+section's, as `inSections` places it. A document's title is `docs().haveTitle(name?)`: its first
+heading not inside a list item, blockquote or footnote, which must be at depth 1, and match `name`
+when given (a string exactly, or a `RegExp`); a document with no heading, or whose first heading is at
+depth 2, is a finding saying which, and a depth-1 heading written inside a container is named. A
+front-matter `title:` is not read: a site whose pages keep their title there has no title to this
+condition. A live code pointer under a named section is three rules reading one `const`:
+
+```ts
+import { corpus, docs, inSections, pointers, sections, sectionsNamed } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['adr/**/*.md'] })
+const ENFORCEMENT = 'Enforcement'
+
+// The document holds the section: the two rules below see nothing of a document that lacks it.
+docs(c).should().haveSection(ENFORCEMENT).check()
+// The section holds a pointer: a pointer rule alone is green on a section that has none.
+sections(c).that().areNamed(ENFORCEMENT).should().haveCodePointer().check()
+// Each pointer in it is live.
+pointers(c)
+  .that()
+  .satisfy(inSections(sectionsNamed(ENFORCEMENT)))
+  .should()
+  .resolve()
+  .check()
+```
+
+**What is not a section.** A heading inside a list item, a blockquote or a footnote definition does
+not start one: it cannot govern anything after its container closes. Neither does an `<h2>` in an HTML
+block, nor a `#` line in a fence. A rule does not read past such a heading silently: a condition's
+finding names it (`section "Phase 1" has no subsection "Files changed"; the heading "Files changed" at
+line 15 is inside a list item, which does not start a section`), and so does the section-name scan.
+
+**The section-name scan.** Every section name a rule reads (`areNamed`, `areInSection`,
+`haveSubsection`, and `haveSection` with a `depth`) is scanned whatever the rule examined: a heading
+that misses a string name only by case or spacing, a heading of the name inside a container, and, for a
+name read at a depth, a document that has it only at other depths, each in the documents the rule can
+see: those its `inDocuments` scopes admit (for `docs()`, those its own predicates select). A heading in
+a document the rule's scope excludes is never its to correct. A `notExist()` rule over a section hidden in a
+blockquote is therefore red, not green. What the scan does not see: a predicate you build by hand; a name with no near miss
+(`'Acceptence'`) on an absence rule; a name given as a `RegExp`, which states its own tolerance and
+turns the near-miss note off (so each user picks their own case); the `haveSection(name)` condition without a `depth`, which records nothing (it names a near miss in its own
+finding instead), so a released rule gains no finding of the scan's; a `## Status` inside a fence or an
+`<h2>` in an HTML block, which is not a heading to the parser and gets no note. `haveContent()` counts
+any block that is not a heading, a thematic break or an HTML comment, so a link-reference definition or
+a lone `<br>` is content. A section name's `RegExp` may carry `g`
+or `y`; it is read without them.
+
+**Do not join sections to other elements by hand.** A predicate testing `s.doc` and a line range, fed
+from `sections().select()`, is green under `notExist()` when the section name is misspelt, and the scan
+never sees it. Limit a rule over boxes or links to matching sections with `inSections`.
+
+## Inside matching sections: `inSections`
+
+`inSections(p)` lifts a section predicate onto any element on a line of its document (a box, a link,
+a pointer, a row, a term, a field), through `satisfy()`, the way `inDocuments` lifts a document
+predicate. An element is under every section that contains its line, so a box under `### Detail`
+inside `## Acceptance criteria` is under both. The section predicates for it are on the root:
+`sectionsNamed(name)`, `sectionsAtDepth(depth)`, `sectionsInSection(name)` and
+`sectionsWithSubsection(name, { depth? })`, the `sections()` methods of the same meaning.
+`predicateHaveTextMatching(re)` selects the elements whose `text` matches your pattern; on `taskItems()`,
+`haveTextMatching(re)` is the method, and it is
+also a condition, every selected box's text must match. A box's text is all of its own content, its
+second paragraph and plain sub-bullets included, its nested boxes excepted. eess-md fixes no words:
+you pass your own.
+
+```ts
+import {
+  corpus,
+  docs,
+  predicateHaveTextMatching,
+  inDocuments,
+  inSections,
+  not,
+  predicateHaveField,
+  sectionsNamed,
+  taskItems,
+} from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['plans/**/*.md'] })
+
+// Each name and pattern is bound once, and the rule and its guard both read it.
+const CLOSED = predicateHaveField({ label: 'Status', forms: ['bold'], oneOf: /^(done|closed)$/i })
+const ACCEPTANCE = /^Acceptance criteria$/i
+const VALIDATION_OWED = /\bvalidation-owed\b/
+
+// In a closed record, an open box under the acceptance criteria may carry only validation-owed.
+taskItems(c)
+  .that()
+  .areOpen()
+  .and()
+  .satisfy(inDocuments(CLOSED))
+  .and()
+  .satisfy(inSections(sectionsNamed(ACCEPTANCE)))
+  .and()
+  .satisfy(not(predicateHaveTextMatching(VALIDATION_OWED)))
+  .should()
+  .notExist()
+  .check()
+
+// The guard: some closed record has the section. The condition repeats the selection on purpose.
+docs(c).that().satisfy(CLOSED).haveSection(ACCEPTANCE).should().haveSection(ACCEPTANCE).check()
+```
+
+A finding names the section it was attributed to, the innermost selected one, in its message:
+`plans/1.md:12 should not exist (under "Acceptance criteria", line 5)`. Not in its element, so
+`.excluding()` and a baseline keep their keys when a rule gains a section scope.
+
+**The guard reads the same `const`.** On a positive rule a section scope that selects nothing is
+named (`inSections(are named "…") selected none of the corpus's N sections in M documents`), and a
+live one that holds none of the selected elements gives its three counts. On `notExist()` an empty
+scope is green, as an absence rule over nothing is (ADR-010 §3). Two things stand in front of that: the
+section-name scan reports a heading that misses a string name by case or spacing, and the guard reds
+when no document has the section. A guard works only when it reads the rule's own `const`: a typo in
+the `const` reaches both, and the guard reds; a literal copied into each can be misspelt in one.
+
+**What stays silent, plainly.** Under `notExist()`, a section name with no near miss by case or spacing
+(`'Acceptence'`) and no guard beside it is green; so is a pattern that selects (`haveTextMatching` in
+front of `notExist()`) when it is misspelt, or the notation drifts from it, since no scan exists for
+text. A pattern used to exclude (`not(predicateHaveTextMatching(…))`) fails closed. A guard on a selecting
+pattern is a rule of the same tautology shape over the same elements. A section predicate wrapped in
+`not()`, `and()` or `or()` inside `inSections` is not seen by the section-name scan.
+
+**One document drifting is a second guard's.** The existence guard reds when no document has the
+section; it stays green when one record writes `## Acceptence criteria` and another the right
+spelling, and the drifted record's boxes are never judged. Where every selected document carries the
+section, add the per-document guard, reading the same `const`:
+`docs(c).that().satisfy(CLOSED).should().haveSection(ACCEPTANCE)`. Where the convention does not hold
+(some documents legitimately lack the section), nothing catches a drifted heading in one of them
+unless it misses the name only by case or spacing.
+
 ## Scoping a rule to documents: `inDocuments`
 
 A note on names first. A plain name on this package's root keeps the kind it was first published as:
 `haveSection` is the condition, and `resideInFolder` the predicate. Where a word is needed in the other
 kind, the twin carries the prefix: `predicateHaveSection`, and `predicateHaveField` beside the
-`docs().haveField()` method. (eess-ts's plain names lean the other way.)
+`docs().haveField()` method, and `predicateHaveTextMatching` beside `taskItems().haveTextMatching()`.
+A free predicate over an element other than the builder's own subject is named element-first
+(`sectionsNamed`), so a lift reads `inSections(sectionsNamed('X'))`. (eess-ts's plain names lean the
+other way.)
 
 Every element that belongs to a document (a box, a link, a pointer, a row, a term, a code block)
 carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
@@ -364,7 +550,9 @@ docs(c).should().beUniqueBy(slug, 'slug').check()
 `bold` (`**Status:** v`), `heading` (`## Status: v`), `bold-line` (`**Status: v**`) and `plain`
 (`Status: v`). There is no default form. `.should().resolveAgainst(vocabulary | RegExp)` checks the
 value, and a label your rule's selection writes with markup it does not read is reported, as is a
-value that is empty after cutting.
+value that is empty after cutting. `region` bounds where it reads: `'header'`, or
+`{ section: 'Status' }`, the body of every `## Status` section, so a feedback register of
+`**Status:**` items elsewhere in the record is not part of the question.
 `cleanValue`, `untilDelimiter` and `longestOf` cut a value. [The Markdown dialect's docs](../../docs/markdown.md#a-labelled-value-fields)
 cover the region, multi-line values and the findings.
 
