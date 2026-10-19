@@ -15,10 +15,9 @@ npm install -D @nielspeter/eess-md
 ```typescript
 import { corpus, links, pointers } from '@nielspeter/eess-md'
 
-const c = corpus({
-  roots: ['docs/**'],
-  frozen: ['**/completed/**', '**/archived/**'], // historical: links still checked, pointers not
-})
+// `frozen` omitted: the default freezes `completed/` and `archived/` folders
+// (historical: links still checked, pointers not)
+const c = corpus({ roots: ['docs/**'] })
 
 // markdown-to-markdown links resolve
 links(c).that().areInternal().should().resolve().check()
@@ -36,7 +35,7 @@ something you pass to a builder:
 ```typescript
 import { corpus } from '@nielspeter/eess-md'
 
-const c = corpus({ roots: ['docs/**'], frozen: ['**/archived/**'] })
+const c = corpus({ roots: ['docs/**'] })
 
 // Every document the globs matched, parsed — the denominator behind your rules.
 for (const d of c.documents()) {
@@ -63,6 +62,14 @@ A root that matches no file, or only ignored files, while another root loads is 
 writes only the folder its rule reads, is named in `expectEmptyRoots`. That declaration expires: once
 the root loads a document, it is refused until you remove the name (bug 0475). A test fixture that
 builds a shared multi-root corpus can pass `ROOTS.filter((r) => r !== populatedRoot)`.
+
+A `frozen` glob you pass is judged the same way (bug 0499): one that can never match (a leading `/`,
+a `../`) is refused with its correction, and one that marks none of the loaded documents is refused
+unless it is named in `expectEmptyFrozen`, the declaration for a lifecycle folder with no record yet.
+That declaration expires too: once the glob marks a document, it is refused until you drop the name.
+Do not remove a dead frozen glob instead: a record filed there later is read as live, and an absence
+rule over the frozen documents never sees it. Writing the default list out makes it yours, and it is
+judged; the omitted default is not.
 
 `ignore` is narrower than it sounds, in three ways worth knowing before you rely
 on it. It is a **glob over repo-relative file paths**, so a bare directory name
@@ -525,8 +532,8 @@ own.) A scope built from `resideInFolder` or `resideInFile` is different: a brok
 (`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
 predicate is on `docs()`. `areFrozen()` and `areLive()` carry no glob; `corpus()` judges the
 `frozen` globs it is given instead, and refuses one that can never match (`frozen: ['/archive/**']`)
-or that marks none of the documents it loaded (bug 0499). eess-md's default frozen globs are not
-judged.
+or that marks none of the documents it loaded (bug 0499), unless it is named in `expectEmptyFrozen`.
+Writing the default list out makes it yours, and it is judged; the omitted default is not.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
 predicateHaveSection('Verificaton'))).should().resolve()` reds with `inDocuments(have section

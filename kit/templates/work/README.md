@@ -23,7 +23,10 @@ than close**, so it has no board and no done-folder — a spike is terminal the 
 it is written, and takes its number from the same shared sequence as every other
 lane. If you have wired up `check:corpus`, freeze it: pass `work/spikes/**` to
 `corpus({ frozen: [...] })` from `@nielspeter/eess-md`, so a spike citing another
-project's code at a version is not held to your build's line numbers.
+project's code at a version is not held to your build's line numbers. A `frozen`
+list you pass replaces the default, so list your done folders too, and name any
+glob whose folder holds no record yet in `expectEmptyFrozen`: `corpus()` refuses a
+frozen glob that marks no document, and the declaration expires once one does.
 
 ## Conventions
 
