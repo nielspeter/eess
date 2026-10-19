@@ -8,7 +8,7 @@ import type { SectionDeclaration } from '../model/section-declarations.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 
 /** What the scan needs from the rule that holds the declarations. */
-export interface SectionScan {
+interface SectionScan {
   readonly corpus: Corpus
   readonly declarations: readonly SectionDeclaration[]
   /** The documents the rule's document scopes admit: the container and depth notes read only these. */

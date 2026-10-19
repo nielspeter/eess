@@ -7,7 +7,7 @@ export interface SectionDeclaration {
 }
 
 /** One key per distinct declaration, so a name declared twice is scanned once. */
-export function sectionDeclarationKey(d: SectionDeclaration): string {
+function sectionDeclarationKey(d: SectionDeclaration): string {
   const name = typeof d.name === 'string' ? `s:${d.name}` : `re:${String(d.name)}`
   return d.depth === undefined ? name : `${name}@${String(d.depth)}`
 }

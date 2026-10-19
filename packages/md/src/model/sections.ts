@@ -87,10 +87,10 @@ export function sectionPathAt(doc: MdDocument, line: number): readonly string[] 
 }
 
 /** What holds a heading that is not a section. */
-export type HeadingContainer = 'list item' | 'blockquote' | 'footnote definition'
+type HeadingContainer = 'list item' | 'blockquote' | 'footnote definition'
 
 /** A heading inside a container, which does not start a section. */
-export interface ContainedHeading {
+interface ContainedHeading {
   readonly name: string
   readonly depth: number
   readonly line: number
@@ -114,7 +114,7 @@ const containerOf = (node: Nodes): HeadingContainer | undefined =>
  * section's name is (`headingName`), so the two compare equal. A third heading walk, diagnostic
  * only: it is read when a finding or the section-name scan needs it, never to decide a section.
  */
-export function containedHeadings(doc: MdDocument): readonly ContainedHeading[] {
+function containedHeadings(doc: MdDocument): readonly ContainedHeading[] {
   const known = CONTAINED.get(doc)
   if (known !== undefined) return known
   const out: ContainedHeading[] = []
@@ -137,7 +137,7 @@ export function containedHeadings(doc: MdDocument): readonly ContainedHeading[] 
 }
 
 /** A heading of the name that a rule cannot read where it looked: one cause, one note. */
-export interface HeadingNote {
+interface HeadingNote {
   readonly line: number
   /** The heading's text. */
   readonly heading: string
