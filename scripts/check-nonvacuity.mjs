@@ -4260,6 +4260,13 @@ const gates = [
       ]),
   ],
   [
+    'surface/suffix-twin-of-a-method',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'surface/suffix-twin-of-a-method red on its own subject', [
+        'surface/suffix-twin-of-a-method',
+      ]),
+  ],
+  [
     'docs-code/fence-does-not-compile',
     () =>
       gateNode('bad-waived-gates.mjs', 'docs-code/fence-does-not-compile red on its own subject', [
@@ -4718,9 +4725,14 @@ const GATE_FOR = {
     'docs-code/root-doc-fence',
     'docs-code/migration-page-fence',
   ],
-  // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
-  // sabotages the KERNEL ROOT — the only population this gate blocks on.
-  'check:surface': ['surface/undocumented-export', 'surface/suffix-twin'],
+  // ADR-011 clause 1's gate, which blocks on the KERNEL ROOT (scenario 2 of the same probe), and
+  // ADR-023 clause 2's, which blocks on every package: a suffix twin of a free export, and one of a
+  // builder method.
+  'check:surface': [
+    'surface/undocumented-export',
+    'surface/suffix-twin',
+    'surface/suffix-twin-of-a-method',
+  ],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.

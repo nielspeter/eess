@@ -260,6 +260,25 @@ SCENARIOS['surface/suffix-twin'] = () => {
   }
 }
 
+SCENARIOS['surface/suffix-twin-of-a-method'] = () => {
+  // check:surface, ADR-023 clause 2 as widened: a twin of a BUILDER METHOD. eess-md's root has no
+  // free `haveField`; the plain word is `docs().haveField()`. A gate that inferred twins from the
+  // package's other exports passed this green (PR #248's enforcement review); the reviewed list
+  // must catch it.
+  const TWIN = 'haveFieldPredicate'
+  const twin = withSabotage(
+    'packages/md/src/index.ts',
+    (t) => `${t}\nexport { predicateHaveField as ${TWIN} } from './builders/have-field.js'\n`,
+    () => runCapture('check:surface'),
+  )
+  if (!twin.out.includes(`${TWIN} → predicateHaveField`) || twin.status === 0) {
+    vacuous(
+      `check:surface exited ${twin.status} and ${twin.out.includes(TWIN) ? 'named' : 'never named'} ` +
+        `${TWIN} — it must SEE a suffix twin of a builder method and FAIL on it (ADR-023)`,
+    )
+  }
+}
+
 SCENARIOS['examples/does-not-compile'] = () => {
   // 3. check:examples — an example that does not typecheck.
   //

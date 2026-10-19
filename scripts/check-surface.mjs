@@ -5,7 +5,8 @@
  *
  * Two things about the scope, both decided in review rather than by this script:
  *
- * **It blocks on the kernel root only.** ADR-011's clause 1 governs
+ * **For ADR-011, it blocks on the kernel root only** (ADR-023's check below blocks on every
+ * package). ADR-011's clause 1 governs
  * `@nielspeter/eess`'s root entry point; that is the surface the ADR classified
  * and the population it authorises a gate over. The dialects' undocumented
  * exports are real debt, but no ADR clause, plan or bug ruling covers them, and a
@@ -22,14 +23,26 @@
  * `npm run test`). A gate that hides other gates is worse than the drift it
  * catches, so this one is deliberately the last step.
  *
- * **ADR-023 clause 2 rides along.** A predicate and a condition that share a word: the plain name
- * keeps its first kind, and the twin of the other kind takes the prefix `predicate` or `condition`
- * (`conditionResideInFile`), never a suffix. So a value export named `<base>Predicate` or
- * `<base>Condition` whose `<base>` is itself an export of the same package is a finding, and it
- * blocks. Names like `definePredicate` or `satisfyPairCondition` are not twins (`define`,
- * `satisfyPair` are not exports), so the rule needs no list of exceptions.
+ * **ADR-023 clause 2 rides along, on every package.** A twin of the other kind, whether of a free
+ * export or of a builder method of the same word, takes the prefix `predicate` or `condition`
+ * (`conditionResideInFile`, `predicateHaveField`), never a suffix. So every value export on a public
+ * entry point (not `/internal`) whose name ends in `Predicate` or `Condition` is a finding unless it
+ * is on `NOT_A_TWIN` below, a list a reviewer extends with a reason. Inferring twins from the
+ * package's other exports instead missed a twin of a builder method (`haveFieldPredicate`, where the
+ * plain word is `docs().haveField()`) and any suffix name whose base is not an export (PR #248's
+ * enforcement review measured both green).
  */
-import { undocumentedExports, exportsOf } from './lib/public-surface.mjs'
+import { undocumentedExports, exportsOf, PACKAGES } from './lib/public-surface.mjs'
+
+/** Value exports that end in a kind's name and are not twins, each with the reason. */
+const NOT_A_TWIN = new Map([
+  ['definePredicate', 'constructs a predicate from a description and a test; no word is shared'],
+  [
+    'defineCondition',
+    'constructs a condition from a description and an evaluate; no word is shared',
+  ],
+  ['satisfyPairCondition', "eess-ts's condition over a `PairCondition`; the type names it"],
+])
 
 const t0 = Date.now()
 const elapsed = () => `${((Date.now() - t0) / 1000).toFixed(2)}s`
@@ -39,20 +52,21 @@ const kernel = missing.filter((e) => e.pkg === 'core')
 const dialects = missing.filter((e) => e.pkg !== 'core')
 const kernelTotal = exportsOf(process.cwd(), 'core').length
 
-// ADR-023 clause 2: a twin named by suffix, in any package, kernel included.
-const PACKAGES = ['core', 'ts', 'md', 'mermaid', 'gherkin', 'crossvalidate']
-let scannedForTwins = 0
-const suffixTwins = PACKAGES.flatMap((pkg) => {
-  const values = exportsOf(process.cwd(), pkg).filter((e) => !e.typeOnly)
-  scannedForTwins += values.length
-  const names = new Set(values.map((e) => e.name))
-  return values.flatMap((e) => {
-    const m = /^(.+)(Predicate|Condition)$/.exec(e.name)
-    if (m === null || !names.has(m[1])) return []
-    const prefixed = `${m[2] === 'Predicate' ? 'predicate' : 'condition'}${m[1][0].toUpperCase()}${m[1].slice(1)}`
-    return [{ pkg, name: e.name, prefixed }]
-  })
-})
+// ADR-023 clause 2: a name ending in a kind is a twin unless a reviewer listed it, in any package,
+// kernel included, from the census's one package list.
+let suffixNamed = 0
+const suffixTwins = PACKAGES.flatMap((pkg) =>
+  exportsOf(process.cwd(), pkg)
+    .filter((e) => !e.typeOnly)
+    .flatMap((e) => {
+      const m = /^(.+)(Predicate|Condition)$/.exec(e.name)
+      if (m === null) return []
+      suffixNamed += 1
+      if (NOT_A_TWIN.has(e.name)) return []
+      const prefixed = `${m[2] === 'Predicate' ? 'predicate' : 'condition'}${m[1][0].toUpperCase()}${m[1].slice(1)}`
+      return [{ pkg, name: e.name, prefixed }]
+    }),
+)
 
 // The census is printed whether or not the gate reds: a number nobody can see is
 // a number nobody pays down.
@@ -86,7 +100,8 @@ if (suffixTwins.length > 0) {
   }
   console.error('')
   console.error(
-    '      Fix: the twin takes the prefix `predicate` or `condition` (ADR-023 clause 2).',
+    '      Fix: the twin takes the prefix `predicate` or `condition` (ADR-023 clause 2). A name' +
+      ' that is not a twin goes on NOT_A_TWIN in scripts/check-surface.mjs, with its reason, in review.',
   )
   console.error('')
 }
@@ -118,7 +133,8 @@ if (kernel.length > 0) {
 if (suffixTwins.length > 0) process.exit(1)
 
 console.error(
-  `  ✓ kernel public surface — ${kernelTotal} root exports all documented · ` +
+  `  ✓ public surface — ${kernelTotal} kernel root exports all documented · ` +
     `${publicExports.length} family exports scanned, ${dialects.length} dialect-side undocumented ` +
-    `(reported) · ${scannedForTwins} value exports, 0 twins named by suffix (ADR-023) (${elapsed()})`,
+    `(reported) · ${suffixNamed} suffix-named value exports examined, ${NOT_A_TWIN.size} names listed ` +
+    `as not twins, 0 twins (ADR-023) (${elapsed()})`,
 )

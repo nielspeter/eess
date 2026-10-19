@@ -77,7 +77,7 @@ export function predicateHaveField(spec: HaveFieldOptions): Predicate<MdDocument
       if (first !== undefined) {
         throw new ArchConfigError(
           first.element,
-          `haveField cannot judge ${first.element}: ${first.message}. Apply it through a rule, ` +
+          `predicateHaveField cannot judge ${first.element}: ${first.message}. Apply it through a rule, ` +
             'which reports this, or forward its undecided() with its test() (ADR-021).',
         )
       }

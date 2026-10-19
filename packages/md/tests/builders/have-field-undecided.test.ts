@@ -86,8 +86,9 @@ describe('predicateHaveField, haveField as a predicate (ADR-021)', () => {
 
   it('a hand wrapper around test() refuses, naming the cause', () => {
     const wrapped: Predicate<MdDocument> = { description: 'wrapped', test: (d) => done.test(d) }
+    // The refusal names the export the caller holds, `predicateHaveField` (ADR-023).
     expect(() => docs(c).that().satisfy(wrapped).should().notExist().violations()).toThrow(
-      /Status is given twice/,
+      /^predicateHaveField cannot judge .*Status is given twice/,
     )
   })
 

@@ -160,6 +160,11 @@ show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/exa
 
 ## Scoping a rule to documents: `inDocuments`
 
+A note on names first. A plain name on this package's root keeps the kind it was first published as:
+`haveSection` is the condition, and `resideInFolder` the predicate. Where a word is needed in the other
+kind, the twin carries the prefix: `predicateHaveSection`, and `predicateHaveField` beside the
+`docs().haveField()` method. (eess-ts's plain names lean the other way.)
+
 Every element that belongs to a document (a box, a link, a pointer, a row, a term, a code block)
 carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
 and `areFrozen()` read the `frozen` globs you pass `corpus()`, or, when you pass none, its default
