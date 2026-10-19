@@ -98,7 +98,7 @@ intended. Re-measured on this branch (0 findings, examined 0) and recorded as
 ## Verification
 
 - [x] Red test written first: the first table row reds once the glob is judged — `packages/md/tests/corpus-frozen-globs.test.ts`; 4 of its 8 tests failed on the unfixed code (the leading-slash, dead, both-named and text-over-empty rows)
-- [x] `npm run validate` green — at the branch's final head, recorded in plan 0481's close and the PR
+- [ ] validation-owed: `npm run validate` green (it runs after this record is written, at the branch's head; its result is reported on the PR, and CI is the gate)
 - [ ] deferred→bug 0510 — a frozen glob that marks every loaded document is not refused
 
 Sabotage matrix (mutant applied to `packages/md/src/corpus.ts`, then restored with `git checkout`):
