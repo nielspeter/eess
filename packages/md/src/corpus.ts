@@ -85,7 +85,13 @@ const BUILTIN_IGNORE = ['node_modules', '.git', 'dist', 'coverage', '.output', '
 export function corpus(options: CorpusOptions): Corpus {
   const root = options.cwd ?? process.cwd()
   const paths = walkFiles(root, root, new Set(BUILTIN_IGNORE))
-  return assembleCorpus(root, paths, (rel) => readFileSync(join(root, rel), 'utf8'), options)
+  return assembleCorpus(
+    root,
+    paths,
+    (rel) => readFileSync(join(root, rel), 'utf8'),
+    options,
+    'disk',
+  )
 }
 
 /** What `assembleCorpus` reads from either constructor's options. */
@@ -107,6 +113,7 @@ function assembleCorpus(
   paths: readonly string[],
   read: (relPath: string) => string,
   options: AssembleOptions,
+  source: 'disk' | 'text',
 ): Corpus {
   const matchesRoot = picomatch([...options.roots])
   const matchesFrozen = picomatch([...(options.frozen ?? DEFAULT_FROZEN)])
@@ -183,7 +190,7 @@ function assembleCorpus(
   }
   // Kept so `resolveLink` can say why an existing file was not loaded (plan 0404),
   // and so a pointer's target is read where the corpus read its documents (plan 0455).
-  registerCorpusInternals(loaded, { inRoots: matchesRoot, ignored: matchesIgnore, read })
+  registerCorpusInternals(loaded, { inRoots: matchesRoot, ignored: matchesIgnore, read, source })
   return loaded
 }
 
@@ -218,7 +225,10 @@ export interface TextCorpusOptions {
  * What cannot behave as on disk is refused with an `ArchConfigError`, never silently different:
  * a waiver directive in a loaded document (the kernel reads waivers from disk, so it would not
  * apply), a path that is not one canonical repo-relative path, a path that is also a directory of
- * another, a path under a directory `corpus()` never walks, and a `root` that exists.
+ * another, two paths that differ only in letter case (a case-insensitive disk cannot hold both), a
+ * path under a directory `corpus()` never walks, and a `root` that exists. A pointer rule over it
+ * with `externalRoots` is refused too: those roots are read from the real disk, so the test would
+ * depend on the checkout it runs in.
  */
 export function corpusFromText(
   files: Readonly<Record<string, string>>,
@@ -241,7 +251,7 @@ export function corpusFromText(
   // typed way to say so (ADR-005), and fail-closed should that stop holding: an empty text gives a
   // pointer into it a `stale` finding, never a pass.
   const read = (rel: string): string => files[rel] ?? ''
-  const loaded = assembleCorpus(root, paths, read, { ...options, roots })
+  const loaded = assembleCorpus(root, paths, read, { ...options, roots }, 'text')
   for (const doc of loaded.documents()) refuseWaivers(doc)
   return loaded
 }
@@ -252,6 +262,8 @@ export function corpusFromText(
  */
 function refuseUnlessCanonical(paths: readonly string[]): void {
   const directories = new Map<string, string>()
+  // Every key and every directory above it, by its letter-case-folded spelling.
+  const spellings = new Map<string, string>()
   for (const p of paths) {
     const why = notCanonical(p)
     if (why !== undefined) {
@@ -269,9 +281,20 @@ function refuseUnlessCanonical(paths: readonly string[]): void {
           `a test over it would pass on a file CI cannot see. Move it, or leave it out.`,
       )
     }
-    for (let i = 1; i < segments.length; i++) {
-      const dir = segments.slice(0, i).join('/')
-      if (!directories.has(dir)) directories.set(dir, p)
+    for (let i = 1; i <= segments.length; i++) {
+      const prefix = segments.slice(0, i).join('/')
+      if (i < segments.length && !directories.has(prefix)) directories.set(prefix, p)
+      const folded = prefix.toLowerCase()
+      const seen = spellings.get(folded)
+      if (seen === undefined) spellings.set(folded, prefix)
+      else if (seen !== prefix) {
+        throw new ArchConfigError(
+          'corpusFromText',
+          `corpusFromText: '${prefix}' and '${seen}' differ only in letter case — a ` +
+            `case-insensitive disk (the macOS and Windows default) cannot hold both, so the map ` +
+            `would index a tree corpus() could not. Spell them one way.`,
+        )
+      }
     }
   }
   for (const p of paths) {
