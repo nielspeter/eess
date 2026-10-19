@@ -274,7 +274,7 @@ documents, and 14 of 461 open boxes, out of the ledger's counts.
 
 **`ignore` is never judged.** `corpus()` refuses a dead root, but not an `ignore` glob that matches
 nothing or matches too much, so a ledger record filed later under an ignored folder glob is skipped
-without a word. Name the exact files, not a folder glob, or narrow `roots` to the lanes that write
+without a word ([bug 0530](https://github.com/nielspeter/eess/blob/main/work/bugs/0530-an-ignore-glob-is-never-judged.md)). Name the exact files, not a folder glob, or narrow `roots` to the lanes that write
 `State:` instead, since a root is judged:
 
 ```ts

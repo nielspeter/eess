@@ -106,6 +106,23 @@ describe('unjudged is declared, never a default (bug 0525, ADR-009)', () => {
     expect(items.map((t) => `${t.mark}:${t.state}`)).toEqual(['~:undeclared'])
   })
 
+  it('collectTaskItems reads a getter mark once, so it cannot answer the check and the lookup differently', () => {
+    const doc = page(['- [~] a']).documents()[0]
+    expect(doc).toBeDefined()
+    if (doc === undefined) return
+    let reads = 0
+    const forged = {
+      get '~'(): string {
+        reads += 1
+        return reads === 1 ? 'open' : 'bogus'
+      },
+    }
+    // @ts-expect-error a forged state is what this row refuses
+    const items = collectTaskItems(doc.root, { marks: forged, source: doc.text })
+    expect(items.map((t) => `${t.mark}:${t.state}`)).toEqual(['~:open'])
+    expect(reads).toBe(1)
+  })
+
   it('an undeclared [?] beside a mark declared unjudged is still a finding', () => {
     const c = at({ 'completed/b.md': DONE(['- [~] a', '- [?] b']) })
     expect(pairs(honestyAtClose(c, { marks: { '~': 'unjudged' }, report: 'return' }))).toEqual([

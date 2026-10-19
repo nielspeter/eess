@@ -78,7 +78,10 @@ vocabulary; the declaration makes that a choice instead of an omission.
       forgery this fix closes; its refusal row is held by the sabotage matrix below.
 - [x] Green: the same file, 13 passed, with the md suite (751) and the core suite (375). Corrected
       2026-10-19 from "14 passed" (release review, method I4): the file holds 13 tests, 9 `it` calls
-      and a 4-row refusal loop, re-measured as 13 passed
+      and a 4-row refusal loop, re-measured as 13 passed. At this PR's merging head the file holds 15:
+      the own-keys row (enforcement M1) and the getter row (its verify round) were added after; the
+      getter row went red against the earlier copy-after-validate fix (1 failed, 14 passed) and green
+      with copy-then-validate (15 passed)
 - [x] Adopter 3's trial copy rerun with `'?': 'unjudged'` declared: see "Adopter 3 rerun" below
 - [x] Sabotage matrix: see below
 - [ ] `npm run validate` green — validation-owed: validate and CI at the pull request's merging head,

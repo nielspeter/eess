@@ -203,10 +203,13 @@ export function collectTaskItems(
   root: Root,
   options: TaskItemOptions & { readonly source: string },
 ): MdTaskItemRef[] {
-  validateMarks(options.marks, 'collectTaskItems')
-  // Only the own keys validation read: a state on the prototype is never looked up, so it cannot be
-  // forged past the check (release review, enforcement M1).
-  const marks = Object.fromEntries(Object.entries(options.marks ?? {}))
+  // Copy the own keys once, then validate the copy: a state on the prototype is never looked up, and
+  // a getter is read exactly once, so neither can be forged past the check (release review,
+  // enforcement M1 and its verify round).
+  const marks: Readonly<Record<string, BoxMarkState>> = Object.fromEntries(
+    Object.entries(options.marks ?? {}),
+  )
+  validateMarks(marks, 'collectTaskItems')
   const out: MdTaskItemRef[] = []
   const visit = (node: Nodes, inBlockquote: boolean): void => {
     if (node.type === 'blockquote') {
