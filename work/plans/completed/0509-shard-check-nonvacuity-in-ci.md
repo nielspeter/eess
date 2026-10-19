@@ -49,13 +49,27 @@ now also runs `node --test scripts/lib/nonvacuity-shards.test.mjs`, the same pat
 `check:corpus` and `check:family`. `QA_ONLY`, a shard, a merge and `--plan` refuse to combine.
 `node scripts/check-nonvacuity.mjs --plan N` prints the assignment without running anything.
 
-**Concurrency.** The workflow gains `concurrency: { group: ci-${{ github.workflow }}-${{ github.ref }},
-cancel-in-progress: ${{ github.event_name == 'pull_request' }} }`: a PR run on a superseded commit is
-cancelled, and a run on `main` never is.
+**Concurrency.** The workflow gains `concurrency: { group: ci-${{ github.workflow }}-${{
+github.event_name == 'pull_request' && github.ref || github.sha }}, cancel-in-progress: ${{
+github.event_name == 'pull_request' }} }`. A PR run on a superseded commit of the same PR is
+cancelled; on `pull_request` the ref is `refs/pull/N/merge`, so each PR, stacked or not, has its own
+group. Every other run, a push to `main` among them, is grouped by its commit, so it shares a group
+with nothing and is never cancelled or queued by this block. The first version grouped `main` by
+ref and claimed that kept every commit's result; it did not. GitHub keeps one running and one
+pending run per group and cancels the pending one when a third arrives, whatever
+`cancel-in-progress` says, so the middle commit of three quick merges would have had no CI result,
+and merges would have run one at a time (PR #250's DevOps review, I1).
 
 **N = 4.** Chosen from the measured numbers: 31.9 minutes over four shards is about 8 minutes of
-fixtures each, plus about 1.5 minutes of install and build per shard. See the Build notes for the
-per-shard local durations.
+fixtures each, plus about 1.5 minutes of install and build per shard (measured in CI: about 35 s).
+See the Build notes for the per-shard local and CI durations.
+
+**Cost.** Each run now starts 7 jobs instead of 2. Runner minutes are about the same (about 43.6 min
+of job time per run against about 43.7 before; the repeated `npm ci` and build add about 2.3 min,
+the shorter `test` job takes it back). The binding limit is the account's concurrent-job cap (20 on
+GitHub's Free plan, if that is the plan in use): about three simultaneous PR runs now fill it,
+against about ten before, so with many stacked PRs pushed at once, expect queueing. Cancelling
+superseded PR runs offsets part of that (PR #250's DevOps review, M3).
 
 ## How this gate could fail open, and what reds
 
@@ -66,9 +80,10 @@ per-shard local durations.
 | the selector drops a fixture from every shard                                                     | the merge: `fixture "<name>" ran in no shard`                                                    |
 | the selector runs a fixture twice                                                                 | the merge: `ran in shards a, b`                                                                  |
 | a shard job is dropped from the matrix, or crashes before its report                              | the merge: `shard k of N sent no report` (the upload step also fails on a missing file)          |
+| a shard hangs                                                                                     | `timeout-minutes: 20` on the shard job, then the merge: `sent no report`                         |
 | a shard's fixture does not fire                                                                   | the shard (exit 1) and the merge, by name                                                        |
 | reports from another fixture list (a stale artifact, a changed list)                              | the merge: `made from a different fixture list`                                                  |
-| no report at all                                                                                  | the merge: `no shard report found`                                                               |
+| no report at all                                                                                  | the merge: `no shard report found`; its closing line says the merge failed, not a fixture        |
 | a corpus rule id that no shard's fixture asserts                                                  | the merge's `rule-id coverage`, over the union                                                   |
 | the instruments stop running                                                                      | `gate coverage`'s and `harness self-check`'s lines run only in the merge; a test pins them there |
 | two gate rows share a name, so "exactly one shard" is unanswerable                                | `gate coverage` (unsharded), the shard and the merge                                             |
@@ -88,7 +103,7 @@ every test green, as deleting `checkBunLoadJob`'s call would.
 - `scripts/check-nonvacuity.mjs` — shard, merge and plan modes; `gate coverage` reads the two jobs
   and refuses duplicate names; rule-id coverage reads the merged union in merge mode.
 - `.github/workflows/ci.yml` — `concurrency`; the `check:nonvacuity` step leaves `test`; jobs
-  `nonvacuity-shard` (matrix of 4) and `nonvacuity` (merge).
+  `nonvacuity-shard` (matrix of 4, `timeout-minutes: 20`) and `nonvacuity` (merge).
 - `package.json` — `check:nonvacuity` also runs the new test file.
 
 ## Release
@@ -100,7 +115,16 @@ Scripts, CI and the root `package.json` only; no package under `packages/` chang
 
 - Splitting `npm run test` (7.4 minutes) or the other steps of `test`.
 - Balancing shards by measured duration. The split is by position; the merge prints nothing about
-  balance, and the per-fixture durations are in each report for a later decision.
+  balance, and the per-fixture durations are in each report for a later decision. In CI the
+  imbalance is 1.73 times (Build notes).
+- Splitting the `test` job's own steps, which predate this plan, or giving `test` a
+  `timeout-minutes`.
+
+**Not exercised.** "Re-run failed jobs" after one failed shard re-runs that shard and the merge,
+which then reads the passing shards' artifacts from the earlier attempt (retention one day). Whether
+`upload-artifact@v7` and `download-artifact@v8` handle a same-named artifact across attempts was not
+tried. If they do not, the merge reds (a missing or duplicated report), so the cost is convenience,
+not a false green; a full re-run always works (PR #250's DevOps review, M5).
 
 ## Build notes
 
@@ -118,11 +142,20 @@ then the merge over their real reports):
 The union of the four reports' `selected` is 225 names, 225 distinct, equal to the unsharded list
 (`--plan 1`). The merge printed `shard partition — OK · 225 fixtures across 4 shards`,
 `rule-id coverage — OK · all 26 rule ids`, `gate coverage — OK` and `harness self-check — OK`. The
-sum, 829 s, is the old serial run; the longest shard is 1.2 times the shortest, so the positional
-split balances well enough without durations. The slowest single fixtures are 35 s
+sum, 829 s, is the old serial run; locally the longest shard is 1.2 times the shortest. The slowest single fixtures are 35 s
 (`arch/examples-md-no-hand-built-rules`) and 29 s (`arch/no-new-kernel-registry`). CI ran the
 serial set 2.45 times slower than this machine (31.9 min against 13), which puts a CI shard at about
-9 minutes plus install and build. The CI timing is the coordinator's to read on the PR.
+9 minutes plus install and build.
+
+**In CI** (run 39209313838 on 504ddfa, pull_request, all green; PR #250's DevOps review): the run took
+10m41s wall-clock, against about 43 minutes before. `test` 10m00s; shards 1 to 4 took 582.0 s,
+337.4 s, 402.0 s and 459.7 s of fixtures (job times 10m24s, 6m10s, 7m18s, 8m20s); the merge 8 s
+(`227 fixtures across 4 shards`, the list as merged with main at that point); `bun-load` 41 s. The
+shards are less balanced in CI than locally: the longest is **1.73 times** the shortest (582 s
+against 337 s), not 1.2. Shard 1 is the critical path, finishing about 24 s after `test`; a
+balanced split (about 445 s each) would make `test` the bottleneck again. The cost is small today
+and grows with each slow fixture added near the front of the list. A duration-based split stays out
+of scope; the per-fixture durations are in each shard's report, kept for one day.
 
 **A fixture added later.** A dummy row `dummy/added-later`, added as the first fixture of `gates`,
 was assigned to shard 1 by `--plan 4` (226 fixtures, 57/57/56/56). The merge over the four reports
@@ -155,25 +188,26 @@ the red evidence instead: every row turns its named test red on the real harness
 test run alone with `--test-name-pattern`, the file restored by `git checkout`, all 18 tests green
 after). `H` is `scripts/check-nonvacuity.mjs`, `L` is `scripts/lib/nonvacuity-shards.mjs`.
 
-| row | mutant                                                     | named test, red                                            |
-| --- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| 1   | H: the shard's zero-selection guard becomes `if (false)`   | a shard that selects no fixture fails                      |
-| 2   | L: the selector skips position 0                           | the plan puts every fixture in exactly one shard           |
-| 3   | L: the merge ignores a fixture in no shard                 | a fixture that ran in no shard fails the merge             |
-| 4   | L: the merge ignores a fixture in two shards               | a fixture that ran in two shards fails the merge           |
-| 5   | L: the merge ignores a missing shard                       | a missing shard report fails the merge                     |
-| 6   | L: the merge ignores a shard reported twice                | a shard reported twice fails the merge                     |
-| 7   | L: the merge ignores failed fixtures                       | a fixture that failed in its shard fails the merge         |
-| 8   | L: the merge ignores the list digest                       | a report made from another fixture list fails the merge    |
-| 9   | L: the merge accepts an empty directory                    | an empty report directory fails the merge                  |
-| 10  | L: the merge keeps only shard 1's rule ids                 | a complete set of shard reports merges green               |
-| 11  | H: the merge audits its own, empty rule-id set             | a complete set of shard reports merges green               |
-| 12  | H: the merge skips the rule-id audit                       | a rule id no shard asserted fails the merge                |
-| 13  | H: the merge skips the instruments                         | a complete set of shard reports merges green               |
-| 14  | L: the workflow check accepts a missing merge job          | a workflow without the merge job is refused                |
-| 15  | L: the workflow check accepts a merge a failed shard skips | a merge job that a failed shard would skip is refused      |
-| 16  | L: the workflow check accepts `continue-on-error`          | a merge job whose failure need not fail the run is refused |
-| 17  | L: the workflow check accepts a merge without `needs:`     | a merge job that does not wait for the shards is refused   |
+| row | mutant                                                                                    | named test, red                                            |
+| --- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 1   | H: the shard's zero-selection guard becomes `if (false)`                                  | a shard that selects no fixture fails                      |
+| 2   | L: the selector skips position 0                                                          | the plan puts every fixture in exactly one shard           |
+| 3   | L: the merge ignores a fixture in no shard                                                | a fixture that ran in no shard fails the merge             |
+| 4   | L: the merge ignores a fixture in two shards                                              | a fixture that ran in two shards fails the merge           |
+| 5   | L: the merge ignores a missing shard                                                      | a missing shard report fails the merge                     |
+| 6   | L: the merge ignores a shard reported twice                                               | a shard reported twice fails the merge                     |
+| 7   | L: the merge ignores failed fixtures                                                      | a fixture that failed in its shard fails the merge         |
+| 8   | L: the merge ignores the list digest                                                      | a report made from another fixture list fails the merge    |
+| 9   | L: the merge accepts an empty directory                                                   | an empty report directory fails the merge                  |
+| 10  | L: the merge keeps only shard 1's rule ids                                                | a complete set of shard reports merges green               |
+| 11  | H: the merge audits its own, empty rule-id set                                            | a complete set of shard reports merges green               |
+| 12  | H: the merge skips the rule-id audit                                                      | a rule id no shard asserted fails the merge                |
+| 13  | H: the merge skips the instruments                                                        | a complete set of shard reports merges green               |
+| 14  | L: the workflow check accepts a missing merge job                                         | a workflow without the merge job is refused                |
+| 15  | L: the workflow check accepts a merge a failed shard skips                                | a merge job that a failed shard would skip is refused      |
+| 16  | L: the workflow check accepts `continue-on-error`                                         | a merge job whose failure need not fail the run is refused |
+| 17  | L: the workflow check accepts a merge without `needs:`                                    | a merge job that does not wait for the shards is refused   |
+| 18  | H: the merge's closing line blames a fixture again (row added after PR #250's review, M4) | an empty report directory fails the merge                  |
 
 A first version of row 12 (dropping one id from the union) survived, because its test already
 dropped that id; the test was changed to spread the ids across the four shards, so only the union
@@ -193,3 +227,6 @@ by `gate coverage` in the merge, and the plan and board by `check:corpus`, `chec
 - [x] A fixture added later lands in a shard and the stale merge reds
 - [x] Targeted gates instead of a full `validate`, done otherwise: see Build notes
 - [x] Close: this plan in `completed/`; ROADMAP row
+- [x] Review of PR #250 (DevOps): I1 concurrency per commit off PRs; M1 CI balance 1.73×; M2 shard
+      timeout; M3 concurrency-slot cost; M4 the merge's closing line; M5 re-run path recorded as
+      not exercised

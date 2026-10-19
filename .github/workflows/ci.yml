@@ -10,10 +10,14 @@ on:
   # Stacked branches are how this repo works, so every PR gets the chain.
   pull_request:
 
-# A PR run on a superseded commit is cancelled; a run on main never is, so every
-# commit on main keeps its full result (plan 0509).
+# A PR run on a superseded commit is cancelled (plan 0509). Every other run gets a
+# group of its own, its commit: GitHub keeps one running and one pending run per
+# group and cancels the pending one when a third arrives, whatever
+# `cancel-in-progress` says, so a shared group for main would drop the middle
+# commit of three quick merges. On pull_request `github.ref` is
+# `refs/pull/N/merge`, one group per PR, so stacked PRs do not cancel each other.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -117,6 +121,9 @@ jobs:
   # is dropped, stops waiting for the shards, or can be skipped or softened.
   nonvacuity-shard:
     runs-on: ubuntu-latest
+    # About 10.5 min in CI at the slowest shard; a hung fixture must not hold four
+    # runners for the 6 h default.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:

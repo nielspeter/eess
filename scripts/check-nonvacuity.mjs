@@ -5158,9 +5158,15 @@ if (parsedAssignments < literalAssignments) {
 // Bug 0127: "gates each failed" over-claimed — most fixtures prove their own
 // condition fires, not that the production gate script invokes it. State
 // what was actually measured.
+// In merge mode no fixture runs here, so a failure is the merge's — a missing or
+// stale report, the partition, an instrument, the rule-id audit — or a fixture a
+// shard reported, which the partition line names. Blaming a fixture would send the
+// reader to the wrong place (review of PR #250).
 console.log(
   allOk
     ? `\nnonvacuity: ${gateCount} fixtures each fired on their violating input — no fixture is silently green.`
-    : '\nnonvacuity: at least one fixture did NOT fire on its violating input — see above.',
+    : MERGE_DIR !== undefined
+      ? '\nnonvacuity: the merge FAILED — see the FAILED lines above.'
+      : '\nnonvacuity: at least one fixture did NOT fire on its violating input — see above.',
 )
 process.exit(allOk ? 0 : 1)

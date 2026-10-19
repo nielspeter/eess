@@ -162,6 +162,8 @@ test('an empty report directory fails the merge', () => {
   const r = merge(() => [])
   assert.equal(r.code, 1, r.out)
   assert.match(r.out, /no shard report found/)
+  assert.match(r.out, /the merge FAILED/)
+  assert.doesNotMatch(r.out, /did NOT fire/)
 })
 
 test('a rule id no shard asserted fails the merge', () => {
