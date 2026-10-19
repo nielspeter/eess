@@ -23,6 +23,11 @@
  *                 packages/md/src/conditions/resolve.ts gains a bare `'path'`
  *                 import (the spelling a ban on `'node:path'` alone missed) →
  *                 eess/md-one-link-resolver, on that file.
+ *   arch/md-rules-import-only-the-root (ADR-022 clause 3)
+ *                 packages/md/src/rules/adr.ts gains a `../model/label.js` import →
+ *                 md/rules-import-only-the-root, on that file and naming the module;
+ *                 rules/ledger.ts loses its `../model/prose.js` import, leaving its
+ *                 exclusion stale → md/rules-ledger-debt-is-current, on that file.
  *   arch/one-code-block-tag-comparison (bug 0426, ADR-019 C3)
  *                 packages/md/src/__nonvacuity_probe_tag__.ts compares `.lang`
  *                 three ways (`===`, a bare method call on it, `switch`), one probe
@@ -239,6 +244,8 @@ const EESS_MERMAID = join(repoRoot, 'node_modules', '.bin', 'eess-mermaid')
 const FAMILY_REEXPORT_INDEX_TARGET = join(repoRoot, 'packages', 'md', 'src', 'index.ts')
 // Plan 0404: the condition module that must resolve links only through resolveLink.
 const MD_LINK_CONDITION_TARGET = join(repoRoot, 'packages', 'md', 'src', 'conditions', 'resolve.ts')
+const MD_RULES_ADR_TARGET = join(repoRoot, 'packages', 'md', 'src', 'rules', 'adr.ts')
+const MD_RULES_LEDGER_TARGET = join(repoRoot, 'packages', 'md', 'src', 'rules', 'ledger.ts')
 const FAMILY_REEXPORT_CROSSVALIDATE_TARGET = join(
   repoRoot,
   'packages',
@@ -741,6 +748,35 @@ function gateArchOneLinkResolver() {
   return {
     ok,
     detail: `${probeNote} (eess/md-one-link-resolver on conditions/resolve.ts) · ${cleanNote}`,
+  }
+}
+
+// --- Gate: arch/md-rules-import-only-the-root (ADR-022 clause 3) ---
+// Mutates the real presets: the rule selects packages/md/src/rules/**, and the edge it judges is an
+// import a preset makes. Two probes, one per rule: an internal import planted in adr.ts must red the
+// allowlist naming that module, and ledger.ts paying one debt down (its exclusion left behind) must
+// red the pin, since a stale `.excluding()` entry only warns.
+function gateArchMdRulesRootOnly() {
+  const bad = withMutatedFile(
+    MD_RULES_ADR_TARGET,
+    "import { labelPattern as __probe } from '../model/label.js'",
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const allowlistFired =
+    bad.code === 1 &&
+    firedNamingPayload(bad, 'md/rules-import-only-the-root', 'rules/adr.ts', 'model/label.ts')
+  const paid = withRewrittenFile(
+    MD_RULES_LEDGER_TARGET,
+    (original) => original.replace(/^import \{[^}]*\} from '\.\.\/model\/prose\.js'\n/m, ''),
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const pinFired =
+    paid.code === 1 && firedOn(paid, 'md/rules-ledger-debt-is-current', 'rules/ledger.ts')
+  return {
+    ok: allowlistFired && pinFired,
+    detail:
+      `adr.ts imports model/label.ts → exit ${bad.code}${allowlistFired ? '' : ' (did not fire)'} · ` +
+      `ledger.ts drops model/prose.ts → exit ${paid.code}${pinFired ? '' : ' (pin did not fire)'}`,
   }
 }
 
@@ -3349,6 +3385,7 @@ const gates = [
   ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['arch/md-one-link-resolver', gateArchOneLinkResolver],
+  ['arch/md-rules-import-only-the-root', gateArchMdRulesRootOnly],
   ['arch/one-code-block-tag-comparison', gateArchOneTagComparison],
   ['internal arch', gateInternalArch],
   ['arch/no-new-kernel-registry', gateNoNewKernelRegistry],
@@ -4429,6 +4466,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'arch/md-one-link-resolver',
+    'arch/md-rules-import-only-the-root',
     'arch/one-code-block-tag-comparison',
     'internal arch',
     'arch/one-fence-reader (packages)',

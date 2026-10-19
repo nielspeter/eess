@@ -15,6 +15,7 @@ import {
   project,
   modules,
   not,
+  dependOn,
   resideInFile,
   type ExpressionMatcher,
 } from '@nielspeter/eess-ts'
@@ -27,6 +28,15 @@ const p = workspace([
   'packages/gherkin/tsconfig.build.json',
   'packages/crossvalidate/tsconfig.build.json',
 ])
+
+/**
+ * ADR-022 clause 3. The md root, and the eess-md modules `honestyAtClose` still imports past it (one
+ * entry per edge; plan 0498 removes them). An exclusion matches the edge's message by its module.
+ */
+const MD_ROOT = '**/packages/md/src/index.ts'
+const LEDGER_DEBT = ['label', 'prose', 'task-items']
+const ledgerEdge = (m: string): RegExp =>
+  new RegExp(`^ledger\\.ts imports "[^"]*/packages/md/src/model/${m}\\.ts"`)
 
 const only = (pkg: string): string => `**/packages/${pkg}/src/**`
 const inPkg = (pkg: string): string => `**/packages/${pkg}/**`
@@ -290,6 +300,42 @@ export default [
       suggestion:
         'resolve the link with resolveLink() from model/resolve-link.ts, and keep path arithmetic there',
     }),
+
+  // ADR-022 clause 3 — eess-md's presets are built from the md root and the kernel root only, the
+  // blocks an adopter has. Any other import is an edge into eess-md's own modules (or the kernel's
+  // `/internal`, or a third-party package) that an adopter writing the same preset could not take.
+  // Type imports count: a type the root does not export is a block it does not offer.
+  //
+  // The three exclusions are `honestyAtClose`'s debt, one per edge, each matched by its exact
+  // module so a fourth edge from ledger.ts still reds. They leave with plan 0498's rebuild. A stale
+  // one prints an "Unused exclusion" warning and does not red (ADR-018 is Proposed), so the rule
+  // below them pins each edge: paying one down reds the pin, and the pin and its exclusion go
+  // together.
+  modules(p)
+    .that()
+    .resideInFolder('**/packages/md/src/rules/**')
+    .should()
+    .onlyImportFrom(MD_ROOT, '@nielspeter/eess')
+    .excluding(...LEDGER_DEBT.map((m) => ledgerEdge(m)))
+    .rule({
+      id: 'md/rules-import-only-the-root',
+      because:
+        "ADR-022: a preset under rules/* is built from eess-md's public root, as an adopter's rule is; an internal import is a block the root does not offer",
+      suggestion:
+        "import it from '../index.js' (export it from the root first if it is a block), or build it from root blocks",
+    }),
+  ...LEDGER_DEBT.map((m) =>
+    modules(p)
+      .that()
+      .resideInFile('**/packages/md/src/rules/ledger.ts')
+      .should()
+      .satisfy(dependOn(`**/packages/md/src/model/${m}.ts`))
+      .rule({
+        id: 'md/rules-ledger-debt-is-current',
+        because: `ADR-022: ledger.ts's import of model/${m}.ts is excluded from md/rules-import-only-the-root; once it is gone the exclusion would let it back silently`,
+        suggestion: `delete LEDGER_DEBT's '${m}' entry in arch.rules.ts, which removes this pin and its exclusion together`,
+      }),
+  ),
 
   // ADR-019 C3 — one owner of the tag comparison. What it cannot see, stated rather than implied
   // (ADR-016 rule 7): the tag passed as an argument, or used as an operand of anything but an
