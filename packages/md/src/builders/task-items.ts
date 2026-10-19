@@ -13,6 +13,7 @@ import { stampedByDocument } from '../model/by-document.js'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import { inScope, unreadFindings } from './box-mark-findings.js'
+import { haveTextMatching, haveTextMatchingCondition } from '../predicates/text.js'
 
 /**
  * A read box: what a `taskItems()` rule sees. Its `state` is only `'open'` or `'done'`; an unread
@@ -96,6 +97,18 @@ export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
   /** Filter to done boxes: `[x]`, and every mark declared `'done'`. */
   areChecked(): this {
     return this.addPredicate(areChecked())
+  }
+
+  /**
+   * Dual-use (plan 0503): after `.that()`, the boxes whose text matches `re`; after `.should()`,
+   * every selected box's text must match, and one that does not is a finding quoting it. A box's
+   * text is all of its own content, its nested boxes excepted (bug 0507). `g` and `y` are dropped.
+   */
+  haveTextMatching(re: RegExp): this {
+    if (this._phase === 'condition') {
+      return this.addCondition(haveTextMatchingCondition<MdTaskItem>(re, 'box'))
+    }
+    return this.addPredicate(haveTextMatching<MdTaskItem>(re))
   }
 }
 

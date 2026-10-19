@@ -439,6 +439,14 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::areLive': 'predicate factory, used inside a builder (plan 0457)',
   '@nielspeter/eess-md::predicateHaveSection':
     'predicate factory, used inside a builder (plan 0457)',
+  '@nielspeter/eess-md::inSections':
+    'predicate lift, used inside a builder; a dead section scope on a positive rule is the builder finding (plan 0503)',
+  '@nielspeter/eess-md::sectionsNamed': 'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::sectionsAtDepth': 'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::sectionsInSection': 'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::sectionsWithSubsection':
+    'predicate factory, used inside inSections (plan 0503)',
+  '@nielspeter/eess-md::haveTextMatching': 'predicate factory, used inside a builder (plan 0503)',
   '@nielspeter/eess-md::inDocuments':
     'predicate lift, used inside a builder; a dead scope on a positive rule is the builder finding (plan 0457)',
   '@nielspeter/eess-md::matchTableRows': 'model reader',

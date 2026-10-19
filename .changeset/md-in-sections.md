@@ -1,0 +1,7 @@
+---
+'@nielspeter/eess-md': minor
+---
+
+New: `inSections(p)` (plan 0503) lifts a section predicate onto any element on a line of its document (boxes, links, pointers, rows, terms, fields), through `satisfy()`: `taskItems(c).that().satisfy(inSections(sectionsNamed('Acceptance criteria'))).should().notExist()`. An element is under every section that contains its line, so a box under a subsection of the named section is under it. Membership is decided across the enclosing sections, and a section the predicate cannot judge leaves the element undecided and reported, never dropped (ADR-021). A finding about such an element names the innermost selected section in its message, `(under "Acceptance criteria", line 5)`, never in its element, so `.excluding()` keys do not change. On a positive rule a section scope that selects no section is named in the zero-examined finding, with the corpus's section and document counts; a live one that holds none of the selected elements gives its counts. On `notExist()` an empty scope is green: guard it with a positive rule reading the same `const` (the docs show the pair).
+
+New: the section predicates for it, `sectionsNamed(name)`, `sectionsAtDepth(depth)`, `sectionsInSection(name)` and `sectionsWithSubsection(name, { depth? })`, and `haveTextMatching(re)`, a predicate over any element with a `text`, also a `taskItems()` method in both phases (as a condition, every selected box's text must match). Patterns are read without `g` and `y`. No existing rule changes verdict.

@@ -225,7 +225,77 @@ or `y`; it is read without them.
 
 **Do not join sections to other elements by hand.** A predicate testing `s.doc` and a line range, fed
 from `sections().select()`, is green under `notExist()` when the section name is misspelt, and the scan
-never sees it. Limiting a rule over boxes or links to matching sections is plan 0503's `inSections`.
+never sees it. Limit a rule over boxes or links to matching sections with `inSections`.
+
+## Inside matching sections: `inSections`
+
+`inSections(p)` lifts a section predicate onto any element on a line of its document (a box, a link,
+a pointer, a row, a term, a field), through `satisfy()`, the way `inDocuments` lifts a document
+predicate. An element is under every section that contains its line, so a box under `### Detail`
+inside `## Acceptance criteria` is under both. The section predicates for it are on the root:
+`sectionsNamed(name)`, `sectionsAtDepth(depth)`, `sectionsInSection(name)` and
+`sectionsWithSubsection(name, { depth? })`, the `sections()` methods of the same meaning.
+`haveTextMatching(re)` selects the elements whose `text` matches your pattern; on `taskItems()` it is
+also a condition, every selected box's text must match. A box's text is all of its own content, its
+second paragraph and plain sub-bullets included, its nested boxes excepted. eess-md fixes no words:
+you pass your own.
+
+```ts
+import {
+  corpus,
+  docs,
+  haveTextMatching,
+  inDocuments,
+  inSections,
+  not,
+  predicateHaveField,
+  sectionsNamed,
+  taskItems,
+} from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['plans/**/*.md'] })
+
+// Each name and pattern is bound once, and the rule and its guard both read it.
+const CLOSED = predicateHaveField({ label: 'Status', forms: ['bold'], oneOf: /^(done|closed)$/i })
+const ACCEPTANCE = /^Acceptance criteria$/i
+const VALIDATION_OWED = /\bvalidation-owed\b/
+
+// In a closed record, an open box under the acceptance criteria may carry only validation-owed.
+taskItems(c)
+  .that()
+  .areOpen()
+  .and()
+  .satisfy(inDocuments(CLOSED))
+  .and()
+  .satisfy(inSections(sectionsNamed(ACCEPTANCE)))
+  .and()
+  .satisfy(not(haveTextMatching(VALIDATION_OWED)))
+  .should()
+  .notExist()
+  .check()
+
+// The guard: some closed record has the section. The condition repeats the selection on purpose.
+docs(c).that().satisfy(CLOSED).haveSection(ACCEPTANCE).should().haveSection(ACCEPTANCE).check()
+```
+
+A finding names the section it was attributed to, the innermost selected one, in its message:
+`plans/1.md:12 should not exist (under "Acceptance criteria", line 5)`. Not in its element, so
+`.excluding()` and a baseline keep their keys when a rule gains a section scope.
+
+**The guard reads the same `const`.** On a positive rule a section scope that selects nothing is
+named (`inSections(are named "…") selected none of the corpus's N sections in M documents`), and a
+live one that holds none of the selected elements gives its three counts. On `notExist()` an empty
+scope is green, as an absence rule over nothing is (ADR-010 §3). Two things stand in front of that: the
+section-name scan reports a heading that misses a string name by case or spacing, and the guard reds
+when no document has the section. A guard works only when it reads the rule's own `const`: a typo in
+the `const` reaches both, and the guard reds; a literal copied into each can be misspelt in one.
+
+**What stays silent, plainly.** Under `notExist()`, a section name with no near miss by case or spacing
+(`'Acceptence'`) and no guard beside it is green; so is a pattern that selects (`haveTextMatching` in
+front of `notExist()`) when it is misspelt, or the notation drifts from it, since no scan exists for
+text. A pattern used to exclude (`not(haveTextMatching(…))`) fails closed. A guard on a selecting
+pattern is a rule of the same tautology shape over the same elements. A section predicate wrapped in
+`not()`, `and()` or `or()` inside `inSections` is not seen by the section-name scan.
 
 ## Scoping a rule to documents: `inDocuments`
 

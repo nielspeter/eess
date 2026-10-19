@@ -1,6 +1,8 @@
 import type { Predicate, Undecided } from '@nielspeter/eess'
 import { membership, partition, refuseUndecided, type Membership } from '@nielspeter/eess/internal'
 import type { MdDocument } from '../model/document.js'
+import { contains, sectionsOf, type MdSectionElement } from '../model/sections.js'
+import { declaresSections, sectionDeclarationsOf } from '../model/section-declarations.js'
 
 type HasDoc = { readonly doc: MdDocument }
 
@@ -51,11 +53,20 @@ export function liftToDocument<T extends HasDoc>(
   }
 }
 
+/**
+ * A scope a rule holds (`inDocuments` or `inSections`), by identity, so its diagnosis can name it:
+ * what it is called, what it counts, and its verdict per document.
+ */
 interface Scope {
-  readonly inner: Predicate<MdDocument>
+  /** `inDocuments(…)` or `inSections(…)`, as a finding names it. */
+  readonly label: string
+  readonly unit: 'documents' | 'sections'
+  /** The document's verdict: decided true when the scope admits some element of it. */
   readonly docMembership: (d: MdDocument) => Membership
+  /** The sections of the document the scope decides true (a section scope only). */
+  readonly sectionsIn?: (d: MdDocument) => number
 }
-/** The predicates `inDocuments` made, by identity, so a rule's diagnosis can name them. */
+/** The predicates `inDocuments` and `inSections` made, by identity. */
 const SCOPES = new WeakMap<object, Scope>()
 
 /**
@@ -68,8 +79,126 @@ const SCOPES = new WeakMap<object, Scope>()
  */
 export function inDocuments<T extends HasDoc>(p: Predicate<MdDocument>): Predicate<T> {
   const lifted = liftToDocument<T>(p, `are in documents that ${p.description}`)
-  SCOPES.set(lifted, { inner: p, docMembership: lifted.docMembership })
+  SCOPES.set(lifted, {
+    label: `inDocuments(${p.description})`,
+    unit: 'documents',
+    docMembership: lifted.docMembership,
+  })
   return lifted
+}
+
+type OnALine = { readonly doc: MdDocument; readonly line: number }
+
+/** A section scope's verdicts, per section of one document, in `sectionsOf` order. */
+interface SectionVerdicts {
+  readonly sections: readonly MdSectionElement[]
+  readonly verdicts: readonly Membership[]
+}
+
+/** The innermost section a section scope selected that contains `line`, for a finding's message. */
+const ATTRIBUTION = new WeakMap<
+  object,
+  (doc: MdDocument, line: number) => MdSectionElement | undefined
+>()
+
+/**
+ * Plan 0503 — lift a section predicate onto any element that sits on a line of its document
+ * (boxes, links, pointers, rows, terms, fields): `taskItems(c).that().satisfy(inSections(
+ * sectionsNamed('Acceptance criteria')))`. An element is in a section when the section contains its
+ * line, from the heading line to its last line; "under" is any enclosing section, so a box under
+ * `### Detail` inside `## Acceptance` is under both. Membership is strong Kleene over the enclosing
+ * sections (ADR-021): selected when `p` holds for one, undecided when it holds for none and cannot
+ * judge one, otherwise not selected.
+ *
+ * The section names `p` reads are recorded for the section-name scan when `p` is one of md's
+ * section predicates itself; one wrapped in the kernel's `not()`, `and()` or `or()` is not seen,
+ * since those keep no reference to their inputs (bug 0512). On a positive rule a scope that selects
+ * no section is named; on `notExist()` it is green, as an absence rule over nothing is: guard it.
+ */
+export function inSections<T extends OnALine>(p: Predicate<MdSectionElement>): Predicate<T> {
+  const memo = new WeakMap<MdDocument, SectionVerdicts>()
+  const verdictsOf = (doc: MdDocument): SectionVerdicts => {
+    const known = memo.get(doc)
+    if (known !== undefined) return known
+    const sections = sectionsOf(doc)
+    const fresh = { sections, verdicts: sections.map((s) => membership([p], 'all', s)) }
+    memo.set(doc, fresh)
+    return fresh
+  }
+  // Strong Kleene `any` over the enclosing sections, decided once per element.
+  const elementMembership = (e: T): Membership => {
+    const { sections, verdicts } = verdictsOf(e.doc)
+    const causes: Undecided[] = []
+    for (let i = 0; i < sections.length; i++) {
+      const s = sections[i]
+      if (s === undefined || !contains(s, e.line)) continue
+      const m = verdicts[i]
+      if (m === true) return true
+      if (m !== undefined && m !== false) causes.push(...m)
+    }
+    return causes.length > 0 ? causes : false
+  }
+  const test = (e: T): boolean => {
+    const m = elementMembership(e)
+    if (m === true || m === false) return m
+    refuseUndecided(m, 'test()')
+    return false
+  }
+  const docMembership = (doc: MdDocument): Membership => {
+    const { verdicts } = verdictsOf(doc)
+    if (verdicts.some((m) => m === true)) return true
+    const causes = verdicts.flatMap((m) => (m === true || m === false ? [] : m))
+    return causes.length > 0 ? causes : false
+  }
+  const lifted: Predicate<T> = {
+    description: `are in sections that ${p.description}`,
+    test,
+    ...(p.undecided === undefined
+      ? {}
+      : {
+          undecided: (e: T): readonly Undecided[] => {
+            const m = elementMembership(e)
+            return m === true || m === false ? [] : m
+          },
+        }),
+  }
+  SCOPES.set(lifted, {
+    label: `inSections(${p.description})`,
+    unit: 'sections',
+    docMembership,
+    sectionsIn: (doc) => verdictsOf(doc).verdicts.filter((m) => m === true).length,
+  })
+  ATTRIBUTION.set(lifted, (doc, line) => {
+    const { sections, verdicts } = verdictsOf(doc)
+    let innermost: MdSectionElement | undefined
+    sections.forEach((s, i) => {
+      if (verdicts[i] === true && contains(s, line)) innermost = s
+    })
+    return innermost
+  })
+  return declaresSections(lifted, sectionDeclarationsOf([p]))
+}
+
+/**
+ * The innermost section a rule's section scopes selected that contains `line` of `doc`, or
+ * `undefined` when the rule holds no section scope (plan 0503: a finding names its section).
+ */
+export function attributedSection<E>(
+  predicates: readonly Predicate<E>[],
+  doc: MdDocument,
+  line: number,
+): MdSectionElement | undefined {
+  let found: MdSectionElement | undefined
+  for (const p of predicates) {
+    const s = ATTRIBUTION.get(p)?.(doc, line)
+    if (s !== undefined && (found === undefined || s.line > found.line)) found = s
+  }
+  return found
+}
+
+/** Whether the rule holds a section scope among its own predicates. */
+export function holdsSectionScope<E>(predicates: readonly Predicate<E>[]): boolean {
+  return predicates.some((p) => ATTRIBUTION.has(p))
 }
 
 const decidedTrue = (m: Membership): boolean => m === true
@@ -84,7 +213,7 @@ export function admittedDocuments<T>(
 ): readonly MdDocument[] {
   const scopes = predicates.flatMap((p) => {
     const s = SCOPES.get(p)
-    return s === undefined ? [] : [s]
+    return s === undefined || s.unit !== 'documents' ? [] : [s]
   })
   if (scopes.length === 0) return documents
   return documents.filter((d) => scopes.every((s) => decidedTrue(s.docMembership(d))))
@@ -115,7 +244,6 @@ export function scopeDiagnosis<T>(
   //    match, and the message says how many there were.
   const dead = scopes.filter((s) => !documents.some((d) => decidedTrue(s.docMembership(d))))
   if (dead.length > 0) {
-    const names = dead.map((s) => `inDocuments(${s.inner.description})`).join(', ')
     const unjudged = documents.filter((d) =>
       dead.some((s) => {
         const m = s.docMembership(d)
@@ -123,11 +251,27 @@ export function scopeDiagnosis<T>(
       }),
     ).length
     const note = unjudged === 0 ? '' : ` (${String(unjudged)} could not be judged)`
-    return (
-      `${names} matched none of the corpus's ${String(n)} documents${note} — the document ` +
-      `predicate is dead; fix it, or declare .expectEmpty() if no document is meant to match yet ` +
-      `(the declaration lapses the first time this rule examines an element)`
-    )
+    const lapse =
+      'declare .expectEmpty() if no document is meant to match yet (the declaration lapses the ' +
+      'first time this rule examines an element)'
+    const deadDocs = dead.filter((s) => s.unit === 'documents')
+    const deadSections = dead.filter((s) => s.unit === 'sections')
+    const parts: string[] = []
+    if (deadDocs.length > 0) {
+      parts.push(
+        `${deadDocs.map((s) => s.label).join(', ')} matched none of the corpus's ${String(n)} ` +
+          `documents${note} — the document predicate is dead; fix it, or ${lapse}`,
+      )
+    }
+    if (deadSections.length > 0) {
+      const total = documents.reduce((k, d) => k + sectionsOf(d).length, 0)
+      parts.push(
+        `${deadSections.map((s) => s.label).join(', ')} selected none of the corpus's ` +
+          `${String(total)} sections in ${String(n)} documents${deadDocs.length > 0 ? '' : note} — ` +
+          `the section predicate is dead; fix it, or ${lapse.replace('no document', 'no section')}`,
+      )
+    }
+    return parts.join('; ')
   }
   // 2. Blame the scopes only if the rest of the rule selected something: the kernel's one owner of
   //    "apply a rule's predicates", where a subject the rest cannot judge is not counted.
@@ -138,14 +282,18 @@ export function scopeDiagnosis<T>(
   if (before === 0) return undefined
   const k = documents.filter((d) => scopes.every((s) => decidedTrue(s.docMembership(d)))).length
   const selected = `${String(before)} ${noun} the rest of this rule selects`
+  const [only] = scopes
   const matched =
-    scopes.length === 1
-      ? `the scope matched ${String(k)} of ${String(n)} documents, and they hold none of the ${selected}`
-      : k === 0
-        ? `no document matches every scope (each matches some of the corpus's ${String(n)}), so ` +
-          `none of the ${selected} is in scope`
-        : `the scopes together matched ${String(k)} of ${String(n)} documents, and they hold none ` +
-          `of the ${selected}`
+    scopes.length === 1 && only?.sectionsIn !== undefined
+      ? `the section scope selected ${String(documents.reduce((t, d) => t + (only.sectionsIn?.(d) ?? 0), 0))} ` +
+        `sections in ${String(k)} of ${String(n)} documents, and they hold none of the ${selected}`
+      : scopes.length === 1
+        ? `the scope matched ${String(k)} of ${String(n)} documents, and they hold none of the ${selected}`
+        : k === 0
+          ? `no document matches every scope (each matches some of the corpus's ${String(n)}), so ` +
+            `none of the ${selected} is in scope`
+          : `the scopes together matched ${String(k)} of ${String(n)} documents, and they hold none ` +
+            `of the ${selected}`
   return (
     `${matched} — declare .expectEmpty() if that is expected (the declaration lapses the first ` +
     `time this rule examines an element)`

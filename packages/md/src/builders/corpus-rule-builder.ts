@@ -1,5 +1,5 @@
 import { collectResult, RuleBuilder, type CollectResult } from '@nielspeter/eess'
-import type { SelectorFault } from '@nielspeter/eess/internal'
+import { partition, type SelectorFault } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import { mdNotExist, type MdLocation } from '../conditions/not-exist.js'
 import { mdSelectorFault } from '../model/selector-fault.js'
@@ -10,7 +10,12 @@ import {
   type SectionDeclaration,
 } from '../model/section-declarations.js'
 import type { ArchViolation } from '../model/violation.js'
-import { admittedDocuments, scopeDiagnosis } from '../predicates/in-documents.js'
+import {
+  admittedDocuments,
+  attributedSection,
+  holdsSectionScope,
+  scopeDiagnosis,
+} from '../predicates/in-documents.js'
 import { sectionDeclarationFindings } from './section-declarations.js'
 
 /**
@@ -95,8 +100,31 @@ export abstract class CorpusRuleBuilder<T> extends RuleBuilder<T, Corpus> {
   protected override collectViolations(): CollectResult {
     const base = super.collectViolations()
     const findings = this.declarationFindings(base)
-    if (findings.length === 0) return base
-    return collectResult([...base, ...findings], base)
+    const attributed = this.attributed(base)
+    if (findings.length === 0 && attributed === base) return base
+    return collectResult([...attributed, ...findings], base)
+  }
+
+  /**
+   * Plan 0503: when the rule holds an `inSections` scope, a finding about a selected element names
+   * the innermost selected section that contains it, in its message: `(under "Acceptance", line
+   * 40)`. Never in its `element`, which `.excluding()` and baselines key on, so gaining a section
+   * scope changes no key. `base` itself when there is nothing to attribute.
+   */
+  private attributed(base: readonly ArchViolation[]): readonly ArchViolation[] {
+    if (!holdsSectionScope(this._predicates) || base.length === 0) return base
+    const at = new Map<string, MdDocument>()
+    for (const e of partition(this.getElements(), this._predicates).elements) {
+      const { doc, line } = this.locate(e)
+      at.set(`${doc.file}\u0000${String(line)}`, doc)
+    }
+    return base.map((v) => {
+      const doc = v.bypassFilters === true ? undefined : at.get(`${v.file}\u0000${String(v.line)}`)
+      const s = doc === undefined ? undefined : attributedSection(this._predicates, doc, v.line)
+      return s === undefined
+        ? v
+        : { ...v, message: `${v.message} (under "${s.name}", line ${String(s.line)})` }
+    })
   }
 
   /** The selection must be empty: each selected element is a finding, at its own line. */

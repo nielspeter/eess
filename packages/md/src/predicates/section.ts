@@ -2,6 +2,7 @@ import type { Predicate } from '@nielspeter/eess'
 import { checkDepth, matchName } from '../model/name-match.js'
 import { contains, sectionsOf, type MdSectionElement } from '../model/sections.js'
 import { declaresSections } from '../model/section-declarations.js'
+import { areInSectionPredicate } from './declared-block.js'
 
 /**
  * Plan 0496: the predicates over sections. Each that reads a section name records it in the
@@ -16,6 +17,14 @@ export function sectionsNamed(name: string | RegExp): Predicate<MdSectionElement
     { description: `are named "${String(name)}"`, test: (s) => matchName(s.name, name) },
     [{ name }],
   )
+}
+
+/**
+ * Sections under a heading matching `name`, at any depth above them: the root form of
+ * `sections().that().areInSection()`, one factory with `links().areInSection()`.
+ */
+export function sectionsInSection(name: string | RegExp): Predicate<MdSectionElement> {
+  return areInSectionPredicate<MdSectionElement>(name)
 }
 
 /** The heading level is `depth` (1 to 6; anything else is refused). */

@@ -96,6 +96,8 @@ import type {
 } from '@nielspeter/eess-md'
 import { corpus, docs, links, pointers, rows, taskItems, terms } from '@nielspeter/eess-md'
 import { sections, SectionRuleBuilder } from '@nielspeter/eess-md'
+import { inSections, sectionsNamed, sectionsAtDepth, haveTextMatching } from '@nielspeter/eess-md'
+import { sectionsInSection, sectionsWithSubsection } from '@nielspeter/eess-md'
 import { cleanValue, fields, longestOf, untilDelimiter } from '@nielspeter/eess-md'
 import { areFrozen, areLive, predicateHaveSection, inDocuments } from '@nielspeter/eess-md'
 // The dialect-side half, and the reason this file subsumes bug 0225. `check:family`
@@ -228,6 +230,12 @@ it('every published entry point still exposes the surface a consumer names', () 
     areLive,
     predicateHaveSection,
     inDocuments,
+    inSections,
+    sectionsNamed,
+    sectionsAtDepth,
+    sectionsInSection,
+    sectionsWithSubsection,
+    haveTextMatching,
     diagram,
     mermaidClasses,
     mdCorrespondence,

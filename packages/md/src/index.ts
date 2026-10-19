@@ -62,6 +62,13 @@ export { resideInFolder, resideInFile, haveNameMatching } from './predicates/doc
 export { areFrozen, areLive, predicateHaveSection } from './predicates/document.js'
 // Plan 0457: a document predicate lifted onto any element that carries its document.
 export { inDocuments } from './predicates/in-documents.js'
+// Plan 0503: a section predicate lifted onto any element on a line of its document, the section
+// predicates it takes (noun-first: their callers are lifts, where a bare verb would not say what is
+// selected), and an element's text matched against the caller's own pattern.
+export { inSections } from './predicates/in-documents.js'
+export { sectionsNamed, sectionsAtDepth, sectionsWithSubsection } from './predicates/section.js'
+export { sectionsInSection } from './predicates/section.js'
+export { haveTextMatching } from './predicates/text.js'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —
 // review found it manually), but this README's own "Binding a spec table to
