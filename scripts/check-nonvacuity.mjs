@@ -225,6 +225,17 @@ import { dirname, join } from 'node:path'
 import { KERNEL_INTERNAL, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './lib/kernel-surface.mjs'
 import { ALLOWLIST } from './lib/family-re-exports.mjs'
 import { BUN_BREAKS, checkBunLoadJob } from './check-bun-load.mjs'
+import {
+  MERGE_ENV,
+  REPORT_ENV,
+  SHARD_ENV,
+  checkNonvacuityJobs,
+  digestOf,
+  duplicateNames,
+  mergeShardReports,
+  parseShard,
+  selectShard,
+} from './lib/nonvacuity-shards.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EESS_TS = join(repoRoot, 'node_modules', '.bin', 'eess-ts')
@@ -4820,6 +4831,12 @@ function gateCoverage() {
   // reads it. ADR-020 rule 3's "a static read of the CI workflow shows the jobs
   // always run".
   for (const p of checkBunLoadJob(ci)) problems.push(`bun-load CI job: ${p}`)
+  // Plan 0509: CI runs this harness as shards plus a merge, and only the merge
+  // checks the partition and the whole-set audits. A workflow that drops or
+  // softens the merge leaves every shard green over an unchecked split.
+  for (const p of checkNonvacuityJobs(ci)) problems.push(`nonvacuity CI jobs: ${p}`)
+  const dupNames = duplicateNames(gates.map(([n]) => n))
+  if (dupNames.length > 0) problems.push(`duplicate gate names: ${dupNames.join(', ')}`)
   // The guard's Bun breaks run only in that job, so a deleted break would read
   // as a smaller count there and nothing here. Pinned to the ids plan 0448 names.
   const BUN_BREAK_IDS = [
@@ -4919,8 +4936,26 @@ let allOk = true
 // prevent — so it carries its own status wording and is excluded from the count.
 let gateCount = 0
 const QA_ONLY = process.env.QA_ONLY ? process.env.QA_ONLY.split(',') : undefined
-for (const [name, run] of gates) {
-  if (QA_ONLY && !QA_ONLY.includes(name)) continue
+
+// Plan 0509: CI runs the fixtures as parallel shards and a merge job. With none
+// of these set, the run below is the whole set, exactly as before.
+const SHARD_SPEC = process.env[SHARD_ENV]
+const MERGE_DIR = process.env[MERGE_ENV]
+const planIdx = process.argv.indexOf('--plan')
+const PLAN_TOTAL = planIdx === -1 ? undefined : process.argv[planIdx + 1]
+const FIXTURE_NAMES = gates.map(([n]) => n).filter((n) => !INSTRUMENTS.has(n))
+const modes = [SHARD_SPEC, MERGE_DIR, PLAN_TOTAL, QA_ONLY].filter((m) => m !== undefined)
+if (modes.length > 1) {
+  console.log(
+    `nonvacuity: refusing to run — set at most one of ${SHARD_ENV}, ${MERGE_ENV}, --plan and QA_ONLY`,
+  )
+  process.exit(2)
+}
+// A duplicated name makes "every fixture in exactly one shard" unanswerable.
+// `gateCoverage` reports it on an unsharded run; the shard and merge refuse it.
+const DUPLICATE_NAMES = duplicateNames(gates.map(([n]) => n))
+
+function runGate(name, run) {
   let res
   try {
     res = run()
@@ -4933,6 +4968,144 @@ for (const [name, run] of gates) {
     res.status ??
     (res.ok ? 'OK (fails on violating input)' : 'FAILED (did not fail on violating input)')
   console.log(`nonvacuity: ${name} — ${status} · ${res.detail}`)
+  return res.ok
+}
+
+if (PLAN_TOTAL !== undefined) {
+  // The assignment, without running anything: which shard a fixture lands in.
+  const parsed = parseShard(`1/${PLAN_TOTAL}`)
+  if ('error' in parsed) {
+    console.log(`nonvacuity: --plan ${PLAN_TOTAL}: ${parsed.error}`)
+    process.exit(2)
+  }
+  const shards = []
+  for (let s = 1; s <= parsed.total; s++) {
+    shards.push({ shard: s, selected: selectShard(FIXTURE_NAMES, s, parsed.total) })
+  }
+  console.log(
+    JSON.stringify(
+      { digest: digestOf(FIXTURE_NAMES), fixtures: FIXTURE_NAMES.length, shards },
+      null,
+      2,
+    ),
+  )
+  process.exit(0)
+}
+
+if (SHARD_SPEC !== undefined) {
+  const parsed = parseShard(SHARD_SPEC)
+  if ('error' in parsed) {
+    console.log(`nonvacuity: shard — FAILED · ${parsed.error}`)
+    process.exit(1)
+  }
+  if (DUPLICATE_NAMES.length > 0) {
+    console.log(`nonvacuity: shard — FAILED · duplicate gate names: ${DUPLICATE_NAMES.join(', ')}`)
+    process.exit(1)
+  }
+  const { index, total } = parsed
+  const selected = selectShard(FIXTURE_NAMES, index, total)
+  const digest = digestOf(FIXTURE_NAMES)
+  if (selected.length === 0) {
+    // A shard that runs nothing would print a clean summary over zero fixtures.
+    console.log(
+      `nonvacuity: shard ${index}/${total} — FAILED · selected 0 of ${FIXTURE_NAMES.length} ` +
+        'fixtures, so it proves nothing',
+    )
+    process.exit(1)
+  }
+  console.log(
+    `nonvacuity: shard ${index}/${total} — ${selected.length} of ${FIXTURE_NAMES.length} ` +
+      `fixtures (list ${digest})`,
+  )
+  const started = Date.now()
+  const runs = new Map(gates)
+  const failed = []
+  const durations = {}
+  for (const name of selected) {
+    const t0 = Date.now()
+    if (!runGate(name, runs.get(name))) failed.push(name)
+    durations[name] = Date.now() - t0
+  }
+  const durationMs = Date.now() - started
+  const reportPath = process.env[REPORT_ENV]
+  if (reportPath !== undefined) {
+    mkdirSync(dirname(reportPath), { recursive: true })
+    writeFileSync(
+      reportPath,
+      JSON.stringify({
+        shard: index,
+        of: total,
+        digest,
+        selected,
+        failed,
+        assertedRuleIds: [...ASSERTED_RULE_IDS].sort(),
+        durationMs,
+        durations,
+      }) + '\n',
+    )
+  }
+  console.log(
+    allOk
+      ? `\nnonvacuity: shard ${index}/${total} — ${gateCount} fixtures each fired on their ` +
+          `violating input (${(durationMs / 1000).toFixed(1)}s). The whole-set checks — harness ` +
+          'self-check, gate coverage, rule-id coverage and the shard partition — run in the merge.'
+      : `\nnonvacuity: shard ${index}/${total} — at least one fixture did NOT fire on its violating ` +
+          'input — see above.',
+  )
+  process.exit(allOk ? 0 : 1)
+}
+
+let mergedRuleIds = ASSERTED_RULE_IDS
+if (MERGE_DIR !== undefined) {
+  // The whole-set half of a sharded run: the instruments, the partition, and
+  // the rule-id audit over the union of what the shards asserted.
+  for (const [name, run] of gates) if (INSTRUMENTS.has(name)) runGate(name, run)
+  const reports = []
+  for (const file of jsonFilesUnder(MERGE_DIR)) {
+    let report
+    try {
+      report = JSON.parse(readFileSync(file, 'utf8'))
+    } catch (err) {
+      report = undefined
+      console.log(`nonvacuity: shard partition — cannot read ${file}: ${err.message}`)
+    }
+    reports.push({ file, report })
+  }
+  const merged = mergeShardReports(FIXTURE_NAMES, reports)
+  const problems = [
+    ...(DUPLICATE_NAMES.length > 0 ? [`duplicate gate names: ${DUPLICATE_NAMES.join(', ')}`] : []),
+    ...merged.problems,
+  ]
+  if (problems.length > 0) allOk = false
+  console.log(
+    problems.length === 0
+      ? `nonvacuity: shard partition — OK · ${FIXTURE_NAMES.length} fixtures across ` +
+          `${merged.shards} shards, each fixture in exactly one`
+      : `nonvacuity: shard partition — FAILED · ${problems.join(' · ')}`,
+  )
+  gateCount = problems.length === 0 ? FIXTURE_NAMES.length : 0
+  mergedRuleIds = merged.assertedRuleIds
+} else {
+  for (const [name, run] of gates) {
+    if (QA_ONLY && !QA_ONLY.includes(name)) continue
+    runGate(name, run)
+  }
+}
+
+function jsonFilesUnder(dir) {
+  let entries
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  return entries.flatMap((e) =>
+    e.isDirectory()
+      ? jsonFilesUnder(join(dir, e.name))
+      : e.name.endsWith('.json')
+        ? [join(dir, e.name)]
+        : [],
+  )
 }
 
 // ---- every rule id `check-corpus.mjs` can emit carries a fixture -----------
@@ -4960,7 +5133,7 @@ const literalAssignments = (corpusSource.match(/\bruleId:\s*'/g) ?? []).length
 const parsedAssignments = new Set(
   [...corpusSource.matchAll(/\bruleId:\s*'(corpus\/[a-z0-9-]+)'/g)].map((m) => m[1]),
 ).size
-const unfixturedRuleIds = [...emittedRuleIds].filter((id) => !ASSERTED_RULE_IDS.has(id)).sort()
+const unfixturedRuleIds = [...emittedRuleIds].filter((id) => !mergedRuleIds.has(id)).sort()
 
 if (parsedAssignments < literalAssignments) {
   allOk = false
