@@ -6,8 +6,8 @@
 // from `@nielspeter/eess-md/rules/adr`.
 
 // Corpus loader
-export { corpus } from './corpus.js'
-export type { CorpusOptions, Corpus } from './corpus.js'
+export { corpus, corpusFromText } from './corpus.js'
+export type { CorpusOptions, Corpus, TextCorpusOptions } from './corpus.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): every kernel
 // symbol this package's own sources import, so a caller writing a custom
@@ -39,6 +39,8 @@ export {
   isArchConfigError,
   // Bug 0284: `honestyAtClose` throws it for a half-declared vocabulary.
   ArchConfigError,
+  // Plan 0455: `corpusFromText` refuses a waiver by the kernel's own parse.
+  parseExclusionComments,
   // Plan 0456: the location predicates now declare their globs.
   globNode,
 } from '@nielspeter/eess'

@@ -4,6 +4,7 @@ import type { Condition } from '@nielspeter/eess'
 import { pathSuffixIndex } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import type { MdPointer } from '../model/pointers.js'
+import { readCorpusFile } from '../model/corpus-internals.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 
 /** How a pointer path resolves against the repo file index. */
@@ -86,7 +87,7 @@ export function pointerResolves(
   const lineCount = (rel: string): number => {
     const cached = lineCountCache.get(rel)
     if (cached !== undefined) return cached
-    const n = readFileSync(join(corpus.root, rel), 'utf8').split('\n').length
+    const n = readCorpusFile(corpus, rel).split('\n').length
     lineCountCache.set(rel, n)
     return n
   }
