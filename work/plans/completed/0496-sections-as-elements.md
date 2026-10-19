@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-19 from
-  [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) block 11, as shaped by its
+- **State:** Done — built on maintainer order 2026-10-19, in the pull request that also builds bug
+  0502's fix, plan 0505, bug 0507's fix and plan 0503 (see "Build notes"). Written 2026-10-19 from
+  [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) block 11, as shaped by its
   second Review's decision 4 ("11 has one owner with block 3: sections become elements, derived from
   the same heading walk links and tables use, and `haveSection` and `haveTitle` are built on them")
   and its condition for block 11; revised the same day after PR #247's four reviews (architect,
@@ -23,13 +24,13 @@
   shared, `haveSection` rebuilt on the index with a `depth` option, `g`/`y` stripped from the
   section matcher, one example, one dogfood rule rebuilt, docs. One pull request.
 - **Created:** 2026-10-19
-- **Builds after:** [plan 0457](./completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (PR #245,
+- **Builds after:** [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (PR #245,
   merged as `7ef7a1d`; this plan was rebased onto it). It needs from it: `inDocuments` and its
   per-document memo, the `noun` and `scopeDiagnosis` hooks on `CorpusRuleBuilder`, and the section
   predicate on md's root. Also after the naming pull request that lands ADR-023 (forthcoming PR):
   this plan uses the names that ADR gives (`predicateHaveSection`, `predicateHaveField`), and
   renames nothing itself. Also after
-  [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) (built:
+  [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) (built:
   the examples gate). It does not depend on plans 0455 or 0459. It builds without bug 0502's fix,
   but **does not ship in a release without it**: until 0502 lands, `areInSection` reads two walks in
   one package, and ADR-023 clause 3 (restating ADR-017) lets a word's kind differ, never its meaning.
@@ -61,7 +62,7 @@ same heading walk links and tables use". There are two walks, and they read diff
 
 So `links().areInSection()` both drops links that sit under a real section and selects links outside
 the section it names. That is
-[bug 0502](../bugs/0502-links-and-tables-read-a-heading-in-a-list-differently.md), High, with both
+[bug 0502](../../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md), High, with both
 reproductions. This corpus holds no such heading (measured below), so no verdict here is wrong
 today. Sections follow `buildDocument`'s walk, the one `doc.sections`, tables, `haveSection` and
 `vocabulary({ fromHeadings })` already share, and that settles what a section is for every reader
@@ -318,7 +319,7 @@ sections selects `Phase 1` and `Phase 3`, with `examined` 2 and no finding (PR #
 review, I1). Per-section `areNamed` is where this bites hardest, so this plan strips `g` and `y` once,
 when the matcher is taken (a non-global copy, as `packages/md/src/builders/vocabulary.ts:122` does for
 terms). That also fixes md's existing exposure through `hasSection` and `inSection`, which is
-[bug 0506](../bugs/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md); the
+[bug 0506](../../bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md); the
 crossvalidate copy stays with that bug, and this plan's ledger disposes the md half of bug 0506's
 first box in the same pull request, so the bug is never left half-fixed without a record. The
 verdict change (a `g`-flagged `haveSection` now selects every document, so a green rule can red) is
@@ -579,7 +580,7 @@ or removed. This plan ships in the same release as bug 0502's fix, or after it, 
 - **Block 18, `inSections(p)`:** [plan 0503](./0503-in-sections-boxes-by-section.md), after this plan
   and bug 0502's fix.
 - **The heading-walk disagreement** between `buildDocument` and `collectLinks`:
-  [bug 0502](../bugs/0502-links-and-tables-read-a-heading-in-a-list-differently.md), its own pull
+  [bug 0502](../../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md), its own pull
   request in this release batch. It changes `links().areInSection()` verdicts and gets its own
   release note.
 - **A named-section region for `fields()`/`haveField`** (017's consumer follow-up: 51 of adopter 3's
@@ -654,19 +655,97 @@ The coordinator's settlements, recorded so they can be overruled:
   N5, method N3, N4, N6, N7, N8 and architect N3, N6, N7 are in plans 0503 and 0505, bugs 0502 and
   0506, and proposal 017.
 
+## Build notes — 2026-10-19
+
+Built on maintainer order 2026-10-19, at `ac64ed0` (the feature) on top of `2550623` (the names).
+Decisions taken against the record, each so it can be overruled:
+
+- **Names.** ADR-023's pull request (#248) was not merged. Its hunks for `packages/md`, `examples/`,
+  `scripts/check-corpus.mjs`, `scripts/vacuity-matrix.mjs`, `docs/markdown.md` and the two changesets
+  it edits were applied unchanged (`2550623`), so this code uses `predicateHaveSection` and
+  `predicateHaveField` and the later rebase meets identical hunks. ADR-023 itself, its gate and its
+  other files stay #248's.
+- **There is no kernel predicate walk.** The plan says a registered factory records "inside
+  `satisfy()`, `and()`, `or()` or `not()`, because the kernel's predicate walk reaches it". The
+  kernel's combinators return a new object that keeps no reference to its inputs
+  (`packages/core/src/combinators.ts`), so the registry (keyed by object,
+  `packages/md/src/model/section-declarations.ts`) sees a section predicate only when the rule holds
+  it directly, or when `inSections` is handed it directly (plan 0503). Recorded as
+  [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md), not fixed:
+  both fixes change a public surface. Conditions register the same way, so `haveSubsection` and
+  `haveSection` with a `depth` record in the condition phase too.
+- **What `docs()` can see.** The plan bounds the container and depth notes by the rule's `inDocuments`
+  scopes. A `docs()` rule's elements are documents and it holds no such scope, so its visible
+  documents are those its own predicates select, leaving out the predicates that read a section name.
+  Without that, the dogfood rule would report every plan with a `### Acceptance criteria`.
+- **One wording for the depth note**, `"X" at line N is at depth D`, in `haveSubsection`, `haveSection`
+  and the scan; the plan's message block wrote it two ways.
+- **The scan's near-miss reason** is the builder's: `links()` keeps "so the links under it are not
+  checked" (unchanged), every other builder says "so this rule does not read it".
+- **One cause, by identity.** A condition's finding records the heading lines its note names in a
+  `WeakMap` keyed on the finding; the scan skips those lines. No message is parsed.
+- **Refusals** are `ArchConfigError`s from one `checkDepth`, on `areAtDepth`, `haveSubsection`,
+  `haveSection` and `predicateHaveSection`.
+- **The section `haveTable`** reads `doc.tables`, which holds top-level tables only, as it always has.
+- **The example's `violating-phase-heading-in-a-list`** gives two findings, not one: the listed
+  `Phase 2` and the `Files changed` inside the same list item, each a heading the rule cannot read.
+- **A title-case heading under `haveSection(name, { depth })`** gives two findings: the document's
+  `missing section` and the heading's near miss, on different elements. Measured on proposals 001 and
+  002 before their headings were put in sentence case; the near miss carries the fix.
+- **Red first.** The tests for the new API were written after the code, so their red is the sabotage
+  matrix below, not a run against the unfixed tree. `matchName`'s `g`/`y` fix (bug 0506's md half)
+  likewise has row 10 as its red.
+
+Measured: `check:corpus`'s acceptance-criteria rule examines 17 live proposals and reports 0, before
+and after the rebuild (proposals 001 and 002 put in sentence case first); `check:corpus` 3,990 checks
+across 325 documents, 0 violations, 6.4 s. The new non-vacuity row (`corpus/proposal-criteria-depth`,
+006's section demoted to `###`) gives exactly one finding,
+`missing section "Acceptance criteria" at depth 2; "Acceptance criteria" at line 200 is at depth 3`,
+checked by hand before the row was committed.
+
+**Sabotage matrix.** Run 2026-10-19 at `60b61b6` (after bug 0502's fix, which row 14 needs: before it,
+`links()` did not read `contains`), in this worktree, tree clean before and after: each mutant applied
+to one file under `packages/md/src`, the named tests run with `vitest -t`, the file restored by
+`git checkout`. 17 rows (the plan's 16 and bug 0502's) in 18.5 s; every row red. `sections` is
+`packages/md/tests/sections.test.ts`.
+
+| row | mutant                                                                | red (named test in `sections`)                                             |
+| --- | --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1   | every open section's `endLine` stops at the next heading of any depth | a depth skip nests                                                         |
+| 2   | no section is closed: `endLine` is the document's end                 | extent overrun                                                             |
+| 3   | `sectionsOf` reads the contained headings as sections too             | a heading in a list item, a blockquote or a footnote definition …          |
+| 4   | `hasSection` ignores `depth`                                          | a document lacks a section at a depth                                      |
+| 5   | `inSection` reads the nearest heading only                            | areInSection matches any enclosing heading                                 |
+| 6   | the section `haveTable` reads every table of the document             | a section lacks a table                                                    |
+| 7   | `headingNotes` returns nothing                                        | a subsection at the wrong depth; … only a heading in a container           |
+| 8   | `checkDepth` refuses nothing                                          | a depth that cannot match is refused                                       |
+| 9   | the index memo is a `Map` keyed on `relPath`                          | two corpora with the same relPath                                          |
+| 10  | `stateless` returns the caller's `RegExp`                             | a g-flagged name examines every section                                    |
+| 11  | `areAtDepth`'s test is `() => true`                                   | a setext heading is a section                                              |
+| 12  | `subsectionsOf` ignores `depth`                                       | a depth skip nests                                                         |
+| 13  | `declarationFindings` returns nothing when the noun is `sections`     | a selected name misspelt …; a section that must not exist, hidden …        |
+| 14  | `contains` excludes the heading line                                  | a link in a heading's text is inside that heading's section                |
+| 15  | the container and depth notes read every document                     | a container heading outside the rule's document scope …                    |
+| 16  | the scan starts with no cited line                                    | … only a heading in a container: one finding; … lacks a section at a depth |
+
+Bug 0502's row is recorded on that bug. The matrix script and its output are this session's scratch
+files; the mutant column is written so a row can be rebuilt.
+
 ## Progress ledger
 
-- [ ] Phase 1: `sectionsOf`, `contains`, `containedHeadings`, the near-miss helper,
-      `MdSectionElement`, `matchName` without `g`/`y`
-- [ ] Phase 2: `sections()` with three predicates and two conditions; the shared section-name scan;
-      `haveSection`'s `depth`
-- [ ] Phase 3: the example, the dogfood rebuild with its subjects and verdicts unchanged, the
+- [x] Phase 1: `sectionsOf`, `contains`, `containedHeadings`, the near-miss helper
+      (`headingNotes`), `MdSectionElement`, `matchName` without `g`/`y`
+- [x] Phase 2: `sections()` with three predicates and two conditions; the shared section-name scan
+      in `CorpusRuleBuilder`; `haveSection`'s `depth`
+- [x] Phase 3: the example, the dogfood rebuild with its subjects and verdicts unchanged (17, 0), the
       non-vacuity row, the vacuity probe, docs, changeset
-- [ ] Sabotage rows 1–16, each red on its named test; durations reported
-- [ ] Bug 0506: its first box's md half disposed here (`done-otherwise`, this plan's `g`/`y` row),
-      its crossvalidate half left open on the bug, its board row updated
+- [x] Sabotage rows 1–16, each red on its named test; 18.5 s with bug 0502's row
+- [x] Bug 0506: its first box's md half done-otherwise here (row 10), its crossvalidate half left
+      open on the bug, its board row updated
 - [ ] `check:corpus`, `check:nonvacuity`, `check:vacuity`, `check:examples`, `check:family`,
-      `check:release` and `npm run validate` green; durations reported
-- [ ] Close: this plan → `completed/`; ROADMAP and proposal 017's row
+      `check:release` and `npm run validate` green — validation-owed: `npm run validate` runs once,
+      at the pull request's final head; its exit, duration and SHA are in the pull request's
+      description, and CI gates the merge
+- [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
 
 Deferred: none

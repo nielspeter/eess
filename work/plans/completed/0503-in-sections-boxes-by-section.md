@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-19 from
-  [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) ask 18 and decision 6
+- **State:** Done — built on maintainer order 2026-10-19 (`340e051`), after plan 0496 and the
+  fixes of bugs 0502 and 0507 in the same pull request (see "Build notes"). Written 2026-10-19 from
+  [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) ask 18 and decision 6
   ("`inSections(predicate)`, the sibling of block 12's `inDocuments`, sharing its owner and memo,
   lifts a section predicate onto any element by its document and line, with no change to any element
   type. 'Under' means any enclosing section. … A section predicate that selects no section is a
@@ -25,13 +26,13 @@
 - **Builds after:**
   - [plan 0496](./0496-sections-as-elements.md): the section index (`sectionsOf`, `contains`), the
     section predicates, and the section-name scan with its registry in `CorpusRuleBuilder`;
-  - [bug 0502](../bugs/0502-links-and-tables-read-a-heading-in-a-list-differently.md)'s fix: until
+  - [bug 0502](../../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md)'s fix: until
     then `links().areInSection()` and `inSections` disagree on any document with a heading inside a
     container, and `links()` drops links under real sections;
-  - [bug 0507](../bugs/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s fix: `haveTextMatching`
+  - [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s fix: `haveTextMatching`
     reads a box's `text`, and adopter 3's "`done-otherwise` must not hide a deferral" fails open while
     a deferral on a box's second line is not part of it;
-  - [plan 0457](./completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md): `inDocuments`, its
+  - [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md): `inDocuments`, its
     memo, and `scopeDiagnosis`, which this plan generalises;
   - the ADR-023 pull request (forthcoming): the names `predicateHaveField` and
     `predicateHaveSection` used below.
@@ -399,14 +400,65 @@ The coordinator's settlements, recorded so they can be overruled:
   section names; rule (c) guarded on `DONE_OTHERWISE` by a `taskItems()` tautology rule; `DEFERRAL`
   stated as unguarded; a row for a pattern typo (ratchet green, guard red).
 
+## Build notes — 2026-10-19
+
+Built on maintainer order 2026-10-19. Decisions taken against the record, each so it can be
+overruled:
+
+- **A section name under the kernel's `not()`, `and()` or `or()` is not scanned.** The break-class
+  row "a section name under `not()`" and sabotage row 9's `not()` form rest on a predicate walk the
+  kernel does not have: its combinators keep no reference to their inputs. A section predicate is
+  registered when the rule holds it, or when it is `inSections`' own argument. Recorded as
+  [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md), measured
+  there: under `and()` the near miss goes unreported and the rule is green; under `not()` the
+  misspelt section is selected, so the rule reds, without saying why. Row 9 is run on the direct form.
+  The docs state the limit.
+- **Which documents the scan's container notes read** stays as plan 0496 built it: the rule's
+  `inDocuments` scopes. A section scope does not narrow them.
+- **The diagnosis wording** names the inner predicate's description: `inSections(are named
+"Acceptence") selected none of the corpus's 2 sections in 2 documents — the section predicate is
+dead; …`, and for a live scope `the section scope selected 2 sections in 2 of 2 documents, and they
+hold none of the 1 task items the rest of this rule selects`. A document scope's wording is
+  unchanged.
+- **The attribution** is computed only when the rule holds a section scope: the rule's predicates are
+  run once more over its elements, to find which findings are about a selected element. A rule with
+  no section scope pays nothing.
+- **`haveTextMatching`'s finding** reads `the box's text does not match /validation-owed/: "y"`, at
+  the box. **`sectionsAtDepth`'s refusal** names `areAtDepth`, the method it backs.
+- **The adopters' rules are the examples**, with their own patterns:
+  `examples/md/an-open-acceptance-box-is-validation-owed.test.ts` (adopter 1) and
+  `examples/md/open-boxes-in-closed-records.test.ts` (adopter 3's three), each name and pattern a
+  `const` read by the rule and its guard; a misspelt-section and a misspelt-pattern fixture each
+  assert the ratchet green and the guard red. The row "a guard that reads its own copy of the name"
+  has no mechanism; it is held by review, as the plan says.
+- **Red first.** The tests were written after the code, so their red is the sabotage matrix below.
+
+**Sabotage matrix**, run 2026-10-19 at `6f18c34` (row 6 again with its test name matched), each mutant
+applied to one file under `packages/md/src`, the named test in `packages/md/tests/in-sections.test.ts`
+run, the file restored by `git checkout`, tree clean after; 9 rows, every one red:
+
+| row | mutant                                                        | red (named test)                                                    |
+| --- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 1   | only the innermost enclosing section is tested                | adopter 1: an open box without the token, under a subsection …      |
+| 2   | `contains` excludes the heading line                          | a link in a heading's text is inside that heading's section         |
+| 3   | the section scope is not registered for the diagnosis         | a positive rule whose section scope selects nothing …; three counts |
+| 4   | an undecided enclosing section is treated as not selected     | an undecided section predicate leaves the box undecided …           |
+| 5   | the memo is a `Map` keyed on `relPath`                        | two corpora with the same relPath keep their own verdicts           |
+| 6   | the attributed section written into `element`                 | the .excluding() key does not change …                              |
+| 7   | `haveTextMatching` keeps `g`/`y`                              | a g-flagged pattern reads every box                                 |
+| 8   | `taskItems().haveTextMatching` filters in the condition phase | as a condition, a box whose text does not match …                   |
+| 9   | `sectionsNamed` records no name                               | a near miss of the section name is reported by the scan             |
+
 ## Progress ledger
 
-- [ ] Phase 1: `inSections`, the four root section predicates, `haveTextMatching`, the memo
-- [ ] Phase 2: the generalised scope diagnosis with the three counts, the attributed message
-- [ ] Phase 3: the adopters' examples with their guards, docs, changeset
-- [ ] Sabotage rows 1–9, each red on its named test; durations reported
+- [x] Phase 1: `inSections`, the four root section predicates, `haveTextMatching`, the memo
+- [x] Phase 2: the generalised scope diagnosis with the three counts, the attributed message
+- [x] Phase 3: the adopters' examples with their guards, docs, changeset
+- [x] Sabotage rows 1–9, each red on its named test
+- [ ] The break-class row "a section name under `not()`" — deferred→bug 0512
 - [ ] `check:examples`, `check:vacuity`, `check:family`, `check:release` and `npm run validate`
-      green; durations reported
-- [ ] Close: this plan → `completed/`; ROADMAP and proposal 017's row
+      green — validation-owed: `npm run validate` runs once, at the pull request's final head; its
+      exit, duration and SHA are in the pull request's description
+- [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
 
-Deferred: none
+Deferred: bug 0512

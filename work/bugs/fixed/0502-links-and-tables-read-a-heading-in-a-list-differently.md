@@ -2,9 +2,10 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-10-19 on main's build (`9675402`) while planning
-  [plan 0496](../plans/0496-sections-as-elements.md); the drop direction was found by PR #247's
-  enforcement review and reproduced here the same day. No red test written yet.
+- **State:** Fixed — 2026-10-19, built on maintainer order in the pull request that builds plans
+  0496, 0505 and 0503 (`60b61b6`). Reproduced 2026-10-19 on main's build (`9675402`) while planning
+  [plan 0496](../../plans/completed/0496-sections-as-elements.md); the drop direction was found by PR #247's
+  enforcement review and reproduced here the same day.
 - **Severity:** High — eess reports green on links it never examined. A heading inside a list item
   or a blockquote replaces the real section headings on `links()`' heading stack, so
   `links().areInSection('Sub')` silently drops a link that sits under `### Sub`, with a non-zero
@@ -14,10 +15,10 @@
 - **Origin:** self-found · plan 0496's planning, 2026-10-19; the drop direction from PR #247's
   enforcement review.
 - **Reported:** 2026-10-19
-- **Builds after:** [plan 0496](../plans/0496-sections-as-elements.md), whose section index the fix
+- **Builds after:** [plan 0496](../../plans/completed/0496-sections-as-elements.md), whose section index the fix
   reads. Order: plan 0496, then this fix, then plan 0503; plan 0496 does not ship in a release
   without this fix.
-- **Precondition of:** [plan 0503](../plans/0503-in-sections-boxes-by-section.md) (block 18,
+- **Precondition of:** [plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md) (block 18,
   `inSections`), recorded in proposal 017's conditions. Its fix ships in this release batch as its
   own pull request.
 
@@ -124,12 +125,40 @@ so, since that heading is not a section; keeping it would be a links-only except
 container, not from the index. The changed `links().areInSection()` verdicts ship with a release
 note.
 
+## Resolution
+
+Links read their sections from plan 0496's index: `linksOf(doc)` (`packages/md/src/model/links.ts`)
+stamps each link's `sectionPath` with the names of the sections that contain its line
+(`sectionPathAt`), and `collectLinkBlocks` keeps no heading stack. One walk decides what a section is
+for tables, sections, `haveSection` and links. The shared section-name scan now names a heading of
+the declared name inside a container on `links()` too (it was held back on `links()` until this fix).
+
+**The open question, decided from ADR-009: no links-only exception.** A link inside the container
+(`y` under `- ## Listed`) is not in `Listed` either. `areInSection` reads sections, and a heading in a
+container is not one; keeping it for links alone would give the word two meanings in one package,
+which is the defect this bug is. The rule does not go quiet instead: `links(c).that().areInSection('Listed')`
+reports `the heading "Listed" at line 7 is inside a list item, which does not start a section, so this
+rule does not read it`, and a positive rule over it examines nothing and says so. Recorded so it can
+be overruled.
+
+Measured over this repository's corpus (`work/`, `docs/`, `adr/`), with eess-md's build before and
+after the fix: 2,611 links, and the same section path for every one (a hash of
+`relPath:line:sectionPath` over all of them is equal). No verdict here changes.
+
+**Sabotage**, run with plan 0496's matrix at `60b61b6`: `linksOf` stops stamping `sectionPath`; red on
+`the drop direction` and `a link and the table under one heading report the same sectionPath`
+(`packages/md/tests/links-read-the-section-index.test.ts`).
+
 ## Verification
 
-- [ ] Red first, the drop direction: `areInSection('Sub')` selects `after` in the first reproduction
-- [ ] Red first, the over-selection: `areInSection('Listed')` does not select `z`; `links()` and the
-      table under one heading report the same `sectionPath`
-- [ ] The links-only exception decided, with a row either way
-- [ ] Green, with the release note; `npm run validate` green
+- [x] Red first, the drop direction: `areInSection('Sub')` selected `before` only, on the unfixed
+      tree (`links-read-the-section-index.test.ts`, all five rows red before the fix)
+- [x] Red first, the over-selection: `areInSection('Listed')` selected `z`; the link's `sectionPath`
+      was `['Top', 'Listed']` where the table's is `['Top', 'Real', 'Sub']`
+- [x] The links-only exception decided (none), with its row: `a link inside the container is not in
+    the container's heading either; the rule names it`
+- [x] Green, with the release note (`.changeset/md-links-read-sections.md`, marked Breaking)
+- [ ] `npm run validate` green — validation-owed: it runs once, at the pull request's final head;
+      its exit, duration and SHA are in the pull request's description
 
 Deferred: none

@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-19 in PR #247, from
-  [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s consumer follow-up
+- **State:** Done — built on maintainer order 2026-10-19 (`a0056dd`), in the pull request that
+  builds plans 0496 and 0503 (see "Build notes"). Written 2026-10-19 in PR #247, from
+  [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s consumer follow-up
   (adopter 3's 51 records) and PR #247's method review (I2: the need had no home).
 - **Implements:** proposal 017
 - **Priority:** Medium — adopter 3's one concrete need from the section work: 51 of its records hold
@@ -122,13 +123,58 @@ reds).
 - A region by label (a field inside a labelled block): no adopter has asked.
 - The header region's bug 0471.
 
+## Build notes — 2026-10-19
+
+Built on maintainer order 2026-10-19. Decisions taken against the record, each so it can be
+overruled:
+
+- **The region is a type, `FieldRegion`.** A section region keeps the document's line numbers: the
+  reader blanks every line outside the matching sections' bodies (`fieldLines`,
+  `packages/md/src/model/fields.ts`), so a value cannot continue past a section's end and every
+  finding keeps its real line.
+- **"No such section" is an `absent` cause**, like "no field": as a condition it is reported with its
+  own message; as a selector (`predicateHaveField`) such a document is not selected, rather than
+  undecided. A section name that matches no heading anywhere is caught the way a misspelt label is,
+  by the guard rule and by the section-name scan's near miss.
+- **The section name is recorded for plan 0496's scan** on the `haveField` predicate and condition
+  objects, and on `fields()` through a builder hook (`ownSectionDeclarations`), so a `## Status`
+  inside a list item is named. When the condition's own "no section" finding already names that
+  heading, the scan does not repeat it.
+- **A region that is neither `'header'` nor `{ section }`**, or a section region with a depth outside
+  1 to 6, is refused with an `ArchConfigError` at `fields()` and `haveField`: a typo would otherwise
+  read the whole document.
+- **Tests** are in a new file, `packages/md/tests/builders/field-section-region.test.ts`, not the two
+  the plan names. Red first: written before the region existed, 7 of its 9 rows were red; the
+  two-sections conflict and the `g`-flag rows passed, because the whole-document read gave the same
+  answer. Sabotage row 6 then survived on the `g`-flag row, which was rewritten (`f304491`) so its
+  headings are read consecutively; it reds now.
+
+Measured with eess-md's own build: `corpus/state-present` over the live plans and bugs examines 229
+records and reports 0, without the region and with `region: { section: 'Status' }` (the plan counted
+227 at `aec17fc`; records were added since). The new non-vacuity row
+(`corpus/state-present-outside-status`) was checked by hand before it was committed: a probe with its
+State under `## Symptom` gives exactly `State at line 9 is outside the "Status" section (region); …`.
+
+**Sabotage**, run 2026-10-19 at `a0056dd` (row 6 again at `f304491`), each red on its named test in
+`field-section-region.test.ts`, 5.4 s:
+
+| row | mutant                                         | red (named test)                                |
+| --- | ---------------------------------------------- | ----------------------------------------------- |
+| 1   | `fieldLines` ignores a section region          | adopter 3's shape resolves inside the section … |
+| 2   | the "no section" cause folded into "no field"  | no such section is its own cause …              |
+| 3   | the unnamed-form scan reads the whole document | the unnamed-form scan is bounded by the region  |
+| 4   | a value outside the section not reported       | a State outside the section is reported …       |
+| 5   | `fields()` records no region name for the scan | a Status heading inside a list item is named …  |
+| 6   | the region's matcher keeps `g`/`y`             | a g-flagged section name reads every record     |
+
 ## Progress ledger
 
-- [ ] Phase 1: the section region and its two causes
-- [ ] Phase 2: dogfood, non-vacuity row, example, docs, changeset
-- [ ] Sabotage rows, each red on its named test; durations reported
+- [x] Phase 1: the section region and its two causes
+- [x] Phase 2: dogfood (229 records, 0 before and after), non-vacuity row, example, docs, changeset
+- [x] Sabotage rows, each red on its named test; 5.4 s
 - [ ] `check:corpus`, `check:nonvacuity`, `check:examples`, `check:release` and `npm run validate`
-      green; durations reported
-- [ ] Close: this plan → `completed/`; ROADMAP and proposal 017's row
+      green — validation-owed: `npm run validate` runs once, at the pull request's final head; its
+      exit, duration and SHA are in the pull request's description
+- [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
 
 Deferred: none
