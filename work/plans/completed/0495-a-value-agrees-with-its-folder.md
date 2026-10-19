@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-19 from proposal 017's block 5, after
-  [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md), which the second Review's
+- **State:** Done — built on maintainer order 2026-10-19, from Draft (see Build notes). Written
+  2026-10-19 from proposal 017's block 5, after
+  [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md), which the second Review's
   decision 1 required first. Reviewed the same day in PR #246 (architect · enforcement · method ·
   product) and revised: "Review — 2026-10-19" lists what changed.
 - **Implements:** proposal 017
@@ -16,14 +17,14 @@
 - **Effort:** Medium. One condition on `docs()`, built on plan 0469's resolver with one field added
   to its verdict, its findings, an example, and this repository's done folders as its first user.
 - **Created:** 2026-10-19
-- **Builds after:** [plan 0469](./completed/0469-havefield-a-document-has-a-value.md) (built), whose
+- **Builds after:** [plan 0469](./0469-havefield-a-document-has-a-value.md) (built), whose
   per-document resolver it reads values through. It does not need
-  [plan 0457](./completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (merged in PR #245):
+  [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (merged in PR #245):
   its subjects are documents, so nothing is lifted.
-- **Decided by:** [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (no default
+- **Decided by:** [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (no default
   shape: every group, folder and label comes from the caller),
-  [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (a document whose value
-  cannot be read is reported, never dropped), [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)
+  [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (a document whose value
+  cannot be read is reported, never dropped), [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)
   (the denominator is what the verdict rests on).
 
 ## Problem
@@ -519,9 +520,9 @@ optional field on an internal verdict.
 ## Out of scope
 
 - **`honestyAtClose`'s placement half rebuilt on this block** and its `model/label.ts` edge:
-  [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md). Its other two edges:
-  [plan 0504](./0504-honestyatclose-boxes-and-deferrals-from-public-blocks.md).
-- **`corpus()`'s default frozen folders:** [bug 0497](../bugs/0497-corpus-freezes-two-folder-names-by-default.md).
+  [plan 0498](../0498-honestyatclose-places-a-record-with-block-5.md). Its other two edges:
+  [plan 0504](../0504-honestyatclose-boxes-and-deferrals-from-public-blocks.md).
+- **`corpus()`'s default frozen folders:** [bug 0497](../../bugs/0497-corpus-freezes-two-folder-names-by-default.md).
 - **Replacing `corpus/closed-records-sit-in-done-folders`:** see "Why … stays" above.
 - **A selector form** ("documents whose value agrees with their folder"): `haveField` and
   `resideInFolder` select that today; no consumer asked for it.
@@ -567,12 +568,100 @@ field (architect N3); with `'rest'`, a one-way rule is made by the selection (pr
 examples named by shape where the record does not number the adopter (method N2); adopter 3 asked
 again when the example ships (product N3).
 
+## Build notes
+
+Where the build departed from the text above, or decided what it left open, each overrulable:
+
+- **Built from Draft, on maintainer order 2026-10-19.** The `plan-build` ritual refuses a Draft; the
+  order came with the plan's two review rounds settled, and the decisions below are the ones the
+  code met.
+- **`examined` is overridden only when every condition is an `agreeWithFolder`.** `DocsRuleBuilder`
+  keeps each one (`FolderAgreement`) beside its condition, as `links()` keeps its declarations, and
+  its `collectViolations` override sets `examined` to the documents any of them judged. Beside another
+  condition (`.should().haveField(…).andShould().agreeWithFolder(…)`), that condition judges every
+  selected document, so the kernel's count stands. A judged document is one that gets a verdict in
+  the table above (agrees, F1 to F4); a withheld one (F5), one under two groups (F6) and one whose
+  value's group has a dead folder (F7) are not counted.
+- **F6 is computed over the selection,** the documents the rule would judge, and such a document gets
+  no per-document verdict: the group pair is its one finding, at the first shared document (its file,
+  line 1). F7 and F8 are about no document (file `''`, line 0), as `codeBlocks()`' instrument finding
+  is. All three carry `bypassFilters`.
+- **A dead folder withholds its values' placement findings in every direction,** not only under
+  `left-to-right`: with a `'rest'` group, a mistyped done folder leaves the real one bound to `'rest'`,
+  and each record there would be F2 "belongs in <the typo>" under `right-to-left` too. For a
+  caller's group, one dead glob marks the group dead; for a preset-default group, all of them must be.
+- **F7 names a selector fault when md's diagnosis finds one.** `mdSelectorFault` judges each glob as a
+  positive selector site; a text fault (a leading `/`), Markdown under the glob that the corpus did
+  not load, or a backslash separator gives its own cause and remedy (`Fixed's folder
+/work/bugs/fixed/**: a leading `/`can never match …. Write the glob as`work/bugs/fixed/\*\*`.`).
+  Otherwise a glob that matches no path in the corpus's file index gets the plan's message.
+- **Refusals run in `collectViolations`, before the kernel's,** so a malformed declaration throws
+  over an empty selection too. One refusal the plan did not list: a `direction` outside the three,
+  for callers in plain JavaScript (`scripts/check-corpus.mjs` is one), since the type alone requires
+  it.
+- **A `'rest'` group is named with its marker** in F2 and F4: `bugs/8.md is in open's folders
+('rest')`, since a `'rest'` group has no globs to name.
+- **The default mark is `markDefaultFolders(group)`,** on `@nielspeter/eess-md/internal`, tagging the
+  group object in a module-private `WeakSet`. **For plan 0498:** ADR-022 clause 3 lets a module under
+  `packages/md/src/rules/` import only the md root and the kernel root, and `md/rules-import-only-the-root`
+  gates it, so `honestyAtClose` cannot import this helper from `/internal` as this plan's E3 says.
+  Plan 0498 decides how the preset reaches it; recorded there.
+- **The example is one file with five judgements,** each `violating-*` folder a copy of `clean/`
+  with one defect, so swapping any of them into `clean/` reds that shape's clean test. Removing
+  `region: 'header'` from the three rules reds all eight tests (measured): the register, the
+  `## Severity:` chain and the per-phase lines are load-bearing.
+- **The dogfood measured 190 records,** not 189: 48 plans, 138 bugs and 4 proposals in done folders
+  at this branch's base, each with its folder's value. The three rules land green with no exclusion;
+  `check:corpus` prints them on a `done` line.
+- **Measured:** the md suite is 566 tests in about 3 s, 30 of them in
+  `tests/conditions/agree-with-folder.test.ts`; `check:corpus` about 6.5 s.
+- **Red first:** the test file was written before the condition and run against the code without it:
+  30 of 30 red (`agreeWithFolder` is not a function), which proves the file drives the public entry
+  but nothing per row. The per-row evidence is the matrix below.
+
+### Sabotage matrix
+
+Run at `af6a6cc4`, each mutant applied to `packages/md/src/conditions/agree-with-folder.ts` (row 11:
+`packages/md/src/builders/docs.ts`), `tests/conditions/agree-with-folder.test.ts` run, and the file
+restored with `git checkout`. Every row red; the test named is the one its break class names.
+
+| row | mutant                                         | red on                                                                                          |
+| --- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | the direction ignored, always `both`           | F1 (not reported under `right-to-left`), F4 (not under `left-to-right`), `Sate`, the counts (4) |
+| 2   | the closed set dropped                         | F3 in a bound folder; the normaliser row (2)                                                    |
+| 3   | F4 reported outside the bound folders          | "F4: an unbound record with no value is not reported"                                           |
+| 4   | F4 dropped                                     | both F4 rows (2)                                                                                |
+| 5   | values read by a first-occurrence reader       | F5 (given twice); the side-causes row (2)                                                       |
+| 6   | `normalize` applied to declared values only    | the normaliser row                                                                              |
+| 7   | the first matching group taken on overlap      | F6                                                                                              |
+| 8   | `both` reporting a J ≠ K document twice        | both F2 rows; the `'rest'` row (3)                                                              |
+| 9   | F8 dropped                                     | F8                                                                                              |
+| 10  | a withheld document counted as agreeing        | F5 (`examined` 3)                                                                               |
+| 11  | `examined` counting selected documents         | the `Sate` row; F5; both count rows (4)                                                         |
+| 12  | F7 dropped, so a dead glob is reported as F1s  | both F7 rows (2)                                                                                |
+| 13  | F6 made suppressible (`bypassFilters` dropped) | F6 (`.excluding()` removed it)                                                                  |
+| 14  | the two-groups refusal removed                 | both value-in-two-groups refusals (2)                                                           |
+| 15  | frozen documents skipped                       | the frozen row                                                                                  |
+| 16  | F2 folded back into F3                         | both F2 rows; the `'rest'` row (3)                                                              |
+| 17  | the side causes dropped                        | the side-causes row                                                                             |
+| 18  | the preset-default mark ignored (not listed)   | "F7: a preset default group reports only when every one of its globs is dead"                   |
+| 19  | F1 dropped (not listed)                        | F1; the folder-to-value count row (2)                                                           |
+
+The three `check:nonvacuity` rows were each run by hand before the gate: a `Draft` plan probe in
+`work/plans/completed/`, a stateless bug probe in `work/bugs/fixed/` and a `Draft` proposal probe in
+`work/proposals/promoted/`, each exit 1 with the finding on its rule id, file and message.
+
 ## Progress ledger
 
-- [ ] Phase 1: the verdict's `occurrence`, the condition, F1 to F5, the side causes
-- [ ] Phase 2: F6, F7, F8, `examined`, the description
-- [ ] Phase 3: dogfood rules and nonvacuity rows, the example with the three adopter shapes, docs,
-      changeset
-- [ ] Sabotage matrix, rows 1 to 17, each recorded red here with the commit it ran on
+- [x] Phase 1: the verdict's `occurrence`, the condition, F1 to F5, the side causes (`80fac1ef`)
+- [x] Phase 2: F6, F7, F8, `examined`, the description (`80fac1ef`)
+- [x] Phase 3: dogfood rules and nonvacuity rows, the example with the three adopter shapes, docs,
+      changeset (`a8d1144c`, `af6a6cc4`)
+- [x] Sabotage matrix, rows 1 to 17, each recorded red here with the commit it ran on (and rows 18
+      and 19, which the plan did not list)
+- [x] `deferred→proposal 017` sending the third worked example to adopter 3, with the question
+      whether it would adopt this shape (product N3): adopter contact is the maintainer's, not this
+      branch's; recorded in proposal 017's "Consumer follow-up"
+- [x] Close: this plan → `completed/`; ROADMAP row; links in ADR-022, plan 0498 and proposal 017
 
-Deferred: none
+Deferred: proposal 017

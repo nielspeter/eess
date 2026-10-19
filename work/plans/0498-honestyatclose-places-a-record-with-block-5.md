@@ -4,13 +4,17 @@
 
 - **State:** Draft — written 2026-10-19, with plan 0495 and ADR-022; revised the same day after
   PR #246's review (see "Review — 2026-10-19"). Not reviewed again.
+- **Note 2026-10-19 (plan 0495's build):** plan 0495 put the default-glob mark on
+  `@nielspeter/eess-md/internal` (`markDefaultFolders`), as its decision E3 says, but ADR-022 clause
+  3 lets `packages/md/src/rules/ledger.ts` import only the md root and the kernel root, gated by
+  `md/rules-import-only-the-root`. This plan decides how the preset reaches the mark.
 - **Implements:** proposal 017
 - **Priority:** Medium. Proposal 017's block 5 row: "`honestyAtClose`'s placement half is then
   rebuilt on it, so there is one placement check". It also removes ADR-022's `model/label.ts` edge.
 - **Effort:** Medium. The state reading and the placement half move onto public blocks; the box and
   `deferred: none` halves are plan 0504's.
 - **Created:** 2026-10-19
-- **Builds after:** [plan 0495](./0495-a-value-agrees-with-its-folder.md) (block 5).
+- **Builds after:** [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md) (block 5).
 - **Decided by:** [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 3.
 
 ## Problem
