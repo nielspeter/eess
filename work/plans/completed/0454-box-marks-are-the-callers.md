@@ -276,6 +276,8 @@ All in one pull request.
 - An example under plan 0458's gate, `examples/md/box-marks.test.ts`: "in a closed folder, a
   declared `[~]` counts as open". Built from public blocks only, with `marks = { '~': 'open', '→': 'done' }`:
 
+  > **Correction 2026-10-19:** an adopter confirmed `[→]` means "moved to another record", which is neither open nor verified done; since 2026-10-19 (PR #254) the example declares `'→': 'unjudged'`, using the `'unjudged'` state bug 0525 added.
+
   ```ts
   const c = corpus({ cwd: fixtureFolder, roots: ['**/*.md'] })
   taskItems(c, { marks }).that().areOpen().should().notExist().check()
@@ -287,7 +289,7 @@ All in one pull request.
   green and proves its population through a wider selection, as plan 0458's contract requires of a
   cardinality example: the same builder without `.areOpen()`,
   `.select({ label, identify })` (`packages/core/src/rule-builder.ts:195`), is non-empty, since
-  `examined` is zero by construction under `notExist()`. The `[→]` in `clean/` is declared done, so
+  `examined` is zero by construction under `notExist()`. The `[→]` in `clean/` is declared done (see the 2026-10-19 correction above), so
   it is a read box, not an undeclared mark. Test titles start with their folder's name and a colon,
   as plan 0458 requires: at least one `clean: …` and one `violating-declared-open: …`.
 
@@ -540,7 +542,7 @@ Each finding of the round-two reviews about this plan, and what changed:
   element type narrows `state` to `BoxMarkState`; the wide union stays on `collectTaskItems`. Pinned
   by a `@ts-expect-error` row, and by a sabotage row (widening the element type back reds
   `npm run typecheck`).
-- **Testing m1 — the clean fixture's `[→]` was undeclared.** The example declares `'→': 'done'`.
+- **Testing m1 — the clean fixture's `[→]` was undeclared.** The example declares `'→': 'done'` (corrected 2026-10-19 to `'unjudged'`; see above).
 - **Architect m-new-5, method N6 — `.select()` with no argument.** Written as
   `.select({ label, identify })` in both places.
 - **Enforcement m-b, testing m2 — title prefixes.** `clean: …` and `violating-declared-open: …`, as

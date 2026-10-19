@@ -957,6 +957,15 @@ two, adopter 3's three become six). The ask is one declaration on the absence ru
 matches something, replacing the guard. `.expectNonEmpty()` is the obvious candidate and is a trap on
 eess-md's `notExist()` today ([bug 0500](../bugs/0500-eess-md-notexist-with-expectnonempty-can-never-be-green.md)).
 
+**21.** (an ask added 2026-10-19, from adopter 3's answer after the v0.15.0 release; a record only,
+not dispositioned) _A box mark that means "disposed elsewhere"._ Adopter 3's `[→]` means "moved to
+another record", the same disposition as a `deferred→` box (one of its closed bugs reads "NOT done — moved to
+bug 0366", in the adopter's own numbering); all seven uses are in closed records, by the adopter's
+own count, not measured here. Of the three declared states, `'unjudged'` behaves
+right (it never blocks a close and is never counted as done), so the docs declare `[→]` that way, but
+its meaning is "disposed elsewhere", not "never judged". The ask is a `'moved'` (or `'deferred'`)
+state that could also require the box to name the record it moved to, which `'unjudged'` cannot.
+
 ### The maintainer's acceptance — 2026-10-16
 
 The coordinator proposed accepting "1, 2, 6, 7, 12, 13, block 5 with a direction option, and the

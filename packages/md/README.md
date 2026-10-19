@@ -442,7 +442,8 @@ judges it (bug 0525). Declare them once and pass the same object to every rule t
 import { corpus, taskItems } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
-const marks = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
+// [→] is a box moved to another record: unjudged, never done, since a move is not a verification.
+const marks = { '~': 'open', '→': 'unjudged', '?': 'unjudged' } as const
 const c = corpus({ cwd: process.cwd(), roots: ['work/**'] })
 
 taskItems(c, { marks }).that().areOpen().should().notExist().check()
@@ -457,7 +458,8 @@ its predicates could have reached it, read as open or as done.
 
 An unjudged box is not open, so `honestyAtClose` does not ask it for a disposition, and it is not done,
 so it does not count as finished work. `areOpen()` and `areChecked()` do not select it; it is still an
-element, so a rule selects it by `t.mark === '?'` or `t.state === 'unjudged'`. Only a declaration makes
+element, so a rule selects it by its mark (`t.mark === '?'`, that mark only) or by
+`t.state === 'unjudged'` (every mark declared unjudged). Only a declaration makes
 a mark unjudged: an undeclared one stays a finding.
 
 A rule never sees an unread box: a `taskItems()` element's `state` is only `'open'`, `'done'` or
