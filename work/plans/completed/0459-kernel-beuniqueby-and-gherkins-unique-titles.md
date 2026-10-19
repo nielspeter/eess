@@ -461,3 +461,50 @@ packages, 0 findings, no declared break has a workspace dependent (0.4 s); `chec
 - [x] Close: this plan → `completed/`; boards
 
 Deferred: none
+
+## Addendum — 2026-10-19: block 13 at value level
+
+The batch's product review (I3) found that this plan delivered block 13 for keys derived from the
+document (a slug, a number in the file name) but not proposal 017's ask itself: "no two documents
+carry the same value under this label". This plan's Out of scope deferred that form to block 1's
+field elements, and block 1 has shipped (`fields()`). The coordinator decided the ask on 2026-10-19,
+and it was built at e24c9b55 on `release/batch-builds` d1ed1fe:
+
+- **`beUniqueBy(key, what)` on `TermRuleBuilder`**, so on `fields()` and `terms()`, on the same
+  kernel `uniqueByCondition`. Each element is one occurrence of the value, reported at its own line
+  (`relPath:line`, as `resolveAgainst` reports). `fields(c, { label: 'Id', forms: ['bold'] })
+.should().beUniqueBy((f) => f.value, 'Id')` states the ask with no hand-written reader.
+- **The normaliser is the caller's `key`**, as decided for `docs().beUniqueBy()`. 017 asks for block
+  1's normaliser; block 1 cuts a value (`value`, `split`), and what counts as "the same" (leading
+  zeros, case) is a corpus's own rule. The test shows both: as written, `066` and `0066` differ; with
+  a key that drops leading zeros, they collide.
+- **A value the rule cannot read is reported, never grouped.** `readFields` yields an empty value so
+  that "a check reports it rather than skipping it" (`packages/md/src/model/fields.ts`). Keyed, two
+  unreadable values would be reported as "the same Id", which is false; dropped, they would leave the
+  rule's denominator silently. So each is a finding with `resolveAgainst`'s message (`(Id, line 3)
+has no value this rule can read in '✅'`) and stays out of the grouping. Decided here.
+- An example, `examples/md/unique-ids.test.ts` (`clean/`, `violating-shared-id/`), keys on Id through
+  a leading-zero normaliser. `docs/markdown.md` gains "Unique values: `beUniqueBy`" beside
+  `agreeWithFolder`, covering the document-keyed and value-keyed forms (product M1). Proposal 017's
+  block-13 row records delivery at value level. Changeset: eess-md minor.
+
+**Red first.** `packages/md/tests/builders/fields-unique-by.test.ts` failed 6 of 6 on d1ed1fe
+(`beUniqueBy is not a function`).
+
+**Sabotage matrix, at e24c9b55**, each mutant in `packages/md/src/builders/vocabulary.ts`, its named
+test run with `-t`, restored by `git checkout`, tree clean after; 0.8 s per row:
+
+| Row | Mutant                                                 | Named test                                                           | Result |
+| --- | ------------------------------------------------------ | -------------------------------------------------------------------- | ------ |
+| 1   | unreadable values are grouped like any other           | a value the rule cannot read is reported, not grouped with another   | red    |
+| 2   | the caller's `key` is replaced by the value as written | 066 and 0066 collide when the caller normalises leading zeros away   | red    |
+| 3   | a location names the document, not the line            | two documents with one value are both reported, each at its own line | red    |
+| 4   | the finding's element names the document, not the line | two documents with one value are both reported, each at its own line | red    |
+| 5   | the uniqueness half returns nothing                    | two documents with one value are both reported, each at its own line | red    |
+
+**Gates on this tree:** md's suite 39 files green (3 s); `check:docs-code` 89 fences (3 s);
+`check:examples` 47 tests (2 s); `check:family` (4 s); `check:arch` 37 rules (9 s); `check:release` 0
+findings (1 s); `examples/md-fixtures-are-load-bearing` OK, 9 examples, 17 of 17 judgements (24 s).
+The full `npm run validate` was not run for this addendum, by the coordinator's instruction.
+
+Deferred: none.
