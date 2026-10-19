@@ -16,8 +16,10 @@ describe('a waiver inside a Gherkin doc string (bug 0419)', () => {
       .haveUniqueTitles()
       .rule({ id: 'gherkin/unique-titles' })
       .violations()
-    expect(violations).toHaveLength(1)
-    expect(violations[0]?.message).toContain('duplicate scenario title "Same title"')
-    expect(violations[0]?.line).toBe(7)
+    // The span the doc strings would waive holds the second member, at line 7; it still reports.
+    expect(violations.map((v) => v.line)).toEqual([2, 7])
+    expect(violations[1]?.message).toContain(
+      'waiver-in-doc-string.feature › Same title has the same title as 1 other',
+    )
   })
 })

@@ -16,6 +16,9 @@ const set = features({ roots: ['specs/behaviors/features/**'] })
 scenarios(set).should().haveUniqueTitles().rule({ id: 'gherkin/unique-titles' }).check()
 ```
 
+Every scenario sharing a title in one file is a finding at its own line, naming the others, so
+excluding one (its element is `<file>:<line> › <title>`) does not hide the rest.
+
 Why it exists: a spec corpus cites scenarios from markdown (user stories →
 behavior specs). Those citations are validated by the **md↔gherkin pairing** in
 `@nielspeter/eess-crossvalidate`, which resolves each cited
