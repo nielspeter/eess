@@ -246,11 +246,37 @@ summary line rather than silently skipping unreachable pointers.
 
 `taskItems(c)` — a peer of `docs()`/`links()`/`pointers()` — builds a
 `TaskItemRuleBuilder` over the corpus's GFM task-list items (`- [ ]` /
-`- [x]`). Its elements are `MdTaskItem` (`checked`, `text`, `line`, `doc`);
-`.areOpen()` and `.areChecked()` filter on the box state. The underlying
-extraction, `collectTaskItems(root)`, returns the doc-less `MdTaskItemRef`
-(`checked`, `text`, `line`) that `MdTaskItem` adds `doc` to — a task item
-inside fenced code or a blockquote is excluded for free — but by two different
+`- [x]`), and any extra mark you declare (see "Box marks" below). Its elements
+are `MdTaskItem` (`mark`, `state`, `checked`, `text`, `line`, `doc`), with a
+`state` of `'open'`, `'done'` or `'unjudged'`; `.areOpen()` selects
+`state === 'open'` and `.areChecked()` `state === 'done'`. A box's `text` is all of its own content:
+every paragraph of the item and every sub-item that is not itself a box, joined
+by single spaces. The underlying extraction,
+`collectTaskItems(root, { marks, source })`, takes the document's text as
+`source` (mdast resolves an escaped `\[` away, and only the text tells it
+apart) and returns the doc-less `MdTaskItemRef`. It returns every box, including
+the ones a rule cannot read, so its `state` can also be `'undeclared'` or
+`'malformed'`, with `checked: false`. Pass your shared marks (see "Box marks"
+below), report a box you cannot read, and only then filter on `state`, never on
+`!checked`. A filter to `'open'` alone drops an undeclared mark without a word:
+
+```ts
+import { collectTaskItems, corpus } from '@nielspeter/eess-md'
+
+const BOX_MARKS = { '~': 'open', '→': 'done' } as const
+
+for (const doc of corpus({ roots: ['work/**'] }).documents()) {
+  const boxes = collectTaskItems(doc.root, { marks: BOX_MARKS, source: doc.text })
+  const unread = boxes.filter((b) => b.state === 'undeclared' || b.state === 'malformed')
+  if (unread.length > 0) {
+    throw new Error(`${doc.relPath}: ${String(unread.length)} box(es) this caller cannot read`)
+  }
+  const open = boxes.filter((b) => b.state === 'open')
+  console.log(doc.relPath, open.length)
+}
+```
+
+A task item inside fenced code or a blockquote is excluded for free — but by two different
 mechanisms, worth knowing if you ever debug a box that vanished. Fenced code is
 never a `listItem` in mdast at all, so it costs nothing. A blockquote **does**
 produce a `listItem`, and `collectTaskItems` skips it deliberately with an
@@ -258,6 +284,81 @@ produce a `listItem`, and `collectTaskItems` skips it deliberately with an
 ledger reconciliation is built from (see "Ledger reconciliation" below), and
 is exported for a caller who wants task items without going through the
 corpus builder chain.
+
+### Box marks
+
+GFM reads `[ ]` as open and `[x]` (or `[X]`) as done. A corpus that writes other
+marks, such as `[~]` for partly done or `[→]` for moved to another record,
+declares what each one means, as `'open'`, `'done'` or `'unjudged'`:
+
+```ts
+import { corpus, taskItems } from '@nielspeter/eess-md'
+import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
+
+// One constant, passed to every call that reads boxes.
+export const BOX_MARKS = { '~': 'open', '→': 'done' } as const
+
+const c = corpus({ roots: ['work/**'] })
+
+taskItems(c, { marks: BOX_MARKS }).that().areOpen().should().notExist().check()
+honestyAtClose(c, { marks: BOX_MARKS })
+```
+
+A declared open mark is an open box, and needs a disposition in a closed record
+just as `[ ]` does. A declared done mark is a closed box, so declare `'done'`
+only for a mark that means the work is finished. A declaration that is not one
+grapheme, that is GFM's own space, `x` or `X`, that is a bracket or whitespace,
+or whose state is not one of the three (`undefined` included), is refused with
+an `ArchConfigError`, by `taskItems()`, `honestyAtClose()` and
+`collectTaskItems()` alike.
+
+A mark nobody declared is `md/undeclared-box-mark`, reported once per document
+and mark. A near-GFM box (`[ x ]`, `[x]done`, an empty `- [ ]` or `- [x]`) is
+`md/malformed-box`, reported once per box. Both are configuration findings: a
+`.warn()` rule that carries one fails, and `.excluding()` does not hide them. A
+rule reports such a box only when its predicates could have reached it. To clear
+one, declare the mark, rewrite the box as `[ ]` or `[x]`, or escape (`\[`) or
+code-span a bracket that is not a box.
+
+**Declare the marks once, in one shared constant.** `taskItems()`,
+`honestyAtClose()` and `collectTaskItems()` each take `marks`, and a call that
+was not given the constant reports every extra mark as undeclared. Two copies of
+the declaration drift.
+
+**A mark for a box nobody should judge, such as `[?]`, is `'unjudged'`.**
+Declaring such a mark `'open'` asks for a disposition on every box, and
+declaring it `'done'` claims work that was never done. An unjudged box is neither:
+`.areOpen()` and `.areChecked()` do not select it, so `honestyAtClose` neither
+asks it for a disposition nor counts it as finished, and a `deferred→` written on
+it is not a deferral.
+
+**Declare `'unjudged'` only if the box never blocks a close in any record:** it
+leaves every close rule for good, in live and closed records alike. `[~]` is the
+wrong use: it marks unfinished work, which is `'open'`.
+
+An unjudged box is still a `taskItems()` element, with `checked: false`, so a
+rule selects it by its mark or by its state. If your records stopped writing the
+mark, guard that it does not come back in a live record:
+
+```ts
+import { areLive, corpus, inDocuments, taskItems } from '@nielspeter/eess-md'
+
+export const BOX_MARKS = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
+
+const c = corpus({ roots: ['work/**'] })
+taskItems(c, { marks: BOX_MARKS })
+  .that()
+  .satisfy({ description: 'unjudged', test: (t) => t.state === 'unjudged' })
+  .satisfy(inDocuments(areLive()))
+  .should()
+  .notExist()
+  .check()
+```
+
+Only a declaration makes a mark unjudged. A mark nobody declared is still
+`md/undeclared-box-mark`, and its remedy names `'unjudged'` beside `'open'` and
+`'done'`. A rule whose predicate selects the unjudged state also reaches an
+undeclared box, so it reports the mark rather than missing it.
 
 ### Selecting the links a block declares: `areLabelled` and `areInSection`
 

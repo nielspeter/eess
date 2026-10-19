@@ -141,6 +141,45 @@ describe('uniqueByCondition (plan 0459)', () => {
     )
   })
 
+  it('the others are listed by location, whatever order the elements load in (bug 0526)', () => {
+    const group = [
+      w('c', 'x', 2),
+      w('a', 'x', 10),
+      w('b', 'x', 1),
+      w('a', 'x', 9),
+      w('d', 'y'),
+      w('a10', 'x'),
+      w('a2', 'x'),
+    ]
+    const messages = (ws: readonly Widget[]): string[] =>
+      run(ws)
+        .map((v) => v.message)
+        .sort()
+    const expected = messages(group)
+    // Every rotation and the reverse: the same findings, each naming its others in one order.
+    for (let k = 1; k < group.length; k++) {
+      expect(messages([...group.slice(k), ...group.slice(0, k)])).toEqual(expected)
+    }
+    expect(messages([...group].reverse())).toEqual(expected)
+    // A run of digits compares as a number, the rest by code unit: a.md:9 before a.md:10, a2.md
+    // before a10.md, and a2.md before a.md, as its first run, 'a', is shorter than 'a.md:'.
+    expect(expected).toContain(
+      'b has the same key as 5 others: a2.md:1, a10.md:1, a.md:9, a.md:10, c.md:2',
+    )
+  })
+
+  it('above ten others, the ten named are the first by location, not the first loaded (bug 0526)', () => {
+    const twelve = Array.from({ length: 12 }, (_, i) => w(`m${String(i)}`, 'same'))
+    const forward = run(twelve).find((v) => v.element === 'm11')?.message
+    const backward = run([...twelve].reverse()).find((v) => v.element === 'm11')?.message
+    expect(backward).toBe(forward)
+    expect(forward).toBe(
+      'm11 has the same key as 11 others: ' +
+        Array.from({ length: 10 }, (_, i) => `m${String(i)}.md:1`).join(', ') +
+        ' and 1 more',
+    )
+  })
+
   it('the condition it returns is frozen', () => {
     const c = uniqueByCondition<Widget>({
       key: (x) => x.key,

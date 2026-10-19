@@ -16,13 +16,15 @@ import { inScope, unreadFindings } from './box-mark-findings.js'
 import { haveTextMatchingCondition, predicateHaveTextMatching } from '../predicates/text.js'
 
 /**
- * A read box: what a `taskItems()` rule sees. Its `state` is only `'open'` or `'done'`; an unread
+ * A read box: what a `taskItems()` rule sees. Its `state` is `'open'`, `'done'` or, for a mark
+ * declared so, `'unjudged'` (bug 0525), which `areOpen()` and `areChecked()` do not select; an unread
  * box is reported, never handed to a rule. A predicate on `t.mark` decides which undeclared boxes a
- * rule reports: under either reading, open or done, it reaches them.
+ * rule reports: under any reading, open, done or unjudged, it reaches them.
  */
 export type MdTaskItem = ReadBox
 
-const isRead = (state: string): state is BoxMarkState => state === 'open' || state === 'done'
+const isRead = (state: string): state is BoxMarkState =>
+  state === 'open' || state === 'done' || state === 'unjudged'
 
 const areOpen = (): Predicate<MdTaskItem> => ({
   description: 'are open',
@@ -114,7 +116,7 @@ export class TaskItemRuleBuilder extends CorpusRuleBuilder<MdTaskItem> {
 
 /**
  * Entry point: build rules over the corpus's boxes. Declare each box mark beyond GFM's in `marks`,
- * open or done: `taskItems(c, { marks: { '~': 'open' } })`.
+ * open, done or unjudged: `taskItems(c, { marks: { '~': 'open', '?': 'unjudged' } })`.
  */
 export function taskItems(corpus: Corpus, options: TaskItemOptions = {}): TaskItemRuleBuilder {
   return new TaskItemRuleBuilder(corpus, options)

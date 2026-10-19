@@ -158,7 +158,10 @@ export function findFinishedNotClosed(lanes) {
 
       laneExamined += 1
       // The lane's declared marks (plan 0454): a declared done mark counts as done.
-      const boxes = collectTaskItems(doc.root, { marks: lane.marks, source: doc.text })
+      // A mark declared unjudged (bug 0525) is neither done nor open, so it is not counted at all.
+      const boxes = collectTaskItems(doc.root, { marks: lane.marks, source: doc.text }).filter(
+        (b) => b.state !== 'unjudged',
+      )
       if (boxes.length === 0) continue
       if (boxes.some((b) => b.state === 'open')) continue
       // Every box this rule can read is done. A box it cannot read (a mark the lane did not

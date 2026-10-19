@@ -342,7 +342,7 @@ describe('scope, volume, exclusion, dedupe (plan 0454)', () => {
 })
 
 describe('a rule cannot select an unread state (plan 0454)', () => {
-  it("a taskItems() element's state is only open or done, so comparing it with undeclared does not compile", () => {
+  it("a taskItems() element's state is open, done or unjudged, never unread, so comparing it with undeclared does not compile", () => {
     // `npm run typecheck` holds this row: an unused @ts-expect-error is TS2578.
     // @ts-expect-error a rule never sees an unread state; test `t.mark` to select an undeclared box
     const unreadState = (t: MdTaskItem): boolean => t.state === 'undeclared'
@@ -383,7 +383,7 @@ describe('the model and the declaration (plan 0454)', () => {
     ['a space', { ' ': 'open' }, /' ' is GFM's own/],
     ['x', { x: 'done' }, /'x' is GFM's own/],
     ['X', { X: 'done' }, /'X' is GFM's own/],
-    ['a state other than open or done', { '~': 'half' }, /'~' is declared "half"/],
+    ['a state other than open, done or unjudged', { '~': 'half' }, /'~' is declared "half"/],
     ['a bracket', { ']': 'open' }, /"\]" can never be read as a mark/],
     ['a tab', { '\t': 'open' }, /"\\t" can never be read as a mark/],
   ]

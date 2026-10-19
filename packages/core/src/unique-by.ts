@@ -19,10 +19,35 @@ export interface UniqueByOptions<T> {
 const LISTED = 10
 
 /**
+ * Two locations in reading order (bug 0526): a run of digits compares as a number, so `a.md:9` comes
+ * before `a.md:10` and `a2.md` before `a10.md`; anything else by code unit. No locale is consulted, so
+ * the order is the same on every runtime.
+ */
+function byLocation(a: string, b: string): number {
+  const pa = a.match(/\d+|\D+/g) ?? []
+  const pb = b.match(/\d+|\D+/g) ?? []
+  for (let i = 0; i < Math.min(pa.length, pb.length); i++) {
+    const x = pa[i] ?? ''
+    const y = pb[i] ?? ''
+    if (x === y) continue
+    if (/^\d/.test(x) && /^\d/.test(y)) {
+      const nx = x.replace(/^0+(?=\d)/, '')
+      const ny = y.replace(/^0+(?=\d)/, '')
+      if (nx.length !== ny.length) return nx.length - ny.length
+      if (nx !== ny) return nx < ny ? -1 : 1
+    }
+    return x < y ? -1 : 1
+  }
+  if (pa.length !== pb.length) return pa.length - pb.length
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+/**
  * The one `beUniqueBy` condition (proposal 017, block 13; plan 0459): no two
  * elements share a key. Every member of a group is a finding at its own place,
  * naming the others, so excluding one member cannot hide the group. Keys compare
- * exactly. Not cardinality-exempt: zero elements is the kernel's ordinary
+ * exactly. The others are named by location, not in load order, so a message is the same on every
+ * runtime (bug 0526). Not cardinality-exempt: zero elements is the kernel's ordinary
  * zero-examined finding, and one element is evidence. A key that throws
  * propagates.
  */
@@ -42,7 +67,10 @@ export function uniqueByCondition<T>(opts: UniqueByOptions<T>): Condition<T> {
       for (const group of groups.values()) {
         if (group.length < 2) continue
         for (const [i, e] of group.entries()) {
-          const others = group.filter((_, j) => j !== i).map((o) => opts.locate(o).at)
+          const others = group
+            .filter((_, j) => j !== i)
+            .map((o) => opts.locate(o).at)
+            .sort(byLocation)
           // A group of k members gives k findings; listing all k-1 others in each would be k² text.
           const listed = others.slice(0, LISTED).join(', ')
           const more = others.length > LISTED ? ` and ${String(others.length - LISTED)} more` : ''

@@ -11,8 +11,8 @@ export const MALFORMED_BOX = 'md/malformed-box'
 const NOT_A_BOX = 'If it is not a box, write the bracket escaped (`\\[`) or in inline code.'
 
 /**
- * The unread boxes the rule could have judged: those its predicates select read as open, or read as
- * done. No list of "state predicates" is needed, so a caller's own state test is handled like
+ * The unread boxes the rule could have judged: those its predicates select read as open, as done,
+ * or as unjudged (bug 0525). No list of "state predicates" is needed, so a caller's own state test is handled like
  * `areOpen()`. Applied through the kernel's one truth table (ADR-021): a box whose membership is
  * undecided is reached too, so its mark is reported, and the causes are returned so the caller
  * reports them as well. Neither finding is dropped because the box's document cannot be read.
@@ -31,7 +31,7 @@ export function inScope(
     }
   const reached = new Set<UnreadBox>()
   const undecided: Undecided[] = []
-  for (const state of ['open', 'done'] as const) {
+  for (const state of ['open', 'done', 'unjudged'] as const) {
     for (const copy of unread.map(readAs(state))) {
       const m = membership(predicates, 'all', copy)
       if (m === false) continue
@@ -120,7 +120,9 @@ export function unreadFindings(
           `${group.length === 1 ? 'it is' : 'they are'} neither open nor done and no rule can judge ${group.length === 1 ? 'it' : 'them'}.${why}`,
         `Declare the state it means in the rule's \`marks\`, passed to taskItems() or honestyAtClose(): ` +
           `{ '${first.mark}': 'open' } if the work is not finished (in a closed record an open box then needs ` +
-          `a disposition), or 'done' only if it is. Or rewrite each box as \`[ ]\`, or \`[x]\` if done. ${NOT_A_BOX}`,
+          `a disposition), 'done' only if it is, or 'unjudged' only if it never blocks a close in any record: ` +
+          `it then leaves every close rule for good, so never for unfinished work. ` +
+          `Or rewrite each box as \`[ ]\`, or \`[x]\` if done. ${NOT_A_BOX}`,
       ),
     )
   }

@@ -85,6 +85,10 @@ work/plans/x.md:12 — md/malformed-box
 **The caller declares each extra mark, open or done.** No mark beyond GFM's has a default
 (proposal 017's principle).
 
+**Correction (2026-10-19, bug 0525):** "open or done" misread proposal 017's decision 5 ("blocking a
+close or not"): a mark that blocks no close need not be done. Bug 0525 adds a third declaration,
+`'unjudged'`; see [bug 0525](../../bugs/fixed/0525-a-box-mark-can-be-declared-only-open-or-done.md).
+
 ```ts
 export type BoxMarkState = 'open' | 'done'
 

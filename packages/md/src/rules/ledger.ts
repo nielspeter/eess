@@ -106,8 +106,9 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
    */
   readonly expectEmptyHeaders?: boolean
   /**
-   * Box marks beyond GFM's `[ ]` and `[x]`, each declared open or done (plan 0454): a declared open
-   * mark is an open box and needs a disposition like `[ ]`; a declared done mark is a closed box. An
+   * Box marks beyond GFM's `[ ]` and `[x]`, each declared open, done or unjudged (plan 0454, bug
+   * 0525): a declared open mark is an open box and needs a disposition like `[ ]`; a declared done
+   * mark is a closed box; a declared unjudged mark is neither, and no rule here judges it. An
    * undeclared mark in a done record is a finding. Pass the same object you pass to `taskItems()`.
    */
   readonly marks?: TaskItemOptions['marks']

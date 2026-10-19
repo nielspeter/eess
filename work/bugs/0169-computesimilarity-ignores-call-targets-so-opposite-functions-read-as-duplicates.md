@@ -519,7 +519,7 @@ The wider corpus opens with exactly what it should:
 
 ```
 walk            (scripts/graph-fix-stale-links.ts) is 100% similar to walk (scripts/graph-render.ts) — identical text: a literal copy
-bootstrap       (apps/admin-ui/src/main.tsx)       is 100% similar to bootstrap (apps/identity-gateway-ui/src/main.tsx) — identical text: a literal copy
+bootstrap       (apps/admin-ui/src/main.tsx)       is 100% similar to bootstrap (apps/gateway-ui/src/main.tsx) — identical text: a literal copy
 timestampPrefix (packages/migrations/src/generate.ts) is 100% similar to timestampPrefix (…/scaffold.ts) — identical text: a literal copy
 seed            (examples/nextjs-blog/seed/seed.ts) is up to 100% similar to 2 other bodies …
 ```
