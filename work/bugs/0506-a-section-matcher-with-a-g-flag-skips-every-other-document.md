@@ -66,7 +66,9 @@ above `## Enforcement` hides the defect: the non-matching heading is tested firs
 
 Decided against the record: crossvalidate keeps a non-global copy of its own instead of importing
 md's matcher. md's `matchName` is not exported, and `packages/md/src/model/query.ts` is plan 0496's
-to change in a build running beside this one. The third box below waits on that.
+to change in a build running beside this one. The third box below is bug 0511's: it owns the one
+shared non-global helper both packages read (moved from plan 0496 after review, since that plan's
+ledger never took the crossvalidate side).
 
 The same hazard on paths this bug does not name (a caller's column matchers in eess-md and
 eess-crossvalidate, and `md-mermaid-er`'s section matcher) is
@@ -84,6 +86,6 @@ Sabotage matrix (mutant applied to `packages/crossvalidate/src/md-ts.ts`, then r
 - [ ] Red first: the third row above examines 4 and reports all four documents — deferred→plan 0496 (the md half; its ledger disposes this box)
 - [x] Red first: the crossvalidate ADR binding with a `g`-flagged section finds the table in every
       document — `packages/crossvalidate/tests/md-ts.test.ts`, red on the unfixed code
-- [ ] One matcher for both packages; `npm run validate` green — deferred→plan 0496 (crossvalidate can import md's non-global matcher once plan 0496 exports one through `@nielspeter/eess-md/internal`)
+- [ ] One matcher for both packages — deferred→bug 0511 (it owns one shared non-global helper, exported through `@nielspeter/eess-md/internal`, that md's `matchName` and crossvalidate's `nonGlobal` are both replaced by)
 
-Deferred: plan 0496
+Deferred: plan 0496, bug 0511
