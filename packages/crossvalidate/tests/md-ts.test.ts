@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { afterAll, describe, it, expect } from 'vitest'
 import { fileURLToPath } from 'node:url'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { ArchRuleError } from '@nielspeter/eess'
@@ -134,8 +134,14 @@ describe('adrCitationsResolve() — which callee shapes count as a test', () => 
 // citations went unchecked: a false green. The ADRs carry no title heading on
 // purpose: a non-matching heading tested first resets `lastIndex`, which hid it.
 describe('adrCitationsResolve() — a g- or y-flagged section matcher', () => {
+  const made: string[] = []
+  afterAll(() => {
+    for (const dir of made) rmSync(dir, { recursive: true, force: true })
+  })
+
   const fourAdrs = (): string => {
     const cwd = mkdtempSync(join(tmpdir(), 'eess-0506-'))
+    made.push(cwd)
     mkdirSync(join(cwd, 'docs/adr'), { recursive: true })
     for (const n of [1, 2, 3, 4]) {
       writeFileSync(
