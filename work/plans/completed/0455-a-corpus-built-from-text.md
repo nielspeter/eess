@@ -466,8 +466,10 @@ passed, 0 failed), so the guard is what catches it. The "parity on the … tree"
 - [x] Sabotage matrix run, each of the eight rows red on its named test (table above, 14 s)
 - [x] Docs, README line, changeset; `check:surface`, `check:docs-code` green
 - [x] Example and its fixture pair under plan 0458's gate (9 of 9 judgements load-bearing, 13 s)
-- [x] `npm run validate` at the close commit: validation-owed → recorded in the commit after it,
-      which touches only this plan
+- [x] `npm run validate`: red at the close commit 1135be2 (exit 1 after 47 s, `check:vacuity`:
+      `corpusFromText` neither probed nor listed as a non-constructor; fixed by listing it as an input
+      loader beside `corpus()`); after the rebase onto main, exit 0 in 18 min 21 s at 9def163. This
+      commit touches only this plan
 - [x] Close: this plan → `completed/`, ROADMAP row
 
 Deferred: none
