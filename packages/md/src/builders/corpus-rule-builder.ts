@@ -27,9 +27,6 @@ export abstract class CorpusRuleBuilder<T> extends RuleBuilder<T, Corpus> {
   /** Why a heading that misses a section name matters to this rule (the scan's near miss). */
   protected readonly sectionMissReason: string = 'this rule does not read it'
 
-  /** Whether the scan names a heading in a container; `links()` reads one until bug 0502. */
-  protected readonly sectionContainerNotes: boolean = true
-
   /** No document loaded at all outranks everything, `.expectEmpty()` included (ADR-010 §3). */
   protected override sourceEmpty(): boolean {
     return this.project.documents().length === 0
@@ -73,7 +70,6 @@ export abstract class CorpusRuleBuilder<T> extends RuleBuilder<T, Corpus> {
       context: this.buildConditionContext(),
       missReason: this.sectionMissReason,
       cited: citedHeadings(base),
-      containerNotes: this.sectionContainerNotes,
     })
   }
 

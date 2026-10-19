@@ -91,10 +91,11 @@ export function headingName(node: RootContent): string {
 }
 
 /**
- * Move a running heading stack (index i is the current heading at depth i+1) past one heading.
- * Shared by `buildDocument` (tables) and `collectLinks` (links), so both read one section path.
+ * Move a running heading stack (index i is the current heading at depth i+1) past one heading, as
+ * `buildDocument` walks the top level for tables. Links read their sections from the section index
+ * (`sectionsOf`, bug 0502), which is built from the same top-level headings.
  */
-export function enterHeading(stack: string[], depth: number, name: string): void {
+function enterHeading(stack: string[], depth: number, name: string): void {
   stack.length = depth - 1
   stack[depth - 1] = name
 }

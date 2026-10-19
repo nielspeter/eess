@@ -18,8 +18,6 @@ export interface SectionScan {
   readonly missReason: string
   /** `file:line` of every heading a condition's finding already names (ADR-009 rule 2). */
   readonly cited: ReadonlySet<string>
-  /** Whether a heading in a container is named. `links()` reads them until bug 0502 is fixed. */
-  readonly containerNotes: boolean
 }
 
 /**
@@ -91,7 +89,7 @@ export function sectionDeclarationFindings(scan: SectionScan): ArchViolation[] {
             `${n.note}, and this rule reads depth ${String(d.depth)}`,
             `make it a depth-${String(d.depth)} heading, or declare the depth this document uses`,
           )
-        } else if (scan.containerNotes) {
+        } else {
           report(
             doc,
             n.line,

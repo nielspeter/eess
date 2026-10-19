@@ -1,8 +1,8 @@
 import type { Root, Nodes } from 'mdast'
 import { textOf } from './text-of.js'
-import { enterHeading, headingName } from './document.js'
 import { isLabelAlone, wrappedLabelOf } from './label.js'
 import type { MdDocument } from './document.js'
+import { sectionPathAt } from './sections.js'
 
 /** A markdown link occurrence within a document (before doc back-reference). */
 export interface MdLinkRef {
@@ -30,7 +30,11 @@ export interface MdLinkRef {
    * the lists directly after it (plan 0405). Mirrors `sectionPath`.
    */
   readonly blockPath?: readonly MdLinkBlock[]
-  /** The headings above this link, outermost first, as `MdTable.sectionPath` records them. */
+  /**
+   * The sections that contain this link, outermost first, as `MdTable.sectionPath` records them:
+   * read from the section index (bug 0502), so a heading in a list item or blockquote, which does
+   * not start a section, is never in it. Set by `linksOf`.
+   */
   readonly sectionPath?: readonly string[]
 }
 
@@ -96,7 +100,6 @@ export function collectLinkBlocks(
   const blocks: MdLinkBlock[] = []
   const references: (readonly MdLinkBlock[])[] = []
   const unreadLabels: MdUnreadLabel[] = []
-  const headingStack: string[] = []
 
   // The block a node opens: its first line, read from its content column.
   const blockOf = (node: Nodes): MdLinkBlock => {
@@ -157,7 +160,6 @@ export function collectLinkBlocks(
 
   const visit = (node: Nodes, path: readonly MdLinkBlock[]): void => {
     if (node.type === 'heading') {
-      enterHeading(headingStack, node.depth, headingName(node))
       visitChildren(node, node.children, [])
       return
     }
@@ -192,7 +194,6 @@ export function collectLinkBlocks(
         urlStart,
         urlEnd,
         ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
-        sectionPath: headingStack.filter((h) => h !== undefined),
       })
     }
     if ('children' in node) visitChildren(node, node.children, path)
@@ -209,6 +210,17 @@ export function collectLinkBlocks(
  */
 export function collectLinks(root: Root, source?: string): MdLinkRef[] {
   return collectLinkBlocks(root, source).links
+}
+
+/**
+ * A document's links, each with the sections that contain its line (bug 0502). One owner of a
+ * link's `sectionPath`: the section index tables and sections read, not a second heading walk.
+ */
+export function linksOf(doc: MdDocument): MdLinkRef[] {
+  return collectLinks(doc.root, doc.text).map((l) => ({
+    ...l,
+    sectionPath: sectionPathAt(doc, l.line),
+  }))
 }
 
 /** A link with its owning document attached — the element the builders and conditions operate on. */

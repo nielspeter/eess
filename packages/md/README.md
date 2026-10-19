@@ -227,10 +227,6 @@ or `y`; it is read without them.
 from `sections().select()`, is green under `notExist()` when the section name is misspelt, and the scan
 never sees it. Limiting a rule over boxes or links to matching sections is plan 0503's `inSections`.
 
-Until bug 0502 is fixed, `links().areInSection('X')` reads its own heading walk, in which a heading
-inside a list item or blockquote does scope the links after it; `sections().that().areInSection('X')`
-does not.
-
 ## Scoping a rule to documents: `inDocuments`
 
 A note on names first. A plain name on this package's root keeps the kind it was first published as:

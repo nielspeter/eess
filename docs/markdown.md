@@ -296,7 +296,9 @@ takes its links out of it, and is reported.
 
 **`areInSection(name)`** selects the links under a heading named `name` — a
 string matched exactly, or a `RegExp` — at any depth beneath it, until the next
-heading of the same or a shallower depth.
+heading of the same or a shallower depth. It reads the sections `sections()`,
+tables and `haveSection` read: a heading inside a list item or a blockquote does
+not start a section, so it scopes no link, inside its container or after it.
 
 A declaration the selector cannot read selects nothing, and a rule over an empty
 selection would otherwise be quiet about it. So a rule built with either
@@ -319,7 +321,9 @@ selector also reports what it cannot read, as findings on the rule:
   under it. A template that writes `**Related to:** none` gets this finding;
   leave the label out instead;
 - a heading that misses a **string** `areInSection` declaration by case or
-  spacing. A `RegExp` states its own tolerance, so none is reported for it.
+  spacing. A `RegExp` states its own tolerance, so none is reported for it;
+- a heading of the declared name inside a list item or a blockquote, which does
+  not start a section, in the documents the rule's `inDocuments` scopes admit.
 
 The scan covers the whole corpus, not only the rule's selection — a misspelt
 declaration is, by definition, not selected — so a rule narrowed with other
@@ -587,10 +591,6 @@ or `y`; it is read without them.
 **Do not join sections to other elements by hand.** A predicate testing `s.doc` and a line range, fed
 from `sections().select()`, is green under `notExist()` when the section name is misspelt, and the scan
 never sees it. Limiting a rule over boxes or links to matching sections is plan 0503's `inSections`.
-
-Until bug 0502 is fixed, `links().areInSection('X')` reads its own heading walk, in which a heading
-inside a list item or blockquote does scope the links after it; `sections().that().areInSection('X')`
-does not.
 
 ## Scoping a rule to documents: `inDocuments`
 

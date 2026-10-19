@@ -2,7 +2,7 @@ import type { Predicate } from '@nielspeter/eess'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
-import { collectLinks, type MdLink, type MdLinkRef } from '../model/links.js'
+import { linksOf, type MdLink, type MdLinkRef } from '../model/links.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { linkResolves, type LinkResolveOptions } from '../conditions/resolve.js'
 import { linkedBack } from '../conditions/linked-back.js'
@@ -35,14 +35,12 @@ const areExternal = (): Predicate<MdLink> => ({
 export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
   protected readonly noun = 'links'
   protected override readonly sectionMissReason = 'the links under it are not checked'
-  // Bug 0502: a heading in a container still scopes links, so the note would be false here.
-  protected override readonly sectionContainerNotes = false
 
   /** What `areLabelled()` declared, for the near-miss scan (plan 0405). */
   private _declarations: readonly LinkDeclaration[] = []
 
   protected getElements(): MdLink[] {
-    return stampedByDocument<MdLinkRef>(this.project, (doc) => collectLinks(doc.root, doc.text))
+    return stampedByDocument<MdLinkRef>(this.project, linksOf)
   }
   protected locate(e: MdLink): MdLocation {
     return atLine(e)
