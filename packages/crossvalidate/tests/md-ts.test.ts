@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fileURLToPath } from 'node:url'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { ArchRuleError } from '@nielspeter/eess'
 import { corpus } from '@nielspeter/eess-md'
@@ -124,5 +125,45 @@ describe('adrCitationsResolve() — which callee shapes count as a test', () => 
         expect.stringMatching(/an alias-defined guarantee.*no matching test/),
       ]),
     )
+  })
+})
+
+// Bug 0506, the crossvalidate half: `matchName` called `.test()` on the caller's
+// `section` RegExp as given, so a `g` or `y` flag carried `lastIndex` from one ADR's
+// heading to the next, and every other ADR's table was never found. Its dangling
+// citations went unchecked: a false green. The ADRs carry no title heading on
+// purpose: a non-matching heading tested first resets `lastIndex`, which hid it.
+describe('adrCitationsResolve() — a g- or y-flagged section matcher', () => {
+  const fourAdrs = (): string => {
+    const cwd = mkdtempSync(join(tmpdir(), 'eess-0506-'))
+    mkdirSync(join(cwd, 'docs/adr'), { recursive: true })
+    for (const n of [1, 2, 3, 4]) {
+      writeFileSync(
+        join(cwd, `docs/adr/000${String(n)}.md`),
+        `## Enforcement\n\n| Clause | Tier | Mechanism | Status |\n` +
+          `| ------ | ---- | --------- | ------ |\n| a rule | 1 | vitest · \`it('gone-${String(n)}')\` | gated |\n`,
+      )
+    }
+    return cwd
+  }
+
+  it('finds the table in every ADR, whatever flags the section matcher carries', () => {
+    const adrs = corpus({ roots: ['docs/adr/**'], cwd: fourAdrs() })
+    for (const section of [/^enforcement$/i, /^enforcement$/gi, /^enforcement$/iy]) {
+      expect(adrCitationStats(adrs, { dir: 'docs/adr/**', section }).citations).toBe(4)
+    }
+  })
+
+  it('reports the dangling citation in every ADR under a g-flagged section matcher', () => {
+    const adrs = corpus({ roots: ['docs/adr/**'], cwd: fourAdrs() })
+    const violations = violationsOf(() =>
+      adrCitationsResolve(adrs, proj(), { dir: 'docs/adr/**', section: /^enforcement$/gi }),
+    )
+    expect(violations.map((v) => v.element).sort()).toEqual([
+      "it('gone-1')",
+      "it('gone-2')",
+      "it('gone-3')",
+      "it('gone-4')",
+    ])
   })
 })

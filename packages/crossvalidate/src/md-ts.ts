@@ -32,6 +32,17 @@ function matchName(value: string, name: string | RegExp): boolean {
   return typeof name === 'string' ? value === name : name.test(value)
 }
 
+/**
+ * The matcher without `g` or `y` (bug 0506). Either makes `.test()` stateful: a
+ * match moves `lastIndex`, and the next heading is tested from there, so one
+ * `RegExp` shared across ADRs found the table in every other one. Taken once,
+ * where the option is read; eess-md's `matchName` has the same copy, which plan
+ * 0496 makes non-global.
+ */
+function nonGlobal(name: string | RegExp): string | RegExp {
+  return typeof name === 'string' ? name : new RegExp(name.source, name.flags.replace(/[gy]/g, ''))
+}
+
 /** Extract cited `it('…')` titles from the mechanism column of ADR enforcement tables. */
 function extractCitations(opts: {
   corpus: Corpus
@@ -40,12 +51,13 @@ function extractCitations(opts: {
   mechanismColumn: RegExp
 }): Citation[] {
   const inDir = picomatch(opts.dir)
+  const section = nonGlobal(opts.section)
   const out: Citation[] = []
   for (const doc of opts.corpus.documents()) {
     if (!inDir(doc.relPath)) continue
     const table = doc.tables.find(
       (t) =>
-        t.sectionPath.some((h) => matchName(h, opts.section)) &&
+        t.sectionPath.some((h) => matchName(h, section)) &&
         t.header.some((h) => opts.mechanismColumn.test(h)),
     )
     if (!table) continue
