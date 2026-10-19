@@ -38,7 +38,8 @@ heading, "X" at line 3, is at depth 2`); a title that does not match `name` (a s
 exists and matches. Also on the root as a condition, `haveTitle`, beside `haveSection` and
 `haveTable`.
 
-**On `sections()`, what a section holds.** Each reads the section's lines after its heading through
+**On `sections()`, what a section holds.** (Corrected in the build notes, "a section holds what its
+heading's text holds": the heading line is read too.) Each reads the section's lines after its heading through
 `endLine`, subsections included:
 
 | method                     | a section holds                                                             |

@@ -711,7 +711,9 @@ with this branch's matrix script (apply, run the named test, restore by `git che
 every section-name registration has a near-miss row (the subsection predicate's, P5, turned a red
 absence rule green; the `haveSubsection` condition's, R1; `haveSection` with a depth, Q2; a field
 region, F9); bug 0507's declared-mark box (B6), code and HTML left out (B2) and recursive sub-items
-(B4); the notes' window (S9) and order (S12); the depth short-circuit (D2); a RegExp declaration before
+(B4); the notes' window (its `to` bound, S10; corrected in the verify round: its `from` bound, S9, survived
+until the row `a container heading before the section is the scan's, not the condition's` was added)
+and order (S12); the depth short-circuit (D2); a RegExp declaration before
 a string one (D3); two section scopes (I4); a region's depth refused, out of range (F4) and not a
 number (F5, which needed its own message to be told apart); the title finding's line (Q4); the
 condition phase of `haveTextMatching` with `g`/`y`; and `holds()` reading the heading line (T3, below
