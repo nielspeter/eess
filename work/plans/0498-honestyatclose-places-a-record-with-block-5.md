@@ -12,6 +12,11 @@
   own globs. The writerless `WeakSet` and its F7 branch were then deleted too (PR #251's verify
   round). This plan decides where the mark lives, and adds the mark, its F7 branch and their test
   when it adds a writer.
+- **Note 2026-10-19 (PR #251's review, architect M4):** `agreeWithFolder` checks its declaration
+  only when the rule runs (`collectViolations`), not when `.agreeWithFolder()` is called, and keeps
+  the caller's options by reference, so changing `groups` after the call changes the rule. It fails
+  safe when the rule runs; this plan decides whether to check at declaration time and copy the
+  options, as `taskItems()` does with its marks.
 - **Implements:** proposal 017
 - **Priority:** Medium. Proposal 017's block 5 row: "`honestyAtClose`'s placement half is then
   rebuilt on it, so there is one placement check". It also removes ADR-022's `model/label.ts` edge.
