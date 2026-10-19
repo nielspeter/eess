@@ -23,6 +23,11 @@ Each of these calls `.test()` on a caller's `RegExp` as given, across tables and
 With `g` or `y`, a match moves `lastIndex`, and the next header or heading is tested from there, as
 bug 0506 measured for section names.
 
+One more, added 2026-10-19 from PR #251's architecture verify (M3): `terms()` already makes a
+non-global copy of its `label` (`packages/md/src/builders/vocabulary.ts:126`), but strips only `g`
+(`flags.replace(/g/g, '')`), so a `y`-flagged label stays stateful across lines. The shared helper
+this bug owns strips both, and replaces that copy too.
+
 ## Root cause
 
 Bug 0506's: the caller's `RegExp` is reused without removing `g` and `y`.
