@@ -657,14 +657,14 @@ The coordinator's settlements, recorded so they can be overruled:
 
 ## Build notes — 2026-10-19
 
-Built on maintainer order 2026-10-19, at `ac64ed0` (the feature) on top of `2550623` (the names).
+Built on maintainer order 2026-10-19, at `c70b112`. The commits these records name are the ones
+rebased onto main at `27e7542` (#251); every sabotage matrix ran before that rebase, on their
+originals, with the same eess-md code of this branch and main's older base under it.
 Decisions taken against the record, each so it can be overruled:
 
-- **Names.** ADR-023's pull request (#248) was not merged. Its hunks for `packages/md`, `examples/`,
-  `scripts/check-corpus.mjs`, `scripts/vacuity-matrix.mjs`, `docs/markdown.md` and the two changesets
-  it edits were applied unchanged (`2550623`), so this code uses `predicateHaveSection` and
-  `predicateHaveField` and the later rebase meets identical hunks. ADR-023 itself, its gate and its
-  other files stay #248's.
+- **Names.** The build was written against ADR-023's names (`predicateHaveSection`,
+  `predicateHaveField`) before #248 merged, by applying #248's hunks for the files it needed. Main
+  now carries #248 through #251, so the rebase dropped that commit as already applied.
 - **There is no kernel predicate walk.** The plan says a registered factory records "inside
   `satisfy()`, `and()`, `or()` or `not()`, because the kernel's predicate walk reaches it". The
   kernel's combinators return a new object that keeps no reference to its inputs
@@ -703,7 +703,7 @@ across 325 documents, 0 violations, 6.4 s. The new non-vacuity row (`corpus/prop
 `missing section "Acceptance criteria" at depth 2; "Acceptance criteria" at line 200 is at depth 3`,
 checked by hand before the row was committed.
 
-**Sabotage matrix.** Run 2026-10-19 at `60b61b6` (after bug 0502's fix, which row 14 needs: before it,
+**Sabotage matrix.** Run 2026-10-19 at `1621af4` (after bug 0502's fix, which row 14 needs: before it,
 `links()` did not read `contains`), in this worktree, tree clean before and after: each mutant applied
 to one file under `packages/md/src`, the named tests run with `vitest -t`, the file restored by
 `git checkout`. 17 rows (the plan's 16 and bug 0502's) in 18.5 s; every row red. `sections` is
@@ -740,8 +740,9 @@ files; the mutant column is written so a row can be rebuilt.
 - [x] Phase 3: the example, the dogfood rebuild with its subjects and verdicts unchanged (17, 0), the
       non-vacuity row, the vacuity probe, docs, changeset
 - [x] Sabotage rows 1–16, each red on its named test; 18.5 s with bug 0502's row
-- [x] Bug 0506: its first box's md half done-otherwise here (row 10), its crossvalidate half left
-      open on the bug, its board row updated
+- [x] Bug 0506: its first box's md half done-otherwise here (row 10, and the bug's own row in
+      `sections.test.ts`); its crossvalidate half was fixed in #251, so the bug is closed in this
+      pull request, its last box deferred to bug 0511 as #251 left it
 - [ ] `check:corpus`, `check:nonvacuity`, `check:vacuity`, `check:examples`, `check:family`,
       `check:release` and `npm run validate` green — validation-owed: `npm run validate` runs once,
       at the pull request's final head; its exit, duration and SHA are in the pull request's

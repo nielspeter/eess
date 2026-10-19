@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Done — built on maintainer order 2026-10-19 (`340e051`), after plan 0496 and the
+- **State:** Done — built on maintainer order 2026-10-19 (`3aedd03`), after plan 0496 and the
   fixes of bugs 0502 and 0507 in the same pull request (see "Build notes"). Written 2026-10-19 from
   [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) ask 18 and decision 6
   ("`inSections(predicate)`, the sibling of block 12's `inDocuments`, sharing its owner and memo,
@@ -433,7 +433,7 @@ hold none of the 1 task items the rest of this rule selects`. A document scope's
   has no mechanism; it is held by review, as the plan says.
 - **Red first.** The tests were written after the code, so their red is the sabotage matrix below.
 
-**Sabotage matrix**, run 2026-10-19 at `6f18c34` (row 6 again with its test name matched), each mutant
+**Sabotage matrix**, run 2026-10-19 at `ee7eb19` (row 6 again with its test name matched), each mutant
 applied to one file under `packages/md/src`, the named test in `packages/md/tests/in-sections.test.ts`
 run, the file restored by `git checkout`, tree clean after; 9 rows, every one red:
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Done — built on maintainer order 2026-10-19 (`a0056dd`), in the pull request that
+- **State:** Done — built on maintainer order 2026-10-19 (`680dcf0`), in the pull request that
   builds plans 0496 and 0503 (see "Build notes"). Written 2026-10-19 in PR #247, from
   [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s consumer follow-up
   (adopter 3's 51 records) and PR #247's method review (I2: the need had no home).
@@ -146,7 +146,7 @@ overruled:
 - **Tests** are in a new file, `packages/md/tests/builders/field-section-region.test.ts`, not the two
   the plan names. Red first: written before the region existed, 7 of its 9 rows were red; the
   two-sections conflict and the `g`-flag rows passed, because the whole-document read gave the same
-  answer. Sabotage row 6 then survived on the `g`-flag row, which was rewritten (`f304491`) so its
+  answer. Sabotage row 6 then survived on the `g`-flag row, which was rewritten (`63d6f17`) so its
   headings are read consecutively; it reds now.
 
 Measured with eess-md's own build: `corpus/state-present` over the live plans and bugs examines 229
@@ -155,7 +155,7 @@ records and reports 0, without the region and with `region: { section: 'Status' 
 (`corpus/state-present-outside-status`) was checked by hand before it was committed: a probe with its
 State under `## Symptom` gives exactly `State at line 9 is outside the "Status" section (region); …`.
 
-**Sabotage**, run 2026-10-19 at `a0056dd` (row 6 again at `f304491`), each red on its named test in
+**Sabotage**, run 2026-10-19 at `680dcf0` (row 6 again at `63d6f17`), each red on its named test in
 `field-section-region.test.ts`, 5.4 s:
 
 | row | mutant                                         | red (named test)                                |

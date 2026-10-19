@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Fixed — 2026-10-19, built on maintainer order in the pull request that builds plans
-  0496, 0505 and 0503 (`60b61b6`). Reproduced 2026-10-19 on main's build (`9675402`) while planning
+  0496, 0505 and 0503 (`1621af4`). Reproduced 2026-10-19 on main's build (`9675402`) while planning
   [plan 0496](../../plans/completed/0496-sections-as-elements.md); the drop direction was found by PR #247's
   enforcement review and reproduced here the same day.
 - **Severity:** High — eess reports green on links it never examined. A heading inside a list item
@@ -145,7 +145,7 @@ Measured over this repository's corpus (`work/`, `docs/`, `adr/`), with eess-md'
 after the fix: 2,611 links, and the same section path for every one (a hash of
 `relPath:line:sectionPath` over all of them is equal). No verdict here changes.
 
-**Sabotage**, run with plan 0496's matrix at `60b61b6`: `linksOf` stops stamping `sectionPath`; red on
+**Sabotage**, run with plan 0496's matrix at `1621af4`: `linksOf` stops stamping `sectionPath`; red on
 `the drop direction` and `a link and the table under one heading report the same sectionPath`
 (`packages/md/tests/links-read-the-section-index.test.ts`).
 
@@ -156,7 +156,7 @@ after the fix: 2,611 links, and the same section path for every one (a hash of
 - [x] Red first, the over-selection: `areInSection('Listed')` selected `z`; the link's `sectionPath`
       was `['Top', 'Listed']` where the table's is `['Top', 'Real', 'Sub']`
 - [x] The links-only exception decided (none), with its row: `a link inside the container is not in
-    the container's heading either; the rule names it`
+  the container's heading either; the rule names it`
 - [x] Green, with the release note (`.changeset/md-links-read-sections.md`, marked Breaking)
 - [ ] `npm run validate` green — validation-owed: it runs once, at the pull request's final head;
       its exit, duration and SHA are in the pull request's description

@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Fixed — 2026-10-19, built on maintainer order in the pull request that builds plans
-  0496, 0505 and 0503 (`8cce594`). Reproduced 2026-10-19 on main's build (`9675402`), from adopter 3's
+  0496, 0505 and 0503 (`54204c8`). Reproduced 2026-10-19 on main's build (`9675402`), from adopter 3's
   section input (proposal 017, "Adopter 3's section input — 2026-10-18", lesson 4).
 - **Severity:** High — `honestyAtClose` is green on a closed record whose `Deferred: none` contradicts
   a deferral written on the box's second line. That is the lie `ledger/deferred-none-lie` exists to
