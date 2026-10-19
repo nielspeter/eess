@@ -62,7 +62,8 @@ the adopters' ratchet reads.)
 
 - a text fault (`/archive/**`, `../archive/**`, a `./` after the first segment), judged always,
   with the corrected glob where one exists. The words are the selector-fault check's: both read
-  `repoRelativeTextProblem` (`packages/md/src/builders/selector-fault.ts`), so the two cannot
+  `repoRelativeTextProblem` (`packages/md/src/model/selector-fault.ts`, moved from `builders/` in
+  the same PR), so the two cannot
   describe the same glob differently;
 - a glob that marks none of the documents the corpus loaded (`archve/**`), judged only when the
   corpus loaded one.

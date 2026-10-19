@@ -85,9 +85,8 @@ Where the build departed from the text above, each overrulable:
 
 - [x] The two rules in `check:ledger`, measured against `findUncoveredLanes`
 - [x] Non-vacuity and sabotage rows
-- [ ] validation-owed: `npm run validate` green; duration reported (it runs after this record is
-      written, at the branch's head; its result is reported to the batch lead and on the PR, and CI
-      is the gate)
+- [ ] validation-owed: `npm run validate` and CI green on PR #251; duration reported (they run
+      after this record is written; the result is reported on the PR, and CI is the gate)
 - [x] Close: this plan → `completed/`; boards
 
 Deferred: none

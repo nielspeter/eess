@@ -44,7 +44,12 @@ review, measured).
 - eess-ts's `deliver` (`packages/ts/src/presets/shared.ts:449`) widens the type to
   `PresetDelivery = ReportMode | 'builders'`, handles `'builders'` itself and passes any other value
   through to `finishPreset`, so a refusal there covers it; it is pinned as a consumer.
-- Nothing in eess-md, eess-mermaid or eess-crossvalidate reads a mode.
+- ~~Nothing in eess-md, eess-mermaid or eess-crossvalidate reads a mode.~~ Corrected 2026-10-19
+  (PR #251's verify review): eess-md reads one through `honestyAtClose`
+  (`packages/md/src/rules/ledger.ts:907`, `:966`) and `adrEnforcement`
+  (`packages/md/src/rules/adr.ts:147`), and eess-crossvalidate through its bindings, each handing
+  its options to `finishPreset`. The kernel refusal covers them all, and this bug's own reproduction
+  is the md preset. The changeset names both packages. eess-mermaid reads no mode.
 
 ## Fix
 
@@ -84,6 +89,8 @@ Decided in the build, against the record:
 - [x] `'retrun'` and `false` refused; `undefined` and `null` still mean `'throw'` — same file, the first failed before the fix, the second passed before and after
 - [x] eess-ts's `deliver` with `report: 'thorw'` refuses, run through `eess-ts check` so the exit code is measured — `packages/ts/tests/cli/unknown-report-mode.test.ts` drives `runCheck` over `tests/fixtures/rule-files/unknown-report-mode.rules.ts`; before the fix `runCheck` returned 0
 - [x] sabotage: the refusal removed turns the test red
+- [ ] validation-owed: `npm run validate` and CI green on PR #251 (they run after this record is
+      written; the result is reported on the PR, and CI is the gate)
 
 Sabotage matrix (rows 1-2: mutant applied to `packages/core/src/report.ts`, core rebuilt, then
 restored; row 3: mutant in `packages/ts/src/presets/shared.ts`). Row 1 was re-run after eess-ts
