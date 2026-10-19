@@ -32,11 +32,29 @@ placement checks for the same fact in three rules (`ledger/state-folder-mismatch
    `silent-open-box` judges), the header state, `ledger/unknown-state` and the "state under another
    label" finding read the value through the root's field blocks with the preset's `label` and
    `aliases`, so nothing in `ledger.ts` uses `model/label.ts`.
-2. **The placement half on block 5.** `ledger/state-folder-mismatch` becomes `agreeWithFolder`, with
-   the live states as a `'rest'` group and each terminal state bound to the `doneFolders` (as
-   `**/<folder>/**` globs), its field from `label`/`aliases`. The direction is `both`, or
-   `right-to-left` when `closeInPlace` is set: `closeInPlace` turns off the orphaned-close half,
-   which is the value → folder direction, so the option keeps its meaning.
+2. **The placement half on block 5.** `ledger/state-folder-mismatch` becomes `agreeWithFolder`, its
+   field from `label`/`aliases`, with one done group: the `terminalStates`, bound to every
+   `doneFolders` entry as a `**/<folder>/**` glob.
+   - **By default:** the live states are a `'rest'` group, the selection is the preset's records, and
+     the direction is `both`. A closed record in a live folder and an open one in a done folder are
+     each one F2.
+   - **Under `closeInPlace`:** no `'rest'` group. The rule selects only the done folders (the same
+     `**/<folder>/**` globs) and binds only the done group, `right-to-left`. A closed record in a
+     live folder is not selected, so it is not reported, which is what `closeInPlace` means. With a
+     `'rest'` group it would be F2 in every direction (plan 0495: with `'rest'`, a one-way rule is
+     made by the selection), which is why the option maps to a selection and not only a direction
+     (PR #246's verification, architect N1 and product N1, decision E2). An open state in a done
+     folder is then a value in no group: F3, not F2, a message change listed below.
+   - **The done folders are the preset's globs, not the caller's.** `doneFolders` are folder names
+     matched anywhere (`/wont-do/`), and the preset builds the globs, both from its five defaults
+     and from a caller's list. It builds them through plan 0495's internal mark, so F7 fires once,
+     only when every done folder of the group matches nothing (plan 0495, decision E3). A lane
+     whose `wont-do/` has no record yet is the ordinary state, here and for adopters on the
+     defaults (most lanes have two of the five). Extending the mark from the five defaults to the
+     globs the preset derives from a caller's names is this plan's decision, overrulable: a name in
+     `doneFolders` declares a kind of folder, not a path the caller typed.
+   - **Frozen documents are selected explicitly,** by the done-folder globs, not through
+     `corpus()`'s default frozen folders, so bug 0497's break does not move this rule's fixtures.
 3. **`ledger/unknown-state` stays,** over every record the preset reads, not only the bound folders:
    it is what reports a misspelt state in a live folder (plan 0495, decision D8). Block 5's F3 covers
    only bound folders.
@@ -54,8 +72,10 @@ Block 5 judges what `headerStateViolation` did not:
 
 - **F4:** a record in a done folder with no `State` is a finding. Today it is "not an item"
   (`packages/md/src/rules/ledger.ts:473`, `return null`).
-- **F5/F6/F7:** an unreadable value, a record under two groups' folders, a done folder glob that
-  matches nothing (`DEFAULT_DONE_FOLDERS` names five folders; most lanes have two) are findings.
+- **F5/F6/F7:** an unreadable value and a record under two groups' folders are findings; F7 only
+  when no done folder of the lane matches anything (a lane with none of its done folders on disk).
+- **Under `closeInPlace`:** an open state in a done folder is F3 ("none of the declared values"),
+  not today's `State: X but filed in a done-folder` message.
 - **The rule id** of a placement finding changes if the build keeps block 5's own, and a
   `.excluding()` entry keyed on `ledger/state-folder-mismatch` then stops matching.
 - **Messages** change to block 5's.
@@ -84,9 +104,14 @@ Each is listed in the changeset with its migration line, and the changeset names
 ## Test inventory
 
 - The existing ledger tests green, unchanged, or each changed verdict listed under "The verdict
-  changes".
-- `closeInPlace`: a closed record in a live folder is not reported; an open record in a done folder
-  still is.
+  changes". The fixtures as they stand after this plan merges are plan 0504's baseline: its proof
+  of proposal 017 decision 3 ("fixtures unchanged") is measured against them, not against the
+  fixtures at `9675402`, and the verdicts this plan changes are those listed in its changeset
+  (PR #246's verification, method N1, decision E5).
+- `closeInPlace`: a closed record in a live folder is not selected and not reported; an open record
+  in a done folder is still reported, as F3. Without `closeInPlace`, both are F2.
+- Defaults: a lane with `completed/` and none of the other four default folders gets no F7; a lane
+  with none of the five gets one.
 - `label: 'Status'` with `aliases`: placement read through the alias. Bug 0444's fix already has a
   row for the label reaching the state reader (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`);
   this one is new for the rebuilt placement half.
@@ -94,8 +119,10 @@ Each is listed in the changeset with its migration line, and the changeset names
 - A first record filed in a done folder no rule bound before (`work/plans/wont-do/`): still judged,
   so the merge keeps what `ledger/state-folder-mismatch` covers today (PR #246, architect M10 and
   enforcement M7).
-- The sabotage: a rebuilt half that drops one direction reds its row; `closeInPlace` ignored reds
-  its row.
+- The sabotage: a rebuilt half that drops one direction reds its row; `closeInPlace` mapped to
+  `right-to-left` while keeping the `'rest'` group and the whole selection (the first draft of this
+  plan) reds the `closeInPlace` row, since the closed record in a live folder is then F2; the
+  internal mark dropped, so the default done folders give F7 each, reds the defaults row.
 - `check:arch` green with the label exclusion and its pin gone.
 
 ## Release
@@ -117,3 +144,9 @@ a break with a Release section (product I3, decision D9); this plan removes only
 `model/label.ts` edge, and plan 0504 owns the other two and the closing proof (method I1,
 architect I4, decision D10); `ledger/unknown-state` kept (decision D8); unbound done folders keep
 their coverage (architect M10, enforcement M7); bug 0444's existing row named (method M4).
+
+From PR #246's verification round: `closeInPlace` selects the done folders and binds only the done
+group, with no `'rest'` group (decision E2, architect N1, product N1); the done-folder globs carry
+plan 0495's internal mark, so F7 fires only when all are dead (decision E3, architect N2); plan
+0504's baseline is the post-0498 fixtures (decision E5, method N1); frozen documents selected
+explicitly (method N1's carried condition).

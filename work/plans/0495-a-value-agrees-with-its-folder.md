@@ -190,7 +190,11 @@ the groups judge the value.
   the document carries).
 - **A resolved value's side causes** (prose that disagrees with it, a label elsewhere in a form the
   rule does not read) are reported alongside the judgement, wherever the document is judged, with
-  the resolver's messages. A document that agrees with its folder can still carry them.
+  the resolver's messages. A document that agrees with its folder can still carry them. Every rule
+  that reads the field reports them, so in this repository a disagreeing prose `State:` is reported
+  by `corpus/state-present` (`haveField`), by the new `done-folders-*` rule, and after plan 0498 by
+  the ledger, each under its own id. The README says so; plan 0498's "one placement check" step
+  decides which rule keeps them (PR #246's verification, architect N3).
 
 **What each document gets.** A document's _bound group_ is the group whose folders contain it (a
 `'rest'` group binds every selected document no other group binds); its _value group_ is the group
@@ -229,9 +233,23 @@ keep one`).
 - **F6 two groups.** One finding per overlapping pair of groups: `work/bugs/** (Draft, Ready) and
 work/bugs/fixed/** (Fixed) both bind 136 documents, first work/bugs/fixed/0001-a.md,
 work/bugs/fixed/0002-b.md; bind each folder to one group, or make one group 'rest'`.
-- **F7 dead glob.** `Fixed's folder work/bugs/fxed/** matches no path in the corpus`, one per group
-  and glob, in every direction. A mistyped glob would otherwise read, under `left-to-right` and
-  `both`, as N records "belonging in" the typo (PR #246's enforcement review).
+- **F7 dead glob.** `Fixed's folder work/bugs/fxed/** matches no path in the corpus; if it is a
+typo, correct it; if the folder has no record yet, file the first one there, or leave the group
+out`, one per group and glob, in every direction. A mistyped glob would otherwise read, under
+  `left-to-right` and `both`, as N records "belonging in" the typo (PR #246's enforcement review).
+  - **Only for globs the caller wrote** (PR #246's verification, decision E3). A glob a preset
+    supplies as its own default (plan 0498 binds `honestyAtClose`'s five default done folders) is
+    not the caller's typo, and most lanes have two of the five. For such a group, F7 fires once,
+    only when every one of its globs matches nothing. The mechanism is internal: the preset builds
+    each default glob through an `/internal` helper that marks it in a module-private `WeakSet` (or
+    tags the group the same way), and the condition reads that mark. No public option exists, so an
+    adopter cannot switch F7 off for globs they wrote.
+  - **Why this departs from md's selector policy.** md's selector diagnostics rule that "a glob that
+    names nothing in the repository is never a fault" (bug 0355's ruling,
+    `packages/md/src/builders/selector-fault.ts:20`). That holds for a selection, which may
+    legitimately be empty. A group's folder is different: it is where a value is required to sit, so
+    a dead one turns every record carrying the value into a false F1/F2. Its text faults (a leading
+    `/`, `../`, a backslash) are judged by the same `mdSelectorFault`, not a second copy.
 - **F8 empty group.** Under `right-to-left`, `Fixed's folders hold no document in the corpus; the
 group judges nothing`. Computed over the corpus, not the selection, so a caller can narrow with
   `.that().resideInFolder(...)` and still declare every group (D2). A `'rest'` group has no globs,
@@ -248,6 +266,12 @@ folder under a root (bug 0444, "Lanes are the caller's").
 **The unchosen direction is not reported.** `left-to-right` never reports F4; `right-to-left`
 never reports F1, nor F5 outside a bound folder. A value in J sitting in K's folder violates both
 directions with one fact, so it is one F2 in every direction.
+
+**With a `'rest'` group, direction matters only for F4 and F5.** `'rest'` binds every selected
+document, so F1 cannot occur and every placement fault is F2 in every direction. A one-way rule ("a
+closed folder must not hold a live value") is then made by the **selection**, as all three worked
+examples below do, not by `direction`. The README's direction table says so, so a reader reaches for
+the selection (PR #246's verification, product N1).
 
 **The complement group.** One group may say `folders: 'rest'` (PR #246, decision D4). It is opt-in,
 at most one per rule, and binds the selected documents in no other group's folders. With it, a lane
@@ -268,7 +292,11 @@ the selected documents whose value was read (resolved); under `right-to-left`, t
 documents in a bound folder (a `'rest'` group binds); under `both`, the union. Zero judged is the
 kernel's zero-examined finding, so a `left-to-right` rule with a misspelt label (`Sate`), the wrong
 `forms`, or `region: 'header'` over records whose `State` sits under `## Status` reads no value and
-is red, not green over N. Withheld documents are not counted as agreeing: each has its F5.
+is red, not green over N. Withheld documents are not counted as agreeing: each has its F5. Under
+`left-to-right` a document is judged only when its value is in a group or the document is bound: a
+document in no bound folder whose value is in no group gets no verdict ("—" above), so it is not
+counted, and a rule whose groups name only misspelt values (`Fixd`) over unbound documents is red,
+not green over N (PR #246's verification, enforcement N3).
 
 **Suppression.** F1 to F5 are findings about a document's content and are suppressible like
 `haveField`'s condition findings (`.excluding()`, a comment, a baseline). F6, F7, F8 and the
@@ -281,10 +309,21 @@ caller who wants frozen documents out selects with `areLive()` (plan 0457) or a 
 ### One worked example per adopter
 
 Each is an acceptance row (Test inventory) and a fixture pair under the example. The paths are
-generic; the shapes are the ones each adopter described.
+generic; the shapes are the ones the adopters described. Which adopter asked for which direction is
+inferred: proposal 017's "Consumer follow-up" says "one adopter" wants one direction and "the other"
+both, without numbering them, and adopter 2's own defect (a closed bug left live, an open one filed
+closed) fits "both". So the first two examples are named by shape, and only adopter 3, whose answer
+the proposal records by number, is named (PR #246's verification, method N2).
 
-- **Adopter 1: a closed folder must not hold a live value.** Select the done folders, declare every
-  group, `right-to-left`:
+Every example reads the field with `region: 'header'`. The adopters said they need it: one carries a
+register of `- **Status:** open.` items below its real Status, and adopter 3 has per-phase status
+lines and chains `## Status:` into `## Severity:` and `## Priority:` headings (proposal 017,
+"Consumer follow-up"). Without the region, the register is a conflict (F5) and the per-phase lines
+are side causes, so a fixture without those lines would pass while the adopter's real records went
+red. Each fixture carries the shape its adopter described (decision E4).
+
+- **One direction: a closed folder must not hold a live value.** Select the done folders, declare
+  every group, `right-to-left`:
 
   ```typescript
   docs(c)
@@ -292,7 +331,7 @@ generic; the shapes are the ones each adopter described.
     .resideInFolder('issues/closed/**')
     .should()
     .agreeWithFolder({
-      field: { label: 'Status', forms: ['bold'] },
+      field: { label: 'Status', forms: ['bold'], region: 'header' },
       groups: [
         { values: ['open', 'in progress'], folders: 'rest' },
         { values: ['closed', "won't fix"], folders: ['issues/closed/**'] },
@@ -303,10 +342,12 @@ generic; the shapes are the ones each adopter described.
 
   `issues/closed/12.md` with `open` prints F2: ``wrong folder: `open` (Status, line 3) belongs
 outside issues/closed/**; issues/closed/12.md is in closed's folders. Move it or change the value.``
-  A closed issue in `issues/` is not selected and not reported, which is adopter 1's one direction.
-  An issue in `issues/closed/` with no `Status` prints F4.
+  A closed issue in `issues/` is not selected and not reported, which is the one direction asked
+  for. An issue in `issues/closed/` with no `Status` prints F4. The fixture's closed issue carries a
+  register of `- **Status:** open.` feedback items below its header and stays green: the region
+  does not read them.
 
-- **Adopter 2: both directions.** Select the lane, live = `'rest'`, `both`:
+- **Both directions.** Select the lane, live = `'rest'`, `both`:
 
   ```typescript
   docs(c)
@@ -314,7 +355,7 @@ outside issues/closed/**; issues/closed/12.md is in closed's folders. Move it or
     .resideInFolder('bugs/**')
     .should()
     .agreeWithFolder({
-      field: { label: 'Status', forms: ['bold'] },
+      field: { label: 'Status', forms: ['bold'], region: 'header' },
       groups: [
         { values: ['open', 'in progress'], folders: 'rest' },
         { values: ['fixed'], folders: ['bugs/fixed/**'] },
@@ -325,7 +366,8 @@ outside issues/closed/**; issues/closed/12.md is in closed's folders. Move it or
 
   A closed bug in `bugs/`: ``wrong folder: `fixed` (Status, line 3) belongs in bugs/fixed/**; …``.
   An open bug in `bugs/fixed/`: ``wrong folder: `open` (Status, line 3) belongs outside
-bugs/fixed/**; …``. Both are adopter 2's reported defect, one F2 each.
+bugs/fixed/**; …``. Both are adopter 2's reported defect, one F2 each. A fixed bug whose register
+  below the header says `- **Status:** open.` is not F5: the region bounds the read.
 
 - **Adopter 3: one way, green over its frozen spellings.** Select the live folders, `left-to-right`:
 
@@ -335,7 +377,7 @@ bugs/fixed/**; …``. Both are adopter 2's reported defect, one F2 each.
     .resideInFolder('records/*.md')
     .should()
     .agreeWithFolder({
-      field: { label: 'Status', forms: ['heading', 'bold'] },
+      field: { label: 'Status', forms: ['heading', 'bold'], region: 'header' },
       groups: [
         { values: ['Open', 'In progress'], folders: 'rest' },
         { values: ['Done'], folders: ['records/done/**'] },
@@ -347,8 +389,12 @@ bugs/fixed/**; …``. Both are adopter 2's reported defect, one F2 each.
   A live record whose Status is `Done` prints F2: ``wrong folder: `Done` (Status, line 2) belongs
 in records/done/**; …``. The frozen records under `records/done/`, with their twenty spellings,
   are not selected, so the rule stays green over them; the fixture holds three of those spellings
-  to prove it. A live record with a misspelt `Opne` prints F3, since `'rest'` binds it; a caller who
-  does not want that leaves the live group out, and a live misspelling then goes unjudged.
+  to prove it. The live fixtures open with `## Status: Open` followed by `## Severity:` and
+  `## Priority:` headings, and carry per-phase status lines further down; the region reads the
+  first and not the second, so both stay green. A live record with a misspelt `Opne` prints F3,
+  since `'rest'` binds it; a caller who does not want that leaves the live group out, and a live
+  misspelling then goes unjudged. When the example ships, it is sent to adopter 3, who answered
+  "not adopted: 5 as specified", with the question whether it would adopt this shape (product N3).
 
 All three are expressible after D1 to D6.
 
@@ -366,7 +412,11 @@ declaring the live group as `'rest'`, so an open state in a done folder is F2, n
 Measured above: 189 records in these four folders, each with one value and each its folder's, so
 the rules land green with no exclusion. The three done folders that do not exist get no group (F7
 would refuse a glob that matches nothing), so `Won't-do` and a proposal's `Rejected` are values in
-no group: such a record in a done folder is F3, and a lane adds the group when it first files there.
+no group: such a record in a done folder these rules select (`completed/`, `fixed/`, `rejected/`,
+`promoted/`) is F3, and a lane adds the group when it first files there. A record filed in
+`work/plans/wont-do/` itself is outside every selection here and not judged by these rules;
+`ledger/state-folder-mismatch` covers it today, and plan 0498 keeps that coverage (PR #246's
+verification, enforcement N2).
 
 **What covers a misspelt state in a live folder here** (PR #246, decision D8): not these rules, which
 select only done folders. `corpus/state-in-vocabulary-plans` and `-bugs` (`check:corpus`) and
@@ -421,25 +471,25 @@ placement half on this block and decides which rule stays.
 Each finding has rows in the directions it can and cannot appear in. The break class names what goes
 silent if the finding is removed.
 
-| finding          | rows                                                                                                                                                                                                                        | break class                                                      |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| F1 unplaced      | a `Fixed` bug in an unbound folder, `left-to-right`: red; `right-to-left`: not reported                                                                                                                                     | a closed record outside every bound folder passes                |
-| F2 wrong folder  | a `Draft` bug in `fixed/` and a `Fixed` bug in `work/bugs/`, each direction: one F2, its text pinned, "belongs outside" for a `'rest'` value and "belongs in" otherwise                                                     | a misplaced record passes, or is told to fix its spelling        |
-| F3 unknown value | `Shipped` in `fixed/`, each direction: red with the decision-4 text; `Shipped` in an unbound folder: not reported; `Draft` in `fixed/`: F2, never F3                                                                        | an unknown spelling passes, the gap adopter 3 measured           |
-| F4 no value      | a `fixed/` bug with no `State` and a `**Status:**` label, `right-to-left`: red with the resolver's message verbatim; a plain `State: Fixed` line: the plain-line hint; `left-to-right`: not reported; unbound: not reported | a done folder of stateless records passes (bug 0444)             |
-| F5 withheld      | two `State` lines, empty `State`, `## State: Fixed` under `forms: ['bold']`: one finding each, the resolver's message, not counted in `examined`                                                                            | a conflicted record is read by its first value, or dropped       |
-| side causes      | `**State:** Fixed` in `fixed/` with prose saying `State: Draft`: agrees, and the prose cause is reported, under `right-to-left` and `both`; under `left-to-right` too, the document's value being read                      | a resolved record's contradiction is dropped                     |
-| F6 two groups    | `work/bugs/**` and `work/bugs/fixed/**` in two groups: one finding for the pair, naming the count and the first documents; `.excluding()` does not remove it                                                                | the first group wins silently                                    |
-| F7 dead glob     | a group over `work/bugs/fxed/**`, each direction: one finding naming the group and glob, and no F1 per record                                                                                                               | a mistyped folder is reported as N misplaced records             |
-| F8 empty group   | `right-to-left`, a group whose glob matches only non-Markdown files: red; a live group outside a done-folder selection: not reported (computed over the corpus)                                                             | a group that judges nothing is silent                            |
-| `'rest'`         | live = `'rest'`, done = `work/bugs/fixed/**` over a nested lane: no F6, and a live value in `fixed/` is F2; two `'rest'` groups: refused                                                                                    | a nested lane needs extglobs, or overlaps                        |
-| configuration    | each refusal above throws, naming the option                                                                                                                                                                                | a malformed declaration judges nothing                           |
-| normaliser       | `normalize: (v) => v.toLowerCase()` agrees `fixed` with `Fixed`; without it, F3                                                                                                                                             | a normaliser applied to one side only                            |
-| frozen           | a frozen document in a bound folder is judged                                                                                                                                                                               | the done folders, frozen by default, go unread                   |
-| evidence         | `left-to-right` with label `Sate`: zero judged, the zero-examined finding; `right-to-left` counts only documents in bound folders; the description names the direction                                                      | a rule that judged nothing is green over N                       |
-| adopter 1        | the first worked example: F2 for `open` in `issues/closed/`, nothing for `closed` in `issues/`                                                                                                                              | the one-way rule reports the direction adopter 1 did not ask for |
-| adopter 2        | the second: one F2 each way                                                                                                                                                                                                 | one of adopter 2's two defects passes                            |
-| adopter 3        | the third: F2 for a live `Done`, green over three frozen spellings in `records/done/`                                                                                                                                       | adopter 3's frozen records go red                                |
+| finding          | rows                                                                                                                                                                                                                                            | break class                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| F1 unplaced      | a `Fixed` bug in an unbound folder, `left-to-right`: red; `right-to-left`: not reported                                                                                                                                                         | a closed record outside every bound folder passes                  |
+| F2 wrong folder  | a `Draft` bug in `fixed/` and a `Fixed` bug in `work/bugs/`, each direction: one F2, its text pinned, "belongs outside" for a `'rest'` value and "belongs in" otherwise                                                                         | a misplaced record passes, or is told to fix its spelling          |
+| F3 unknown value | `Shipped` in `fixed/`, each direction: red with the decision-4 text; `Shipped` in an unbound folder: not reported; `Draft` in `fixed/`: F2, never F3                                                                                            | an unknown spelling passes, the gap adopter 3 measured             |
+| F4 no value      | a `fixed/` bug with no `State` and a `**Status:**` label, `right-to-left`: red with the resolver's message verbatim; a plain `State: Fixed` line: the plain-line hint; `left-to-right`: not reported; unbound: not reported                     | a done folder of stateless records passes (bug 0444)               |
+| F5 withheld      | two `State` lines, empty `State`, `## State: Fixed` under `forms: ['bold']`: one finding each, the resolver's message, not counted in `examined`                                                                                                | a conflicted record is read by its first value, or dropped         |
+| side causes      | `**State:** Fixed` in `fixed/` with prose saying `State: Draft`: agrees, and the prose cause is reported, under `right-to-left` and `both`; under `left-to-right` too, the document's value being read                                          | a resolved record's contradiction is dropped                       |
+| F6 two groups    | `work/bugs/**` and `work/bugs/fixed/**` in two groups: one finding for the pair, naming the count and the first documents; `.excluding()` does not remove it                                                                                    | the first group wins silently                                      |
+| F7 dead glob     | a group over `work/bugs/fxed/**`, each direction: one finding naming the group and glob and the empty-folder remedy, and no F1 per record; a group of preset-default globs (marked internally) with one live glob: no F7, and with none: one F7 | a mistyped folder is reported as N misplaced records               |
+| F8 empty group   | `right-to-left`, a group whose glob matches only non-Markdown files: red; a live group outside a done-folder selection: not reported (computed over the corpus)                                                                                 | a group that judges nothing is silent                              |
+| `'rest'`         | live = `'rest'`, done = `work/bugs/fixed/**` over a nested lane: no F6, and a live value in `fixed/` is F2; two `'rest'` groups: refused                                                                                                        | a nested lane needs extglobs, or overlaps                          |
+| configuration    | each refusal above throws, naming the option                                                                                                                                                                                                    | a malformed declaration judges nothing                             |
+| normaliser       | `normalize: (v) => v.toLowerCase()` agrees `fixed` with `Fixed`; without it, F3                                                                                                                                                                 | a normaliser applied to one side only                              |
+| frozen           | a frozen document in a bound folder is judged                                                                                                                                                                                                   | the done folders, frozen by default, go unread                     |
+| evidence         | `left-to-right` with label `Sate`: zero judged, the zero-examined finding; `right-to-left` counts only documents in bound folders; the description names the direction                                                                          | a rule that judged nothing is green over N                         |
+| one direction    | the first worked example: F2 for `open` in `issues/closed/`, nothing for `closed` in `issues/`, green over a register below the header                                                                                                          | the one-way rule reports the direction its adopter did not ask for |
+| both directions  | the second: one F2 each way, a register below the header not F5                                                                                                                                                                                 | one of adopter 2's two defects passes                              |
+| adopter 3        | the third: F2 for a live `Done`, green over three frozen spellings in `records/done/`, over a `## Severity:` chain and over per-phase status lines                                                                                              | adopter 3's frozen records go red                                  |
 
 **Sabotage matrix,** each row red on the test named in its break class, run in a worktree and
 recorded in the Progress ledger below: (1) the direction ignored, always `both`; (2) the closed set
@@ -500,6 +550,18 @@ decisions, each overrulable, and where they landed above:
   for `classes` (product M1); the nested `field` explained (product M2); `direction` required for the
   adopters' split, not ADR-022 (product M5); suppression stated, and the sabotage rows enforcement M6
   listed; the bug 0444 note (method M4); this Progress ledger (method M3).
+
+**Verification round, 2026-10-19.** PR #246's four verification reviews; the coordinator's
+decisions: **E3** F7 per glob only for globs the caller wrote, a preset's default globs marked
+internally and reported only when all of a group's are dead; **E4** `region: 'header'` in every
+worked example, with the register, `## Severity:` chain and per-phase lines in the fixtures. Also
+taken: F7's message names the empty-folder case (enforcement N1) and the departure from md's
+selector policy, reusing `mdSelectorFault` (architect N2); `wont-do/` outside every selection here,
+covered by the ledger (enforcement N2); `left-to-right` counts a document only when it gets a
+verdict (enforcement N3, architect M6 residue); side causes reported by every rule that reads the
+field (architect N3); with `'rest'`, a one-way rule is made by the selection (product N1); the
+examples named by shape where the record does not number the adopter (method N2); adopter 3 asked
+again when the example ships (product N3).
 
 ## Progress ledger
 
