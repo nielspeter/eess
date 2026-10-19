@@ -49,6 +49,8 @@ describe('haveTitle (block 3)', () => {
     expect(said(docs(c).should().haveTitle().violations())).toEqual([
       'a.md: no title: the first heading, "Status" at line 3, is at depth 2',
     ])
+    // Reported at that heading's line.
+    expect(docs(c).should().haveTitle().violations()[0]?.line).toBe(3)
   })
 
   it('a title that does not match the pattern', () => {
@@ -203,7 +205,11 @@ describe('block 3: a live code pointer under a named section, as three rules', (
   it('a stale pointer in the section: the presence rule passes and the liveness rule reds', () => {
     const c = of({ ...SOURCE, 'a.md': ['## Enforcement', '', 'See `src/x.ts:40`.'] })
     expect(present(c).violations()).toHaveLength(0)
-    expect(live(c).violations()).toHaveLength(1)
+    const stale = live(c).violations()
+    expect(stale.map((v) => v.element)).toEqual(['a.md → src/x.ts:40'])
+    expect(stale[0]?.message).toMatch(
+      /^stale code pointer: src\/x\.ts has \d+ lines; "src\/x\.ts:40" references line 40 \(under "Enforcement", line 1\)$/,
+    )
   })
 
   it('no pointer in the section: the presence rule reds, which the liveness rule alone cannot', () => {

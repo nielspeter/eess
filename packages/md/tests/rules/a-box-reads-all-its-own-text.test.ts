@@ -88,4 +88,54 @@ describe('a box reads all of its own text (bug 0507)', () => {
       '8: child the child’s second line',
     ])
   })
+
+  it('a box with a declared mark reads its second paragraph too', () => {
+    const c = corpus({
+      cwd: tree({
+        'a.md': ['# A', '', '- [~] half done', '', '  deferred→plan 0002', ''].join('\n'),
+      }),
+      roots: ['**/*.md'],
+    })
+    const texts = taskItems(c, { marks: { '~': 'open' } })
+      .select({ label: 'box', identify: (t) => ({ name: t.text }) })
+      .elements.map((t) => t.text)
+    expect(texts).toEqual(['half done deferred→plan 0002'])
+  })
+
+  it('fenced code and HTML inside a box are not its text', () => {
+    const c = corpus({
+      cwd: tree({
+        'a.md': [
+          '# A',
+          '',
+          '- [ ] the box',
+          '',
+          '  ```',
+          '  deferred→plan 0002',
+          '  ```',
+          '',
+          '  <div>deferred→plan 0003</div>',
+          '',
+        ].join('\n'),
+      }),
+      roots: ['**/*.md'],
+    })
+    const texts = taskItems(c)
+      .select({ label: 'box', identify: (t) => ({ name: t.text }) })
+      .elements.map((t) => t.text)
+    expect(texts).toEqual(['the box'])
+  })
+
+  it('a plain sub-item’s own sub-items are read, recursively', () => {
+    const c = corpus({
+      cwd: tree({
+        'a.md': ['# A', '', '- [ ] top', '  - plain', '    - deeper deferred→x', ''].join('\n'),
+      }),
+      roots: ['**/*.md'],
+    })
+    const texts = taskItems(c)
+      .select({ label: 'box', identify: (t) => ({ name: t.text }) })
+      .elements.map((t) => t.text)
+    expect(texts).toEqual(['top plain deeper deferred→x'])
+  })
 })

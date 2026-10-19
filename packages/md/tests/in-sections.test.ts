@@ -115,6 +115,19 @@ describe('inSections: the elements inside matching sections (plan 0503)', () => 
     expect(scoped.elements.map((l) => l.line)).toEqual([1])
   })
 
+  it('across two section scopes, the innermost selected section names the finding', () => {
+    const c = of({ 'a.md': ['## A', '', '### B', '', '- [ ] x'] })
+    const v = taskItems(c)
+      .that()
+      .satisfy(inSections(sectionsNamed('A')))
+      .and()
+      .satisfy(inSections(sectionsNamed('B')))
+      .should()
+      .notExist()
+      .violations()
+    expect(said(v)).toEqual(['a.md:5: a.md:5 should not exist (under "B", line 3)'])
+  })
+
   it('a box before the first heading is in no section', () => {
     const c = of({ 'a.md': ['- [ ] before', '', '## A', '', '- [ ] inside'] })
     const v = taskItems(c)

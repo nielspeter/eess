@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest'
 import {
   corpus,
   docs,
+  fields,
   inDocuments,
   inSections,
   isArchConfigError,
@@ -322,8 +323,12 @@ describe('a break class per new way to fail', () => {
         .satisfy(predicateHaveSection('Acceptance criteria', { depth: 2 }))
         .should()
         .notExist()
-        .violations(),
-    ).toHaveLength(1) // the scan's depth note: the selection itself is empty and green
+        .violations()
+        .map((x) => `${x.element}: ${x.message}`),
+    ).toEqual([
+      // The scan's depth note: the selection itself is empty and green.
+      'p/006.md → section "Acceptance criteria" (depth 3): "Acceptance criteria" at line 3 is at depth 3, and this rule reads depth 2',
+    ])
   })
 
   it('a g-flagged name examines every section', () => {
@@ -530,6 +535,106 @@ describe('what docs() can see (PR #252)', () => {
       .notExist()
       .violations()
     expect(w.map((x) => x.element)).toEqual(['p/live.md → section "Acceptance criteria" (depth 3)'])
+  })
+})
+
+describe('each section-name registration is scanned (PR #252)', () => {
+  const nearMiss = (file: string, found: string, declared: string): string =>
+    `${file} → section "${found}" (near miss): the heading "${found}" is not the declared section "${declared}", so this rule does not read it`
+
+  it('sectionsWithSubsection: an absence rule over a misspelt subsection reds', () => {
+    const c = of({ 'a.md': '## A\n\ntext\n\n### deprecated\n\nx\n' })
+    const v = sections(c).that().haveSubsection('Deprecated').should().notExist().violations()
+    expect(said(v)).toEqual([nearMiss('a.md', 'deprecated', 'Deprecated')])
+  })
+
+  it('the haveSubsection condition: a near miss outside the sections it judges', () => {
+    const c = of({
+      'plans/a.md': '## Phase 1\n\n### Files changed\n',
+      'plans/b.md': '## Notes\n\n### Files Changed\n',
+    })
+    const v = sections(c)
+      .that()
+      .areNamed('Phase 1')
+      .should()
+      .haveSubsection('Files changed')
+      .violations()
+    expect(said(v)).toEqual([nearMiss('plans/b.md', 'Files Changed', 'Files changed')])
+  })
+
+  it('haveSection with a depth: a near miss in a document that passes', () => {
+    const c = of({ 'a.md': '## Status\n\ntext\n\n## STATUS\n' })
+    const v = docs(c).should().haveSection('Status', { depth: 2 }).violations()
+    expect(said(v)).toEqual([nearMiss('a.md', 'STATUS', 'Status')])
+  })
+
+  it('a haveField region: a near miss in a document that passes', () => {
+    const c = of({ 'bugs/b.md': '# B\n\n## Status\n\n- **State:** open\n\n## STATUS\n' })
+    const v = docs(c)
+      .should()
+      .haveField({ label: 'State', forms: ['bold'], region: { section: 'Status' } })
+      .violations()
+    expect(said(v)).toEqual([nearMiss('bugs/b.md', 'STATUS', 'Status')])
+  })
+})
+
+describe('the notes and the scan, pinned (PR #252’s testing review)', () => {
+  it('a container heading in another section is the scan’s, not the condition’s', () => {
+    const c = of({ 'a.md': '## Phase 1\n\ntext\n\n## Notes\n\n- ### Files changed\n' })
+    const v = sections(c)
+      .that()
+      .areNamed('Phase 1')
+      .should()
+      .haveSubsection('Files changed')
+      .violations()
+    expect(said(v)).toEqual([
+      'a.md:1: section "Phase 1" has no subsection "Files changed"',
+      'a.md → section "Files changed" (in a list item): the heading "Files changed" at line 7 is inside a list item, which does not start a section, so this rule does not read it',
+    ])
+  })
+
+  it('notes are in line order', () => {
+    const c = of({ 'a.md': '# A\n\n- ## X\n\n### X\n' })
+    expect(said(docs(c).should().haveSection('X', { depth: 2 }).violations())).toEqual([
+      'a.md: missing section "X" at depth 2; the heading "X" at line 3 is inside a list item, which does not start a section; "X" at line 5 is at depth 3',
+    ])
+  })
+
+  it('a document with the name at the declared depth gets no depth note for its subsection of the name', () => {
+    const c = of({ 'a.md': '# A\n\n## X\n\n### X\n' })
+    expect(docs(c).should().haveSection('X', { depth: 2 }).violations()).toHaveLength(0)
+  })
+
+  it('a RegExp declaration does not stop the scan for a string one after it', () => {
+    const c = of({ 'a.md': '## STATUS\n\ntext\n' })
+    const v = sections(c)
+      .that()
+      .areNamed(/^Nope$/)
+      .and()
+      .areInSection('Status')
+      .should()
+      .notExist()
+      .violations()
+    expect(v.map((x) => x.element)).toEqual(['a.md → section "STATUS" (near miss)'])
+  })
+
+  it('a section region’s depth outside 1 to 6, or not a number, is refused', () => {
+    const c = of({ 'a.md': '# A\n' })
+    const at = (depth: unknown) => ({
+      label: 'State',
+      forms: ['bold'] as const,
+      region: { section: 'S', depth },
+    })
+    for (const bad of [7, 0, '2']) {
+      // @ts-expect-error -- a JavaScript caller's depth
+      expect(() => fields(c, at(bad))).toThrow(/depth/)
+      try {
+        // @ts-expect-error -- a JavaScript caller's depth
+        fields(c, at(bad))
+      } catch (e) {
+        expect(isArchConfigError(e)).toBe(true)
+      }
+    }
   })
 })
 
