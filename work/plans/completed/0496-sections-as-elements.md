@@ -706,6 +706,19 @@ rows are under `the near miss reads only what the rule can see` in `packages/md/
 In the same round a near miss became a condition's note (`haveSection` with a depth, `haveSubsection`,
 a field region), cited like the others, so it is one finding, not two.
 
+**PR #252's testing review — 2026-10-19.** Rows added for the mutants it found surviving, each run
+with this branch's matrix script (apply, run the named test, restore by `git checkout`), every one red:
+every section-name registration has a near-miss row (the subsection predicate's, P5, turned a red
+absence rule green; the `haveSubsection` condition's, R1; `haveSection` with a depth, Q2; a field
+region, F9); bug 0507's declared-mark box (B6), code and HTML left out (B2) and recursive sub-items
+(B4); the notes' window (S9) and order (S12); the depth short-circuit (D2); a RegExp declaration before
+a string one (D3); two section scopes (I4); a region's depth refused, out of range (F4) and not a
+number (F5, which needed its own message to be told apart); the title finding's line (Q4); the
+condition phase of `haveTextMatching` with `g`/`y`; and `holds()` reading the heading line (T3, below
+in plan 0522). C2 (attribution on a `bypassFilters` finding) has no row: building a finding the kernel
+marks unsuppressable on the same line as a selected element is not one short test. The NFD heading is
+[bug 0523](../../bugs/0523-a-heading-in-nfd-form-misses-a-name-written-in-nfc.md).
+
 **Follow-up, recorded 2026-10-19 (PR #252's architect review, M2).** Tables still take their
 `sectionPath` from `buildDocument`'s own heading stack (`enterHeading`, `packages/md/src/model/document.ts`),
 while links read the section index. The two agree by equivalence, pinned by the row `a link and the

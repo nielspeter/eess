@@ -103,6 +103,12 @@ Built on maintainer order 2026-10-19. Not design-reviewed: written and built in 
   the existing sections example does.
 - **Tests after the code**; the red is the matrix below.
 
+- **Corrected 2026-10-19 (PR #252's testing review, I3): a section holds what its heading's text
+  holds.** `holds()` read from the line after the heading, so `haveLink()` said `## See [b](b.md)` held
+  no link while `inSections` placed that link in it. Plans 0496 and 0503 had decided the heading line
+  is inside its section, so `holds()` now reads it too; the row `a link or a pointer in the heading's
+own text is the section's, as inSections says` pins both sides to one answer.
+
 **The dogfood, measured** 2026-10-19 over `work/`, `docs/` and `adr/` with eess-md's own build: every
 one of 548 documents has a depth-1 title (0 findings); every `## Progress ledger` (53), `## Verification`
 (331) and `## Status` (441) section holds a list item or content (0 findings); 2 of 5,421 sections

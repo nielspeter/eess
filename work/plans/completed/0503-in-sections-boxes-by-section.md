@@ -342,6 +342,10 @@ reading the same `const`, with `clean/` and a `violating-<judgement>/` per judge
 misspelt-section fixture and a misspelt-pattern fixture, each asserting the ratchet green and the
 guard red.
 
+**Corrected 2026-10-19 (PR #252's testing review, minor 1).** Row 7 mutated the predicate only, and
+its test drove only `.that()`; the condition phase keeping `g`/`y` survived. The row
+`as a condition, a g-flagged pattern judges every box alike` now pins it, and its mutant reds.
+
 **Renamed 2026-10-19 (PR #252's product review, I1).** The free predicate shipped here as
 `haveTextMatching` is `predicateHaveTextMatching`: `taskItems().haveTextMatching()` is a dual-use
 method, so under ADR-023 clause 2 the method keeps the plain word and its free twin takes the prefix,
@@ -443,17 +447,17 @@ hold none of the 1 task items the rest of this rule selects`. A document scope's
 applied to one file under `packages/md/src`, the named test in `packages/md/tests/in-sections.test.ts`
 run, the file restored by `git checkout`, tree clean after; 9 rows, every one red:
 
-| row | mutant                                                        | red (named test)                                                    |
-| --- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 1   | only the innermost enclosing section is tested                | adopter 1: an open box without the token, under a subsection …      |
-| 2   | `contains` excludes the heading line                          | a link in a heading's text is inside that heading's section         |
-| 3   | the section scope is not registered for the diagnosis         | a positive rule whose section scope selects nothing …; three counts |
-| 4   | an undecided enclosing section is treated as not selected     | an undecided section predicate leaves the box undecided …           |
-| 5   | the memo is a `Map` keyed on `relPath`                        | two corpora with the same relPath keep their own verdicts           |
-| 6   | the attributed section written into `element`                 | the .excluding() key does not change …                              |
-| 7   | `haveTextMatching` keeps `g`/`y`                              | a g-flagged pattern reads every box                                 |
-| 8   | `taskItems().haveTextMatching` filters in the condition phase | as a condition, a box whose text does not match …                   |
-| 9   | `sectionsNamed` records no name                               | a near miss of the section name is reported by the scan             |
+| row | mutant                                                        | red (named test)                                                      |
+| --- | ------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 1   | only the innermost enclosing section is tested                | adopter 1: an open box without the token, under a subsection …        |
+| 2   | `contains` excludes the heading line                          | a link in a heading's text is inside that heading's section           |
+| 3   | the section scope is not registered for the diagnosis         | a positive rule whose section scope selects nothing …; three counts   |
+| 4   | an undecided enclosing section is treated as not selected     | an undecided section predicate leaves the box undecided …             |
+| 5   | the memo is a `Map` keyed on `relPath`                        | two corpora with the same relPath keep their own verdicts             |
+| 6   | the attributed section written into `element`                 | the .excluding() key does not change …                                |
+| 7   | the predicate `haveTextMatching` keeps `g`/`y`                | a g-flagged pattern reads every box (predicate phase only; see below) |
+| 8   | `taskItems().haveTextMatching` filters in the condition phase | as a condition, a box whose text does not match …                     |
+| 9   | `sectionsNamed` records no name                               | a near miss of the section name is reported by the scan               |
 
 ## Progress ledger
 
