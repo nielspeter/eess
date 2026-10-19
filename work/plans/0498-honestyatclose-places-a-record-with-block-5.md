@@ -45,14 +45,28 @@ placement checks for the same fact in three rules (`ledger/state-folder-mismatch
      made by the selection), which is why the option maps to a selection and not only a direction
      (PR #246's verification, architect N1 and product N1, decision E2). An open state in a done
      folder is then a value in no group: F3, not F2, a message change listed below.
-   - **The done folders are the preset's globs, not the caller's.** `doneFolders` are folder names
-     matched anywhere (`/wont-do/`), and the preset builds the globs, both from its five defaults
-     and from a caller's list. It builds them through plan 0495's internal mark, so F7 fires once,
-     only when every done folder of the group matches nothing (plan 0495, decision E3). A lane
-     whose `wont-do/` has no record yet is the ordinary state, here and for adopters on the
-     defaults (most lanes have two of the five). Extending the mark from the five defaults to the
-     globs the preset derives from a caller's names is this plan's decision, overrulable: a name in
-     `doneFolders` declares a kind of folder, not a path the caller typed.
+   - **F7 on the preset's five defaults.** With no `doneFolders` given, the preset builds its five
+     default globs through plan 0495's internal mark, so F7 fires once, only when every default
+     folder matches nothing (plan 0495, decision E3). The caller did not type them, and most lanes
+     have two of the five.
+   - **F7 on a caller's names** (PR #246's final enforcement check, decision G2). A caller's
+     `doneFolders` names are the caller's: their globs are unmarked, so a misspelt name is F7, per
+     name, as plan 0495 gives any caller-written glob. Marking them too, as the previous revision of
+     this plan did, hides a typo whenever another done folder of the lane exists. With
+     `doneFolders: ['fixed', 'rejectd']`, the real `rejected/` is bound to `'rest'` and an open
+     record there agrees; under `closeInPlace` it is never selected at all.
+   - **A done folder with no record yet is declared, per name.** A `doneFolders` entry is a name or
+     `{ name, mayBeEmpty: true }`, typed `readonly (string | { readonly name: string; readonly
+mayBeEmpty: true })[]`. A `mayBeEmpty` name is still bound (a first record filed there is
+     judged), and its glob alone is exempt from F7; nothing else changes. It is explicit and
+     reviewable, as `.expectEmpty()` is for a rule that may examine nothing, never implied for every
+     name.
+   - **This repository's lanes** (`scripts/lib/ledger-lanes.mjs`) declare the plans lane's
+     `/wont-do/` and `/archived/` that way. Measured with `git ls-files`: no path has a `wont-do/`
+     segment, and the six with `archived/` are test fixtures under `packages/md/tests/fixtures/` and
+     `scripts/nonvacuity/`, none in `work/plans/`. So `/wont-do/` would be F7 today; `/archived/`
+     would not, since its glob reaches the fixtures, but the plans lane has no archived record, and
+     the declaration says so rather than leaning on a match elsewhere.
    - **Frozen documents are selected explicitly,** by the done-folder globs, not through
      `corpus()`'s default frozen folders, so bug 0497's break does not move this rule's fixtures.
 3. **`ledger/unknown-state` stays,** over every record the preset reads, not only the bound folders:
@@ -72,8 +86,10 @@ Block 5 judges what `headerStateViolation` did not:
 
 - **F4:** a record in a done folder with no `State` is a finding. Today it is "not an item"
   (`packages/md/src/rules/ledger.ts:473`, `return null`).
-- **F5/F6/F7:** an unreadable value and a record under two groups' folders are findings; F7 only
-  when no done folder of the lane matches anything (a lane with none of its done folders on disk).
+- **F5/F6/F7:** an unreadable value and a record under two groups' folders are findings. F7: on
+  the defaults, only when none of the five default folders matches anything; for a caller's
+  `doneFolders`, each name that matches nothing and is not `mayBeEmpty`. An adopter listing a done
+  folder it has not created gets F7 and adds `mayBeEmpty: true` to that name: a migration line.
 - **Under `closeInPlace`:** an open state in a done folder is F3 ("none of the declared values"),
   not today's `State: X but filed in a done-folder` message.
 - **The rule id** of a placement finding changes if the build keeps block 5's own, and a
@@ -98,6 +114,7 @@ Each is listed in the changeset with its migration line, and the changeset names
 - `packages/md/tests/rules/ledger-debt.test.ts`
 - `packages/md/tests/rules/` (rows for the rebuilt half)
 - `adr/022-eess-mds-root-fixes-no-documents-shape.md` (Enforcement rows)
+- `scripts/lib/ledger-lanes.mjs` (`/wont-do/` and `/archived/` as `mayBeEmpty` names)
 - `scripts/check-corpus.mjs`, `scripts/check-nonvacuity.mjs` (if a placement rule is retired)
 - `.changeset/`
 
@@ -112,6 +129,10 @@ Each is listed in the changeset with its migration line, and the changeset names
   in a done folder is still reported, as F3. Without `closeInPlace`, both are F2.
 - Defaults: a lane with `completed/` and none of the other four default folders gets no F7; a lane
   with none of the five gets one.
+- A caller's names: `doneFolders: ['fixed', 'rejectd']` beside a real `rejected/` holding a `Draft`
+  record, under `closeInPlace`: F7 names `**/rejectd/**`; without `closeInPlace`, the same. A
+  `{ name: 'wont-do', mayBeEmpty: true }` over a lane with no `wont-do/`: no F7, and a `Won't-do`
+  record filed there later is judged.
 - `label: 'Status'` with `aliases`: placement read through the alias. Bug 0444's fix already has a
   row for the label reaching the state reader (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`);
   this one is new for the rebuilt placement half.
@@ -122,7 +143,10 @@ Each is listed in the changeset with its migration line, and the changeset names
 - The sabotage: a rebuilt half that drops one direction reds its row; `closeInPlace` mapped to
   `right-to-left` while keeping the `'rest'` group and the whole selection (the first draft of this
   plan) reds the `closeInPlace` row, since the closed record in a live folder is then F2; the
-  internal mark dropped, so the default done folders give F7 each, reds the defaults row.
+  internal mark dropped, so the default done folders give F7 each, reds the defaults row; the mark
+  applied to a caller's names (the previous revision's design) reds the `rejectd` row, since F7 is
+  then silent and the `Draft` record in `rejected/` unjudged; `mayBeEmpty` ignored reds the
+  `wont-do` row.
 - `check:arch` green with the label exclusion and its pin gone.
 
 ## Release
@@ -146,7 +170,10 @@ architect I4, decision D10); `ledger/unknown-state` kept (decision D8); unbound 
 their coverage (architect M10, enforcement M7); bug 0444's existing row named (method M4).
 
 From PR #246's verification round: `closeInPlace` selects the done folders and binds only the done
-group, with no `'rest'` group (decision E2, architect N1, product N1); the done-folder globs carry
-plan 0495's internal mark, so F7 fires only when all are dead (decision E3, architect N2); plan
+group, with no `'rest'` group (decision E2, architect N1, product N1); the default done-folder
+globs carry plan 0495's internal mark, so F7 fires only when all are dead (decision E3, architect
+N2); after the final enforcement check, a caller's names are not marked, and a done folder with no
+record yet is declared per name with `mayBeEmpty: true` (decision G2), reverting this plan's own
+earlier extension of the mark; plan
 0504's baseline is the post-0498 fixtures (decision E5, method N1); frozen documents selected
 explicitly (method N1's carried condition).
