@@ -4,22 +4,27 @@
 
 - **State:** Draft — written 2026-10-19 from proposal 017's block 5, after
   [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md), which the second Review's
-  decision 1 required first. Not reviewed.
+  decision 1 required first. Reviewed the same day in PR #246 (architect · enforcement · method ·
+  product) and revised: "Review — 2026-10-19" lists what changed.
 - **Implements:** proposal 017
-- **Priority:** Medium. Adopters 1 and 2 want it (adopter 1: it "alone removes a whole file", built
-  only because `honestyAtClose` reads `State:`, bug 0444); adopter 3 runs the check by hand, one way
-  (proposal 017, "Consumer feedback" and "Consumer follow-up").
-- **Effort:** Medium. One condition on `docs()`, built on plan 0469's resolver, its findings, an
-  example, and this repository's done folders as its first user.
+- **Priority:** Medium. Adopters 1 and 2 want it, and adopter 3 runs the check by hand, one way
+  (proposal 017, "Consumer feedback" and "Consumer follow-up"). Adopter 1 said it "alone removes a
+  whole file", built because `honestyAtClose` read only `State:`. **Note 2026-10-19:** that label
+  half is served since bug 0444's fix (`label`/`aliases` and `ledger/no-readable-state`, PR #236), so
+  what remains is the closed set, a done folder's missing value, and adopter 2's defect (a closed
+  bug left live, an open one filed closed).
+- **Effort:** Medium. One condition on `docs()`, built on plan 0469's resolver with one field added
+  to its verdict, its findings, an example, and this repository's done folders as its first user.
 - **Created:** 2026-10-19
 - **Builds after:** [plan 0469](./completed/0469-havefield-a-document-has-a-value.md) (built), whose
   per-document resolver it reads values through. It does not need
   [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (PR #245, not merged):
   its subjects are documents, so nothing is lifted.
 - **Decided by:** [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (no default
-  shape: every class, folder, label and the direction come from the caller),
+  shape: every group, folder and label comes from the caller),
   [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (a document whose value
-  cannot be read is reported, never dropped), [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md).
+  cannot be read is reported, never dropped), [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)
+  (the denominator is what the verdict rests on).
 
 ## Problem
 
@@ -27,22 +32,21 @@ A record's state and the folder it sits in say the same thing twice, and they dr
 left in the live folder, an open one moved to `fixed/`. Every adopter checks this by hand, and this
 repository checks it twice, in two halves:
 
-- `honestyAtClose`'s `ledger/state-folder-mismatch` (`packages/md/src/rules/ledger.ts:489` and `packages/md/src/rules/ledger.ts:498`),
-  over the label `State:` and the plan lane's words unless told otherwise. Adopter 1 wrote a whole
-  file around it because its records say `Status:` (bug 0444).
+- `honestyAtClose`'s `ledger/state-folder-mismatch` (`packages/md/src/rules/ledger.ts:489` and
+  `packages/md/src/rules/ledger.ts:498`; pointers in this plan are to the tree that files it, and sit
+  ten lines earlier at `9675402`).
 - `corpus/closed-records-sit-in-done-folders` in `scripts/check-corpus.mjs`, composed from
   `haveField`, a folder test and `notExist()`: closing values in live folders only.
 
 The composition is what any caller can write today, and it has three gaps:
 
-1. **An open set.** A rule per class says "a `Done` record is in `completed/`". A value that is in
-   no class (`Shipped`, a misspelt `Fxied`) belongs to no rule and passes. Adopter 3's frozen
-   records spell "done" about twenty ways; a one-way check over an open set is what hid them
-   (proposal 017, decision 4).
+1. **An open set.** A rule per state says "a `Done` record is in `completed/`". A value that is in
+   no rule (`Shipped`, a misspelt `Fxied`) passes. Adopter 3's frozen records spell "done" about
+   twenty ways; a one-way check over an open set is what hid them (proposal 017, decision 4).
 2. **No value at all.** A record in a done folder with no readable state matches neither side of
-   any rule. Bug 0444's half: "a lane with no readable state is a finding", scoped to the lanes the
-   caller declares.
-3. **2N rules for N classes,** and no message that names the folder a value belongs in.
+   any rule: "a lane with no readable state is a finding", scoped to the lanes the caller declares
+   (bug 0444, "Lanes are the caller's").
+3. **2N rules for N states,** and no message that names the folder a value belongs in.
 
 ## Measured
 
@@ -90,178 +94,320 @@ docs(c)
   .should()
   .agreeWithFolder({
     field: { label: 'State', forms: ['bold'], value: longestOf(words) },
-    classes: [
-      { values: ['Draft', 'Ready', 'Parked'], folders: ['work/bugs/*.md'] },
+    groups: [
+      { values: ['Draft', 'Ready', 'Parked'], folders: 'rest' },
       { values: ['Fixed'], folders: ['work/bugs/fixed/**'] },
       { values: ['Rejected'], folders: ['work/bugs/rejected/**'] },
     ],
-    direction: 'both',
+    direction: 'both', // value → folder and folder → value
   })
   .rule({ id: 'bugs/state-agrees-with-folder' })
 ```
 
 ```typescript
-/** One class: the values that belong in its folders (plan 0495). */
-export interface FolderClass {
+/** One group: the values that belong in its folders (plan 0495). */
+export interface FolderGroup {
   /** Compared with the document's value after `normalize`. */
   readonly values: readonly string[]
-  /** Globs relative to the corpus's `cwd`, as `resideInFolder` takes them. */
-  readonly folders: readonly string[]
+  /**
+   * Globs relative to the corpus's `cwd`, as `resideInFolder` takes them; or `'rest'`: every
+   * selected document that is in no other group's folders. At most one group per rule is `'rest'`.
+   */
+  readonly folders: readonly string[] | 'rest'
 }
 
 export interface AgreeWithFolderOptions {
   /** Read as `fields()` reads it and resolved as `haveField` resolves it. One value per document. */
   readonly field: Omit<FieldOptions, 'split'>
-  readonly classes: readonly FolderClass[]
+  readonly groups: readonly FolderGroup[]
   /**
    * The kernel's `Direction`. Left is the value, right is the folder:
-   * - `'left-to-right'` (value → folder): a document whose value is in a class sits in one of that
-   *   class's folders;
-   * - `'right-to-left'` (folder → value): a document in a class's folder carries one of that class's
-   *   values;
+   * - `'left-to-right'` (value → folder): a document whose value is in a group sits in one of that
+   *   group's folders;
+   * - `'right-to-left'` (folder → value): a document in a group's folders carries one of that
+   *   group's values;
    * - `'both'`.
    */
   readonly direction: Direction
-  /** Applied to the value read and to every declared value before they are compared. */
+  /** Applied to the value read and to every declared value before they are compared. Default: none. */
   readonly normalize?: (value: string) => string
 }
 ```
 
-Every option but `normalize` is required, and none has a default (ADR-022 clause 1): two adopters
-want one direction and one wants both (proposal 017, "Consumer follow-up"), so the direction is the
-caller's to name, not eess-md's to choose. The condition's description names the direction it was
-given, so the summary line and every finding's rule text show it: `agree with their folder (State,
-value → folder)`.
+**Options.** Every option but `normalize` is required. `direction` has no default because the
+adopters split on it (two want one direction and one wants both, proposal 017, "Consumer
+follow-up"), so it is the caller's to name; the README says why, since elsewhere in the family
+(`RelationSpec.direction?`) a direction is optional. `normalize` defaults to none (exact strings),
+unlike `vocabulary()`, which trims: the field's own `value` already cuts the value, and a second
+silent change to it would be hidden. `field` is nested rather than spread as `haveField`'s options
+are, because it sits beside `groups` and `direction`, which are not field options; a flat object
+would mix three concerns. The option is `groups`, not `classes`, which is the entry point of eess-ts
+and eess-mermaid.
 
-**Why a condition on `docs()`, and not a predicate pair.** A predicate pair (`valueIn(class)`,
-`inFolderOf(class)`) composed with `and()`/`not()` and `notExist()` already exists in effect:
-`haveField({ oneOf })`, `resideInFolder()` and `notExist()` are public, and
-`corpus/closed-records-sit-in-done-folders` is built from them. That composition is the three gaps
-above. A closed set needs the complement of every class, which a selection cannot state without
-the caller listing it; "no value in a bound folder" is a third rule per folder; and a selection
-answers membership, not which folder a value belongs in. Block 5 is a judgement over a document
-with a cause per finding, which is what an md condition is (`haveField` and `haveTable` after
-`.should()`), and the subjects are documents, so `inDocuments` (plan 0457) is not needed. It reads
-as ADR-003 asks: "docs that reside in `work/bugs/**` should agree with their folder". It is a
-method on `DocsRuleBuilder`, not dual-use: as a selector it would be "documents whose value agrees",
-which `haveField` and `resideInFolder` already select. ADR-006: a building block, every value the
-caller's; ADR-021's `undecided` does not arise, since no predicate is added, and the condition reports
-every unreadable value itself. The name follows md's verbs (`haveField`, `haveSection`,
-`resideInFolder`); `agreeWithFolder` names the relation, as the proposal's title does.
+**Why the kernel's `Direction`, and how it is kept readable.** One word for one idea across the
+family: `correspondence()` and `completeness()` read `'left-to-right'` as "each left element has its
+right counterpart", and here it is "each value has its folder", the same relation with the value on
+the left. The cost is that left and right are not positional here (PR #246's product review). So
+every README and example call carries the arrow as a trailing comment (`// value → folder`), and the
+condition's description prints it: the summary line and every finding's rule text read `agree with
+their folder (State, value → folder)`. ADR-017's drift is a word whose meaning changes; this keeps
+the relation and names its sides.
 
-**Values are read once, by plan 0469's resolver** (`resolveField` and `fieldVerdict` in
-`packages/md/src/model/`), never by a second reader: structured forms beat prose, two structured
-values conflict, `region: 'header'` bounds the read. A document whose value cannot be read (given
-twice, empty, a label in a form the rule does not read) is withheld: it is not judged, and it gets
-one finding, the resolver's own message, wherever the verdict depends on it.
+**Why string values, not `Allowed`.** `haveField` takes `oneOf: Allowed` (a vocabulary or a regular
+expression). A group's values must be a finite set: two groups may not share a value, which can be
+refused when the rule runs only for strings, and F2 needs to name the group a value belongs to. A
+regular expression group would turn the refusal into a finding per document. The prefix and
+case-insensitive matching the adopters asked for are the field's `value` cut and `normalize`.
+Adopter 3's twenty spellings of "done" are not a group's to accept: they sit in frozen folders its
+rule does not select (D7 below).
 
-**What each document gets.** A document's _bound class_ is the class whose folders contain it; its
-_value class_ is the class whose values contain its value. For each selected document:
+**Why a condition on `docs()`, and not a predicate pair.** A predicate pair composed with
+`and()`/`not()` and `notExist()` exists in effect: `haveField({ oneOf })`, `resideInFolder()` and
+`notExist()` are public, and `corpus/closed-records-sit-in-done-folders` is built from them. That
+composition is the three gaps above. A closed set needs the complement of every group, which a
+selection cannot state without the caller listing it; "no value in a bound folder" is a third rule
+per folder; and a selection answers membership, not which folder a value belongs in. Block 5 is a
+judgement over a document with a cause per finding, which is what an md condition is (`haveField`
+and `haveTable` after `.should()`), and the subjects are documents, so `inDocuments` (plan 0457) is
+not needed. It reads as ADR-003 asks: "docs that reside in `work/bugs/**` should agree with their
+folder". It is not dual-use: as a selector it would be "documents whose value agrees", which
+`haveField` and `resideInFolder` already select, and ADR-021's `undecided` does not arise, since no
+predicate is added. The condition reports every unreadable value itself.
 
-| the document                         | `left-to-right`        | `right-to-left` | `both`                 |
-| ------------------------------------ | ---------------------- | --------------- | ---------------------- |
-| bound to K, value in K               | —                      | —               | —                      |
-| bound to K, value in J (J ≠ K)       | F1, misplaced          | F2, wrong value | one finding, F2's text |
-| bound to no class, value in K        | F1                     | —               | F1                     |
-| bound to K, value in no class        | F3, closed set         | F3              | F3                     |
-| bound to no class, value in no class | —                      | —               | —                      |
-| bound to K, no field                 | —                      | F4, no value    | F4                     |
-| bound to no class, no field          | —                      | —               | —                      |
-| bound to K, value unreadable         | F5, withheld           | F5              | F5                     |
-| bound to no class, value unreadable  | F5                     | —               | F5                     |
-| inside the folders of two classes    | F6, in every direction |                 |                        |
+**Values are read once, by plan 0469's resolver.** `fieldVerdict`
+(`packages/md/src/model/field-verdict.ts`) gains the resolved occurrence: `FieldVerdict` adds
+`occurrence?: FieldOccurrence`, set exactly when `resolved` is true, so block 5 takes the value from
+the verdict and never calls `resolveField` a second time. Structured forms beat prose, two
+structured values conflict, `region: 'header'` bounds the read. The condition passes no allowed set;
+the groups judge the value.
+
+- **A value is unreadable** when the verdict is not `resolved` and carries an `unreadable` cause
+  (given twice, empty, a label in a form the rule does not read, past an unclosed fence, outside the
+  header). That document is withheld, and is F5.
+- **A value is absent** when the verdict is not `resolved` and its one cause is `absent`. That
+  document is F4 where it is reported, with the resolver's `absent` message verbatim, its hint
+  included ("line N has `State: x`, a plain line this rule does not read…", or the wrapped labels
+  the document carries).
+- **A resolved value's side causes** (prose that disagrees with it, a label elsewhere in a form the
+  rule does not read) are reported alongside the judgement, wherever the document is judged, with
+  the resolver's messages. A document that agrees with its folder can still carry them.
+
+**What each document gets.** A document's _bound group_ is the group whose folders contain it (a
+`'rest'` group binds every selected document no other group binds); its _value group_ is the group
+whose values contain its value. For each selected document:
+
+| the document                         | `left-to-right` | `right-to-left` | `both`     |
+| ------------------------------------ | --------------- | --------------- | ---------- |
+| bound to K, value in K               | —               | —               | —          |
+| bound to K, value in J (J ≠ K)       | F2              | F2              | F2         |
+| bound to no group, value in K        | F1              | —               | F1         |
+| bound to K, value in no group        | F3              | F3              | F3         |
+| bound to no group, value in no group | —               | —               | —          |
+| bound to K, no value                 | —               | F4              | F4         |
+| bound to no group, no value          | —               | —               | —          |
+| bound to K, value unreadable         | F5              | F5              | F5         |
+| bound to no group, value unreadable  | F5              | —               | F5         |
+| resolved value with side causes      | each cause      | each cause      | each cause |
+
+and, once per rule, F6 (a document under the folders of two groups), F7 (a dead folder glob) and F8
+(an empty group).
 
 Messages, each at the value's line (the document's first line where there is no value):
 
-- **F1** `'Done' (State, line 3) belongs in work/bugs/fixed/**; work/bugs/0123-x.md is in none of its
-folders`
-- **F2** `work/bugs/fixed/0123-x.md is in a folder of Fixed, but its State is 'Draft' (line 3), which
-belongs in work/bugs/*.md`
-- **F3** `` `Shipped` at line 3 is none of the declared values (Draft, Ready, Parked, Fixed,
-Rejected) `` (proposal 017, decision 4, word for word)
-- **F4** `work/bugs/fixed/0123-x.md is in a folder of Fixed and has no State this rule reads`,
-  followed by the wrapped labels the document does carry, as `haveField`'s "no field" finding lists
-  them
-- **F5** the resolver's message (`State is given twice (line 3 'Draft', line 9 'Fixed'); keep one`)
-- **F6** `work/bugs/fixed/0123-x.md is in the folders of two classes (Fixed: work/bugs/**, …); bind
-each folder to one class`, unsuppressable (`bypassFilters`): it is about the declaration, not the
-  document
+- **F1 unplaced.** `` `Fixed` (State, line 3) belongs in work/bugs/fixed/**; work/bugs/0123-x.md is
+in none of its folders. Move it or change the value. ``
+- **F2 wrong folder.** ``wrong folder: `Draft` (State, line 3) belongs outside work/bugs/fixed/**,
+work/bugs/rejected/**; work/bugs/fixed/0123-x.md is in Fixed's folders. Move it or change the
+value.`` For a value whose group has globs, "belongs in <its globs>".
+- **F3 unknown value.** `` `Shipped` at line 3 is none of the declared values (Draft, Ready, Parked,
+Fixed, Rejected) `` (proposal 017, decision 4, word for word), with "fix the spelling, or add it to
+  a group".
+- **F4 no value.** `work/bugs/fixed/0123-x.md is in Fixed's folders and has` followed by the
+  resolver's `absent` message (`no State field (read as bold); its labels: Status`).
+- **F5 withheld.** The resolver's message (`State is given twice (line 3 'Draft', line 9 'Fixed');
+keep one`).
+- **F6 two groups.** One finding per overlapping pair of groups: `work/bugs/** (Draft, Ready) and
+work/bugs/fixed/** (Fixed) both bind 136 documents, first work/bugs/fixed/0001-a.md,
+work/bugs/fixed/0002-b.md; bind each folder to one group, or make one group 'rest'`.
+- **F7 dead glob.** `Fixed's folder work/bugs/fxed/** matches no path in the corpus`, one per group
+  and glob, in every direction. A mistyped glob would otherwise read, under `left-to-right` and
+  `both`, as N records "belonging in" the typo (PR #246's enforcement review).
+- **F8 empty group.** Under `right-to-left`, `Fixed's folders hold no document in the corpus; the
+group judges nothing`. Computed over the corpus, not the selection, so a caller can narrow with
+  `.that().resideInFolder(...)` and still declare every group (D2). A `'rest'` group has no globs,
+  so F7 and F8 do not apply to it.
 
-The closed set holds in every direction where a class is bound: a value read in a bound folder
-belongs to a declared class or it is F3. A document in no bound folder with a value in no class is
-not this rule's to judge (no class claims it, no folder binds it). That is the boundary, and the
-README says so with the remedy: bind the folder, or pair the rule with
-`fields(...).resolveAgainst(vocabulary(...))`. F4 is scoped to the caller's bound folders only, never
-to every folder under a root, as adopter 3's ledger over stateless folders needs (bug 0444, "Lanes
-are the caller's").
+F1 and F2 now part on one question: does the value belong to a declared group. A value of a declared
+group in another group's folder is F2, a placement fault with "move it or change the value"; only a
+value in no group is F3, a spelling fault (PR #246, decision D3). A document in no bound folder with
+a value in no group is not this rule's: no group claims it, no folder binds it. The README says so,
+with the remedy: bind the folder, add a `'rest'` group, or pair the rule with
+`fields(...).resolveAgainst(vocabulary(...))`. F4 is scoped to bound folders only, never to every
+folder under a root (bug 0444, "Lanes are the caller's").
 
-**The unchosen direction is not reported.** `left-to-right` never reports F2 or F4; `right-to-left`
-never reports F1. A J ≠ K document violates both directions with one fact, so `both` reports it
-once.
+**The unchosen direction is not reported.** `left-to-right` never reports F4; `right-to-left`
+never reports F1, nor F5 outside a bound folder. A value in J sitting in K's folder violates both
+directions with one fact, so it is one F2 in every direction.
 
-**Configuration, refused when the rule runs** (an `ArchConfigError` naming the option, ADR-009):
-no classes; a class with no values or no folders; an empty value; a value, after `normalize`, in two
-classes; one glob in two classes. `split` is excluded by the type: one value per document.
+**The complement group.** One group may say `folders: 'rest'` (PR #246, decision D4). It is opt-in,
+at most one per rule, and binds the selected documents in no other group's folders. With it, a lane
+whose done folder is nested (`work/bugs/fixed/**`) declares its live side without enumerating
+folders or writing extglobs: live = `'rest'`, done = `work/bugs/fixed/**`. It is also what plan
+0498 needs, since `honestyAtClose`'s live side is "not a done folder". F6 stays for explicit globs:
+`work/bugs/**` and `work/bugs/fixed/**` in two groups still overlap. An identical glob in two groups
+is refused when the rule runs; overlapping different globs surface as F6 only when a document lands
+in both, which fails closed.
 
-**A class that judges nothing.** Under `right-to-left` a class whose folders hold no selected
-document examines nothing, and a mistyped glob would leave it silent: that is a finding naming the
-class and its globs, unsuppressable (ADR-010). Under `left-to-right` and `both` a mistyped glob reds
-every document carrying the class's values (F1), so it cannot pass silently, and a class with
-neither documents nor values in the selection has nothing to misplace. A caller whose done folder is
-legitimately empty today leaves its class out of a `right-to-left` rule until the folder exists.
+**Configuration, refused when the rule runs** (an `ArchConfigError` naming the option, ADR-009): no
+groups; a group with no values or with an empty folder list; an empty value; a value, after
+`normalize`, in two groups; one glob in two groups; two `'rest'` groups. `split` is excluded by the
+type: one value per document.
 
-**Evidence.** `examined` is the selected documents (ADR-010); a selection of none is the kernel's
-zero-examined finding. Withheld documents are not counted as agreeing: each has its F5.
+**Evidence: `examined` counts the documents judged** (PR #246, decision D1). Under `left-to-right`,
+the selected documents whose value was read (resolved); under `right-to-left`, the selected
+documents in a bound folder (a `'rest'` group binds); under `both`, the union. Zero judged is the
+kernel's zero-examined finding, so a `left-to-right` rule with a misspelt label (`Sate`), the wrong
+`forms`, or `region: 'header'` over records whose `State` sits under `## Status` reads no value and
+is red, not green over N. Withheld documents are not counted as agreeing: each has its F5.
+
+**Suppression.** F1 to F5 are findings about a document's content and are suppressible like
+`haveField`'s condition findings (`.excluding()`, a comment, a baseline). F6, F7, F8 and the
+configuration refusals are about the declaration, carry `bypassFilters`, and are not.
 
 **Frozen documents.** The condition skips nothing by itself (proposal 017, "Decisions this
 settles", 3): a done folder is usually frozen, and it is the folder block 5 most needs to read. A
 caller who wants frozen documents out selects with `areLive()` (plan 0457) or a folder glob.
 
-**Dogfooding: this repository's done folders.** `check:corpus` gains one rule per lane, in
-`right-to-left`, over the done folders only:
+### One worked example per adopter
 
-| rule id                                          | field                                    | classes                                                              |
-| ------------------------------------------------ | ---------------------------------------- | -------------------------------------------------------------------- |
-| `corpus/done-folders-hold-done-values-plans`     | `State`, `bold`, `longestOf(plan words)` | `Done` → `work/plans/completed/**`                                   |
-| `corpus/done-folders-hold-done-values-bugs`      | `State`, `bold`, `longestOf(bug words)`  | `Fixed` → `work/bugs/fixed/**`; `Rejected` → `work/bugs/rejected/**` |
-| `corpus/done-folders-hold-done-values-proposals` | `State`, `bold`, `region: 'header'`, …   | `Promoted` → `work/proposals/promoted/**`                            |
+Each is an acceptance row (Test inventory) and a fixture pair under the example. The paths are
+generic; the shapes are the ones each adopter described.
 
-Measured above: 189 records in these four folders, each with one value, and each value its
-folder's, so the rules land green with no exclusion. The three folders that do not exist get no
-class (a class over an empty folder is a finding in `right-to-left`); a lane adds one when it first
-files a record there.
+- **Adopter 1: a closed folder must not hold a live value.** Select the done folders, declare every
+  group, `right-to-left`:
+
+  ```typescript
+  docs(c)
+    .that()
+    .resideInFolder('issues/closed/**')
+    .should()
+    .agreeWithFolder({
+      field: { label: 'Status', forms: ['bold'] },
+      groups: [
+        { values: ['open', 'in progress'], folders: 'rest' },
+        { values: ['closed', "won't fix"], folders: ['issues/closed/**'] },
+      ],
+      direction: 'right-to-left', // folder → value
+    })
+  ```
+
+  `issues/closed/12.md` with `open` prints F2: ``wrong folder: `open` (Status, line 3) belongs
+outside issues/closed/**; issues/closed/12.md is in closed's folders. Move it or change the value.``
+  A closed issue in `issues/` is not selected and not reported, which is adopter 1's one direction.
+  An issue in `issues/closed/` with no `Status` prints F4.
+
+- **Adopter 2: both directions.** Select the lane, live = `'rest'`, `both`:
+
+  ```typescript
+  docs(c)
+    .that()
+    .resideInFolder('bugs/**')
+    .should()
+    .agreeWithFolder({
+      field: { label: 'Status', forms: ['bold'] },
+      groups: [
+        { values: ['open', 'in progress'], folders: 'rest' },
+        { values: ['fixed'], folders: ['bugs/fixed/**'] },
+      ],
+      direction: 'both', // value → folder and folder → value
+    })
+  ```
+
+  A closed bug in `bugs/`: ``wrong folder: `fixed` (Status, line 3) belongs in bugs/fixed/**; …``.
+  An open bug in `bugs/fixed/`: ``wrong folder: `open` (Status, line 3) belongs outside
+bugs/fixed/**; …``. Both are adopter 2's reported defect, one F2 each.
+
+- **Adopter 3: one way, green over its frozen spellings.** Select the live folders, `left-to-right`:
+
+  ```typescript
+  docs(c)
+    .that()
+    .resideInFolder('records/*.md')
+    .should()
+    .agreeWithFolder({
+      field: { label: 'Status', forms: ['heading', 'bold'] },
+      groups: [
+        { values: ['Open', 'In progress'], folders: 'rest' },
+        { values: ['Done'], folders: ['records/done/**'] },
+      ],
+      direction: 'left-to-right', // value → folder
+    })
+  ```
+
+  A live record whose Status is `Done` prints F2: ``wrong folder: `Done` (Status, line 2) belongs
+in records/done/**; …``. The frozen records under `records/done/`, with their twenty spellings,
+  are not selected, so the rule stays green over them; the fixture holds three of those spellings
+  to prove it. A live record with a misspelt `Opne` prints F3, since `'rest'` binds it; a caller who
+  does not want that leaves the live group out, and a live misspelling then goes unjudged.
+
+All three are expressible after D1 to D6.
+
+### Dogfooding: this repository's done folders
+
+`check:corpus` gains one rule per lane, `right-to-left`, selecting the lane's done folders and
+declaring the live group as `'rest'`, so an open state in a done folder is F2, not F3:
+
+| rule id                                          | selection                       | field                                    | groups                                                                                                      |
+| ------------------------------------------------ | ------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `corpus/done-folders-hold-done-values-plans`     | `work/plans/completed/**`       | `State`, `bold`, `longestOf(plan words)` | `Draft`, `Ready`, `Open` → `'rest'`; `Done` → `work/plans/completed/**`                                     |
+| `corpus/done-folders-hold-done-values-bugs`      | `work/bugs/{fixed,rejected}/**` | `State`, `bold`, `longestOf(bug words)`  | `Draft`, `Ready`, `Parked` → `'rest'`; `Fixed` → `work/bugs/fixed/**`; `Rejected` → `work/bugs/rejected/**` |
+| `corpus/done-folders-hold-done-values-proposals` | `work/proposals/promoted/**`    | `State`, `bold`, `region: 'header'`, …   | `Draft` → `'rest'`; `Promoted` → `work/proposals/promoted/**`                                               |
+
+Measured above: 189 records in these four folders, each with one value and each its folder's, so
+the rules land green with no exclusion. The three done folders that do not exist get no group (F7
+would refuse a glob that matches nothing), so `Won't-do` and a proposal's `Rejected` are values in
+no group: such a record in a done folder is F3, and a lane adds the group when it first files there.
+
+**What covers a misspelt state in a live folder here** (PR #246, decision D8): not these rules, which
+select only done folders. `corpus/state-in-vocabulary-plans` and `-bugs` (`check:corpus`) and
+`ledger/unknown-state` (`check:ledger`, `packages/md/src/rules/ledger.ts:477`) do. Plan 0498 keeps
+`ledger/unknown-state` when it rebuilds the placement half.
 
 **Why `corpus/closed-records-sit-in-done-folders` stays, and the two do not overlap.** The partition
-is by folder. The existing rule judges the live folders, value → folder, for closing values; the new
-rules judge the done folders, folder → value, with a closed set. A closed record in a live folder
-is the old rule's; an open, unknown or missing state in a done folder is the new rules'. Neither
-reports the other's fact. The old rule also stays because it is ADR-021's selector-position witness
-in this repository: its clause 7 row cites it and two `check:nonvacuity` rows plant records under it.
-Replacing it would change that ADR's evidence, which is not this plan's.
+is by selection. The existing rule judges the live folders, value → folder, for closing values; the
+new rules select only the done folders. A closed record in a live folder is the old rule's; an open,
+unknown or missing state in a done folder is the new rules'. Neither reports the other's fact. The
+old rule also stays because it is ADR-021's selector-position witness in this repository: its clause
+7 row cites it and two `check:nonvacuity` rows plant records under it. Replacing it would change that
+ADR's evidence, which is not this plan's.
 
 `check:ledger`'s `ledger/state-folder-mismatch` still reports both halves for all three lanes, so
 until plan 0498 a misplaced record reds two gates. That duplication exists today between
 `check:ledger` and `corpus/closed-records-sit-in-done-folders`; plan 0498 rebuilds the ledger's
-placement half on this block and removes it.
+placement half on this block and decides which rule stays.
 
 ## Phases
 
-1. **The condition.** `agreeWithFolder` over `resolveField`/`fieldVerdict`, the class index
-   (normalised values, globs), the configuration refusals, and F1 to F6 with the direction table.
-2. **Evidence and the empty class.** The `right-to-left` empty-class finding, and the description
+1. **The verdict and the condition.** `FieldVerdict.occurrence`; `agreeWithFolder` over it, the
+   group index (normalised values, globs, `'rest'`), the configuration refusals, and F1 to F5 with
+   the direction table and the side causes.
+2. **The declaration's findings and the evidence.** F6 per group pair, F7 against the corpus's file
+   index, F8 over the corpus's documents, `examined` as judged documents, and the description
    carrying the direction.
 3. **Dogfood, example, docs, release.** The three `check:corpus` rules and their `check:nonvacuity`
    rows; an example under `examples/md/` with a clean and a violating fixture per judgement it
-   states (plan 0458's gate); the eess-md README (the boundary and its remedy, the direction table);
-   `docs/markdown.md`; `examples/public-surface.test.ts`; a changeset.
+   states, the three adopter shapes among them (plan 0458's gate); the eess-md README (the boundary
+   and its remedy, the direction table, why `direction` is required); `docs/markdown.md`;
+   `examples/public-surface.test.ts`; a changeset.
 
 ## Files changed
 
-- `packages/md/src/builders/agree-with-folder.ts` (new)
+- `packages/md/src/model/field-verdict.ts` (`occurrence` on a resolved verdict)
+- `packages/md/src/conditions/agree-with-folder.ts` (new; md's conditions live in `conditions/`)
 - `packages/md/src/builders/docs.ts`
-- `packages/md/src/index.ts` (`AgreeWithFolderOptions`, `FolderClass`; `Direction` re-exported from
+- `packages/md/src/index.ts` (`AgreeWithFolderOptions`, `FolderGroup`; `Direction` re-exported from
   the kernel, as `check:family` requires)
-- `packages/md/tests/builders/agree-with-folder.test.ts` (new)
+- `packages/md/tests/conditions/agree-with-folder.test.ts` (new)
 - `examples/md/a-record-sits-in-its-states-folder.test.ts` (new) and its fixtures
 - `examples/public-surface.test.ts`
 - `scripts/check-corpus.mjs`
@@ -272,44 +418,55 @@ placement half on this block and removes it.
 
 ## Test inventory
 
-Each finding has rows in both directions it can and cannot appear in. The break class names what
-goes silent if the finding is removed.
+Each finding has rows in the directions it can and cannot appear in. The break class names what goes
+silent if the finding is removed.
 
-| finding        | rows                                                                                                                                                           | break class                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| F1 misplaced   | a `Fixed` bug in `work/bugs/`, `left-to-right`: red; the same under `right-to-left`: not reported; a `Fixed` bug in an unbound folder                          | a closed record in a live folder passes (the orphaned close) |
-| F2 wrong value | a `Draft` bug in `fixed/`, `right-to-left`: red; under `left-to-right`: F1 for it, never F2; under `both`: exactly one finding                                 | an open record in a done folder passes                       |
-| F3 closed set  | `Shipped` in `fixed/`, each direction: red with the decision-4 text; `Shipped` in an unbound folder: not reported                                              | an unknown spelling passes, the gap adopter 3 measured       |
-| F4 no value    | a `fixed/` bug with no `State`, `right-to-left`: red, listing its `**Status:**` label; under `left-to-right`: not reported; in an unbound folder: not reported | a done folder of stateless records passes (bug 0444)         |
-| F5 withheld    | two `State` lines, empty `State`, `## State: Fixed` under `forms: ['bold']`: one finding each, the resolver's message, not counted as agreeing                 | a conflicted record is read by its first value, or dropped   |
-| F6 two classes | `work/bugs/**` and `work/bugs/fixed/**` in two classes: one unsuppressable finding per document in both; `.excluding()` does not remove it                     | the first class wins silently                                |
-| configuration  | each refusal above throws, naming the option                                                                                                                   | a malformed declaration judges nothing                       |
-| empty class    | `right-to-left` with a class over `work/bugs/fixd/**`: red naming the class; the same class under `both`: every `Fixed` bug is F1                              | a mistyped done folder is silent                             |
-| normaliser     | `normalize: (v) => v.toLowerCase()` agrees `fixed` with `Fixed`; without it, F3                                                                                | a normaliser applied to one side only                        |
-| frozen         | a frozen document in a bound folder is judged                                                                                                                  | the done folders, frozen by default, go unread               |
-| evidence       | a selection of none: the zero-examined finding; the description names the direction                                                                            | a rule over nothing is green                                 |
+| finding          | rows                                                                                                                                                                                                                        | break class                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| F1 unplaced      | a `Fixed` bug in an unbound folder, `left-to-right`: red; `right-to-left`: not reported                                                                                                                                     | a closed record outside every bound folder passes                |
+| F2 wrong folder  | a `Draft` bug in `fixed/` and a `Fixed` bug in `work/bugs/`, each direction: one F2, its text pinned, "belongs outside" for a `'rest'` value and "belongs in" otherwise                                                     | a misplaced record passes, or is told to fix its spelling        |
+| F3 unknown value | `Shipped` in `fixed/`, each direction: red with the decision-4 text; `Shipped` in an unbound folder: not reported; `Draft` in `fixed/`: F2, never F3                                                                        | an unknown spelling passes, the gap adopter 3 measured           |
+| F4 no value      | a `fixed/` bug with no `State` and a `**Status:**` label, `right-to-left`: red with the resolver's message verbatim; a plain `State: Fixed` line: the plain-line hint; `left-to-right`: not reported; unbound: not reported | a done folder of stateless records passes (bug 0444)             |
+| F5 withheld      | two `State` lines, empty `State`, `## State: Fixed` under `forms: ['bold']`: one finding each, the resolver's message, not counted in `examined`                                                                            | a conflicted record is read by its first value, or dropped       |
+| side causes      | `**State:** Fixed` in `fixed/` with prose saying `State: Draft`: agrees, and the prose cause is reported, under `right-to-left` and `both`; under `left-to-right` too, the document's value being read                      | a resolved record's contradiction is dropped                     |
+| F6 two groups    | `work/bugs/**` and `work/bugs/fixed/**` in two groups: one finding for the pair, naming the count and the first documents; `.excluding()` does not remove it                                                                | the first group wins silently                                    |
+| F7 dead glob     | a group over `work/bugs/fxed/**`, each direction: one finding naming the group and glob, and no F1 per record                                                                                                               | a mistyped folder is reported as N misplaced records             |
+| F8 empty group   | `right-to-left`, a group whose glob matches only non-Markdown files: red; a live group outside a done-folder selection: not reported (computed over the corpus)                                                             | a group that judges nothing is silent                            |
+| `'rest'`         | live = `'rest'`, done = `work/bugs/fixed/**` over a nested lane: no F6, and a live value in `fixed/` is F2; two `'rest'` groups: refused                                                                                    | a nested lane needs extglobs, or overlaps                        |
+| configuration    | each refusal above throws, naming the option                                                                                                                                                                                | a malformed declaration judges nothing                           |
+| normaliser       | `normalize: (v) => v.toLowerCase()` agrees `fixed` with `Fixed`; without it, F3                                                                                                                                             | a normaliser applied to one side only                            |
+| frozen           | a frozen document in a bound folder is judged                                                                                                                                                                               | the done folders, frozen by default, go unread                   |
+| evidence         | `left-to-right` with label `Sate`: zero judged, the zero-examined finding; `right-to-left` counts only documents in bound folders; the description names the direction                                                      | a rule that judged nothing is green over N                       |
+| adopter 1        | the first worked example: F2 for `open` in `issues/closed/`, nothing for `closed` in `issues/`                                                                                                                              | the one-way rule reports the direction adopter 1 did not ask for |
+| adopter 2        | the second: one F2 each way                                                                                                                                                                                                 | one of adopter 2's two defects passes                            |
+| adopter 3        | the third: F2 for a live `Done`, green over three frozen spellings in `records/done/`                                                                                                                                       | adopter 3's frozen records go red                                |
 
-**Sabotage matrix,** each row red on the test named in its break class, run in a worktree (per this
-repository's practice), recorded in the Progress ledger: (1) the direction ignored, always `both`;
-(2) the closed set dropped; (3) F4 reported outside the bound folders; (4) F4 dropped; (5) values
-read by a first-occurrence reader, not the resolver; (6) `normalize` applied to declared values only;
-(7) the first matching class taken on overlap; (8) `both` reporting a J ≠ K document twice; (9) the
-empty-class finding dropped; (10) a withheld document counted as agreeing.
+**Sabotage matrix,** each row red on the test named in its break class, run in a worktree and
+recorded in the Progress ledger below: (1) the direction ignored, always `both`; (2) the closed set
+dropped; (3) F4 reported outside the bound folders; (4) F4 dropped; (5) values read by a
+first-occurrence reader, not the resolver; (6) `normalize` applied to declared values only; (7) the
+first matching group taken on overlap; (8) `both` reporting a J ≠ K document twice; (9) F8 dropped;
+(10) a withheld document counted as agreeing; (11) `examined` counting selected documents, not
+judged ones (red on the `Sate` row); (12) F7 dropped, so a dead glob is reported as F1s; (13) F6 made
+suppressible (`bypassFilters` dropped, so `.excluding()` silences it); (14) the two-groups refusal
+removed, so the first group wins; (15) frozen documents skipped; (16) F2 folded back into F3 for a
+value of a declared group; (17) the side causes dropped.
 
 **`check:nonvacuity` rows,** one per new rule id (rule-id coverage reads them from
-`scripts/check-corpus.mjs`), each planting a probe and requiring the finding by id and file: a
-`Draft` plan in `work/plans/completed/` (F3 under the plans rule, since `Draft` is not in its
-class); a bug with no `State` in `work/bugs/fixed/` (F4); a proposal in `work/proposals/promoted/`
-whose header says `Draft` (F3).
+`scripts/check-corpus.mjs`), each planting a probe and requiring the finding by id, file and message:
+a `Draft` plan in `work/plans/completed/` (F2, "belongs outside"); a bug with no `State` in
+`work/bugs/fixed/` (F4); a proposal in `work/proposals/promoted/` whose header says `Draft` (F2).
 
 ## Release
 
-`@nielspeter/eess-md` minor, additive: one method, two types, one kernel type re-exported.
+`@nielspeter/eess-md` minor, additive: one method, two types, one kernel type re-exported, and one
+optional field on an internal verdict.
 
 ## Out of scope
 
-- **`honestyAtClose`'s placement half rebuilt on this block,** and its three ratcheted model edges
-  (ADR-022): [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md).
+- **`honestyAtClose`'s placement half rebuilt on this block** and its `model/label.ts` edge:
+  [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md). Its other two edges:
+  [plan 0504](./0504-honestyatclose-boxes-and-deferrals-from-public-blocks.md).
 - **`corpus()`'s default frozen folders:** [bug 0497](../bugs/0497-corpus-freezes-two-folder-names-by-default.md).
 - **Replacing `corpus/closed-records-sit-in-done-folders`:** see "Why … stays" above.
 - **A selector form** ("documents whose value agrees with their folder"): `haveField` and
@@ -319,3 +476,37 @@ whose header says `Draft` (F3).
 - **A value under a named section, not a labelled line:** block 11.
 - **Close dates and merge state from git:** adopter 2 keeps them (proposal 017, "What stays
   theirs").
+
+## Review — 2026-10-19
+
+PR #246 was reviewed by four lenses (architect, enforcement, method, product). The coordinator's
+decisions, each overrulable, and where they landed above:
+
+- **D1** `examined` counts judged documents, with the misspelt-label sabotage row (enforcement C1,
+  architect M6).
+- **D2** a group's emptiness is computed over the corpus (architect I1).
+- **D3** F3 split: a value of a declared group in another group's folder is F2; the dogfood declares
+  its live group (architect I1, enforcement I5, product I1).
+- **D4** the `'rest'` group (product I2, architect I3).
+- **D5** a dead glob is one configuration finding, F7 (enforcement I4).
+- **D6** `FieldVerdict` exposes the resolved occurrence; F5 is "not resolved, with an unreadable
+  cause"; side causes are reported; F4 carries the `absent` message verbatim (architect I2,
+  enforcement I6).
+- **D7** one worked example and acceptance row per adopter (product I1).
+- **D8** the gates covering a live misspelling, kept by plan 0498 (enforcement I5).
+- Also taken: F6 once per group pair (architect M7, enforcement M1); string values over `Allowed`,
+  and `normalize`'s default, explained (architect M8, product I5); the file in `conditions/`
+  (architect M9); the kernel's `Direction` kept with the arrow on every call (product I4); `groups`
+  for `classes` (product M1); the nested `field` explained (product M2); `direction` required for the
+  adopters' split, not ADR-022 (product M5); suppression stated, and the sabotage rows enforcement M6
+  listed; the bug 0444 note (method M4); this Progress ledger (method M3).
+
+## Progress ledger
+
+- [ ] Phase 1: the verdict's `occurrence`, the condition, F1 to F5, the side causes
+- [ ] Phase 2: F6, F7, F8, `examined`, the description
+- [ ] Phase 3: dogfood rules and nonvacuity rows, the example with the three adopter shapes, docs,
+      changeset
+- [ ] Sabotage matrix, rows 1 to 17, each recorded red here with the commit it ran on
+
+Deferred: none

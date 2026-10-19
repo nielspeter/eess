@@ -18,9 +18,10 @@
 folders' names, the working method's, not the caller's. A caller whose done folder is `fixed/` gets
 nothing frozen; a caller with a `completed/` folder that is not history gets it frozen anyway.
 
-Measured 2026-10-19 on this repository with eess-md's built root: `corpus({ roots: ['work/plans/**'] })`
-reads 73 documents and freezes 47 of them, all in `work/plans/completed/`;
-`corpus({ roots: ['work/**', 'docs/**', 'adr/**'] })` reads 524 and freezes the same 47.
+Measured 2026-10-19 with eess-md's built root over this repository at `9675402`:
+`corpus({ roots: ['work/plans/**'] })` reads 73 documents and freezes 47 of them, all in
+`work/plans/completed/`; `corpus({ roots: ['work/**', 'docs/**', 'adr/**'] })` reads 523 and freezes
+the same 47. Line pointers in this record are to the tree that files it.
 `work/bugs/fixed/` (136 records) is not frozen by the default.
 
 `frozen` is read by `pointers()` (`areLive()`/`areFrozen()`), by the linked-back condition, by the
@@ -31,14 +32,17 @@ live-target predicate and by the pointer resolver, so the default changes what e
 Remove the default: a corpus built without `frozen` marks no document frozen. It is a flagged break
 (it reds a corpus that relied on the default, since pointers in `completed/` become live), shipped
 with a migration line, `frozen: ['**/completed/**', '**/archived/**']`, and naming its dependants
-in the changeset (bug 0185). `corpusFromText` shares the default (plan 0455) and changes in the same
-release. Every caller in this repository that omits `frozen` is listed and given its own globs in
+in the changeset (bug 0185). If plan 0455's `corpusFromText` has shipped by then sharing the
+default, as that plan writes it, it loses the default in the same change and the same release: one
+break for both constructors (ADR-022 clause 1). If it has not shipped, plan 0455 builds it without
+the default. Every caller in this repository that omits `frozen` is listed and given its own globs in
 the same change; `scripts/check-ledger.mjs` is one.
 
 ## Verification
 
 - [ ] Red first: a corpus built without `frozen` over a `completed/` folder marks a document frozen
 - [ ] Green: it marks none, and `frozen` given explicitly still freezes
+- [ ] The same two rows for `corpusFromText`, if it has shipped
 - [ ] Every caller here that omitted `frozen` names its globs, and the gates stay green
 - [ ] The changeset carries `**Breaking**`, the migration line and the dependants
 
