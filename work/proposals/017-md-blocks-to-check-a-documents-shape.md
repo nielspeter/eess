@@ -943,6 +943,20 @@ once its `check:ledger` declares the mark.
 `###` beneath the chosen `##` is attributed to it; a box before the first heading and a heading in a
 list each have a fixture; a section predicate selecting nothing is a finding.
 
+**19.** (an ask added 2026-10-19, from PR #252's product review; a record only, not dispositioned)
+_Exclude a finding by its element's text._ Adopter 3's lesson 3 (see "Adopter 3's section input —
+2026-10-18"): `.excluding()` matches a finding's `element`, which for a box is `relPath:line`, so any
+edit above the box moves the key and the exclusion goes stale. The ask: exclude by the element's text,
+and report the exclusion as stale when it matches nothing, as ADR-018 asks of every exclusion.
+Adopter 3 cannot move its exemptions onto the section rules without it.
+
+**20.** (an ask added 2026-10-19, from PR #252's product review; a record only, not dispositioned)
+_An absence rule's scope must match something, as a primitive._ Every `notExist()` rule over a
+section or text scope needs a hand-written tautology guard beside it (adopter 1's one rule becomes
+two, adopter 3's three become six). The ask is one declaration on the absence rule that its scope
+matches something, replacing the guard. `.expectNonEmpty()` is the obvious candidate and is a trap on
+eess-md's `notExist()` today ([bug 0500](../bugs/0500-eess-md-notexist-with-expectnonempty-can-never-be-green.md)).
+
 ### The maintainer's acceptance — 2026-10-16
 
 The coordinator proposed accepting "1, 2, 6, 7, 12, 13, block 5 with a direction option, and the
