@@ -593,6 +593,20 @@ describe('the notes and the scan, pinned (PR #252’s testing review)', () => {
     ])
   })
 
+  it('a container heading before the section is the scan’s, not the condition’s', () => {
+    const c = of({ 'a.md': '- ### Files changed\n\n## Phase 1\n\ntext\n' })
+    const v = sections(c)
+      .that()
+      .areNamed('Phase 1')
+      .should()
+      .haveSubsection('Files changed')
+      .violations()
+    expect(said(v)).toEqual([
+      'a.md:3: section "Phase 1" has no subsection "Files changed"',
+      'a.md → section "Files changed" (in a list item): the heading "Files changed" at line 1 is inside a list item, which does not start a section, so this rule does not read it',
+    ])
+  })
+
   it('notes are in line order', () => {
     const c = of({ 'a.md': '# A\n\n- ## X\n\n### X\n' })
     expect(said(docs(c).should().haveSection('X', { depth: 2 }).violations())).toEqual([
