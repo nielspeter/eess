@@ -58,6 +58,10 @@ export { marksAssertsCardinality } from './cardinality.js'
 // (plan 0456). Family plumbing: an adopter writes `.should().notExist()`.
 export { notExistCondition } from './not-exist.js'
 export type { NotExistOptions } from './not-exist.js'
+// One `beUniqueBy` condition, the same way (plan 0459): an adopter writes
+// `.should().beUniqueBy(…)` on a dialect's builder.
+export { uniqueByCondition } from './unique-by.js'
+export type { UniqueByOptions } from './unique-by.js'
 // The selector fault a dialect reports for an absence rule (bug 0460).
 export type { SelectorFault } from './vacuity-findings.js'
 // One owner of the glob-text rules, eess-ts's and eess-md's (plan 0456).

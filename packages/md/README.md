@@ -331,6 +331,23 @@ or `[?]`.
 `satisfy()` and the combinators. eess-ts has the same names for its own elements, matched against
 absolute paths (`'**/guides/**'`); here a glob is relative to the corpus's `cwd` (`'guides/**'`).
 
+## No two pages share a value: `beUniqueBy()`
+
+`docs(c).should().beUniqueBy(key, what)` states that no two selected documents share `key`'s value.
+Every member of a group is a finding at its own line, naming the others, so excluding one member
+does not hide the group. Values compare exactly (`066` and `0066` differ): normalise in `key`.
+Select away a document without a value with `.that()` first.
+
+```ts
+import { corpus, docs } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['guides/**'] })
+const slug = (d: { relPath: string }): string => d.relPath.replace(/^.*\/|\.md$/g, '')
+
+// `guides/a/install.md` and `guides/b/install.md` would publish at one URL.
+docs(c).should().beUniqueBy(slug, 'slug').check()
+```
+
 ## A labelled value: `fields()`
 
 `fields(corpus, { label, forms })` reads a value such as `Status` in the forms your corpus writes:

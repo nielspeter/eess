@@ -75,6 +75,7 @@ proposal 017's claim that the blocks are enough (plan 0458). Each one is execute
 | [md/box-marks.test.ts](./md/box-marks.test.ts)                                                   | in closed records, a declared `[~]` counts as open                  |
 | [md/a-record-states-its-status.test.ts](./md/a-record-states-its-status.test.ts)                 | every record's Status is open or closed, in the forms it is written |
 | [md/a-fixed-bug-shows-its-verification.test.ts](./md/a-fixed-bug-shows-its-verification.test.ts) | every bug whose Status is fixed has a Verification section          |
+| [md/unique-slugs.test.ts](./md/unique-slugs.test.ts)                                             | no two pages under `guides/` share a slug                           |
 
 **The contract an example meets.**
 

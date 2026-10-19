@@ -373,6 +373,9 @@ const PROBE_CORPUS_WORK_ROOT = join(repoRoot, 'work', '__nonvacuity_probe_work_r
 // `**` reaches.
 const PROBE_CORPUS_WORK_POINTER_DIR = join(repoRoot, 'work', '__nonvacuity_probe_nested__')
 const PROBE_CORPUS_WORK_POINTER = join(PROBE_CORPUS_WORK_POINTER_DIR, 'pointer.md')
+// Plan 0459: a record number claimed twice. In a directory of its own, because the rule keys a
+// file whose name starts with digits and the probe's path must still carry `__nonvacuity_probe`.
+const PROBE_CORPUS_DUP_DIR = join(repoRoot, 'work', '__nonvacuity_probe_dup__')
 // A COPY of the real gate with one const widened — not a document probe. The
 // frozen list is a hard-coded config, so nothing a probe file can contain will
 // exercise the guard that reads it; running a mutated copy of the script from
@@ -1804,6 +1807,53 @@ function gateCorpusProbe(probePath, probeContent, ruleId, fileFragment) {
     ok,
     detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId}, ${fileFragment})`,
   }
+}
+
+/**
+ * `gateCorpusProbe` for a probe that needs its own directory (`withProbeDir`), asserting the rule
+ * fired on EVERY fragment, so a rule that fires on the probe alone cannot pass (plan 0459).
+ */
+function gateCorpusProbeDir(dir, probePath, probeContent, ruleId, fileFragments) {
+  const { json, terminal } = withProbeDir(dir, probePath, probeContent, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const ok =
+    json.code === 1 && fileFragments.every((f) => firedOn(json, ruleId, f)) && terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId}, ${fileFragments.join(' + ')})`,
+  }
+}
+
+const CORPUS_PROBE_DUP_MD = '# Non-vacuity probe\n\nA record that reuses a number already taken.\n'
+
+/** Plan 0459: a flat record's number (a fixed bug's), reused. Both members must be named. */
+function gateCorpusRecordNumberFlat() {
+  return gateCorpusProbeDir(
+    PROBE_CORPUS_DUP_DIR,
+    join(PROBE_CORPUS_DUP_DIR, '0439-dup.md'),
+    CORPUS_PROBE_DUP_MD,
+    'corpus/record-number-unique',
+    [
+      'work/__nonvacuity_probe_dup__/0439-dup.md',
+      'work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md',
+    ],
+  )
+}
+
+/** Plan 0459: the directory-form record's number (`work/spikes/0001-…/README.md`), reused. */
+function gateCorpusRecordNumberDirForm() {
+  return gateCorpusProbeDir(
+    PROBE_CORPUS_DUP_DIR,
+    join(PROBE_CORPUS_DUP_DIR, '0001-dup.md'),
+    CORPUS_PROBE_DUP_MD,
+    'corpus/record-number-unique',
+    [
+      'work/__nonvacuity_probe_dup__/0001-dup.md',
+      'work/spikes/0001-eess-over-ts-archunit/README.md',
+    ],
+  )
 }
 
 const CORPUS_PROBE_LINK_MD =
@@ -3925,6 +3975,8 @@ const gates = [
   // mutation that stops examining the region's 445 pointers. A pointer probe in
   // the widened root is what separates "reachable" from "examined".
   ['corpus/pointers/work-root', gateCorpusWorkPointer],
+  ['corpus/record-number-unique', gateCorpusRecordNumberFlat],
+  ['corpus/record-number-unique/directory-form', gateCorpusRecordNumberDirForm],
   // Bug 0249's review, I2: `frozen` is the gate's only subtraction and had no
   // guard. Runs a copy of the real script with the list widened — the unit test
   // proves the classifier, only this proves the gate calls it.
@@ -4545,6 +4597,8 @@ const GATE_FOR = {
     'crossval/md-mermaid-er',
   ],
   'check:corpus': [
+    'corpus/record-number-unique',
+    'corpus/record-number-unique/directory-form',
     'corpus/state-present',
     'corpus/state-present-conflict',
     'corpus/closed-records-sit-in-done-folders',

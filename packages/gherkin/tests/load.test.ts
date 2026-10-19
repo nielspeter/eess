@@ -10,14 +10,15 @@ const load = () => features({ cwd: FIXTURES, roots: ['**/*.feature'] })
 describe('features() loading', () => {
   it('loads every feature file under the roots with a real denominator', () => {
     const set = load()
-    // 6: three behavioural fixtures, the two `key-collision*` files, which
-    // exist so `builder.test.ts` can pin the composite key's separator, and
-    // `waiver-in-doc-string.feature` (bug 0419). They are
+    // 8: three behavioural fixtures, the two `key-collision*` files, which
+    // exist so `builder.test.ts` can pin the composite key's separator,
+    // `waiver-in-doc-string.feature` (bug 0419), and the two `same-title-*`
+    // files that pin the per-file key (plan 0459). They are
     // counted here rather than hidden in a subdirectory because `roots` is
     // `**/*.feature` — a subdirectory would not exclude them, and a denominator
     // that quietly skips part of its corpus is the thing this test is for.
-    expect(set.features()).toHaveLength(6)
-    expect(set.scenarios().length).toBeGreaterThanOrEqual(8)
+    expect(set.features()).toHaveLength(8)
+    expect(set.scenarios().length).toBeGreaterThanOrEqual(10)
   })
 
   it('parses feature title, scenario titles, keywords, and 1-indexed lines', () => {
