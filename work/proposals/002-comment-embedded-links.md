@@ -252,7 +252,7 @@ straight into the **unmodified** `linkResolves()` condition
 - **Autofix comes for free.** `ArchFix` and its applier
   (`packages/core/src/apply-fixes.ts`) operate on `{file, start, end,
 replacement}` with no markdown-specific assumption anywhere in that
-  signature. `movedLinkFix()` (`packages/md/src/model/resolve-link.ts:260-283`, moved from `conditions/resolve.ts` by plan 0404) already
+  signature. `movedLinkFix()` (`packages/md/src/model/resolve-link.ts:257-280`, moved from `conditions/resolve.ts` by plan 0404) already
   computes a relative-path rewrite from any `link.urlStart`/`urlEnd` inside
   any `link.doc.file` — pointed at a `.ts` file's comment instead of a `.md`
   file's prose, the same "byte-eksakt" repair `eess:fix` already gives

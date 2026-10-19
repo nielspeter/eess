@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-17 from proposal 017's maintainer acceptance (block 7); revised
-  2026-10-18 after PR #235's review (architect · product · enforcement · method · testing).
+- **State:** Done — built 2026-10-19. Written 2026-10-17 from proposal 017's maintainer acceptance
+  (block 7); revised 2026-10-18 after PR #235's review (architect · product · enforcement · method ·
+  testing).
 - **Implements:** proposal 017
 - **Priority:** Medium — two of the three adopters asked for it (017, "Consumer feedback"), and the
   third wants it in tests only; this repository's own md tests build their corpora in temporary
@@ -375,16 +376,92 @@ removes `DEFAULT_FROZEN`, both constructors change in that one release.
   `violating-broken-link: …`, its folder's name and a colon, as plan 0458's contract spells it.
 - **Narrowed, not fixed:** none. The other round-three rows about 0455 are marked resolved.
 
+## Build notes — 2026-10-19
+
+Built on the coordinator's instruction while the plan still read `State: Draft`, in the maintainer's
+order: 0458, 0456 and 0454 are done; 0457 is not, and this plan needs nothing from it (its example
+uses only `links().should().resolve()`). Where the build departed from the text above, each
+overrulable:
+
+- **The registry is its own module, `packages/md/src/model/corpus-internals.ts`,** not
+  `resolve-link.ts`. Importing `readCorpusFile` from `resolve-link.ts` put `pointer-resolve.ts` under
+  plan 0404's rule that a module importing the link resolver must not import `node:path`, and
+  `pointer-resolve.ts` needs `node:path` for its external roots. The registry is about the corpus,
+  not about links, so it moved; `resolve-link.ts` reads the matchers through `corpusInternals()`.
+  The design is unchanged: one `WeakMap`, set once in `assembleCorpus`, holding `inRoots`, `ignored`
+  and `read`. `CorpusInternals` is not exported (`check:arch`'s unused-exports rule).
+- **`parseExclusionComments` is re-exported from the eess-md root:** `corpus.ts` now imports it from
+  the kernel, and `check:family` requires every kernel symbol a dialect's sources import to be
+  re-exported (plan 0089).
+- **`expectEmptyRoots` (bug 0475) passes through:** it landed after this plan was written, and
+  `assembleCorpus` holds the dead-root and declared-empty checks it feeds, so `TextCorpusOptions`
+  carries it with `corpus()`'s meaning. The dead-root refusal applies to both constructors.
+- **The path refusals are one notion, "not one canonical repo-relative POSIX path":** beyond the
+  table, an empty key, `a/./b.md`, a trailing `/` and a Windows drive letter are refused too. The
+  waiver refusal names the earliest directive line among the kernel's exclusions and warnings.
+- **The example reads its fixture through a new helper function,** `fixtureFiles(name, kind)` in
+  `examples/md/fixture.ts`, which returns the folder (after any swap) as the map
+  `corpusFromText` takes. `eess/examples-md-public-blocks-only` lets only the helper import Node's
+  modules, so the example cannot read the folder itself. The helper's doc said it "hands an example a
+  path, never the documents' text"; it now says the text goes out only as `corpusFromText`'s input.
+  The example's row is in `examples/README.md`.
+- **The parity loads each tree inside its own test, memoised.** Loaded at collection time, a tree
+  that throws took the whole file down: sabotage row 3 showed it, because without `ignore` the
+  `corpus` tree loads its waiver document and is refused. Each tree's row now reds alone.
+- **The parity's options:** `corpus` at its root with `roots: ['**/*.md']` and the waiver document
+  ignored; `resolve-link` as `resolve-link.test.ts` loads it (`roots: ['docs/**']`, two ignores);
+  `external-root` from `repo/` with its legacy root; the other four at their roots with
+  `roots: ['**/*.md']`. Measured per rule, as examined / real findings on the text side (equal on
+  disk): links 64/8 on `linked-back`, 72/67 on `declared-block`; live pointers 5/3 on `corpus`, 3/2
+  on `external-root`; `honestyAtClose` 23/15 on `ledger`, 20/9 on `frontmatter`. Frozen pointers
+  exist only on `corpus` (1), boxes on `ledger` (21), `declared-block` (1) and `frontmatter` (4),
+  frozen documents on `corpus`, `linked-back` and `ledger`. No fixture document had to be added.
+- **`honestyAtClose` is typed `ArchViolation[]`,** so the test reads its `examined` with an `in`
+  check rather than a cast (ADR-005).
+- **The docs section sits after "What did the corpus actually load?"** (`docs/markdown.md:55` moved
+  since the plan was written), and names `TextCorpusOptions` so `check:surface` counts it.
+- **Red first:** the new test file run against the base commit (9675402, a throwaway worktree)
+  failed to load, `TypeError: corpusFromText is not a function`, with no test passing.
+- **Gates while building:** md suite 511 tests and crossvalidate 128 green (Phase 1 alone: 492 and
+  128, unchanged); `check:arch`, `check:family`, `check:surface`, `check:docs-code`,
+  `check:examples`, `check:corpus`, `check:release`, `check:spec`, `check:integrity` green.
+  `QA_ONLY=examples/md-fixtures-are-load-bearing` proves 9 of 9 judgements across 6 examples both
+  ways (13 s), this example's one among them.
+
+**Sabotage matrix, measured 2026-10-19 at c5df06e:** each named test green on the untouched tree and
+red with its row applied, files restored by `git checkout`, tree clean, 14 s in all.
+
+| row | sabotage                                                            | named test (`packages/md/tests/corpus-from-text.test.ts`)                               | baseline | sabotaged | time |
+| --- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------- | --------- | ---- |
+| 1   | `pointer-resolve.ts` reads the disk again                           | a pointer past the end of a file that exists only in the map is stale at its own line   | green    | red       | 1.8s |
+| 2   | `corpusFromText` passes `frozen: []`                                | parity on the corpus tree                                                               | green    | red       | 1.7s |
+| 2   | `corpusFromText` passes `frozen: []`                                | parity on the ledger tree                                                               | green    | red       | 1.7s |
+| 3   | `corpusFromText` drops `options.ignore`                             | parity on the resolve-link tree                                                         | green    | red       | 1.7s |
+| 3   | `corpusFromText` drops `options.ignore`                             | parity on the corpus tree                                                               | green    | red       | 1.7s |
+| 4   | `corpusFromText` passes only the `.md` paths                        | parity on the corpus tree                                                               | green    | red       | 1.7s |
+| 5   | the waiver refusal removed                                          | refuses a waiver in a loaded document, naming the document and line                     | green    | red       | 1.6s |
+| 6   | the `BUILTIN_IGNORE` refusal removed                                | refuses a key under a directory corpus() never walks, naming the path and the directory | green    | red       | 1.6s |
+| 7   | the `root` existence check removed                                  | refuses a root that exists on disk                                                      | green    | red       | 1.7s |
+| 8   | `honestyAtClose`'s receipt replaced by `taskItems(c)`, no condition | the parity is not empty: every rule examines and finds something real on some tree      | green    | red       | 1.6s |
+
+Row 8's other half: with the same vacuous rule and the guard test skipped, the file passes (18
+passed, 0 failed), so the guard is what catches it. The "parity on the … tree" titles end in
+"documents, index, receipts and element sets". The matrix's edits live in the session's
+`scratchpad/matrix0455.py`, not in the repository; the table is the record of what each row broke.
+
 ## Progress ledger
 
-- [ ] Phase 1: `assembleCorpus`, the widened registry and `readCorpusFile`; the existing md and
-      crossvalidate suites green
-- [ ] Phase 2: `corpusFromText` with its refusals
-- [ ] Phase 3: parity test with its per-rule guard, refusal rows, waiver-parse row, pointers-in-memory
+- [x] Phase 1: `assembleCorpus`, the widened registry and `readCorpusFile`; the existing md and
+      crossvalidate suites green (492 and 128 tests, unchanged; the registry in its own module,
+      build notes)
+- [x] Phase 2: `corpusFromText` with its refusals
+- [x] Phase 3: parity test with its per-rule guard, refusal rows, waiver-parse row, pointers-in-memory
       row, `roots` default rows
-- [ ] Sabotage matrix run, each of the eight rows red on its named test
-- [ ] Docs, README line, changeset; `check:surface`, `check:docs-code` green
-- [ ] Example and its fixture pair under plan 0458's gate
-- [ ] Close: this plan → `completed/`, ROADMAP row
+- [x] Sabotage matrix run, each of the eight rows red on its named test (table above, 14 s)
+- [x] Docs, README line, changeset; `check:surface`, `check:docs-code` green
+- [x] Example and its fixture pair under plan 0458's gate (9 of 9 judgements load-bearing, 13 s)
+- [x] `npm run validate` at the close commit: validation-owed → recorded in the commit after it,
+      which touches only this plan
+- [x] Close: this plan → `completed/`, ROADMAP row
 
 Deferred: none
