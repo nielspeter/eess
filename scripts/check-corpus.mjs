@@ -408,6 +408,75 @@ const recordNumbers = docs(c)
     suggestion: 'renumber the newer record with `npm run next-number`',
   })
   .violations()
+
+// Plan 0495, dogfooding `agreeWithFolder` (proposal 017, block 5): a lane's done folders hold only
+// its done values, folder → value, one rule per lane. The selection is the done folders, so a closed
+// record in a live folder stays `corpus/closed-records-sit-in-done-folders`' and neither rule reports
+// the other's fact. The live words are a `'rest'` group, so an open State in a done folder says
+// "belongs outside" (F2), a word in no group is a misspelling (F3), and a record with no State is F4.
+// The done folders that do not exist (`work/plans/wont-do/`, `work/plans/archived/`,
+// `work/proposals/rejected/`) get no group: F7 would refuse a glob that matches nothing, so
+// `Won't-do` and a proposal's `Rejected` are values in no group here until a lane first files there.
+// Proposals read the header region: two keep their original submission's State further down.
+// Literal ids, so `check:nonvacuity`'s rule-id coverage reads them from this source.
+const DONE_FOLDER_RULES = [
+  {
+    id: 'corpus/done-folders-hold-done-values-plans',
+    lane: 'plans',
+    select: 'work/plans/completed/**',
+    region: undefined,
+    groups: [
+      { values: ['Draft', 'Ready', 'Open'], folders: 'rest' },
+      { values: ['Done'], folders: ['work/plans/completed/**'] },
+    ],
+  },
+  {
+    id: 'corpus/done-folders-hold-done-values-bugs',
+    lane: 'bugs',
+    select: 'work/bugs/{fixed,rejected}/**',
+    region: undefined,
+    groups: [
+      { values: ['Draft', 'Ready', 'Parked'], folders: 'rest' },
+      { values: ['Fixed'], folders: ['work/bugs/fixed/**'] },
+      { values: ['Rejected'], folders: ['work/bugs/rejected/**'] },
+    ],
+  },
+  {
+    id: 'corpus/done-folders-hold-done-values-proposals',
+    lane: 'proposals',
+    select: 'work/proposals/promoted/**',
+    region: 'header',
+    groups: [
+      { values: ['Draft'], folders: 'rest' },
+      { values: ['Promoted'], folders: ['work/proposals/promoted/**'] },
+    ],
+  },
+]
+const doneFolderResults = DONE_FOLDER_RULES.map((r) => {
+  const words = [...LANES.find((lane) => lane.name === r.lane).states]
+  return docs(c)
+    .that()
+    .resideInFolder(r.select)
+    .should()
+    .agreeWithFolder({
+      field: {
+        label: 'State',
+        forms: ['bold'],
+        value: longestOf(words),
+        ...(r.region === undefined ? {} : { region: r.region }),
+      },
+      groups: r.groups,
+      direction: 'right-to-left', // folder → value
+      normalize: foldApostrophe,
+    })
+    .rule({
+      id: r.id,
+      because: `a ${r.lane} record in a done folder reads as closed, so its State must say so`,
+      suggestion: 'move the record to the folder its State belongs in, or correct its State',
+    })
+    .violations()
+})
+const doneFolderViolations = doneFolderResults.flatMap((r) => [...r])
 const stateResults = stateRules.map((r) => r.result)
 const stateViolations = stateResults.flatMap((r) => [...r])
 
@@ -1153,6 +1222,7 @@ const receipt = mergeCollectResults([
   closedLive,
   // Its own receipt: one value per numbered record (ADR-010).
   recordNumbers,
+  ...doneFolderResults,
 ])
 
 // ADR-008: this script owns its reporting on the terminal path, so the gate runs
@@ -1220,6 +1290,14 @@ line(
   }`,
 )
 line(
+  'done',
+  `${doneFolderResults.map((r, i) => `${String(r.examined)} ${DONE_FOLDER_RULES[i].lane}`).join(' · ')} record(s) in done folders · ${
+    doneFolderViolations.length === 0
+      ? "✓ each holds its folder's value"
+      : `✗ ${doneFolderViolations.length} finding(s)`
+  }`,
+)
+line(
   'extends',
   `${extendsViolations.examined} ADR Extends link(s) · ${
     extendsViolations.length === 0
@@ -1269,6 +1347,7 @@ const problems = [
   ...statePresent,
   ...closedLive,
   ...recordNumbers,
+  ...doneFolderViolations,
   ...stateViolations,
   ...broken,
   ...stale,

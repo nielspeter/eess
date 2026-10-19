@@ -374,6 +374,18 @@ misspelt value.
 `.excluding()` or `.warn()` removes, wherever the rule's verdict depends on it. `.select()` over an
 undecided document throws, naming the cause, since a selection has no way to report it.
 
+`docs(c).should().agreeWithFolder({ field, groups, direction, normalize? })` says a document's value and
+its folder agree: each group binds its values to its folders (one group may bind `'rest'`), and the
+values are a closed set, so a value no group names, in a folder a group binds, is reported as a
+misspelling. `direction` is the kernel's `Direction` with the value on the left and the folder on the
+right (write the arrow beside it: `direction: 'right-to-left', // folder → value`). It is required,
+unlike `correspondence()`'s, because adopters split between one way and both. A document in no
+group's folders whose value is in no group is not this rule's: bind its folder, add a `'rest'` group,
+or pair the rule with `fields(...).resolveAgainst(...)`. A resolved value's side findings (prose that
+disagrees) are reported by every rule that reads the field. `examined` counts the documents judged.
+[The Markdown dialect's docs](../../docs/markdown.md#a-value-agrees-with-its-folder-agreewithfolder)
+have the direction table and every finding.
+
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match
