@@ -341,6 +341,21 @@ describe('a break class per new way to fail', () => {
     expect(y.examined).toBe(4)
   })
 
+  it('bug 0506, md: a g-flagged haveSection selector examines all four documents', () => {
+    const files = Object.fromEntries(
+      [1, 2, 3, 4].map((n) => [`p${String(n)}.md`, `## Phase ${String(n)}\n\ntext\n`]),
+    )
+    const c = of(files)
+    const v = docs(c)
+      .that()
+      .haveSection(/^Phase \d/g)
+      .should()
+      .haveTable({ columns: [/X/] })
+      .violations()
+    expect(v.examined).toBe(4)
+    expect(v.map((x) => x.element).sort()).toEqual(['p1.md', 'p2.md', 'p3.md', 'p4.md'])
+  })
+
   it('a rule that selects no section: the kernel’s zero-examined finding and the near miss', () => {
     const c = of({ 'a.md': '## Files Changed\n' })
     const v = phases(c).that().areNamed('Files changed').should().satisfy(holds).violations()
