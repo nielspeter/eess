@@ -387,6 +387,27 @@ const closedLiveRule = docs(c)
     suggestion: "move the record to its lane's done folder, or correct its State",
   })
 const closedLive = closedLiveRule.violations()
+
+// Plan 0459, dogfooding `beUniqueBy` (proposal 017, block 13): no record number under `work/` is
+// claimed twice. A directory-form record (`work/spikes/0001-…/README.md`) is keyed by its folder.
+// The digits are read as written, so `066` and `0066` stay distinct: one sequence per number width.
+// `check:numbers` (the kit's script, which may not depend on eess) states the same judgement; the
+// double gate is deliberate. Not filtered by `isProbeArtifact`, or its non-vacuity probe would be
+// invisible to it.
+const recordNumber = (d) => /(?:^|\/)(\d{3,4})-[^/]*(?:\/README)?\.md$/.exec(d.relPath)?.[1] ?? ''
+const recordNumbers = docs(c)
+  .that()
+  .resideInFolder('work/**')
+  .and()
+  .satisfy({ description: 'are numbered records', test: (d) => recordNumber(d) !== '' })
+  .should()
+  .beUniqueBy(recordNumber, 'record number')
+  .rule({
+    id: 'corpus/record-number-unique',
+    because: 'a number names one record; two records under one number make a citation ambiguous',
+    suggestion: 'renumber the newer record with `npm run next-number`',
+  })
+  .violations()
 const stateResults = stateRules.map((r) => r.result)
 const stateViolations = stateResults.flatMap((r) => [...r])
 
@@ -1130,6 +1151,8 @@ const receipt = mergeCollectResults([
   // Its own receipt (ADR-010): zero examined over `.notExist()` is a declaration, and an undecided
   // record is a finding, so nothing is borrowed from `state-present`.
   closedLive,
+  // Its own receipt: one value per numbered record (ADR-010).
+  recordNumbers,
 ])
 
 // ADR-008: this script owns its reporting on the terminal path, so the gate runs
@@ -1189,6 +1212,14 @@ line(
   }`,
 )
 line(
+  'numbers',
+  `${String(recordNumbers.examined)} record number(s), one per numbered record under work/ · ${
+    recordNumbers.length === 0
+      ? '✓ no number claimed twice'
+      : `✗ ${recordNumbers.length} finding(s)`
+  }`,
+)
+line(
   'extends',
   `${extendsViolations.examined} ADR Extends link(s) · ${
     extendsViolations.length === 0
@@ -1237,6 +1268,7 @@ line(
 const problems = [
   ...statePresent,
   ...closedLive,
+  ...recordNumbers,
   ...stateViolations,
   ...broken,
   ...stale,

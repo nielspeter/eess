@@ -1,0 +1,3 @@
+# Install
+
+Install the tool.

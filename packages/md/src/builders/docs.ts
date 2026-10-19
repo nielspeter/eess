@@ -1,8 +1,10 @@
+import { uniqueByCondition } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import { haveFieldCondition, predicateHaveField, type HaveFieldOptions } from './have-field.js'
 import type { MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { MdDocument } from '../model/document.js'
+import { mdViolation } from '../model/violation.js'
 import {
   resideInFolder,
   resideInFile,
@@ -75,6 +77,23 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   /** Assert each matched document contains a GFM table with the required columns. */
   haveTable(opts: HaveTableOptions): this {
     return this.addCondition(haveTableCondition(opts))
+  }
+
+  /**
+   * Assert no two matched documents share `key`'s value (plan 0459). Every member of a group is a
+   * finding at its own line 1, naming the others; `what` names the value in the message. Exact match:
+   * normalise in `key`. Remove a document without a value with `.that()` first.
+   */
+  beUniqueBy(key: (d: MdDocument) => string, what: string): this {
+    return this.addCondition(
+      uniqueByCondition<MdDocument>({
+        key,
+        what,
+        locate: (d) => ({ name: d.relPath, at: `${d.relPath}:1` }),
+        toViolation: (d, message, context) =>
+          mdViolation({ element: d.relPath, file: d.file, line: 1, message, context }),
+      }),
+    )
   }
 }
 
