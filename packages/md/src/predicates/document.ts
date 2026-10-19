@@ -43,7 +43,7 @@ export function haveNameMatching(re: RegExp): Predicate<MdDocument> {
 }
 
 /** Predicate form of `haveSection` — "documents that have section X". */
-export function haveSectionPredicate(name: string | RegExp): Predicate<MdDocument> {
+export function predicateHaveSection(name: string | RegExp): Predicate<MdDocument> {
   return { description: `have section "${String(name)}"`, test: (d) => hasSection(d, name) }
 }
 

@@ -241,6 +241,44 @@ SCENARIOS['surface/undocumented-export'] = () => {
   }
 }
 
+SCENARIOS['surface/suffix-twin'] = () => {
+  // check:surface, ADR-023 clause 2: a twin named by suffix. The payload re-exports eess-md's
+  // section predicate under the suffix name it had before ADR-023, beside the plain `haveSection`
+  // condition, which is exactly the shape the clause forbids. Both halves are asserted, as above:
+  // the gate names the export, and it exits non-zero.
+  const TWIN = 'haveSectionPredicate'
+  const twin = withSabotage(
+    'packages/md/src/index.ts',
+    (t) => `${t}\nexport { predicateHaveSection as ${TWIN} } from './predicates/document.js'\n`,
+    () => runCapture('check:surface'),
+  )
+  if (!twin.out.includes(`${TWIN} → predicateHaveSection`) || twin.status === 0) {
+    vacuous(
+      `check:surface exited ${twin.status} and ${twin.out.includes(TWIN) ? 'named' : 'never named'} ` +
+        `${TWIN} — it must both SEE a twin named by suffix and FAIL on it (ADR-023)`,
+    )
+  }
+}
+
+SCENARIOS['surface/suffix-twin-of-a-method'] = () => {
+  // check:surface, ADR-023 clause 2 as widened: a twin of a BUILDER METHOD. eess-md's root has no
+  // free `haveField`; the plain word is `docs().haveField()`. A gate that inferred twins from the
+  // package's other exports passed this green (PR #248's enforcement review); the reviewed list
+  // must catch it.
+  const TWIN = 'haveFieldPredicate'
+  const twin = withSabotage(
+    'packages/md/src/index.ts',
+    (t) => `${t}\nexport { predicateHaveField as ${TWIN} } from './builders/have-field.js'\n`,
+    () => runCapture('check:surface'),
+  )
+  if (!twin.out.includes(`${TWIN} → predicateHaveField`) || twin.status === 0) {
+    vacuous(
+      `check:surface exited ${twin.status} and ${twin.out.includes(TWIN) ? 'named' : 'never named'} ` +
+        `${TWIN} — it must SEE a suffix twin of a builder method and FAIL on it (ADR-023)`,
+    )
+  }
+}
+
 SCENARIOS['examples/does-not-compile'] = () => {
   // 3. check:examples — an example that does not typecheck.
   //

@@ -160,11 +160,16 @@ show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/exa
 
 ## Scoping a rule to documents: `inDocuments`
 
+A note on names first. A plain name on this package's root keeps the kind it was first published as:
+`haveSection` is the condition, and `resideInFolder` the predicate. Where a word is needed in the other
+kind, the twin carries the prefix: `predicateHaveSection`, and `predicateHaveField` beside the
+`docs().haveField()` method. (eess-ts's plain names lean the other way.)
+
 Every element that belongs to a document (a box, a link, a pointer, a row, a term, a code block)
 carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
 and `areFrozen()` read the `frozen` globs you pass `corpus()`, or, when you pass none, its default
 (`**/completed/**`, `**/archived/**`), so a page under `completed/` is not live
-unless you pass `frozen` yourself; `haveSectionPredicate(name)` is the
+unless you pass `frozen` yourself; `predicateHaveSection(name)` is the
 predicate form of `haveSection` (the bare name is the condition). A rule over boxes in the live pages that have a `Verification` section, and its
 guard:
 
@@ -173,7 +178,7 @@ import {
   areLive,
   corpus,
   docs,
-  haveSectionPredicate,
+  predicateHaveSection,
   inDocuments,
   taskItems,
 } from '@nielspeter/eess-md'
@@ -186,7 +191,7 @@ taskItems(c)
   .that()
   .areOpen()
   .satisfy(inDocuments(areLive()))
-  .satisfy(inDocuments(haveSectionPredicate(SECTION)))
+  .satisfy(inDocuments(predicateHaveSection(SECTION)))
   .should()
   .notExist()
   .check()
@@ -219,7 +224,7 @@ predicate is on `docs()`. `areFrozen()` and `areLive()` are not: nothing checks 
 `frozen` option.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
-haveSectionPredicate('Verificaton'))).should().resolve()` reds with `inDocuments(have section
+predicateHaveSection('Verificaton'))).should().resolve()` reds with `inDocuments(have section
 "Verificaton") matched none of the corpus's N documents`, and a live scope whose documents hold none
 of the elements the rest of the rule selects says `the scopes matched K of N documents, and they hold
 none of the M links the rest of this rule selects`. Declare `.expectEmpty()` if that is expected; the
@@ -231,7 +236,7 @@ reds, with the generic zero-examined finding. A scoped side of `correspondence()
 `.select()` holds only the scoped documents' elements; when the scope matches nothing, the
 correspondence's own empty-side finding speaks, with no scope named.
 
-A document the predicate cannot judge (`haveField` over a Status given twice) leaves its elements
+A document the predicate cannot judge (`predicateHaveField` over a Status given twice) leaves its elements
 undecided: each cause is reported once, and the elements are neither kept nor dropped. The one
 asymmetry: `pointers(c).that().areFrozen()` is a method; everywhere else it is
 `.satisfy(inDocuments(areFrozen()))`.
@@ -346,8 +351,8 @@ document the filter does not keep: pair the selector with a `.should().haveField
 rule over the same documents, which reports it, and with `fields(...).resolveAgainst(...)` for a
 misspelt value.
 
-`haveField(options)` is also exported as a predicate, for `satisfy()` and `not`/`and`/`or` (and
-`inDocuments(haveField(…))` lifts it onto a document's boxes or links). A document whose value cannot be read is **undecided**
+`predicateHaveField(options)` is `haveField` exported as a predicate, for `satisfy()` and `not`/`and`/`or` (and
+`inDocuments(predicateHaveField(…))` lifts it onto a document's boxes or links). A document whose value cannot be read is **undecided**
 (ADR-021): the rule neither keeps nor drops it, but reports the cause once, as a finding no
 `.excluding()` or `.warn()` removes, wherever the rule's verdict depends on it. `.select()` over an
 undecided document throws, naming the cause, since a selection has no way to report it.

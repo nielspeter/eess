@@ -251,6 +251,11 @@ The fluent API reads like English:
 classes(p).that().extend('BaseRepository').should().notContain(call('parseInt')).check()
 ```
 
+On the root, a plain name such as `resideInFile` is the predicate, for `satisfy()` after `.that()`;
+where the same word is also a condition, the twin carries the prefix: `conditionResideInFile`. (In
+eess-md the plain names lean the other way; a twin always takes the `predicate` or `condition`
+prefix.)
+
 ### Body Analysis
 
 Inspect what happens inside functions — the differentiator:

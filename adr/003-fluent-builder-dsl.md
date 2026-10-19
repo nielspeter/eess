@@ -4,6 +4,8 @@
 
 **Accepted** (March 2026)
 
+**Extended by:** [ADR-023](./023-a-predicate-and-a-condition-that-share-a-word.md)
+
 ## Context
 
 ts-archunit needs a developer-facing API for expressing architecture rules. The API must:

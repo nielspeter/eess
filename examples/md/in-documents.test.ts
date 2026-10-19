@@ -9,7 +9,7 @@ import {
   areLive,
   corpus,
   docs,
-  haveSectionPredicate,
+  predicateHaveSection,
   inDocuments,
   taskItems,
 } from '@nielspeter/eess-md'
@@ -26,7 +26,7 @@ const ratchet = (cwd: string) =>
     .that()
     .areOpen()
     .satisfy(inDocuments(areLive()))
-    .satisfy(inDocuments(haveSectionPredicate(SECTION)))
+    .satisfy(inDocuments(predicateHaveSection(SECTION)))
     .should()
     .notExist()
 

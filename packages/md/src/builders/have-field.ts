@@ -49,7 +49,7 @@ const describe = (spec: HaveFieldOptions): string =>
  * predicate lifted onto a document's boxes reads the document once (spike 0485: 450 ms against 42 ms
  * on 10,000 boxes before the memo).
  */
-export function haveFieldPredicate(spec: HaveFieldOptions): Predicate<MdDocument> {
+export function predicateHaveField(spec: HaveFieldOptions): Predicate<MdDocument> {
   const verdicts = new WeakMap<MdDocument, { has: boolean; undecided: readonly Undecided[] }>()
   const read = (d: MdDocument): { has: boolean; undecided: readonly Undecided[] } => {
     const known = verdicts.get(d)
@@ -77,7 +77,7 @@ export function haveFieldPredicate(spec: HaveFieldOptions): Predicate<MdDocument
       if (first !== undefined) {
         throw new ArchConfigError(
           first.element,
-          `haveField cannot judge ${first.element}: ${first.message}. Apply it through a rule, ` +
+          `predicateHaveField cannot judge ${first.element}: ${first.message}. Apply it through a rule, ` +
             'which reports this, or forward its undecided() with its test() (ADR-021).',
         )
       }

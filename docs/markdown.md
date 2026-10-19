@@ -474,7 +474,7 @@ Every element that belongs to a document (a box, a link, a pointer, a row, a ter
 carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
 and `areFrozen()` read the `frozen` globs you pass `corpus()`, or, when you pass none, its default
 (`**/completed/**`, `**/archived/**`), so a page under `completed/` is not live
-unless you pass `frozen` yourself; `haveSectionPredicate(name)` is the
+unless you pass `frozen` yourself; `predicateHaveSection(name)` is the
 predicate form of `haveSection` (the bare name is the condition). A rule over boxes in the live pages that have a `Verification` section, and its
 guard:
 
@@ -483,7 +483,7 @@ import {
   areLive,
   corpus,
   docs,
-  haveSectionPredicate,
+  predicateHaveSection,
   inDocuments,
   taskItems,
 } from '@nielspeter/eess-md'
@@ -496,7 +496,7 @@ taskItems(c)
   .that()
   .areOpen()
   .satisfy(inDocuments(areLive()))
-  .satisfy(inDocuments(haveSectionPredicate(SECTION)))
+  .satisfy(inDocuments(predicateHaveSection(SECTION)))
   .should()
   .notExist()
   .check()
@@ -529,7 +529,7 @@ predicate is on `docs()`. `areFrozen()` and `areLive()` are not: nothing checks 
 `frozen` option.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
-haveSectionPredicate('Verificaton'))).should().resolve()` reds with `inDocuments(have section
+predicateHaveSection('Verificaton'))).should().resolve()` reds with `inDocuments(have section
 "Verificaton") matched none of the corpus's N documents`, and a live scope whose documents hold none
 of the elements the rest of the rule selects says `the scopes matched K of N documents, and they hold
 none of the M links the rest of this rule selects`. Declare `.expectEmpty()` if that is expected; the
@@ -541,7 +541,7 @@ reds, with the generic zero-examined finding. A scoped side of `correspondence()
 `.select()` holds only the scoped documents' elements; when the scope matches nothing, the
 correspondence's own empty-side finding speaks, with no scope named.
 
-A document the predicate cannot judge (`haveField` over a Status given twice) leaves its elements
+A document the predicate cannot judge (`predicateHaveField` over a Status given twice) leaves its elements
 undecided: each cause is reported once, and the elements are neither kept nor dropped. The one
 asymmetry: `pointers(c).that().areFrozen()` is a method; everywhere else it is
 `.satisfy(inDocuments(areFrozen()))`.
@@ -880,8 +880,8 @@ closes; close the fence`), and a plain line the rule does not read is named in t
 This repository's `check:corpus` requires one State in every live plan and bug this way, as a
 condition.
 
-**As a predicate.** `haveField(options)` is exported on its own, for `satisfy()` and the
-combinators. `inDocuments(haveField(…))` lifts it onto a document's boxes or links (see
+**As a predicate.** `predicateHaveField(options)` is exported on its own, for `satisfy()` and the
+combinators. `inDocuments(predicateHaveField(…))` lifts it onto a document's boxes or links (see
 [Scoping a rule to documents](#scoping-a-rule-to-documents-indocuments)); a hand-written lift must
 forward `undecided`, or the predicate's `test` refuses. A document whose value cannot be read is **undecided**
 ([ADR-021](../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)): it is not selected, not
@@ -896,14 +896,14 @@ import {
   and,
   corpus,
   docs,
-  haveField,
+  predicateHaveField,
   longestOf,
   type MdDocument,
   type Predicate,
 } from '@nielspeter/eess-md'
 
 const c = corpus({ roots: ['work/**'] })
-const closed = haveField({
+const closed = predicateHaveField({
   label: 'State',
   forms: ['bold'],
   value: longestOf(['Done', 'Draft']),
