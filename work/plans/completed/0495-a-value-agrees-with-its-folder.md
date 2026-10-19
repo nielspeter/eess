@@ -251,7 +251,7 @@ out`, one per group and glob, in every direction. A mistyped glob would otherwis
     adopter cannot switch F7 off for globs they wrote.
   - **Why this departs from md's selector policy.** md's selector diagnostics rule that "a glob that
     names nothing in the repository is never a fault" (bug 0355's ruling,
-    `packages/md/src/builders/selector-fault.ts:20`). That holds for a selection, which may
+    `packages/md/src/model/selector-fault.ts:20`). That holds for a selection, which may
     legitimately be empty. A group's folder is different: it is where a value is required to sit, so
     a dead one turns every record carrying the value into a false F1/F2. Its text faults (a leading
     `/`, `../`, a backslash) are judged by the same `mdSelectorFault`, not a second copy.

@@ -8,7 +8,7 @@ import {
 import { stampGlobs } from '@nielspeter/eess/internal'
 import picomatch from 'picomatch'
 import type { Corpus } from '../corpus.js'
-import { mdSelectorFault } from '../builders/selector-fault.js'
+import { mdSelectorFault } from '../model/selector-fault.js'
 import type { MdDocument } from '../model/document.js'
 import { fieldVerdict } from '../model/field-verdict.js'
 import type { FieldOccurrence, FieldOptions } from '../model/fields.js'
@@ -46,16 +46,10 @@ export interface AgreeWithFolderOptions {
 /**
  * Groups whose folders a preset supplies as its own defaults (plan 0495, decision E3). Such a group's
  * dead glob is not the caller's typo, so F7 reports it only when every one of its globs is dead.
- * Module-private, and set only through `markDefaultFolders` on `/internal`: no public option turns
- * F7 off for a glob the caller wrote.
+ * Module-private and, for now, never added to: no caller can mark a group, so every glob is judged
+ * as the caller's. Plan 0498 decides how a root-only preset (ADR-022 clause 3) reaches it.
  */
 const presetDefaults = new WeakSet<FolderGroup>()
-
-/** Mark a group's folders as a preset's defaults (family plumbing; plan 0498 is the first user). */
-export function markDefaultFolders(group: FolderGroup): FolderGroup {
-  presetDefaults.add(group)
-  return group
-}
 
 const ARROW: Readonly<Record<Direction, string>> = {
   'left-to-right': 'value → folder',
@@ -237,15 +231,15 @@ function prepare(corpus: Corpus, o: AgreeWithFolderOptions): Prepared {
 
 /**
  * `docs().should().agreeWithFolder()` (plan 0495): a document's value and the folder it sits in say
- * the same thing. The value is read once, by plan 0469's resolver; the groups are a closed set in
- * every direction. The builder owns two things a condition cannot: the declaration's findings
- * (`declarationFindings`, reported even over an empty selection) and the evidence, which counts the
- * documents judged (`judged`), not the documents selected (D1).
+ * the same thing. The value is read once, by plan 0469's resolver; the groups are a closed set within
+ * the bound folders. The builder owns what a condition cannot: the declaration's findings
+ * (`declarationFindings`, reported even over an empty selection) and, after the run, whether this
+ * agreement judged anything (`judgedNone`).
  */
 export class FolderAgreement {
   readonly condition: Condition<MdDocument>
   private prepared: Prepared | undefined
-  private lastJudged: ReadonlySet<MdDocument> | undefined
+  private last: { readonly selected: number; readonly judged: number } | undefined
 
   constructor(
     private readonly corpus: Corpus,
@@ -260,7 +254,7 @@ export class FolderAgreement {
   /** Refuse a malformed declaration and decide F7/F8, once per run, before any document is judged. */
   start(): void {
     this.prepared = prepare(this.corpus, this.options)
-    this.lastJudged = undefined
+    this.last = undefined
   }
 
   /** F7 and F8, for this run. */
@@ -268,9 +262,23 @@ export class FolderAgreement {
     return (this.prepared ?? prepare(this.corpus, this.options)).findings(context)
   }
 
-  /** The documents the last evaluation gave a verdict, or `undefined` when it did not run. */
-  judged(): ReadonlySet<MdDocument> | undefined {
-    return this.lastJudged
+  /**
+   * Plan 0495, decision D1 as rebuilt after review: an agreement that ran over a non-empty selection
+   * and gave no document a verdict read no value (a misspelt label, the wrong forms or region). It
+   * is this agreement's own finding, unsuppressable, whatever conditions sit beside it, so a broken
+   * agreement cannot hide behind another condition's count, or another agreement's.
+   */
+  judgedNone(context: ConditionContext): ArchViolation[] {
+    const last = this.last
+    if (last === undefined || last.selected === 0 || last.judged > 0) return []
+    const label = this.options.field.label
+    return [
+      declarationViolation(
+        `agreeWithFolder → ${label}`,
+        `selected ${String(last.selected)} documents, judged none: the field read no value (check its label, forms or region)`,
+        context,
+      ),
+    ]
   }
 
   private evaluate(elements: readonly MdDocument[], context: ConditionContext): ArchViolation[] {
@@ -292,7 +300,7 @@ export class FolderAgreement {
       }
     }
     out.push(...overlapFindings(overlaps, context))
-    this.lastJudged = judged
+    this.last = { selected: elements.length, judged: judged.size }
     return out
   }
 }
