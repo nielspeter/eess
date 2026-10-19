@@ -263,7 +263,7 @@ below), report a box you cannot read, and only then filter on `state`, never on
 ```ts
 import { collectTaskItems, corpus } from '@nielspeter/eess-md'
 
-const BOX_MARKS = { '~': 'open', '→': 'done' } as const
+const BOX_MARKS = { '~': 'open', '→': 'unjudged' } as const
 
 for (const doc of corpus({ roots: ['work/**'] }).documents()) {
   const boxes = collectTaskItems(doc.root, { marks: BOX_MARKS, source: doc.text })
@@ -295,8 +295,9 @@ declares what each one means, as `'open'`, `'done'` or `'unjudged'`:
 import { corpus, taskItems } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
-// One constant, passed to every call that reads boxes.
-export const BOX_MARKS = { '~': 'open', '→': 'done' } as const
+// One constant, passed to every call that reads boxes. [→] is a box moved to another record:
+// it neither blocks a close nor is verified done, so it is unjudged, never done.
+export const BOX_MARKS = { '~': 'open', '→': 'unjudged' } as const
 
 const c = corpus({ roots: ['work/**'] })
 
@@ -343,7 +344,7 @@ mark, guard that it does not come back in a live record:
 ```ts
 import { areLive, corpus, inDocuments, taskItems } from '@nielspeter/eess-md'
 
-export const BOX_MARKS = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
+export const BOX_MARKS = { '~': 'open', '→': 'unjudged', '?': 'unjudged' } as const
 
 const c = corpus({ roots: ['work/**'] })
 taskItems(c, { marks: BOX_MARKS })

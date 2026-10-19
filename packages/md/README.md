@@ -442,7 +442,8 @@ judges it (bug 0525). Declare them once and pass the same object to every rule t
 import { corpus, taskItems } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
-const marks = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
+// [→] is a box moved to another record: unjudged, never done, since a move is not a verification.
+const marks = { '~': 'open', '→': 'unjudged', '?': 'unjudged' } as const
 const c = corpus({ cwd: process.cwd(), roots: ['work/**'] })
 
 taskItems(c, { marks }).that().areOpen().should().notExist().check()

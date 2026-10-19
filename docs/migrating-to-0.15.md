@@ -68,8 +68,9 @@ Declare each mark once ([box marks](./markdown.md#box-marks)), in one shared con
 import { taskItems } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
-// [~] partly done, so still open; [→] moved to another record.
-export const BOX_MARKS = { '~': 'open', '→': 'done' } as const
+// [~] partly done, so still open; [→] moved to another record, so it neither blocks a
+// close nor counts as done: unjudged, never done, since a move is not a verification.
+export const BOX_MARKS = { '~': 'open', '→': 'unjudged' } as const
 
 taskItems(c, { marks: BOX_MARKS }).that().areOpen().should().notExist().check()
 honestyAtClose(c, { marks: BOX_MARKS })
@@ -92,7 +93,7 @@ that is not one of the three, `undefined` included, is refused there as well.
 ```ts
 import { corpus, taskItems } from '@nielspeter/eess-md'
 
-export const BOX_MARKS = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
+export const BOX_MARKS = { '~': 'open', '→': 'unjudged', '?': 'unjudged' } as const
 
 const c = corpus({ roots: ['work/**'] })
 taskItems(c, { marks: BOX_MARKS }).that().areOpen().should().notExist().check()

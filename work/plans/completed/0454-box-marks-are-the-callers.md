@@ -276,6 +276,8 @@ All in one pull request.
 - An example under plan 0458's gate, `examples/md/box-marks.test.ts`: "in a closed folder, a
   declared `[~]` counts as open". Built from public blocks only, with `marks = { '~': 'open', '→': 'done' }`:
 
+  > **Correction 2026-10-19:** an adopter confirmed `[→]` means "moved to another record", which is neither open nor verified done; since bug 0525 the example declares `'→': 'unjudged'`.
+
   ```ts
   const c = corpus({ cwd: fixtureFolder, roots: ['**/*.md'] })
   taskItems(c, { marks }).that().areOpen().should().notExist().check()
