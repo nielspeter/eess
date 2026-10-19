@@ -253,6 +253,10 @@ test('a shard runs and reports the fixture it selected', () => {
     assert.deepEqual(report.ran, [FAST_FIXTURE])
     assert.deepEqual(report.failed, [])
     assert.match(r.out, /shard \d+\/\d+ — 1 fixtures each fired/)
+    // The fixture's own line, which only `runGate` prints after running it: the
+    // report and the summary are both written from `ran`, so they cannot answer
+    // whether the fixture executed.
+    assert.ok(r.out.includes(`nonvacuity: ${FAST_FIXTURE} — OK (fails on violating input)`), r.out)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

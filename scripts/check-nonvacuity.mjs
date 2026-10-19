@@ -4927,13 +4927,28 @@ function gateCoverage() {
           // findings added in PR #72 — and a status line that names the wrong
           // fault sends the reader to the wrong file, which is the failure mode
           // bug 0174 is filed about.
-          `FAILED (${problems.length} problem(s): ${problems.some((x) => x.includes('ci.yml') || x.includes('CI path') || x.includes('in CI but not in')) ? 'validate/CI drift' : 'a check:* is unaccounted for'})`,
+          // Each problem is classed on its own, and the status names every class
+          // present: one fallback label for everything not CI drift sent the
+          // shard-test and CI-job findings to `GATE_FOR` (PR #250's review).
+          `FAILED (${problems.length} problem(s): ${[...new Set(problems.map(coverageProblemClass))].join('; ')})`,
     detail:
       problems.length === 0
         ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated by ` +
           `${Object.values(GATE_FOR).flat().length} fixtures, ${waived} waived`
         : problems.join(' · '),
   }
+}
+
+function coverageProblemClass(x) {
+  if (x.startsWith('nonvacuity CI jobs:')) return 'the nonvacuity CI jobs'
+  if (x.startsWith('bun-load CI job:')) return 'the bun-load CI job'
+  if (x.startsWith('check:nonvacuity no longer runs')) return 'the shard tests are not wired'
+  if (x.startsWith('duplicate gate names')) return 'duplicate gate names'
+  if (x.startsWith("check:bun-load's self-test")) return 'a Bun break is no longer declared'
+  if (x.startsWith('bad-waived-gates.mjs')) return 'a waived-gates scenario has no row'
+  if (x.includes('ci.yml') || x.includes('CI path') || x.includes('in CI but not in'))
+    return 'validate/CI drift'
+  return 'a check:* is unaccounted for'
 }
 
 let allOk = true
@@ -4962,6 +4977,7 @@ if (modes.length > 1) {
 // `gateCoverage` reports it on an unsharded run; the shard and merge refuse it.
 const DUPLICATE_NAMES = duplicateNames(gates.map(([n]) => n))
 
+const RAN = []
 function runGate(name, run) {
   let res
   try {
@@ -4969,6 +4985,10 @@ function runGate(name, run) {
   } catch (err) {
     res = { ok: false, detail: `harness error: ${err.message}` }
   }
+  // Recorded here, after the fixture's `run()` returned or threw, so a shard's
+  // `ran` is evidence that the fixture executed, not that the loop reached its
+  // name (PR #250's enforcement re-review, V2/V3).
+  RAN.push(name)
   if (!res.ok) allOk = false
   if (res.status === undefined) gateCount++
   const status =
@@ -5028,16 +5048,18 @@ if (SHARD_SPEC !== undefined) {
   const runs = new Map(gates)
   const failed = []
   const durations = {}
-  // What actually ran, recorded as it runs. The selection is a declaration; this
-  // is the evidence (ADR-010), and the shard and the merge both read it, never
-  // `selected`, for what ran (enforcement review of PR #250, C1).
-  const ran = []
+  // What actually ran: the names `runGate` recorded after each fixture's `run()`
+  // returned. The selection is a declaration; this is the evidence (ADR-010), and
+  // the shard and the merge both read it, never `selected`, for what ran (PR
+  // #250's enforcement reviews, C1 and V2/V3). A mutant inside `runGate` that skips
+  // `run()` and still records the name is not caught here; the unsharded harness
+  // has always had the same exposure.
   for (const name of selected) {
     const t0 = Date.now()
     if (!runGate(name, runs.get(name))) failed.push(name)
-    ran.push(name)
     durations[name] = Date.now() - t0
   }
+  const ran = [...RAN]
   const durationMs = Date.now() - started
   const notRun = selected.filter((n) => !ran.includes(n))
   if (notRun.length > 0 || ran.length !== selected.length) {
