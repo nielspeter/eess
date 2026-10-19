@@ -2999,6 +2999,21 @@ function gateCorpusProposalCriteriaDepth() {
   )
 }
 
+// PR #252: the section must hold something. Emptying 006's section, keeping its heading, reds the
+// content rule while the heading rule stays green.
+function gateCorpusProposalCriteriaEmpty() {
+  return corpusSabotage(
+    P006,
+    (t) =>
+      t.replace(
+        /\n## Acceptance criteria\n[\s\S]*?\n(## Review)/,
+        '\n## Acceptance criteria\n\n$1',
+      ),
+    'corpus/proposal-acceptance-criteria-empty',
+    '006',
+  )
+}
+
 // Proposal 004 is ruled `Docs-only` and owned by bug 0219. Strip the bug's
 // declaration and the remedy has no owner — which is the state 004 was actually
 // in for ten days.
@@ -4163,6 +4178,7 @@ const gates = [
   ['corpus/accepted-denominator-empty', gateCorpusAcceptedDenominatorEmpty],
   ['corpus/proposal-criteria', gateCorpusProposalCriteria],
   ['corpus/proposal-criteria-depth', gateCorpusProposalCriteriaDepth],
+  ['corpus/proposal-criteria-empty', gateCorpusProposalCriteriaEmpty],
   ['corpus/docs-only-owner', gateCorpusDocsOnlyOwner],
   ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
@@ -4808,6 +4824,7 @@ const GATE_FOR = {
     'corpus/accepted-denominator-empty',
     'corpus/proposal-criteria',
     'corpus/proposal-criteria-depth',
+    'corpus/proposal-criteria-empty',
     'corpus/docs-only-owner',
     'corpus/promoted-names-no-owner',
     'corpus/promoted-not-dispatchable',

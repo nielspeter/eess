@@ -42,6 +42,7 @@ import {
   resideInFile,
   resideInFolder,
   rows,
+  sections,
   vocabulary,
 } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
@@ -1014,8 +1015,8 @@ for (const d of promotedProposals) {
 // superseded appendices, and a name-only rule would be satisfied by a heading at any level. Plan
 // 0496 gave `haveSection` a `depth`, so the rule is eess-md's own, not a hand check of
 // `d.sections`. Its name is the sentence-case string, not a case-insensitive pattern: a heading in
-// title case (`## Acceptance Criteria`) is reported by the section-name scan as a near miss, with
-// its fix, and a `### Acceptance criteria` in a proposal is named with its depth.
+// title case (`## Acceptance Criteria`) is named in the rule's finding as a near miss, once, and a
+// `### Acceptance criteria` in a proposal is named with its depth.
 const isLiveProposal = {
   description: 'are live proposals',
   test: (d) => !d.frozen && isProposalDoc(d),
@@ -1029,13 +1030,31 @@ const criteriaRule = docs(c)
     id: 'corpus/proposal-states-no-acceptance-criteria',
     because:
       'a capability with no stated break class is unfalsifiable, and this lane requires the ' +
-      'section per capability. NOTE: this proves only that the heading EXISTS — it does not ' +
-      'read what is under it, so an empty section satisfies it.',
+      'section per capability; corpus/proposal-acceptance-criteria-empty reads what is under it.',
     suggestion:
       'add a "## Acceptance criteria" section stating, per capability, the break class — ' +
       'the specific corruption that must produce a violation — and how non-vacuity is kept.',
   })
 const criteriaViolations = criteriaRule.violations()
+// PR #252's enforcement review: the heading alone was all the rule above proved, so an empty section
+// passed. Plan 0522's `haveContent()` reads under it, in the same live proposals.
+const criteriaContentRule = sections(c)
+  .that()
+  .areNamed('Acceptance criteria')
+  .and()
+  .areAtDepth(2)
+  .and()
+  .satisfy(inDocuments(isLiveProposal))
+  .should()
+  .haveContent()
+  .rule({
+    id: 'corpus/proposal-acceptance-criteria-empty',
+    because:
+      'an empty acceptance-criteria section states no break class, so it satisfies the convention in name only',
+    suggestion:
+      'state, per capability, the break class and how non-vacuity is kept, under the heading',
+  })
+const criteriaContentViolations = criteriaContentRule.violations()
 
 // No zero-guard here, and that is a consequence of removing the exclusions
 // rather than an omission. The rule's selection IS `liveDocs.filter(isProposalDoc)`,
@@ -1217,6 +1236,7 @@ const receipt = mergeCollectResults([
   collectResult(promotedViolations, { examined: promotedProposals.length }),
   collectResult(acceptedDenominatorViolations, { examined: proposalDocsCount }),
   collectResult([...criteriaViolations], { examined: criteriaViolations.examined }),
+  collectResult([...criteriaContentViolations], { examined: criteriaContentViolations.examined }),
   collectResult(docsOnlyOwnerViolations, { examined: docsOnlyProposals.length }),
   collectResult(unparseableRulingViolations, { examined: proposalDocsCount }),
   collectResult(unparseableImplementsViolations, { examined: planDocsCount }),
@@ -1330,6 +1350,7 @@ const proposalPlanFindingCount =
   promotedViolations.length +
   acceptedDenominatorViolations.length +
   criteriaViolations.length +
+  criteriaContentViolations.length +
   docsOnlyOwnerViolations.length
 const proposalLinkageOk = proposalPlanFindingCount === 0
 // The affirmative clause is gated on rows ACTUALLY EXAMINED, not on the finding
@@ -1363,6 +1384,7 @@ const problems = [
   ...promotedViolations,
   ...acceptedDenominatorViolations,
   ...criteriaViolations,
+  ...criteriaContentViolations,
   ...docsOnlyOwnerViolations,
   ...unparseableRulingViolations,
   ...unparseableImplementsViolations,
