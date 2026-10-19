@@ -6,6 +6,7 @@ import picomatch from 'picomatch'
 import { buildDocument, type MdDocument } from './model/document.js'
 import { parseMarkdown } from './model/prose.js'
 import { registerCorpusMatchers } from './model/resolve-link.js'
+import { repoRelativeTextProblem } from './builders/selector-fault.js'
 
 /**
  * Configuration for a markdown corpus.
@@ -27,6 +28,12 @@ export interface CorpusOptions {
    *
    * Defaults to the near-universal `completed`/`archived`; extend for your
    * project's lifecycle folders (`delivered`, `wont-do`, …).
+   *
+   * Globs you pass are judged at load (bug 0499): one that can never match a
+   * path under `cwd` (a leading `/`, a `../`), or that marks none of the
+   * documents the corpus loaded, is refused with an `ArchConfigError`. List a
+   * lifecycle folder once it holds a record; until then its documents are live.
+   * The default is not judged.
    */
   readonly frozen?: readonly string[]
   /**
@@ -130,6 +137,27 @@ export function corpus(options: CorpusOptions): Corpus {
       })
     })
 
+  // Bug 0499: the frozen globs were judged nowhere, and `areFrozen()` carries no
+  // globs for the selector-fault check to read, so a broken one emptied
+  // `inDocuments(areFrozen())` and an absence rule over it was green. Refused
+  // here, as a dead root is. Only the caller's globs: the default is a
+  // convention that may name no folder in this repository.
+  if (options.frozen !== undefined) {
+    const faults = frozenGlobFaults(
+      options.frozen,
+      documents.map((d) => d.relPath),
+    )
+    if (faults.length > 0) {
+      throw new ArchConfigError(
+        'corpus',
+        `corpus frozen glob${faults.length > 1 ? 's' : ''} ${faults.join('; ')} — so a rule over ` +
+          `the frozen documents judges fewer than you named, and an absence rule over them can ` +
+          `pass on none. Correct the glob, or remove it: a document no frozen glob marks is ` +
+          `checked as live.`,
+      )
+    }
+  }
+
   const loaded: Corpus = {
     documents: () => documents,
     root,
@@ -194,4 +222,20 @@ function loadsADocument(
 ): boolean {
   const matches = picomatch(glob)
   return allFiles.some((rel) => rel.endsWith('.md') && matches(rel) && !ignored(rel))
+}
+
+/**
+ * What is wrong with the caller's `frozen` globs (bug 0499), one phrase per glob: a text fault
+ * that can never match, judged always; or no loaded document marked, judged only when the
+ * corpus loaded one (a corpus that loads nothing is the empty-source report, as in bug 0465).
+ */
+function frozenGlobFaults(globs: readonly string[], loaded: readonly string[]): string[] {
+  return globs.flatMap((glob) => {
+    const text = repoRelativeTextProblem(glob)
+    if (text !== undefined) return [`'${glob}': ${text.cause}. ${text.remedy}`]
+    if (loaded.length === 0) return []
+    const matches = picomatch(glob)
+    if (loaded.some((rel) => matches(rel))) return []
+    return [`'${glob}' marks none of the corpus's ${String(loaded.length)} documents`]
+  })
 }
