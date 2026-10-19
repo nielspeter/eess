@@ -105,6 +105,13 @@ export type { MdPointer } from './builders/pointers.js'
 export { presentExternalRoots } from './conditions/pointer-resolve.js'
 export type { PointerResolveOptions } from './conditions/pointer-resolve.js'
 export { rows, RowsRuleBuilder } from './builders/rows.js'
+// Plan 0496: sections as elements, so a rule runs inside each matching section.
+export { sections, SectionRuleBuilder } from './builders/sections.js'
+export type {
+  MdSectionElement,
+  SubsectionOptions,
+  SectionTableOptions,
+} from './builders/sections.js'
 export { taskItems, TaskItemRuleBuilder } from './builders/task-items.js'
 export type { MdTaskItem } from './builders/task-items.js'
 export { collectTaskItems } from './model/task-items.js'
@@ -143,6 +150,6 @@ export type { Vocabulary, VocabularyOptions, MdTerm, TermsOptions } from './buil
 
 // Conditions (for composing custom rules / presets)
 export { haveSection, haveTable } from './conditions/structure.js'
-export type { HaveTableOptions } from './conditions/structure.js'
+export type { HaveTableOptions, HaveSectionOptions } from './conditions/structure.js'
 export { haveTableRowsSatisfying } from './conditions/table-rows.js'
 export type { HaveTableRowsOptions, TableRowContext } from './conditions/table-rows.js'

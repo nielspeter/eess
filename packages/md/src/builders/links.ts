@@ -1,4 +1,4 @@
-import { collectResult, type CollectResult, type Predicate } from '@nielspeter/eess'
+import type { Predicate } from '@nielspeter/eess'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
@@ -13,6 +13,7 @@ import {
   declarationKey,
   type LinkDeclaration,
 } from './declaration-findings.js'
+import type { ArchViolation } from '../model/violation.js'
 
 export type { LinkResolveOptions } from '../conditions/resolve.js'
 
@@ -33,8 +34,11 @@ const areExternal = (): Predicate<MdLink> => ({
  */
 export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
   protected readonly noun = 'links'
+  protected override readonly sectionMissReason = 'the links under it are not checked'
+  // Bug 0502: a heading in a container still scopes links, so the note would be false here.
+  protected override readonly sectionContainerNotes = false
 
-  /** What `areLabelled()`/`areInSection()` declared, for the near-miss scan (plan 0405). */
+  /** What `areLabelled()` declared, for the near-miss scan (plan 0405). */
   private _declarations: readonly LinkDeclaration[] = []
 
   protected getElements(): MdLink[] {
@@ -82,13 +86,11 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
    * Filter to links under a heading matching `name` — a string exactly, or a
    * `RegExp` — at any depth beneath it, matched the way `haveSection()` matches
    * (plan 0405). A heading that misses a string `name` only by case or spacing
-   * is reported, as for `areLabelled()`.
+   * is reported, as for `areLabelled()`; the scan is the one every corpus
+   * builder shares (plan 0496).
    */
   areInSection(name: string | RegExp): this {
-    return this.addPredicate(areInSectionPredicate(name)).recordDeclaration({
-      kind: 'section',
-      name,
-    })
+    return this.addPredicate(areInSectionPredicate<MdLink>(name))
   }
 
   /**
@@ -136,24 +138,14 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
     return this.addCondition(linkedBack(this.project, options))
   }
 
-  /**
-   * The base result, plus findings about the declarations themselves (plan
-   * 0405). The base evidence passes through unchanged: the declarations' scan
-   * examines nothing the rule asserts over, so it must not raise `examined`
-   * (which would hide the zero-examined finding when every declaration is
-   * misspelt) and must not go through `mergeCollectResults`, whose dead-member
-   * rule would read an empty findings part as a dead rule on every clean run.
-   */
-  protected override collectViolations(): CollectResult {
-    const base = super.collectViolations()
-    if (this._declarations.length === 0) return base
-    const findings = declarationFindings(
-      this.project,
-      this._declarations,
-      this.buildConditionContext(),
-    )
-    if (findings.length === 0) return base
-    return collectResult([...base, ...findings], base)
+  /** The section-name scan, plus findings about the labels it declared (plan 0405). */
+  protected override declarationFindings(base: readonly ArchViolation[]): ArchViolation[] {
+    const sections = super.declarationFindings(base)
+    if (this._declarations.length === 0) return sections
+    return [
+      ...sections,
+      ...declarationFindings(this.project, this._declarations, this.buildConditionContext()),
+    ]
   }
 }
 

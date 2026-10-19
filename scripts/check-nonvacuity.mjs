@@ -2951,6 +2951,17 @@ function gateCorpusProposalCriteria() {
   )
 }
 
+// Plan 0496: the rule reads the section at depth 2, through `haveSection`'s `depth`. Demoting 006's
+// section one level keeps its name and loses it, which a name-only rule would pass.
+function gateCorpusProposalCriteriaDepth() {
+  return corpusSabotage(
+    P006,
+    (t) => t.replace('\n## Acceptance criteria\n', '\n### Acceptance criteria\n'),
+    'corpus/proposal-states-no-acceptance-criteria',
+    '006',
+  )
+}
+
 // Proposal 004 is ruled `Docs-only` and owned by bug 0219. Strip the bug's
 // declaration and the remedy has no owner — which is the state 004 was actually
 // in for ten days.
@@ -4101,6 +4112,7 @@ const gates = [
   ['corpus/proposal-number-duplicated', gateCorpusProposalNumberDuplicated],
   ['corpus/accepted-denominator-empty', gateCorpusAcceptedDenominatorEmpty],
   ['corpus/proposal-criteria', gateCorpusProposalCriteria],
+  ['corpus/proposal-criteria-depth', gateCorpusProposalCriteriaDepth],
   ['corpus/docs-only-owner', gateCorpusDocsOnlyOwner],
   ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],

@@ -410,7 +410,7 @@ changesets-based release flow):
   `linkResolves()` condition `links()` uses. Opt-in scope required; no
   default include.
 
-## Acceptance Criteria
+## Acceptance criteria
 
 Every capability below carries its break class — the specific corruption a
 fixture must produce, and what the violation must say — per this corpus's

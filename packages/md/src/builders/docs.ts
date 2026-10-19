@@ -1,6 +1,7 @@
-import { uniqueByCondition } from '@nielspeter/eess/internal'
+import { partition, uniqueByCondition } from '@nielspeter/eess/internal'
 import { collectResult, type CollectResult } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
+import { readsSections } from '../model/section-declarations.js'
 import { haveFieldCondition, predicateHaveField, type HaveFieldOptions } from './have-field.js'
 import type { MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
@@ -15,6 +16,7 @@ import {
 import {
   haveSection as haveSectionCondition,
   haveTable as haveTableCondition,
+  type HaveSectionOptions,
   type HaveTableOptions,
 } from '../conditions/structure.js'
 import { FolderAgreement, type AgreeWithFolderOptions } from '../conditions/agree-with-folder.js'
@@ -34,6 +36,18 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
 
   protected getElements(): MdDocument[] {
     return this.project.documents()
+  }
+
+  /**
+   * The documents this rule can see, for the section-name scan: those its own predicates select,
+   * leaving out the predicates that read a section name (a document lacking the section is what the
+   * scan is about).
+   */
+  protected override visibleDocuments(): readonly MdDocument[] {
+    return partition(
+      this.project.documents(),
+      this._predicates.filter((p) => !readsSections(p)),
+    ).elements
   }
 
   /** A document is named by its path and reported at its first line. */
@@ -56,12 +70,16 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
     return this.addPredicate(haveNameMatching(re))
   }
 
-  /** Dual-use: predicate after `.that()`, condition after `.should()`. */
-  haveSection(name: string | RegExp): this {
+  /**
+   * Dual-use: predicate after `.that()`, condition after `.should()`. With `depth` (plan 0496), only
+   * a heading at that level counts, a heading of the name at another level is named in the finding,
+   * and the name is scanned for a heading this rule cannot read (`SectionRuleBuilder`'s scan).
+   */
+  haveSection(name: string | RegExp, options: HaveSectionOptions = {}): this {
     if (this._phase === 'condition') {
-      return this.addCondition(haveSectionCondition(name))
+      return this.addCondition(haveSectionCondition(name, options))
     }
-    return this.addPredicate(predicateHaveSection(name))
+    return this.addPredicate(predicateHaveSection(name, options))
   }
 
   /**

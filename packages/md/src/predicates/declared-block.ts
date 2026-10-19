@@ -2,6 +2,7 @@ import type { Predicate } from '@nielspeter/eess'
 import type { MdLink, MdLinkBlock } from '../model/links.js'
 import { labelPattern, wrappedLabelOf } from '../model/label.js'
 import { inSection } from '../model/query.js'
+import { declaresSections } from '../model/section-declarations.js'
 
 /**
  * Plan 0405 — select the links a block declares.
@@ -43,10 +44,16 @@ export function areLabelledPredicate(label: string): Predicate<MdLink> {
   }
 }
 
-/** Links under a heading matching `name` (a string exactly, or a `RegExp`), at any depth beneath it. */
-export function areInSectionPredicate(name: string | RegExp): Predicate<MdLink> {
-  return {
-    description: `are in section "${String(name)}"`,
-    test: (l) => inSection(l, name),
-  }
+/**
+ * Elements under a heading matching `name` (a string exactly, or a `RegExp`), at any depth beneath
+ * it: a link (plan 0405) or a section (plan 0496), one factory for both. The name is recorded in the
+ * section-name registry, so the rule that holds it scans for a heading it cannot read.
+ */
+export function areInSectionPredicate<T extends { readonly sectionPath?: readonly string[] }>(
+  name: string | RegExp,
+): Predicate<T> {
+  return declaresSections(
+    { description: `are in section "${String(name)}"`, test: (e: T) => inSection(e, name) },
+    [{ name }],
+  )
 }

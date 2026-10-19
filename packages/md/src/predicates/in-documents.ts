@@ -75,6 +75,22 @@ export function inDocuments<T extends HasDoc>(p: Predicate<MdDocument>): Predica
 const decidedTrue = (m: Membership): boolean => m === true
 
 /**
+ * The documents a rule's document scopes admit: those every `inDocuments` scope among its own
+ * predicates decides true; every document when it has none (plan 0496's section-name scan).
+ */
+export function admittedDocuments<T>(
+  predicates: readonly Predicate<T>[],
+  documents: readonly MdDocument[],
+): readonly MdDocument[] {
+  const scopes = predicates.flatMap((p) => {
+    const s = SCOPES.get(p)
+    return s === undefined ? [] : [s]
+  })
+  if (scopes.length === 0) return documents
+  return documents.filter((d) => scopes.every((s) => decidedTrue(s.docMembership(d))))
+}
+
+/**
  * For a positive rule that examined nothing: every scope that matched no document, by name; else,
  * when the rest of the rule selected something, that the scopes emptied it. `undefined` when the rule
  * has no scope, or when a predicate other than a scope emptied the selection, so the kernel's

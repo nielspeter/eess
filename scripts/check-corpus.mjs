@@ -1008,45 +1008,42 @@ for (const d of promotedProposals) {
 // instead, which is how `adrEnforcement` was adopted: zero exemptions, and all
 // ten ADRs carry their table because someone wrote them.
 //
-// Depth is read directly. `haveSection` matches on name alone, and proposal 005
-// carried four `### Acceptance criteria (…)` headings inside superseded
-// appendices — a name-only rule would be satisfied by a heading at any level.
-const statesAcceptanceCriteria = (d) =>
-  d.sections.some((s) => s.depth === 2 && /^acceptance criteria$/i.test(s.name))
-
-const criteriaSubjects = liveDocs.filter(isProposalDoc)
-
-const criteriaViolations = criteriaSubjects
-  .filter((d) => !statesAcceptanceCriteria(d))
-  .map((d) => {
-    const n = proposalNumberFromPath(d.relPath)
-    return {
-      rule: 'docs',
-      ruleId: 'corpus/proposal-states-no-acceptance-criteria',
-      element: `proposal ${n === null ? d.relPath : pad3(n)}`,
-      file: d.file,
-      line: 1,
-      message: `${d.relPath} has no level-2 "## Acceptance criteria" section`,
-      because:
-        'a capability with no stated break class is unfalsifiable, and this lane requires the ' +
-        'section per capability. NOTE: this proves only that the heading EXISTS — it does not ' +
-        'read what is under it, so an empty section satisfies it.',
-      suggestion:
-        'add a "## Acceptance criteria" section stating, per capability, the break class — ' +
-        'the specific corruption that must produce a violation — and how non-vacuity is kept.',
-      codeFrame: undefined,
-    }
+// Depth matters: proposal 005 carried four `### Acceptance criteria (…)` headings inside
+// superseded appendices, and a name-only rule would be satisfied by a heading at any level. Plan
+// 0496 gave `haveSection` a `depth`, so the rule is eess-md's own, not a hand check of
+// `d.sections`. Its name is the sentence-case string, not a case-insensitive pattern: a heading in
+// title case (`## Acceptance Criteria`) is reported by the section-name scan as a near miss, with
+// its fix, and a `### Acceptance criteria` in a proposal is named with its depth.
+const isLiveProposal = {
+  description: 'are live proposals',
+  test: (d) => !d.frozen && isProposalDoc(d),
+}
+const criteriaRule = docs(c)
+  .that()
+  .satisfy(isLiveProposal)
+  .should()
+  .haveSection('Acceptance criteria', { depth: 2 })
+  .rule({
+    id: 'corpus/proposal-states-no-acceptance-criteria',
+    because:
+      'a capability with no stated break class is unfalsifiable, and this lane requires the ' +
+      'section per capability. NOTE: this proves only that the heading EXISTS — it does not ' +
+      'read what is under it, so an empty section satisfies it.',
+    suggestion:
+      'add a "## Acceptance criteria" section stating, per capability, the break class — ' +
+      'the specific corruption that must produce a violation — and how non-vacuity is kept.',
   })
+const criteriaViolations = criteriaRule.violations()
 
 // No zero-guard here, and that is a consequence of removing the exclusions
-// rather than an omission. `criteriaSubjects` IS `liveDocs.filter(isProposalDoc)`,
+// rather than an omission. The rule's selection IS `liveDocs.filter(isProposalDoc)`,
 // so "zero subjects while proposals exist" is unreachable by construction — the
 // earlier version's guard was only satisfiable because the exclusions could
 // narrow a non-empty lane to nothing. A guard that cannot fire is worth less
 // than no guard (ADR-009), so it was deleted with them.
 //
 // The ADR-010 evidence is the denominator instead: the summary prints
-// `N criteria-checked`, and N is every live proposal. A zero there means the
+// `N criteria-checked`, the receipt's `examined`, and N is every live proposal. A zero there means the
 // selector or the roots are broken, which is visible rather than guarded.
 
 // ---- Plan 0218: a ruling that names a remedy names an owner ----------------
@@ -1217,7 +1214,7 @@ const receipt = mergeCollectResults([
   collectResult(boardRulingViolations, { examined: boardRowsExamined }),
   collectResult(promotedViolations, { examined: promotedProposals.length }),
   collectResult(acceptedDenominatorViolations, { examined: proposalDocsCount }),
-  collectResult(criteriaViolations, { examined: criteriaSubjects.length }),
+  collectResult([...criteriaViolations], { examined: criteriaViolations.examined }),
   collectResult(docsOnlyOwnerViolations, { examined: docsOnlyProposals.length }),
   collectResult(unparseableRulingViolations, { examined: proposalDocsCount }),
   collectResult(unparseableImplementsViolations, { examined: planDocsCount }),
@@ -1342,7 +1339,7 @@ line(
   'proposals',
   `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ` +
     `${boardRowsExamined} of ${boardRowsTotal} board row(s) examined · ` +
-    `${promotedProposals.length} promoted · ${criteriaSubjects.length} criteria-checked · ` +
+    `${promotedProposals.length} promoted · ${criteriaViolations.examined} criteria-checked · ` +
     `${docsOnlyProposals.length} docs-only · ` +
     `${
       proposalLinkageOk && boardExaminedAll

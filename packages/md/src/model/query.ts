@@ -1,17 +1,16 @@
 import type { MdDocument, MdTable } from './document.js'
+import { sectionsOf } from './sections.js'
+import { matchName } from './name-match.js'
 
-/** Match a string against a name matcher (exact string or regex). */
-function matchName(value: string, name: string | RegExp): boolean {
-  return typeof name === 'string' ? value === name : name.test(value)
-}
-
-/** Does the document have a heading matching `name`? */
-export function hasSection(doc: MdDocument, name: string | RegExp): boolean {
-  return doc.sections.some((s) => matchName(s.name, name))
+/** Does the document have a heading matching `name` — at `depth`, when one is given? */
+export function hasSection(doc: MdDocument, name: string | RegExp, depth?: number): boolean {
+  return sectionsOf(doc).some(
+    (s) => (depth === undefined || s.depth === depth) && matchName(s.name, name),
+  )
 }
 
 /**
- * Is the element — a table, or a link (plan 0405) — under a heading matching
+ * Is the element — a table, a link (plan 0405) or a section (plan 0496) — under a heading matching
  * `section` (or is no section required)?
  */
 export function inSection(

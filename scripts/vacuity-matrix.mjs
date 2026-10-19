@@ -377,6 +377,7 @@ const SIBLING_PROBES = {
   '@nielspeter/eess-md::pointers': () => md.pointers(emptyCorpus).check(),
   '@nielspeter/eess-md::rows': () => md.rows(emptyCorpus, { columns: { name: /Name/ } }).check(),
   '@nielspeter/eess-md::taskItems': () => md.taskItems(emptyCorpus).check(),
+  '@nielspeter/eess-md::sections': () => md.sections(emptyCorpus).check(),
   '@nielspeter/eess-md::terms': () => md.terms(emptyCorpus, { label: /Term:/ }).check(),
   '@nielspeter/eess-md::fields': () =>
     md.fields(emptyCorpus, { label: 'Status', forms: ['bold'] }).check(),

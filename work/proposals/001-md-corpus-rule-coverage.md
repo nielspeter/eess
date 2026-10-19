@@ -642,7 +642,7 @@ Under `### Changed`:
 - `CorpusOptions` gains an optional `now: () => number` clock, defaulting to
   `Date.now`, so temporal rules are reproducible in tests and snapshots.
 
-## Acceptance Criteria
+## Acceptance criteria
 
 This proposal ships eight new ways to fail a build (count them in the CHANGELOG
 section, not in the Scope sequencing — that list is capabilities, not failure
