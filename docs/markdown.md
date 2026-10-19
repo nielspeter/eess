@@ -537,6 +537,7 @@ import {
 } from '@nielspeter/eess-md'
 
 const SECTION = 'Verification'
+// your archive folder; while it holds no page, also pass expectEmptyFrozen: ['archive/**']
 const c = corpus({ cwd: process.cwd(), roots: ['**/*.md'], frozen: ['archive/**'] })
 
 // The ratchet: no open box in a live document that has the section.
