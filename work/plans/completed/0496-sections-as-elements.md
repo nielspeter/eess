@@ -728,6 +728,14 @@ reads the document it builds. Not done here; a later change to either walk shoul
 copies of "the sections of a name at a depth" (M3) were folded into `sectionsMatching` in the same
 review round.
 
+**Follow-ups, recorded 2026-10-19 (PR #252's architect review, M4, M5 and M7).** Three
+consolidations the review found possible, none a defect, left for a later change: move
+`haveTextMatchingCondition` from `predicates/text.ts` into `conditions/`, beside its siblings; rename
+`predicates/in-documents.ts`, which now holds `inSections` too, to a name for both scopes; and fold the
+four builders that still override `collectViolations` to append findings (`code-blocks.ts`, `docs.ts`,
+`task-items.ts`, `vocabulary.ts`) into `CorpusRuleBuilder`'s `declarationFindings` hook, as `links()`
+already is.
+
 Measured: `check:corpus`'s acceptance-criteria rule examines 17 live proposals and reports 0, before
 and after the rebuild (proposals 001 and 002 put in sentence case first); `check:corpus` 3,990 checks
 across 325 documents, 0 violations, 6.4 s. The new non-vacuity row (`corpus/proposal-criteria-depth`,

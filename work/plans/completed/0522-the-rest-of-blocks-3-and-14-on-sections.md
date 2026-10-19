@@ -118,7 +118,8 @@ one of 548 documents has a depth-1 title (0 findings); every `## Progress ledger
 are empty (a proposal's `Evidence` heading, a rejected bug's quoted submission); a title pattern per
 lane is not a convention here (older plans write `0061 — …`). So the repository could adopt
 `docs().should().haveTitle()` and the ledger, verification and status rules at 0 findings today. None
-is adopted in this pull request: each needs its own non-vacuity row, and none was asked for. Adopted 2026-10-19 after PR #252's enforcement review: `haveContent()` on every live proposal's `## Acceptance criteria` (`corpus/proposal-acceptance-criteria-empty`, 17 sections, 0 findings), whose `because` had confessed that an empty section passed; its non-vacuity row empties proposal 006's section.
+was adopted at build time: each needs its own non-vacuity row, and none was asked for. Corrected
+2026-10-19: adopted after PR #252's enforcement review, `haveContent()` on every live proposal's `## Acceptance criteria` (`corpus/proposal-acceptance-criteria-empty`, 17 sections, 0 findings), whose `because` had confessed that an empty section passed; its non-vacuity row empties proposal 006's section.
 
 **Sabotage**, run 2026-10-19 at `b5874ca`, each red on its named test in
 `packages/md/tests/section-holds.test.ts`, 7.2 s:
