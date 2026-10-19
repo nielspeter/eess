@@ -38,14 +38,21 @@ predicate is dead"), where the fault is the `frozen` option.
 ## Root cause
 
 The `frozen` globs are judged nowhere: not at load, as `roots` are, and not at rule time, since
-`areFrozen()`/`areLive()` carry no `globs` for the selector-fault check to read.
+`areFrozen()`/`areLive()` carry no `globs` for the selector-fault check to read. A text check alone
+would not be enough: a frozen glob with no text fault that matches no loaded document is dead too.
+Measured 2026-10-19 over the same corpus: `frozen: ['archve/**']` (a typo, no leading `/`, not
+over-broad) marks 0 documents frozen, and
+`taskItems().areOpen().satisfy(inDocuments(areFrozen())).should().notExist()` gives 0 findings with
+examined 0, green.
 
 ## Fix
 
-Undecided. One option: `corpus()` judges each `frozen` glob's text at load with `globTextFault`, as
-it does for `roots`, and reports a fault as a corpus finding. A typo'd glob that matches nothing
-turns `areLive()` into every document, which fails closed (over-strict and visible); only a
-text-faulted or over-broad glob hides.
+Undecided in detail, two checks at load beside each other: `corpus()` judges each `frozen` glob's
+text with `globTextFault`, as it does for `roots`; and, as bug 0465 does for a root that matches no
+file, it reports a `frozen` glob that matches no loaded document. A dead frozen glob does not fail
+closed: it empties `inDocuments(areFrozen())`, so an absence rule over it is green. (It turns
+`areLive()` into every document, which is over-strict and visible, but the frozen side is the one
+the adopters' ratchet reads.)
 
 ## Verification
 

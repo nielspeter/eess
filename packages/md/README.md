@@ -163,10 +163,9 @@ show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/exa
 Every element that belongs to a document (a box, a link, a pointer, a row, a term, a code block)
 carries it, and `inDocuments(p)` lifts a document predicate onto them, through `satisfy()`. `areLive()`
 and `areFrozen()` read the `frozen` globs you pass `corpus()`, or, when you pass none, its default
-(`DEFAULT_FROZEN`: `**/completed/**` and `**/archived/**`), so a page under `completed/` is not live
+(`**/completed/**`, `**/archived/**`), so a page under `completed/` is not live
 unless you pass `frozen` yourself; `haveSectionPredicate(name)` is the
-predicate form of `haveSection` (the bare name is the condition; it may be renamed when sections
-become elements). A rule over boxes in the live pages that have a `Verification` section, and its
+predicate form of `haveSection` (the bare name is the condition). A rule over boxes in the live pages that have a `Verification` section, and its
 guard:
 
 ```ts

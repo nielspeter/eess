@@ -153,7 +153,7 @@ export function areLive(): Predicate<MdDocument> {
   `packages/ts/src/index.ts:91-96`). The name `haveSectionPredicate` already exists in md's source
   with that meaning, so nothing new is coined. Whether md's naming converges on eess-ts's is the
   public-name decision of block 11/3 (sections as elements), which proposal 017 holds; this plan
-  does not pre-empt it, and its changeset says the name may change there. One dual-use object for
+  does not pre-empt it. (Since decided by plan 0496, PR #247: the name is final.) One dual-use object for
   both kinds is not an option: `satisfy()` treats any object with `test` as a predicate
   (`packages/core/src/rule-builder.ts:172-176`), so after `.should()` it would filter instead of
   assert.
@@ -521,8 +521,8 @@ it, and it is listed above.
 ## Release
 
 `@nielspeter/eess-md` minor: four new root names, one new readonly field on `ParsedCodeBlocks`,
-nothing removed. The changeset says `haveSectionPredicate` may be renamed when block 11/3 settles
-section names. The kernel's change is a docstring, declared `'@nielspeter/eess': none`. No existing rule's verdict or description changes: a rule that calls no
+nothing removed. (The changeset first said `haveSectionPredicate` might be renamed when block 11/3
+settled section names; plan 0496 (PR #247) decided the name is final, and the hedge is gone.) The kernel's change is a docstring, declared `'@nielspeter/eess': none`. No existing rule's verdict or description changes: a rule that calls no
 `inDocuments` takes no new branch (`scopeDiagnosis` returns `undefined` with no scope), and
 `codeBlocks()`' own two predicates keep their descriptions. `eess-crossvalidate` lists eess-md as a
 peer, not a dependency, so it does not move. The four names land in the surface census.
@@ -530,8 +530,8 @@ peer, not a dependency, so it does not move. The four names land in the surface 
 ## Out of scope
 
 - `inSections()` (block 18): not accepted; it needs block 11's section elements.
-- md's predicate-and-condition naming converging on eess-ts's (`haveSection` as a predicate):
-  block 11/3's public-name decision, held in proposal 017.
+- md's predicate-and-condition naming: decided by plan 0496 (PR #247). In eess-md a plain name is
+  the condition and `xPredicate` is the predicate form, so `haveSectionPredicate` is final.
 - Green-path counts, the frozen-documents-excluded count included: bug 0174.
 - Changing `corpus()`'s frozen default: proposal 017, second Review decision 2.
 - `haveField` (block 2), the predicate the proposal's headline example uses: built since by plan
@@ -777,7 +777,8 @@ The coordinator's decisions on the five reviews, each built here:
   `and(areLive(), resideInFolder(root), not(or(done folders)), not(or(board files)))`, serves the
   per-lane State rules (through `inDocuments`), `corpus/state-present` and
   `corpus/closed-records-sit-in-done-folders`. Its summary prints the same counts before and after
-  (24 plans · 196 bugs State lines in 220 records; 0 closed of 220 live records, 0 undecided). The
+  (measured at dcff39f: 24 plans · 196 bugs State lines in 220 records; 0 closed of 220 live
+  records, 0 undecided). The
   eight `check:nonvacuity` rows over those rules each fail on their violating input (49 s,
   `QA_ONLY`). The comment saying `rows()` has no per-document filter is corrected.
 - **ADR-021's Enforcement paragraph** carries a dated correction note: the eess-md test drives
@@ -795,7 +796,7 @@ The coordinator's decisions on the five reviews, each built here:
   [0500](../../bugs/0500-eess-md-notexist-with-expectnonempty-can-never-be-green.md) (no earlier record
   covers eess-md; bug 0473 is eess-ts's) and
   [0501](../../bugs/0501-md-and-kernel-leftovers-from-plan-0457.md), on the board.
-- **Not here:** the predicate-and-condition naming (product I1) is plan 0496's.
+- **Not here:** the predicate-and-condition naming (product I1) is plan 0496's (PR #247).
 
 ## Progress ledger
 
@@ -817,7 +818,7 @@ Deferred: bug 0174
 onto main; its `packages/`, `examples/` and `scripts/` tree is identical to b1a193c's (`git diff`
 empty). Run again 2026-10-19 at dcff39f, after PR #245's code fixes, with rows 18 to 20 added and
 every row running all three test files, so each red set is whole; the commits after dcff39f change
-nothing under `packages/` or `examples/`. That run is the table below: 22 rows, 73 s, baseline green,
+nothing the three test files read. That run is the table below: 22 rows, 73 s, baseline green,
 each sabotage applied, eess-md rebuilt, the three files run, the file restored by `git checkout`,
 tree clean after. `in-documents` is `packages/md/tests/in-documents.test.ts` (37 tests);
 `have-field-undecided` is `packages/md/tests/builders/have-field-undecided.test.ts`; `example` is
@@ -851,6 +852,6 @@ one line in `packages/md/src` unless the row says otherwise.
 
 The 2026-10-18 run at 5b1e2f2 ran each row's named files only, so its row 1 listed in-documents
 alone; PR #245's enforcement review measured 29 failing tests on that tree (24, 2 and 3), and the run
-above counts 31 (26, 2 and 3) with the five rows added since. The matrix script and its output are
+above counts 31 (26, 2 and 3) with the five tests added since. The matrix script and its output are
 this session's scratch files, not kept in the repository; the mutant column is written so a row can
 be rebuilt.

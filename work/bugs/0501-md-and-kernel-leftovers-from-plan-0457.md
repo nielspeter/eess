@@ -18,7 +18,10 @@ Three leftovers, collected because one review found them together:
    (`packages/core/src/collect-result.ts`) still calls itself "a specific dead-glob explanation". A
    rename (`zeroExaminedDiagnosis`, for instance) is a kernel API change. `CorpusRuleBuilder` owns
    the override, so a later md diagnosis for dead globs on positive rules would have to be combined
-   with it, not override it.
+   with it, not override it. A scoped `notExist()` ratchet that examined zero still computes the
+   diagnosis's step 2 and throws it away: the kernel calls the hook eagerly
+   (`packages/core/src/rule-builder.ts:397`), and `zeroExaminedFinding` returns first for a
+   cardinality rule.
 2. **Hand-written lifts beside the shared one.** `pointers()` keeps private `areLive`/`areFrozen`
    over `MdPointer` (`packages/md/src/builders/pointers.ts`), now hand lifts of the document
    predicates, with different descriptions ("are frozen (historical record)" against "are frozen").
