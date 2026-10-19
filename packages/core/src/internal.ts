@@ -38,6 +38,8 @@ export { discoverIdentityRoot, normalizeIdentityText } from './identity-root.js'
 export { discoverNamedRepository, portableTokens } from './identity-root.js'
 export type { NamedRepository } from './identity-root.js'
 export { escapeGitHub } from './format-github.js'
+// The one reader of a preset's `report` mode (bug 0508), for a dialect whose presets take more modes.
+export { readReportMode } from './report.js'
 export { hashViolation } from './baseline.js'
 export { identityCollisions } from './violation.js'
 export { isAnchored, isProjectRelative } from './project-relative.js'

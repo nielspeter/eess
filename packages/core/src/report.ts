@@ -236,28 +236,43 @@ export function reportViolations(
   return gated
 }
 
+/** `ReportMode`'s values, in the order a refusal lists them. */
+const REPORT_MODES: readonly ReportMode[] = ['throw', 'return', 'warn']
+
 /**
- * Read a caller's delivery mode, refusing one outside `ReportMode` — bug 0508.
+ * Read a caller's delivery mode, refusing one outside `ReportMode` and the
+ * dialect's own `extraModes` — bug 0508.
  *
  * `undefined` and `null` are the default, as `??` reads them. Anything else
- * that is not one of the three modes used to fall through every comparison in
- * `finishPreset`: the violations were printed and nothing threw, so a caller
- * without TypeScript's check (a JavaScript rule file, a mode read from config)
- * that misspelt `'throw'` exited 0 over real violations (ADR-009). Read here,
- * once, before any comparison, or `'retrun'` slips past the `'return'` one.
+ * that is not a mode used to fall through every comparison in `finishPreset`:
+ * the violations were printed and nothing threw, so a caller without
+ * TypeScript's check (a JavaScript rule file, a mode read from config) that
+ * misspelt `'throw'` exited 0 over real violations (ADR-009). Read once, before
+ * any comparison, or `'retrun'` slips past the `'return'` one.
+ *
+ * The one reader of a mode in the family: a dialect whose presets take more
+ * modes (eess-ts's `'builders'`) passes them as `extraModes`, so the refusal
+ * lists every mode that door accepts and no second list is kept by hand.
  */
-function readReportMode(value: unknown): ReportMode {
+export function readReportMode<E extends string = never>(
+  value: unknown,
+  extraModes: readonly E[] = [],
+): ReportMode | E {
   if (value === undefined || value === null) return 'throw'
-  if (value === 'throw' || value === 'return' || value === 'warn') return value
+  const known = REPORT_MODES.find((m) => m === value)
+  if (known !== undefined) return known
+  const extra = extraModes.find((m) => m === value)
+  if (extra !== undefined) return extra
   const shown =
     typeof value === 'string'
       ? `'${value}'`
       : typeof value === 'boolean' || typeof value === 'number'
         ? String(value)
         : `a value of type ${typeof value}`
+  const modes = [...REPORT_MODES, ...extraModes].map((m) => `'${m}'`).join(', ')
   throw new ArchConfigError(
     'report',
-    `report: ${shown} is not a report mode; the modes are 'throw', 'return', 'warn'. ` +
+    `report: ${shown} is not a report mode; the modes are ${modes}. ` +
       'An unknown mode used to print the violations and pass.',
   )
 }

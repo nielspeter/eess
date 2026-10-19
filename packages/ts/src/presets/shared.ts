@@ -12,14 +12,13 @@ import type { CollectResult } from '@nielspeter/eess'
 export type PresetDelivery = ReportMode | 'builders'
 import {
   finishPreset,
-  ArchConfigError,
   ArchRuleError,
   validateOverrides,
   mergeCollectResults,
   collectResult,
 } from '@nielspeter/eess'
 import { callerAggregates } from '../core/execute-rule.js'
-import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
+import { UNSUPPRESSABLE, readReportMode } from '@nielspeter/eess/internal'
 import type { Predicate } from '@nielspeter/eess'
 import type { Located } from '../predicates/identity.js'
 import { resideInFile, resideInFolder } from '../predicates/identity.js'
@@ -435,27 +434,10 @@ export function atPath<T extends Located>(glob: string, option?: string): Predic
 }
 
 /**
- * Refuse a `report` value outside `PresetDelivery`, naming all four modes (bug 0508). The kernel's
- * `finishPreset` refuses an unknown mode too, but lists its own three: a caller who misspelt
- * `'builders'` was told to pick among modes that did not include the one they meant. Refused here
- * first, before `'builders'` is compared, so the kernel's message is never the one an eess-ts caller
- * reads. `undefined` and `null` mean `'throw'`, as in the kernel.
+ * The mode eess-ts's presets take beyond the kernel's three. Read through the kernel's one reader
+ * (bug 0508), so a refusal lists all four and no second list of modes is kept here.
  */
-function refuseUnknownDelivery(value: unknown): void {
-  if (value === undefined || value === null) return
-  if (value === 'throw' || value === 'return' || value === 'warn' || value === 'builders') return
-  const shown =
-    typeof value === 'string'
-      ? `'${value}'`
-      : typeof value === 'boolean' || typeof value === 'number'
-        ? String(value)
-        : `a value of type ${typeof value}`
-  throw new ArchConfigError(
-    'report',
-    `report: ${shown} is not a report mode; the modes are 'throw', 'return', 'warn', 'builders'. ` +
-      'An unknown mode used to print the violations and pass.',
-  )
-}
+const PRESET_ONLY_MODES: readonly ['builders'] = ['builders']
 
 /**
  * A preset's return value, honouring `report` when the caller named one.
@@ -467,11 +449,12 @@ export function deliver(
   builders: RuleBuilderLike[],
   options: { report?: PresetDelivery; format?: OutputFormat; reason?: string } | undefined,
 ): RuleBuilderLike[] | CollectResult {
-  refuseUnknownDelivery(options?.report)
+  // Read once, before any comparison: an unknown mode is refused naming all four (bug 0508).
+  const mode: PresetDelivery = readReportMode(options?.report, PRESET_ONLY_MODES)
   // Only an EXPLICIT 'builders' returns without running. Omission falls through
   // to `finishPreset`, whose own default is 'throw' — so a preset called with no
   // options enforces, which is what ADR-008 states and what the docs teach.
-  if (options?.report === 'builders') return builders
+  if (mode === 'builders') return builders
   // `flatMap` would drop every receipt's evidence on the floor — the exact site
   // plan 0235's Phase 3 names. The kernel merge is fail-closed and is the only
   // place the `examined` sum and the sourceEmpty/declaredEmpty precedence are
@@ -485,7 +468,6 @@ export function deliver(
   // is what ADR-014 §3's 2026-09-05 amendment settled: a declaration is one a
   // caller made, never one eess infers from a config.
   const violations = mergeCollectResults(builders.map((b) => b.violations()))
-  const mode: PresetDelivery = options?.report ?? 'throw'
 
   // **Bug 0203 — enforce, but let an aggregating caller do the reporting.**
   //
