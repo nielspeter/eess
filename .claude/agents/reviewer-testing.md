@@ -27,7 +27,10 @@ itself. Review with a focus on:
   enumerate revert rows from the **diff**, not memory; split bundled rows; assert a
   green baseline + each patch applies non-trivially; hold the tree exclusively
   (isolated `git worktree`); read the verdict from the exit code. Does the change
-  leave a guard that can't be sabotaged?
+  leave a guard that can't be sabotaged? A test that imports a package by name
+  (`@nielspeter/eess/internal`, a sibling dialect) reads its built `dist/`, so rebuild
+  that package after applying a src mutant, or the row records a survivor the test
+  never saw (bug 0519).
 - **Test tiers that fit eess** — unit/integration per package (`packages/*/tests`),
   the `check:*` dogfood gates (arch, spec, diagram, crossval, corpus, ledger,
   nonvacuity), `check:docs-code` (doc-fence type-checking), and the standalone-
