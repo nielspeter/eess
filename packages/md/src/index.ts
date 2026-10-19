@@ -120,7 +120,7 @@ export { UNDECLARED_BOX_MARK, MALFORMED_BOX } from './builders/box-mark-findings
 export { vocabulary, terms, fields, TermRuleBuilder } from './builders/vocabulary.js'
 // Plan 0468: a labelled value in the forms the caller names, and the helpers that cut one.
 export { cleanValue, untilDelimiter, longestOf } from './model/fields.js'
-export type { FieldForm, FieldOptions } from './model/fields.js'
+export type { FieldForm, FieldOptions, FieldRegion } from './model/fields.js'
 // Plan 0469: `docs().haveField()`, a document has a value.
 export type { HaveFieldOptions } from './builders/have-field.js'
 // Plan 0495: `docs().should().agreeWithFolder()`, a value agrees with its folder. `Direction` is the

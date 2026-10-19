@@ -16,7 +16,14 @@ import type { MdDocument } from '../model/document.js'
 import { mdViolation } from '../model/violation.js'
 import { proseText } from '../model/prose.js'
 import { stampedByDocument } from '../model/by-document.js'
-import { readFields, type FieldForm, type FieldOptions } from '../model/fields.js'
+import {
+  checkRegion,
+  readFields,
+  regionSection,
+  type FieldForm,
+  type FieldOptions,
+} from '../model/fields.js'
+import type { SectionDeclaration } from '../model/section-declarations.js'
 import { unnamedFormFindings } from './field-findings.js'
 
 /**
@@ -267,6 +274,20 @@ export class TermRuleBuilder extends CorpusRuleBuilder<MdTerm> {
     private readonly source: Source,
   ) {
     super(corpus)
+    if (source.kind === 'fields') checkRegion(source.options.region, 'fields')
+  }
+
+  /** A `fields()` section region's name, for the section-name scan (plan 0505). */
+  protected override ownSectionDeclarations(): readonly SectionDeclaration[] {
+    if (this.source.kind !== 'fields') return []
+    const section = regionSection(this.source.options.region)
+    if (section === undefined) return []
+    return [
+      {
+        name: section.section,
+        ...(section.depth === undefined ? {} : { depth: section.depth }),
+      },
+    ]
   }
 
   protected getElements(): MdTerm[] {

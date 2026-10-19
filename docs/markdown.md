@@ -922,7 +922,11 @@ Each form may sit behind up to three spaces, and every form but `heading` after 
 label is compared ignoring ASCII case and runs of whitespace; `aliases` adds other spellings, each
 reported under its own name. `region: 'header'` reads only the record's header: lines before the
 first heading of depth 2 or more that is not itself a `## Label: value` heading, so `## Status:
-open` followed by `## Severity: High` stays one header. Fenced code is not read. A value continues
+open` followed by `## Severity: High` stays one header. `region: { section: 'Status', depth?: 2 }`
+reads only inside the sections of that name (matched as `haveSection` matches, `depth` optional),
+from the line after the heading to the section's last line, subsections included; two such sections
+are two places the value may be. The unnamed-form scan reads the same region, so a label outside it
+is neither read nor reported by `fields()`. Fenced code is not read. A value continues
 over lines until a blank line, a heading, another label, or the end of its list item; a `heading`
 or `bold-line` value is one line.
 
@@ -993,9 +997,12 @@ docs(c)
 Every cause that makes a value unreadable is reported in either position, for the documents the
 rule's other predicates keep: `Status is given twice (line 3 'open', line 9 'fixed'); keep one`,
 `found … in a form this rule does not read`, `Status at line 14 is outside the header (region:
-'header'); …`, `Status at line 3 has no value this rule can read`, and `prose says Status 'open',
+'header'); …` (with a section region, `State at line 9 is outside the "Status" section (region); …`),
+`Status at line 3 has no value this rule can read`, and `prose says Status 'open',
 but the field at line 3 says 'fixed'`. As a condition it also reports `no Status field (read as
-bold, heading); its labels: Severity, State` and a value outside `oneOf`. As a selector, a readable
+bold, heading); its labels: Severity, State`, `no section "Status" to read State from (region)`
+for a section region the document does not have (a heading of the name at another depth, or inside a
+list item, is named), and a value outside `oneOf`. As a selector, a readable
 value outside `oneOf` is the filter doing its job and is not reported: a misspelt `Fxed` is a
 different value, so pair the rule with `fields(...).resolveAgainst(...)`. So is a document with no
 field at all, or a misspelt label (`**Satus:**`): pair the selector with a

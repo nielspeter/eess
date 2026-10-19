@@ -3638,6 +3638,18 @@ const gates = [
         "State is given twice (line 5 'Draft', line 6 'Ready'); keep one",
       ),
   ],
+  // Plan 0505: the State is read inside `## Status`; one written below `## Symptom` is reported.
+  [
+    'corpus/state-present-outside-status',
+    () =>
+      gateCorpusStateProbe(
+        'bugs',
+        '__nonvacuity_probe_state_outside.md',
+        [...STATE_PROBE_HEAD, 'Open.', '', '## Symptom', '', '- **State:** Draft'],
+        'corpus/state-present',
+        'State at line 9 is outside the "Status" section (region)',
+      ),
+  ],
   [
     // Plan 0486: the dogfood rule reds a closed record left in a live folder.
     'corpus/closed-records-sit-in-done-folders',
@@ -4717,6 +4729,7 @@ const GATE_FOR = {
     'corpus/record-number-unique/directory-form',
     'corpus/state-present',
     'corpus/state-present-conflict',
+    'corpus/state-present-outside-status',
     'corpus/closed-records-sit-in-done-folders',
     'corpus/closed-records-undecided',
     'corpus/closed-records-plans',

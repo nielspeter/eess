@@ -34,12 +34,15 @@ export function readsSections(x: object): boolean {
   return REGISTRY.has(x)
 }
 
-/** The distinct section names the predicates and conditions read, in order. */
-export function sectionDeclarationsOf(items: readonly object[]): SectionDeclaration[] {
+/** The distinct section names the predicates and conditions read (and `extra`), in order. */
+export function sectionDeclarationsOf(
+  items: readonly object[],
+  extra: readonly SectionDeclaration[] = [],
+): SectionDeclaration[] {
   const out: SectionDeclaration[] = []
   const seen = new Set<string>()
-  for (const item of items) {
-    for (const d of REGISTRY.get(item) ?? []) {
+  for (const declared of [...items.map((item) => REGISTRY.get(item) ?? []), extra]) {
+    for (const d of declared) {
       const key = sectionDeclarationKey(d)
       if (seen.has(key)) continue
       seen.add(key)

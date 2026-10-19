@@ -351,13 +351,15 @@ const stateRules = LANES.filter((lane) => lane.name === 'plans' || lane.name ===
 // Plan 0469, dogfooding `haveField`: every live plan and bug HAS a State, in the bold form. The rule
 // above checks the words of the States it finds; this one reds a record that carries none, which
 // `honestyAtClose` counts but never refuses (bug 0444). One State per record, or it is a conflict.
+// Plan 0505: read inside the record's `## Status` section, where every live record writes it (229
+// of 229 on 2026-10-19), so a State written anywhere else is reported rather than read.
 const statePresentRule = docs(c)
   .that()
   .satisfy(
     or(...LANES.filter((lane) => lane.name === 'plans' || lane.name === 'bugs').map(liveRecordIn)),
   )
   .should()
-  .haveField({ label: 'State', forms: ['bold'] })
+  .haveField({ label: 'State', forms: ['bold'], region: { section: 'Status' } })
   .rule({
     id: 'corpus/state-present',
     because: 'a record with no State is counted by the ledger and never refused (bug 0444)',

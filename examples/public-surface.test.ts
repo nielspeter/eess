@@ -84,6 +84,7 @@ import type {
   VocabularyOptions,
   FieldForm,
   FieldOptions,
+  FieldRegion,
   HaveFieldOptions,
   AgreeWithFolderOptions,
   FolderGroup,
@@ -179,6 +180,7 @@ type MdSurface = {
   vocabOptions: VocabularyOptions
   fieldForm: FieldForm
   fieldOptions: FieldOptions
+  fieldRegion: FieldRegion
   haveFieldOptions: HaveFieldOptions
   agreeWithFolderOptions: AgreeWithFolderOptions
   folderGroup: FolderGroup

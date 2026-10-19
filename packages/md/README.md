@@ -429,7 +429,9 @@ docs(c).should().beUniqueBy(slug, 'slug').check()
 `bold` (`**Status:** v`), `heading` (`## Status: v`), `bold-line` (`**Status: v**`) and `plain`
 (`Status: v`). There is no default form. `.should().resolveAgainst(vocabulary | RegExp)` checks the
 value, and a label your rule's selection writes with markup it does not read is reported, as is a
-value that is empty after cutting.
+value that is empty after cutting. `region` bounds where it reads: `'header'`, or
+`{ section: 'Status' }`, the body of every `## Status` section, so a feedback register of
+`**Status:**` items elsewhere in the record is not part of the question.
 `cleanValue`, `untilDelimiter` and `longestOf` cut a value. [The Markdown dialect's docs](../../docs/markdown.md#a-labelled-value-fields)
 cover the region, multi-line values and the findings.
 

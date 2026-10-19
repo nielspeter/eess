@@ -1,5 +1,8 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import type { MdDocument } from './document.js'
+import { checkDepth, matchName } from './name-match.js'
 import { proseText, type SetAside } from './prose.js'
+import { sectionsOf, type MdSectionElement } from './sections.js'
 import {
   LABEL_HEADING,
   PREFIX,
@@ -29,6 +32,58 @@ export type FieldForm = 'bold' | 'heading' | 'bold-line' | 'plain'
 /** The marked-up forms, which beat `plain` prose and are the ones a scan for unread labels covers. */
 export const STRUCTURED_FORMS: readonly FieldForm[] = ['bold', 'heading', 'bold-line']
 
+/**
+ * Where a field is read. `'header'`: the lines before the document's first heading of depth 2 or
+ * more that is not a `## Label: value` heading. `{ section, depth? }` (plan 0505): the body of every
+ * section whose heading matches `section` (a string exactly, or a `RegExp`, as `haveSection`
+ * matches), at `depth` when given, from the line after its heading to its last line, subsections
+ * included.
+ */
+export type FieldRegion = 'header' | { readonly section: string | RegExp; readonly depth?: number }
+
+/** The section a region names, or `undefined` for the header or the whole document. */
+export function regionSection(
+  region: FieldRegion | undefined,
+): { readonly section: string | RegExp; readonly depth?: number } | undefined {
+  return region === undefined || region === 'header' ? undefined : region
+}
+
+/** The sections a section region reads in one document. */
+export function regionSections(
+  doc: MdDocument,
+  region: { readonly section: string | RegExp; readonly depth?: number },
+): readonly MdSectionElement[] {
+  return sectionsOf(doc).filter(
+    (s) =>
+      (region.depth === undefined || s.depth === region.depth) && matchName(s.name, region.section),
+  )
+}
+
+/**
+ * Refuse a region that is neither `'header'` nor `{ section }`, and a section region's bad depth:
+ * a typo would read the whole document, and a depth of 7 nothing.
+ */
+export function checkRegion(region: unknown, call: string): void {
+  if (region === undefined || region === 'header') return
+  if (
+    typeof region === 'object' &&
+    region !== null &&
+    'section' in region &&
+    (typeof region.section === 'string' || region.section instanceof RegExp)
+  ) {
+    const depth = 'depth' in region ? region.depth : undefined
+    if (depth !== undefined && typeof depth !== 'number') {
+      throw new ArchConfigError(call, `${call}: a section region's depth must be a number`)
+    }
+    checkDepth(depth, call)
+    return
+  }
+  throw new ArchConfigError(
+    call,
+    `${call}: region must be 'header' or { section, depth? }, got ${JSON.stringify(region)}`,
+  )
+}
+
 /** What `fields()` reads: one label (and its aliases) in the forms the caller names. */
 export interface FieldOptions {
   /** The label, compared ignoring ASCII case and runs of whitespace. */
@@ -46,8 +101,10 @@ export interface FieldOptions {
    * more that is not a `## Label: value` heading. Default: the whole document. This is narrower than
    * the region `honestyAtClose` reads its `State:` from (bug 0119). A label below the header is
    * neither read nor reported; plan 0469's `haveField` reports a value outside the region.
+   * `{ section, depth? }` (plan 0505): read only inside the sections of that name; `haveField`
+   * reports a document without one, and a value outside every one.
    */
-  readonly region?: 'header'
+  readonly region?: FieldRegion
 }
 
 /** One labelled value found in a document. */
@@ -165,17 +222,22 @@ interface ScannedField {
  * A document's lines as the field readers see them: fenced code blanked (by `setAside`, default
  * `'closed-fences'`, which reads past a fence that never closes, so a reader whose findings grow
  * with what it reads reports too much rather than nothing), a trailing `\r` removed so a CRLF file
- * reads as an LF one, and cut at the header's end when `region` is `'header'`.
+ * reads as an LF one, and cut at the header's end when `region` is `'header'`. A section region
+ * blanks every line outside the sections' bodies, so line numbers stay the document's and a value
+ * cannot continue past a section's end.
  */
 export function fieldLines(
   doc: MdDocument,
-  region: 'header' | undefined,
+  region: FieldRegion | undefined,
   setAside: SetAside = 'closed-fences',
 ): string[] {
   const lines = proseText(doc.text, setAside, doc.root)
     .split('\n')
     .map((l) => l.replace(/\r$/, ''))
-  return region === 'header' ? lines.slice(0, headerEnd(lines)) : lines
+  if (region === 'header') return lines.slice(0, headerEnd(lines))
+  if (region === undefined) return lines
+  const bodies = regionSections(doc, region)
+  return lines.map((l, i) => (bodies.some((s) => s.line < i + 1 && i + 1 <= s.endLine) ? l : ''))
 }
 
 /** The label occurrences of one document in the given forms, in reading order. */
@@ -183,7 +245,7 @@ export function scanFields(
   doc: MdDocument,
   labels: readonly string[],
   forms: readonly FieldForm[],
-  region: 'header' | undefined,
+  region: FieldRegion | undefined,
   setAside: SetAside = 'closed-fences',
 ): ScannedField[] {
   const lines = fieldLines(doc, region, setAside)

@@ -4,7 +4,11 @@ import type { Corpus } from '../corpus.js'
 import { mdNotExist, type MdLocation } from '../conditions/not-exist.js'
 import { mdSelectorFault } from '../model/selector-fault.js'
 import type { MdDocument } from '../model/document.js'
-import { citedHeadings, sectionDeclarationsOf } from '../model/section-declarations.js'
+import {
+  citedHeadings,
+  sectionDeclarationsOf,
+  type SectionDeclaration,
+} from '../model/section-declarations.js'
 import type { ArchViolation } from '../model/violation.js'
 import { admittedDocuments, scopeDiagnosis } from '../predicates/in-documents.js'
 import { sectionDeclarationFindings } from './section-declarations.js'
@@ -47,6 +51,11 @@ export abstract class CorpusRuleBuilder<T> extends RuleBuilder<T, Corpus> {
     )
   }
 
+  /** Section names the builder itself reads, beyond its predicates and conditions (`fields()`' region). */
+  protected ownSectionDeclarations(): readonly SectionDeclaration[] {
+    return []
+  }
+
   /**
    * The documents this rule can see, for the scan's container and depth notes: those its
    * `inDocuments` scopes admit, or every document.
@@ -61,7 +70,10 @@ export abstract class CorpusRuleBuilder<T> extends RuleBuilder<T, Corpus> {
    * `base` is the kernel's verdict, whose findings already name some headings.
    */
   protected declarationFindings(base: readonly ArchViolation[]): ArchViolation[] {
-    const declarations = sectionDeclarationsOf([...this._predicates, ...this._conditions])
+    const declarations = sectionDeclarationsOf(
+      [...this._predicates, ...this._conditions],
+      this.ownSectionDeclarations(),
+    )
     if (declarations.length === 0) return []
     return sectionDeclarationFindings({
       corpus: this.project,
