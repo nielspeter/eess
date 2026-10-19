@@ -54,12 +54,15 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading to 0.14?** The family loads under Bun again. `eess-md` reads a code block's language tag
-in any letter case, so a ` ```Mermaid ` block is now parsed and can go red; `NearMissTag` and
-`nearMisses` are removed. `eess-mermaid` adds `mermaidParser()`, and `diagramKind` reads past a
-directive closed mid-line. `eess-crossvalidate` 0.9.0 needs `eess-ts` 0.13.1, `eess-md` 0.11.0 and
-`eess-mermaid` 0.8.0. [Migrating to 0.14](./docs/migrating-to-0.14.md) covers all of it;
-[Migrating to 0.13](./docs/migrating-to-0.13.md) is still the page for the release before.
+**Upgrading to 0.15?** Most of it is `eess-md`, and most of that is checks that used to pass over
+nothing. `corpus()` refuses a frozen glob that marks nothing and a root that loads nothing unless you
+declare them empty (`expectEmptyFrozen`, `expectEmptyRoots`), which matters most in test fixtures.
+Box marks beyond `[ ]` and `[x]` are read, and an undeclared one is a finding: declare each once as
+`'open'`, `'done'` or `'unjudged'`. `collectTaskItems` needs the document's `source`.
+`honestyAtClose` reports a state it cannot read. `eess-gherkin`'s `haveUniqueTitles` reports every
+member of a duplicate group, and `eess-crossvalidate` 0.10.0 needs this release's dialects.
+[Migrating to 0.15](./docs/migrating-to-0.15.md) covers all of it;
+[Migrating to 0.14](./docs/migrating-to-0.14.md) is still the page for the release before.
 
 ## Packages
 
