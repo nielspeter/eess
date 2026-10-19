@@ -304,6 +304,11 @@ groups; a group with no values or with an empty folder list; an empty value; a v
 `normalize`, in two groups; one glob in two groups; two `'rest'` groups. `split` is excluded by the
 type: one value per document.
 
+**Superseded 2026-10-19 (batch review):** the paragraph below is the design first built. The
+`examined` override it describes was deleted: `examined` is the kernel's (the documents selected),
+and an agreement that judged none is its own unsuppressable finding, naming its cause. See Build
+notes, "Decision D1, rebuilt after the batch review".
+
 **Evidence: `examined` counts the documents judged** (PR #246, decision D1). Under `left-to-right`,
 the selected documents whose value was read (resolved); under `right-to-left`, the selected
 documents in a bound folder (a `'rest'` group binds); under `both`, the union. Zero judged is the
@@ -503,7 +508,7 @@ silent if the finding is removed.
 | configuration    | each refusal above throws, naming the option                                                                                                                                                                                                    | a malformed declaration judges nothing                             |
 | normaliser       | `normalize: (v) => v.toLowerCase()` agrees `fixed` with `Fixed`; without it, F3                                                                                                                                                                 | a normaliser applied to one side only                              |
 | frozen           | a frozen document in a bound folder is judged                                                                                                                                                                                                   | the done folders, frozen by default, go unread                     |
-| evidence         | `left-to-right` with label `Sate`: zero judged, the zero-examined finding; `right-to-left` counts only documents in bound folders; the description names the direction                                                                          | a rule that judged nothing is green over N                         |
+| evidence         | superseded 2026-10-19, see Build notes' D1: `left-to-right` with label `Sate`: zero judged, the zero-examined finding; `right-to-left` counts only documents in bound folders; the description names the direction                              | a rule that judged nothing is green over N                         |
 | one direction    | the first worked example: F2 for `open` in `issues/closed/`, nothing for `closed` in `issues/`, green over a register below the header                                                                                                          | the one-way rule reports the direction its adopter did not ask for |
 | both directions  | the second: one F2 each way, a register below the header not F5                                                                                                                                                                                 | one of adopter 2's two defects passes                              |
 | adopter 3        | the third: F2 for a live `Done`, green over three frozen spellings in `records/done/`, over a `## Severity:` chain and over per-phase status lines                                                                                              | adopter 3's frozen records go red                                  |
@@ -550,7 +555,7 @@ PR #246 was reviewed by four lenses (architect, enforcement, method, product). T
 decisions, each overrulable, and where they landed above:
 
 - **D1** `examined` counts judged documents, with the misspelt-label sabotage row (enforcement C1,
-  architect M6).
+  architect M6). Superseded 2026-10-19 by the batch review: see Build notes.
 - **D2** a group's emptiness is computed over the corpus (architect I1).
 - **D3** F3 split: a value of a declared group in another group's folder is F2; the dogfood declares
   its live group (architect I1, enforcement I5, product I1).
@@ -624,9 +629,16 @@ forms or region)`, unsuppressable, whatever conditions sit beside it. A judged d
   `@nielspeter/eess-md/internal`. The batch review removed it (architect I1, enforcement I2): its
   only planned caller, `honestyAtClose` under `packages/md/src/rules/`, may import only the md root
   and the kernel root (ADR-022 clause 3, `md/rules-import-only-the-root`), and any adopter could
-  import `/internal` and turn F7 off for globs they wrote. The `WeakSet` stays module-private and
-  nothing adds to it, so every glob is judged as the caller's. Plan 0498 decides where the mark
-  lives; recorded there.
+  import `/internal` and turn F7 off for globs they wrote. The verify round then deleted the
+  writerless `WeakSet` and its F7 branch too (architect N2, testing N1): untested code whose only
+  job was to soften a fail-closed finding. Every glob is judged as the caller's. Plan 0498 adds the
+  mark, with its test, when it adds a writer; recorded there.
+- **Judged none names its cause** (verify round, enforcement N1). A selection whose values were
+  read but whose every document sits in no group's folders, with a value no group names, is not a
+  misspelt label: the live values are undeclared, or the selection misses the bound folders. That
+  case says `N selected documents carry values no group names (Draft, Open) and sit in no group's
+folders: declare them in a 'rest' group, or select a folder a group binds`; only when no value
+  was read does it say `the field read no value`. Both stay unsuppressable. Sabotage row C1 below.
 - **The values are a closed set within the bound folders,** not "in every direction" as the first
   JSDoc, README and docs said (enforcement I3): a document in no group's folders whose value is in no
   group gets no verdict. A `'rest'` group closes the set everywhere. The claim is narrowed; the code
@@ -677,17 +689,18 @@ restored with `git checkout`. Every row red; the test named is the one its break
 **Batch review fix pass, 2026-10-19,** on branch `batchfix/afw`, after the code commit. Same method;
 row 10 above was re-run here.
 
-| row | mutant                                                                   | red on                                                                                                        |
-| --- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| A1a | the judged-none finding dropped                                          | all four judged-none shapes; the F5 withheld-only selection; the unbound `Fixd` selection (6)                 |
-| A1b | the first design back: `examined` 0 when an agreement judged none        | "declared empty: the declaration expires, and the finding stands"; alone; beside `beUniqueBy`; F5; `Fixd` (5) |
-| A1c | judged none reported only when every condition is an agreement           | "a misspelt label beside another condition is red, and examined is the selection"                             |
-| A1d | judged none over the union of agreements                                 | "a misspelt label beside a good agreement is red on its own"                                                  |
-| A4  | an unbound unreadable value silent under value → folder (testing I1)     | "F5: an unbound value that cannot be read is reported value to folder, not folder to value"                   |
-| A5  | the `direction` refusal removed (testing I2)                             | "refuses an unknown direction when the rule runs, as a JavaScript caller can write one"                       |
-| A6  | a dead group's value reported in a bound folder (testing M1)             | the F7 dead-glob row, now with a `Fixed` record in a live folder                                              |
-| A14 | a no-value record not judged (testing M2)                                | "F4: a record with no value is judged, so a selection of only such records is not judged none"                |
-| M3  | a frozen record told it is misspelt (testing M3, the identity assertion) | "a frozen record in a bound folder is judged"                                                                 |
+| row | mutant                                                                   | red on                                                                                                                                                                                  |
+| --- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1a | the judged-none finding dropped                                          | all four judged-none shapes; the F5 withheld-only selection; the unbound `Fixd` selection (6)                                                                                           |
+| A1b | the first design back: `examined` 0 when an agreement judged none        | "declared empty: the declaration expires, and the finding stands"; alone; beside `beUniqueBy`; F5; `Fixd` (5)                                                                           |
+| A1c | judged none reported only when every condition is an agreement           | "a misspelt label beside another condition is red, and examined is the selection"                                                                                                       |
+| A1d | judged none over the union of agreements                                 | "a misspelt label beside a good agreement is red on its own"                                                                                                                            |
+| A4  | an unbound unreadable value silent under value → folder (testing I1)     | "F5: an unbound value that cannot be read is reported value to folder, not folder to value"                                                                                             |
+| A5  | the `direction` refusal removed (testing I2)                             | "refuses an unknown direction when the rule runs, as a JavaScript caller can write one"                                                                                                 |
+| A6  | a dead group's value reported in a bound folder (testing M1)             | the F7 dead-glob row, now with a `Fixed` record in a live folder                                                                                                                        |
+| A14 | a no-value record not judged (testing M2)                                | "F4: a record with no value is judged, so a selection of only such records is not judged none"                                                                                          |
+| M3  | a frozen record told it is misspelt (testing M3, the identity assertion) | "a frozen record in a bound folder is judged"                                                                                                                                           |
+| C1  | judged none always says "the field read no value" (verify round)         | "a selection whose values no group names, outside every bound folder, is judged none"; "a live folder whose values no group names reads as undeclared values, not a misspelt label" (2) |
 
 Testing I3's mutant (`onlyAgreements` forced true) no longer has code to apply to; its rule,
 `examined` beside another condition is the selection, is pinned by the `beUniqueBy` row, red under
@@ -708,6 +721,9 @@ The three `check:nonvacuity` rows were each run by hand before the gate: a `Draf
 - [x] `deferred→proposal 017` sending the third worked example to adopter 3, with the question
       whether it would adopt this shape (product N3): adopter contact is the maintainer's, not this
       branch's; recorded in proposal 017's "Consumer follow-up"
+- [ ] validation-owed: `npm run validate` green, and CI green, on PR #251 at its final head;
+      duration reported. The verify-round fixes ran targeted tests and gates only, by the
+      coordinator's instruction.
 - [x] Close: this plan → `completed/`; ROADMAP row; links in ADR-022, plan 0498 and proposal 017
 
 Deferred: proposal 017

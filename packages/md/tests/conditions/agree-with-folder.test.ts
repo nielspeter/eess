@@ -379,7 +379,7 @@ describe('agreeWithFolder: values, frozen records and evidence', () => {
       .violations()
     expect(v.examined).toBe(2)
     expect(declared(v)).toEqual([
-      'selected 2 documents, judged none: the field read no value (check its label, forms or region)',
+      "2 selected documents carry values no group names (Fixd) and sit in no group's folders: declare them in a 'rest' group, or select a folder a group binds",
     ])
   })
 
@@ -443,5 +443,42 @@ describe('agreeWithFolder: an agreement that judged none', () => {
       .violations()
     expect(judgedNone(v)).toHaveLength(1)
     expect(judgedNone(v)[0]?.element).toBe('agreeWithFolder → Sate')
+  })
+
+  it('a live folder whose values no group names reads as undeclared values, not a misspelt label', () => {
+    // The enforcement verify review's healthy shape: a done group only, the live folder selected.
+    const c = corpus({
+      cwd: tree({
+        'w/a.md': record('Draft'),
+        'w/c.md': record('Open'),
+        'done/x.md': record('Done'),
+      }),
+      roots: ['**/*.md'],
+      frozen: [],
+    })
+    const undeclared =
+      "2 selected documents carry values no group names (Draft, Open) and sit in no group's folders: declare them in a 'rest' group, or select a folder a group binds"
+    for (const direction of DIRECTIONS) {
+      const rule = docs(c)
+        .that()
+        .resideInFolder('w/**')
+        .should()
+        .agreeWithFolder(opts(direction, [{ values: ['Done'], folders: ['done/**'] }]))
+      expect(declared(rule.violations())).toEqual([undeclared])
+      expect(declared(rule.excluding(/.*/).violations())).toEqual([undeclared])
+    }
+    // The remedy the message names: a 'rest' group for the live values is green.
+    const rest = docs(c)
+      .that()
+      .resideInFolder('w/**')
+      .should()
+      .agreeWithFolder(
+        opts('both', [
+          { values: ['Draft', 'Open'], folders: 'rest' },
+          { values: ['Done'], folders: ['done/**'] },
+        ]),
+      )
+      .violations()
+    expect(rest).toHaveLength(0)
   })
 })

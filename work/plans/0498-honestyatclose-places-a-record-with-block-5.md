@@ -9,8 +9,9 @@
   `markDefaultFolders` shipped briefly on `@nielspeter/eess-md/internal` and was removed, because
   ADR-022 clause 3 lets `packages/md/src/rules/ledger.ts` import only the md root and the kernel
   root (`md/rules-import-only-the-root`), and on `/internal` any adopter could turn F7 off for its
-  own globs. The condition keeps a module-private `WeakSet` that nothing adds to. This plan decides
-  where the mark lives before it can use it.
+  own globs. The writerless `WeakSet` and its F7 branch were then deleted too (PR #251's verify
+  round). This plan decides where the mark lives, and adds the mark, its F7 branch and their test
+  when it adds a writer.
 - **Implements:** proposal 017
 - **Priority:** Medium. Proposal 017's block 5 row: "`honestyAtClose`'s placement half is then
   rebuilt on it, so there is one placement check". It also removes ADR-022's `model/label.ts` edge.
