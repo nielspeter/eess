@@ -204,7 +204,9 @@ export function collectTaskItems(
   options: TaskItemOptions & { readonly source: string },
 ): MdTaskItemRef[] {
   validateMarks(options.marks, 'collectTaskItems')
-  const marks = options.marks ?? {}
+  // Only the own keys validation read: a state on the prototype is never looked up, so it cannot be
+  // forged past the check (release review, enforcement M1).
+  const marks = Object.fromEntries(Object.entries(options.marks ?? {}))
   const out: MdTaskItemRef[] = []
   const visit = (node: Nodes, inBlockquote: boolean): void => {
     if (node.type === 'blockquote') {

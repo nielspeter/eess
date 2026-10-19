@@ -41,6 +41,12 @@ A third declarable state, `'unjudged'`:
   unjudged only where the caller wrote `'unjudged'`; an undeclared mark is still a finding (ADR-009).
 - `collectTaskItems` now validates its `marks` too. Before, it passed any value through as the box's
   `state`, so an untyped caller could forge a state by writing it.
+  **Note (2026-10-19, PR #253's enforcement review, M1):** validation read only own keys, while the
+  lookup also read the prototype, so a state inherited from it (`Reflect.setPrototypeOf(marks,
+{ '~': 'bogus' })`) still came through. `collectTaskItems` now copies the own keys once after
+  validating and looks marks up only there; the test "collectTaskItems reads only own marks, so an
+  inherited state cannot be forged" went red (`~:bogus`) before that change and green after. The
+  forgery is closed for own and inherited keys alike.
 - An unjudged box is a `taskItems()` element with `checked: false`. `areOpen()` and `areChecked()`
   do not select it, so `honestyAtClose` neither asks it for a disposition nor counts it as done, and
   a deferral on it is not a deferral. A rule selects it by its mark or by `state === 'unjudged'`.

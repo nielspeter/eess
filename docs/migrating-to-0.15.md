@@ -20,6 +20,8 @@ and the dialects import members that are new in kernel 0.8.0 (`globTextFault`,
 beside it. **Upgrade the packages you use together.** `eess-crossvalidate` 0.10.0 raises its peer
 floors to this release's dialects: `eess-ts` 0.14.0, `eess-md` 0.12.0, `eess-mermaid` 0.8.1 and
 `eess-gherkin` 0.7.0 or later. An older dialect installed beside it is a peer-dependency conflict.
+The floors have no ceiling, so a future dialect built on a newer kernel is not refused this way: keep
+the family on one release.
 
 **Most of the work is in `eess-md`.** It carries nine breaking changesets, and nearly all of them
 make a check that used to pass over nothing say so. Expect findings on documents you did not
@@ -267,19 +269,29 @@ finding suggests `aliases: ['Status']`, and in a corpus where every record write
 `Status:` of their own (`open`, `parked`, `promoted`). Two topics said `Status: open`, which matches
 the default vocabulary's `Open`. Adding `aliases: ['Status']` read every topic's status as a ledger
 state and gave 224 findings; adding a `State:` line to the topics would have invented a state. The
-fix was to narrow the corpus to the lanes that write `State:`:
+fix was to narrow the corpus to the lanes that write `State:`. In the trial that took 4 of 394
+documents, and 14 of 461 open boxes, out of the ledger's counts.
+
+**`ignore` is never judged.** `corpus()` refuses a dead root, but not an `ignore` glob that matches
+nothing or matches too much, so a ledger record filed later under an ignored folder glob is skipped
+without a word. Name the exact files, not a folder glob, or narrow `roots` to the lanes that write
+`State:` instead, since a root is judged:
 
 ```ts
 import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
-// Refinement topics write a lane Status (open/parked/promoted), not a ledger State.
-const c = corpus({ roots: ['work/**'], ignore: ['work/refinement/*.md'] })
+// These topics write a lane Status (open/parked/promoted), not a ledger State. Named one by one,
+// so a record filed beside them later is still read.
+const c = corpus({
+  roots: ['work/**'],
+  ignore: ['work/refinement/topic-a.md', 'work/refinement/topic-b.md'],
+})
 honestyAtClose(c)
 ```
 
-That took 4 of 394 documents, and 14 of 461 open boxes, out of the ledger's counts. `ledger/no-readable-state`, raised once per call, has the same remedy: the call
-covers folders that hold no records, so narrow the corpus or pass `ignore`.
+`ledger/no-readable-state`, raised once per call, has the same remedy: the call covers folders that
+hold no records, so narrow the corpus's `roots`, or `ignore` the exact files.
 
 A state written as a heading in the header, `## Status: Done`, is now read under the labels in force.
 Pass the label your records use: `label: 'Status'`, or `label: 'Status', aliases: ['State']` if they

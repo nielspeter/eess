@@ -94,6 +94,18 @@ describe('a mark declared unjudged (bug 0525)', () => {
 })
 
 describe('unjudged is declared, never a default (bug 0525, ADR-009)', () => {
+  it('collectTaskItems reads only own marks, so an inherited state cannot be forged', () => {
+    const doc = page(['- [~] a']).documents()[0]
+    expect(doc).toBeDefined()
+    if (doc === undefined) return
+    // An untyped caller's marks with the state on the prototype: validation sees no own key.
+    const forged: Record<string, unknown> = {}
+    Reflect.setPrototypeOf(forged, { '~': 'bogus' })
+    // @ts-expect-error a forged state is what this row refuses
+    const items = collectTaskItems(doc.root, { marks: forged, source: doc.text })
+    expect(items.map((t) => `${t.mark}:${t.state}`)).toEqual(['~:undeclared'])
+  })
+
   it('an undeclared [?] beside a mark declared unjudged is still a finding', () => {
     const c = at({ 'completed/b.md': DONE(['- [~] a', '- [?] b']) })
     expect(pairs(honestyAtClose(c, { marks: { '~': 'unjudged' }, report: 'return' }))).toEqual([
