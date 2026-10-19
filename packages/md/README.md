@@ -164,8 +164,8 @@ show one, and [worked examples](https://github.com/nielspeter/eess/tree/main/exa
 
 ## Inside each section: `sections()`
 
-A requirement that holds per section, not per document, is a rule over `sections(c)`. Each heading at a
-document's top level is an element (`MdSectionElement`): its `name`, `depth` and `line`, the headings
+A requirement that holds per section, not per document, is a rule over `sections(c)`. Each heading not inside a list
+item, blockquote or footnote, at any depth, is an element (`MdSectionElement`): its `name`, `depth` and `line`, the headings
 that enclose it (`sectionPath`), and `endLine`, the line before the next heading at its depth or
 shallower (else the document's last line). A section holds its heading line and every line to
 `endLine`, its subsections included; a depth skip nests (`#### B` under `## A` is in `A`).
@@ -215,9 +215,11 @@ columns; `sections().haveTable({ columns })` asserts it of every selected sectio
 
 What a section holds is read after its heading through its last line, subsections included, so a
 block in the next section never counts. A document's title is `docs().haveTitle(name?)`: its first
-heading at the top level, which must be at depth 1, and match `name` when given (a string exactly, or
-a `RegExp`); a document with no heading, or whose first heading is at depth 2, is a finding saying
-which. A live code pointer under a named section is three rules reading one `const`:
+heading not inside a list item, blockquote or footnote, which must be at depth 1, and match `name`
+when given (a string exactly, or a `RegExp`); a document with no heading, or whose first heading is at
+depth 2, is a finding saying which, and a depth-1 heading written inside a container is named. A
+front-matter `title:` is not read: a site whose pages keep their title there has no title to this
+condition. A live code pointer under a named section is three rules reading one `const`:
 
 ```ts
 import { corpus, docs, inSections, pointers, sections, sectionsNamed } from '@nielspeter/eess-md'
