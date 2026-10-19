@@ -72,25 +72,30 @@ open found real partly-done boxes in closed records ("6 of 9 done") that had pas
 rewrite the box as `[ ]` or `[x]`; rewrite a `[ x ]` or an empty box; and escape (`\[`) or
 code-span a bracket that is not a box.
 
-<!-- TODO(bug 0525): confirm the third state's name and semantics against fix/mark-not-judged before tagging; rewrite this paragraph from its changeset. -->
-
-**A mark that records "not judged", such as `[?]`, is neither open nor done.** Declaring it
+**A mark for a box nobody should judge, such as `[?]`, is `'unjudged'`** (bug 0525). Declaring it
 `'open'` asks for a disposition on every such box (in one corpus with 1,680 `[?]` boxes, that gave
-3,344 findings), and declaring it `'done'` claims a verification that never happened. Declare it
-with the third state, `'unjudged'` (bug 0525):
+3,344 findings), and declaring it `'done'` claims work that was never done. An unjudged box is
+neither: `areOpen()` and `areChecked()` do not select it, `honestyAtClose` neither asks it for a
+disposition nor counts it as finished, and a `deferred→` on it is not a deferral. A rule still
+selects it by its mark or by `state === 'unjudged'`. Only a declaration makes a mark unjudged; an
+undeclared mark is still a finding. `collectTaskItems()` now validates its `marks` too, so a state
+that is not one of the three, `undefined` included, is refused there as well.
 
 ```ts
-import { taskItems } from '@nielspeter/eess-md'
+import { corpus, taskItems } from '@nielspeter/eess-md'
 
 export const BOX_MARKS = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
 
-taskItems(c, { marks: BOX_MARKS })
+const c = corpus({ roots: ['work/**'] })
+taskItems(c, { marks: BOX_MARKS }).that().areOpen().should().notExist().check()
 ```
+
+More in [box marks](./markdown.md#box-marks).
 
 ### eess-md: types that gained required fields
 
 - `MdTaskItemRef` gains `mark` and `state`. `MdTaskItem` no longer extends it: it carries `mark` and a
-  `state` of `'open' | 'done'`. Add both to any you construct.
+  `state` of `'open' | 'done' | 'unjudged'`. Add both to any you construct.
 - `MdTerm` gains `label` (as written, without its colon) and `form` (`'pattern'` for a `terms()`
   element). Add both to any literal you build.
 - `TermRuleBuilder`'s constructor takes a different argument. Build one with `terms()` or `fields()`;

@@ -248,8 +248,8 @@ summary line rather than silently skipping unreachable pointers.
 `TaskItemRuleBuilder` over the corpus's GFM task-list items (`- [ ]` /
 `- [x]`), and any extra mark you declare (see "Box marks" below). Its elements
 are `MdTaskItem` (`mark`, `state`, `checked`, `text`, `line`, `doc`), with a
-`state` of `'open'` or `'done'`; `.areOpen()` selects `state === 'open'` and
-`.areChecked()` `state === 'done'`. A box's `text` is all of its own content:
+`state` of `'open'`, `'done'` or `'unjudged'`; `.areOpen()` selects
+`state === 'open'` and `.areChecked()` `state === 'done'`. A box's `text` is all of its own content:
 every paragraph of the item and every sub-item that is not itself a box, joined
 by single spaces. The underlying extraction,
 `collectTaskItems(root, { marks, source })`, takes the document's text as
@@ -280,7 +280,7 @@ corpus builder chain.
 
 GFM reads `[ ]` as open and `[x]` (or `[X]`) as done. A corpus that writes other
 marks, such as `[~]` for partly done or `[→]` for moved to another record,
-declares what each one means, as `'open'` or `'done'`:
+declares what each one means, as `'open'`, `'done'` or `'unjudged'`:
 
 ```ts
 import { corpus, taskItems } from '@nielspeter/eess-md'
@@ -299,8 +299,9 @@ A declared open mark is an open box, and needs a disposition in a closed record
 just as `[ ]` does. A declared done mark is a closed box, so declare `'done'`
 only for a mark that means the work is finished. A declaration that is not one
 grapheme, that is GFM's own space, `x` or `X`, that is a bracket or whitespace,
-or whose state is not one the dialect knows, is refused with an
-`ArchConfigError`.
+or whose state is not one of the three (`undefined` included), is refused with
+an `ArchConfigError`, by `taskItems()`, `honestyAtClose()` and
+`collectTaskItems()` alike.
 
 A mark nobody declared is `md/undeclared-box-mark`, reported once per document
 and mark. A near-GFM box (`[ x ]`, `[x]done`, an empty `- [ ]` or `- [x]`) is
@@ -315,20 +316,30 @@ code-span a bracket that is not a box.
 was not given the constant reports every extra mark as undeclared. Two copies of
 the declaration drift.
 
-<!-- TODO(bug 0525): confirm the third state's name and semantics against fix/mark-not-judged before tagging; rewrite this paragraph from its changeset. -->
-
-**A mark that records "not judged", such as `[?]`, is neither open nor done.**
-Declaring it `'open'` asks for a disposition on every such box, and declaring it
-`'done'` claims a verification that never happened. Declare it with the third
-state, `'unjudged'` (bug 0525):
+**A mark for a box nobody should judge, such as `[?]`, is `'unjudged'`.**
+Declaring such a mark `'open'` asks for a disposition on every box, and
+declaring it `'done'` claims work that was never done. An unjudged box is neither:
+`.areOpen()` and `.areChecked()` do not select it, so `honestyAtClose` neither
+asks it for a disposition nor counts it as finished, and a `deferred→` written on
+it is not a deferral. It is still a `taskItems()` element, with `checked: false`,
+so a rule selects it by its mark or by its state:
 
 ```ts
-import { taskItems } from '@nielspeter/eess-md'
+import { corpus, taskItems } from '@nielspeter/eess-md'
 
 export const BOX_MARKS = { '~': 'open', '→': 'done', '?': 'unjudged' } as const
 
-taskItems(c, { marks: BOX_MARKS })
+const c = corpus({ roots: ['work/**'] })
+const unjudged = taskItems(c, { marks: BOX_MARKS })
+  .that()
+  .satisfy({ description: 'unjudged', test: (t) => t.state === 'unjudged' })
+unjudged.should().notExist().check()
 ```
+
+Only a declaration makes a mark unjudged. A mark nobody declared is still
+`md/undeclared-box-mark`, and its remedy names `'unjudged'` beside `'open'` and
+`'done'`. A rule whose predicate selects the unjudged state also reaches an
+undeclared box, so it reports the mark rather than missing it.
 
 ### Selecting the links a block declares: `areLabelled` and `areInSection`
 
