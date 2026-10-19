@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-18, split from
-  [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md) after PR #235's review (method, B2: one
+- **State:** Done — built 2026-10-19 from the reviewed Draft, as plans 0456 and 0486 were; split
+  from [plan 0456](./0456-kernel-notexist-and-dead-glob.md) after PR #235's review (method, B2: one
   plan held two independent kernel conditions, a break in a third package and a dogfood rule).
 - **Implements:** proposal 017
 - **Priority:** Medium. Two of the three adopters want block 13 (017, "Consumer feedback"), and
@@ -11,8 +11,8 @@
 - **Effort:** Medium. One kernel condition, one eess-md builder method, one eess-gherkin condition
   rebuilt (a break), one rule in `check:corpus` with its non-vacuity row. One pull request.
 - **Created:** 2026-10-18
-- **Builds after:** [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md) (it uses 0456's `/internal`
-  shape and md's root exports) and [plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
+- **Builds after:** [plan 0456](./0456-kernel-notexist-and-dead-glob.md) (it uses 0456's `/internal`
+  shape and md's root exports) and [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)
   (the examples gate). Build order (maintainer, 2026-10-18): 0458 → 0456 → 0454 → 0457 → 0455 →
   **0459**.
 
@@ -380,15 +380,84 @@ These findings were made against plan 0456 before the split; they apply here.
 - **method R5-5 / coordinator decision 5** (a stale line saying the board row was someone else's):
   deleted; the board's `Blocked on` for this plan reads "plans 0456, 0458".
 
+## Build notes — 2026-10-19
+
+Built as written, at commit 76ca7ba on `main` 9675402. What differs from the text above, each
+decided from the ADRs and overrulable:
+
+- **eess-gherkin re-exports the `ConditionContext` type.** `scenarioViolation` names it, and
+  `check:family` (plan 0089) requires a dialect to re-export every kernel symbol its own source
+  imports; the first run red on exactly that. Additive, and named in gherkin's changeset.
+- **gherkin's `load.test.ts` denominator is 8 feature files, not 6.** The per-file-key test needs two
+  fixtures, `same-title-a.feature` and `same-title-b.feature`; that test counts every fixture under
+  `**/*.feature` on purpose, so it was updated rather than the fixtures hidden.
+- **`scenarioViolation` keeps gherkin's conditional spread** (`ruleId`, `because`, `suggestion` and
+  `docs` omitted when undefined) rather than md's explicit-`undefined` shape, so gherkin's findings
+  serialise as before apart from the listed break.
+- **The dogfood rule carries a `because` and a `suggestion`** (`npm run next-number`); the plan's
+  sketch had neither, and every other rule in `check:corpus` has both.
+- **The count line** reads `numbers   N record number(s), one per numbered record under work/ · ✓ no
+number claimed twice`, not "N values across N documents": one document yields one value, so the
+  two counts are the same number. On this tree N is 445 (the plan measured 409 + 1 on 2026-10-18);
+  `git ls-files 'work/**/*.md'` filtered by the same pattern also gives 445, the directory-form record
+  among them.
+- **`gateCorpusProbeDir` also requires the terminal run to print the rule's own message**
+  (`has the same record number as 1 other`). A probe directory under `work/` can red another rule
+  (the Lanes table reads `work/`'s directories), so exit 1 alone could be borrowed. The plan's
+  `gateCorpusProbe` asserts exit 1 only, as its precedent `gateCorpusWorkPointer` does.
+- **Each row takes a list of fragments** and asserts `firedOn` for every one: the probe and the real
+  record it collides with.
+- **The freeze test asserts `Object.isFrozen`**, as plan 0456's `notExist` test does, rather than
+  assigning to `evaluate`; no sabotage row claims it.
+- **Both READMEs**: eess-md gains the section the plan names; eess-gherkin gains one sentence under
+  its example saying every member is reported and what the element is, since its example is where an
+  adopter meets the changed behaviour.
+
+**Red first, on base 9675402.** `packages/core/tests/unique-by.test.ts`: 12 of 12 failed
+(`uniqueByCondition` not exported). `packages/md/tests/docs-unique-by.test.ts`: 2 of 2 failed
+(`beUniqueBy is not a function`). eess-gherkin's three changed tests (every member, the exclusion,
+the waiver) failed; the two-files test passed on base, as a pin of a key the rebuild could lose
+(sabotage row 5 proves it holds). The example was not run on base: it calls the method md's test
+showed missing.
+
+**Sabotage matrix, 2026-10-19, at 76ca7ba.** Each row: the mutant applied, the kernel rebuilt where
+it changed, the named test run with `-t`, the file restored by `git checkout`, the tree clean after.
+Rows 1–5, 7 and 8 took 0.8–1.8 s each; row 6 took 6.7 s (a full `check:corpus`).
+
+| Row | Mutant                                                | Named test                                                                            | Result |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------- | ------ |
+| 1   | `uniqueByCondition`'s `evaluate` returns `[]`         | a group of three gives three findings, each naming the other two                      | red    |
+| 2   | it skips the first member of each group               | a group of three gives three findings, each naming the other two                      | red    |
+| 3   | it lowercases keys                                    | compares keys exactly: A and a are distinct                                           | red    |
+| 4   | it trims keys                                         | compares keys exactly: 7 and 7-space are distinct                                     | red    |
+| 5   | gherkin's key is the title alone                      | passes the same title in two different feature files                                  | red    |
+| 6   | `check:corpus` keys every numbered record by `'1'`    | `node scripts/check-corpus.mjs`: exit 1, `✗ 445 finding(s)`                           | red    |
+| 7   | `Object.freeze` replaced by `marksAssertsCardinality` | zero elements is the kernel zero-examined finding, not a pass                         | red    |
+| 8   | `LISTED = Infinity`                                   | a group of twelve lists ten other locations and 1 more in each of its twelve findings | red    |
+
+Row 6's first mutant mixed `||` with `??`, a syntax error, so the script died before judging
+anything; it was rewritten as a key function the rule is handed instead, and run again.
+
+**Non-vacuity**, run alone with `QA_ONLY`: `corpus/record-number-unique` and
+`corpus/record-number-unique/directory-form` OK (json exit 1 naming both paths, terminal exit 1
+with the rule's message; 24 s for both). `examples/md-fixtures-are-load-bearing` OK: 6 examples, 9 of
+9 judgements load-bearing both ways (14 s).
+
+**Gates, each once on this tree:** `check:family` 1 rule, 0 failing (0.8 s; red once on
+`ConditionContext`, above); `check:arch` 33 rules, 0 failing (10 s); `check:release` 3 changed
+packages, 0 findings, no declared break has a workspace dependent (0.4 s); `check:docs-code` (2 s);
+`check:examples` (1.1 s); `check:corpus` 0 violations (6 s); `check:surface` (0.1 s).
+
 ## Progress ledger
 
-- [ ] Phase 1: `uniqueByCondition` with its kernel tests
-- [ ] Phase 2: `docs().beUniqueBy()`, README, the example
-- [ ] Phase 3: gherkin rebuilt, break declared with its migration line
-- [ ] Phase 4: `corpus/record-number-unique` with its count line and non-vacuity row
-- [ ] Sabotage rows 1–8, each red on its named test; durations reported
-- [ ] `check:family`, `check:release`, `check:docs-code`, `check:examples` and `npm run validate`
-      green; durations reported
-- [ ] Close: this plan → `completed/`; boards
+- [x] Phase 1: `uniqueByCondition` with its kernel tests
+- [x] Phase 2: `docs().beUniqueBy()`, README, the example
+- [x] Phase 3: gherkin rebuilt, break declared with its migration line
+- [x] Phase 4: `corpus/record-number-unique` with its count line and non-vacuity row
+- [x] Sabotage rows 1–8, each red on its named test; durations reported
+- [x] `check:family`, `check:release`, `check:docs-code`, `check:examples` green; durations reported
+- [ ] validation-owed: `npm run validate` green; duration reported (it runs after this record is
+      written, at the branch's head; its result goes with the pull request, and CI is the gate)
+- [x] Close: this plan → `completed/`; boards
 
 Deferred: none

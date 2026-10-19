@@ -1811,15 +1811,20 @@ function gateCorpusProbe(probePath, probeContent, ruleId, fileFragment) {
 
 /**
  * `gateCorpusProbe` for a probe that needs its own directory (`withProbeDir`), asserting the rule
- * fired on EVERY fragment, so a rule that fires on the probe alone cannot pass (plan 0459).
+ * fired on EVERY fragment, so a rule that fires on the probe alone cannot pass (plan 0459). The
+ * terminal run must also print `terminalSays`: a probe directory under `work/` can red another rule
+ * (the Lanes table reads `work/`'s directories), and exit 1 alone would then be borrowed.
  */
-function gateCorpusProbeDir(dir, probePath, probeContent, ruleId, fileFragments) {
+function gateCorpusProbeDir(dir, probePath, probeContent, ruleId, fileFragments, terminalSays) {
   const { json, terminal } = withProbeDir(dir, probePath, probeContent, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
     terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
   const ok =
-    json.code === 1 && fileFragments.every((f) => firedOn(json, ruleId, f)) && terminal.code === 1
+    json.code === 1 &&
+    fileFragments.every((f) => firedOn(json, ruleId, f)) &&
+    terminal.code === 1 &&
+    terminal.stderr.includes(terminalSays)
   return {
     ok,
     detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId}, ${fileFragments.join(' + ')})`,
@@ -1839,6 +1844,7 @@ function gateCorpusRecordNumberFlat() {
       'work/__nonvacuity_probe_dup__/0439-dup.md',
       'work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md',
     ],
+    'has the same record number as 1 other',
   )
 }
 
@@ -1853,6 +1859,7 @@ function gateCorpusRecordNumberDirForm() {
       'work/__nonvacuity_probe_dup__/0001-dup.md',
       'work/spikes/0001-eess-over-ts-archunit/README.md',
     ],
+    'has the same record number as 1 other',
   )
 }
 
