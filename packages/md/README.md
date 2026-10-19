@@ -342,6 +342,11 @@ Every member of a group is a finding at its own line, naming the others, so excl
 does not hide the group. Values compare exactly (`066` and `0066` differ): normalise in `key`.
 Select away a document without a value with `.that()` first.
 
+For a value under a label (an Id, a number in a `**No:**` line), use the same method on `fields()`:
+`fields(c, { label: 'Id', forms: ['bold'] }).should().beUniqueBy((f) => f.value, 'Id')` reports each
+occurrence at its own line. [The Markdown dialect's docs](../../docs/markdown.md#unique-values-beuniqueby)
+cover both forms.
+
 ```ts
 import { corpus, docs } from '@nielspeter/eess-md'
 

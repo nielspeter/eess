@@ -323,6 +323,9 @@ two m15; testing, round two M9).
 ## Out of scope
 
 - `beUniqueBy` on md builders other than `docs()`; a value-level form waits for block 1.
+  _Note 2026-10-19: no longer out of scope. The value-level form shipped on `fields()` and `terms()`
+  in this plan's addendum (below), after block 1 had shipped; its open signature questions are
+  [bug 0518](../../bugs/0518-beuniquebys-signature-is-unsettled-before-1-0.md)._
 - Normalising keys in the kernel (block 1's normaliser).
 - Retiring `check:numbers`.
 
@@ -382,7 +385,7 @@ These findings were made against plan 0456 before the split; they apply here.
 
 ## Build notes — 2026-10-19
 
-Built as written, at commit 76ca7ba on `main` 9675402. What differs from the text above, each
+Built as written, at commit 76ca7ba (pre-rebase) on `main` 9675402. What differs from the text above, each
 decided from the ADRs and overrulable:
 
 - **eess-gherkin re-exports the `ConditionContext` type.** `scenarioViolation` names it, and
@@ -420,7 +423,7 @@ the waiver) failed; the two-files test passed on base, as a pin of a key the reb
 (sabotage row 5 proves it holds). The example was not run on base: it calls the method md's test
 showed missing.
 
-**Sabotage matrix, 2026-10-19, at 76ca7ba.** Each row: the mutant applied, the kernel rebuilt where
+**Sabotage matrix, 2026-10-19, at 76ca7ba (pre-rebase).** Each row: the mutant applied, the kernel rebuilt where
 it changed, the named test run with `-t`, the file restored by `git checkout`, the tree clean after.
 Rows 1–5, 7 and 8 took 0.8–1.8 s each; row 6 took 6.7 s (a full `check:corpus`).
 
@@ -468,7 +471,7 @@ The batch's product review (I3) found that this plan delivered block 13 for keys
 document (a slug, a number in the file name) but not proposal 017's ask itself: "no two documents
 carry the same value under this label". This plan's Out of scope deferred that form to block 1's
 field elements, and block 1 has shipped (`fields()`). The coordinator decided the ask on 2026-10-19,
-and it was built at e24c9b55 on `release/batch-builds` d1ed1fe:
+and it was built at e24c9b55 (pre-rebase) on `release/batch-builds` d1ed1fe (pre-rebase):
 
 - **`beUniqueBy(key, what)` on `TermRuleBuilder`**, so on `fields()` and `terms()`, on the same
   kernel `uniqueByCondition`. Each element is one occurrence of the value, reported at its own line
@@ -488,10 +491,10 @@ has no value this rule can read in '✅'`) and stays out of the grouping. Decide
   `agreeWithFolder`, covering the document-keyed and value-keyed forms (product M1). Proposal 017's
   block-13 row records delivery at value level. Changeset: eess-md minor.
 
-**Red first.** `packages/md/tests/builders/fields-unique-by.test.ts` failed 6 of 6 on d1ed1fe
+**Red first.** `packages/md/tests/builders/fields-unique-by.test.ts` failed 6 of 6 on d1ed1fe (pre-rebase)
 (`beUniqueBy is not a function`).
 
-**Sabotage matrix, at e24c9b55**, each mutant in `packages/md/src/builders/vocabulary.ts`, its named
+**Sabotage matrix, at e24c9b55 (pre-rebase)**, each mutant in `packages/md/src/builders/vocabulary.ts`, its named
 test run with `-t`, restored by `git checkout`, tree clean after; 0.8 s per row:
 
 | Row | Mutant                                                 | Named test                                                           | Result |
@@ -506,5 +509,11 @@ test run with `-t`, restored by `git checkout`, tree clean after; 0.8 s per row:
 `check:examples` 47 tests (2 s); `check:family` (4 s); `check:arch` 37 rules (9 s); `check:release` 0
 findings (1 s); `examples/md-fixtures-are-load-bearing` OK, 9 examples, 17 of 17 judgements (24 s).
 The full `npm run validate` was not run for this addendum, by the coordinator's instruction.
+
+SHAs marked "(pre-rebase)" name commits from before the branch was rebased into PR #251; they are
+not on the merged history, and the trees they ran on are this addendum's (note 2026-10-19).
+
+- [ ] validation-owed: `npm run validate` and CI green on PR #251's head, for the addendum; the
+      result is recorded on the pull request, and CI is the gate
 
 Deferred: none.
