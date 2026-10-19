@@ -2,6 +2,6 @@
 
 **Status:** open
 
-## Acceptence criteria
+## Acceptance criteria
 
 - [ ] an export holds every row

@@ -328,6 +328,14 @@ text. A pattern used to exclude (`not(haveTextMatching(…))`) fails closed. A g
 pattern is a rule of the same tautology shape over the same elements. A section predicate wrapped in
 `not()`, `and()` or `or()` inside `inSections` is not seen by the section-name scan.
 
+**One document drifting is a second guard's.** The existence guard reds when no document has the
+section; it stays green when one record writes `## Acceptence criteria` and another the right
+spelling, and the drifted record's boxes are never judged. Where every selected document carries the
+section, add the per-document guard, reading the same `const`:
+`docs(c).that().satisfy(CLOSED).should().haveSection(ACCEPTANCE)`. Where the convention does not hold
+(some documents legitimately lack the section), nothing catches a drifted heading in one of them
+unless it misses the name only by case or spacing.
+
 ## Scoping a rule to documents: `inDocuments`
 
 A note on names first. A plain name on this package's root keeps the kind it was first published as:

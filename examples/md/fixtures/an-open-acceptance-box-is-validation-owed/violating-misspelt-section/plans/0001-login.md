@@ -9,7 +9,7 @@
 
 ### Detail
 
-- [x] the session survives a reload
+- [ ] the session survives a reload
 
 ## Notes
 

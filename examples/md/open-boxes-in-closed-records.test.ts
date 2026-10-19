@@ -4,8 +4,9 @@
  * box under open questions stays open; (c) done-otherwise hides no deferral, even one written on the
  * box's second line (bug 0507).
  *
- * Each section name and selecting pattern is bound once, to a const the rule and its guard both
- * read: a typo reaches both, so the guard reds. A pattern used to exclude (`DISPOSED`) fails closed
+ * Each section name and selecting pattern is bound once, to a const the rule and its guards read:
+ * a typo reaches both, so the existence guard reds; one record's drifted heading is caught by the
+ * per-document guard, which holds because every closed record carries both sections. A pattern used to exclude (`DISPOSED`) fails closed
  * when misspelt and needs no guard. `DEFERRAL` selects and has none: a clean corpus may hold no
  * deferral at all, so a guard on it would red on a clean corpus. A typo in it, or the adopter's
  * notation drifting from it (`deferred to record 3`), stays green.
@@ -69,6 +70,12 @@ const questionsGuard = (cwd: string) =>
     .should()
     .haveSection(OPEN_QUESTIONS)
 
+// The per-document guards: every closed record has both sections. Where the convention holds, they
+// catch one record whose heading drifted while the others are spelled right; the guards above only
+// catch a section no closed record has.
+const everyRecordHas = (cwd: string, section: RegExp) =>
+  docs(load(cwd)).that().satisfy(IN_CLOSED).should().haveSection(section)
+
 // (c) done-otherwise hides no deferral.
 const hiddenDeferral = (cwd: string) =>
   taskItems(load(cwd))
@@ -97,14 +104,17 @@ const all = (cwd: string) => [
   questionsGuard(cwd).violations(),
   hiddenDeferral(cwd).violations(),
   doneOtherwiseGuard(cwd).violations(),
+  everyRecordHas(cwd, ACCEPTANCE).violations(),
+  everyRecordHas(cwd, OPEN_QUESTIONS).violations(),
 ]
 
 describe('open boxes in closed records', () => {
   it('clean: every rule and every guard holds; the open record is out of scope', () => {
     const results = all(fixture(NAME, 'clean'))
-    expect(results.map((v) => v.length)).toEqual([0, 0, 0, 0, 0, 0])
-    // The guards examined something: the closed record has both sections and a done-otherwise box.
-    expect(results.filter((_, i) => i % 2 === 1).map((v) => v.examined)).toEqual([1, 1, 1])
+    expect(results.map((v) => v.length)).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
+    // The existence guards examined something: both closed records have both sections, and one
+    // has a done-otherwise box.
+    expect([1, 3, 5].map((i) => results[i]?.examined)).toEqual([2, 2, 1])
   })
 
   it('violating-undisposed-acceptance-box: (a) names the box and its section', () => {
@@ -134,5 +144,16 @@ describe('open boxes in closed records', () => {
     const v = doneOtherwiseGuard(cwd).violations()
     expect(v.examined).toBe(0)
     expect(v[0]?.message).toMatch(/^this rule examined zero units/)
+  })
+
+  it('violating-section-drift: one closed record writes "Open questoins"; (b) and its existence guard stay green, the per-document guard reds', () => {
+    const cwd = fixture(NAME, 'violating-section-drift')
+    // Its open question is never judged.
+    expect(openQuestion(cwd).violations()).toHaveLength(0)
+    expect(questionsGuard(cwd).violations()).toHaveLength(0)
+    const v = everyRecordHas(cwd, OPEN_QUESTIONS).violations()
+    expect(v.map((x) => `${x.element}: ${x.message}`)).toEqual([
+      'records/closed/0001-import.md: missing section "/^Open questions$/i"',
+    ])
   })
 })

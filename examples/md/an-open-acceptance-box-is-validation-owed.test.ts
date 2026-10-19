@@ -5,8 +5,10 @@
  * `haveTextMatching` reads what each box says, in the adopter's own words.
  *
  * The ratchet is an absence rule, and an absence rule whose section scope matches nothing is green
- * (ADR-010 §3). The guard beside it reds when no closed record has the section. Both read the section
- * name from one const, so a typo in it reaches both and the guard catches it.
+ * (ADR-010 §3). Two guards stand beside it, each reading the section name from the ratchet's const:
+ * one reds when no closed record has the section (a typo in the const), the other when any closed
+ * record lacks it (one record's heading drifted), which holds here because every closed record
+ * carries the section.
  */
 import {
   corpus,
@@ -54,13 +56,25 @@ const guard = (cwd: string) =>
     .haveSection(ACCEPTANCE)
     .rule({ id: 'acceptance/guard' })
 
+// The per-document guard: every closed record has the section. Where the convention holds, this is
+// what catches one record whose heading drifted while others are spelled right; the guard above
+// only catches a section no closed record has.
+const everyClosedRecord = (cwd: string) =>
+  docs(load(cwd))
+    .that()
+    .satisfy(CLOSED)
+    .should()
+    .haveSection(ACCEPTANCE)
+    .rule({ id: 'acceptance/every-closed-record' })
+
 describe('an open acceptance box in a closed record is validation-owed', () => {
   it('clean: the open acceptance box says validation-owed; the Notes box and the open plan are out of scope', () => {
     const cwd = fixture(NAME, 'clean')
     expect(ratchet(cwd).violations()).toHaveLength(0)
     const guarded = guard(cwd).violations()
     expect(guarded).toHaveLength(0)
-    expect(guarded.examined).toBe(1)
+    expect(guarded.examined).toBe(2)
+    expect(everyClosedRecord(cwd).violations()).toHaveLength(0)
   })
 
   it('violating-open-acceptance-box: an open box under a subsection of the criteria is reported, naming the section', () => {
@@ -74,13 +88,18 @@ describe('an open acceptance box in a closed record is validation-owed', () => {
       'plans/0001-login.md:12 should not exist (under "Acceptance criteria", line 5)',
     )
     expect(guard(cwd).violations()).toHaveLength(0)
+    expect(everyClosedRecord(cwd).violations()).toHaveLength(0)
   })
 
-  it('violating-misspelt-section: the ratchet stays green, and the guard reds', () => {
+  it('violating-misspelt-section: one closed record’s heading drifted; the ratchet and the existence guard stay green, the per-document guard reds', () => {
     const cwd = fixture(NAME, 'violating-misspelt-section')
+    // The drifted record holds an open box without the token, and nothing judges it.
     expect(ratchet(cwd).violations()).toHaveLength(0)
-    const v = guard(cwd).violations()
-    expect(v.examined).toBe(0)
-    expect(v[0]?.message).toMatch(/^this rule examined zero units/)
+    // Another closed record has the section, so the existence guard holds.
+    expect(guard(cwd).violations()).toHaveLength(0)
+    const v = everyClosedRecord(cwd).violations()
+    expect(v.map((x) => `${x.element}: ${x.message}`)).toEqual([
+      'plans/0001-login.md: missing section "/^Acceptance criteria$/i"',
+    ])
   })
 })
