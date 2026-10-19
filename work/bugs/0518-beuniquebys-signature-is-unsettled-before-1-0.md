@@ -44,20 +44,34 @@ Measured 2026-10-19 on 513f378:
 - `UniqueByOptions` has no member tying `locate(e).at` to the finding's `line` (read);
 - neither md signature accepts `why` (read).
 
-## Fix
+## Decision — 2026-10-19, on question 1 (architect M6)
 
-Decide all three together, since they are one signature:
+Decided by the batch coordinator for this release, and accepted: `key` stays `(element) => string`
+on both builders. Widening it to `string | undefined` later changes `docs().beUniqueBy` and
+`fields()`/`terms().beUniqueBy` together, a 0.x `minor` break, made only if it is ever wanted.
+
+"Nothing to key" is handled differently at the two levels, on purpose, and recorded here:
+
+- **Value level** (`fields()`/`terms()`): an empty value (nothing left after cutting) is a finding of
+  its own, with `resolveAgainst`'s message, and is never grouped. `readFields` yields such a value so
+  that a check reports it.
+- **Document level** (`docs()`): a document with nothing to key is the caller's to remove with
+  `.that()` before the condition. A key that returns `''` instead groups every such document as "the
+  same", which is red and never a false pass.
+
+Questions 2 and 3 stay open below.
+
+Question 1 is decided above. The other two are settled before 1.0, together, since they are one
+signature:
 
 - an options-object overload (`beUniqueBy({ key, what, why? })`) beside or instead of the positional
   form, before 1.0;
-- whether `key` may return `undefined`, and if it may, what the document-level form reports for it
-  (the value-level form's "cannot read" finding is the precedent);
 - either derive `at` from the finding's location or document in `UniqueByOptions` that the two must
   agree.
 
 ## Verification
 
-- [ ] The decision recorded (here, or in an ADR if it binds other conditions).
+- [ ] The decisions on questions 2 and 3 recorded (here, or in an ADR if they bind other conditions).
 - [ ] Red test written first for each change the decision makes.
 - [ ] `npm run validate` green.
 
