@@ -84,6 +84,12 @@ That default names no folder or document shape, only "what you handed me" (017's
 calls that default a document-shape default on the root primitive and owes a flagged break to remove
 it; that break now moves both constructors, and its changeset names both.
 
+Note 2026-10-19: [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1 says
+eess-md's root fixes no document shape, with `corpus()`'s `DEFAULT_FROZEN` the one known exception,
+and allows `corpusFromText` to share that default only because it ships before
+[bug 0497](../../bugs/0497-corpus-freezes-two-folder-names-by-default.md)'s fix, which removes the
+default from both constructors as one flagged break.
+
 **One registry for what a corpus knows about itself.** Today `registerCorpusMatchers`
 (`resolve-link.ts:100`) keeps a `WeakMap<Corpus, CorpusMatchers>`. A second `WeakMap` for the reader,
 set at the same moment, could drift from it: one constructor registers one table and forgets the
