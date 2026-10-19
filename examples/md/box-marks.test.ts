@@ -1,7 +1,7 @@
 /**
  * Box marks beyond GFM's `[ ]` and `[x]` are the caller's to declare (proposal 017, block 17): here
  * `[~]` is work half done, so it is open, and `[→]` is work moved elsewhere, so it is unjudged:
- * it neither blocks a close nor is verified done (bug 0525; a move is not a verification). In a
+ * it neither blocks a close nor is verified done (the state bug 0525 added; a move is not a verification). In a
  * folder of closed records, no box is open. A mark no one declared is reported, never skipped.
  */
 import { corpus, taskItems } from '@nielspeter/eess-md'

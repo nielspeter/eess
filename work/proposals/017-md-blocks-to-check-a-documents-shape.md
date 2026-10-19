@@ -959,8 +959,9 @@ eess-md's `notExist()` today ([bug 0500](../bugs/0500-eess-md-notexist-with-expe
 
 **21.** (an ask added 2026-10-19, from adopter 3's answer after the v0.15.0 release; a record only,
 not dispositioned) _A box mark that means "disposed elsewhere"._ Adopter 3's `[→]` means "moved to
-another record", the same disposition as a `deferred→` box (one closed bug reads "NOT done — moved to
-bug 0366"); all seven uses are in closed records. Of the three declared states, `'unjudged'` behaves
+another record", the same disposition as a `deferred→` box (one of its closed bugs reads "NOT done — moved to
+bug 0366", in the adopter's own numbering); all seven uses are in closed records, by the adopter's
+own count, not measured here. Of the three declared states, `'unjudged'` behaves
 right (it never blocks a close and is never counted as done), so the docs declare `[→]` that way, but
 its meaning is "disposed elsewhere", not "never judged". The ask is a `'moved'` (or `'deferred'`)
 state that could also require the box to name the record it moved to, which `'unjudged'` cannot.

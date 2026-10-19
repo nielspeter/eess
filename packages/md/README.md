@@ -458,7 +458,8 @@ its predicates could have reached it, read as open or as done.
 
 An unjudged box is not open, so `honestyAtClose` does not ask it for a disposition, and it is not done,
 so it does not count as finished work. `areOpen()` and `areChecked()` do not select it; it is still an
-element, so a rule selects it by `t.mark === '?'` or `t.state === 'unjudged'`. Only a declaration makes
+element, so a rule selects it by its mark (`t.mark === '?'`, that mark only) or by
+`t.state === 'unjudged'` (every mark declared unjudged). Only a declaration makes
 a mark unjudged: an undeclared one stays a finding.
 
 A rule never sees an unread box: a `taskItems()` element's `state` is only `'open'`, `'done'` or

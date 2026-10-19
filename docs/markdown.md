@@ -338,8 +338,10 @@ leaves every close rule for good, in live and closed records alike. `[~]` is the
 wrong use: it marks unfinished work, which is `'open'`.
 
 An unjudged box is still a `taskItems()` element, with `checked: false`, so a
-rule selects it by its mark or by its state. If your records stopped writing the
-mark, guard that it does not come back in a live record:
+rule selects it by its mark or by its state. If your records stopped writing a
+mark, guard that it does not come back in a live record. Select the retired mark
+itself, not the state: `[→]` is unjudged too, and moving a box out of a live record
+is normal:
 
 ```ts
 import { areLive, corpus, inDocuments, taskItems } from '@nielspeter/eess-md'
@@ -349,7 +351,7 @@ export const BOX_MARKS = { '~': 'open', '→': 'unjudged', '?': 'unjudged' } as 
 const c = corpus({ roots: ['work/**'] })
 taskItems(c, { marks: BOX_MARKS })
   .that()
-  .satisfy({ description: 'unjudged', test: (t) => t.state === 'unjudged' })
+  .satisfy({ description: 'a [?] box', test: (t) => t.mark === '?' })
   .satisfy(inDocuments(areLive()))
   .should()
   .notExist()
