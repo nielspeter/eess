@@ -31,7 +31,12 @@ export abstract class CorpusRuleBuilder<T> extends RuleBuilder<T, Corpus> {
 
   /** Plan 0457: a positive rule that examined nothing because of an `inDocuments` scope says so. */
   protected override deadGlobDiagnosis(): string | undefined {
-    return scopeDiagnosis(this._predicates, this.getElements(), this.project.documents(), this.noun)
+    return scopeDiagnosis(
+      this._predicates,
+      () => this.getElements(),
+      this.project.documents(),
+      this.noun,
+    )
   }
 
   /** The selection must be empty: each selected element is a finding, at its own line. */

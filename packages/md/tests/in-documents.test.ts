@@ -14,6 +14,7 @@ import {
   haveSectionPredicate,
   inDocuments,
   links,
+  not,
   or,
   parseCodeBlocks,
   pointers,
@@ -211,11 +212,48 @@ describe('inDocuments: a positive rule a scope emptied names it', () => {
     })
     const rule = taskItems(closed).that().areOpen().satisfy(inDocuments(verification)).should()
     expect(messages(rule.satisfy(holds()).violations())).toEqual([
-      'this rule examined zero units — the scopes matched 1 of 2 documents, and they hold none of ' +
+      'this rule examined zero units — the scope matched 1 of 2 documents, and they hold none of ' +
         'the 1 task items the rest of this rule selects — declare .expectEmpty() if that is ' +
         'expected (the declaration lapses the first time this rule examines an element)',
     ])
     expect([...rule.satisfy(holds()).expectEmpty().violations()]).toEqual([])
+  })
+
+  // Three pages, two sections: `both.md` holds both and no open box; `first.md` and `second.md` one
+  // section each, with an open box. Two live scopes, counted as their intersection.
+  const twoSections = (files: Readonly<Record<string, string>>) =>
+    taskItems(corpus({ cwd: tree(files), roots: ['**/*.md'] }))
+      .that()
+      .areOpen()
+      .satisfy(inDocuments(verification))
+      .satisfy(inDocuments(haveSectionPredicate('Notes')))
+      .should()
+      .satisfy(holds())
+      .violations()
+  const first = '# F\n\n## Verification\n\n- [ ] open\n'
+  const second = '# S\n\n## Notes\n\n- [ ] open\n'
+
+  it('two live scopes count the documents that match every scope', () => {
+    const found = twoSections({
+      'both.md': '# B\n\n## Verification\n\n## Notes\n\n- [x] done\n',
+      'first.md': first,
+      'second.md': second,
+    })
+    expect(messages(found)).toEqual([
+      'this rule examined zero units — the scopes together matched 1 of 3 documents, and they ' +
+        'hold none of the 2 task items the rest of this rule selects — declare .expectEmpty() if ' +
+        'that is expected (the declaration lapses the first time this rule examines an element)',
+    ])
+  })
+
+  it('two live scopes no document matches together say so', () => {
+    const found = twoSections({ 'first.md': first, 'second.md': second })
+    expect(messages(found)).toEqual([
+      "this rule examined zero units — no document matches every scope (each matches some of the corpus's 2), " +
+        'so none of the 2 task items the rest of this rule selects is in scope — declare ' +
+        '.expectEmpty() if that is expected (the declaration lapses the first time this rule ' +
+        'examines an element)',
+    ])
   })
 
   it('a non-scope predicate that emptied the selection gets the generic finding', () => {
@@ -275,6 +313,44 @@ describe('inDocuments: a positive rule a scope emptied names it', () => {
     expect(finding?.message).toContain(
       "inDocuments(are done) matched none of the corpus's 2 documents (1 could not be judged)",
     )
+  })
+
+  it('only a dead scope counts the documents it could not judge', () => {
+    // `done` is live (bugs/done.md) and cannot judge bugs/conflict.md; the dead scope decides every
+    // document, so the dead scope's note says nothing about the live scope's undecided document.
+    const records = corpus({
+      cwd: tree({
+        'bugs/conflict.md': '# C\n\n**Status:** done\n**Status:** open\n',
+        'bugs/done.md': '# D\n\n**Status:** done\n',
+        'bugs/open.md': '# O\n\n**Status:** open\n\nSee [c](conflict.md).\n',
+      }),
+      roots: ['**/*.md'],
+    })
+    const done: Predicate<MdDocument> = {
+      description: 'are done',
+      test: (d) => d.text.includes('**Status:** done'),
+      undecided: (d) =>
+        d.relPath === 'bugs/conflict.md'
+          ? [{ file: d.file, line: 3, element: 'bugs/conflict.md:3,4', message: 'given twice' }]
+          : [],
+    }
+    const [finding] = links(records)
+      .that()
+      .satisfy(inDocuments(done))
+      .satisfy(inDocuments(typo))
+      .should()
+      .resolve()
+      .violations()
+    expect(finding?.message).toContain(
+      'inDocuments(have section "Verificaton") matched none of the corpus\'s 3 documents — the document',
+    )
+  })
+
+  it('a scope over a corpus that loaded nothing gives the empty-source finding, not a scope reason', () => {
+    const empty = corpus({ cwd: tree({ 'a.md': '# A\n' }), roots: ['nothing/**'] })
+    const found = links(empty).that().satisfy(inDocuments(typo)).should().resolve().violations()
+    expect(found).toHaveLength(1)
+    expect(found[0]?.message).toMatch(/loaded zero units before any selection ran/)
   })
 
   describe('each builder names a dead scope on a positive rule', () => {
@@ -344,6 +420,15 @@ describe('inDocuments: a positive rule a scope emptied names it', () => {
       .violations()
     expect(inside?.message).toContain('inDocuments(')
     expect(inside?.message).toContain("matched none of the corpus's 3 documents")
+    // not() around a scope is a combinator too: every page is live, so the selection is empty and
+    // the generic finding speaks, still red.
+    const negated = links(c)
+      .that()
+      .satisfy(not(inDocuments(areLive())))
+      .should()
+      .resolve()
+      .violations()
+    expect(messages(negated)).toEqual([ZERO])
   })
 })
 
@@ -397,10 +482,21 @@ describe('areFrozen() and areLive()', () => {
     expect(said(of(areFrozen()))).toEqual(['archive/old.md:3: archive/old.md:3 should not exist'])
   })
 
-  it('a corpus built with frozen: [] has no frozen document', () => {
-    const fc = corpus({ cwd: tree(files), roots: ['**/*.md'], frozen: [] })
-    expect(docs(fc).that().satisfy(areFrozen()).should().notExist().violations()).toHaveLength(0)
-    expect(docs(fc).that().satisfy(areLive()).should().notExist().violations()).toHaveLength(2)
+  it('a corpus built with frozen: [] has no frozen document, where the default would freeze one', () => {
+    // `completed/` is frozen by the default (`DEFAULT_FROZEN`), so this tells `[]` from no option.
+    const cwd = tree({ 'completed/old.md': '# Old\n', 'live.md': '# Live\n' })
+    const none = corpus({ cwd, roots: ['**/*.md'], frozen: [] })
+    expect(said(docs(none).that().satisfy(areLive()).should().notExist().violations())).toEqual([
+      'completed/old.md: completed/old.md should not exist',
+      'live.md: live.md should not exist',
+    ])
+    expect(
+      messages(docs(none).that().satisfy(areFrozen()).should().haveSection('X').violations()),
+    ).toEqual([ZERO])
+    const byDefault = corpus({ cwd, roots: ['**/*.md'] })
+    expect(
+      said(docs(byDefault).that().satisfy(areFrozen()).should().notExist().violations()),
+    ).toEqual(['completed/old.md: completed/old.md should not exist'])
   })
 })
 
@@ -419,8 +515,9 @@ describe('inDocuments: the memo', () => {
       },
     }
     const rule = taskItems(many).that().satisfy(inDocuments(counted)).should().notExist()
-    expect(rule.violations()).toHaveLength(5)
-    expect(rule.violations()).toHaveLength(5)
+    const boxes = ['a.md:3', 'a.md:4', 'a.md:5', 'a.md:6', 'a.md:7']
+    expect(rule.violations().map((v) => v.element)).toEqual(boxes)
+    expect(rule.violations().map((v) => v.element)).toEqual(boxes)
     expect(calls).toBe(1)
   })
 
@@ -432,7 +529,9 @@ describe('inDocuments: the memo', () => {
     const shared = inDocuments<{ readonly doc: MdDocument }>(marked)
     const yes = corpus({ cwd: tree({ 'a.md': '# A MARK\n\n- [ ] box\n' }), roots: ['**/*.md'] })
     const no = corpus({ cwd: tree({ 'a.md': '# A\n\n- [ ] box\n' }), roots: ['**/*.md'] })
-    expect(taskItems(yes).that().satisfy(shared).should().notExist().violations()).toHaveLength(1)
+    expect(said(taskItems(yes).that().satisfy(shared).should().notExist().violations())).toEqual([
+      'a.md:3: a.md:3 should not exist',
+    ])
     expect([...taskItems(no).that().satisfy(shared).should().notExist().violations()]).toEqual([])
   })
 })
@@ -523,6 +622,14 @@ describe('inDocuments: a document the predicate cannot judge (ADR-021)', () => {
     expect(found.undecided).toBe(1)
     // Two documents: each judged once, though the conflict holds two boxes; test() only on the other.
     expect(calls).toEqual({ undecided: 2, test: 1 })
+  })
+
+  it('.select() through the lift refuses an undecided document, naming the cause', () => {
+    const { p } = counting()
+    const rule = taskItems(records()).that().satisfy(inDocuments(p))
+    expect(() => rule.select({ label: 'box', identify: (t) => ({ name: t.doc.relPath }) })).toThrow(
+      /^select\(\) cannot answer.*given twice/s,
+    )
   })
 
   it('the lifted test() refuses an undecided document, naming the cause', () => {

@@ -79,10 +79,13 @@ const decidedTrue = (m: Membership): boolean => m === true
  * when the rest of the rule selected something, that the scopes emptied it. `undefined` when the rule
  * has no scope, or when a predicate other than a scope emptied the selection, so the kernel's
  * generic finding speaks. The kernel asks only when no subject was undecided (ADR-021).
+ *
+ * `elements` is a thunk: the kernel asks for this diagnosis on every rule that examined nothing,
+ * absence rules included, and a rule with no scope must not pay for a second extraction (PR #245).
  */
 export function scopeDiagnosis<T>(
   predicates: readonly Predicate<T>[],
-  elements: readonly T[],
+  elements: () => readonly T[],
   documents: readonly MdDocument[],
   noun: string,
 ): string | undefined {
@@ -113,14 +116,22 @@ export function scopeDiagnosis<T>(
   // 2. Blame the scopes only if the rest of the rule selected something: the kernel's one owner of
   //    "apply a rule's predicates", where a subject the rest cannot judge is not counted.
   const before = partition(
-    elements,
+    elements(),
     predicates.filter((p) => !SCOPES.has(p)),
   ).elements.length
   if (before === 0) return undefined
   const k = documents.filter((d) => scopes.every((s) => decidedTrue(s.docMembership(d)))).length
+  const selected = `${String(before)} ${noun} the rest of this rule selects`
+  const matched =
+    scopes.length === 1
+      ? `the scope matched ${String(k)} of ${String(n)} documents, and they hold none of the ${selected}`
+      : k === 0
+        ? `no document matches every scope (each matches some of the corpus's ${String(n)}), so ` +
+          `none of the ${selected} is in scope`
+        : `the scopes together matched ${String(k)} of ${String(n)} documents, and they hold none ` +
+          `of the ${selected}`
   return (
-    `the scopes matched ${String(k)} of ${String(n)} documents, and they hold none of the ` +
-    `${String(before)} ${noun} the rest of this rule selects — declare .expectEmpty() if that is ` +
-    `expected (the declaration lapses the first time this rule examines an element)`
+    `${matched} — declare .expectEmpty() if that is expected (the declaration lapses the first ` +
+    `time this rule examines an element)`
   )
 }

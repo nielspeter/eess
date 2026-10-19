@@ -121,7 +121,12 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
    * document the corpus loaded, not only those holding a block of the language.
    */
   protected override deadGlobDiagnosis(): string | undefined {
-    return scopeDiagnosis(this._predicates, this.getElements(), this.project.documents, 'blocks')
+    return scopeDiagnosis(
+      this._predicates,
+      () => this.getElements(),
+      this.project.documents,
+      'blocks',
+    )
   }
 
   /** The kernel's verdict, plus the instrument finding once per rule when the parser failed. */
