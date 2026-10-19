@@ -25,16 +25,22 @@ construction. CI runs `npm run check:nonvacuity` with `EESS_NONVACUITY_SHARD=<i>
 job, `nonvacuity-shard`; `N` is `strategy.job-total`, so the matrix's length is written once.
 
 Each shard prints `shard i/N — K of T fixtures (list <digest>)`, runs them, and writes a report
-(`EESS_NONVACUITY_REPORT`): its index, `N`, a digest of the whole fixture list, the names it ran,
-the names that did not fire, the rule ids its fixtures asserted on, and per-fixture durations. A
-shard reds on any fixture that does not fire, on a malformed spec, and on selecting zero fixtures.
+(`EESS_NONVACUITY_REPORT`): its index, `N`, a digest of the whole fixture list, the names it
+selected, the names it ran (recorded as each fixture returns), the names that did not fire, the rule
+ids its fixtures asserted on, and per-fixture durations. A shard reds on any fixture that does not
+fire, on a malformed spec, on selecting zero fixtures, and when what it ran differs from what it
+selected.
 
 **Merge.** A second job, `nonvacuity`, waits for every shard (`needs:`), runs when a shard failed too
 (`if: ${{ !cancelled() }}`), downloads the reports and runs the harness with
 `EESS_NONVACUITY_MERGE=<dir>`. It does not trust the selector. It is the one place that checks:
 
-- every fixture of this checkout's list ran in exactly one shard (none missing, none twice, no name
-  the list does not have);
+- each report's `ran` equals its `selected`;
+- every fixture of this checkout's list RAN in exactly one shard (none missing, none twice, no name
+  the list does not have). The partition and the closing count (`N fixtures each fired`) are built
+  from the union of `ran` less `failed`, never from `selected` or the length of the list (ADR-010).
+  The first version built both from `selected` and the list, so a shard loop that ran nothing read
+  green in the shard and in the partition (PR #250's enforcement review, C1);
 - shards `1..N` each reported once, all with the same `N` and the digest of this checkout's list;
 - no shard reported a fixture that did not fire;
 - the whole-set checks: `harness self-check`, `gate coverage`, and `rule-id coverage` over the
@@ -73,32 +79,45 @@ superseded PR runs offsets part of that (PR #250's DevOps review, M3).
 
 ## How this gate could fail open, and what reds
 
-| What goes wrong                                                                                   | What reds                                                                                        |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| a shard selects no fixture (N too large, a selector bug)                                          | the shard itself: `selected 0 of T fixtures`, exit 1                                             |
-| a malformed or out-of-range shard spec                                                            | the shard: `is not of the form i/N` / `shard 5 of only 4`, exit 1, never "run everything"        |
-| the selector drops a fixture from every shard                                                     | the merge: `fixture "<name>" ran in no shard`                                                    |
-| the selector runs a fixture twice                                                                 | the merge: `ran in shards a, b`                                                                  |
-| a shard job is dropped from the matrix, or crashes before its report                              | the merge: `shard k of N sent no report` (the upload step also fails on a missing file)          |
-| a shard hangs                                                                                     | `timeout-minutes: 20` on the shard job, then the merge: `sent no report`                         |
-| a shard's fixture does not fire                                                                   | the shard (exit 1) and the merge, by name                                                        |
-| reports from another fixture list (a stale artifact, a changed list)                              | the merge: `made from a different fixture list`                                                  |
-| no report at all                                                                                  | the merge: `no shard report found`; its closing line says the merge failed, not a fixture        |
-| a corpus rule id that no shard's fixture asserts                                                  | the merge's `rule-id coverage`, over the union                                                   |
-| the instruments stop running                                                                      | `gate coverage`'s and `harness self-check`'s lines run only in the merge; a test pins them there |
-| two gate rows share a name, so "exactly one shard" is unanswerable                                | `gate coverage` (unsharded), the shard and the merge                                             |
-| the merge job is deleted, stops waiting, is skipped on a failed shard, or set `continue-on-error` | `gate coverage` reads `ci.yml` (`checkNonvacuityJobs`) and reds                                  |
+| What goes wrong                                                                                   | What reds                                                                                             |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| a shard selects no fixture (N too large, a selector bug)                                          | the shard itself: `selected 0 of T fixtures`, exit 1                                                  |
+| a malformed or out-of-range shard spec                                                            | the shard: `is not of the form i/N` / `shard 5 of only 4`, exit 1, never "run everything"             |
+| a shard's loop runs fewer fixtures than it selected, or none                                      | the shard (`selected K fixtures but ran J`) and the merge (`selected but not run`, `ran in no shard`) |
+| the selector drops a fixture from every shard                                                     | the merge: `fixture "<name>" ran in no shard`                                                         |
+| the selector runs a fixture twice                                                                 | the merge: `ran in shards a, b`                                                                       |
+| a shard job is dropped from the matrix, or crashes before its report                              | the merge: `shard k of N sent no report` (the upload step also fails on a missing file)               |
+| a shard hangs                                                                                     | `timeout-minutes: 20` on the shard job, then the merge: `sent no report`                              |
+| a shard's fixture does not fire                                                                   | the shard (exit 1) and the merge, by name                                                             |
+| reports from another fixture list (a stale artifact, a changed list)                              | the merge: `made from a different fixture list`                                                       |
+| no report at all                                                                                  | the merge: `no shard report found`; its closing line says the merge failed, not a fixture             |
+| a corpus rule id that no shard's fixture asserts                                                  | the merge's `rule-id coverage`, over the union                                                        |
+| the instruments stop running                                                                      | `gate coverage`'s and `harness self-check`'s lines run only in the merge; a test pins them there      |
+| two gate rows share a name, so "exactly one shard" is unanswerable                                | `gate coverage` (unsharded), the shard and the merge                                                  |
+| the merge job is deleted, stops waiting, is skipped on a failed shard, or set `continue-on-error` | `gate coverage` reads `ci.yml` (`checkNonvacuityJobs`) and reds                                       |
 
-Residual: `gate coverage` reads `ci.yml` by line pattern, as `checkBunLoadJob` does (plan 0448); a
-YAML shape it does not recognise reds rather than passes, but a semantically equivalent rewrite
-could red too. The one call that wires it into `gateCoverage` is not pinned: deleting it leaves
-every test green, as deleting `checkBunLoadJob`'s call would.
+Residuals:
+
+- `gate coverage` reads `ci.yml` by line pattern, as `checkBunLoadJob` does (plan 0448); a YAML
+  shape it does not recognise reds rather than passes, but a semantically equivalent rewrite could
+  red too.
+- The shard and merge tests run only as the tail of the npm script, `&& node --test
+scripts/lib/nonvacuity-shards.test.mjs`; no vitest config picks them up. That link was the single
+  point of failure (PR #250's enforcement review, I2): drop it and the 22 tests run nowhere. `gate
+coverage` now reds when `check:nonvacuity` no longer contains it. Dropping the link and that check
+  together, two edits in two files, is still silent. The same exposure holds for every `&& node
+--test` tail in `package.json`; it is a repository pattern, not new here, and is not fixed here.
+- The shard's `failed` list is pinned at the merge (row 7) but not at the shard: a shard that stops
+  recording failures still exits 1, because `runGate` clears `allOk`, so CI stays red, but the merge
+  would no longer name the fixture. No fast fixture fails on demand, so no test drives it.
+- The shard's own ran-versus-selected guard is pinned only together with a broken loop (row 22):
+  with a working loop it cannot fire, and with a broken one the merge refuses the report anyway.
 
 ## Files Changed
 
 - `scripts/lib/nonvacuity-shards.mjs` — new: `parseShard`, `selectShard`, `digestOf`,
   `duplicateNames`, `mergeShardReports`, `checkNonvacuityJobs`.
-- `scripts/lib/nonvacuity-shards.test.mjs` — new: 18 tests, driving the harness's shard, merge and
+- `scripts/lib/nonvacuity-shards.test.mjs` — new: 22 tests (18 at first build, 4 added after review), driving the harness's shard, merge and
   plan modes, and the workflow check.
 - `scripts/check-nonvacuity.mjs` — shard, merge and plan modes; `gate coverage` reads the two jobs
   and refuses duplicate names; rule-id coverage reads the merged union in merge mode.
@@ -188,26 +207,33 @@ the red evidence instead: every row turns its named test red on the real harness
 test run alone with `--test-name-pattern`, the file restored by `git checkout`, all 18 tests green
 after). `H` is `scripts/check-nonvacuity.mjs`, `L` is `scripts/lib/nonvacuity-shards.mjs`.
 
-| row | mutant                                                                                    | named test, red                                            |
-| --- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 1   | H: the shard's zero-selection guard becomes `if (false)`                                  | a shard that selects no fixture fails                      |
-| 2   | L: the selector skips position 0                                                          | the plan puts every fixture in exactly one shard           |
-| 3   | L: the merge ignores a fixture in no shard                                                | a fixture that ran in no shard fails the merge             |
-| 4   | L: the merge ignores a fixture in two shards                                              | a fixture that ran in two shards fails the merge           |
-| 5   | L: the merge ignores a missing shard                                                      | a missing shard report fails the merge                     |
-| 6   | L: the merge ignores a shard reported twice                                               | a shard reported twice fails the merge                     |
-| 7   | L: the merge ignores failed fixtures                                                      | a fixture that failed in its shard fails the merge         |
-| 8   | L: the merge ignores the list digest                                                      | a report made from another fixture list fails the merge    |
-| 9   | L: the merge accepts an empty directory                                                   | an empty report directory fails the merge                  |
-| 10  | L: the merge keeps only shard 1's rule ids                                                | a complete set of shard reports merges green               |
-| 11  | H: the merge audits its own, empty rule-id set                                            | a complete set of shard reports merges green               |
-| 12  | H: the merge skips the rule-id audit                                                      | a rule id no shard asserted fails the merge                |
-| 13  | H: the merge skips the instruments                                                        | a complete set of shard reports merges green               |
-| 14  | L: the workflow check accepts a missing merge job                                         | a workflow without the merge job is refused                |
-| 15  | L: the workflow check accepts a merge a failed shard skips                                | a merge job that a failed shard would skip is refused      |
-| 16  | L: the workflow check accepts `continue-on-error`                                         | a merge job whose failure need not fail the run is refused |
-| 17  | L: the workflow check accepts a merge without `needs:`                                    | a merge job that does not wait for the shards is refused   |
-| 18  | H: the merge's closing line blames a fixture again (row added after PR #250's review, M4) | an empty report directory fails the merge                  |
+| row | mutant                                                                                           | named test, red                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| 1   | H: the shard's zero-selection guard becomes `if (false)`                                         | a shard that selects no fixture fails                                                           |
+| 2   | L: the selector skips position 0                                                                 | the plan puts every fixture in exactly one shard                                                |
+| 3   | L: the merge ignores a fixture in no shard                                                       | a fixture that ran in no shard fails the merge                                                  |
+| 4   | L: the merge ignores a fixture in two shards                                                     | a fixture that ran in two shards fails the merge                                                |
+| 5   | L: the merge ignores a missing shard                                                             | a missing shard report fails the merge                                                          |
+| 6   | L: the merge ignores a shard reported twice                                                      | a shard reported twice fails the merge                                                          |
+| 7   | L: the merge ignores failed fixtures                                                             | a fixture that failed in its shard fails the merge                                              |
+| 8   | L: the merge ignores the list digest                                                             | a report made from another fixture list fails the merge                                         |
+| 9   | L: the merge accepts an empty directory                                                          | an empty report directory fails the merge                                                       |
+| 10  | L: the merge keeps only shard 1's rule ids                                                       | a complete set of shard reports merges green                                                    |
+| 11  | H: the merge audits its own, empty rule-id set                                                   | a complete set of shard reports merges green                                                    |
+| 12  | H: the merge skips the rule-id audit                                                             | a rule id no shard asserted fails the merge                                                     |
+| 13  | H: the merge skips the instruments                                                               | a complete set of shard reports merges green                                                    |
+| 14  | L: the workflow check accepts a missing merge job                                                | a workflow without the merge job is refused                                                     |
+| 15  | L: the workflow check accepts a merge a failed shard skips                                       | a merge job that a failed shard would skip is refused                                           |
+| 16  | L: the workflow check accepts `continue-on-error`                                                | a merge job whose failure need not fail the run is refused                                      |
+| 17  | L: the workflow check accepts a merge without `needs:`                                           | a merge job that does not wait for the shards is refused                                        |
+| 18  | H: the merge's closing line blames a fixture again (row added after PR #250's review, M4)        | an empty report directory fails the merge                                                       |
+| 19  | H: the shard loop runs `selected.slice(0, 0)` (the enforcement reviewer's mutant)                | a shard runs and reports the fixture it selected                                                |
+| 20  | L: the merge ignores `ran` against `selected`                                                    | a report whose ran omits a selected fixture fails the merge                                     |
+| 21  | L: the merge builds the partition from `selected`                                                | a report whose ran omits a selected fixture fails the merge                                     |
+| 22  | H: the loop runs nothing AND the shard's ran-versus-selected guard is gone                       | a shard runs and reports the fixture it selected                                                |
+| 23  | L: `duplicateNames` finds nothing                                                                | duplicate fixture names are found                                                               |
+| 24  | L: the workflow check accepts a shard job that writes no report                                  | a shard job that writes no report is refused                                                    |
+| 25  | `package.json`: `check:nonvacuity` loses `&& node --test scripts/lib/nonvacuity-shards.test.mjs` | `QA_ONLY='gate coverage'`: `gate coverage — FAILED · check:nonvacuity no longer runs …`, exit 1 |
 
 A first version of row 12 (dropping one id from the union) survived, because its test already
 dropped that id; the test was changed to spread the ids across the four shards, so only the union
@@ -230,3 +256,14 @@ by `gate coverage` in the merge, and the plan and board by `check:corpus`, `chec
 - [x] Review of PR #250 (DevOps): I1 concurrency per commit off PRs; M1 CI balance 1.73×; M2 shard
       timeout; M3 concurrency-slot cost; M4 the merge's closing line; M5 re-run path recorded as
       not exercised
+- [x] Review of PR #250 (enforcement): C1 a shard reports what it ran, the merge reads that (rows 19 to 22, and the end-to-end run below); I1 as the DevOps I1; I2 the test link pinned in gate coverage (row 25), residual restated; M2 duplicates tested (row 23); M4 the shard job's report and run step checked (row 24); M1 recorded as a residual
+
+**C1, end to end** (2026-10-19, at 7fd0284): the reviewer's mutant (`for (const name of
+selected.slice(0, 0))`) applied, all 225 shards of N=225 run, then the merge over their reports.
+Before the fix the reviewer measured every shard exiting 0 and `shard partition — OK`. Now 225 of
+225 shards exit 1 (`shard 1/225 — FAILED · selected 1 fixtures but ran 0; not run: arch (root
+rules)`), and the merge exits 1 with 225 `selected but not run` and 225 `ran in no shard` findings
+and `the merge FAILED`. 7 s for the shards, no fixture run by construction. File restored after.
+
+**The sabotage matrix after both reviews** ran 24 rows through the test file, at 7fd0284 (row 25
+through `gate coverage`); every row red, the tree clean after, 22 of 22 tests green.
