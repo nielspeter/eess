@@ -29,13 +29,18 @@ Bug 0506's: the caller's `RegExp` is reused without removing `g` and `y`.
 
 ## Fix
 
-Strip `g` and `y` once, where each option is read, from one owner shared with bug 0506's matcher
-(plan 0496 makes md's non-global). Each path needs its red test first.
+Strip `g` and `y` once, where each option is read, through one shared non-global helper. This bug
+owns that helper: one function on `@nielspeter/eess-md/internal` that every caller-supplied matcher
+in eess-md and eess-crossvalidate is read through, replacing md's `matchName` copy (plan 0496 makes
+it non-global) and crossvalidate's `nonGlobal` (bug 0506's crossvalidate half). Bug 0506's "one
+matcher for both packages" box is deferred here. Each path needs its red test first.
 
 ## Verification
 
 - [ ] Red test written first, per path: a `g`-flagged matcher over tables in several documents
       examines every one.
+- [ ] One shared non-global helper on `@nielspeter/eess-md/internal`; md's `matchName` and
+      crossvalidate's `nonGlobal` read through it, closing bug 0506's last box.
 - [ ] `npm run validate` green.
 
 Deferred: none
