@@ -77,6 +77,10 @@ Two things worth knowing:
 `@nielspeter/eess-gherkin`'s `features()` returns the same shape of answer — `root`,
 `features()` and `scenarios()` — for the same reason.
 
+To test a rule without a directory on disk, `corpusFromText({ 'docs/a.md': '# A\n', … })` builds the
+same `Corpus` from a map of path → text, resolving links and pointers as `corpus()` does
+([docs](https://github.com/nielspeter/eess/blob/main/docs/markdown.md#a-corpus-from-text-for-tests)).
+
 ## Binding a spec table to code: `rows()` + `correspondence()`
 
 A markdown table is a **spec** — a package list, an ADR index, a field

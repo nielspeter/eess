@@ -77,6 +77,7 @@ proposal 017's claim that the blocks are enough (plan 0458). Each one is execute
 | [md/a-fixed-bug-shows-its-verification.test.ts](./md/a-fixed-bug-shows-its-verification.test.ts) | every bug whose Status is fixed has a Verification section          |
 | [md/unique-slugs.test.ts](./md/unique-slugs.test.ts)                                             | no two pages under `guides/` share a slug                           |
 | [md/unique-ids.test.ts](./md/unique-ids.test.ts)                                                 | no two records carry the same Id, compared without leading zeros    |
+| [md/corpus-from-text.test.ts](./md/corpus-from-text.test.ts)                                     | every link resolves, over a corpus built from text                  |
 
 **The contract an example meets.**
 

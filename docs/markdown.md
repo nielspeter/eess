@@ -102,6 +102,47 @@ Two things worth knowing:
 `@nielspeter/eess-gherkin`'s `features()` returns the same shape of answer — `root`,
 `features()` and `scenarios()` — for the same reason.
 
+## A corpus from text, for tests
+
+To test a rule without a directory on disk, build the corpus from text. `corpusFromText(files)`
+takes a map of repo-relative POSIX path → text: the documents, and any other file a link or
+pointer names. It returns an ordinary `Corpus`, so every builder, condition and preset takes it.
+
+```typescript
+import { corpusFromText, links, pointers } from '@nielspeter/eess-md'
+
+const c = corpusFromText({
+  'docs/guide.md': '# Guide\n\nSee [setup](./setup.md) and `src/app.ts:2`.\n',
+  'docs/setup.md': '# Setup\n',
+  'src/app.ts': 'export const a = 1\nexport const b = 2\n',
+})
+links(c).should().resolve().check()
+pointers(c).that().areLive().should().resolve().check()
+```
+
+It is `corpus()` with the walk swapped out, so links and pointers resolve as they would over the
+same files on disk; a parity test over this package's own fixture trees holds that (plan 0455). The
+options, `TextCorpusOptions`, are `corpus()`'s, with two differences: `roots` defaults to every `.md` key in the map, and
+there is no `cwd`. `frozen` keeps its default, so a document under `completed/` is frozen here too.
+A pointer's target is in the map or it is not there: the text corpus never reads your real code.
+`root` (what each document reports in `file`) defaults to `/__eess_text_corpus__`.
+
+What cannot behave as on disk is refused with an `ArchConfigError`, never silently different:
+
+- **a waiver directive in a loaded document** (`<!-- eess-exclude … -->`): the kernel reads waivers
+  from the file on disk, so here it would not apply. A directive inside a fenced code block, which
+  the kernel does not read as one, is accepted. Test waivers with `corpus()` over a fixture;
+- **a key that is not one repo-relative path**: absolute, with `..`, `./` or `\`, or not
+  normalised (`a//b.md`);
+- **a key that is also the directory of another** (`a` beside `a/b.md`);
+- **a key under a directory `corpus()` never walks** (`node_modules/`, `.git/`, `dist/`, …);
+- **a `root` that exists on disk**.
+
+An empty map loads no documents, as `corpus()` over an empty tree does, and a rule over it gets the
+empty-source configuration finding, which outranks `.expectEmpty()`. A rule meant to pass on "no
+matching documents" needs at least one document in the map, so that the source is not empty and
+the selection is.
+
 ## What it checks
 
 - **Links** — internal cross-links between markdown files resolve to real targets. Static-site conventions are supported (extensionless links, `index.md` directories, a site root) via options on `.resolve()`.
