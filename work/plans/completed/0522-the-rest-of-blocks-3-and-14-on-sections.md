@@ -84,11 +84,14 @@ title's pattern ignored; each content condition reading the whole document inste
 Built on maintainer order 2026-10-19. Decisions, each so it can be overruled:
 
 - **Block 3 asks for three things**, read from proposal 017's text: the depth (plan 0496), the title,
-  and "a live code pointer under a section the caller names". The third is covered as the proposal
-  words it, a presence condition plus the liveness check that exists: `haveCodePointer()` on
-  `sections()` and `pointers().satisfy(inSections(…)).should().resolve()`, with a row for each of
-  the three states (live, stale, absent). Its presence half sits on `sections()`, not `docs()`, so
-  it is stated per section.
+  and "a document can be required to hold a live code pointer under a section the caller names".
+  The third is a recipe of three rules reading one `const`: `docs().should().haveSection(X)` (the
+  document holds the section), `sections().that().areNamed(X).should().haveCodePointer()` (the
+  section holds a pointer) and `pointers().satisfy(inSections(…)).should().resolve()` (each pointer is
+  live). Corrected 2026-10-19 (PR #252's architect and method reviews): the build first shipped the
+  last two only and said they covered the ask "as the proposal words it"; they did not, since a
+  document with no such section gave neither rule an element. The test row
+  `a document without the section fails the recipe` pins the first rule.
 - **`haveTitle` is dual-use on `docs()`** and a root condition beside `haveSection` and `haveTable`.
   No free predicate twin is exported, so ADR-023 asks for none. The title is the first section of
   plan 0496's index, so a heading inside a list item is never a title; a second depth-1 heading is

@@ -217,14 +217,16 @@ What a section holds is read after its heading through its last line, subsection
 block in the next section never counts. A document's title is `docs().haveTitle(name?)`: its first
 heading at the top level, which must be at depth 1, and match `name` when given (a string exactly, or
 a `RegExp`); a document with no heading, or whose first heading is at depth 2, is a finding saying
-which. A live code pointer under a named section is two rules reading one `const`:
+which. A live code pointer under a named section is three rules reading one `const`:
 
 ```ts
-import { corpus, inSections, pointers, sections, sectionsNamed } from '@nielspeter/eess-md'
+import { corpus, docs, inSections, pointers, sections, sectionsNamed } from '@nielspeter/eess-md'
 
 const c = corpus({ cwd: process.cwd(), roots: ['adr/**/*.md'] })
 const ENFORCEMENT = 'Enforcement'
 
+// The document holds the section: the two rules below see nothing of a document that lacks it.
+docs(c).should().haveSection(ENFORCEMENT).check()
 // The section holds a pointer: a pointer rule alone is green on a section that has none.
 sections(c).that().areNamed(ENFORCEMENT).should().haveCodePointer().check()
 // Each pointer in it is live.

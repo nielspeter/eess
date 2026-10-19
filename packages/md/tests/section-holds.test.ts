@@ -152,10 +152,11 @@ describe('what a section holds (block 14)', () => {
   })
 })
 
-describe('block 3: a live code pointer under a named section, as two rules', () => {
+describe('block 3: a live code pointer under a named section, as three rules', () => {
   const ENFORCEMENT = 'Enforcement'
   const present = (c: ReturnType<typeof of>) =>
     sections(c).that().areNamed(ENFORCEMENT).should().haveCodePointer()
+  const held = (c: ReturnType<typeof of>) => docs(c).should().haveSection(ENFORCEMENT)
   const live = (c: ReturnType<typeof of>) =>
     pointers(c)
       .that()
@@ -185,5 +186,18 @@ describe('block 3: a live code pointer under a named section, as two rules', () 
       'a.md:1: section "Enforcement" holds no code pointer',
     ])
     expect(live(c).violations().examined).toBe(0)
+  })
+
+  it('a document without the section fails the recipe', () => {
+    const c = of({
+      ...SOURCE,
+      'a.md': ['## Enforcement', '', 'See `src/x.ts:2`.'],
+      'b.md': ['# B', '', 'No enforcement section.'],
+    })
+    // The two section rules see nothing of b.md, and stay green.
+    expect(present(c).violations()).toHaveLength(0)
+    expect(live(c).violations()).toHaveLength(0)
+    // The document rule is the one that names it.
+    expect(said(held(c).violations())).toEqual(['b.md: missing section "Enforcement"'])
   })
 })
