@@ -18,7 +18,7 @@
 - **Created:** 2026-10-19
 - **Builds after:** [plan 0469](./completed/0469-havefield-a-document-has-a-value.md) (built), whose
   per-document resolver it reads values through. It does not need
-  [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (PR #245, not merged):
+  [plan 0457](./completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) (merged in PR #245):
   its subjects are documents, so nothing is lifted.
 - **Decided by:** [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (no default
   shape: every group, folder and label comes from the caller),
