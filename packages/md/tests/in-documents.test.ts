@@ -451,11 +451,15 @@ describe('inDocuments: the guard pair', () => {
       .haveSection(SECTION)
       .rule({ id: 'in-documents/verification-guard' })
 
+  // The frozen page is there because `corpus()` refuses a frozen glob that marks no
+  // loaded document (bug 0499); its open box is outside the ratchet's live scope.
+  const ARCHIVED = { 'archive/old.md': '# Old\n\n## Verification\n\n- [ ] old\n' }
+
   it('renamed heading: the ratchet is green and the guard reds; restored, both are green', () => {
-    const renamed = tree({ 'a.md': '# A\n\n## Checks\n\n- [x] done\n' })
+    const renamed = tree({ ...ARCHIVED, 'a.md': '# A\n\n## Checks\n\n- [x] done\n' })
     expect([...ratchet(renamed).violations()]).toEqual([])
     expect(messages(guard(renamed).violations())).toEqual([ZERO])
-    const restored = tree({ 'a.md': '# A\n\n## Verification\n\n- [x] done\n' })
+    const restored = tree({ ...ARCHIVED, 'a.md': '# A\n\n## Verification\n\n- [x] done\n' })
     expect([...ratchet(restored).violations()]).toEqual([])
     const kept = guard(restored).violations()
     expect([...kept]).toEqual([])

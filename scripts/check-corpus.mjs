@@ -16,7 +16,7 @@
  * Always reports what it scanned (documents, per-check counts, elapsed time) so
  * a fast green is provably non-vacuous, not a silent no-op.
  *
- * Terminal folders — `completed/`, `wont-do/`, `fixed/`, `archived/`, plus
+ * Terminal folders that hold records — `completed/`, `fixed/`, plus
  * `work/spikes/` — are frozen: their links are still gated, their pointers are
  * not examined at all (bug 0253; the constant is `FROZEN` below, and what may
  * legitimately go in it is enforced by `scripts/lib/frozen-scope.mjs`, not by
@@ -165,13 +165,12 @@ const elapsed = () => {
 // paths; gating those as live pointers would demand it be kept current, which
 // is the opposite of what a terminal record is for.
 //
-const FROZEN = [
-  '**/completed/**',
-  '**/wont-do/**',
-  '**/fixed/**',
-  '**/archived/**',
-  'work/spikes/**',
-]
+// Only folders that hold a record today. `corpus()` refuses a frozen glob that
+// marks no loaded document (bug 0499), so `**/wont-do/**` and `**/archived/**`
+// left this list when that landed: no record under `work/` sits in either. When
+// one does, its pointers are checked as live and red, which says to add the glob
+// back; `TERMINAL_FOLDER_NAMES` already admits both.
+const FROZEN = ['**/completed/**', '**/fixed/**', 'work/spikes/**']
 
 // `frozen` is this gate's only subtraction, and until bug 0249's review nothing
 // checked what it took. Appending `'work/**'` here drops live pointers from 463

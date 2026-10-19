@@ -523,10 +523,10 @@ job: in eess-md a `notExist()` rule that declares it can never be green, since i
 element it examines and on examining none. (eess-ts reports that combination as a finding of its
 own.) A scope built from `resideInFolder` or `resideInFile` is different: a broken glob
 (`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
-predicate is on `docs()`. `areFrozen()` and `areLive()` are not: nothing checks the `frozen` globs
-`corpus()` takes, so a broken one (`frozen: ['/archive/**']`) leaves an absence rule over
-`inDocuments(areFrozen())` green, and on a positive rule the finding names the predicate, not the
-`frozen` option.
+predicate is on `docs()`. `areFrozen()` and `areLive()` carry no glob; `corpus()` judges the
+`frozen` globs it is given instead, and refuses one that can never match (`frozen: ['/archive/**']`)
+or that marks none of the documents it loaded (bug 0499). eess-md's default frozen globs are not
+judged.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
 predicateHaveSection('Verificaton'))).should().resolve()` reds with `inDocuments(have section

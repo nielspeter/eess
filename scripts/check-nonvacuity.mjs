@@ -2619,7 +2619,7 @@ function gateCorpusWorkPointer() {
  */
 function gateCorpusFrozenScope() {
   const original = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
-  const mutated = original.replace("  'work/spikes/**',\n]", "  'work/spikes/**',\n  'work/**',\n]")
+  const mutated = original.replace("'work/spikes/**']", "'work/spikes/**', 'work/**']")
   if (mutated === original) {
     return {
       ok: false,
