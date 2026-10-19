@@ -10,7 +10,7 @@ import {
 } from './emitter-findings.js'
 
 import type { OutputFormat } from './check-options.js'
-import { ArchRuleError } from './errors.js'
+import { ArchConfigError, ArchRuleError } from './errors.js'
 import { formatViolations } from './format.js'
 import { formatViolationsJson } from './format-json.js'
 import { formatViolationsGitHub } from './format-github.js'
@@ -237,6 +237,32 @@ export function reportViolations(
 }
 
 /**
+ * Read a caller's delivery mode, refusing one outside `ReportMode` — bug 0508.
+ *
+ * `undefined` and `null` are the default, as `??` reads them. Anything else
+ * that is not one of the three modes used to fall through every comparison in
+ * `finishPreset`: the violations were printed and nothing threw, so a caller
+ * without TypeScript's check (a JavaScript rule file, a mode read from config)
+ * that misspelt `'throw'` exited 0 over real violations (ADR-009). Read here,
+ * once, before any comparison, or `'retrun'` slips past the `'return'` one.
+ */
+function readReportMode(value: unknown): ReportMode {
+  if (value === undefined || value === null) return 'throw'
+  if (value === 'throw' || value === 'return' || value === 'warn') return value
+  const shown =
+    typeof value === 'string'
+      ? `'${value}'`
+      : typeof value === 'boolean' || typeof value === 'number'
+        ? String(value)
+        : `a value of type ${typeof value}`
+  throw new ArchConfigError(
+    'report',
+    `report: ${shown} is not a report mode; the modes are 'throw', 'return', 'warn'. ` +
+      'An unknown mode used to print the violations and pass.',
+  )
+}
+
+/**
  * Finish a preset: deliver its aggregated violations per the requested mode
  * (plan 0070). `throw` (default) emits then throws; `return` hands the
  * violations back untouched (the caller owns emission and control flow);
@@ -247,7 +273,7 @@ export function finishPreset(
   violations: CollectResult,
   options: PresetReportOptions = {},
 ): CollectResult {
-  const mode: ReportMode = options.report ?? 'throw'
+  const mode = readReportMode(options.report)
   // A caller's declaration reaches the gate ON the receipt (ADR-014 §3), never
   // as a delivery option the gate reads separately — one boolean beside a sum
   // cannot be weighed against that sum's parts.
