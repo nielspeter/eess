@@ -1,8 +1,8 @@
 import { ArchConfigError } from '@nielspeter/eess'
 import type { MdDocument } from './document.js'
-import { checkDepth, matchName } from './name-match.js'
+import { checkDepth } from './name-match.js'
 import { proseText, type SetAside } from './prose.js'
-import { sectionsOf, type MdSectionElement } from './sections.js'
+import { sectionsMatching, type MdSectionElement } from './sections.js'
 import {
   LABEL_HEADING,
   PREFIX,
@@ -53,10 +53,7 @@ export function regionSections(
   doc: MdDocument,
   region: { readonly section: string | RegExp; readonly depth?: number },
 ): readonly MdSectionElement[] {
-  return sectionsOf(doc).filter(
-    (s) =>
-      (region.depth === undefined || s.depth === region.depth) && matchName(s.name, region.section),
-  )
+  return sectionsMatching(doc, region.section, region.depth)
 }
 
 /**

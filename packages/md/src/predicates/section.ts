@@ -1,6 +1,6 @@
 import type { Predicate } from '@nielspeter/eess'
 import { checkDepth, matchName } from '../model/name-match.js'
-import { contains, sectionsOf, type MdSectionElement } from '../model/sections.js'
+import { contains, sectionsMatching, type MdSectionElement } from '../model/sections.js'
 import { declaresSections } from '../model/section-declarations.js'
 import { holdingText, holds, type SectionHolding } from '../model/section-holds.js'
 import { areInSectionPredicate } from './declared-block.js'
@@ -46,12 +46,8 @@ export function subsectionsOf(
   name: string | RegExp,
   depth?: number,
 ): readonly MdSectionElement[] {
-  return sectionsOf(section.doc).filter(
-    (x) =>
-      x.line > section.line &&
-      contains(section, x.line) &&
-      (depth === undefined || x.depth === depth) &&
-      matchName(x.name, name),
+  return sectionsMatching(section.doc, name, depth).filter(
+    (x) => x.line > section.line && contains(section, x.line),
   )
 }
 

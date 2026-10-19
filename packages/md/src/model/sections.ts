@@ -71,6 +71,21 @@ export function sectionsOf(doc: MdDocument): readonly MdSectionElement[] {
   return index
 }
 
+/**
+ * The document's sections whose heading matches `name` (a string exactly, or a `RegExp` read without
+ * `g`/`y`), at `depth` when given: the one owner of how a section name is matched, read by
+ * `hasSection`, a field's section region and `haveSubsection`.
+ */
+export function sectionsMatching(
+  doc: MdDocument,
+  name: string | RegExp,
+  depth?: number,
+): readonly MdSectionElement[] {
+  return sectionsOf(doc).filter(
+    (s) => (depth === undefined || s.depth === depth) && matchName(s.name, name),
+  )
+}
+
 /** Is `line` inside the section: from its heading line to its `endLine`, both included? */
 export function contains(
   section: Pick<MdSectionElement, 'line' | 'endLine'>,

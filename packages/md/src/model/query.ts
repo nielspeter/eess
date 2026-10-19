@@ -1,12 +1,10 @@
 import type { MdDocument, MdTable } from './document.js'
-import { sectionsOf } from './sections.js'
+import { sectionsMatching } from './sections.js'
 import { matchName } from './name-match.js'
 
 /** Does the document have a heading matching `name` — at `depth`, when one is given? */
 export function hasSection(doc: MdDocument, name: string | RegExp, depth?: number): boolean {
-  return sectionsOf(doc).some(
-    (s) => (depth === undefined || s.depth === depth) && matchName(s.name, name),
-  )
+  return sectionsMatching(doc, name, depth).length > 0
 }
 
 /**

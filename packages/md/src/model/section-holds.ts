@@ -2,6 +2,7 @@ import type { Nodes } from 'mdast'
 import { tagIsLanguage } from './code-block-tag.js'
 import { linksOf } from './links.js'
 import { extractPointers } from './pointers.js'
+import type { MdDocument } from './document.js'
 import type { MdSectionElement } from './sections.js'
 
 /**
@@ -23,6 +24,32 @@ const inBody = (s: MdSectionElement, line: number): boolean => s.line < line && 
 
 const HTML_COMMENT = /^\s*<!--[\s\S]*-->\s*$/
 
+/** The lines a document's list items, links and pointers sit on, read once per document. */
+interface HeldLines {
+  readonly listItems: readonly number[]
+  readonly links: readonly number[]
+  readonly pointers: readonly number[]
+}
+const HELD = new WeakMap<MdDocument, HeldLines>()
+
+function heldLines(doc: MdDocument): HeldLines {
+  const known = HELD.get(doc)
+  if (known !== undefined) return known
+  const listItems: number[] = []
+  const walk = (n: Nodes): void => {
+    if (n.type === 'listItem') listItems.push(lineOf(n))
+    if ('children' in n) for (const c of n.children) walk(c)
+  }
+  walk(doc.root)
+  const fresh = {
+    listItems,
+    links: linksOf(doc).map((l) => l.line),
+    pointers: extractPointers(doc.text, doc.root).map((p) => p.line),
+  }
+  HELD.set(doc, fresh)
+  return fresh
+}
+
 /** Does the section hold what `h` names? */
 export function holds(s: MdSectionElement, h: SectionHolding): boolean {
   const doc = s.doc
@@ -39,20 +66,12 @@ export function holds(s: MdSectionElement, h: SectionHolding): boolean {
       return doc.codeBlocks.some(
         (b) => inBody(s, b.line) && (h.lang === undefined || tagIsLanguage(b.lang, h.lang)),
       )
-    case 'list item': {
-      let found = false
-      const walk = (n: Nodes): void => {
-        if (found) return
-        if (n.type === 'listItem' && inBody(s, lineOf(n))) found = true
-        if ('children' in n) for (const c of n.children) walk(c)
-      }
-      walk(doc.root)
-      return found
-    }
+    case 'list item':
+      return heldLines(doc).listItems.some((line) => inBody(s, line))
     case 'link':
-      return linksOf(doc).some((l) => inBody(s, l.line))
+      return heldLines(doc).links.some((line) => inBody(s, line))
     case 'code pointer':
-      return extractPointers(doc.text, doc.root).some((p) => inBody(s, p.line))
+      return heldLines(doc).pointers.some((line) => inBody(s, line))
   }
 }
 

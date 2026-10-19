@@ -696,6 +696,15 @@ Decisions taken against the record, each so it can be overruled:
   matrix below, not a run against the unfixed tree. `matchName`'s `g`/`y` fix (bug 0506's md half)
   likewise has row 10 as its red.
 
+**Follow-up, recorded 2026-10-19 (PR #252's architect review, M2).** Tables still take their
+`sectionPath` from `buildDocument`'s own heading stack (`enterHeading`, `packages/md/src/model/document.ts`),
+while links read the section index. The two agree by equivalence, pinned by the row `a link and the
+table under one heading report the same sectionPath`, not by construction. One owner would be
+`sectionPathAt(doc, table.line)`, at the cost of `buildDocument` depending on `sections.ts`, which
+reads the document it builds. Not done here; a later change to either walk should take it. The three
+copies of "the sections of a name at a depth" (M3) were folded into `sectionsMatching` in the same
+review round.
+
 Measured: `check:corpus`'s acceptance-criteria rule examines 17 live proposals and reports 0, before
 and after the rebuild (proposals 001 and 002 put in sentence case first); `check:corpus` 3,990 checks
 across 325 documents, 0 violations, 6.4 s. The new non-vacuity row (`corpus/proposal-criteria-depth`,
