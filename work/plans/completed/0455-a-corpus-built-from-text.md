@@ -409,7 +409,9 @@ overrulable:
   corpus whose explicit `frozen` marks none of its documents is refused unless the glob is declared
   in `expectEmptyFrozen`, as `corpus()` refuses it; the omitted default is not judged, on either
   constructor. Held by the row "an explicit frozen glob that marks nothing is refused, and accepted
-  once declared" in `packages/md/tests/corpus-from-text.test.ts`. It reds both ways (measured 2026-10-19): with `corpusFromText` dropping `expectEmptyFrozen`, and with it dropping `frozen`.
+  once declared" in `packages/md/tests/corpus-from-text.test.ts`, which also covers the declaration's
+  expiry. It reds both ways (measured 2026-10-19): with `corpusFromText` dropping
+  `expectEmptyFrozen`, and with it dropping `frozen`.
 - **The path refusals are one notion, "not one canonical repo-relative POSIX path":** beyond the
   table, an empty key, `a/./b.md`, a trailing `/` and a Windows drive letter are refused too. The
   waiver refusal names the earliest directive line among the kernel's exclusions and warnings.
@@ -424,7 +426,7 @@ overrulable:
   `corpus` tree loads its waiver document and is refused. Each tree's row now reds alone.
 - **The parity's options:** `corpus` at its root with `roots: ['**/*.md']` and the waiver document
   ignored; `resolve-link` as `resolve-link.test.ts` loads it (`roots: ['docs/**']`, two ignores);
-  `external-root` from `repo/` with its legacy root; the other four at their roots with
+  `external-root` from `repo/` (first with its legacy root; without it since PR #251's review, below); the other four at their roots with
   `roots: ['**/*.md']`. Measured per rule, as examined / real findings on the text side (equal on
   disk): links 64/8 on `linked-back`, 72/67 on `declared-block`; live pointers 5/3 on `corpus`, 3/2
   on `external-root`; `honestyAtClose` 23/15 on `ledger`, 20/9 on `frontmatter`. Frozen pointers
@@ -462,6 +464,46 @@ Row 8's other half: with the same vacuous rule and the guard test skipped, the f
 passed, 0 failed), so the guard is what catches it. The "parity on the … tree" titles end in
 "documents, index, receipts and element sets". The matrix's edits live in the session's
 `scratchpad/matrix0455.py`, not in the repository; the table is the record of what each row broke.
+
+**PR #251's review, 2026-10-19 (enforcement M1–M3, testing P1–P7), each taken:**
+
+- **The pass-through is pinned (testing P1, enforcement M1).** The `ledger` parity tree now passes
+  an explicit `frozen: ['completed/**', 'fixed/**']`, which differs from the default and marks a
+  document in each folder. New rows load through `corpusFromText`: the caller's `frozen` is the one
+  applied; a frozen glob that marks nothing is refused; the `expectEmptyFrozen` row covers the
+  declaration's expiry; a dead root is refused and accepted once named in `expectEmptyRoots`.
+- **`externalRoots` over a text corpus is refused (enforcement M2),** the refusal rather than a
+  documented limit: the registry records whether a corpus was built from text, and
+  `pointerResolves` throws an `ArchConfigError` when it is given `externalRoots` over one. External
+  roots are read from the real disk, so the test would ground on one checkout and skip on another.
+  This narrows the Design, which kept external roots on disk for both constructors. The
+  `external-root` parity tree now loads without its legacy root, so its pointers are broken on
+  both sides, and live pointers keep their real findings on the `corpus` tree.
+- **Keys that differ only in letter case are refused (enforcement M3, testing P6),** naming both
+  spellings, for a file (`docs/a.md`, `docs/A.md`) or a directory above one (`Docs/`, `docs/`).
+- **The malformed-waiver row reaches the warnings half (testing P2):** its fixture is a block that
+  never ends, which the kernel parses as a warning and no exclusion, asserted beside the refusal.
+- **Minors taken:** the path refusals assert their reason per key (P3), so the `./` branch is
+  pinned; a file named `dist` or `coverage` is accepted (P4); the document order does not depend
+  on the order the map was built in (P5). P7 needs no action, as the reviewer says.
+
+Each reviewer's mutant reds its row, measured on this pass's code before its records were written, with every test green unsabotaged (27
+tests), files restored, tree clean, under 1 s a row:
+
+| mutant | sabotage                                          | red                                                                                                                                 |
+| ------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| T10    | the pass-through narrowed to `{ roots, ignore }`  | parity on the ledger tree; the caller's frozen glob is the one applied; the frozen-glob, typo and `expectEmptyRoots` rows (5 tests) |
+| T11    | `expectEmptyFrozen` forced to `[]`                | an explicit frozen glob that marks nothing is refused, and accepted once declared                                                   |
+| M1     | `expectEmptyFrozen` dropped                       | the same row                                                                                                                        |
+| —      | `expectEmptyRoots` dropped                        | a dead root beside a live one is refused, and accepted once declared empty                                                          |
+| T2     | the waiver refusal reads exclusions only          | refuses a malformed waiver in a loaded document, which the kernel would report                                                      |
+| T5     | the `./` branch removed                           | refuses a path that has no single repo-relative meaning, naming it and why                                                          |
+| T16    | a file named like a walked-past directory refused | accepts a file named like a directory corpus() never walks                                                                          |
+| T13    | keys not sorted                                   | does not depend on the order the map was built in (and two rows whose expected order it changes)                                    |
+| M2     | the `externalRoots` refusal removed               | refuses a pointer rule with externalRoots over a text corpus                                                                        |
+| M3     | the letter-case refusal removed                   | refuses keys that differ only in letter case, naming both                                                                           |
+
+The edits are in the session's `scratchpad/matrix0455b.py`.
 
 ## Progress ledger
 

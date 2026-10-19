@@ -137,8 +137,13 @@ What cannot behave as on disk is refused with an `ArchConfigError`, never silent
 - **a key that is not one repo-relative path**: absolute, with `..`, `./` or `\`, or not
   normalised (`a//b.md`);
 - **a key that is also the directory of another** (`a` beside `a/b.md`);
+- **two keys that differ only in letter case** (`docs/a.md` beside `docs/A.md`, or `Docs/` beside
+  `docs/`): a case-insensitive disk, the macOS and Windows default, cannot hold both;
 - **a key under a directory `corpus()` never walks** (`node_modules/`, `.git/`, `dist/`, …);
-- **a `root` that exists on disk**.
+- **a `root` that exists on disk**;
+- **`pointers(c).should().resolve({ externalRoots })` over it**: external roots are read from the
+  real disk, so the test would ground on one checkout and skip on another. Test them with
+  `corpus()` over a fixture.
 
 An empty map loads no documents, as `corpus()` over an empty tree does, and a rule over it gets the
 empty-source configuration finding, which outranks `.expectEmpty()`. A rule meant to pass on "no

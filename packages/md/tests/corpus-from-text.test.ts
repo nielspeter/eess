@@ -41,7 +41,7 @@ interface Tree {
   readonly cwd: string
   readonly roots: readonly string[]
   readonly ignore?: readonly string[]
-  readonly externalRoots?: readonly string[]
+  readonly frozen?: readonly string[]
 }
 
 const TREES: readonly Tree[] = [
@@ -60,16 +60,19 @@ const TREES: readonly Tree[] = [
     ignore: ['docs/ignored/**', 'outside/ign.md'],
   },
   { name: 'linked-back', cwd: join(FIXTURES, 'linked-back'), roots: ['**/*.md'] },
-  { name: 'ledger', cwd: join(FIXTURES, 'ledger'), roots: ['**/*.md'] },
+  // An explicit `frozen` that differs from the default and marks documents in both of its folders,
+  // so the caller's `frozen` reaching `corpusFromText` is compared, not only the default.
+  {
+    name: 'ledger',
+    cwd: join(FIXTURES, 'ledger'),
+    roots: ['**/*.md'],
+    frozen: ['completed/**', 'fixed/**'],
+  },
   { name: 'declared-block', cwd: join(FIXTURES, 'declared-block'), roots: ['**/*.md'] },
   { name: 'frontmatter', cwd: join(FIXTURES, 'frontmatter'), roots: ['**/*.md'] },
-  // As `builders/external-root-pointers.test.ts` loads it.
-  {
-    name: 'external-root',
-    cwd: join(FIXTURES, 'external-root', 'repo'),
-    roots: ['docs/**'],
-    externalRoots: [join(FIXTURES, 'external-root', 'legacy')],
-  },
+  // As `builders/external-root-pointers.test.ts` loads it, without its external root: a text corpus
+  // refuses `externalRoots`, so the pointers into it are broken on both sides.
+  { name: 'external-root', cwd: join(FIXTURES, 'external-root', 'repo'), roots: ['docs/**'] },
 ]
 
 /** One side of the parity: the receipts and element sets every rule gives, root stripped. */
@@ -103,7 +106,7 @@ function receipt(v: ArchViolation[], root: string): Receipt {
   }
 }
 
-function see(c: Corpus, t: Tree): Seen {
+function see(c: Corpus): Seen {
   const root = c.root
   return {
     documents: c
@@ -113,15 +116,7 @@ function see(c: Corpus, t: Tree): Seen {
     fileIndex: [...c.fileIndex].sort(),
     receipts: {
       links: receipt(links(c).should().resolve().violations(), root),
-      'live pointers': receipt(
-        pointers(c)
-          .that()
-          .areLive()
-          .should()
-          .resolve(t.externalRoots ? { externalRoots: t.externalRoots } : {})
-          .violations(),
-        root,
-      ),
+      'live pointers': receipt(pointers(c).that().areLive().should().resolve().violations(), root),
       honestyAtClose: receipt(honestyAtClose(c, { report: 'return' }), root),
     },
     frozenPointers: pointers(c)
@@ -140,10 +135,14 @@ function see(c: Corpus, t: Tree): Seen {
 }
 
 function bothWays(t: Tree): { disk: Seen; text: Seen } {
-  const options = { roots: t.roots, ...(t.ignore ? { ignore: t.ignore } : {}) }
+  const options = {
+    roots: t.roots,
+    ...(t.ignore ? { ignore: t.ignore } : {}),
+    ...(t.frozen ? { frozen: t.frozen } : {}),
+  }
   return {
-    disk: see(corpus({ cwd: t.cwd, ...options }), t),
-    text: see(corpusFromText(readTree(t.cwd), options), t),
+    disk: see(corpus({ cwd: t.cwd, ...options })),
+    text: see(corpusFromText(readTree(t.cwd), options)),
   }
 }
 
@@ -235,6 +234,48 @@ describe('corpusFromText: frozen globs are judged as corpus() judges them (bug 0
       ['docs/a.md', false],
       ['docs/b.md', false],
     ])
+    // The declaration expires: once a key lands under the glob, it is refused until dropped.
+    expect(() =>
+      corpusFromText(
+        { ...files, 'wont-do/c.md': '# C\n' },
+        { frozen: ['**/wont-do/**'], expectEmptyFrozen: ['**/wont-do/**'] },
+      ),
+    ).toThrow(
+      "corpus frozen glob '**/wont-do/**' is declared in expectEmptyFrozen, but it marks 1 document now",
+    )
+  })
+
+  it('a frozen glob that can never match is refused through corpusFromText', () => {
+    expect(() => corpusFromText(files, { frozen: ['dnoe/**'] })).toThrow(
+      "corpus frozen glob 'dnoe/**' marks none of the corpus's 2 documents",
+    )
+  })
+
+  it("the caller's frozen glob is the one applied, not the default", () => {
+    const c = corpusFromText(
+      { 'docs/a.md': '# A\n', 'done/b.md': '# B\n', 'completed/c.md': '# C\n' },
+      { frozen: ['done/**'] },
+    )
+    expect(c.documents().map((d) => [d.relPath, d.frozen])).toEqual([
+      ['completed/c.md', false],
+      ['docs/a.md', false],
+      ['done/b.md', true],
+    ])
+  })
+})
+
+describe('corpusFromText: expectEmptyRoots keeps corpus() meaning', () => {
+  const files = { 'docs/a.md': '# A\n' }
+
+  it('a dead root beside a live one is refused, and accepted once declared empty', () => {
+    expect(() => corpusFromText(files, { roots: ['docs/**', 'notes/**'] })).toThrow(
+      "corpus root 'notes/**' matches no file",
+    )
+    const c = corpusFromText(files, {
+      roots: ['docs/**', 'notes/**'],
+      expectEmptyRoots: ['notes/**'],
+    })
+    expect(c.documents().map((d) => d.relPath)).toEqual(['docs/a.md'])
   })
 })
 
@@ -290,7 +331,13 @@ describe('corpusFromText: what cannot behave as on disk is refused', () => {
   })
 
   it('refuses a malformed waiver in a loaded document, which the kernel would report', () => {
-    refused({ 'docs/a.md': '# A\n\n<!-- eess-exclude corpus/x -->\nText.\n' }, "'docs/a.md' line 3")
+    // A block that never ends: the kernel's parse yields a warning and no exclusion, so only the
+    // warnings half of the refusal can refuse it.
+    const text = '# A\n\n<!-- eess-exclude-start corpus/x: a reason -->\nText.\n'
+    const parsed = parseExclusionComments(text, join(sep, '__eess_text_corpus__', 'docs/a.md'))
+    expect(parsed.exclusions).toEqual([])
+    expect(parsed.warnings).not.toEqual([])
+    refused({ 'docs/a.md': text }, "'docs/a.md' line 3")
   })
 
   it('accepts the same waiver in a file outside roots', () => {
@@ -304,10 +351,50 @@ describe('corpusFromText: what cannot behave as on disk is refused', () => {
     expect(c.documents().map((d) => d.relPath)).toEqual(['docs/a.md'])
   })
 
-  it('refuses a path that has no single repo-relative meaning, naming it', () => {
-    for (const p of ['/abs.md', '../x.md', './x.md', 'a\\b.md', 'a//b.md', 'a/./b.md', 'a/', '']) {
-      refused({ [p]: '# X\n' }, `'${p}'`)
-    }
+  it('refuses a path that has no single repo-relative meaning, naming it and why', () => {
+    const cases: readonly (readonly [string, string])[] = [
+      ['/abs.md', 'is absolute'],
+      ['C:/abs.md', 'is absolute'],
+      ['../x.md', "contains '..'"],
+      ['./x.md', "starts with './'"],
+      ['a\\b.md', 'contains a backslash'],
+      ['a//b.md', 'is not normalised'],
+      ['a/./b.md', 'is not normalised'],
+      ['a/', 'is not normalised'],
+      ['', 'is empty'],
+    ]
+    for (const [p, why] of cases) refused({ [p]: '# X\n' }, `'${p}' ${why}`)
+  })
+
+  it('refuses keys that differ only in letter case, naming both', () => {
+    refused(
+      { 'docs/a.md': '# A\n', 'docs/A.md': '# A\n' },
+      "'docs/a.md' and 'docs/A.md' differ only in letter case",
+    )
+    refused(
+      { 'Docs/a.md': '# A\n', 'docs/b.md': '# B\n' },
+      "'docs' and 'Docs' differ only in letter case",
+    )
+  })
+
+  it('accepts a file named like a directory corpus() never walks', () => {
+    // The walk skips such names only as directories, so a file called `dist` is indexed on disk too.
+    const c = corpusFromText({ 'docs/a.md': '# A\n', 'docs/dist': 'x\n', coverage: 'y\n' })
+    expect([...c.fileIndex].sort()).toEqual(['coverage', 'docs/a.md', 'docs/dist'])
+  })
+
+  it('refuses a pointer rule with externalRoots over a text corpus', () => {
+    const c = corpusFromText({ 'docs/a.md': 'See `legacy-src/Thing.groovy:1`.\n' })
+    expect(() =>
+      pointers(c)
+        .should()
+        .resolve({ externalRoots: [join(FIXTURES, 'external-root', 'legacy')] }),
+    ).toThrow(ArchConfigError)
+    expect(() =>
+      pointers(c)
+        .should()
+        .resolve({ externalRoots: [tmpdir()] }),
+    ).toThrow('external roots are read from the real disk')
   })
 
   it('refuses a path that is also the directory of another key, naming both', () => {
@@ -323,6 +410,16 @@ describe('corpusFromText: what cannot behave as on disk is refused', () => {
 
   it('refuses a root that exists on disk', () => {
     refused({ 'a.md': '# A\n' }, `root '${tmpdir()}' exists on disk`, tmpdir())
+  })
+})
+
+describe('corpusFromText: document order', () => {
+  it('does not depend on the order the map was built in', () => {
+    const forward = corpusFromText({ 'b.md': '# B\n', 'a.md': '# A\n', 'c/d.md': '# D\n' })
+    const backward = corpusFromText({ 'c/d.md': '# D\n', 'a.md': '# A\n', 'b.md': '# B\n' })
+    const order = (c: Corpus): string[] => c.documents().map((d) => d.relPath)
+    expect(order(forward)).toEqual(['a.md', 'b.md', 'c/d.md'])
+    expect(order(backward)).toEqual(order(forward))
   })
 })
 

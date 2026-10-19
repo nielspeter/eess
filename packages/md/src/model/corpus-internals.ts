@@ -12,6 +12,8 @@ interface CorpusInternals {
   readonly inRoots: (relPath: string) => boolean
   readonly ignored: (relPath: string) => boolean
   readonly read: (relPath: string) => string
+  /** Where the files came from: a walk of the disk, or `corpusFromText`'s map. */
+  readonly source: 'disk' | 'text'
 }
 
 const internalsOf = new WeakMap<Corpus, CorpusInternals>()
@@ -34,4 +36,9 @@ export function readCorpusFile(corpus: Corpus, relPath: string): string {
 /** The registered internals of a corpus, or `undefined` for a `Corpus` built by hand. */
 export function corpusInternals(corpus: Corpus): CorpusInternals | undefined {
   return internalsOf.get(corpus)
+}
+
+/** Whether `corpusFromText` built this corpus, so its files are not on disk (plan 0455). */
+export function isTextCorpus(corpus: Corpus): boolean {
+  return internalsOf.get(corpus)?.source === 'text'
 }
