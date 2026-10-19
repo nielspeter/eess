@@ -2171,6 +2171,61 @@ function gateLedgerTildeIsOpen() {
 }
 
 /**
+ * Plan 0481: `check:ledger` requires every document under `work/` to be claimed by one selection.
+ * A probe page in a folder no lane claims and `UNLANED` does not declare must red the first rule at
+ * its path. The probe holds no `State:` line, so `findUncoveredLanes` (records only) stays quiet on
+ * it: this row proves the rule, not the older check.
+ */
+const UNCLAIMED_PROBE_DIR = join(repoRoot, 'work', '__nonvacuity_probe_unclaimed')
+const UNCLAIMED_PROBE = join(UNCLAIMED_PROBE_DIR, 'notes.md')
+
+function gateLedgerUnclaimed() {
+  const r = withProbeDir(
+    UNCLAIMED_PROBE_DIR,
+    UNCLAIMED_PROBE,
+    '# Notes\n\nNo lane reads this.\n',
+    () => sh(process.execPath, [join('scripts', 'check-ledger.mjs'), '--format', 'json']),
+  )
+  const named = firedOn(r, 'ledger/unclaimed-document', '__nonvacuity_probe_unclaimed/notes.md')
+  return {
+    ok: r.code === 1 && named,
+    detail: `a page under an unclaimed work/ folder → exit ${r.code}, ledger/unclaimed-document at its path: ${named}`,
+  }
+}
+
+/**
+ * The pair covers each other (plan 0481's sabotage row, kept as a gate row): `UNLANED` "fixed" with
+ * a glob too wide, one that claims the probe's folder and a lane's folder too. The first rule goes
+ * quiet on the probe, and the second reds the lane's pages, now claimed twice. It doubles the
+ * proposals lane rather than every lane, so the JSON stays small: `check-ledger.mjs` exits right
+ * after writing it, and a pipe on macOS dropped everything past 64 KiB when every page under
+ * `work/` was claimed twice (measured). The rewrite edits a tracked file, restored by
+ * `withRewrittenFile`.
+ */
+function gateLedgerClaimedTwice() {
+  const lanes = join(repoRoot, 'scripts', 'lib', 'ledger-lanes.mjs')
+  const widen = (text) =>
+    text.replace(
+      "  { name: 'work notes', glob: 'work/*.md' },\n",
+      "  { name: 'work notes', glob: 'work/*.md' },\n" +
+        "  { name: 'too wide', glob: 'work/{proposals,__nonvacuity_probe_unclaimed}/**' },\n",
+    )
+  const r = withRewrittenFile(lanes, widen, () =>
+    withProbeDir(UNCLAIMED_PROBE_DIR, UNCLAIMED_PROBE, '# Notes\n\nNo lane reads this.\n', () =>
+      sh(process.execPath, [join('scripts', 'check-ledger.mjs'), '--format', 'json']),
+    ),
+  )
+  const unclaimedQuiet = !firedOn(r, 'ledger/unclaimed-document', '__nonvacuity_probe_unclaimed')
+  const twice = firedOn(r, 'ledger/claimed-twice', 'work/proposals/')
+  return {
+    ok: r.code === 1 && unclaimedQuiet && twice,
+    detail:
+      `UNLANED widened over the probe and a lane → exit ${r.code}, unclaimed-document quiet on ` +
+      `the probe: ${unclaimedQuiet}, claimed-twice on a proposal: ${twice}`,
+  }
+}
+
+/**
  * The same, on `check:release`, and its two wrinkles are why this is not a
  * copy-paste of the row above.
  *
@@ -3658,6 +3713,9 @@ const gates = [
     () => gateNode('bad-ledger.mjs', 'md/undeclared-box-mark · 0007-undeclared-mark.md:10'),
   ],
   ['corpus/ledger/tilde-is-open', gateLedgerTildeIsOpen],
+  // Plan 0481: every document under work/ is claimed by exactly one selection.
+  ['corpus/ledger/unclaimed-document', gateLedgerUnclaimed],
+  ['corpus/ledger/claimed-twice', gateLedgerClaimedTwice],
   [
     'corpus/ledger/malformed-box',
     () => gateNode('bad-ledger.mjs', 'md/malformed-box · 0008-malformed-box.md:10'),
@@ -4793,6 +4851,8 @@ const GATE_FOR = {
     'corpus/ledger/undeclared-mark',
     'corpus/ledger/malformed-box',
     'corpus/ledger/tilde-is-open',
+    'corpus/ledger/unclaimed-document',
+    'corpus/ledger/claimed-twice',
     'corpus/ledger/dead-selector',
     'corpus/ledger/half-vocabulary',
     'corpus/ledger/uncovered-lane',
