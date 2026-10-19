@@ -60,16 +60,27 @@ const TEXT_CAUSE: Record<Exclude<GlobTextFault, 'unanchored'>, string> = {
   'dot-segment': 'a `./` segment after the first can never match a path',
 }
 
-function textFault(site: GlobSite): SelectorFault | undefined {
-  const fault = globTextFault(site.glob, 'file-path', 'repo-relative')
+/**
+ * Why a repository-relative glob can never match, from its text alone, and how to write it; or
+ * `undefined`. Shared by the selector-fault check and `corpus()`'s frozen globs (bug 0499).
+ */
+export function repoRelativeTextProblem(
+  glob: string,
+): { readonly cause: string; readonly remedy: string } | undefined {
+  const fault = globTextFault(glob, 'file-path', 'repo-relative')
   if (fault === undefined || fault === 'unanchored') return undefined
-  const correction = repoRelativeCorrection(site.glob, fault)
+  const correction = repoRelativeCorrection(glob, fault)
   const remedy =
     correction !== undefined
       ? `Write the glob as \`${correction}\`.`
       : "md globs are matched against paths under the corpus's `cwd`; name the folder " +
         'relative to it, or change `cwd`.'
-  return { origin: site.origin, cause: TEXT_CAUSE[fault], remedy }
+  return { cause: TEXT_CAUSE[fault], remedy }
+}
+
+function textFault(site: GlobSite): SelectorFault | undefined {
+  const problem = repoRelativeTextProblem(site.glob)
+  return problem === undefined ? undefined : { origin: site.origin, ...problem }
 }
 
 function markdownPaths(corpus: Corpus): { loaded: string[]; onDisk: string[] } {
