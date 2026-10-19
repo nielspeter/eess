@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { ArchConfigError, ArchRuleError } from '../src/errors.js'
-import { reportViolations, finishPreset } from '../src/report.js'
+import { reportViolations, finishPreset, readReportMode } from '../src/report.js'
 import { type CollectResult, collectResult } from '../src/collect-result.js'
 
 /**
@@ -110,5 +110,21 @@ describe('finishPreset()', () => {
     expect(() => finishPreset(v(1), { report: undefined })).toThrow(ArchRuleError)
     // @ts-expect-error — null is not in the type; `??` reads it as the default.
     expect(() => finishPreset(v(1), { report: null })).toThrow(ArchRuleError)
+  })
+})
+
+// The one reader of a mode (bug 0508). A dialect whose presets take more modes passes them, so its
+// refusal lists every mode its door accepts and it keeps no second list by hand.
+describe('readReportMode()', () => {
+  it("accepts a dialect's extra mode and lists it in the refusal", () => {
+    expect(readReportMode('builders', ['builders'])).toBe('builders')
+    expect(readReportMode(undefined, ['builders'])).toBe('throw')
+    expect(() => readReportMode('builder', ['builders'])).toThrow(
+      /report: 'builder' is not a report mode; the modes are 'throw', 'return', 'warn', 'builders'\./,
+    )
+  })
+
+  it('refuses an extra mode no caller declared', () => {
+    expect(() => readReportMode('builders')).toThrow(ArchConfigError)
   })
 })

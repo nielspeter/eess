@@ -78,6 +78,11 @@ Decided in the build, against the record:
   outside `PresetDelivery` before it compares `'builders'`, naming `'throw'`, `'return'`, `'warn'`,
   `'builders'`. The kernel keeps its own refusal for every other caller, and takes no hint about a
   dialect's extra modes.
+- **One reader of a mode** (PR #251's verify review). The first fix gave eess-ts a hand-written
+  copy of the kernel's check, with its own list of modes. `readReportMode(value, extraModes)` is now
+  the kernel's one reader, on `@nielspeter/eess/internal`; `finishPreset` calls it with no extras,
+  and eess-ts's `deliver` calls it with `['builders']`, so the refusal lists every mode the door
+  accepts and nobody keeps a second list.
 - **eess-crossvalidate is named in the changeset** (review fix): its bindings finish through
   `finishPreset`, so its JavaScript callers get the refusal too.
 - **Non-string values are shown by type** (`a value of type object`), not stringified: a lint rule
@@ -93,14 +98,17 @@ Decided in the build, against the record:
       written; the result is reported on the PR, and CI is the gate)
 
 Sabotage matrix (rows 1-2: mutant applied to `packages/core/src/report.ts`, core rebuilt, then
-restored; row 3: mutant in `packages/ts/src/presets/shared.ts`). Row 1 was re-run after eess-ts
+restored; row 3: mutant in `packages/ts/src/presets/shared.ts`, since replaced by row 4's reader; rows 4-5:
+`packages/core/src/report.ts`, core rebuilt). Row 1 was re-run after eess-ts
 began refusing first: it now reds the two kernel tests only, since `deliver` refuses before the
 kernel is reached; before that change it also redded `fails eess-ts check and names the mode`.
 
-| row | mutant                                                                                              | red                                                                                                                       |
-| --- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `const mode: ReportMode = options.report ?? 'throw'` (no refusal)                                   | `refuses an unknown report mode instead of printing and passing`, `refuses retrun and false before the return comparison` |
-| 2   | `null` no longer read as the default                                                                | `reads an undefined or null report mode as throw`                                                                         |
-| 3   | eess-ts's `refuseUnknownDelivery` call removed (the kernel's three-mode message reaches the caller) | `fails eess-ts check and names the mode`                                                                                  |
+| row | mutant                                                                                              | red                                                                                                                                                                                                  |
+| --- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `const mode: ReportMode = options.report ?? 'throw'` (no refusal)                                   | `refuses an unknown report mode instead of printing and passing`, `refuses retrun and false before the return comparison`                                                                            |
+| 2   | `null` no longer read as the default                                                                | `reads an undefined or null report mode as throw`                                                                                                                                                    |
+| 3   | eess-ts's `refuseUnknownDelivery` call removed (the kernel's three-mode message reaches the caller) | `fails eess-ts check and names the mode`                                                                                                                                                             |
+| 4   | `readReportMode` leaves `extraModes` out of the refusal's list                                      | `accepts a dialect's extra mode and lists it in the refusal`, `fails eess-ts check and names the mode`                                                                                               |
+| 5   | `readReportMode` stops accepting an extra mode                                                      | `accepts a dialect's extra mode and lists it in the refusal`, and every eess-ts preset test that runs with `report: 'builders'` (`strictBoundaries reports it`, `layeredArchitecture reports it`, …) |
 
 Deferred: none
