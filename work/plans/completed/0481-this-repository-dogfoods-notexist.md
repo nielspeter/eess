@@ -53,10 +53,10 @@ Where the build departed from the text above, each overrulable:
 
 - **Five selections, not three.** `work/**` holds documents no lane reads on purpose: the spike
   lane (`work/spikes/`, 23 reports with no `State:`) and four notes at `work/`'s top level
-  (`README.md` and three dated notes). The design's rule over the three lanes alone reds all of
+  (`README.md` and three notes). The design's rule over the three lanes alone reds all of
   them. They are declared as `UNLANED` in `scripts/lib/ledger-lanes.mjs`, beside `LANES`, and both
-  rules range over the five. Measured at the build: 465 documents under `work/`, 0 unclaimed, 0
-  claimed twice.
+  rules range over the five. Measured at the build, on base 7ef7a1d: 465 documents under `work/`, 0
+  unclaimed, 0 claimed twice. The count grows with the corpus; the gate prints its own on every run.
 - **`findUncoveredLanes` is kept, for what the rules cannot state.** Measured with two probes
   through `check:ledger --format json`: a page with no `State:` in a new folder under `work/` reds
   `ledger/unclaimed-document` and not `ledger/uncovered-lane`; a `State: Draft` record written
@@ -66,7 +66,7 @@ Where the build departed from the text above, each overrulable:
   against. `scripts/lib/lane-claims.mjs` says which check catches what.
 - **The rules live in `scripts/lib/lane-claims.mjs`**, called once from `check-ledger.mjs`; their
   receipts are two members of the gate's one receipt, and both appear in the verdict and the
-  summary (`claims  465 documents under work/ · 5 selections (3 lanes + 2 unlaned) · 0 unclaimed ·
+  summary (on base 7ef7a1d: `claims  465 documents under work/ · 5 selections (3 lanes + 2 unlaned) · 0 unclaimed ·
 0 claimed twice`). A holding `notExist()` receipt is declared empty by the kernel, so the merge
   does not read it as a pass without evidence.
 - **The sabotage row is a gate row too**, `corpus/ledger/claimed-twice`. It does not widen to
