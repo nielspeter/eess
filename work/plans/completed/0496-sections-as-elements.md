@@ -696,6 +696,16 @@ Decisions taken against the record, each so it can be overruled:
   matrix below, not a run against the unfixed tree. `matchName`'s `g`/`y` fix (bug 0506's md half)
   likewise has row 10 as its red.
 
+**Revised 2026-10-19 (PR #252's enforcement review, I3 and I1).** The verify round settled the
+case/spacing near miss as corpus-wide, after plan 0405. Measured on the build, that reported a heading
+in a document the rule's own scope excludes (`guide/http.md`'s `## STATUS` on a rule scoped to
+`plans/**`) and told its author to rename it. The near miss now reads the documents the rule can see,
+like the container and depth notes. No misspelling the rule could select is lost: every document a
+scope keeps is visible, and `docs()` leaves its section-reading predicates out of what it can see. The
+rows are under `the near miss reads only what the rule can see` in `packages/md/tests/sections.test.ts`.
+In the same round a near miss became a condition's note (`haveSection` with a depth, `haveSubsection`,
+a field region), cited like the others, so it is one finding, not two.
+
 **Follow-up, recorded 2026-10-19 (PR #252's architect review, M2).** Tables still take their
 `sectionPath` from `buildDocument`'s own heading stack (`enterHeading`, `packages/md/src/model/document.ts`),
 while links read the section index. The two agree by equivalence, pinned by the row `a link and the

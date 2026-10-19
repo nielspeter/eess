@@ -7,12 +7,15 @@ import {
   corpus,
   docs,
   inDocuments,
+  inSections,
   isArchConfigError,
   links,
   predicateHaveField,
   predicateHaveSection,
   resideInFolder,
   sections,
+  sectionsNamed,
+  taskItems,
   type ArchViolation,
   type Condition,
   type MdSectionElement,
@@ -447,6 +450,58 @@ describe('a near miss is one finding, the condition’s (PR #252)', () => {
       .violations()
     expect(said(v)).toEqual([
       'bugs/b.md: no section "Status" to read State from (region); the heading "status" at line 3 differs from "Status" only by case or spacing',
+    ])
+  })
+})
+
+describe('the near miss reads only what the rule can see (PR #252)', () => {
+  const files = {
+    'plans/a.md': '# A\n\n## Status\n\n- **State:** open\n\n- [ ] a box\n',
+    'guide/http.md': '# HTTP\n\n## STATUS\n\nCodes.\n',
+  }
+
+  it('a docs() rule scoped to plans/ says nothing of a guide’s heading', () => {
+    const c = of(files)
+    const v = docs(c)
+      .that()
+      .satisfy(resideInFolder('plans/**'))
+      .should()
+      .haveField({ label: 'State', forms: ['bold'], region: { section: 'Status' } })
+      .violations()
+    expect(said(v)).toEqual([])
+  })
+
+  it('a taskItems() rule scoped by inDocuments says nothing of it either', () => {
+    const c = of(files)
+    const v = taskItems(c)
+      .that()
+      .satisfy(inDocuments(resideInFolder('plans/**')))
+      .and()
+      .satisfy(inSections(sectionsNamed('Status')))
+      .should()
+      .notExist()
+      .violations()
+    // The box in scope is reported; the guide's heading is not.
+    expect(v.map((x) => x.element)).toEqual(['plans/a.md:7'])
+  })
+
+  it('the same heading in a document the rule can see is reported', () => {
+    const c = of({ ...files, 'plans/b.md': '# B\n\n## STATUS\n' })
+    const v = docs(c)
+      .that()
+      .satisfy(resideInFolder('plans/**'))
+      .should()
+      .haveField({ label: 'State', forms: ['bold'], region: { section: 'Status' } })
+      .violations()
+    expect(v.map((x) => x.element)).toEqual(['plans/b.md'])
+  })
+
+  it('without a scope, every document is visible to it', () => {
+    const c = of(files)
+    const v = sections(c).that().areNamed('Status').should().notExist().violations()
+    expect(v.map((x) => x.element)).toEqual([
+      'plans/a.md:3',
+      'guide/http.md → section "STATUS" (near miss)',
     ])
   })
 })

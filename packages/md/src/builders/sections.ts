@@ -30,10 +30,10 @@ export type { SectionTableOptions } from '../conditions/section.js'
  * sections(c).that().areNamed(/^Phase \d+/).should().haveSubsection('Files changed').check()
  * ```
  *
- * Every section name a rule reads (`areNamed`, `areInSection`, `haveSubsection`) is scanned: a
- * heading that misses a string name only by case or spacing, anywhere in the corpus, and, in the
- * documents the rule can see, a heading of the name inside a list item or blockquote (which does
- * not start a section) are findings of this rule, whatever it examined.
+ * Every section name a rule reads (`areNamed`, `areInSection`, `haveSubsection`) is scanned in the
+ * documents the rule can see: a heading that misses a string name only by case or spacing, and a
+ * heading of the name inside a list item or blockquote (which does not start a section), are
+ * findings of this rule, whatever it examined.
  */
 export class SectionRuleBuilder extends CorpusRuleBuilder<MdSectionElement> {
   protected readonly noun = 'sections'

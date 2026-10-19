@@ -246,9 +246,10 @@ line 15 is inside a list item, which does not start a section`), and so does the
 
 **The section-name scan.** Every section name a rule reads (`areNamed`, `areInSection`,
 `haveSubsection`, and `haveSection` with a `depth`) is scanned whatever the rule examined: a heading
-that misses a string name only by case or spacing, anywhere in the corpus; and, in the documents the
-rule's `inDocuments` scopes admit, a heading of the name inside a container, and, for a name read at a
-depth, a document that has it only at other depths. A `notExist()` rule over a section hidden in a
+that misses a string name only by case or spacing, a heading of the name inside a container, and, for a
+name read at a depth, a document that has it only at other depths, each in the documents the rule can
+see: those its `inDocuments` scopes admit (for `docs()`, those its own predicates select). A heading in
+a document the rule's scope excludes is never its to correct. A `notExist()` rule over a section hidden in a
 blockquote is therefore red, not green. What the scan does not see: a predicate you build by hand, and
 a name with no near miss (`'Acceptence'`) on an absence rule. A section name's `RegExp` may carry `g`
 or `y`; it is read without them.

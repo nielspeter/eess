@@ -22,18 +22,17 @@ interface SectionScan {
 
 /**
  * Plan 0496 — one scan for a section name a rule cannot read, shared by every builder over a
- * corpus (it was `links().areInSection()`'s, plan 0405). Reports once per heading, in two reaches:
- *
- * - **over the whole corpus**, a heading that misses a string name only by case or spacing: a
- *   misspelling is by definition not selected, so the scan looks everywhere (a `RegExp` states its
- *   own tolerance);
- * - **over the documents the rule can see**, a heading of the name inside a list item, blockquote
- *   or footnote definition, which does not start a section; and, for a declaration with a depth, a
- *   document whose headings of the name are all at other depths.
+ * corpus (it was `links().areInSection()`'s, plan 0405). Reports once per heading, over the
+ * documents the rule can see (its `inDocuments` scopes, or for `docs()` its own predicates but the
+ * section-reading ones): a heading that misses a string name only by case or spacing (a `RegExp`
+ * states its own tolerance); a heading of the name inside a list item, blockquote or footnote
+ * definition, which does not start a section; and, for a declaration with a depth, a document whose
+ * headings of the name are all at other depths. A heading a condition's finding already names is
+ * not reported again.
  *
  * It examines nothing the rule asserts over, so it never raises `examined`. What it does not see: a
- * literal predicate built by hand records nothing, a depth alone names no heading, and a document
- * outside the rule's scopes gets only the case/spacing note.
+ * literal predicate built by hand records nothing, a depth alone names no heading, and a name under
+ * the kernel's `not()`/`and()`/`or()` is not recorded (bug 0512).
  */
 export function sectionDeclarationFindings(scan: SectionScan): ArchViolation[] {
   const out: ArchViolation[] = []
@@ -61,6 +60,10 @@ export function sectionDeclarationFindings(scan: SectionScan): ArchViolation[] {
     )
   }
   for (const doc of scan.corpus.documents()) {
+    // Every note, the near miss included, reads only the documents the rule can see (PR #252):
+    // a document the rule's scopes exclude could never be selected, so its spelling is not this
+    // rule's to correct.
+    if (!visible.has(doc)) continue
     for (const d of scan.declarations) {
       if (typeof d.name !== 'string') continue
       const declared = d.name
@@ -75,13 +78,12 @@ export function sectionDeclarationFindings(scan: SectionScan): ArchViolation[] {
         )
       }
     }
-    if (!visible.has(doc)) continue
     for (const d of scan.declarations) {
       // A document that has the name at the declared depth reads it: its other-depth headings are
       // subsections or other sections, not a misplaced one.
       const atDepth = d.depth === undefined || hasSection(doc, d.name, d.depth)
       for (const n of headingNotes(doc, d.name, atDepth ? {} : { depth: d.depth })) {
-        // A near miss is the corpus-wide pass's, above.
+        // A near miss is the first pass's, above.
         if (n.kind === 'near miss') continue
         if (n.kind === 'depth') {
           report(
