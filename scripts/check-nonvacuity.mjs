@@ -26,8 +26,10 @@
  *   arch/md-rules-import-only-the-root (ADR-022 clause 3)
  *                 packages/md/src/rules/adr.ts gains a `../model/label.js` import →
  *                 md/rules-import-only-the-root, on that file and naming the module;
+ *                 rules/ledger.ts gains a fourth edge, `../model/fields.js` → the
+ *                 same rule on ledger.ts naming it (the exclusions stay per module);
  *                 rules/ledger.ts loses its `../model/prose.js` import, leaving its
- *                 exclusion stale → md/rules-ledger-debt-is-current, on that file.
+ *                 exclusion stale → md/rules-ledger-debt-is-current-prose.
  *   arch/one-code-block-tag-comparison (bug 0426, ADR-019 C3)
  *                 packages/md/src/__nonvacuity_probe_tag__.ts compares `.lang`
  *                 three ways (`===`, a bare method call on it, `switch`), one probe
@@ -753,9 +755,11 @@ function gateArchOneLinkResolver() {
 
 // --- Gate: arch/md-rules-import-only-the-root (ADR-022 clause 3) ---
 // Mutates the real presets: the rule selects packages/md/src/rules/**, and the edge it judges is an
-// import a preset makes. Two probes, one per rule: an internal import planted in adr.ts must red the
-// allowlist naming that module, and ledger.ts paying one debt down (its exclusion left behind) must
-// red the pin, since a stale `.excluding()` entry only warns.
+// import a preset makes. Three probes: an internal import planted in adr.ts must red the allowlist
+// naming that module; a fourth edge planted in ledger.ts must red it too, so an exclusion widened
+// past its own module reddens this row (PR #246's review measured that the first two stay green
+// then); and ledger.ts paying one debt down (its exclusion left behind) must red that edge's pin,
+// since a stale `.excluding()` entry only warns.
 function gateArchMdRulesRootOnly() {
   const bad = withMutatedFile(
     MD_RULES_ADR_TARGET,
@@ -765,17 +769,31 @@ function gateArchMdRulesRootOnly() {
   const allowlistFired =
     bad.code === 1 &&
     firedNamingPayload(bad, 'md/rules-import-only-the-root', 'rules/adr.ts', 'model/label.ts')
+  const fourth = withMutatedFile(
+    MD_RULES_LEDGER_TARGET,
+    "import { fields as __probe } from '../model/fields.js'",
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const fourthFired =
+    fourth.code === 1 &&
+    firedNamingPayload(
+      fourth,
+      'md/rules-import-only-the-root',
+      'rules/ledger.ts',
+      'model/fields.ts',
+    )
   const paid = withRewrittenFile(
     MD_RULES_LEDGER_TARGET,
     (original) => original.replace(/^import \{[^}]*\} from '\.\.\/model\/prose\.js'\n/m, ''),
     () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
   )
   const pinFired =
-    paid.code === 1 && firedOn(paid, 'md/rules-ledger-debt-is-current', 'rules/ledger.ts')
+    paid.code === 1 && firedOn(paid, 'md/rules-ledger-debt-is-current-prose', 'rules/ledger.ts')
   return {
-    ok: allowlistFired && pinFired,
+    ok: allowlistFired && fourthFired && pinFired,
     detail:
       `adr.ts imports model/label.ts → exit ${bad.code}${allowlistFired ? '' : ' (did not fire)'} · ` +
+      `ledger.ts imports model/fields.ts → exit ${fourth.code}${fourthFired ? '' : ' (did not fire)'} · ` +
       `ledger.ts drops model/prose.ts → exit ${paid.code}${pinFired ? '' : ' (pin did not fire)'}`,
   }
 }
