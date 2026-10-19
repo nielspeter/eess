@@ -640,7 +640,6 @@ describe('the notes and the scan, pinned (PR #252’s testing review)', () => {
         expect(isArchConfigError(e)).toBe(true)
       }
     }
-    }
   })
 })
 
