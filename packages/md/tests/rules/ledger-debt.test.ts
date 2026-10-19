@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { basename, dirname, join } from 'node:path'
-import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { Node, Project, SyntaxKind, type SourceFile } from 'ts-morph'
 
@@ -71,6 +70,28 @@ function modelImports(sf: SourceFile): Record<string, string[]> {
   return found
 }
 
+/**
+ * The module itself declares the exported name: a function, a class, or a variable whose initializer
+ * is not a bare identifier bound by an import (`export const proseText = imported` is a re-export in
+ * all but syntax). A re-export resolves to a declaration in another file, so it fails too.
+ */
+function declaredHere(sf: SourceFile, name: string): boolean {
+  const declarations = sf.getExportedDeclarations().get(name) ?? []
+  return (
+    declarations.length > 0 &&
+    declarations.every((d) => {
+      if (d.getSourceFile() !== sf) return false
+      if (Node.isFunctionDeclaration(d) || Node.isClassDeclaration(d)) return true
+      if (!Node.isVariableDeclaration(d)) return false
+      const init = d.getInitializer()
+      if (init === undefined || !Node.isIdentifier(init)) return true
+      return !(init.getSymbol()?.getDeclarations() ?? []).some(
+        (b) => Node.isImportSpecifier(b) || Node.isNamespaceImport(b) || Node.isImportClause(b),
+      )
+    })
+  )
+}
+
 const fileIn = (name: string): SourceFile => project.addSourceFileAtPath(join(rules, name))
 const textIn = (source: string): SourceFile =>
   project.createSourceFile(join(rules, '__ledger_debt_spellings__.ts'), source, { overwrite: true })
@@ -112,11 +133,31 @@ describe('ADR-022: honestyAtClose imports exactly its seven model symbols', () =
 
   it('each pinned symbol is declared in its module, not re-exported there', () => {
     for (const [module, names] of Object.entries(DEBT)) {
-      const source = readFileSync(join(model, `${module}.ts`), 'utf8')
+      const sf = project.addSourceFileAtPath(join(model, `${module}.ts`))
       for (const name of names) {
-        const declared = new RegExp(`^export (?:const|function|let|class) ${name}\\b`, 'm')
-        expect(declared.test(source), `${name} in model/${module}.ts`).toBe(true)
+        expect(declaredHere(sf, name), `${name} in model/${module}.ts`).toBe(true)
       }
     }
+  })
+
+  it('a re-export, or a binding to an imported value, is not a declaration', () => {
+    const sf = project.createSourceFile(
+      join(model, '__ledger_debt_declarations__.ts'),
+      [
+        "import { cleanValue } from './fields.js'",
+        "import * as label from './label.js'",
+        'export function own(): number { return 1 }',
+        'export const alsoOwn = (): number => 2',
+        'export const bound = cleanValue',
+        'export const viaNamespace = label',
+        "export { wrappedLabelOf } from './label.js'",
+      ].join('\n'),
+      { overwrite: true },
+    )
+    expect(declaredHere(sf, 'own')).toBe(true)
+    expect(declaredHere(sf, 'alsoOwn')).toBe(true)
+    expect(declaredHere(sf, 'bound')).toBe(false)
+    expect(declaredHere(sf, 'viaNamespace')).toBe(false)
+    expect(declaredHere(sf, 'wrappedLabelOf')).toBe(false)
   })
 })

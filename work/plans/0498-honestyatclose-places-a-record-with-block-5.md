@@ -61,12 +61,26 @@ mayBeEmpty: true })[]`. A `mayBeEmpty` name is still bound (a first record filed
      judged), and its glob alone is exempt from F7; nothing else changes. It is explicit and
      reviewable, as `.expectEmpty()` is for a rule that may examine nothing, never implied for every
      name.
-   - **This repository's lanes** (`scripts/lib/ledger-lanes.mjs`) declare the plans lane's
-     `/wont-do/` and `/archived/` that way. Measured with `git ls-files`: no path has a `wont-do/`
-     segment, and the six with `archived/` are test fixtures under `packages/md/tests/fixtures/` and
-     `scripts/nonvacuity/`, none in `work/plans/`. So `/wont-do/` would be F7 today; `/archived/`
-     would not, since its glob reaches the fixtures, but the plans lane has no archived record, and
-     the declaration says so rather than leaning on a match elsewhere.
+   - **F7 is judged within the lane** (PR #246's last enforcement check, R2). For every glob the
+     preset builds, from its defaults or a caller's names, F7 asks whether the glob matches a
+     document of the preset's own corpus, its roots, not any path the repository holds. A name
+     that is wrong for this lane but real in another (`/rejected/` for proposals, real only under
+     `work/bugs/`) is then F7 rather than masked. Plan 0495's own F7 reads the corpus's file index
+     (the repository); the preset narrows it because a lane's done folder is the lane's.
+   - **This repository's lanes** (`scripts/lib/ledger-lanes.mjs`) declare `/wont-do/` and
+     `/archived/` for plans and `/rejected/` for proposals as `mayBeEmpty`. Measured with
+     `git ls-files`: no path has a `wont-do/` segment; the six with `archived/` are test fixtures
+     under `packages/md/tests/fixtures/` and `scripts/nonvacuity/`, none in `work/plans/`; and the
+     two with `rejected/` are under `work/bugs/rejected/`, none in `work/proposals/`. Judged within
+     each lane, all three would be F7 today without the declaration.
+   - **What `mayBeEmpty` cannot see, and its expiry** (ADR-016 rule 7; R3). A typo inside a
+     `mayBeEmpty` entry (`{ name: 'wontdo', mayBeEmpty: true }`) is exempt from F7 by
+     construction, as `.expectEmpty()` is exempt from the zero-examined finding. So the exemption
+     lasts only as long as its reason: a `mayBeEmpty` name whose glob now matches a record of the
+     lane is a finding, `` `wont-do` is declared mayBeEmpty but holds 1 record; drop
+mayBeEmpty ``, suppressible, so the declaration is removed when the first record is filed and
+     a stale one cannot outlive the folder it was written for. A misspelt `mayBeEmpty` name stays
+     a residual: it is dead, so it never expires, and review reads it.
    - **Frozen documents are selected explicitly,** by the done-folder globs, not through
      `corpus()`'s default frozen folders, so bug 0497's break does not move this rule's fixtures.
 3. **`ledger/unknown-state` stays,** over every record the preset reads, not only the bound folders:
@@ -114,7 +128,8 @@ Each is listed in the changeset with its migration line, and the changeset names
 - `packages/md/tests/rules/ledger-debt.test.ts`
 - `packages/md/tests/rules/` (rows for the rebuilt half)
 - `adr/022-eess-mds-root-fixes-no-documents-shape.md` (Enforcement rows)
-- `scripts/lib/ledger-lanes.mjs` (`/wont-do/` and `/archived/` as `mayBeEmpty` names)
+- `scripts/lib/ledger-lanes.mjs` (`/wont-do/` and `/archived/` for plans, `/rejected/` for
+  proposals, as `mayBeEmpty` names)
 - `scripts/check-corpus.mjs`, `scripts/check-nonvacuity.mjs` (if a placement rule is retired)
 - `.changeset/`
 
@@ -132,7 +147,10 @@ Each is listed in the changeset with its migration line, and the changeset names
 - A caller's names: `doneFolders: ['fixed', 'rejectd']` beside a real `rejected/` holding a `Draft`
   record, under `closeInPlace`: F7 names `**/rejectd/**`; without `closeInPlace`, the same. A
   `{ name: 'wont-do', mayBeEmpty: true }` over a lane with no `wont-do/`: no F7, and a `Won't-do`
-  record filed there later is judged.
+  record filed there later is judged, and the stale-declaration finding names `wont-do`.
+- Within the lane: a proposals lane with `doneFolders: ['promoted', 'rejected']` and no
+  `work/proposals/rejected/`, beside a real `work/bugs/rejected/`: F7 names `**/rejected/**` for
+  the proposals lane.
 - `label: 'Status'` with `aliases`: placement read through the alias. Bug 0444's fix already has a
   row for the label reaching the state reader (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`);
   this one is new for the rebuilt placement half.
@@ -146,7 +164,9 @@ Each is listed in the changeset with its migration line, and the changeset names
   internal mark dropped, so the default done folders give F7 each, reds the defaults row; the mark
   applied to a caller's names (the previous revision's design) reds the `rejectd` row, since F7 is
   then silent and the `Draft` record in `rejected/` unjudged; `mayBeEmpty` ignored reds the
-  `wont-do` row.
+  `wont-do` row; F7 judged over the repository's paths instead of the lane's documents reds the
+  proposals `rejected` row; the stale-declaration finding dropped reds the `wont-do` row's second
+  half.
 - `check:arch` green with the label exclusion and its pin gone.
 
 ## Release
@@ -174,6 +194,7 @@ group, with no `'rest'` group (decision E2, architect N1, product N1); the defau
 globs carry plan 0495's internal mark, so F7 fires only when all are dead (decision E3, architect
 N2); after the final enforcement check, a caller's names are not marked, and a done folder with no
 record yet is declared per name with `mayBeEmpty: true` (decision G2), reverting this plan's own
-earlier extension of the mark; plan
-0504's baseline is the post-0498 fixtures (decision E5, method N1); frozen documents selected
+earlier extension of the mark; from the last enforcement check, F7 is judged within the lane, the
+proposals lane's `/rejected/` is declared `mayBeEmpty`, and a stale `mayBeEmpty` is a finding (R2,
+R3); plan 0504's baseline is the post-0498 fixtures (decision E5, method N1); frozen documents selected
 explicitly (method N1's carried condition).

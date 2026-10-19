@@ -237,6 +237,10 @@ work/bugs/fixed/0002-b.md; bind each folder to one group, or make one group 'res
 typo, correct it; if the folder has no record yet, file the first one there, or leave the group
 out`, one per group and glob, in every direction. A mistyped glob would otherwise read, under
   `left-to-right` and `both`, as N records "belonging in" the typo (PR #246's enforcement review).
+  F7 reads the corpus's file index, which spans the repository: a glob that names a real folder
+  elsewhere in the repository is not F7, even if no document of the rule's lane sits there. F8
+  covers that under `right-to-left` (no corpus document in the group's folders), and a preset that
+  binds folders per lane judges F7 within the lane (plan 0498).
   - **Only for globs the caller wrote** (PR #246's verification, decision E3). A glob a preset
     supplies as its own default (plan 0498 binds `honestyAtClose`'s five default done folders) is
     not the caller's typo, and most lanes have two of the five. For such a group, F7 fires once,
