@@ -1,3 +1,4 @@
+import { collectResult, type CollectResult } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import { haveFieldCondition, predicateHaveField, type HaveFieldOptions } from './have-field.js'
 import type { MdLocation } from '../conditions/not-exist.js'
@@ -14,6 +15,7 @@ import {
   haveTable as haveTableCondition,
   type HaveTableOptions,
 } from '../conditions/structure.js'
+import { FolderAgreement, type AgreeWithFolderOptions } from '../conditions/agree-with-folder.js'
 
 /**
  * Rule builder over the corpus's markdown documents.
@@ -25,6 +27,8 @@ import {
  */
 export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   protected readonly noun = 'documents'
+  /** The `agreeWithFolder` conditions, kept for their declaration findings and evidence (plan 0495). */
+  private _agreements: FolderAgreement[] = []
 
   protected getElements(): MdDocument[] {
     return this.project.documents()
@@ -75,6 +79,62 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   /** Assert each matched document contains a GFM table with the required columns. */
   haveTable(opts: HaveTableOptions): this {
     return this.addCondition(haveTableCondition(opts))
+  }
+
+  /**
+   * Plan 0495 (proposal 017, block 5): each document's value and the folder it sits in say the same
+   * thing. `groups` bind values to folders, one group may bind `'rest'`, and the values are a closed
+   * set in every direction. `direction` is the kernel's: left is the value, right is the folder. The
+   * value is read as `fields()` reads it and resolved as `haveField` resolves it, so a value that
+   * cannot be read is reported, never judged by its first occurrence. `examined` counts the
+   * documents judged, not the documents selected.
+   */
+  agreeWithFolder(options: AgreeWithFolderOptions): this {
+    const agreement = new FolderAgreement(this.project, options)
+    const next = this.addCondition(agreement.condition)
+    next._agreements = [...next._agreements, agreement]
+    return next
+  }
+
+  protected override copy(): this {
+    const clone = super.copy()
+    clone._agreements = [...this._agreements]
+    return clone
+  }
+
+  /**
+   * The kernel's verdict, plus each `agreeWithFolder`'s declaration findings (refused or reported
+   * even over an empty selection), and the evidence counted as plan 0495 decision D1 asks: when every
+   * condition is an `agreeWithFolder`, `examined` is the documents one of them judged, so a rule that
+   * read no value (a misspelt label, the wrong forms or region) is the zero-examined finding, not
+   * green over every document it selected. Beside any other condition, every selected document is
+   * judged by that one, and the kernel's count stands.
+   */
+  protected override collectViolations(): CollectResult {
+    if (this._agreements.length === 0) return super.collectViolations()
+    for (const a of this._agreements) a.start()
+    const base = super.collectViolations()
+    const context = this.buildConditionContext()
+    const declared = this._agreements.flatMap((a) => a.declarationFindings(context))
+    const onlyAgreements = this._conditions.every((c) =>
+      this._agreements.some((a) => a.condition === c),
+    )
+    const judged = new Set<MdDocument>()
+    let ran = true
+    for (const a of this._agreements) {
+      const each = a.judged()
+      if (each === undefined) ran = false
+      else for (const d of each) judged.add(d)
+    }
+    const examined = onlyAgreements && ran ? judged.size : base.examined
+    return collectResult([...base, ...declared], {
+      examined,
+      sourceEmpty: base.sourceEmpty,
+      declaredEmpty: base.declaredEmpty,
+      notRun: base.notRun,
+      deadGlob: base.deadGlob,
+      undecided: base.undecided,
+    })
   }
 }
 
