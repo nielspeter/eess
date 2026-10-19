@@ -2,17 +2,17 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-19 at the maintainer's order, relayed by the coordinator: the
-  rest of [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s blocks 3 and 14
+- **State:** Done — built on maintainer order 2026-10-19 (`b5874ca`). Written 2026-10-19 at the maintainer's order, relayed by the coordinator: the
+  rest of [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s blocks 3 and 14
   is in this release, built in this plan in the pull request that builds
-  [plan 0496](./completed/0496-sections-as-elements.md).
+  [plan 0496](./0496-sections-as-elements.md).
 - **Implements:** proposal 017
 - **Priority:** Medium — adopters 1 and 3 asked for block 3 and block 14; plan 0496 built only block
   3's `depth` and block 14's table.
 - **Effort:** Small. One document condition and five section conditions over plan 0496's index.
 - **Created:** 2026-10-19
-- **Builds after:** [plan 0496](./completed/0496-sections-as-elements.md) (`sections()`, `sectionsOf`,
-  `contains`) and [plan 0503](./completed/0503-in-sections-boxes-by-section.md) (`inSections`, for
+- **Builds after:** [plan 0496](./0496-sections-as-elements.md) (`sections()`, `sectionsOf`,
+  `contains`) and [plan 0503](./0503-in-sections-boxes-by-section.md) (`inSections`, for
   block 3's live pointer).
 
 ## Problem
@@ -79,11 +79,57 @@ title's pattern ignored; each content condition reading the whole document inste
 - Which H1 counts when a document has two: the first heading is the title, and a second depth-1
   heading is not reported by `haveTitle`.
 
+## Build notes — 2026-10-19
+
+Built on maintainer order 2026-10-19. Decisions, each so it can be overruled:
+
+- **Block 3 asks for three things**, read from proposal 017's text: the depth (plan 0496), the title,
+  and "a live code pointer under a section the caller names". The third is covered as the proposal
+  words it, a presence condition plus the liveness check that exists: `haveCodePointer()` on
+  `sections()` and `pointers().satisfy(inSections(…)).should().resolve()`, with a row for each of
+  the three states (live, stale, absent). Its presence half sits on `sections()`, not `docs()`, so
+  it is stated per section.
+- **`haveTitle` is dual-use on `docs()`** and a root condition beside `haveSection` and `haveTable`.
+  No free predicate twin is exported, so ADR-023 asks for none. The title is the first section of
+  plan 0496's index, so a heading inside a list item is never a title; a second depth-1 heading is
+  not reported.
+- **"Non-empty" is `haveContent()`**: a top-level block after the heading other than a heading, a
+  thematic break or an HTML comment, subsections' content included.
+- **The section-holding methods are dual-use**, as `haveSubsection` is.
+- **No example** under `examples/md`: the composed pair is in the docs, and the conditions read as
+  the existing sections example does.
+- **Tests after the code**; the red is the matrix below.
+
+**The dogfood, measured** 2026-10-19 over `work/`, `docs/` and `adr/` with eess-md's own build: every
+one of 548 documents has a depth-1 title (0 findings); every `## Progress ledger` (53), `## Verification`
+(331) and `## Status` (441) section holds a list item or content (0 findings); 2 of 5,421 sections
+are empty (a proposal's `Evidence` heading, a rejected bug's quoted submission); a title pattern per
+lane is not a convention here (older plans write `0061 — …`). So the repository could adopt
+`docs().should().haveTitle()` and the ledger, verification and status rules at 0 findings today. None
+is adopted in this pull request: each needs its own non-vacuity row, and none was asked for.
+
+**Sabotage**, run 2026-10-19 at `b5874ca`, each red on its named test in
+`packages/md/tests/section-holds.test.ts`, 7.2 s:
+
+| row | mutant                                             | red (named test)                              |
+| --- | -------------------------------------------------- | --------------------------------------------- |
+| 1   | the title read from the first heading at any depth | a first heading at depth 2 is no title        |
+| 2   | the title's pattern ignored                        | a title that does not match the pattern       |
+| 3   | `haveContent` reads the whole document             | haveContent: …                                |
+| 4   | `haveCodeBlock` reads the whole document           | haveCodeBlock: …                              |
+| 5   | `haveListItem` reads the whole document            | haveListItem: …                               |
+| 6   | `haveLink` reads the whole document                | haveLink: …                                   |
+| 7   | `haveCodePointer` reads the whole document         | haveCodePointer: …; no pointer in the section |
+| 8   | `haveCodeBlock` ignores `lang`                     | haveCodeBlock: …                              |
+| 9   | `haveContent` counts a heading                     | haveContent: …                                |
+
 ## Progress ledger
 
-- [ ] `haveTitle` on `docs()` and the root
-- [ ] `haveContent`, `haveCodeBlock`, `haveListItem`, `haveLink`, `haveCodePointer` on `sections()`
-- [ ] Tests, sabotage rows, docs, changeset; the dogfood measured
-- [ ] Close: this plan → `completed/`; ROADMAP and proposal 017's rows
+- [x] `haveTitle` on `docs()` and the root
+- [x] `haveContent`, `haveCodeBlock`, `haveListItem`, `haveLink`, `haveCodePointer` on `sections()`
+- [x] Tests, sabotage rows, docs, changeset; the dogfood measured (no rule adopted, reasons above)
+- [ ] `npm run validate` green — validation-owed: it runs once, at the pull request's final head;
+      its exit, duration and SHA are in the pull request's description
+- [x] Close: this plan → `completed/`; ROADMAP and proposal 017's rows
 
 Deferred: none
