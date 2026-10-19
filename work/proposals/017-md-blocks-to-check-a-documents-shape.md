@@ -9,7 +9,9 @@ then its asks were rewritten the same day at the maintainer's instruction (see "
 7, 12, 13 and 17, accepted by the maintainer, are owned by plans 0454 to 0457 and 0459; the examples
 gate, decision 3's condition on them, by plan 0458 (2026-10-17/18). Blocks 1 and 2, also accepted, are
 owned by plans 0468 and 0469 (2026-10-18), built after bug 0403 and plan 0458. Block 5, also accepted,
-waits on block 1 and its ADR.
+is owned by [plan 0495](../plans/0495-a-value-agrees-with-its-folder.md) (2026-10-19), after its ADR,
+[ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md); `honestyAtClose`'s placement half
+is rebuilt on it by [plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md).
 **Priority:** Medium — the manifesto's Schema Layer is marked partial and its generic part is not
 built, so every adopter that wants a document checked for its shape writes the check by hand, and
 this repository does without one. No shipped rule claims to check a document's shape, so nothing
@@ -781,7 +783,7 @@ the frozen-default break (bug 0185); and a frontmatter key's own line.
 | **6, 12, 13** — kernel `notExist`, md `inDocuments`, kernel `beUniqueBy` | **Held**               | Ready as shaped in decision 4. Unholds when a plan is filed; moves the kernel (a minor, re-exported per dialect, gated by `check:family`) (superseded 2026-10-18 by the rows below and "Planning": the kernel conditions are not re-exported per dialect)                                                                                                              |
 | **11, 3, 14, 15** — sections as elements, depth, title, content, order   | **Held**               | Ready as shaped. Unholds when a plan is filed. Note 2026-10-18: plan 0457 ships a section predicate, `haveSectionPredicate`, ahead of these blocks; block 11 may rename it (renamed `predicateHaveSection` 2026-10-19 by ADR-023, before release)                                                                                                                      |
 | **1, 2** — labelled values, `haveField`                                  | **Held**               | Unholds when three open questions are decided: the noun (md already says `label` and `term`; block 2 adds `field`), where a value's span ends, and whether a block reads frozen documents. Bug 0403 first (superseded 2026-10-18 by the "1, 2" row under "The maintainer's acceptance": plans 0468 and 0469)                                                           |
-| **5** — a value agrees with its folder                                   | **Held**               | After 1 and the ADR in decision 1; `honestyAtClose`'s placement half is then rebuilt on it, so there is one placement check                                                                                                                                                                                                                                            |
+| **5** — a value agrees with its folder                                   | **Held**               | After 1 and the ADR in decision 1; `honestyAtClose`'s placement half is then rebuilt on it, so there is one placement check (superseded 2026-10-19 by the "5" row under "The maintainer's acceptance": plan 0495)                                                                                                                                                      |
 | **4, 10, 16** — references, citations, path agreement                    | **Held**               | After 1 and 11; 10 after bug 0116 Note 2026-10-18: when block 10's outward-binding example is planned, the examples gate's rule 1 widens to the sibling dialect roots it needs (plan 0458).                                                                                                                                                                            |
 | **8, 9** — recipes                                                       | **Held**               | Documentation, any time after the blocks they show exist                                                                                                                                                                                                                                                                                                               |
 | **The examples and the completeness gate** (decision 3)                  | **Accepted, reshaped** | [Plan 0458](../plans/completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), filed 2026-10-17, built first. Accepted as decision 3's condition on the accepted blocks, not on the maintainer's list (2026-10-18). Reshaped: its closing proof (`honestyAtClose` rebuilt from public blocks) is split off to the rebuild after blocks 1, 2 and 5 |
@@ -791,10 +793,10 @@ the frozen-default break (bug 0185); and a frontmatter key's own line.
 ### Records owed, outside this proposal
 
 - The `State:`-only silent pass, reproduced.
-- `corpus()`'s frozen default (decision 2).
+- `corpus()`'s frozen default (decision 2). Filed 2026-10-19 as [bug 0497](../bugs/0497-corpus-freezes-two-folder-names-by-default.md).
 - `matchName` keeps a caller's `g` or `y` flag between documents, in two copies:
   `packages/md/src/model/query.ts:4` and `packages/crossvalidate/src/md-ts.ts:32`. To be reproduced.
-- The ADR in decision 1.
+- The ADR in decision 1. Accepted 2026-10-19 as [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md).
 
 ## Consumer feedback — 2026-10-16
 
@@ -944,6 +946,7 @@ the plan order now splits, and add the new blocks:
 | **12** — `inDocuments`, `isFrozen()`        | **Accepted, reshaped** | [Plan 0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), filed 2026-10-17. Reshaped 2026-10-18: `isFrozen()` ships as `areFrozen()`/`areLive()`, and a scope matching no document is not a finding on a cardinality rule (ADR-010 §3, ADR-018 C3)                                                                             |
 | **1, 2** — labelled values, `haveField`     | **Accepted**           | [Plan 0468](../plans/completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md) (block 1, `fields()`) and [plan 0469](../plans/completed/0469-havefield-a-document-has-a-value.md) (block 2, `haveField`), filed 2026-10-18; both after bug 0403 and plan 0458                                                                                         |
 | **17** — box marks                          | **Accepted**           | [Plan 0454](../plans/completed/0454-box-marks-are-the-callers.md), filed 2026-10-17, bug 0445's fix                                                                                                                                                                                                                                                              |
+| **5** — a value agrees with its folder      | **Accepted**           | [Plan 0495](../plans/0495-a-value-agrees-with-its-folder.md), filed 2026-10-19 after [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (decision 1's ADR); `honestyAtClose`'s placement half on it is [plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md)                                                                 |
 | **18** — boxes by section                   | **Held**               | Not accepted; after block 11 is planned                                                                                                                                                                                                                                                                                                                          |
 
 **Carried to the plans' conditions** (from this section's review, not settled here): a decided
