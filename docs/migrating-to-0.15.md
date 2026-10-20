@@ -314,8 +314,9 @@ repository root: this lists every tracked Markdown file under a default done fol
 git ls-files '*.md' | grep -E '(^|/)(completed|fixed|wont-do|delivered|archived)/'
 ```
 
-Each path it prints must sit under one of the `roots` you pass to the corpus. A path under none of
-them is a closed record the close checks no longer read. Test fixtures that hold such folders are
+Each path it prints must sit under one of the `roots` you pass to the corpus, and under no `ignore`
+glob, since `ignore` is never judged. A path outside them is a closed record the close checks no
+longer read. Test fixtures that hold such folders are
 listed too; they are not records, so skip them. If you pass `doneFolders`, grep for your own list
 instead. A lane that writes its state under another label, such as a support lane with
 `Status:`, gets a call of its own with that label rather than leaving the ledger (and its own

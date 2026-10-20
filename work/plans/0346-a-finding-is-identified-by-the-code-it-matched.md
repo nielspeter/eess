@@ -8,13 +8,16 @@
   (Phases 1 and 3: the shape identity and the migration) and
   [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md) (Phase 4: the ADR),
   after bug 0389 (fixed) and spikes 0394 (decided) and 0395 (not yet run). Every open box below names
-  its owner. This plan holds no work of its own now, and closes when its children do (coordinator,
-  2026-10-20; see "The split", Notes 2026-10-20, for how that differs from this plan's own text).
+  its owner, except its last box: the integration branch `release/0346-phase2` merged to `main`,
+  which this plan owns. It closes when its last child does and that merge has happened, in plan
+  0534's PR (coordinator, 2026-10-20; see "The split", Notes 2026-10-20, for how that differs from
+  this plan's own text).
   The history: Phase 2's direction is taken (**E**: the matcher checks the file,
   2026-10-06, after [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md));
   its design is recorded in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision (by delegation, 2026-10-06/07; decision 2's
-  risk accepted by the maintainer 2026-10-07), and its `accepted` part moved to spike 0395. What remains is the
-  split into six records; this plan then closes as their parent (see "The split"). Phase 1's ruling is settled
+  risk accepted by the maintainer 2026-10-07), and its `accepted` part moved to spike 0395. _(Until
+  2026-10-20: "What remains is the split into six records; this plan then closes as their parent".
+  The split is done; the close rule is in the Notes.)_ Phase 1's ruling is settled
   and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
   refresh found that Phase 2's producer list was the symptom: the cause is one kernel
   derivation.
@@ -650,8 +653,12 @@ integration branch holds as designed. Two places did not fit, and each took the 
 1. **Item 3 cannot be finished yet.** Spike 0395 has not run, and it says "the Phase 2 build plan is
    not written until it has". Plan 0532 is written anyway, as a Draft whose `accepted` and C13 parts
    (its Phase 5) are explicitly open, and whose first ledger box is that spike 0395 decides before
-   Ready. **Change:** spike 0395's "not written" reads as "not Ready"; everything else in plan 0532
-   is decided in spike 0394 and does not depend on 0395.
+   Ready. **Change:** spike 0395's "not written" reads as "not Ready". The rest of plan 0532 is
+   decided in spike 0394, but **its per-file grouping is conditional on spike 0395's first
+   outcome**: if 0395 finds no C13 keying that is both no greener than `main` and free of false
+   causes, spike 0394's decision 1 returns to the maintainer, and plan 0532's Phases 2, 4 and 6, most
+   of its tests, and plan 0533's cross-file migration rows change with it (spike 0395, "Who
+   decides"; corrected at the review of PR #255).
 2. **Item 5 is an ADR that must be written last**, so it cannot exist now without every row
    `pending`, which Phase 4 rules out. **Change:** item 5 is held by a plan,
    [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md), which carries the
@@ -661,7 +668,14 @@ integration branch holds as designed. Two places did not fit, and each took the 
 
 **When this plan closes.** "How this plan closes" above says it moves to `completed/` once all six
 records exist. On 2026-10-20 the coordinator set the stricter rule: it closes when its children do.
-That is followed here, so this plan stays a Draft until plans 0532, 0533 and 0534 are done.
+That is followed here, in this order:
+
+1. Plans 0532 and 0533 each merge into `release/0346-phase2`, ticking the boxes for what they built.
+2. The PR that merges `release/0346-phase2` to `main` moves plans 0532 and 0533 to `completed/`,
+   closes bug 0388 and 0159's collision 3, and ticks bug 0338's boxes, so nothing reads fixed while
+   `main` still forgives. This plan's last box ("merged to `main`") is ticked there.
+3. Plan 0534 builds after that merge, and its PR moves this plan to `completed/` and strikes its
+   ROADMAP row.
 
 **The bugs it does not own, placed 2026-10-20:**
 
@@ -770,15 +784,16 @@ That is followed here, so this plan stays a Draft until plans 0532, 0533 and 053
       match in another file, and a remedy per cause, never a blanket regenerate — deferred→ plan 0532
 - [ ] Phase 2 — if grouping is per file, the `taken.add` guard and the bug-0065 pins
       re-homed to same-file fixtures — deferred→ plan 0532
-- [ ] Phase 2 — the identity-bearing and metric rename rows measured before the Phase 2 build
-      plan is Ready — deferred→ plan 0532 (spike 0394's R12 measured them reported under its harness,
-      2026-10-06; plan 0532 ports R12 into the suite)
+- [x] Phase 2 — the identity-bearing and metric rename rows measured before the Phase 2 build
+      plan is Ready — done-otherwise: spike 0394's R12 measured them reported under its harness,
+      2026-10-06; plan 0532's Test inventory ports R12 into the suite
 - [x] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
       by `accepted` (fixed 2026-10-06, the first record of the split)
 - [ ] Phase 2 — both "rule + file" comments say what the matcher covers — deferred→ plan 0532
 - [ ] Phase 3 — the refusal and `--migrate` are eess-ts's; the kernel baseline gets the
       file check only, unless the grouping decision moves kernel hashes — deferred→ plan 0533 (plan
-      0532 measures whether the kernel must record its root)
+      0532 measures whether the kernel's `rediscover` shape forgives; if it does, plan 0532 records
+      it, stops, and returns the case to the maintainer, and does not build a kernel variant)
 - [x] the plan split into the six records in "The split", and every open box here disposed
       `deferred→` its owner (2026-10-20: plans 0532, 0533 and 0534; see "Notes, 2026-10-20")
 - [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it — deferred→ plan 0533
@@ -806,9 +821,13 @@ That is followed here, so this plan stays a Draft until plans 0532, 0533 and 053
       reports for entries matched across files, and `accepted` strings change form — deferred→
       plan 0532 (kernel and eess-ts) and plan 0533 (eess-ts)
 - [ ] `npm run validate` green — deferred→ each child, at its own PR's head
+- [ ] `release/0346-phase2` merged to `main`, in one reviewed PR carrying both changesets; plans 0532
+      and 0533, bug 0388, 0159's collision 3 and 0338's boxes closed in that PR (owned here)
 
 Deferred: the three Out-of-scope items, each with a home — two on bug 0338's
 `PropertyAssignment` box, one on spike 0386 and Proposed ADR-018. One box is
 `validation-owed` and says so — the migration's cost can only be measured on an
-adopter's baseline, and this repository has none. Since the split (2026-10-20), every
-other open box → plan 0532, 0533 or 0534, as each box names.
+adopter's baseline, and this repository has none. Since the split (2026-10-20): 22 open
+boxes, 21 deferred and 1 owned here. Of the 21, by the first owner each names: 11 → plan 0533 (one of them the
+`validation-owed` box), 7 → plan 0532, 2 → plan 0534, 1 → each child. The one owned here is the
+integration branch's merge to `main`.

@@ -1183,8 +1183,8 @@ already binding.
   disk through `corpus()`.
 - **(b) `rejected/` as a closed-record folder.** Two adopters file closed records under `rejected/`,
   which is not among `honestyAtClose`'s default done folders (`completed`, `fixed`, `wont-do`,
-  `delivered`, `archived`), so they pass it in `doneFolders` themselves. Adding it to the defaults
-  would run against the direction of ADR-022 and
+  `delivered`, `archived`), so they pass it in `doneFolders` themselves. Bearing on it, not weighed
+  here: adding it to the defaults would run against the direction of ADR-022 and
   [bug 0497](../bugs/0497-corpus-freezes-two-folder-names-by-default.md), which remove folder-name
   defaults from the root and leave the folders to the caller; the preset's own defaults are what
   ADR-006 lets a preset carry, and ADR-022 clause 3 rebuilds the presets on the root's blocks.

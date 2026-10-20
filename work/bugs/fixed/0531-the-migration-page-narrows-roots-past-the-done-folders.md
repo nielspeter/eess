@@ -53,10 +53,14 @@ Docs only, in `docs/migrating-to-0.15.md`:
 
 - [x] the page says to keep every lane with a default done folder, and shows how to check
 - [x] the check, run on this repository on 2026-10-20, lists 57 tracked records in `work/plans/completed/` and
-      144 in `work/bugs/fixed/`, both under `check:ledger`'s lanes, plus 29 test-fixture files under
+      144 in `work/bugs/fixed/` (145 once this record is filed there), both under `check:ledger`'s lanes, plus 29 test-fixture files under
       `examples/`, `packages/md/tests/` and `scripts/nonvacuity/`; the page now says fixtures are
       listed and are not records
 - [x] the new `ts` fence's import lines resolve: `check:docs-code` green
 - [x] `check:corpus` and `format:check` green on the branch
+
+Residual, not deferred work: the check is one an adopter must remember to run. Nothing in
+`honestyAtClose` reports a done folder left outside its roots; that mechanism is adopter 1's request,
+recorded as input in proposal 017's "Consumer follow-up — 2026-10-20", item (a), and not planned.
 
 Deferred: none
