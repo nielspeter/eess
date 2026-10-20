@@ -7,8 +7,10 @@
   its Phase 2 build, from [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s
   Decision. **It cannot go Ready until [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md)
   has run and decided** what an `accepted` entry without a file does, and how the collision guard
-  (census C13) is keyed. On 2026-10-20 spike 0395 had not run. Everything else here is decided, and
-  each decision cites where it was made.
+  (census C13) is keyed. Spike 0395 ran on 2026-10-20 and recommends a design (its Recommendation:
+  C13 per file, a file-less entry that matches in more than one file escalates the batch, and a
+  `{ file, subject }` entry); the coordinating agent has not decided it yet. Everything else here
+  is decided, and each decision cites where it was made.
 - **Priority:** High — a baseline forgives a finding nobody reviewed. Fix the file you baselined,
   make the same mistake in another file, and the build stays green
   ([bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md), twelve
@@ -243,7 +245,9 @@ plan changes too.
 ## Progress ledger
 
 - [ ] spike 0395 has decided C13 and `accepted`, and this plan's Phase 5 and Release text are
-      written from it, before Ready
+      written from it, before Ready — the spike ran 2026-10-20; its recommendation and what it
+      changes here are in its sections "Recommendation" and "What this changes in plans 0532 and
+      0533". Open until the coordinating agent records a Decision there
 - [ ] Phase 0 — `release/0346-phase2` created; the publish guard and its dry run
 - [ ] Phase 1 — the file check in both baselines; one shared group key
 - [ ] Phase 2 — per-file grouping; every census consumer but C13 keyed by `(hash, file)`; the

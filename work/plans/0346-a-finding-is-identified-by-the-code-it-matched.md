@@ -7,7 +7,7 @@
   build), [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
   (Phases 1 and 3: the shape identity and the migration) and
   [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md) (Phase 4: the ADR),
-  after bug 0389 (fixed) and spikes 0394 (decided) and 0395 (not yet run). Every open box below names
+  after bug 0389 (fixed) and spikes 0394 (decided) and 0395 (run 2026-10-20, recommendation not yet decided). Every open box below names
   its owner. This plan holds no work of its own now, and closes when its children do (coordinator,
   2026-10-20; see "The split", Notes 2026-10-20, for how that differs from this plan's own text).
   The history: Phase 2's direction is taken (**E**: the matcher checks the file,
