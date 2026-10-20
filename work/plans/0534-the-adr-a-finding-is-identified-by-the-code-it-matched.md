@@ -50,22 +50,34 @@ dialects gain disambiguation (spike 0394, census C15). So they are clauses, not 
 0395 sends per-file grouping back to the maintainer, these two clauses follow whatever is decided.
 
 **The line clause's scope is every producer, not `conditions/`** (architect I2, enforcement item 5).
-On 2026-10-20, `identity:` is constructed in these modules, and the rule must examine each:
+Measured 2026-10-20 (corrected at the verify round of PR #255, enforcement New-3): an `identity`
+property of a violation is constructed in these 12 modules, and the rule must examine each:
 
 - `packages/core/src/violation.ts` (the suffixes `disambiguateIdentities` assigns);
-- `packages/ts/src/conditions/`: `match-identity.ts`, `body-analysis.ts`, `body-analysis-module.ts`,
+- `packages/ts/src/conditions/`: `body-analysis.ts`, `body-analysis-module.ts`,
   `body-analysis-function.ts`, `dependency.ts`, `call.ts`, `slice.ts`, `exports.ts`;
 - `packages/ts/src/core/metric-violation.ts`, `packages/ts/src/rules/errors.ts`,
-  `packages/ts/src/smells/duplicate-report.ts`, `packages/ts/src/smells/inconsistent-siblings.ts`,
-  `packages/ts/src/builders/call-rule-builder.ts`.
+  `packages/ts/src/smells/duplicate-report.ts`, `packages/ts/src/smells/inconsistent-siblings.ts`.
+
+Other `identity:` text under `packages/*/src` is not a violation identity: a doc comment in
+`packages/ts/src/conditions/match-identity.ts`, `packages/ts/src/builders/call-rule-builder.ts`,
+`packages/ts/src/core/diagnose.ts` and `packages/md/src/builders/code-blocks.ts`, and a parser's
+`{ name, version }` in `packages/md/src/model/code-block-parse.ts`.
+
+**`identifyMatches` is reached by name.** It builds the identity strings that the body-analysis
+modules and `call.ts` assign as `identities[index]`, and it sets no `identity` property itself, so a
+pattern keyed on the property would miss the very producer this ADR exists for. The rule therefore
+examines, in any module under `packages/*/src`, `identifyMatches` and every function whose result is
+assigned to an `identity` property.
 
 The matched pattern is named now, because this plan's premise is that the mechanism is named before
-the ADR: inside an `identity` property's initializer, and inside any function of the same module
-whose result it is built from, no call to `getStartLineNumber`, `getEndLineNumber`,
-`getLineAndColumnAtPos`, `getStart`, `getPos` or `getEnd`. Where the rule cannot follow an identity
-built in another module (such as `identifyMatches`' result used by `call.ts`), that module is
-examined in its own right, and the Enforcement row states the rule's exact reach: which calls and
-which directories. A row whose scope is narrower than its clause is reworded to the scope, never
+the ADR: inside an `identity` property's initializer, and inside every function the paragraph above
+reaches, no call to `getStartLineNumber`, `getEndLineNumber`, `getLineAndColumnAtPos`, `getStart`,
+`getPos` or `getEnd`, and no read of a property named `line` or `column`. **Its stated limit:** a
+line number carried in a variable or field whose name does not say so, or built in a module the rule
+does not reach, passes it (`duplicate-report.ts` sets `line: fn.getStartLineNumber()` beside its
+identity, so the data is at hand). The Enforcement row states that reach: which calls, which
+property reads, which functions and which directories. A row whose scope is narrower than its clause is reworded to the scope, never
 marked `gated` over the wider claim.
 
 The ADR also records, as decided context rather than new clauses: decision **E** (the matcher

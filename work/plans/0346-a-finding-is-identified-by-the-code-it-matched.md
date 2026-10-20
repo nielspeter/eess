@@ -455,7 +455,8 @@ depends on it (bug 0185).
 
 ## Phase 3 — the migration must not become the lie
 
-**Every existing entry for an unnamed match changes identity.** The naive
+_(Corrected 2026-10-20 by plan 0533's Release: every `identifyMatches` identity moves, named scopes
+included, not only unnamed matches.)_ **Every existing entry for an unnamed match changes identity.** The naive
 instruction — "regenerate your baseline" — makes the upgrade itself the deception
 this plan exists to remove: an adopter regenerates, every finding is re-forgiven,
 and the ones that were already inheriting are forgiven permanently and silently.
@@ -817,7 +818,8 @@ That is followed here, in this order:
       this plan does can produce it. — deferred→ plan 0533, where it stays `validation-owed`
 - [x] the `.excluding()` / `eess-exclude` question gets a record, or a recorded
       reason it dissolves — homed 2026-10-05 in spike 0386 and Proposed ADR-018
-- [ ] a changeset — breaking: Phase 1 moves every unnamed-match entry; Phase 2 adds
+- [ ] a changeset — breaking: Phase 1 moves every unnamed-match entry (corrected 2026-10-20: every
+      `identifyMatches` identity, per plan 0533's Release); Phase 2 adds
       reports for entries matched across files, and `accepted` strings change form — deferred→
       plan 0532 (kernel and eess-ts) and plan 0533 (eess-ts)
 - [ ] `npm run validate` green — deferred→ each child, at its own PR's head

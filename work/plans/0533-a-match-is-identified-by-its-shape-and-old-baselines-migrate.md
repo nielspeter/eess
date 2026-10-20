@@ -7,8 +7,9 @@
   its Phases 1 and 3, together because Phase 1 is what moves entries, and shipping it without the
   migration would leave regenerating as the only path. Everything here was decided in plan 0346, in
   [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md)'s Fix,
-  or in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision, and
-  is cited where it was.
+  in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision, or at
+  the review of PR #255 (decisions 4, 8, 11, 12 and 17, new or extended there), and is cited where it
+  was.
 - **Priority:** High — a baseline accepts a different finding into a freed slot. Baseline two
   top-level `eval` calls, fix the first, add a different one, and the new one is accepted silently
   (bug 0338, in the default floor). And the migration is where this fix is honest or not: a
@@ -129,7 +130,14 @@ already inheriting are forgiven for good (plan 0346, Phase 3).
     reach rule source. So, while the old derivation ships (decision 16), an escalated finding whose
     old-scheme identity equals an entry in its rule's `accepted` list is reported with the migration
     page's recipe as its Fix, and without the "extend `accepted`" advice. The recipe is unconditional
-    for identity-bearing entries, whatever spike 0395 decides for file-less ones.
+    for identity-bearing entries, whatever spike 0395 decides for file-less ones. The old-scheme
+    comparison tries both forms an entry may be written in, the raw subject and the portable
+    `<root:NAME>/path` form (bug 0389), or a portable entry falls back to the bare advice.
+    **After the overlap release** (decided at the verify round of PR #255, enforcement New-2), the
+    old derivation is gone and an old entry can no longer be recognised. Mirroring decision 11, the
+    escalation of an identity-bearing finding then never gives a bare "extend `accepted`": its advice
+    names the migration recipe for a list written before this release, and states what extending
+    costs, that every subject pasted in is accepted without review.
 
 ## Phases
 
@@ -195,33 +203,34 @@ regenerate is deleted.
 Every red test drives `filterNew`, `check({ baseline })`, `generateBaseline` or the CLI, never
 `isKnown` alone (plan 0346, Phase 2). Each row names its break class and is a planned sabotage row.
 
-| break class                  | the test that must go red                                                                                                                                                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| the headline (shape term)    | baseline two top-level `eval`s, fix the first, add a different one: the new one is reported. Fails before the fix                                                                                                                          |
-| the seven edits              | spike 0350's table as a test: identity survives reformatting, insertion above, comments, sibling renames and code movement; breaks when the matched code changes and on fix-one-add-another                                                |
-| the ordinal's key            | a differently-shaped match inserted above another in the same declaration leaves the other's identity unchanged; mutant keys the ordinal on scope alone                                                                                    |
-| scope composed, not replaced | "fix `runEval`, add `added`" with byte-identical matches in two declarations: `added::eval` reported (plan 0346's table); mutant drops the scope term                                                                                      |
-| within-run distinctness      | `identityCollisions()` for the rule is empty **and** the finding count is the expected non-zero number, in one test; mutant collapses the shape to a constant                                                                              |
-| bug 0338's silent-catch row  | two silent catches in one file, fix the first, add another: reported                                                                                                                                                                       |
-| delimiter safety             | `eval('a::b')` and `eval('a')` in one scope have distinct identities; mutant composes the raw shape                                                                                                                                        |
-| the ts-morph cause           | a recorded version that differs **and** an overlap that moved: the cause is named; a differing version with nothing moved: not named                                                                                                       |
-| the version bump             | `check` against a version-5 baseline gives exactly one `error` naming `--migrate`, not N new ones; it survives `.excluding()` and `--changed`, a regenerate does not record it, and it fails a run whose baselined rules are all `.warn()` |
-| the refusal, library door    | `generateBaseline` over a version-5 file throws, and its message states what `--accept-unverified` costs                                                                                                                                   |
-| the override's output        | with `--accept-unverified` it writes, and its output names every entry written as unverified with their count (pinned text, not only "it writes")                                                                                          |
-| `accepted` from v5           | an `accepted` entry built from a version-5 identity, after the upgrade: the finding escalates to `error`, its Fix is the migration recipe, and the message does not say "extend `accepted`"                                                |
-| the refusal, CLI door        | `eess-ts baseline` over a version-5 file exits non-zero and names `--migrate`                                                                                                                                                              |
-| the join keys on file        | bug 0388's fixture, then `--migrate`, then `b` is still reported (plan 0346, Phase 3's break class)                                                                                                                                        |
-| the join never keys on line  | an entry whose recorded `line` now points at a different finding is carried to its own finding, not to the one at the line                                                                                                                 |
-| K                            | an entry whose match moved file is not carried, its finding reports as new, and the command exits non-zero                                                                                                                                 |
-| J                            | an entry in a `#n` slot is matched through the replayed old grouping, named, its `subject` rewritten; the command **writes** the file, exits non-zero, and the written entry carries the J marker, which a later `check` leaves in place   |
-| L and the honest limit       | the report states N, K, J and L, and its output says the remaining L cannot be shown either way                                                                                                                                            |
-| unmatched entries            | an entry that matches no old-scheme identity is reported, not dropped                                                                                                                                                                      |
-| plan 0532's moved entries    | a baseline written by `main` with a cross-file `#1` suffix migrates to the per-file identity and forgives nothing new                                                                                                                      |
-| rootless `--migrate`         | the assumed root is printed; an entry whose file does not resolve under it is reported, not carried                                                                                                                                        |
-| kernel-written file          | rebased from the baseline's directory, if the measurement keeps the case; otherwise the measurement and the dropped case are recorded in Build notes                                                                                       |
-| the no-root remedy           | plan 0532's no-root finding, then `--migrate` as it advises, then `check`: the finding is gone and nothing new is forgiven                                                                                                                 |
-| one release of overlap       | a baseline older than the overlap is refused by name                                                                                                                                                                                       |
-| `check:nonvacuity`           | the same-file replacement row reds with the shape term deleted; the refusal row reds with the refusal deleted                                                                                                                              |
+| break class                  | the test that must go red                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the headline (shape term)    | baseline two top-level `eval`s, fix the first, add a different one: the new one is reported. Fails before the fix                                                                                                                                                                                                               |
+| the seven edits              | spike 0350's table as a test: identity survives reformatting, insertion above, comments, sibling renames and code movement; breaks when the matched code changes and on fix-one-add-another                                                                                                                                     |
+| the ordinal's key            | a differently-shaped match inserted above another in the same declaration leaves the other's identity unchanged; mutant keys the ordinal on scope alone                                                                                                                                                                         |
+| scope composed, not replaced | "fix `runEval`, add `added`" with byte-identical matches in two declarations: `added::eval` reported (plan 0346's table); mutant drops the scope term                                                                                                                                                                           |
+| within-run distinctness      | `identityCollisions()` for the rule is empty **and** the finding count is the expected non-zero number, in one test; mutant collapses the shape to a constant                                                                                                                                                                   |
+| bug 0338's silent-catch row  | two silent catches in one file, fix the first, add another: reported                                                                                                                                                                                                                                                            |
+| delimiter safety             | `eval('a::b')` and `eval('a')` in one scope have distinct identities; mutant composes the raw shape                                                                                                                                                                                                                             |
+| the ts-morph cause           | a recorded version that differs **and** an overlap that moved: the cause is named; a differing version with nothing moved: not named                                                                                                                                                                                            |
+| the version bump             | `check` against a version-5 baseline gives exactly one `error` naming `--migrate`, not N new ones; it survives `.excluding()` and `--changed`, a regenerate does not record it, and it fails a run whose baselined rules are all `.warn()`                                                                                      |
+| the refusal, library door    | `generateBaseline` over a version-5 file throws, and its message states what `--accept-unverified` costs                                                                                                                                                                                                                        |
+| the override's output        | with `--accept-unverified` it writes, and its output names every entry written as unverified with their count (pinned text, not only "it writes")                                                                                                                                                                               |
+| `accepted` from v5           | an `accepted` entry built from a version-5 identity, in its raw and in its portable form, after the upgrade: the finding escalates to `error`, its Fix is the migration recipe, and the message does not say "extend `accepted`"                                                                                                |
+| `accepted` after the overlap | with the old derivation removed, an escalated identity-bearing finding's advice names the recipe and states the cost of extending, and is never a bare "extend `accepted`"                                                                                                                                                      |
+| the refusal, CLI door        | `eess-ts baseline` over a version-5 file exits non-zero and names `--migrate`                                                                                                                                                                                                                                                   |
+| the join keys on file        | bug 0388's fixture, then `--migrate`, then `b` is still reported (plan 0346, Phase 3's break class)                                                                                                                                                                                                                             |
+| the join never keys on line  | an entry whose recorded `line` now points at a different finding is carried to its own finding, not to the one at the line                                                                                                                                                                                                      |
+| K                            | an entry whose match moved file is not carried, its finding reports as new, and the command exits non-zero                                                                                                                                                                                                                      |
+| J                            | an entry in a `#n` slot is matched through the replayed old grouping, named, its `subject` rewritten; the command **writes** the file, exits non-zero, and the written entry carries the J marker, which a later `check` leaves in place, and which a plain regenerate on the v6 file keeps, or else names each marker it drops |
+| L and the honest limit       | the report states N, K, J and L, and its output says the remaining L cannot be shown either way                                                                                                                                                                                                                                 |
+| unmatched entries            | an entry that matches no old-scheme identity is reported, not dropped                                                                                                                                                                                                                                                           |
+| plan 0532's moved entries    | a baseline written by `main` with a cross-file `#1` suffix migrates to the per-file identity and forgives nothing new                                                                                                                                                                                                           |
+| rootless `--migrate`         | the assumed root is printed; an entry whose file does not resolve under it is reported, not carried                                                                                                                                                                                                                             |
+| kernel-written file          | rebased from the baseline's directory, if the measurement keeps the case; otherwise the measurement and the dropped case are recorded in Build notes                                                                                                                                                                            |
+| the no-root remedy           | plan 0532's no-root finding, then `--migrate` as it advises, then `check`: the finding is gone and nothing new is forgiven                                                                                                                                                                                                      |
+| one release of overlap       | a baseline older than the overlap is refused by name                                                                                                                                                                                                                                                                            |
+| `check:nonvacuity`           | the same-file replacement row reds with the shape term deleted; the refusal row reds with the refusal deleted                                                                                                                                                                                                                   |
 
 **Sabotage matrix.** One row per line above, each mutant reverting that mechanism alone, run once in
 a worktree after the commit, results recorded here.
@@ -252,9 +261,12 @@ matching**, which `--migrate` cannot rewrite, so the changeset points at the pag
   this plan's version bump rather than force a second migration on adopters; deciding it is not this
   plan's.
 - **The ADR**: plan 0534, written after this plan merges, so its rows cite mechanisms that exist.
-- **Removing the old derivation** one release after this plan ships (decision 16): not this plan's.
-  Its home depends on when the release that ships this plan is cut, so it is not given a number
-  here; the release after that one removes it.
+- **Removing the old derivation**, recorded 2026-10-20 at the verify round of PR #255 (architect M4):
+  in the release after the one that ships this plan (decision 16). It is more than deleting code:
+  that release builds the by-name refusal of a baseline older than the overlap (decision 16), and
+  switches decision 17's `accepted` advice to its after-the-overlap form, each with its test. **Its
+  home:** a proposal or plan filed when the release that ships this plan is cut, naming the release
+  after it. Recorded here, not numbered, because no number is reserved for work with no file.
 
 ## Progress ledger
 
