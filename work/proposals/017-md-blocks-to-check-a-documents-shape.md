@@ -1164,3 +1164,34 @@ lesson 2 is the caller's own `string | RegExp` on every section name; lesson 3 s
 choice to name the section in a finding's message, not in the element `.excluding()` matches; lesson
 4 is bug 0507, a precondition of plan 0503; lesson 5 is answered by plan 0503's `haveTextMatching`,
 which takes the caller's own pattern; lesson 6 is not taken up by any plan.
+
+## Consumer follow-up — 2026-10-20
+
+Adopter 1 upgraded to the 0.15 release (kernel 0.8.0) and reported back. Items (a) to (c) are
+**input, recorded as given and not dispositioned here**; nothing is planned from (a) or (b). An
+adopter's wish for new behaviour is proposal input, not a plan. Item (d) is answered by a decision
+already binding.
+
+- **(a) Report a done folder outside the corpus.** Adopter 1 asks that `honestyAtClose` report a
+  default done folder that exists under the repository but outside the corpus's roots. It follows
+  from [bug 0531](../bugs/fixed/0531-the-migration-page-narrows-roots-past-the-done-folders.md):
+  following the 0.15 migration page, adopter 1 narrowed its ledger's roots and dropped its support
+  lane's `delivered/` and `archived/`, both default done folders, so their records left every close
+  check without a word. The page is fixed (docs only); this asks for a mechanism instead. Bearing on
+  it: the preset would have to look at the disk beyond the corpus it is given, and
+  [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 3 has a preset read the
+  disk through `corpus()`.
+- **(b) `rejected/` as a closed-record folder.** Two adopters file closed records under `rejected/`,
+  which is not among `honestyAtClose`'s default done folders (`completed`, `fixed`, `wont-do`,
+  `delivered`, `archived`), so they pass it in `doneFolders` themselves. Bearing on it, not weighed
+  here: adding it to the defaults would run against the direction of ADR-022 and
+  [bug 0497](../bugs/0497-corpus-freezes-two-folder-names-by-default.md), which remove folder-name
+  defaults from the root and leave the folders to the caller; the preset's own defaults are what
+  ADR-006 lets a preset carry, and ADR-022 clause 3 rebuilds the presets on the root's blocks.
+- **(c) The upgrade worked.** Adopter 1 confirms the versions, the peer floors and the migration
+  page's steps held as written, and that the release's new findings were real: 11 ambiguous pointers
+  and 2 silent catches, each a defect in its own tree.
+- **(d) Export `DEFERRED_DISPOSITION_RE`.** Adopter 1 asks for the preset's deferral pattern on the
+  root. Declined under ADR-022 clause 1: the words that dispose a box are a working-method shape,
+  which the root does not fix; each caller passes its own pattern, as adopter 3's lesson 5 above
+  already found (plan 0503's `haveTextMatching` takes it).

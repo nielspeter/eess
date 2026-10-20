@@ -271,7 +271,8 @@ finding suggests `aliases: ['Status']`, and in a corpus where every record write
 the default vocabulary's `Open`. Adding `aliases: ['Status']` read every topic's status as a ledger
 state and gave 224 findings; adding a `State:` line to the topics would have invented a state. The
 fix was to narrow the corpus to the lanes that write `State:`. In the trial that took 4 of 394
-documents, and 14 of 461 open boxes, out of the ledger's counts.
+documents, and 14 of 461 open boxes, out of the ledger's counts. Before you narrow, check that no
+done folder leaves with the lanes you drop: see "Narrowing must not drop a closed record" below.
 
 **`ignore` is never judged.** `corpus()` refuses a dead root, but not an `ignore` glob that matches
 nothing or matches too much, so a ledger record filed later under an ignored folder glob is skipped
@@ -297,6 +298,37 @@ hold no records, so narrow the corpus's `roots`, or `ignore` the exact files.
 A state written as a heading in the header, `## Status: Done`, is now read under the labels in force.
 Pass the label your records use: `label: 'Status'`, or `label: 'Status', aliases: ['State']` if they
 mix forms.
+
+**Narrowing must not drop a closed record.** `honestyAtClose` treats a record as closed when its path
+holds one of its done folders, whatever its header says. Unless you pass `doneFolders`, those are
+`completed/`, `fixed/`, `wont-do/`, `delivered/` and `archived/`. A root you remove takes its done
+folders with it, and nothing reports that: their records leave every close check, and an open box
+in one of them stays open without a finding. After this release, an adopter narrowed its ledger to
+its plans and bugs lanes, and so dropped its support lane, whose `delivered/` and `archived/`
+folders held closed records. Its own review caught it.
+
+So keep every lane that has a done folder among your `roots`. Check before you narrow, from the
+repository root: this lists every tracked Markdown file under a default done folder.
+
+```sh
+git ls-files '*.md' | grep -E '(^|/)(completed|fixed|wont-do|delivered|archived)/'
+```
+
+Each path it prints must sit under one of the `roots` you pass to the corpus, and under no `ignore`
+glob, since `ignore` is never judged. A path outside them is a closed record the close checks no
+longer read. Test fixtures that hold such folders are
+listed too; they are not records, so skip them. If you pass `doneFolders`, grep for your own list
+instead. A lane that writes its state under another label, such as a support lane with
+`Status:`, gets a call of its own with that label rather than leaving the ledger (and its own
+`states` and `terminalStates`, declared together, if its words differ):
+
+```ts
+import { corpus } from '@nielspeter/eess-md'
+import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
+
+honestyAtClose(corpus({ roots: ['work/plans/**', 'work/bugs/**'] }))
+honestyAtClose(corpus({ roots: ['work/support/**'] }), { label: 'Status' })
+```
 
 ### Box text, links in sections, and the rest
 

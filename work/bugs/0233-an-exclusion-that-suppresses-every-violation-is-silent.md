@@ -16,6 +16,10 @@
   accessor; this is the defect its evidence exposed, and it needs no
   `**Implements:**` line.
 - **Reported:** 2026-09-03
+- **Placement (2026-10-20):** stays its own bug, homed with Proposed
+  [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md), whose
+  rule 1 makes it "an application of rule 1 (the universal half)" and whose C1 row names it. It is
+  about what an exclusion suppresses, not what identifies a finding, so no child of [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) owns it.
 
 ## Symptom
 

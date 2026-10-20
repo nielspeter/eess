@@ -12,6 +12,9 @@
 - **Origin:** the enforcement reviews of PR #149, 2026-09-20 — first as the weakest identity in the
   system, then confirmed on the delta after the silent-catch half was fixed.
 - **Reported:** 2026-09-20
+- **Placement (2026-10-20):** the identity is built by [plan 0533](../plans/0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) (plan 0346's Phases 1 and 3, split
+  2026-10-20), which ticks this record's boxes for what it builds and leaves it open for the
+  `PropertyAssignment` box. The absence-finding row of the table below is plan 0532's file check.
 
 ## Symptom
 
