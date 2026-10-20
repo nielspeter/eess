@@ -18,6 +18,10 @@
   `810808b` has zero `identity` mentions). Collision (2), the `duplicate-pair::`
   formula, is fold-era and therefore only in the unpublished `0.3.0`.
 - **Reported:** 2026-08-19
+- **Placement (2026-10-20):** collision 3 is owned by [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), which flips its KNOWN-GAP test and
+  records it fixed here; collisions 1 and 2 stay in this record. Their members sit in one file and
+  are indistinguishable by content, so the file check cannot separate them, and their producers
+  (`dependency.ts`, duplicate bodies) do not call `identifyMatches`, so plan 0533 does not either.
 
 ## Symptom
 
@@ -210,7 +214,9 @@ close claimed more than was true. What holds and what does not:
 0346 found that `beImported` is one instance of a kernel fault: with no `identity`, the file is
 not in a finding's baseline hash at all. Plan 0346's Phase 2 fixes that class by checking
 the file each baseline entry records. Whether collision 3's own entry moves depends on Phase 2's
-grouping decision, which is open. When that ships, this record says collision 3 is fixed and its KNOWN-GAP
+grouping decision, which is open. _(2026-10-20: decided in spike 0394 as per-file grouping, so an
+entry today's code suffixed across files moves, and plan 0533's `--migrate` carries it; built by
+plan 0532.)_ When that ships, this record says collision 3 is fixed and its KNOWN-GAP
 test has flipped; collisions 1 and 2 keep it open.
 
 ## Verification

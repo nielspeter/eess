@@ -11,6 +11,11 @@
   baseline hash has used this scrub since ts-archunit's bug 0010 (folded into this repo). Bug
   0389's `accepted` comparison does not: it replaces whole path tokens instead (spike 0392).
 - **Reported:** 2026-10-06
+- **Placement (2026-10-20):** stays its own bug: its fix is undecided and is a different
+  derivation (the root scrub, not the matched node). [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)'s file check separates the headline pair
+  below, because `BaselineEntry.file` is written by `toPortablePath` and not by the scrub (reasoned,
+  not measured); a same-file pair whose messages differ only inside a path stays open here. A fix
+  decided before [plan 0533](../plans/0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) is Ready can share that plan's `HASH_VERSION` bump and migration.
 
 ## Symptom
 

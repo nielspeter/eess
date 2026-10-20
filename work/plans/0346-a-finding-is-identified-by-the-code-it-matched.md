@@ -2,7 +2,15 @@
 
 ## Status
 
-- **State:** Draft — Phase 2's direction is taken (**E**: the matcher checks the file,
+- **State:** Draft — **split on 2026-10-20** into its children, in build order:
+  [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) (the Phase 2
+  build), [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
+  (Phases 1 and 3: the shape identity and the migration) and
+  [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md) (Phase 4: the ADR),
+  after bug 0389 (fixed) and spikes 0394 (decided) and 0395 (not yet run). Every open box below names
+  its owner. This plan holds no work of its own now, and closes when its children do (coordinator,
+  2026-10-20; see "The split", Notes 2026-10-20, for how that differs from this plan's own text).
+  The history: Phase 2's direction is taken (**E**: the matcher checks the file,
   2026-10-06, after [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md));
   its design is recorded in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision (by delegation, 2026-10-06/07; decision 2's
   risk accepted by the maintainer 2026-10-07), and its `accepted` part moved to spike 0395. What remains is the
@@ -629,6 +637,50 @@ so this plan stays open, as a Draft, until then. Once all six records exist, eve
 `deferred→<the record that now owns it>`, and this plan moves to `completed/` as the parent of
 the split. It does not become one of the six.
 
+### Notes, 2026-10-20: the split as written, against today's code
+
+Written when the split was made. `main` at `a9f96f4` (v0.15.0). The baseline and identity code
+the split rests on barely moved since spike 0394 read it at `b1335f5`: of `violation.ts`, both
+`baseline.ts` files, `baseline-diagnostics.ts`, `match-identity.ts` and `identity-root.ts`, none
+changed; `terminal-builder.ts` gained a docstring and one context member, and the kernel's
+`execute-rule.ts` one field (`undecided`, ADR-021). The census holds. `ci.yml` still runs every
+pull request whatever its base, and `publish.yml` still publishes any `v*` tag, so decision 3's
+integration branch holds as designed. Two places did not fit, and each took the smallest change:
+
+1. **Item 3 cannot be finished yet.** Spike 0395 has not run, and it says "the Phase 2 build plan is
+   not written until it has". Plan 0532 is written anyway, as a Draft whose `accepted` and C13 parts
+   (its Phase 5) are explicitly open, and whose first ledger box is that spike 0395 decides before
+   Ready. **Change:** spike 0395's "not written" reads as "not Ready"; everything else in plan 0532
+   is decided in spike 0394 and does not depend on 0395.
+2. **Item 5 is an ADR that must be written last**, so it cannot exist now without every row
+   `pending`, which Phase 4 rules out. **Change:** item 5 is held by a plan,
+   [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md), which carries the
+   clauses and their named mechanisms and writes the ADR once plans 0532 and 0533 have merged. So the
+   six records are bug 0389, spikes 0394 and 0395, and plans 0532, 0533 and 0534, and the ADR is plan
+   0534's output, not a record of its own.
+
+**When this plan closes.** "How this plan closes" above says it moves to `completed/` once all six
+records exist. On 2026-10-20 the coordinator set the stricter rule: it closes when its children do.
+That is followed here, so this plan stays a Draft until plans 0532, 0533 and 0534 are done.
+
+**The bugs it does not own, placed 2026-10-20:**
+
+- [bug 0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md): collision 3 is
+  owned by plan 0532, which flips its KNOWN-GAP test; collisions 1 and 2 stay in 0159, because their
+  members sit in one file and are indistinguishable by content, so the file check cannot separate
+  them, and their producers (`dependency.ts`, duplicate bodies) do not call `identifyMatches`.
+- [bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md): stays its own
+  bug, homed with Proposed ADR-018, whose rule 1 makes it "an application of rule 1 (the universal
+  half)" and whose C1 row names it. It is about what an exclusion suppresses, not about what
+  identifies a finding.
+- [bug 0387](../bugs/0387-a-basename-exclusion-waives-every-file-with-that-name.md): stays its own
+  bug, with spike 0386. Phase 2 keeps `element` as it is on purpose, so no child changes what an
+  exclusion matches.
+- [bug 0391](../bugs/0391-the-identity-scrub-replaces-the-root-inside-a-path.md): stays its own
+  bug, because its fix is undecided and is a different derivation (the root scrub). Plan 0532's file
+  check separates its headline pair, reasoned and not measured, and plan 0533's Out of scope records
+  that a decided fix can share its `HASH_VERSION` bump.
+
 ## Out of scope
 
 - **The element _name_ for an object-literal match.** A throw in
@@ -691,20 +743,20 @@ the split. It does not become one of the six.
 
 - [x] Phase 2 — the maintainer's decision recorded here before any Phase 2 code: **E**,
       2026-10-06, measured in spike 0390. Phase 4's ADR carries it
-- [ ] Phase 4 — the ADR, authored via `adr-enforce.mjs` so author ≠ validator
+- [ ] Phase 4 — the ADR, authored via `adr-enforce.mjs` so author ≠ validator — deferred→ plan 0534
 - [ ] Phase 4 — **no `pending` rows** when it closes, which is why it is last
-      (plan 0263 is the precedent for what a `pending` row costs later)
+      (plan 0263 is the precedent for what a `pending` row costs later) — deferred→ plan 0534
 - [ ] Phase 1 — shape composed **into** the identity, pinned by the seven-edit
-      table AND by the cross-declaration case review measured
+      table AND by the cross-declaration case review measured — deferred→ plan 0533
 - [ ] Phase 3 — the migration joins on the old-scheme hash and the recorded file, never on
-      the line
-- [ ] Phase 3 — the report names the ambiguous buckets, not a blanket disclaimer
+      the line — deferred→ plan 0533
+- [ ] Phase 3 — the report names the ambiguous buckets, not a blanket disclaimer — deferred→ plan 0533
 - [ ] Phase 1 — the ts-morph version recorded beside `hashVersion`, and
-      `unmatchedBaselineFinding` able to name it as a cause once something moved
+      `unmatchedBaselineFinding` able to name it as a cause once something moved — deferred→ plan 0533
 - [ ] Phase 1 — retire or re-measure `match-identity.ts`'s _"Measured over 596
       matched nodes in a real 808-file project, this is 1:1"_, and rewrite its
       opening line, which claims an identity "that is not a coordinate" for a
-      population where it is one. Whoever builds this reads that file.
+      population where it is one. Whoever builds this reads that file. — deferred→ plan 0533
 - [x] Phase 2 — the spike: a census of every consumer keyed by hash alone, E0 against
       per-file grouping across it, and the no-root options laid out for the maintainer
       (done 2026-10-07: spike 0394; its `accepted` part moved to spike 0395)
@@ -713,45 +765,50 @@ the split. It does not become one of the six.
       2026-10-07)
 - [ ] Phase 2 — the matcher checks the recorded file in both baselines, `accepted` as spike
       0395 decides, missing data fails closed; guarded by the cross-run structural
-      property test
+      property test — deferred→ plan 0532
 - [ ] Phase 2 — the diagnosis names the file: no description-change finding on a hash
-      match in another file, and a remedy per cause, never a blanket regenerate
+      match in another file, and a remedy per cause, never a blanket regenerate — deferred→ plan 0532
 - [ ] Phase 2 — if grouping is per file, the `taken.add` guard and the bug-0065 pins
-      re-homed to same-file fixtures
+      re-homed to same-file fixtures — deferred→ plan 0532
 - [ ] Phase 2 — the identity-bearing and metric rename rows measured before the Phase 2 build
-      plan is Ready
+      plan is Ready — deferred→ plan 0532 (spike 0394's R12 measured them reported under its harness,
+      2026-10-06; plan 0532 ports R12 into the suite)
 - [x] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
       by `accepted` (fixed 2026-10-06, the first record of the split)
-- [ ] Phase 2 — both "rule + file" comments say what the matcher covers
+- [ ] Phase 2 — both "rule + file" comments say what the matcher covers — deferred→ plan 0532
 - [ ] Phase 3 — the refusal and `--migrate` are eess-ts's; the kernel baseline gets the
-      file check only, unless the grouping decision moves kernel hashes
-- [ ] the plan split into the six records in "The split", and every open box here disposed
-      `deferred→` its owner
-- [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it
+      file check only, unless the grouping decision moves kernel hashes — deferred→ plan 0533 (plan
+      0532 measures whether the kernel must record its root)
+- [x] the plan split into the six records in "The split", and every open box here disposed
+      `deferred→` its owner (2026-10-20: plans 0532, 0533 and 0534; see "Notes, 2026-10-20")
+- [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it — deferred→ plan 0533
 - [ ] 0388 closed in the PR that ships Phase 2, with the no-root rule's residual named
       in it; 0159's collision 3 recorded as fixed
       and its KNOWN-GAP test flipped, not deleted; 0159's pointer at this plan narrowed to that
-      collision
+      collision — deferred→ plan 0532
 - [ ] 0338's own boxes for what this plan built ticked in the same PR — the record
-      stays open for `PropertyAssignment`
+      stays open for `PropertyAssignment` — deferred→ plan 0533
 - [ ] Phase 3 — `HASH_VERSION` bumped, and regeneration over an older baseline refused
-      without `--migrate` or a named override
-- [ ] Phase 3 — the migration, and what it cannot promise
+      without `--migrate` or a named override — deferred→ plan 0533
+- [ ] Phase 3 — the migration, and what it cannot promise — deferred→ plan 0533
 - [ ] a `check:nonvacuity` row for the baseline filter itself — the replacement case,
-      not a new finding
+      not a new finding — deferred→ plan 0532 (the cross-file case) and plan 0533 (the same-file
+      case and the refusal)
 - [ ] `validation-owed` — the cost measured: how many entries move, on a real
       adopter baseline. **This plan cannot discharge this box.** Measured: this
       repository keeps no baseline at all (`check:baseline` runs the floor live at
       0 violations), so the input is a third party's tree. Named here rather than
       left to look tickable — and it must not gate the freeze, because nothing
-      this plan does can produce it.
+      this plan does can produce it. — deferred→ plan 0533, where it stays `validation-owed`
 - [x] the `.excluding()` / `eess-exclude` question gets a record, or a recorded
       reason it dissolves — homed 2026-10-05 in spike 0386 and Proposed ADR-018
 - [ ] a changeset — breaking: Phase 1 moves every unnamed-match entry; Phase 2 adds
-      reports for entries matched across files, and `accepted` strings change form
-- [ ] `npm run validate` green
+      reports for entries matched across files, and `accepted` strings change form — deferred→
+      plan 0532 (kernel and eess-ts) and plan 0533 (eess-ts)
+- [ ] `npm run validate` green — deferred→ each child, at its own PR's head
 
 Deferred: the three Out-of-scope items, each with a home — two on bug 0338's
 `PropertyAssignment` box, one on spike 0386 and Proposed ADR-018. One box is
 `validation-owed` and says so — the migration's cost can only be measured on an
-adopter's baseline, and this repository has none.
+adopter's baseline, and this repository has none. Since the split (2026-10-20), every
+other open box → plan 0532, 0533 or 0534, as each box names.

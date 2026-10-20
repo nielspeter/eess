@@ -5,6 +5,10 @@ Phase 2, after enforcement review of
 [spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md)'s decision found that two of
 its decisions contradict each other. Not yet run. Time box: half a working day. It ends in a design
 for a decision, not in code, and the Phase 2 build plan is not written until it has.
+_2026-10-20: the Phase 2 build plan is written,
+[plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), as a Draft
+whose `accepted` and C13 parts are left open for this spike; it does not go Ready until this spike
+has decided (plan 0346, "Notes, 2026-10-20")._
 
 ## The question
 

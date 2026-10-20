@@ -11,6 +11,9 @@
   future, and nothing says so. Each extra file it reaches is a false green.
 - **Origin:** spike 0386's research, corrected by its adversarial review.
 - **Reported:** 2026-10-05
+- **Placement (2026-10-20):** stays its own bug, with spike 0386. [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2 keeps
+  `element` as it is on purpose (`.excluding()` matches on it), so none of its children, plans 0532
+  to 0534, changes what an exclusion matches.
 
 ## Symptom
 
