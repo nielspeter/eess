@@ -1,7 +1,9 @@
 # Proposal 018 — md: a mention of a record is a link
 
 **State:** Draft — filed 2026-10-21 at the maintainer's request; reviewed the same day
-(architect · product · enforcement), **Ruling: Reject** — see "Review — 2026-10-21".
+(architect · product · enforcement), **Ruling: Reject** — see "Review — 2026-10-21". Its ask is carried by
+[proposal 019](./019-md-a-mention-is-a-link-built-from-blocks.md), which makes the review's eight
+decisions from [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md).
 **Priority:** Medium — most references between records are written as plain text and nothing
 reads them, so a wrong or dead reference is green; an agent copies the corpus, and the corpus
 teaches it not to link.
