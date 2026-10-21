@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-21 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
+- **State:** Ready — frozen 2026-10-21: no refinement to harvest, no live-source link, no open
+  question; the one unread-mention mechanism the build needs is written into Decision 6. Written 2026-10-21 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
   ask A with its ask D, after the maintainer's assent to the review's disposition ("plan ask A") and
   instruction to dogfood it here. Every design point below is the review's or
   [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md)'s, cited where it is carried.
@@ -57,7 +58,13 @@ From [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md
    ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)), as `taskItems()`
    reports unread boxes (`packages/md/src/builders/task-items.ts:71-88`): a mention in an HTML block
    (not an HTML comment), in a reference-style link's text, in image alt text or in a link title.
-   These are unsuppressable, never counted against anything a caller ratchets.
+   These are unsuppressable, never counted against anything a caller ratchets. `taskItems()`'s
+   helpers are typed to boxes (`packages/md/src/builders/box-mark-findings.ts:20-45`), so the
+   mention analogue is written beside them on the same pattern: an unread mention carries everything
+   a read one does except whether it is linked, so it is tried against the rule's predicates read as
+   linked and as not linked, through the kernel's `membership` (ADR-021's truth table); reached
+   either way, or undecided, it is one `md/unread-mention` finding with `bypassFilters: true`, at
+   its own line, naming its cause.
 7. **Soft breaks are found**: the match runs over each phrasing run's joined text, newlines
    included; whether `bug⏎0338` is a mention is the caller's pattern's choice (`\s+` or `[ -]`), and
    the docs say which to write.
@@ -123,8 +130,9 @@ mentions(c, { pattern: /\b(?<kind>bug|plan)s?\s+(?<n>\d{3})\b/gi })
 ```
 
 - `MentionRuleBuilder extends CorpusRuleBuilder<MdMention>`: `getElements()` returns readable
-  mentions; `collectViolations()` adds a finding per unread mention its predicates reach, through
-  `inScope` and `unreadFindings`, the `taskItems()` path.
+  mentions; `collectViolations()` adds a finding per unread mention its predicates reach (Decision
+  6), on the shape of `TaskItemRuleBuilder.collectViolations()`
+  (`packages/md/src/builders/task-items.ts:71-88`).
 - Predicate: the free `areSelfMentions({ mention, document })`, true when both functions return a
   key and they are equal. `resideInFile()` and `satisfy()` are inherited.
 - Condition: `beLinked()`, one finding per mention without a `link`, at its own line. Two
