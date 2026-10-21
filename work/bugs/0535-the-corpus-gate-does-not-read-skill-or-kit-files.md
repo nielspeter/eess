@@ -11,7 +11,7 @@
   record-authoring skills. The gate for the corpus itself was
   [proposal 018](../proposals/rejected/018-md-a-mention-of-a-record-is-a-link.md), rejected; it is now
   [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md), built by plans
-  [0539](../plans/0539-a-mention-of-a-record-is-a-link.md) and
+  [0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md) and
   [0541](../plans/0541-this-repositorys-record-mentions-are-gated.md).
 - **Reported:** 2026-10-21
 
