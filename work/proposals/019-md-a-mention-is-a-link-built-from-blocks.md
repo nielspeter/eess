@@ -314,7 +314,7 @@ proposal and is recorded as [bug 0537](../bugs/0537-eess-md-alone-has-no-run-lev
 | **A** — `mentions()` and `beLinked()` | **Accepted, reshaped** | [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md), on the maintainer's assent 2026-10-21, reshaped by the review: positions as facts (in code; in a link, and where: whole, opens, later, straddles) not one enum; a global copy of the pattern, not `stateless()`; a self-mention predicate in the `are` form taking the mention's and the document's key; unread causes reported where a rule's predicates reach them (ADR-021, as `taskItems()` does); soft breaks found; no fix yet |
 | **B** — the target, by composition    | **Held**               | Unholds when a prototype shows, from public blocks, a union join whose left key carries the source read from the link, green on correct links to both of two overlapping sources, red on a crossed link, on a URL no source claims and on a quoted mention under another record's link; with a guard that makes an empty mention side red                                                                                                                                                           |
 | **The fix** (A's `candidates`)        | **Held**               | Unholds with B: derived from the join (a kernel hook called only for exactly one counterpart over the union), with a fixture where an external source holds the key and no fix fires                                                                                                                                                                                                                                                                                                                |
-| **C** — the relation message          | **Held**               | Unholds as its own kernel record: the existing `suggest` fills `suggestion` for both checks, findings keep their baseline identity or the change ships as breaking naming the dialects, bug 0084 decided first, and the corpus gate's reach-around moved back onto `correspondence()` as its proof                                                                                                                                                                                                  |
+| **C** — the relation message          | **Held**               | Unholds as its own kernel record: the existing `suggest` fills `suggestion` for both checks, findings keep their baseline identity or the change ships as breaking naming the dialects, [bug 0084](../bugs/0084-preserve-relations-right-to-left.md) decided first, and the corpus gate's reach-around moved back onto `correspondence()` as its proof                                                                                                                                              |
 | **D** — "what this cannot see"        | **Accepted**           | [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md), Phase 3; adds soft breaks, years, autolinks, a wrong-but-existing link under a quoted mention, and the eess-ts-only disclosure                                                                                                                                                                                                                                                                                                       |
 
 **Ready to become a plan:** ask A with D, once the maintainer assents. B, the fix and C are not.
@@ -333,3 +333,19 @@ without `.expectNonEmpty()`, which is open [bug 0400](../bugs/0400-a-one-way-bec
 So B and the fix stay **Held**, now on two things: bug 0400 fixed, and a choice between the spike's
 two shapes for the fix (a kernel hook on `correspondence()`, or `beLinked()` taking the sources by
 value).
+
+### Addendum — 2026-10-21, PR #256's review
+
+Kept beside the addendum above, which it corrects (PR #256's enforcement and method reviews):
+
+- "The fix row's condition holds too" over-claims: 3,079 is the count with exactly one candidate,
+  not a measured-correct fix. **The fix stays Held on three things now:** bug 0400, the choice of
+  shape, and a sample of its fixes checked against what each author meant.
+- **B's conditions gain one:** spike 0540's title-link rule is itself a one-token escape
+  (`[0002 see bug 0001](./0002-b.md)` is green), so B's exemption for a title link must hold by
+  construction, the link's text being the target's own title, with that escape a fixture row that
+  is red.
+- "Ready to become a plan: ask A with D, once the maintainer assents" is spent: the maintainer
+  assented on 2026-10-21, and [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md) owns A
+  and D. This repository's own gate is [plan 0541](../plans/0541-this-repositorys-record-mentions-are-gated.md),
+  and its migration, which deletes that gate's ledger, is [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md).

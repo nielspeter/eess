@@ -8,8 +8,11 @@
   record, and `check:corpus` reads neither, so a link there that points at a moved record stays
   broken without a word.
 - **Origin:** self-found, 2026-10-21, while adding the "a record is named by a link" guard to the
-  record-authoring skills ([proposal 018](../proposals/018-md-a-mention-of-a-record-is-a-link.md)
-  is the gate for the corpus itself).
+  record-authoring skills. The gate for the corpus itself was
+  [proposal 018](../proposals/018-md-a-mention-of-a-record-is-a-link.md), rejected; it is now
+  [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md), built by plans
+  [0539](../plans/0539-a-mention-of-a-record-is-a-link.md) and
+  [0541](../plans/0541-this-repositorys-record-mentions-are-gated.md).
 - **Reported:** 2026-10-21
 
 ## Symptom

@@ -12,6 +12,9 @@
 - **Origin:** self-found 2026-10-07, measuring the composition proposal 013 describes. A consuming
   project hit the same false green independently, in its own corpus, the same day.
 - **Reported:** 2026-10-07
+- **Blocks (2026-10-21):** [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
+  ask B and its fix. [Spike 0540](../spikes/0540-one-join-over-every-source.md) reproduced this bug on
+  their composition: a join whose mention side is empty is green with or without `.expectNonEmpty()`.
 - **Tier:** 1–2. A kernel evidence defect under ADR-010 (§1, the unit; §3, declarations) and
   ADR-014 (the receipt carries `examined`).
 

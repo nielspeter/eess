@@ -223,3 +223,8 @@ Kept, not edited away (see [proposal 019](../proposals/019-md-a-mention-is-a-lin
   prototyped.
 - **Decision 4's quoted rule** leaves `[see bug 0002](./0001-a.md)` green: a mention later in a link's
   text only needs the link to name some record.
+- **Two figures that do not reconcile, named** (PR #256's method review): the adopter's "number
+  alone in a link" is 23 in section 1 and 22 in section 2, because section 1 counts mentions split
+  by a link and section 2 counts links checked against their record; and section 2's "1,119
+  subject links" is the agreement table's 1,078 + 22 + 19, not the position table's 1,086 + 16 + 19,
+  because the two tables were run with different instruments.

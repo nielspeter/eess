@@ -11,14 +11,14 @@
   only turns one way.
 - **Origin:** self-found, 2026-10-21, while choosing a ratchet for this repository's own adoption of
   [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask A (plan
-  [0539](../plans/0539-a-mention-of-a-record-is-a-link.md)), which needed a per-file count that
+  [0541](../plans/0541-this-repositorys-record-mentions-are-gated.md)), which needed a per-file count that
   falls and stays down.
 - **Reported:** 2026-10-21
 
 ## Symptom
 
 `Baseline.isKnown` in the kernel (`packages/core/src/baseline.ts:259-267`) and its eess-ts copy
-(`packages/ts/src/helpers/baseline.ts:655-662`) both return known for a metric finding whose
+(`packages/ts/src/helpers/baseline.ts:655-686`) both return known for a metric finding whose
 `measured` is `<=` the accepted value. The design is stated beside them, "an improvement stays
 known" (`packages/core/src/baseline.ts:256`, `packages/ts/src/helpers/baseline.ts:104-106`), so
 paying down debt does not turn the build red ([ts-archunit bug 0012](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0012-metric-findings-have-no-usable-ratchet.md)'s

@@ -25,7 +25,7 @@ Each run-level service lives in the kernel and is reached only through eess-ts:
 eess-md's conditions emit fixes today (`movedLinkFix`, `packages/md/src/model/resolve-link.ts:257`),
 and its README says baseline mode works "unchanged" (`packages/md/README.md:41`).
 
-`check:family` (plan 0089) does not catch the baseline gap: it requires a dialect to re-export the
+`check:family` ([plan 0089](../plans/completed/0089-family-standalone-sufficiency.md)) does not catch the baseline gap: it requires a dialect to re-export the
 kernel symbols its own source imports, and eess-md's source imports none of these.
 
 The waiver half is the one that matters most. A rule run from a script or a test, as this

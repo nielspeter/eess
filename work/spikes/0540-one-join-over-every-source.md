@@ -11,7 +11,7 @@ declares, with `\s+`, so mentions across a soft break are counted.
 
 ## The question
 
-Proposal 019's review held B and the fix until a prototype, from public blocks, showed:
+[Proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s review held B and the fix until a prototype, from public blocks, showed:
 
 1. one join over the union of sources, its left key carrying the source read from where the link
    points, green on correct links to both of two overlapping sources;
@@ -76,7 +76,7 @@ the 22 own-URL links. 2.8 seconds with the walk.
 | a record in both sources: no fix, a reader's   | 1,598 |
 | no record in any source: no fix, names nothing | 5     |
 
-The 3,079 include the mentions only ts-archunit holds, which spike 0536 counted as unfixable: with
+The 3,079 include the mentions only ts-archunit holds, which [spike 0536](0536-what-a-mention-of-a-record-needs.md) counted as unfixable: with
 the upstream declared as a source, they get its URL.
 
 **An empty mention side is green**, with or without `.expectNonEmpty()`:
@@ -100,20 +100,45 @@ everything, passes the join.
    `correspondence()` that builds an `ArchFix` for a left element with exactly one counterpart, which
    any dialect's correspondence could use; or eess-md's `beLinked()` taking the same sources
    `Selection` and key functions by value. The first is the review architect's recommendation.
-3. **The empty-side guard needs bug 0400** (condition 4). Until then the guard available is plan
+3. **The empty-side guard needs [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)** (condition 4). Until then the guard available is plan
    0539's: B's rule paired with ask A's `beLinked()` over the same pattern constant, which is red on
    an empty selection. That covers a broken pattern, not a broken judged-link filter.
 4. **The key's normalisation is the caller's.** The prototype keyed numbers as integers, which is
-   right here and wrong for a project whose sources differ by width: the adopter in spike 0536 writes
+   right here and wrong for a project whose sources differ by width: the adopter in [spike 0536](0536-what-a-mention-of-a-record-needs.md) writes
    its own bugs `081` and this repository's `0081`, and an integer key would merge them. A key that
    keeps the digits as written keeps them apart.
 5. **The title-link rule** was checked on this corpus only: no false finding here. In the adopter
-   (spike 0536's figures), the one link whose text mentions plans later and points at a meeting
+   ([spike 0536](0536-what-a-mention-of-a-record-needs.md)'s figures), the one link whose text mentions plans later and points at a meeting
    note would be red; that is a mention linked to something other than its record, which is what
    the rule reports.
 
 ## Not decided here
 
-Which of finding 2's shapes carries the fix; whether bug 0400's fix lands before B; and whether the
+Which of finding 2's shapes carries the fix; whether [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)'s fix lands before B; and whether the
 title-link rule's "opens with the target's own number" should be the caller's function rather than
 eess-md's (019's review, architect M6, on eess-md fixing a convention).
+
+## Corrections — 2026-10-21, from PR #256's review
+
+Kept, not edited away (PR #256's enforcement and method reviews):
+
+- **The title-link rule is a stampable escape.** It skips a link whose text opens with its target's
+  number, so `[0002 see bug 0001](../work/bugs/0002-b.md)` is green: fixture row e with the target's
+  number put in front, the remedy an agent reaches for when a crossed link is red. It checks the
+  number only, not the kind. The "no false finding" in finding 5 was measured over 5 skipped links
+  and says nothing about abuse. A rule that holds by construction exempts a link only when its text
+  is the target's own title, read from the target; that, with the escape as a fixture row that must
+  be red, is now one of B's conditions in [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md).
+- **"Fixed" means one candidate, not a correct fix.** The 3,079 are mentions exactly one record in
+  either source holds; none was sampled against what its author meant. A mention meant for an
+  upstream record missing from the closed list would be fixed to a local one. A correctness sample
+  is now one of the fix's conditions in [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md).
+- **[Bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) is a blocker, not an open question.** "Whether [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)'s fix lands before B" (Not
+  decided here) is wrong: condition 4 fails without it, so B and the fix wait for it.
+- **The integer key merged nothing here.** Both repositories number ADRs and proposals with three
+  digits and bugs and plans with four (ts-archunit at b4084c9: 10, 28, 81 and 101 files), so keying
+  by integer and keying by digits as written give the same joins.
+- **Three counts of the same backlog differ.** [Plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md)
+  first said 4,657, this spike 4,682, the method review 4,696 at 659c076f: three instruments that
+  decide self-mentions differently, run on a corpus this PR was adding records to. [Plan 0541](../plans/0541-this-repositorys-record-mentions-are-gated.md)'s gate
+  prints the number it holds.

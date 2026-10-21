@@ -3,7 +3,10 @@
 **State:** Draft — filed 2026-10-21 at the maintainer's request; reviewed the same day
 (architect · product · enforcement), **Ruling: Reject** — see "Review — 2026-10-21". Its ask is carried by
 [proposal 019](./019-md-a-mention-is-a-link-built-from-blocks.md), which makes the review's eight
-decisions from [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md).
+decisions from [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md). **It stays
+Draft, not Rejected (2026-10-21):** `Rejected` means the ask will not be done, and this ask is being
+done, through 019; `Promoted` needs an owner declaring `**Implements:**` on a ruling that is not
+Reject. Neither terminal state is true of it.
 **Priority:** Medium — most references between records are written as plain text and nothing
 reads them, so a wrong or dead reference is green; an agent copies the corpus, and the corpus
 teaches it not to link.
