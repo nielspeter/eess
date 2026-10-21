@@ -133,7 +133,7 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
 }
 
 /** Thrown by an unread mention's `link` and `inCode`, which are unknown: a predicate that reads them cannot judge it. */
-const UNKNOWN = Symbol('an unread mention has no known link or code')
+const UNKNOWN = new Error('an unread mention has no known link or code')
 
 /** An unread mention as a predicate sees it: everything known, and `link` and `inCode` unknowable. */
 function asSeen(u: MdUnreadMention): MdMention {
