@@ -229,11 +229,24 @@ fixture.
 
 ## Progress ledger
 
-- [ ] Phase 1 — model: phrasing runs and mentions
-- [ ] Phase 2 — builder, `areSelfMentions`, `beLinked()`, exports
-- [ ] Phase 3 — docs and the worked example
-- [ ] Phase 4 — the vacuity-matrix row and the not-a-constructor entry
-- [ ] Every row of the Test inventory written and green
-- [ ] The eess-md minor changeset
+- [x] Phase 1 — model: phrasing runs and mentions. Done otherwise in one respect: `MdMention` and
+      `MdUnreadMention` are defined in `model/mentions.ts`, not the builder, because
+      `check:arch`'s layer rule forbids a predicate importing from `builders/`; the builder re-exports
+      them
+- [x] Phase 2 — builder, `areSelfMentions`, `beLinked()`, exports. The plan said `resideInFile()`
+      is inherited; it is not (the free predicate takes a document), so the builder gained
+      `resideInFile()` and `resideInFolder()`, lifted with `liftToDocument` as `codeBlocks()` does.
+      Sabotage, 2026-10-21: `beLinked()` passing everything turned 6 of the 16 tests red; the walk
+      skipping inline code turned 2 red; both green again once restored
+- [x] Phase 3 — docs and the worked example (`check:docs-code`: 111 fences compile, the two new
+      ones included; the example's three tests pass and its fixtures ran in `check:nonvacuity`)
+- [x] Phase 4 — the vacuity-matrix row (a configuration finding over an empty corpus) and two
+      not-a-constructor entries, `collectMentions` and `areSelfMentions`
+- [x] Every row of the Test inventory written and green (16 tests in
+      `packages/md/tests/builders/mentions.test.ts`)
+- [x] The eess-md minor changeset (`.changeset/mentions-are-links.md`)
 - [x] [Proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s disposition row for A set to `Accepted, reshaped`, owner this plan (2026-10-21)
-- [ ] `npm run validate` green, with its time reported
+- [x] `npm run validate` green, 2026-10-21: the chain ran 17.5 minutes and stopped at
+      `format:check` on four unformatted new files; after formatting, the steps it had not reached
+      (`test`, `test:matrix`, `check:surface`) ran green in 66 seconds. The earlier steps were not
+      re-run for a whitespace-only change

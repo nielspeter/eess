@@ -469,9 +469,29 @@ in a blockquote. A mark that is also a link definition's label (`[~]: url`) is r
 reference, not a box. A correspondence side built with `.select()` drops unread boxes without a
 finding.
 
+## A record named by a link: `mentions()`
+
+`mentions(corpus, { pattern })` selects every match of your pattern in a document's text, inline code
+included, and `beLinked()` reports each one that is not in a link. The pattern and the keys are
+yours; nothing about records is built in. Not to be confused with `links().beLinkedBack()`, which
+checks that a link's target links back.
+
+```ts
+import { corpus, mentions } from '@nielspeter/eess-md'
+
+mentions(corpus({ roots: ['docs/**'] }), { pattern: /\bRFC\s+(?<n>\d+)\b/g })
+  .should()
+  .beLinked()
+  .check()
+```
+
+Presence only: a link to the wrong place is linked. See
+[the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the keys that let a
+record name itself, and what a mention rule cannot see.
+
 ## Every page claimed once: `notExist()`
 
-Every builder over a corpus (`docs`, `links`, `pointers`, `rows`, `terms`, `taskItems`, and
+Every builder over a corpus (`docs`, `links`, `mentions`, `pointers`, `rows`, `terms`, `taskItems`, and
 `codeBlocks`) has `.should().notExist()`: each selected element is a finding at its own line. Two
 absence rules state that a folder's pages each belong to exactly one of your selections:
 

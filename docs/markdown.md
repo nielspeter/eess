@@ -610,6 +610,77 @@ taskItems(c).that().areOpen().should().satisfy(carriesAnOwner).check()
 `evaluate` receives the filtered items and returns one `ArchViolation` per
 failure — an empty array means every item passed.
 
+## A record named by a link: `mentions()`
+
+A record named as text is checked by nothing; named by a link, it is checked wherever a corpus gate
+runs `links().should().resolve()`, and a reader can follow it. `mentions()` finds every match of
+**your** pattern in a document's text, and `beLinked()` says each one sits in a link. eess-md fixes
+no pattern, no folder and no key: one project writes `bug 0338`, another `BUG-081`, a third
+`ADR-0018`, and each states its own.
+
+```ts
+import {
+  areSelfMentions,
+  corpus,
+  mentions,
+  not,
+  type MdDocument,
+  type MdMention,
+} from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/**'] })
+
+// Your spelling: here bugs and plans with four digits. `\s+` also finds `bug` at a line's end
+// with its number on the next.
+const RECORD = /\b(?<kind>bug|plan)s?\s+(?<n>\d{4})\b/gi
+
+// Your keys. A record naming itself (its own title) is not a mention of another record.
+const mentionKey = (m: MdMention): string | undefined =>
+  m.groups.kind === undefined || m.groups.n === undefined
+    ? undefined
+    : `${m.groups.kind.toLowerCase()}:${String(Number(m.groups.n))}`
+const documentKey = (d: MdDocument): string | undefined => {
+  const m = /^work\/(bug|plan)s\/(?:[a-z-]+\/)?(\d{4})-[^/]+\.md$/.exec(d.relPath)
+  return m?.[1] === undefined || m[2] === undefined ? undefined : `${m[1]}:${String(Number(m[2]))}`
+}
+
+mentions(c, { pattern: RECORD })
+  .that()
+  .satisfy(not(areSelfMentions({ mention: mentionKey, document: documentKey })))
+  .should()
+  .beLinked()
+  .check()
+```
+
+What a mention is:
+
+- **Text in paragraphs, headings and table cells**, matched across emphasis (`**bug** 0338`) and
+  across a soft line break when your pattern allows it.
+- **Inline code is read.** `` `bug 0338` `` is a finding, "is in inline code, not a link": backticks
+  do not hide a mention. To quote an example, put it in a fenced block, which is not read, or waive
+  the line with a reason (`<!-- eess-exclude <rule-id>: <reason> -->`).
+- **Linked** when the match's last character sits in a link, which covers `[bug 0338](…)`, a link
+  around inline code, and the number alone in a link (`bug [0338](…)`).
+- **Not read, and never an element:** fenced and indented code, front matter, HTML comments.
+- **Reported as unread** (`md/unread-mention`, which nothing can suppress), where your rule's
+  predicates would reach it: a mention in a raw HTML block, in a reference-style link's text, in an
+  image's alt text, or in a link's title.
+
+Each element carries `doc`, `line`, `text`, `groups` (your pattern's named captures), `inCode`,
+`link` when it has one, and `span` when its text sits in the source exactly.
+
+### What this cannot see
+
+- **A mention your pattern misses**: `bug number 338`, a bare `0338`, the second number of
+  `plans 0532 and 0533`, or a different letter case if your pattern lacks `i`. And a year can look
+  like a number your pattern accepts.
+- **The target.** `beLinked()` decides that a link is there, not where it points: a link to the
+  wrong record, an `#anchor` or any external URL is linked. Run `links().should().resolve()` beside
+  it for links that point nowhere.
+- **What a waiver hid**, unless you run the rule through eess-ts's runner, which names every
+  suppression on a green run; a rule run from your own script is not told
+  ([bug 0537](../work/bugs/0537-eess-md-alone-has-no-run-level-services.md)).
+
 ## A document's shape, built from blocks
 
 A rule about what a kind of document must hold is written with the blocks above, in your own words.
