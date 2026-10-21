@@ -318,3 +318,18 @@ proposal and is recorded as [bug 0537](../bugs/0537-eess-md-alone-has-no-run-lev
 | **D** — "what this cannot see"        | **Accepted**           | [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md), Phase 3; adds soft breaks, years, autolinks, a wrong-but-existing link under a quoted mention, and the eess-ts-only disclosure                                                                                                                                                                                                                                                                                                       |
 
 **Ready to become a plan:** ask A with D, once the maintainer assents. B, the fix and C are not.
+
+### Addendum — 2026-10-21, spike 0540
+
+[Spike 0540](../spikes/0540-one-join-over-every-source.md) prototyped B and the fix on this
+repository, at the maintainer's instruction to dogfood the design. Of the B row's unhold conditions,
+three hold: one join over the union of sources, keyed by the source read from the link, is green on
+correct links to both of two overlapping sources and red on a crossed link, on a URL no source claims
+and on `[see bug 0002](./0001-a.md)` (a title-link rule replaces "subject or quoted"); over this
+repository's 1,207 judged links it reports nothing. The fix row's condition holds too: the fix keyed
+over the same sources without the source fixes 3,079 of 4,682 plain mentions here and fires on no
+collision (1,598). The fourth B condition does not hold: an empty mention side is green with or
+without `.expectNonEmpty()`, which is open [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md).
+So B and the fix stay **Held**, now on two things: bug 0400 fixed, and a choice between the spike's
+two shapes for the fix (a kernel hook on `correspondence()`, or `beLinked()` taking the sources by
+value).
