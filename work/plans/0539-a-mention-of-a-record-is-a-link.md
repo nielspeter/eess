@@ -43,7 +43,7 @@ From [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md
 1. **No pattern, lane or key is eess-md's** ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md);
    [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) section 3). `mentions(corpus, { pattern })` takes the caller's `RegExp`; the element
    carries its named captures.
-2. **Inline code is read** ([proposal 018](../proposals/018-md-a-mention-of-a-record-is-a-link.md)'s
+2. **Inline code is read** ([proposal 018](../proposals/rejected/018-md-a-mention-of-a-record-is-a-link.md)'s
    review, decision 1; [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) section 1: 23 bare stamps, 100 quotations here). A mention in
    inline code is a finding with its own message.
 3. **Two facts only: `inCode` and `link`.** Where in a link's text a mention sits is B's question,

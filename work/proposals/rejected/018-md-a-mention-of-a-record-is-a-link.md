@@ -1,12 +1,14 @@
 # Proposal 018 — md: a mention of a record is a link
 
-**State:** Draft — filed 2026-10-21 at the maintainer's request; reviewed the same day
-(architect · product · enforcement), **Ruling: Reject** — see "Review — 2026-10-21". Its ask is carried by
-[proposal 019](./019-md-a-mention-is-a-link-built-from-blocks.md), which makes the review's eight
-decisions from [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md). **It stays
-Draft, not Rejected (2026-10-21):** `Rejected` means the ask will not be done, and this ask is being
-done, through 019; `Promoted` needs an owner declaring `**Implements:**` on a ruling that is not
-Reject. Neither terminal state is true of it.
+**State:** Rejected — ruled Reject on 2026-10-21 (architect · product · enforcement); see
+"Review — 2026-10-21". Its successor is
+[proposal 019](../019-md-a-mention-is-a-link-built-from-blocks.md), a different design for the same
+need, which makes the review's eight decisions from
+[spike 0536](../../spikes/0536-what-a-mention-of-a-record-needs.md).
+**Correction (2026-10-21):** an earlier edit kept this record `Draft` on the grounds that its ask is
+being done through 019. That confused the need with this submission: a state belongs to the
+submission, and this design will not be built, which is what `Rejected` says. Corrected at the
+maintainer's question; the record moved to `rejected/`. The Ruling is in "Review — 2026-10-21" below.
 **Priority:** Medium — most references between records are written as plain text and nothing
 reads them, so a wrong or dead reference is green; an agent copies the corpus, and the corpus
 teaches it not to link.
@@ -14,7 +16,7 @@ teaches it not to link.
 2026-10-21, measured there and here.
 **Affects:** `@nielspeter/eess-md` (a new element type beside `links()`).
 
-**This asks again for part of what [proposal 017](./017-md-blocks-to-check-a-documents-shape.md)'s
+**This asks again for part of what [proposal 017](../017-md-blocks-to-check-a-documents-shape.md)'s
 review rejected** (D2, "references in free prose, as a gate", rejected 2026-10-16 and still rejected
 in its second review). It is filed because the ask is narrower than D2 and because the maintainer
 wants the gap gated; § "What is different from 017's D2" answers each of the three reasons D2 was
@@ -34,7 +36,7 @@ to link (2026-10-21); a line in a skill is not a gate.
 
 A scan of every Markdown file under `work/`, `adr/`, `docs/` and the skills (and `kit/` here), 2026-10-21, on `main`
 at 8e258550. The instrument is a regex per kind over each line, with fenced code dropped; a match is
-"linked" when it sits inside a `[text](url)`, and a match inside inline code is skipped. Not
+"linked" when it sits inside a `[text](../url)`, and a match inside inline code is skipped. Not
 hand-classified: counts include numbers that are another project's (below) and placeholders.
 
 | kind                                               | this repository: plain / all | an adopter monorepo: plain / all |
@@ -71,7 +73,7 @@ with this repository's are a finite, closed set of history, not a namespace that
   line's Markdown the value sits, so it cannot say whether the value is inside a link.
 - **`pointers()` reads `path.ext:line` in prose and inline code** (`packages/md/src/model/pointers.ts:27`),
   code extensions only; a `.md` path is not a pointer.
-- **[Proposal 015](./015-md-wikilinks-are-read-or-reported.md)** asks to scan text nodes for
+- **[Proposal 015](../015-md-wikilinks-are-read-or-reported.md)** asks to scan text nodes for
   `[[…]]` outside code. Ask A here needs the same walk; whichever is built first owns it.
 - **Proposal 017, D1** (references at declared positions such as `Implements:` and `deferred→`) is
   held; **D2** (references in free prose) is rejected. This proposal reads free prose, so it is
@@ -98,7 +100,7 @@ reasons that cannot be made honest; each is answered here, or this proposal fail
    line.
 2. **"A per-line marker is an escape an agent can stamp."** There is no per-line marker. The
    escapes are a declared foreign namespace and the caller's pattern, both in the rule file, both
-   code a reviewer reads once, and both judged by [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md): a namespace no link uses, or a pattern
+   code a reviewer reads once, and both judged by [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md): a namespace no link uses, or a pattern
    matching nothing, is a finding. Two escapes remain open and are named as questions below:
    inline code, and rewording a mention so the pattern misses it.
 3. **"A warning is the release nobody reads."** Every condition here fails the build; nothing is a
@@ -132,9 +134,9 @@ Each break class is a fixture row in the vacuity matrix (`scripts/check-nonvacui
 - **A — break class (false red):** a mention inside a fenced block is not an element; a mention
   inside link text is linked.
 - **A — vacuity:** a pattern that matches nothing in the selection is a finding, never a green
-  ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md); [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) for a string naming nothing).
-- **B — break class:** `[bug 0338](./0339-x.md)` is red, naming 0338 and 0339; a mention naming no
-  file is red with its own message, not the "points elsewhere" one ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2).
+  ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md); [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) for a string naming nothing).
+- **B — break class:** `[bug 0338](../0339-x.md)` is red, naming 0338 and 0339; a mention naming no
+  file is red with its own message, not the "points elsewhere" one ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2).
 - **B — break class:** an external link outside every declared namespace is red; a declared
   namespace no link uses is red.
 - **D — remedy test:** applying the fix to the A and B fixtures turns each red row green and
@@ -154,7 +156,7 @@ Each break class is a fixture row in the vacuity matrix (`scripts/check-nonvacui
 4. **Frozen records in the migration.** 43 of the 89 files citing ts-archunit are frozen history
    (`completed/`, `fixed/`). Is linking a mention in a frozen record a permitted edit, or does the
    rule select live records only, leaving frozen ones as written?
-5. **Which dialect owns the text walk** shared with [proposal 015](./015-md-wikilinks-are-read-or-reported.md).
+5. **Which dialect owns the text walk** shared with [proposal 015](../015-md-wikilinks-are-read-or-reported.md).
 
 ## Out of scope
 

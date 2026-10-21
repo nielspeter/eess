@@ -1,7 +1,7 @@
 # Spike 0536: what a mention of a record needs to be checked as a link
 
 Measured 2026-10-21 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md),
-after [proposal 018](../proposals/018-md-a-mention-of-a-record-is-a-link.md) was ruled Reject. It ran
+after [proposal 018](../proposals/rejected/018-md-a-mention-of-a-record-is-a-link.md) was ruled Reject. It ran
 as throwaway scripts in a scratch directory against the built packages of `main` at 8e258550 (eess-md
 0.12.0, eess 0.8.0), on Node 24.14.0, over three corpora read-only: this repository's `work/`, `adr/`
 and `docs/` (564 documents); an adopter monorepo's `work/` and `docs/` (435 documents); and the
@@ -11,7 +11,7 @@ instrument; none of them is a proposed default.
 
 ## The question
 
-[Proposal 018](../proposals/018-md-a-mention-of-a-record-is-a-link.md)'s review left eight decisions for a successor. Four of them are questions about
+[Proposal 018](../proposals/rejected/018-md-a-mention-of-a-record-is-a-link.md)'s review left eight decisions for a successor. Four of them are questions about
 corpora, not about taste, and were answered by measuring:
 
 1. Where do mentions of records sit in the parsed Markdown, and what would reading inline code cost?

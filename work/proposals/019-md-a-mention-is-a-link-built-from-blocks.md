@@ -1,7 +1,7 @@
 # Proposal 019 — md: a mention of a record is a link, built from blocks
 
 **State:** Draft — filed 2026-10-21 at the maintainer's request, as the successor of
-[proposal 018](./018-md-a-mention-of-a-record-is-a-link.md); reviewed the same day (architect ·
+[proposal 018](./rejected/018-md-a-mention-of-a-record-is-a-link.md); reviewed the same day (architect ·
 product · enforcement), **Ruling: Split and sequence** — see "Review — 2026-10-21".
 **Priority:** Medium — most references between records are plain text, which nothing reads, and an
 agent copies the corpus it is shown.
@@ -23,7 +23,7 @@ the build.
 
 ## What 018's review decided, and where this proposal answers it
 
-[Proposal 018](./018-md-a-mention-of-a-record-is-a-link.md) was ruled Reject on 2026-10-21; its
+[Proposal 018](./rejected/018-md-a-mention-of-a-record-is-a-link.md) was ruled Reject on 2026-10-21; its
 review listed eight decisions a successor must make in its text. Each is made here, from spike
 0536's measurements, and can be overruled in review.
 
