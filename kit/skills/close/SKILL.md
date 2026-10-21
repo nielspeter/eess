@@ -44,7 +44,8 @@ Neutral machine token, project-local prose after it — see
    its disposition token:
    - `done-otherwise` — it happened, but not as written; say how, straight.
    - `deferred→<home>` — moved to a real home (a plan, a bug, an ADR). **Create or
-     name the home now** — never a footnote in the nearly-done item.
+     name the home now**, as a link to its file — `deferred→[plan 0153](…)`, not
+     `deferred→ plan 0153` — never a footnote in the nearly-done item.
    - `dropped-on-purpose` — intentionally not doing it; say why.
    - `validation-owed` — merged, but real-world validation still owed (infra,
      deploy config that CI can't exercise). Don't let a green check overstate it.

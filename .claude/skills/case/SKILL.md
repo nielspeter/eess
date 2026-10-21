@@ -53,3 +53,11 @@ Read the _shape_ from the corpus: skim recent cases in
 **Collapsing case and defect into one.** If root cause lands in the case body, the
 case rots when the code changes and the bug has no self-contained repro. Keep them
 separate: the case points, the bug freezes.
+
+**Naming a record without linking it.** Every mention of another record (a plan,
+bug, case, proposal, spike, refinement or ADR) is a relative Markdown link to its
+file, every time it is named, not only the first:
+`[bug 0338](../bugs/0338-slug.md)`, never a bare "bug 0338". A path to a document
+is a link too, not a code span. The corpus gate checks a link on every run; a bare
+number is checked by nothing and cannot be followed. Much of the existing corpus
+names records in plain text — this is the one place not to copy it.

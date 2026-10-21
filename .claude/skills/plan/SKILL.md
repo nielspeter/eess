@@ -52,7 +52,8 @@ shape this project doesn't already use.
    link to the proposal both parse — see `PROPOSALS.md`'s `Implements` entry for
    the exact shape). `check:corpus` binds accepted proposals to the plans that
    declare this; a plan that only mentions a proposal in prose does not count
-   (bug 0141's own finding — a mention can mean "cites it to exclude it").
+   ([bug 0141](../../../work/bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)'s
+   own finding — a mention can mean "cites it to exclude it").
 
 4. **Prerequisite decisions become ADRs.** If a real design decision surfaces while
    drafting ("what must we decide before we can build this?"), write it as an ADR in
@@ -86,3 +87,10 @@ shape this project doesn't already use.
 - **Buried decisions** — a real design choice belongs in an ADR the plan links, not
   as a paragraph.
 - **Barrelling into build** — authoring ends at Draft; don't code.
+- **Naming a record without linking it** — every mention of another record (a
+  plan, bug, case, proposal, spike, refinement or ADR) is a relative Markdown link
+  to its file, every time it is named, not only the first:
+  `[bug 0338](../bugs/0338-slug.md)`, never a bare "bug 0338". A path to a document
+  is a link too, not a code span. The corpus gate checks a link on every run; a
+  bare number is checked by nothing and cannot be followed. Much of the existing
+  corpus names records in plain text — this is the one place not to copy it.
