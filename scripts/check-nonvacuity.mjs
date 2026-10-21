@@ -3766,14 +3766,25 @@ const gates = [
   ],
   [
     'corpus/done-folders-hold-done-values-proposals',
-    () =>
-      gateCorpusStateProbe(
+    // Both done folders, so the `rejected/` arm (added with its first record, proposal 018) is
+    // pinned here and not only by `check:ledger`, which sees open values alone.
+    () => {
+      const promoted = gateCorpusStateProbe(
         'proposals/promoted',
         '__nonvacuity_probe_done_folder_proposal.md',
         ['# A probe', '', '- **State:** Draft', '', '## Body'],
         'corpus/done-folders-hold-done-values-proposals',
         'wrong folder: `Draft` (State, line 3) belongs outside work/proposals/promoted/**',
-      ),
+      )
+      const rejected = gateCorpusStateProbe(
+        'proposals/rejected',
+        '__nonvacuity_probe_done_folder_proposal_rejected.md',
+        ['# A probe', '', '- **State:** Promoted', '', '## Body'],
+        'corpus/done-folders-hold-done-values-proposals',
+        'wrong folder: `Promoted` (State, line 3) belongs in work/proposals/promoted/**',
+      )
+      return { ok: promoted.ok && rejected.ok, detail: `${promoted.detail}; ${rejected.detail}` }
+    },
   ],
   [
     'corpus/state-in-a-form-not-read',

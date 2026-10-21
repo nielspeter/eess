@@ -349,3 +349,10 @@ Kept beside the addendum above, which it corrects (PR #256's enforcement and met
   assented on 2026-10-21, and [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md) owns A
   and D. This repository's own gate is [plan 0541](../plans/0541-this-repositorys-record-mentions-are-gated.md),
   and its migration, which deletes that gate's ledger, is [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md).
+- **A is narrower than its disposition row says.** The row accepts "positions as facts (in code; in
+  a link, and where: whole, opens, later, straddles)"; [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md)
+  ships `inCode` and `link` only. Where in a link's text a mention sits moves to B with the rule
+  that reads it (the title-link exemption), since nothing in A reads it (PR #256's review).
+- **The skills' "a path to a document is a link too, not a code span" is guidance with no gate.**
+  This proposal leaves that check out of scope, and no record asks for it; the sentence stays in the
+  record-authoring skills as instruction, and a gate for it would be its own proposal.

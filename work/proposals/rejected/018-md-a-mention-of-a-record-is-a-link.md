@@ -36,7 +36,7 @@ to link (2026-10-21); a line in a skill is not a gate.
 
 A scan of every Markdown file under `work/`, `adr/`, `docs/` and the skills (and `kit/` here), 2026-10-21, on `main`
 at 8e258550. The instrument is a regex per kind over each line, with fenced code dropped; a match is
-"linked" when it sits inside a `[text](../url)`, and a match inside inline code is skipped. Not
+"linked" when it sits inside a `[text](url)`, and a match inside inline code is skipped. Not
 hand-classified: counts include numbers that are another project's (below) and placeholders.
 
 | kind                                               | this repository: plain / all | an adopter monorepo: plain / all |
@@ -135,7 +135,7 @@ Each break class is a fixture row in the vacuity matrix (`scripts/check-nonvacui
   inside link text is linked.
 - **A — vacuity:** a pattern that matches nothing in the selection is a finding, never a green
   ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md); [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) for a string naming nothing).
-- **B — break class:** `[bug 0338](../0339-x.md)` is red, naming 0338 and 0339; a mention naming no
+- **B — break class:** `[bug 0338](./0339-x.md)` is red, naming 0338 and 0339; a mention naming no
   file is red with its own message, not the "points elsewhere" one ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2).
 - **B — break class:** an external link outside every declared namespace is red; a declared
   namespace no link uses is red.

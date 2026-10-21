@@ -100,8 +100,8 @@ everything, passes the join.
    `correspondence()` that builds an `ArchFix` for a left element with exactly one counterpart, which
    any dialect's correspondence could use; or eess-md's `beLinked()` taking the same sources
    `Selection` and key functions by value. The first is the review architect's recommendation.
-3. **The empty-side guard needs [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)** (condition 4). Until then the guard available is plan
-   0539's: B's rule paired with ask A's `beLinked()` over the same pattern constant, which is red on
+3. **The empty-side guard needs [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)** (condition 4). Until then the guard available is
+   [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md)'s element: B's rule paired with ask A's `beLinked()` over the same pattern constant, which is red on
    an empty selection. That covers a broken pattern, not a broken judged-link filter.
 4. **The key's normalisation is the caller's.** The prototype keyed numbers as integers, which is
    right here and wrong for a project whose sources differ by width: the adopter in [spike 0536](0536-what-a-mention-of-a-record-needs.md) writes

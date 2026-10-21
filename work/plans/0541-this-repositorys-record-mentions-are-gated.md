@@ -95,6 +95,23 @@ fenced blocks, which the rule does not read.
 **The summary line** prints mentions examined, unlinked, files and texts in the ledger, and the
 ledger total, so a green run says how much is still owed.
 
+## Open before Ready
+
+Judgement 3 has no rule yet for an entry **absent at the base** (PR #256's round-2 method review,
+I1), and three things depend on it:
+
+- **The bootstrap.** The PR that builds this plan writes the first ledger, which `main` does not
+  have. If "absent at base" means 0, every entry in that PR is "raised" and the plan's own PR is
+  red; if it means "not judged", the rule must say when that holds (only while the ledger file is
+  itself absent at the base) and why that is not an escape.
+- **The probe rows.** A probe file is new since the base, so any non-zero probe entry is "raised",
+  and the over, new-text and under rows go red for a second reason. The probe ledger needs its own
+  rule under judgement 3, or the rows another way to isolate what they name.
+- **The rename row.** An uncommitted probe has no base path, and `git diff --name-status -M <base>`
+  does not list untracked files, so "renamed with its entry carried is green" cannot be built as
+  written; nor can an unstaged local `mv`, which reads as stale plus new. The row needs a committed
+  probe in a scratch worktree, or a different proof of rename carrying.
+
 ## Phases
 
 ### Phase 1 — the rule and the ledger, judged both ways
