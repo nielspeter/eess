@@ -6,7 +6,7 @@ repository, whose record numbers collide with ts-archunit's. It ran as throwaway
 built packages of `main` at 8e258550 on Node 24.14.0, over this repository's `work/`, `adr/` and
 `docs/` (569 documents) and ts-archunit at b4084c9 as the upstream source. Nothing here is built;
 [spike 0536](./0536-what-a-mention-of-a-record-needs.md) holds the walk and the instruments, reused
-here with one change: the pattern is the one [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md)
+here with one change: the pattern is the one [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)
 declares, with `\s+`, so mentions across a soft break are counted.
 
 ## The question
@@ -101,7 +101,7 @@ everything, passes the join.
    any dialect's correspondence could use; or eess-md's `beLinked()` taking the same sources
    `Selection` and key functions by value. The first is the review architect's recommendation.
 3. **The empty-side guard needs [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)** (condition 4). Until then the guard available is
-   [plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md)'s element: B's rule paired with ask A's `beLinked()` over the same pattern constant, which is red on
+   [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)'s element: B's rule paired with ask A's `beLinked()` over the same pattern constant, which is red on
    an empty selection. That covers a broken pattern, not a broken judged-link filter.
 4. **The key's normalisation is the caller's.** The prototype keyed numbers as integers, which is
    right here and wrong for a project whose sources differ by width: the adopter in [spike 0536](0536-what-a-mention-of-a-record-needs.md) writes
@@ -138,7 +138,7 @@ Kept, not edited away (PR #256's enforcement and method reviews):
 - **The integer key merged nothing here.** Both repositories number ADRs and proposals with three
   digits and bugs and plans with four (ts-archunit at b4084c9: 10, 28, 81 and 101 files), so keying
   by integer and keying by digits as written give the same joins.
-- **Three counts of the same backlog differ.** [Plan 0539](../plans/0539-a-mention-of-a-record-is-a-link.md)
+- **Three counts of the same backlog differ.** [Plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)
   first said 4,657, this spike 4,682, the method review 4,696 at 659c076f: three instruments that
   decide self-mentions differently, run on a corpus this PR was adding records to. [Plan 0541](../plans/0541-this-repositorys-record-mentions-are-gated.md)'s gate
   prints the number it holds.

@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-21, split from [plan 0539](./0539-a-mention-of-a-record-is-a-link.md)'s
+- **State:** Draft — written 2026-10-21, split from [plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md)'s
   Phase 4 after PR #256's method and enforcement reviews, at the maintainer's instruction to dogfood
   [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask A on this
   repository. The ratchet below is the enforcement review's design (its C1, I1, I2, I6, I7, M1).
@@ -14,13 +14,13 @@
 - **Effort:** Medium, one PR. One rule and its ratchet in `scripts/check-corpus.mjs`, a ledger file,
   and sabotage rows. No package change.
 - **Created:** 2026-10-21
-- **Builds after:** [plan 0539](./0539-a-mention-of-a-record-is-a-link.md), whose `mentions()` it
+- **Builds after:** [plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md), whose `mentions()` it
   uses. **Builds before:** [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md),
   which empties and deletes the ledger.
 
 ## Problem
 
-[Plan 0539](0539-a-mention-of-a-record-is-a-link.md) gives a project the rule; this repository cannot turn it on red, and its two existing
+[Plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md) gives a project the rule; this repository cannot turn it on red, and its two existing
 ratchets are unsafe for it. The kernel baseline's identity has no file and a set holds one copy of
 each hash, so one baselined `bug 0338` forgives it in every file, any number of times
 ([bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md), plans
@@ -96,6 +96,10 @@ fenced blocks, which the rule does not read.
 ledger total, so a green run says how much is still owed.
 
 ## Open before Ready
+
+**A known escape the ratchet does not close:** an invisible character inside a mention hides it
+from the rule ([bug 0543](../bugs/0543-an-invisible-character-hides-a-mention.md)), so this gate's
+green says nothing about mentions written that way until that bug is fixed.
 
 Judgement 3 has no rule yet for an entry **absent at the base** (PR #256's round-2 method review,
 I1), and three things depend on it:

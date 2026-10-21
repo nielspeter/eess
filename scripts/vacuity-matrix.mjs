@@ -377,6 +377,12 @@ const SIBLING_PROBES = {
   '@nielspeter/eess-md::pointers': () => md.pointers(emptyCorpus).check(),
   '@nielspeter/eess-md::rows': () => md.rows(emptyCorpus, { columns: { name: /Name/ } }).check(),
   '@nielspeter/eess-md::taskItems': () => md.taskItems(emptyCorpus).check(),
+  '@nielspeter/eess-md::mentions': () =>
+    md
+      .mentions(emptyCorpus, { pattern: /\bbug\s+\d{4}\b/g })
+      .should()
+      .beLinked()
+      .check(),
   '@nielspeter/eess-md::sections': () => md.sections(emptyCorpus).check(),
   '@nielspeter/eess-md::terms': () => md.terms(emptyCorpus, { label: /Term:/ }).check(),
   '@nielspeter/eess-md::fields': () =>
@@ -427,6 +433,8 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::codeBlocks':
     'needs a parser with canaries to construct; its zero-blocks case is check:nonvacuity corpus/code-block-parse/zero-blocks',
   '@nielspeter/eess-md::collectTaskItems': 'model reader, returns task items',
+  '@nielspeter/eess-md::collectMentions': 'model reader, returns mentions (plan 0539)',
+  '@nielspeter/eess-md::areSelfMentions': 'predicate factory, used inside a builder (plan 0539)',
   '@nielspeter/eess-md::haveSection': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::haveTable': 'condition factory, used inside a builder',
   '@nielspeter/eess-md::haveTitle': 'condition factory, used inside a builder (plan 0522)',
