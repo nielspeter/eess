@@ -8,9 +8,12 @@ import {
   corpus,
   corpusFromText,
   inDocuments,
+  inSections,
   isArchConfigError,
   mentions,
   not,
+  resideInFile,
+  sectionsNamed,
   type ArchViolation,
   type MdDocument,
   type MdMention,
@@ -311,6 +314,99 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
       .violations()
     expect(v.some((x) => x.ruleId === 'md/unread-mention' && x.element === 'a.md:3')).toBe(true)
     expect(v.some((x) => x.message.includes('the scope cannot judge a.md'))).toBe(true)
+  })
+})
+
+describe('mentions(): an unread mention the rule decides out is not reported', () => {
+  const unreadIds = (v: readonly ArchViolation[]): string[] =>
+    v.filter((x) => x.ruleId === 'md/unread-mention').map((x) => x.element)
+  const self = {
+    mention: (m: MdMention): string | undefined =>
+      m.groups.n === undefined ? undefined : `bug:${String(Number(m.groups.n))}`,
+    document: (d: MdDocument): string | undefined => {
+      const m = /(?:^|\/)(\d{4})-[^/]*\.md$/.exec(d.relPath)
+      return m?.[1] === undefined ? undefined : `bug:${String(Number(m[1]))}`
+    },
+  }
+
+  it("a record's own number in its own HTML is decided out by not(areSelfMentions(…)); another's is not", () => {
+    const c = corpusFromText({
+      'bugs/0001-a.md':
+        '# Bug 0001\n\n<div>bug 0001 and bug 0002</div>\n\n[bug 0002](./0002-b.md)\n',
+    })
+    const v = mentions(c, { pattern: record() })
+      .that()
+      .satisfy(not(areSelfMentions(self)))
+      .should()
+      .beLinked()
+      .violations()
+    expect(
+      v.filter((x) => x.ruleId === 'md/unread-mention').map((x) => x.message.split(' sits')[0]),
+    ).toEqual(['"bug 0002"'])
+  })
+
+  it('not(inDocuments(…)) and inSections(…) decide an unread mention out by its place', () => {
+    const c = corpusFromText({
+      'a.md': '# A\n\n<div>bug 0001</div>\n\nbug 0003.\n',
+      'b.md': '# B\n\n## Notes\n\n<div>bug 0002</div>\n\nbug 0004.\n',
+    })
+    const notA = mentions(c, { pattern: record() })
+      .that()
+      .satisfy(not(inDocuments(resideInFile('a.md'))))
+      .should()
+      .beLinked()
+      .violations()
+    expect(unreadIds(notA)).toEqual(['b.md:5'])
+    const inNotes = mentions(c, { pattern: record() })
+      .that()
+      .satisfy(inSections(sectionsNamed('Notes')))
+      .should()
+      .beLinked()
+      .violations()
+    expect(unreadIds(inNotes)).toEqual(['b.md:5'])
+  })
+
+  it('a field on a predicate cannot forge a scope: a forged docMembership drops nothing', () => {
+    const forged = {
+      description: 'forged',
+      test: (): boolean => true,
+      docMembership: (): boolean => false,
+    } satisfies Predicate<MdMention> & { docMembership: () => boolean }
+    const v = one('# A\n\n<div>bug 0001</div>\n\nbug 0002.\n')
+      .that()
+      .satisfy(forged)
+      .should()
+      .beLinked()
+      .violations()
+    expect(unreadIds(v)).toEqual(['a.md:3'])
+  })
+})
+
+describe('mentions(): links written in HTML', () => {
+  const lines = [
+    '# A',
+    '',
+    'An anchor <a id="x">bug 0001</a> is no link.',
+    '',
+    'Inside [<a href="./y.md">bug 0002</a>](./x.md) a Markdown link.',
+    '',
+    'See <A HREF="./b.md">bug 0003</A> here.',
+    '',
+    'See <a href="./b.md">x</a> and bug 0004 after it.',
+    '',
+  ].join('\n')
+
+  it('an <a> with no href is not a link; one inside a Markdown link is linked; upper case is read; text after </a> is read', () => {
+    const v = one(lines).should().beLinked().violations()
+    expect(
+      v.map(
+        (x) => `${String(x.line)} ${x.ruleId ?? 'beLinked'}: ${x.message.split(' sits')[0] ?? ''}`,
+      ),
+    ).toEqual([
+      '3 beLinked: "bug 0001" is not a link',
+      '9 beLinked: "bug 0004" is not a link',
+      '7 md/unread-mention: "bug 0003"',
+    ])
   })
 })
 

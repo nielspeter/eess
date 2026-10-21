@@ -5,7 +5,7 @@ import {
   type Predicate,
   type Undecided,
 } from '@nielspeter/eess'
-import { undecidedViolations, type Membership } from '@nielspeter/eess/internal'
+import { membership, undecidedViolations, type Membership } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import {
   collectMentions,
@@ -57,7 +57,7 @@ const REMEDY: Record<UnreadCause, string> = {
 /**
  * Rule builder over mentions (plan 0539): every match of the caller's pattern in a document's
  * paragraphs, headings and table cells, inline code included. A match in text this rule cannot read
- * is never an element: it is reported, unless the rule's document scope leaves its document out.
+ * is never an element: it is reported, unless the rule's predicates decide it out without its link.
  */
 export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   protected readonly noun = 'mentions'
@@ -132,36 +132,60 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   }
 }
 
-/** A predicate that decides by document alone: `resideInFile()`, `inDocuments(…)` and the like. */
-function decidesByDocument<T>(
-  p: Predicate<T>,
-): p is Predicate<T> & { readonly docMembership: (d: MdDocument) => Membership } {
-  return 'docMembership' in p && typeof p.docMembership === 'function'
+/** Thrown by an unread mention's `link` and `inCode`, which are unknown: a predicate that reads them cannot judge it. */
+const UNKNOWN = Symbol('an unread mention has no known link or code')
+
+/** An unread mention as a predicate sees it: everything known, and `link` and `inCode` unknowable. */
+function asSeen(u: MdUnreadMention): MdMention {
+  return {
+    doc: u.doc,
+    line: u.line,
+    text: u.text,
+    groups: u.groups,
+    get inCode(): boolean {
+      throw UNKNOWN
+    },
+    get link(): { readonly url: string } | undefined {
+      throw UNKNOWN
+    },
+  }
 }
 
 /**
- * The unread mentions the rule must report. An unread mention's link, its target and whether it is in
- * code are unknown, so only a predicate that decides by its document can leave it out; any other
- * predicate (a `satisfy()`, a `not()`, a test of the link) cannot judge it, and it is reported rather
- * than dropped (ADR-021). A document scope that is undecided reaches it too, and its causes are
- * returned.
+ * The unread mentions the rule must report (ADR-021). Each predicate is asked about the mention as
+ * far as it is known: its document, line, text and captures, but not its link or whether it is in
+ * code. A predicate that decides it out (a path scope, a section scope, `not(areSelfMentions(…))`)
+ * leaves it out, as false does in strong Kleene logic; one that reads the unknown link or code
+ * cannot judge it, so it is reported rather than dropped; a predicate that is undecided reports it
+ * with its causes. Nothing about a predicate's shape is trusted, so no field can be forged to drop one.
  */
 function reachedUnread(
   unread: readonly MdUnreadMention[],
   predicates: readonly Predicate<MdMention>[],
 ): { readonly reached: MdUnreadMention[]; readonly undecided: readonly Undecided[] } {
-  const scopes = predicates.filter((p) => decidesByDocument(p))
   const reached: MdUnreadMention[] = []
   const undecided: Undecided[] = []
   for (const u of unread) {
+    const seen = asSeen(u)
     let left = false
-    for (const scope of scopes) {
-      if (!decidesByDocument(scope)) continue
-      const m = scope.docMembership(u.doc)
-      if (m === false) left = true
-      else if (m !== true) undecided.push(...m)
+    const causes: Undecided[] = []
+    for (const p of predicates) {
+      let m: Membership
+      try {
+        m = membership([p], 'all', seen)
+      } catch (e) {
+        if (e === UNKNOWN) continue
+        throw e
+      }
+      if (m === false) {
+        left = true
+        break
+      }
+      if (m !== true) causes.push(...m)
     }
-    if (!left) reached.push(u)
+    if (left) continue
+    reached.push(u)
+    undecided.push(...causes)
   }
   return { reached, undecided }
 }

@@ -668,10 +668,11 @@ What a mention is:
 - **Reported as unread** (`md/unread-mention`, which nothing can suppress): a mention in a raw HTML
   block, in a link written in HTML (`<a href>…</a>`), in a reference-style link's text, in a link
   definition's title, or in an image's alt text or title. A reference-style link is not read
-  because its target is a definition elsewhere, which `links()` does not read either. Only a
-  predicate that decides by the document (`resideInFile()`, `resideInFolder()`, `inDocuments(…)`)
-  can leave an unread mention out: any other predicate cannot judge text the rule cannot read, so
-  the mention is reported.
+  because its target is a definition elsewhere, which `links()` does not read either. Your rule's
+  predicates are asked about it as far as it is known (its document, line, text and captures): one
+  that decides it out without its link, such as a path or section scope or
+  `not(areSelfMentions(…))`, leaves it out; one that needs its link or whether it is in code cannot
+  judge it, so it is reported.
 
 Each element carries `doc`, `line`, `text`, `groups` (your pattern's named captures), `inCode`, and
 `link` when it has one. `collectMentions(root, pattern)` returns the same `MdMentionRef`s and
@@ -682,8 +683,9 @@ Each element carries `doc`, `line`, `text`, `groups` (your pattern's named captu
 - **A mention your pattern misses**: `bug number 338`, a bare `0338`, the second number of
   `plans 0532 and 0533`, or a different letter case if your pattern lacks `i`. A year can look like
   a number your pattern accepts.
-- **A mention hidden by an invisible character.** `bug` and `0338` with a zero-width space, a soft
-  hyphen or a zero-width joiner between them read as the mention and are not matched
+- **A mention hidden by an invisible character.** A zero-width space, zero-width joiner or soft
+  hyphen anywhere inside the mention, written as the character or as an entity (`&#8203;`), reads
+  as the mention and is not matched
   ([bug 0543](../work/bugs/0543-an-invisible-character-hides-a-mention.md)).
 - **The target.** `beLinked()` decides that a link points somewhere, not where: a link to the wrong
   record, a named `#anchor`, `about:blank` or any external URL is linked. `links().should().resolve()`

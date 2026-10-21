@@ -254,12 +254,14 @@ fixture.
   - A block of exactly one HTML comment is not read; text between two comments on one line is
     (a greedy pattern had dropped it silently).
   - A link with no target, `[x]()` or `[x](#)`, is not linked.
-  - Decision 6's reach is narrower than written: only a predicate that decides by the document
-    (`resideInFile()`, `resideInFolder()`, `inDocuments(…)`) leaves an unread mention out; any
-    other cannot judge it, so it is reported (a link test dropped one silently before).
+  - Decision 6's reach, as built after a second review round: each predicate is asked about an
+    unread mention whose link and code are unknowable (they throw when read). One that decides it
+    out without them leaves it out; one that reads them cannot judge it, so it is reported. A first
+    version trusted a `docMembership` field, which over-reported (`not(areSelfMentions(…))`,
+    `inSections(…)`) and could be forged; it was replaced in the same PR.
   - One walk per document per builder; remedies rewritten so each clears its finding.
   - The test file grew from 16 to 31 tests; the testing review's mutants, rewritten for the new
-    code, went from 7 of 27 killed to 32 of 32. The example gained a capitalised mention and a
+    code, went from 7 of 27 killed to 36 of 37, the one not applied being a patch for code since replaced (the 35 tests). The example gained a capitalised mention and a
     `violating-unread-html` fixture.
 - [x] The unread-reach helper is not generalised across `taskItems()` and `mentions()`:
       dropped-on-purpose, two copies; a third (proposal 015's wikilinks, if built) is the moment to

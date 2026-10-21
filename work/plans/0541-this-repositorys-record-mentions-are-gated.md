@@ -97,6 +97,10 @@ ledger total, so a green run says how much is still owed.
 
 ## Open before Ready
 
+**A known escape the ratchet does not close:** an invisible character inside a mention hides it
+from the rule ([bug 0543](../bugs/0543-an-invisible-character-hides-a-mention.md)), so this gate's
+green says nothing about mentions written that way until that bug is fixed.
+
 Judgement 3 has no rule yet for an entry **absent at the base** (PR #256's round-2 method review,
 I1), and three things depend on it:
 

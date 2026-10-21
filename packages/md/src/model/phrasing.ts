@@ -47,7 +47,7 @@ interface UnreadText {
 
 /** Exactly one HTML comment, alone: `<!-- a --> text <!-- b -->` is not one, and its text is seen. */
 const ONE_COMMENT = /^\s*<!--(?:(?!-->)[\s\S])*-->\s*$/
-const OPENS_A = /^<a[\s>]/i
+const OPENS_A = /^<a\s[^>]*\bhref\s*=/i
 const CLOSES_A = /^<\/a\s*>/i
 
 /** A link with no target is not a link to anything: `[x]()` and `[x](#)`. */
@@ -122,7 +122,9 @@ export function phrasingOf(root: Root): {
         case 'html':
           // Inline HTML is a tag, never text, except that the text of an `<a>` is a link this walk
           // cannot read: it is reported, so the author is not told to add a link that is there.
-          if (OPENS_A.test(node.value)) htmlLink ??= { text: '', line: lineOf(node) }
+          // An `<a>` inside a Markdown link is inside that link already.
+          if (OPENS_A.test(node.value) && link === undefined)
+            htmlLink ??= { text: '', line: lineOf(node) }
           else if (CLOSES_A.test(node.value) && htmlLink !== undefined) {
             unread.push({ text: htmlLink.text, line: htmlLink.line, cause: 'html-link' })
             htmlLink = undefined
