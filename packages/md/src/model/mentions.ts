@@ -1,7 +1,7 @@
 import { ArchConfigError } from '@nielspeter/eess'
 import type { Root } from 'mdast'
 import type { MdDocument } from './document.js'
-import { phrasingOf, type PhrasingRun, type UnreadCause } from './phrasing.js'
+import { phrasingOf, type UnreadCause } from './phrasing.js'
 
 /**
  * Mentions (plan 0539): every match of the caller's pattern in a document's phrasing runs. eess-md
@@ -18,8 +18,6 @@ export interface MdMentionRef {
   readonly text: string
   /** The pattern's named captures; a group that did not take part is absent. */
   readonly groups: Readonly<Record<string, string>>
-  /** The match's source span, present only when its text is found there exactly. */
-  readonly span?: { readonly start: number; readonly end: number }
   /** Any part of the match sits in inline code. */
   readonly inCode: boolean
   /** The link holding the match's last character, if any. */
@@ -87,32 +85,12 @@ function* matches(text: string, re: RegExp, owner: string): Generator<RegExpMatc
   }
 }
 
-/** Where each matched text sits in the run's source, when every match of it can be placed exactly. */
-function spanOf(
-  run: PhrasingRun,
-  source: string | undefined,
-  joined: string,
-  m: RegExpMatchArray,
-): { start: number; end: number } | undefined {
-  if (source === undefined || run.start === undefined || run.end === undefined) return undefined
-  const raw = source.slice(run.start, run.end)
-  const inRaw: number[] = []
-  for (let i = raw.indexOf(m[0]); i !== -1; i = raw.indexOf(m[0], i + 1)) inRaw.push(i)
-  const inJoined: number[] = []
-  for (let i = joined.indexOf(m[0]); i !== -1; i = joined.indexOf(m[0], i + 1)) inJoined.push(i)
-  // Only when the source holds the text exactly as often as the run does is the n-th one this one.
-  if (inRaw.length !== inJoined.length) return undefined
-  const at = inRaw[inJoined.indexOf(m.index ?? -1)]
-  return at === undefined ? undefined : { start: run.start + at, end: run.start + at + m[0].length }
-}
-
 /** Every mention of `pattern` in one document, read and unread. */
 export function collectMentions(
   root: Root,
   pattern: RegExp,
-  options: { readonly source?: string; readonly owner?: string } = {},
 ): { readonly mentions: MdMentionRef[]; readonly unread: UnreadMentionRef[] } {
-  const owner = options.owner ?? 'mentions'
+  const owner = 'mentions'
   const { runs, unread: unreadText } = phrasingOf(root)
   const mentions: MdMentionRef[] = []
   for (const run of runs) {
@@ -137,12 +115,10 @@ export function collectMentions(
       if (first === undefined || last === undefined) continue
       const before = first.text.slice(0, index - (starts[a] ?? 0))
       const line = first.line + (before.match(/\n/g)?.length ?? 0)
-      const span = spanOf(run, options.source, joined, m)
       mentions.push({
         line,
         text: m[0],
         groups: groupsOf(m),
-        ...(span ? { span } : {}),
         inCode: segs.slice(a, b + 1).some((s) => s.inCode),
         ...(last.link ? { link: last.link } : {}),
       })

@@ -130,7 +130,7 @@ export { mentions, MentionRuleBuilder, UNREAD_MENTION } from './builders/mention
 export type { MdMention, MdUnreadMention, MentionOptions } from './builders/mentions.js'
 export { collectMentions } from './model/mentions.js'
 export type { MdMentionRef, UnreadMentionRef } from './model/mentions.js'
-export type { UnreadCause as MentionUnread } from './model/phrasing.js'
+export type { UnreadCause } from './model/phrasing.js'
 export { areSelfMentions } from './predicates/mentions.js'
 export type { SelfMentionKeys } from './predicates/mentions.js'
 export { vocabulary, terms, fields, TermRuleBuilder } from './builders/vocabulary.js'

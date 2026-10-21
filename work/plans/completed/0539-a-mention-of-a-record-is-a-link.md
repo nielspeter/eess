@@ -244,4 +244,26 @@ fixture.
       (`test`, `test:matrix`, `check:surface`) ran green in 66 seconds. The earlier steps were not
       re-run for a whitespace-only change
 
-Deferred: none. Proposal 019's held asks (B, the fix, C) and this repository's own gate were never this plan's; they are in Out of scope with their homes.
+- [x] PR #257's review applied (architect · enforcement · testing), 2026-10-21, done otherwise than
+      Phase 1 and Decision 6 wrote:
+  - `span` removed: unused by ask A and, measured, placed on the wrong text when a block repeated
+    it; Decision 3's two facts are what ships.
+  - The unread cause list grew and changed: `html-link` (a link written as `<a href>`),
+    `definition-title` and `image-title`; a link's own title is read, as linked, not unread. The
+    exported type is `UnreadCause`, not the alias `MentionUnread`.
+  - A block of exactly one HTML comment is not read; text between two comments on one line is
+    (a greedy pattern had dropped it silently).
+  - A link with no target, `[x]()` or `[x](#)`, is not linked.
+  - Decision 6's reach is narrower than written: only a predicate that decides by the document
+    (`resideInFile()`, `resideInFolder()`, `inDocuments(…)`) leaves an unread mention out; any
+    other cannot judge it, so it is reported (a link test dropped one silently before).
+  - One walk per document per builder; remedies rewritten so each clears its finding.
+  - The test file grew from 16 to 31 tests; the testing review's mutants, rewritten for the new
+    code, went from 7 of 27 killed to 32 of 32. The example gained a capitalised mention and a
+    `violating-unread-html` fixture.
+- [x] The unread-reach helper is not generalised across `taskItems()` and `mentions()`:
+      dropped-on-purpose, two copies; a third (proposal 015's wikilinks, if built) is the moment to
+      extract it.
+- [x] Invisible characters inside a mention are recorded, not fixed here: deferred→[bug 0543](../../bugs/0543-an-invisible-character-hides-a-mention.md).
+
+Deferred: [bug 0543](../../bugs/0543-an-invisible-character-hides-a-mention.md). Proposal 019's held asks (B, the fix, C) and this repository's own gate were never this plan's; they are in Out of scope with their homes.

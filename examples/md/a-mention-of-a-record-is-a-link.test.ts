@@ -55,7 +55,7 @@ describe('a mention of a record is a link', () => {
     expect(v).toHaveLength(1)
     const [finding] = v
     expect(finding?.element).toBe('records/plans/0002-export.md:3')
-    expect(finding?.message).toBe('"bug 0001" is not a link')
+    expect(finding?.message).toBe('"Bug 0001" is not a link')
     expect(() => rule(fixture(NAME, 'violating-plain-mention')).check()).toThrow(
       /Architecture violation/,
     )
@@ -67,5 +67,14 @@ describe('a mention of a record is a link', () => {
     const [finding] = v
     expect(finding?.element).toBe('records/plans/0002-export.md:3')
     expect(finding?.message).toBe('"bug 0001" is in inline code, not a link')
+  })
+
+  it('violating-unread-html: a mention in a raw HTML block is reported as unread, and nothing hides it', () => {
+    const v = rule(fixture(NAME, 'violating-unread-html')).violations()
+    expect(v).toHaveLength(1)
+    const [finding] = v
+    expect(finding?.ruleId).toBe('md/unread-mention')
+    expect(finding?.element).toBe('records/plans/0002-export.md:3')
+    expect(finding?.bypassFilters).toBe(true)
   })
 })

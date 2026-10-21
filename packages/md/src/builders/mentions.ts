@@ -5,15 +5,15 @@ import {
   type Predicate,
   type Undecided,
 } from '@nielspeter/eess'
-import { membership, undecidedViolations } from '@nielspeter/eess/internal'
+import { undecidedViolations, type Membership } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
-import { stampedByDocument } from '../model/by-document.js'
 import {
   collectMentions,
   validateMentionPattern,
   type MdMention,
   type MdUnreadMention,
 } from '../model/mentions.js'
+import type { MdDocument } from '../model/document.js'
 import type { UnreadCause } from '../model/phrasing.js'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { resideInFile, resideInFolder } from '../predicates/document.js'
@@ -33,28 +33,39 @@ export const UNREAD_MENTION = 'md/unread-mention'
 
 const WHERE: Record<UnreadCause, string> = {
   'html-block': 'a raw HTML block',
+  'html-link': 'a link written in HTML',
   'reference-link': "a reference-style link's text",
+  'definition-title': "a link definition's title",
   'image-alt': "an image's alt text",
-  'link-title': "a link's or image's title",
+  'image-title': "an image's title",
 }
 
+// Each remedy clears its finding: it says where the text must go, not only what to add.
 const REMEDY: Record<UnreadCause, string> = {
   'html-block':
-    'Move the mention out of the HTML into Markdown, or put the HTML in a fenced code block if it is an example.',
-  'reference-link': 'Write the link inline, `[text](url)`, so its target sits beside the mention.',
-  'image-alt': 'Name the record in the text beside the image, as a link.',
-  'link-title': "Name the record in the link's text or beside it, as a link.",
+    'Move the text out of the HTML block into Markdown, or put the HTML in a fenced code block if it is an example.',
+  'html-link': 'Write the link in Markdown, `[text](url)`, instead of an HTML `<a>`.',
+  'reference-link':
+    "Write the link inline, `[text](url)`: a reference-style link's target is a definition elsewhere, which this rule does not read.",
+  'definition-title': "Take the text out of the definition's title.",
+  'image-alt':
+    'Take the text out of the alt text; if it names something, name it beside the image, as a link.',
+  'image-title':
+    "Take the text out of the image's title; if it names something, name it beside the image, as a link.",
 }
 
 /**
  * Rule builder over mentions (plan 0539): every match of the caller's pattern in a document's
  * paragraphs, headings and table cells, inline code included. A match in text this rule cannot read
- * is never an element: a rule whose predicates would reach it, read as linked or as not, reports it.
+ * is never an element: it is reported, unless the rule's document scope leaves its document out.
  */
 export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   protected readonly noun = 'mentions'
 
   private readonly pattern: RegExp
+
+  /** One walk per document per builder: a document is built once and never mutated. */
+  private readonly found = new WeakMap<MdDocument, ReturnType<typeof collectMentions>>()
 
   constructor(corpus: Corpus, options: MentionOptions) {
     super(corpus)
@@ -62,28 +73,30 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
     this.pattern = options.pattern
   }
 
-  private scan(): { mentions: MdMention[]; unread: MdUnreadMention[] } {
-    const mentions: MdMention[] = []
-    const unread: MdUnreadMention[] = []
-    for (const doc of this.project.documents()) {
-      const found = collectMentions(doc.root, this.pattern, { source: doc.text })
-      for (const m of found.mentions) mentions.push({ ...m, doc })
-      for (const u of found.unread) unread.push({ ...u, doc })
-    }
-    return { mentions, unread }
+  private foundIn(doc: MdDocument): ReturnType<typeof collectMentions> {
+    const known = this.found.get(doc)
+    if (known !== undefined) return known
+    const found = collectMentions(doc.root, this.pattern)
+    this.found.set(doc, found)
+    return found
   }
 
   protected getElements(): MdMention[] {
-    return stampedByDocument(
-      this.project,
-      (doc) => collectMentions(doc.root, this.pattern, { source: doc.text }).mentions,
-    )
+    return this.project
+      .documents()
+      .flatMap((doc) => this.foundIn(doc).mentions.map((m) => ({ ...m, doc })))
+  }
+
+  private unread(): MdUnreadMention[] {
+    return this.project
+      .documents()
+      .flatMap((doc) => this.foundIn(doc).unread.map((u) => ({ ...u, doc })))
   }
 
   /** The kernel's verdict, plus a finding for each unread mention this rule's predicates reach. */
   protected override collectViolations(): CollectResult {
     const base = super.collectViolations()
-    const { reached, undecided } = reachedUnread(this.scan().unread, this._predicates)
+    const { reached, undecided } = reachedUnread(this.unread(), this._predicates)
     if (reached.length === 0) return base
     // ADR-021: a mention whose membership is undecided reports that cause too, beside it.
     const causes = undecidedViolations(undecided, this.buildConditionContext(), base)
@@ -119,27 +132,36 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   }
 }
 
+/** A predicate that decides by document alone: `resideInFile()`, `inDocuments(…)` and the like. */
+function decidesByDocument<T>(
+  p: Predicate<T>,
+): p is Predicate<T> & { readonly docMembership: (d: MdDocument) => Membership } {
+  return 'docMembership' in p && typeof p.docMembership === 'function'
+}
+
 /**
- * The unread mentions the rule could have judged: an unread mention is everything a read one is
- * except whether it is linked, so it is tried against the predicates read both ways, through the
- * kernel's one truth table (ADR-021). Undecided is reached too, and its causes returned.
+ * The unread mentions the rule must report. An unread mention's link, its target and whether it is in
+ * code are unknown, so only a predicate that decides by its document can leave it out; any other
+ * predicate (a `satisfy()`, a `not()`, a test of the link) cannot judge it, and it is reported rather
+ * than dropped (ADR-021). A document scope that is undecided reaches it too, and its causes are
+ * returned.
  */
 function reachedUnread(
   unread: readonly MdUnreadMention[],
   predicates: readonly Predicate<MdMention>[],
 ): { readonly reached: MdUnreadMention[]; readonly undecided: readonly Undecided[] } {
+  const scopes = predicates.filter((p) => decidesByDocument(p))
   const reached: MdUnreadMention[] = []
   const undecided: Undecided[] = []
   for (const u of unread) {
-    const base = { doc: u.doc, line: u.line, text: u.text, groups: u.groups, inCode: false }
-    let hit = false
-    for (const read of [base, { ...base, link: { url: '' } }] satisfies MdMention[]) {
-      const m = membership(predicates, 'all', read)
-      if (m === false) continue
-      hit = true
-      if (m !== true) undecided.push(...m)
+    let left = false
+    for (const scope of scopes) {
+      if (!decidesByDocument(scope)) continue
+      const m = scope.docMembership(u.doc)
+      if (m === false) left = true
+      else if (m !== true) undecided.push(...m)
     }
-    if (hit) reached.push(u)
+    if (!left) reached.push(u)
   }
   return { reached, undecided }
 }

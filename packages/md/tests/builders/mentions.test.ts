@@ -7,17 +7,20 @@ import {
   areSelfMentions,
   corpus,
   corpusFromText,
+  inDocuments,
   isArchConfigError,
   mentions,
   not,
   type ArchViolation,
   type MdDocument,
   type MdMention,
+  type Predicate,
 } from '../../src/index.js'
 import { tree } from '../helpers/tree.js'
 
-const RECORD = /\b(?<kind>bug|plan)s?\s+(?<n>\d{4})\b/gi
-const NO_BREAK = /\b(?<kind>bug|plan)s?[ -](?<n>\d{4})\b/gi
+/** A fresh pattern per use, so no test shares a `lastIndex` with another. */
+const record = (): RegExp => /\b(?<kind>bug|plan)s?\s+(?<n>\d{4})\b/gi
+const noBreak = (): RegExp => /\b(?<kind>bug|plan)s?[ -](?<n>\d{4})\b/gi
 
 const said = (vs: readonly ArchViolation[]): string[] =>
   vs.map((v) => `${String(v.line)}: ${v.message}`)
@@ -30,55 +33,92 @@ const selected = (b: ReturnType<typeof mentions>): string[] =>
         `${String(m.line)} ${m.text.replace(/\n/g, '⏎')}${m.inCode ? ' code' : ''}${m.link ? ` → ${m.link.url}` : ''}`,
     )
 
-const one = (text: string, pattern: RegExp = RECORD) =>
+const one = (text: string, pattern: RegExp = record()) =>
   mentions(corpusFromText({ 'a.md': text }), { pattern })
+
+const linked = (text: string, pattern?: RegExp): string[] =>
+  said(one(text, pattern).should().beLinked().violations())
 
 describe('mentions(): what is a mention, and where it sits', () => {
   it('a plain mention is red at its own line; a linked one beside it is green', () => {
-    const v = one('# A\n\nSee [bug 0001](./b.md) and bug 0002.\n').should().beLinked().violations()
-    expect(said(v)).toEqual(['3: "bug 0002" is not a link'])
+    expect(linked('# A\n\nSee [bug 0001](./b.md) and bug 0002.\n')).toEqual([
+      '3: "bug 0002" is not a link',
+    ])
   })
 
   it('a mention in inline code is red with the inline-code message', () => {
     const v = one('# A\n\nSee `bug 0002`.\n').should().beLinked().violations()
     expect(said(v)).toEqual(['3: "bug 0002" is in inline code, not a link'])
+    expect(v[0]?.suggestion).toMatch(/^Put a link around it/)
+  })
+
+  it('a mention partly in inline code is in inline code', () => {
+    expect(linked('# A\n\nSee bug `0002` here.\n')).toEqual([
+      '3: "bug 0002" is in inline code, not a link',
+    ])
   })
 
   it('a mention in inline code inside a link is linked', () => {
     expect(selected(one('# A\n\nSee [`bug 0002`](./b.md).\n'))).toEqual([
       '3 bug 0002 code → ./b.md',
     ])
-    expect([...one('# A\n\nSee [`bug 0002`](./b.md).\n').should().beLinked().violations()]).toEqual(
-      [],
-    )
+    expect(linked('# A\n\nSee [`bug 0002`](./b.md).\n')).toEqual([])
   })
 
   it('the number alone in a link is linked', () => {
-    expect(selected(one('# A\n\nSee bug [0119](./0119-x.md).\n'))).toEqual([
-      '3 bug 0119 → ./0119-x.md',
+    const text = '# A\n\nSee bug [0119](./0119-x.md).\n'
+    expect(selected(one(text))).toEqual(['3 bug 0119 → ./0119-x.md'])
+    expect(linked(text)).toEqual([])
+  })
+
+  it('a link with no target is not a link: an empty URL and a bare #', () => {
+    expect(linked('# A\n\nSee [bug 0001]() and [bug 0002](#).\n')).toEqual([
+      '3: "bug 0001" is not a link',
+      '3: "bug 0002" is not a link',
     ])
   })
 
-  it('a mention split by emphasis is found and red', () => {
-    const v = one('# A\n\nSee **bug** 0002 here.\n').should().beLinked().violations()
-    expect(said(v)).toEqual(['3: "bug 0002" is not a link'])
+  it("a mention in a link's title is a mention, and linked", () => {
+    const text = '# A\n\nSee [bug 0001](./b.md "about bug 0002").\n'
+    expect(selected(one(text))).toEqual(['3 bug 0001 → ./b.md', '3 bug 0002 → ./b.md'])
+    expect(linked(text)).toEqual([])
   })
 
-  it('a mention broken by a soft line break is found by \\s+ and missed by [ -]', () => {
+  it('a mention split by emphasis is found and red', () => {
+    expect(linked('# A\n\nSee **bug** 0002 here.\n')).toEqual(['3: "bug 0002" is not a link'])
+  })
+
+  it("a mention broken by a soft line break is found by the caller's \\s+ and missed by its [ -]", () => {
     const text = '# A\n\nThis is about bug\n0002 and more.\n'
-    expect(selected(one(text, RECORD))).toEqual(['3 bug⏎0002'])
-    expect(selected(one(text, NO_BREAK))).toEqual([])
+    expect(selected(one(text, record()))).toEqual(['3 bug⏎0002'])
+    expect(selected(one(text, noBreak()))).toEqual([])
+  })
+
+  it('a mention across a hard line break is found', () => {
+    expect(selected(one('# A\n\nThis is about bug\\\n0002 and more.\n'))).toEqual(['3 bug⏎0002'])
+  })
+
+  it('a mention in a table cell and in a heading is found, each at its own line', () => {
+    const text = '# About bug 0001\n\n| a | b |\n| - | - |\n| x | bug 0002 |\n'
+    expect(linked(text)).toEqual(['1: "bug 0001" is not a link', '5: "bug 0002" is not a link'])
+  })
+
+  it("the caller's flags are kept: an i pattern finds a capitalised mention, and one without i does not", () => {
+    expect(linked('# A\n\nSee Bug 0001.\n')).toEqual(['3: "Bug 0001" is not a link'])
+    expect(selected(one('# A\n\nSee Bug 0001.\n', /\bbug\s+\d{4}\b/g))).toEqual([])
+  })
+
+  it("a caller's sticky flag is dropped: a mention is found anywhere in a run", () => {
+    expect(selected(one('# A\n\nSee bug 0001 here.\n', /\bbug\s+\d{4}\b/y))).toEqual(['3 bug 0001'])
   })
 
   it("a mention's line is its own, on the third line of a paragraph", () => {
-    const v = one('# A\n\nOne line,\ntwo lines,\nthree: bug 0002.\n')
-      .should()
-      .beLinked()
-      .violations()
-    expect(said(v)).toEqual(['5: "bug 0002" is not a link'])
+    expect(linked('# A\n\nOne line,\ntwo lines,\nthree: bug 0002.\n')).toEqual([
+      '5: "bug 0002" is not a link',
+    ])
   })
 
-  it('fenced, indented, front-matter and HTML-comment mentions are not elements', () => {
+  it('fenced, indented, front-matter and HTML-comment mentions are neither elements nor findings', () => {
     const text = [
       '---',
       'about: bug 0001',
@@ -93,34 +133,33 @@ describe('mentions(): what is a mention, and where it sits', () => {
       '',
       '<!-- bug 0004 -->',
       '',
-      'Prose.',
+      'Prose bug 0009.',
       '',
     ].join('\n')
-    expect(selected(one(text))).toEqual([])
+    expect(selected(one(text))).toEqual(['14 bug 0009'])
+    expect(linked(text)).toEqual(['14: "bug 0009" is not a link'])
   })
 
   it('groups carries named captures and omits a group that did not take part', () => {
     const pattern = /\b(?:(?<kind>bug)\s+(?<n>\d{4})|(?<adr>ADR)-(?<num>\d{3}))\b/g
-    const found = mentions(corpusFromText({ 'a.md': '# A\n\nbug 0001 and ADR-009.\n' }), {
-      pattern,
-    })
+    const found = one('# A\n\nbug 0001 and ADR-009.\n', pattern)
       .select({ label: 'm', identify: (m) => ({ name: m.text }) })
       .elements.map((m: MdMention) => m.groups)
-    expect(found).toEqual([
+    expect(found).toStrictEqual([
       { kind: 'bug', n: '0001' },
       { adr: 'ADR', num: '009' },
     ])
   })
 
-  it("a caller's g pattern used twice gives the same elements", () => {
+  it("a caller's g pattern used twice gives the same elements, and its lastIndex is left alone", () => {
+    const pattern = record()
     const c = corpusFromText({ 'a.md': '# A\n\nbug 0001, bug 0002.\n' })
-    RECORD.lastIndex = 5
-    const first = selected(mentions(c, { pattern: RECORD }))
-    const second = selected(mentions(c, { pattern: RECORD }))
+    pattern.lastIndex = 5
+    const first = selected(mentions(c, { pattern }))
+    const second = selected(mentions(c, { pattern }))
     expect(first).toEqual(['3 bug 0001', '3 bug 0002'])
     expect(second).toEqual(first)
-    expect(RECORD.lastIndex).toBe(5)
-    RECORD.lastIndex = 0
+    expect(pattern.lastIndex).toBe(5)
   })
 })
 
@@ -132,40 +171,146 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
     '',
     'A [bug 0002][ref] reference.',
     '',
-    '![bug 0003](./x.png)',
+    '![bug 0003](./x.png "bug 0004")',
     '',
-    '[text](./b.md "bug 0004")',
+    '![bug 0005][img]',
     '',
-    '[ref]: ./b.md',
+    'See <a href="./b.md">bug 0006</a> here.',
+    '',
+    '<!-- a --> bug 0007 <!-- b -->',
+    '',
+    '[ref]: ./b.md "bug 0008"',
+    '[img]: ./x.png',
     '',
   ].join('\n')
 
-  it('an HTML block, a reference-style link, image alt and a link title are red as unread, each with its cause', () => {
-    // Every mention here is unread, so the rule examined nothing: the vacuity finding names them.
-    const all = one(unread).should().beLinked().violations()
-    expect(all.examined).toBe(0)
-    const v = all.filter((x) => x.ruleId === 'md/unread-mention')
-    expect(v.every((x) => x.message.endsWith('It is why this rule examined nothing.'))).toBe(true)
-    expect(
-      v.map((x) => `${x.ruleId ?? ''} ${String(x.line)}: ${x.message.split(',')[0] ?? ''}`),
-    ).toEqual([
-      'md/unread-mention 3: "bug 0001" sits in a raw HTML block',
-      'md/unread-mention 5: "bug 0002" sits in a reference-style link\'s text',
-      'md/unread-mention 7: "bug 0003" sits in an image\'s alt text',
-      'md/unread-mention 9: "bug 0004" sits in a link\'s or image\'s title',
+  const unreadFindings = (v: readonly ArchViolation[]): string[] =>
+    v
+      .filter((x) => x.ruleId === 'md/unread-mention')
+      .map((x) => `${String(x.line)}: ${x.message.split(', which')[0] ?? ''}`)
+
+  it('every place a reader sees but the rule cannot read is red as unread, with its cause and line', () => {
+    expect(unreadFindings(one(unread).should().beLinked().violations())).toEqual([
+      '3: "bug 0001" sits in a raw HTML block',
+      '5: "bug 0002" sits in a reference-style link\'s text',
+      '7: "bug 0003" sits in an image\'s alt text',
+      '7: "bug 0004" sits in an image\'s title',
+      '9: "bug 0005" sits in an image\'s alt text',
+      '11: "bug 0006" sits in a link written in HTML',
+      '13: "bug 0007" sits in a raw HTML block',
+      '15: "bug 0008" sits in a link definition\'s title',
     ])
-    expect(v.every((x) => x.bypassFilters === true)).toBe(true)
   })
 
-  it("an unread mention outside the rule's predicates is not reported", () => {
-    const c = corpusFromText({ 'a.md': unread, 'b.md': '# B\n\n[bug 0005](./a.md)\n' })
-    const v = mentions(c, { pattern: RECORD })
+  it('an unread mention is unsuppressable: .excluding() does not hide it', () => {
+    const v = one(unread).should().beLinked().excluding(/.*/).violations()
+    const found = v.filter((x) => x.ruleId === 'md/unread-mention')
+    expect(found).toHaveLength(8)
+    expect(found.every((x) => x.bypassFilters === true)).toBe(true)
+  })
+
+  it('a mention on a later line of an HTML block is reported at its own line', () => {
+    const v = one('# A\n\n<div>\nfirst\nbug 0001\n</div>\n\nbug 0002.\n')
+      .should()
+      .beLinked()
+      .violations()
+    expect(unreadFindings(v)).toEqual(['5: "bug 0001" sits in a raw HTML block'])
+  })
+
+  it('names itself as why the rule examined nothing only when it is', () => {
+    const none = one('# A\n\n<div>bug 0001</div>\n').should().beLinked().violations()
+    expect(none.examined).toBe(0)
+    expect(none.find((x) => x.ruleId === 'md/unread-mention')?.message).toMatch(
+      /It is why this rule examined nothing\.$/,
+    )
+    const some = one('# A\n\n<div>bug 0001</div>\n\nbug 0002.\n').should().beLinked().violations()
+    expect(some.examined).toBe(1)
+    expect(some.find((x) => x.ruleId === 'md/unread-mention')?.message).not.toMatch(
+      /examined nothing/,
+    )
+  })
+
+  it('each remedy says where the text must go', () => {
+    const v = one(unread).should().beLinked().violations()
+    const by = (line: number): string =>
+      v.find((x) => x.ruleId === 'md/unread-mention' && x.line === line)?.suggestion ?? ''
+    expect(by(7)).toMatch(/^Take the text out of the alt text/)
+    expect(by(11)).toMatch(/^Write the link in Markdown/)
+    expect(by(15)).toMatch(/^Take the text out of the definition's title/)
+  })
+
+  it("an unread mention outside the rule's document scope is not reported", () => {
+    const c = corpusFromText({ 'a.md': unread, 'b.md': '# B\n\n[bug 0009](./a.md)\n' })
+    const v = mentions(c, { pattern: record() })
       .that()
       .resideInFile('b.md')
       .should()
       .beLinked()
       .violations()
     expect([...v]).toEqual([])
+  })
+
+  it('resideInFolder selects by folder, and names itself when its glob cannot match', () => {
+    const c = corpusFromText({ 'x/a.md': '# A\n\nbug 0001.\n', 'y/b.md': '# B\n\nbug 0002.\n' })
+    expect(selected(mentions(c, { pattern: record() }).that().resideInFolder('y/**'))).toEqual([
+      '3 bug 0002',
+    ])
+    const v = mentions(c, { pattern: record() })
+      .that()
+      .resideInFolder('/y/**')
+      .should()
+      .notExist()
+      .violations()
+    expect(v.some((x) => x.message.includes('resideInFolder("/y/**")'))).toBe(true)
+  })
+
+  it('a predicate that cannot judge an unread mention reports it: a test of the link', () => {
+    const c = corpusFromText({
+      'a.md': '# A\n\n[bug 0001](./x.md) and [bug 0002][r].\n\n[r]: ./y.md\n',
+    })
+    const linkedToX: Predicate<MdMention> = {
+      description: 'link to x',
+      test: (m) => m.link?.url === './x.md',
+    }
+    const v = mentions(c, { pattern: record() })
+      .that()
+      .satisfy(linkedToX)
+      .should()
+      .notExist()
+      .violations()
+    expect(
+      v
+        .map((x) => `${x.ruleId === 'md/unread-mention' ? 'unread' : 'selected'} ${String(x.line)}`)
+        .sort(),
+    ).toEqual(['selected 3', 'unread 3'])
+  })
+
+  it("an undecided document scope reports the unread mention and the scope's cause", () => {
+    // a.md holds only an unread mention, so the scope's cause there can come from the unread path
+    // alone: the kernel reports causes for selected subjects, and a.md has none.
+    const undecidedScope: Predicate<MdDocument> = {
+      description: 'a scope undecided on a.md',
+      test: (d) => {
+        if (d.relPath === 'a.md') throw new Error('test() is not called on an undecided subject')
+        return true
+      },
+      undecided: (d) =>
+        d.relPath === 'a.md'
+          ? [{ file: d.file, line: 1, element: 'a.md:1', message: 'the scope cannot judge a.md' }]
+          : [],
+    }
+    const c = corpusFromText({
+      'a.md': '# A\n\n<div>bug 0001</div>\n',
+      'b.md': '# B\n\nbug 0002.\n',
+    })
+    const v = mentions(c, { pattern: record() })
+      .that()
+      .satisfy(inDocuments(undecidedScope))
+      .should()
+      .beLinked()
+      .violations()
+    expect(v.some((x) => x.ruleId === 'md/unread-mention' && x.element === 'a.md:3')).toBe(true)
+    expect(v.some((x) => x.message.includes('the scope cannot judge a.md'))).toBe(true)
   })
 })
 
@@ -183,7 +328,7 @@ describe('mentions(): the caller keys a self-mention', () => {
     const c = corpusFromText({
       'bugs/0001-a.md': '# Bug 0001: about bug 0002\n\nBug 0001 again.\n',
     })
-    const v = mentions(c, { pattern: RECORD })
+    const v = mentions(c, { pattern: record() })
       .that()
       .satisfy(not(areSelfMentions({ mention: key, document: keyOf })))
       .should()
@@ -194,7 +339,7 @@ describe('mentions(): the caller keys a self-mention', () => {
 })
 
 describe('mentions(): it fails closed', () => {
-  it('a pattern matching the empty string is an ArchConfigError at build', () => {
+  it('a pattern matching the empty string is an ArchConfigError at build, saying so', () => {
     let err: unknown
     try {
       mentions(corpusFromText({ 'a.md': '# A\n' }), { pattern: /x*/g })
@@ -202,17 +347,29 @@ describe('mentions(): it fails closed', () => {
       err = e
     }
     expect(isArchConfigError(err)).toBe(true)
+    expect(err instanceof Error ? err.message : '').toMatch(/matches the empty string/)
+  })
+
+  it('a pattern that matches an empty string only when run is an ArchConfigError naming where', () => {
+    let err: unknown
+    try {
+      selected(one('# A\n\nSee bug 0001.\n', /(?=bug)|zzz/g))
+    } catch (e) {
+      err = e
+    }
+    expect(isArchConfigError(err)).toBe(true)
+    expect(err instanceof Error ? err.message : '').toMatch(/matched an empty string at offset 4/)
   })
 
   it('a rule selecting no mention is the vacuity finding', () => {
     const v = one('# A\n\nNothing named here.\n').should().beLinked().violations()
-    expect(v.length).toBeGreaterThan(0)
     expect(v.examined).toBe(0)
+    expect(v.some((x) => x.message.includes('this rule examined zero units'))).toBe(true)
   })
 
   it('reads a corpus on disk, not only one from text', () => {
     const c = corpus({ cwd: tree({ 'a.md': '# A\n\nbug 0002.\n' }), roots: ['**/*.md'] })
-    expect(said(mentions(c, { pattern: RECORD }).should().beLinked().violations())).toEqual([
+    expect(said(mentions(c, { pattern: record() }).should().beLinked().violations())).toEqual([
       '3: "bug 0002" is not a link',
     ])
   })

@@ -3,7 +3,9 @@ import type { MdMention } from '../model/mentions.js'
 import { mdViolation } from '../model/violation.js'
 
 const LINK_IT =
-  'Link it to the record it names. If it quotes an example rather than naming a record, move the example into a fenced code block, which is not read.'
+  'Link it to what it names. If it quotes an example rather than naming something, move the example into a fenced code block, which is not read.'
+const LINK_CODE =
+  'Put a link around it, or, if it quotes an example rather than naming something, move the example into a fenced code block, which is not read.'
 
 /**
  * Plan 0539: every selected mention sits in a link. Presence only: which file the link points at is
@@ -26,7 +28,7 @@ export function beLinked(): Condition<MdMention> {
               ? `"${text}" is in inline code, not a link`
               : `"${text}" is not a link`,
             sourceText: m.doc.text,
-            context: { ...ctx, suggestion: ctx.suggestion ?? LINK_IT },
+            context: { ...ctx, suggestion: ctx.suggestion ?? (m.inCode ? LINK_CODE : LINK_IT) },
           })
         }),
   }

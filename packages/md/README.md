@@ -485,7 +485,7 @@ mentions(corpus({ roots: ['docs/**'] }), { pattern: /\bRFC\s+(?<n>\d+)\b/g })
   .check()
 ```
 
-Presence only: a link to the wrong place is linked. See
+Presence only: a link that points somewhere is linked, wherever it points; `[x]()` and `[x](#)` are not. See
 [the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the keys that let a
 record name itself, and what a mention rule cannot see.
 
