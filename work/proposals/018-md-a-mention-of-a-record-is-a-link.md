@@ -1,6 +1,7 @@
 # Proposal 018 — md: a mention of a record is a link
 
-**State:** Draft — filed 2026-10-21 at the maintainer's request; not reviewed.
+**State:** Draft — filed 2026-10-21 at the maintainer's request; reviewed the same day
+(architect · product · enforcement), **Ruling: Reject** — see "Review — 2026-10-21".
 **Priority:** Medium — most references between records are written as plain text and nothing
 reads them, so a wrong or dead reference is green; an agent copies the corpus, and the corpus
 teaches it not to link.
@@ -159,3 +160,88 @@ Each break class is a fixture row in the vacuity matrix (`scripts/check-nonvacui
   different question.
 - **Fixing this repository's corpus.** That follows the plan, as its last phase, if this is
   accepted.
+
+## Review — 2026-10-21
+
+**Ruling: Reject**
+
+Reviewed by architect, product and enforcement, each separately; the coordinator checked the claims
+the ruling rests on against the code. The three verdicts were Reject as written (architect),
+Rewrite needed (enforcement) and Split and sequence (product). The ruling is Reject because this
+proposal bound itself to it: a review that finds an answer to D2 does not hold "should reject this
+proposal for the same reason, not reshape it". Two of the three answers do not hold. All three
+reviewers judged ask A sound in itself, so the gap is not closed: a successor proposal can ask for A
+alone, with the decisions below made in its text.
+
+**Answer 2 (no per-line marker) is false, in three ways.**
+
+- The kernel waiver already reads Markdown: `<!-- eess-exclude <rule-id>: <reason> -->`
+  (`packages/core/src/exclusion-comments.ts:117-122`), so any `mentions()` rule has a per-line
+  marker on day one. It requires a reason, which may be a defensible answer; the record denied the
+  marker existed instead of giving one. (Coordinator-verified.)
+- Skipping inline code leaves a one-character stamp: wrap the number in backticks. 248 inline-code
+  spans in this repository already hold a `bug|plan|proposal|spike NNN`, so agents have the form to
+  copy. Leaving it as open question 1 postponed the answer instead of giving it.
+- A foreign namespace that checks only the URL prefix is the same stamp in a URL: any awkward
+  mention linked under the declared prefix is green.
+
+**Answer 1 (collisions) holds for A and fails in B and D.**
+
+- B, as written, has no precedence between the caller's resolver and a declared foreign namespace.
+  If the resolver wins, every correct ts-archunit link on a colliding number is red with the wrong
+  remedy. If the namespace wins, the number is never compared. Measured by enforcement: lines
+  naming ts-archunit cite 38 distinct bug or plan numbers, 17 of which are also local records.
+- D links a plain mention wherever the resolver finds one file. On the 17 colliding numbers that is
+  the wrong record, and B then passes it: a manufactured green, the judgement D2 could not automate
+  made by a fix. The `ArchFix` contract is "emitted ONLY when the fix is provably unambiguous"
+  (`packages/core/src/violation.ts:9-12`); one file found is not that.
+
+**B also contradicts a settled decision.** 017's second review ruled that a reference is
+composition, joined through `correspondence()` (whose `leftAmbiguous` is "names two documents"), not
+a resolver inside an element. `linkTo(resolve)` is a second join engine in a dialect, and a function
+returning one file cannot say "names two". (Coordinator-verified at 017's Decisions, item 4.)
+
+**What a successor must decide in its text** (findings, not settled here):
+
+1. Inline code is read; examples of a mention move to fenced blocks, or carry the governed kernel
+   waiver, which the record names as the one sanctioned marker.
+2. A is presence of a link only, and says so; a wrong target is B's.
+3. B is a `correspondence()` composition keyed by the pattern's named captures, with "names
+   nothing", "names two", "wrong kind" (`plan 0103` where 0103 is a bug) and "points elsewhere" as
+   separate causes, each with its own remedy.
+4. A foreign link agrees only when its URL equals a caller function of the captured key, and,
+   since ts-archunit is retired and finite, the key is in a closed list in the rule file.
+5. The self-exemption comes from the document's own identity, not the resolver, so A stays free of
+   it.
+6. D emits an `ArchFix` only for a plain mention whose key no declared foreign namespace also
+   holds, and never for a B mismatch; a fixture proves the fix does not fire on a collision. It
+   names the existing mechanism (plan 0066, `movedLinkFix`), and the record says an adopter applies
+   it with `eess-ts check --fix --apply`: eess-md has no `bin` and `applyFixes` is exported from
+   `@nielspeter/eess/internal` only (`packages/core/src/internal.ts:24`).
+7. One inline walk in `packages/md/src/model/` shared with `links()` and proposal 015, with the
+   edge cases stated: reference-style links (reported as not read, plan 0405's precedent), HTML
+   (disclosed, not skipped), a mention split by emphasis, and lines taken from source offsets.
+8. The pattern needs named groups, checked when the rule is built (an `ArchConfigError` without
+   them), and is read through `stateless()`.
+
+**Split from the gate:** ask C (a document path in inline code) is a different element with no
+break class here, and 737 backticked paths are a house style as much as drift (command arguments,
+globs). If it returns, it returns as its own record, framed as "a document pointer resolves".
+
+**Product's open points for a successor:** the element carries the caller's named captures, not a
+fixed `{ kind, number }`; `#123` against a declared URL template is the same check as a foreign
+record and is in or out together with it; the adoption path (baseline, fix, sweep, delete the
+baseline) is in the acceptance criteria; the option is `external`, matching `links()`, not
+`foreign`.
+
+**Corrections this record made in itself** (kept, not edited away):
+
+- It cited ADR-018 as binding twice. ADR-018 is Proposed, "not ready to rule"
+  (`adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md:3`); the two findings
+  it cited are sound as this proposal's own acceptance rows, under ADR-010 for the empty pattern.
+- It cited `scripts/check-nonvacuity.mjs` as "the vacuity matrix". That is the sabotage matrix; the
+  zero-file matrix is `scripts/vacuity-matrix.mjs`, which covers eess-md since bug 0403's fix.
+- It fails its own ask A: "Proposal 017 measured" and "**Proposal 017, D1**" are plain mentions, as
+  are the examples in inline code. The record names records the way the corpus it measures does.
+- It counted 43 "frozen" files by folder name; `corpus()` freezes only what a caller declares
+  (ADR-022), so "frozen" was this author's word, not the tool's.
