@@ -56,3 +56,11 @@ template.**
 
 **Fixing before reproducing.** No red test first → you can't prove the defect
 existed or that it's gone. Red, then green.
+
+**Naming a record without linking it.** Every mention of another record (a plan,
+bug, case, proposal, spike, refinement or ADR) is a relative Markdown link to its
+file, every time it is named, not only the first:
+`[bug 0338](../bugs/0338-slug.md)`, never a bare "bug 0338". A path to a document
+is a link too, not a code span. Wherever a corpus gate reads the file, it checks a link on every run;
+a bare number is checked by nothing and cannot be followed. Much of the existing corpus
+names records in plain text — this is the one place not to copy it.

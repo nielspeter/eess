@@ -425,9 +425,10 @@ const recordNumbers = docs(c)
 // record in a live folder stays `corpus/closed-records-sit-in-done-folders`' and neither rule reports
 // the other's fact. The live words are a `'rest'` group, so an open State in a done folder says
 // "belongs outside" (F2), a word in no group is a misspelling (F3), and a record with no State is F4.
-// The done folders that do not exist (`work/plans/wont-do/`, `work/plans/archived/`,
-// `work/proposals/rejected/`) get no group: F7 would refuse a glob that matches nothing, so
-// `Won't-do` and a proposal's `Rejected` are values in no group here until a lane first files there.
+// The done folders that do not exist (`work/plans/wont-do/`, `work/plans/archived/`) get no group:
+// F7 would refuse a glob that matches nothing, so `Won't-do` is a value in no group here until the
+// lane first files there. `work/proposals/rejected/` got its group with its first record, proposal
+// 018, on 2026-10-21.
 // Proposals read the header region: two keep their original submission's State further down.
 // Literal ids, so `check:nonvacuity`'s rule-id coverage reads them from this source.
 const DONE_FOLDER_RULES = [
@@ -455,11 +456,12 @@ const DONE_FOLDER_RULES = [
   {
     id: 'corpus/done-folders-hold-done-values-proposals',
     lane: 'proposals',
-    select: 'work/proposals/promoted/**',
+    select: 'work/proposals/{promoted,rejected}/**',
     region: 'header',
     groups: [
       { values: ['Draft'], folders: 'rest' },
       { values: ['Promoted'], folders: ['work/proposals/promoted/**'] },
+      { values: ['Rejected'], folders: ['work/proposals/rejected/**'] },
     ],
   },
 ]
