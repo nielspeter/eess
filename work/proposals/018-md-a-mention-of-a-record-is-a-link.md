@@ -47,8 +47,13 @@ space-only pattern found 9. That is the case for the pattern being the caller's.
 to none.
 
 Proposal 017 measured the dead half here (2026-10-16): 117 plain references naming a number no
-record holds, 29 naming a number another kind holds, many of them the numbers of the project this
-engine was ported from.
+record holds, 29 naming a number another kind holds, many of them the numbers of ts-archunit.
+
+**ts-archunit is retired.** Its engine is eess-ts now; its repository
+(`github.com/nielspeter/ts-archunit`, public) last changed on 2026-08-13, and no work is recorded
+there. Its records survive only as citations here: 669 mentions of `ts-archunit` in 89 files under
+`work/`, `adr/` and `docs/` (46 live, 43 frozen), measured 2026-10-21. So the numbers that collide
+with this repository's are a finite, closed set of history, not a namespace that still grows.
 
 ## Existing code survey
 
@@ -78,9 +83,13 @@ reasons that cannot be made honest; each is answered here, or this proposal fail
 1. **"Identifiers collide with the ported project's, in the same words."** D2 had to decide what
    `bug 0039` means. This ask does not: its first condition is only that a mention the caller's
    pattern matches is inside a link (Tier 1, syntax). The author decides what it names, by choosing
-   the target, and the target is then checked by what already checks links. A foreign record is
-   linked to where it lives; its link agrees with a foreign namespace the rule file declares (ask
-   B), not with a marker on the line.
+   the target, and the target is then checked by what already checks links. And the collision D2
+   met is history, not a live namespace: ts-archunit is retired (above), so no new colliding
+   mention is written. The existing ones are migrated once, each linked to the ts-archunit record
+   it cites (public, at a URL) or to this repository's record if that is what it meant; that
+   migration is where the judgement D2 could not automate is made, by a reader, once. A link to
+   ts-archunit agrees with one namespace the rule file declares (ask B), not with a marker on the
+   line.
 2. **"A per-line marker is an escape an agent can stamp."** There is no per-line marker. The
    escapes are a declared foreign namespace and the caller's pattern, both in the rule file, both
    code a reviewer reads once, and both judged by [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md): a namespace no link uses, or a pattern
@@ -136,8 +145,9 @@ Each break class is a fixture row in the vacuity matrix (`scripts/check-nonvacui
 3. **Every mention or the first per document.** Every mention is mechanical and fixable; the first
    per section is common house style but needs a judgement about scope. Proposed: every mention,
    with no option, until a consumer asks.
-4. **Foreign records with no URL.** The ported project's records may not be reachable at a URL. If
-   not, how does this repository's corpus name them without a marker?
+4. **Frozen records in the migration.** 43 of the 89 files citing ts-archunit are frozen history
+   (`completed/`, `fixed/`). Is linking a mention in a frozen record a permitted edit, or does the
+   rule select live records only, leaving frozen ones as written?
 5. **Which dialect owns the text walk** shared with [proposal 015](./015-md-wikilinks-are-read-or-reported.md).
 
 ## Out of scope
