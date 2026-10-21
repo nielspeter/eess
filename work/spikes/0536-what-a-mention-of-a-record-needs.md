@@ -205,3 +205,21 @@ overruled in [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-b
 Whether this repository migrates its 1,580 colliding mentions by hand, by a reviewed one-off script,
 or by waiving the historical records; and whether frozen records are edited by the migration or
 selected out by the project's own rule. Both are this repository's rule file's, not eess-md's.
+
+## Corrections — 2026-10-21, from proposal 019's review
+
+Kept, not edited away (see [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
+"Review — 2026-10-21"):
+
+- **Soft breaks.** The instruments' patterns matched `[ -]` between the kind word and the number,
+  so a mention broken across a line was not counted. 228 lines in this repository's corpus end with
+  a kind word; the counts above are low by up to that many.
+- **Section 5's "named … on every green run"** holds only under eess-ts's runner:
+  `commentSuppressionNotice()` is called by eess-ts alone, so a rule run through eess-md from a
+  script or test discloses nothing ([bug 0537](../bugs/0537-eess-md-alone-has-no-run-level-services.md)).
+- **Section 2's "`correspondence()` decides it"** was shown for one source. For two sources whose
+  keys overlap, which the B2 check here hand-wrote, two joins cannot be combined (a correspondence
+  is a terminal) and one join over both makes every collision ambiguous; that case was not
+  prototyped.
+- **Decision 4's quoted rule** leaves `[see bug 0002](./0001-a.md)` green: a mention later in a link's
+  text only needs the link to name some record.

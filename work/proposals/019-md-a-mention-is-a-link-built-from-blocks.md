@@ -1,7 +1,8 @@
 # Proposal 019 — md: a mention of a record is a link, built from blocks
 
 **State:** Draft — filed 2026-10-21 at the maintainer's request, as the successor of
-[proposal 018](./018-md-a-mention-of-a-record-is-a-link.md); not reviewed.
+[proposal 018](./018-md-a-mention-of-a-record-is-a-link.md); reviewed the same day (architect ·
+product · enforcement), **Ruling: Split and sequence** — see "Review — 2026-10-21".
 **Priority:** Medium — most references between records are plain text, which nothing reads, and an
 agent copies the corpus it is shown.
 **Origin:** self-found · the maintainer's observation about an adopter monorepo's records,
@@ -227,3 +228,93 @@ that adoption's plan.
   record numbers. A plan after this ships.
 - **Any default pattern, lane or key.** eess-md fixes no document's shape
   ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)).
+
+## Review — 2026-10-21
+
+**Ruling: Split and sequence**
+
+Reviewed by architect, product and enforcement, each separately; the coordinator, who also wrote
+this proposal, checked the claims the ruling rests on against the code. The verdicts were Ship with
+changes (architect), Ship with changes (product) and Rewrite needed (enforcement). All three judged
+ask A sound and well placed, and the placement of every ask right: `mentions()` in eess-md, the
+message change in the kernel, nothing Markdown-specific in the kernel. They agreed, from three
+directions, that the part 018 failed on is still not proven: ask B's composition for two sources
+whose keys overlap, and the fix's collision safety. So A goes ahead as its own delivery, and B with
+the fix comes back with a prototype first.
+
+### What the reviews found
+
+**B, two overlapping sources, cannot be built as written** (architect C1, enforcement C2;
+coordinator-checked). `correspondence()` is a terminal that "does NOT compose with the
+`not`/`and`/`or` combinators" (`packages/core/src/correspondence.ts:83-86`), so "two joins; a
+mention either agrees with is green" is two independent verdicts, each red on the other source's
+correct links; one join over the union of both makes every colliding mention "matches multiple".
+The shape both reviewers reasoned toward, not run: one join over the union, the left key including
+a source tag read from where the link points, so a collision is not ambiguous and a link to a URL no
+source claims names nothing. The spike hand-wrote its external check, so B's "no new API" is
+unproven exactly where 018 failed.
+
+**The fix's safety lives in caller code** (architect C2, enforcement C3, product 3).
+`beLinked({ candidates })` states the sources a second time, beside the join. A `candidates` that
+lists local records only, the obvious first draft, links all 1,580 colliding mentions here to the
+local record, and the join then agrees with it: the manufactured green 018 was rejected for, reached
+through the caller. The acceptance row tests "two candidates → no fix", not a collision. The
+architect's recommended shape: the fix derived from the join, by a kernel hook called only for a
+left element with exactly one counterpart over the union.
+
+**B is green on a pattern that matches nothing** (enforcement C1, coordinator-checked).
+`correspondence()` counts both sides as examined, and `beComplete()`/`preserveRelations()` are
+exempt from the empty-selection rule, so a broken pattern with N records on the right is green. The
+proposal claimed the opposite.
+
+**A quoted mention is a one-word stamp** (architect I3): `[see bug 0002](./0001-a.md)` is green,
+because a mention later in a link's text only needs the link to name some record.
+
+**C is not additive** (product 2, architect I5; coordinator-checked). A baseline entry hashes the
+message when a finding sets no `identity` (`packages/core/src/baseline.ts:95-110`), so rewording
+`preserveRelations`' message resurfaces every baselined relation finding in every dialect. It also
+edits the function open [bug 0084](../bugs/0084-preserve-relations-right-to-left.md) is about. And
+the corpus gate reaches around `correspondence()` to set `ArchViolation.suggestion`, the structured
+`Fix:` field, which C as written would not.
+
+**An adopter with eess-md alone has no run-level services** (product 5, enforcement I2;
+coordinator-checked): it cannot apply a fix (no `bin`; `applyFixes` is in `/internal`), cannot make
+a baseline (eess-md does not re-export `withBaseline`/`generateBaseline`), and is not told what a
+waiver suppressed (`commentSuppressionNotice()` is called only by eess-ts). It predates this
+proposal and is recorded as [bug 0537](../bugs/0537-eess-md-alone-has-no-run-level-services.md).
+
+### Corrections this record made in itself (kept, not edited away)
+
+- **The ask B example does not work.** Its pattern ends `\d{3}\b`, so it matches nothing in
+  `bug 0338` (coordinator-checked in Node), the form every B acceptance row uses; `keyFromPath` is
+  never defined; under `noUncheckedIndexedAccess`, `m.groups.kind` and `m.link.target` are possibly
+  undefined, and the natural repair, an empty relation list, makes an external or unresolved link
+  green, because `preserveRelations` skips an empty list.
+- **`stateless()` is the wrong helper.** It strips `g` (`packages/md/src/model/name-match.ts:11-18`);
+  reading every match needs a private global copy.
+- **The `<span>` acceptance row is wrong.** `see <span>bug 0338</span> here` parses as text, HTML,
+  text, HTML, text (coordinator-checked), so the mention is plain text, not unread. Only an HTML
+  block hides one. Image alt and link titles are unread and were not listed.
+- **"The link walk tracks inline ancestry" is false.** `collectLinkBlocks` tracks block ancestry and
+  URL spans; the shared walk is a new model module, not a reuse. Proposal 015 was left out.
+- **"Disclosed on green" is true under eess-ts only**, here and in spike 0536.
+- **Soft breaks were missed.** A pattern with `[ -]` cannot see `bug` at a line's end and its number
+  on the next; 228 lines in this repository end with a kind word, so the spike's counts are low by up
+  to that many. This record does it itself ("from spike" / "0536's measurements").
+- **Wrong kind is not a separate cause** here, and the acceptance row's remedy ("names the bug") is
+  the one the spike measured wrong 108 times in 110.
+- **The table of 018's decisions over-claims** on rows 3, 4, 6, 7 and 8, for the reasons above, and
+  drops 018's "named groups required" without saying so.
+- **This record fails its own ask A**: its examples sit in inline code, not fences.
+
+### Disposition, per ask
+
+| ask                                   | disposition | owner or condition                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** — `mentions()` and `beLinked()` | **Held**    | Unholds on the maintainer's assent, as its own plan, with: positions as facts (in code; in a link, and where: whole, opens, later, straddles) not one enum; a global copy of the pattern, not `stateless()`; a self-mention predicate in the `are` form taking the mention's and the document's key; unread causes reported where a rule's predicates reach them (ADR-021, as `taskItems()` does); soft breaks found; no fix yet |
+| **B** — the target, by composition    | **Held**    | Unholds when a prototype shows, from public blocks, a union join whose left key carries the source read from the link, green on correct links to both of two overlapping sources, red on a crossed link, on a URL no source claims and on a quoted mention under another record's link; with a guard that makes an empty mention side red                                                                                        |
+| **The fix** (A's `candidates`)        | **Held**    | Unholds with B: derived from the join (a kernel hook called only for exactly one counterpart over the union), with a fixture where an external source holds the key and no fix fires                                                                                                                                                                                                                                             |
+| **C** — the relation message          | **Held**    | Unholds as its own kernel record: the existing `suggest` fills `suggestion` for both checks, findings keep their baseline identity or the change ships as breaking naming the dialects, bug 0084 decided first, and the corpus gate's reach-around moved back onto `correspondence()` as its proof                                                                                                                               |
+| **D** — "what this cannot see"        | **Held**    | Ships with A; adds soft breaks, years, autolinks, a wrong-but-existing link under a quoted mention, and the eess-ts-only disclosure                                                                                                                                                                                                                                                                                              |
+
+**Ready to become a plan:** ask A with D, once the maintainer assents. B, the fix and C are not.
