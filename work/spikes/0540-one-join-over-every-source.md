@@ -86,7 +86,7 @@ the upstream declared as a source, they get its URL.
 | none            | one             | none                | green  |
 | none            | one             | `.expectNonEmpty()` | green  |
 
-This is [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md), open,
+This is [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md), open,
 reproduced on this composition. A pattern that matches nothing, or a judged-link filter that drops
 everything, passes the join.
 
@@ -100,7 +100,7 @@ everything, passes the join.
    `correspondence()` that builds an `ArchFix` for a left element with exactly one counterpart, which
    any dialect's correspondence could use; or eess-md's `beLinked()` taking the same sources
    `Selection` and key functions by value. The first is the review architect's recommendation.
-3. **The empty-side guard needs [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)** (condition 4). Until then the guard available is
+3. **The empty-side guard needs [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)** (condition 4). Until then the guard available is
    [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)'s element: B's rule paired with ask A's `beLinked()` over the same pattern constant, which is red on
    an empty selection. That covers a broken pattern, not a broken judged-link filter.
 4. **The key's normalisation is the caller's.** The prototype keyed numbers as integers, which is
@@ -114,7 +114,7 @@ everything, passes the join.
 
 ## Not decided here
 
-Which of finding 2's shapes carries the fix; whether [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)'s fix lands before B; and whether the
+Which of finding 2's shapes carries the fix; whether [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)'s fix lands before B; and whether the
 title-link rule's "opens with the target's own number" should be the caller's function rather than
 eess-md's (019's review, architect M6, on eess-md fixing a convention).
 
@@ -133,7 +133,7 @@ Kept, not edited away (PR #256's enforcement and method reviews):
   either source holds; none was sampled against what its author meant. A mention meant for an
   upstream record missing from the closed list would be fixed to a local one. A correctness sample
   is now one of the fix's conditions in [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md).
-- **[Bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) is a blocker, not an open question.** "Whether [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)'s fix lands before B" (Not
+- **[Bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) is a blocker, not an open question.** "Whether [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)'s fix lands before B" (Not
   decided here) is wrong: condition 4 fails without it, so B and the fix wait for it.
 - **The integer key merged nothing here.** Both repositories number ADRs and proposals with three
   digits and bugs and plans with four (ts-archunit at b4084c9: 10, 28, 81 and 101 files), so keying

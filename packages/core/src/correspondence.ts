@@ -76,7 +76,17 @@ function violationFor(info: ElementInfo, message: string, ruleId?: string): Arch
   }
 }
 
-type Check<L, R> = (o: CorrespondenceOptions<L, R>, ruleId?: string) => ArchViolation[]
+/**
+ * One chained check's findings and the units it read (ADR-010 §1). A one-way check reads one side,
+ * so only that side is evidence: counting both let a non-empty unread side hide an empty checked
+ * side from `.expectNonEmpty()` (bug 0400).
+ */
+interface CheckResult {
+  readonly violations: ArchViolation[]
+  readonly examined: number
+}
+
+type Check<L, R> = (o: CorrespondenceOptions<L, R>, ruleId?: string) => CheckResult
 
 /**
  * Builder binding two element selections and asserting they correspond. A
@@ -132,13 +142,14 @@ export class CorrespondenceBuilder<L, R> extends TerminalBuilder {
 
   protected collectViolations(): CollectResult {
     const ruleId = this._metadata?.id
-    const violations = this._checks.flatMap((check) => check(this.opts, ruleId))
-    // ADR-010: the unit is the key sets of both sides — a correspondence over
-    // an empty left AND an empty right examined nothing, regardless of how
-    // many checks were chained; one side alone being empty is still real
-    // examination of the other.
-    const examined = this.opts.left.elements.length + this.opts.right.elements.length
-    return collectResult(violations, { examined })
+    const results = this._checks.map((check) => check(this.opts, ruleId))
+    // ADR-010 §1: the unit is what each check read — the side(s) a `beComplete()` checks, the pairs
+    // a `preserveRelations()` compared — summed over the chain. No check chained reads nothing.
+    const examined = results.reduce((sum, r) => sum + r.examined, 0)
+    return collectResult(
+      results.flatMap((r) => r.violations),
+      { examined },
+    )
   }
 
   /**
@@ -191,7 +202,7 @@ function completeness<L, R>(
   o: CorrespondenceOptions<L, R>,
   direction: Direction,
   ruleId?: string,
-): ArchViolation[] {
+): CheckResult {
   const out: ArchViolation[] = []
   const suggestLeft = o.suggest?.left
   const suggestRight = o.suggest?.right
@@ -233,14 +244,17 @@ function completeness<L, R>(
       )
     }
   }
-  return out
+  const examined =
+    (direction === 'right-to-left' ? 0 : o.left.elements.length) +
+    (direction === 'left-to-right' ? 0 : o.right.elements.length)
+  return { violations: out, examined }
 }
 
 function relations<L, R>(
   o: CorrespondenceOptions<L, R>,
   spec: RelationSpec<L, R>,
   ruleId?: string,
-): ArchViolation[] {
+): CheckResult {
   const out: ArchViolation[] = []
   const direction = spec.direction ?? 'both'
   const result = matchSelections(o.left.elements, o.right.elements, matchOptsFor(o))
@@ -253,10 +267,13 @@ function relations<L, R>(
     else byLeft.set(p.left, [p.right])
   }
 
+  // Counts only the left elements compared: a right-to-left spec compares none (bug 0084).
+  let examined = 0
   if (direction !== 'right-to-left') {
     for (const l of o.left.elements) {
       const counterparts = byLeft.get(l) ?? []
       if (counterparts.length === 0) continue
+      examined++
       const rightRelations = new Set(counterparts.flatMap((r) => spec.right(r)))
       const info = o.left.identify(l)
       for (const rel of spec.left(l)) {
@@ -272,7 +289,7 @@ function relations<L, R>(
       }
     }
   }
-  return out
+  return { violations: out, examined }
 }
 
 /**

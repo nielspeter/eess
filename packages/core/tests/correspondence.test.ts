@@ -320,4 +320,102 @@ describe('correspondence()', () => {
       }
     })
   })
+
+  // Bug 0400: a one-way check reads one side, so only that side is evidence. Counting both let a
+  // non-empty unread side hide an empty checked side from `.expectNonEmpty()` and expire
+  // `.expectEmpty()` on a side the check never read.
+  describe('a one-way check counts only the side it reads (bug 0400)', () => {
+    const empty = (): Selection<Named> => sel<Named>([], 'citation', idName)
+    const one = (): Selection<Named> => sel<Named>([{ name: 'x' }], 'test title', idName)
+    const keyBy = (e: Named): string => e.name
+
+    it('a left-to-right beComplete() over an empty left side reds its expectNonEmpty() declaration', () => {
+      const v = correspondence({ left: empty(), right: one(), keyBy })
+        .should()
+        .beComplete({ direction: 'left-to-right' })
+        .expectNonEmpty()
+        .violations()
+      expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/\.expectNonEmpty\(\)/)])
+      expect(v.examined).toBe(0)
+    })
+
+    it('a right-to-left beComplete() over an empty right side reds its expectNonEmpty() declaration', () => {
+      const v = correspondence({ left: one(), right: empty(), keyBy })
+        .should()
+        .beComplete({ direction: 'right-to-left' })
+        .expectNonEmpty()
+        .violations()
+      expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/\.expectNonEmpty\(\)/)])
+    })
+
+    it('expectEmpty() on a one-way check does not expire because the side it never reads holds something', () => {
+      const v = correspondence({ left: empty(), right: one(), keyBy })
+        .should()
+        .beComplete({ direction: 'left-to-right' })
+        .expectEmpty()
+        .violations()
+      expect(v).toHaveLength(0)
+      expect(v.declaredEmpty).toBe(true)
+    })
+
+    it('a one-way beComplete() over an empty checked side, declaring nothing, passes as an absence assertion', () => {
+      const v = correspondence({ left: empty(), right: one(), keyBy })
+        .should()
+        .beComplete({ direction: 'left-to-right' })
+        .violations()
+      expect(v).toHaveLength(0)
+      expect(v.examined).toBe(0)
+      expect(v.declaredEmpty).toBe(true)
+    })
+
+    it('beComplete() in both directions over two empty sides reds its expectNonEmpty() declaration', () => {
+      const v = correspondence({ left: empty(), right: empty(), keyBy })
+        .should()
+        .beComplete()
+        .expectNonEmpty()
+        .violations()
+      expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/\.expectNonEmpty\(\)/)])
+    })
+
+    it('beComplete() in both directions still counts both sides', () => {
+      const v = correspondence({ left: empty(), right: one(), keyBy })
+        .should()
+        .beComplete()
+        .expectNonEmpty()
+        .violations()
+      expect(v.map((x) => x.message)).toEqual(['test title "x" has no matching citation'])
+      expect(v.examined).toBe(1)
+    })
+
+    it('preserveRelations() over two sides that share no key examined nothing, so expectNonEmpty() reds', () => {
+      const v = correspondence({
+        left: sel<Named>([{ name: 'a' }], 'citation', idName),
+        right: one(),
+        keyBy,
+      })
+        .should()
+        .preserveRelations({ left: () => ['r'], right: () => [] })
+        .expectNonEmpty()
+        .violations()
+      expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/\.expectNonEmpty\(\)/)])
+      expect(v.examined).toBe(0)
+    })
+
+    it('with no check chained, non-empty sides examined nothing — nothing was asserted over them', () => {
+      const v = correspondence({ left: one(), right: one(), keyBy }).violations()
+      expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/examined zero units/)])
+    })
+
+    it('preserveRelations() counts each left element it compared', () => {
+      const v = correspondence({
+        left: sel<Named>([{ name: 'x' }, { name: 'a' }], 'citation', idName),
+        right: one(),
+        keyBy,
+      })
+        .should()
+        .preserveRelations({ left: () => [], right: () => [] })
+        .violations()
+      expect(v.examined).toBe(1)
+    })
+  })
 })

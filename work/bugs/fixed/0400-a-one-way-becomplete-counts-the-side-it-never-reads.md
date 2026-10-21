@@ -2,18 +2,17 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-10-07 against this repo's build at `9d18f0e`, with the kernel
-  alone and with an eess-md composition. Rewritten the same day after enforcement and method
-  review: the first version blamed the cardinality exemption, which never runs in the headline
-  case (see "Corrections"). No red test yet.
+- **State:** Fixed — 2026-10-21, on branch `fix/0400-one-way-examined`, under choice (b) below: a
+  correspondence counts what its checks read. Reproduced 2026-10-07 against this repo's build at
+  `9d18f0e`; red tests first, 2026-10-21.
 - **Severity:** High — **a false green that the documented remedy cannot catch.** A
   `correspondence()` checked in one direction, whose checked side selects nothing, passes. Adding
   `.expectNonEmpty()`, the declaration ADR-010 §3 provides for exactly this, does not turn it red.
 - **Origin:** self-found 2026-10-07, measuring the composition proposal 013 describes. A consuming
   project hit the same false green independently, in its own corpus, the same day.
 - **Reported:** 2026-10-07
-- **Blocks (2026-10-21):** [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
-  ask B and its fix. [Spike 0540](../spikes/0540-one-join-over-every-source.md) reproduced this bug on
+- **Blocks (2026-10-21):** [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
+  ask B and its fix. [Spike 0540](../../spikes/0540-one-join-over-every-source.md) reproduced this bug on
   their composition: a join whose mention side is empty is green with or without `.expectNonEmpty()`.
 - **Tier:** 1–2. A kernel evidence defect under ADR-010 (§1, the unit; §3, declarations) and
   ADR-014 (the receipt carries `examined`).
@@ -63,6 +62,8 @@ and `@nielspeter/eess-ts` to this repo's packages: `✓ … 0 failing`, exit 0.
 
 ## Root cause
 
+Line numbers in this section are as of `9d18f0e`, before the fix.
+
 **`examined` counts both sides whatever the direction**
 (`packages/core/src/correspondence.ts:139`): `left.elements.length + right.elements.length`.
 A `left-to-right` check reads only the left side, so a non-empty right side reports evidence for a
@@ -81,7 +82,7 @@ check that asserted nothing.
 **`preserveRelations()` has the same root.** It shares the count and the exemption
 (`correspondence.ts:123-129`). It compares matched pairs, so two non-empty sides that share no key
 report `examined` = n+m with nothing compared. It is a different defect from
-[bug 0084](./0084-preserve-relations-right-to-left.md).
+[bug 0084](../0084-preserve-relations-right-to-left.md).
 
 **Row d is intended, not this bug.** `beComplete()` is cardinality-exempt
 (`correspondence.ts:104-115`), and passing over two empty sides is pinned:
@@ -117,12 +118,39 @@ zero cases: `names-real-package` would examine zero whenever no changeset is pen
 
 ## Fix
 
-Not designed, and it needs a decision first. Changing the unit for a one-way check amends ADR-010
-§1 ("the key sets of its two sides"), so it goes through an ADR amendment, not this record. The
-amendment is written with the fix, in the plan or PR that builds it; until then this record owns
-getting it written. It is a
-breaking change for adopters whose one-way correspondences start reporting, and its changeset is
-marked so.
+**Decided 2026-10-21: (b), only the count changes.** Each chained check reports the units it read,
+and the builder sums them (`packages/core/src/correspondence.ts`, `CheckResult`): both sides for a
+`beComplete()` in both directions, the checked side for a one-way one, and the left elements a
+`preserveRelations()` compared, which is none under `direction: 'right-to-left'`
+([bug 0084](../0084-preserve-relations-right-to-left.md)'s gap, now visible to `.expectNonEmpty()`).
+Why (b): ADR-010 §3 already rules that an absence assertion over an empty selection is satisfied,
+as `.notExist()` is, and rows a and d make the same claim. (a) would red row a and keep row d green,
+which amends §3 as well as §1 and splits one claim into two verdicts. (b) amends only §1's unit,
+which [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) now records, and makes the
+declaration ADR-010 provides work. A `correspondence()` with no check chained now reads nothing,
+so it reports zero examined units over any sides; it used to pass over non-empty ones.
+
+`crossval/adr-citations-resolve` declares it: `adrCitationsResolve` takes `expectNonEmpty`, which
+ADR-010 §3 requires of a preset that calls `.check()` itself, and `scripts/check-crossval.mjs`
+passes it. `scripts/release-gate.mjs` declares each rule empty on its checked side alone.
+
+**The merge, found by the first full validate (2026-10-21), widened with the maintainer's approval.**
+With an empty changeset waiving the release gate's one rule and nothing declared, every member of its
+`mergeCollectResults` examined zero, and the waived member (`notRun`) read as undeclared: the gate
+reported a pass without evidence (`release/gate-fails-the-build`, "an empty changeset IN this diff
+waives"). It had been green only because `names-real-package` counted the workspace it never read.
+`packages/core/src/collect-result.ts` now asks only the members that ran to declare, and at least
+one must have run; [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §7
+records it. `packages/core/tests/emitter-refuses-without-evidence.test.ts` pins both sides: a
+`notRun` member beside declared ones is a declared pass (red before), and members that all never ran
+are not.
+
+What the decision had to weigh, as recorded before it:
+
+Changing the unit for a one-way check amends ADR-010 §1 ("the key sets of its two sides"), so it
+goes through an ADR amendment, not this record. The amendment is written with the fix, in the plan
+or PR that builds it; until then this record owns getting it written. It is a breaking change for
+adopters whose one-way correspondences start reporting, and its changeset is marked so.
 
 **The decision includes the exemption, not only the count.** Fixing the count alone sends row a to
 the zero-examined branch, where `beComplete()`'s cardinality exemption is checked
@@ -164,16 +192,26 @@ says so.
 
 ## Verification
 
-- [ ] Red test written first: row b — a `left-to-right` `beComplete()` over an empty left side with
-      `.expectNonEmpty()` is reported
-- [ ] row e does not report an expired declaration
-- [ ] row d stays green (pinned), and row c stays red
-- [ ] the non-vacuity fixture that empties `crossval/adr-citations-resolve`'s citation extraction
-      goes red in `check:nonvacuity`
-- [ ] row a: red under (a); under (b), green without a declaration and red with
-      `.expectNonEmpty()`
-- [ ] `preserveRelations()` over two sides that share no key does not pass silently (break class 4)
-- [ ] the release gate stays green on a clean tree and on a clean tree with a pending changeset
-- [ ] `npm run validate` green.
+- [x] Red test written first: row b — a `left-to-right` `beComplete()` over an empty left side with
+      `.expectNonEmpty()` is reported. `packages/core/tests/correspondence.test.ts`, describe "a
+      one-way check counts only the side it reads (bug 0400)": six of its tests were red before the
+      fix, and its right-to-left twin with them.
+- [x] row e does not report an expired declaration
+- [x] row d stays green (pinned), and row c stays red: row d's pinned test is unchanged and green;
+      row c had no test, and now has one.
+- [x] the non-vacuity fixture that empties `crossval/adr-citations-resolve`'s citation extraction
+      goes red in `check:nonvacuity`: `scripts/nonvacuity/bad-crossval-adr-empty.mjs` runs the real
+      `check-crossval.mjs` over ADRs that cite no test, through `EESS_CROSSVAL_ADR_ROOT`. Sabotaged
+      both ways on 2026-10-21: removing the declaration, and restoring the old count, each left the
+      fixture vacuous (exit 0); restored, it exits 1.
+- [x] row a: under (b), green without a declaration and red with `.expectNonEmpty()`
+- [x] `preserveRelations()` over two sides that share no key does not pass silently (break class 4):
+      it examines zero, so its `.expectNonEmpty()` fires.
+- [x] the release gate stays green on a clean tree and on a clean tree with a pending changeset:
+      `scripts/nonvacuity/bad-release-e2e.mjs` runs both ("a clean tree with the base at HEAD says it
+      had nothing to read", and the pending-changeset scenarios) in `check:nonvacuity`, and
+      `check:release` is green on this branch with three changesets pending.
+- [x] the merge asks only members that ran to declare, with all-off still reported
+- [x] `npm run validate` green.
 
 Deferred: none.

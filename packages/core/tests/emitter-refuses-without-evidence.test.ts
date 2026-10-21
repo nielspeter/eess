@@ -273,6 +273,23 @@ describe('the merge is fail-closed (ADR-014 §7, D7)', () => {
     expect(ids(merged)).toContain(EMITTER_PASS_WITHOUT_EVIDENCE)
   })
 
+  it('an honest notRun member beside members that all declared empty is a declared pass', () => {
+    // Bug 0400: the release gate's shape when an empty changeset waives its one rule and nothing is
+    // declared. A member that never ran is absent, so it neither declares nor fails to declare.
+    const off = collectResult([], { examined: 0, notRun: true })
+    const declared = collectResult([], { examined: 0, declaredEmpty: true })
+    const merged = mergeCollectResults([off, declared])
+    expect(merged.declaredEmpty).toBe(true)
+    expect(finishPreset(merged, { report: 'return' })).toHaveLength(0)
+  })
+
+  it('every member notRun is still not a declared pass — nothing ran', () => {
+    const off = collectResult([], { examined: 0, notRun: true })
+    const merged = mergeCollectResults([off, collectResult([], { examined: 0, notRun: true })])
+    expect(merged.declaredEmpty).not.toBe(true)
+    expect(ids(finishPreset(merged, { report: 'return' }))).toContain(EMITTER_PASS_WITHOUT_EVIDENCE)
+  })
+
   it('a bare member is the no-receipt finding, not a silent zero', () => {
     // No @ts-expect-error: the merge deliberately ACCEPTS bare members — that is
     // the shape it has to defend against — and poisons the result instead.

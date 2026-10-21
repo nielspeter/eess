@@ -306,6 +306,15 @@ at all contributes the no-evidence finding; the merged receipt is declared empty
 only if every zero-contributing member was, and `sourceEmpty` if any member is;
 a merge over zero members is zero examined, undeclared.
 
+**Amended 2026-10-21 ([bug 0400](../work/bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)):
+a `notRun` member is absent, so it is not asked to declare.** The merged receipt
+is declared empty when every member that ran declared, and at least one ran; a
+merge of members that all never ran declares nothing. Found when the release
+gate, with its one rule waived by an empty changeset and nothing declared,
+examined zero in every member: the waived member read as undeclared, and the
+gate reported a pass without evidence. It had stayed green only because a one-way
+correspondence counted the side it never read.
+
 **Amended 2026-09-07 (plan 0263 Phase 2). Which shape a door uses is decided by
 attribution, not by taste: a door that can name the member gates each member and
 never bundles; a door that cannot, merges.** `checkAll` receives an anonymous array and merges. The `eess-ts` CLI

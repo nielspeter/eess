@@ -5,9 +5,10 @@
 - **State:** Draft — written 2026-10-21 so that [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md)'s
   ledger has a named home for its removal (PR #256's method review, I3). It cannot go Ready until
   [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B and its fix
-  are planned and built; both are held, on [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)
+  are planned and built; both are held, on [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)
   and on the choice between [spike 0540](../spikes/0540-one-join-over-every-source.md)'s two shapes
-  for the fix.
+  for the fix. Bug 0400 was fixed on 2026-10-21, so the choice of shape, and the fix's
+  correctness sample, are what hold them now.
 - **Priority:** Low until B is built; then Medium.
 - **Effort:** Large, and to be split at Ready by lane: the fixable mentions are mechanical, the
   colliding ones need a reader.

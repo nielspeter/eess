@@ -594,8 +594,9 @@ export function releaseViolations({
   // `declaredEmpty` move together and the filter unsatisfiable. Measured on that
   // attempt: two live sabotages of this function both left the gate green.
   //
-  // A correspondence examines `|left| + |right|`, so it reports zero only when
-  // both sides are empty; that, and nothing narrower, is what may declare it.
+  // A one-way correspondence examines only the side it checks (bug 0400): the
+  // changed packages for the right-to-left rule, the declarations for the
+  // left-to-right one. That side being empty, and nothing wider, may declare it.
   const needsChangesetReceipt = needsChangeset.violations()
   const namesRealPackageReceipt = namesRealPackage.violations()
   const violations = mergeCollectResults([
@@ -607,11 +608,11 @@ export function releaseViolations({
       ? collectResult([], { notRun: true, examined: 0 })
       : collectResult([...needsChangesetReceipt], {
           examined: needsChangesetReceipt.examined,
-          declaredEmpty: changedPackages.length === 0 && declarations.length === 0,
+          declaredEmpty: changedPackages.length === 0,
         }),
     collectResult([...namesRealPackageReceipt], {
       examined: namesRealPackageReceipt.examined,
-      declaredEmpty: declarations.length === 0 && workspacePackages.length === 0,
+      declaredEmpty: declarations.length === 0,
     }),
     collectResult(unreadable, {
       examined: unreadableExamined,
