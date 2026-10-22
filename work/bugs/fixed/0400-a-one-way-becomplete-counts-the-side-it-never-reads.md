@@ -214,4 +214,8 @@ says so.
 - [x] the merge asks only members that ran to declare, with all-off still reported
 - [x] `npm run validate` green.
 
-Deferred: none.
+Deferred: two gaps the fix leaves, found by PR #258's reviews on 2026-10-22, each with an open home.
+The one-way crossvalidate presets other than `adrCitationsResolve` have no `expectNonEmpty` option:
+[bug 0544](../0544-one-way-crossvalidate-presets-cannot-declare-non-empty.md). A `preserveRelations()`
+over non-empty sides that share no key passes undeclared:
+[bug 0545](../0545-preserve-relations-over-sides-sharing-no-key-passes.md).

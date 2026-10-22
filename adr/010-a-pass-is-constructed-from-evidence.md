@@ -133,7 +133,11 @@ read them. Its checked side could be empty with `examined` above zero: the
 zero-examined path never ran, and `.expectNonEmpty()` was never consulted. Under
 §3 a one-way check over an empty checked side is still an absence assertion
 satisfied by emptiness, as `.notExist()` is, so it passes unless the author
-declares `.expectNonEmpty()`.
+declares `.expectNonEmpty()`. Two further cases stay green undeclared, for the same reason and with the
+same remedy: a `preserveRelations()` over two non-empty sides that share no key now examines zero, and
+the cardinality exemption swallows it ([bug 0545](../work/bugs/0545-preserve-relations-over-sides-sharing-no-key-passes.md)).
+A `correspondence()` with no check chained is the opposite: it examines zero and is not exempt, so it
+fails where it used to pass.
 
 ### 2. The terminal seam's type requires the evidence
 
