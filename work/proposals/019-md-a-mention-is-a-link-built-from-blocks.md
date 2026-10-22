@@ -329,7 +329,7 @@ and on `[see bug 0002](./0001-a.md)` (a title-link rule replaces "subject or quo
 repository's 1,207 judged links it reports nothing. The fix row's condition holds too: the fix keyed
 over the same sources without the source fixes 3,079 of 4,682 plain mentions here and fires on no
 collision (1,598). The fourth B condition does not hold: an empty mention side is green with or
-without `.expectNonEmpty()`, which is open [bug 0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md).
+without `.expectNonEmpty()`, which is open [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md).
 So B and the fix stay **Held**, now on two things: bug 0400 fixed, and a choice between the spike's
 two shapes for the fix (a kernel hook on `correspondence()`, or `beLinked()` taking the sources by
 value).
@@ -356,3 +356,11 @@ Kept beside the addendum above, which it corrects (PR #256's enforcement and met
 - **The skills' "a path to a document is a link too, not a code span" is guidance with no gate.**
   This proposal leaves that check out of scope, and no record asks for it; the sentence stays in the
   record-authoring skills as instruction, and a gate for it would be its own proposal.
+
+### Addendum — 2026-10-21, bug 0400 fixed
+
+[Bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) is fixed: a
+one-way `beComplete()` counts only the side it checks, so an empty mention side with
+`.expectNonEmpty()` is red. That condition no longer holds B or the fix. Both stay **Held** on what
+remains: the choice of the fix's shape, a sample of its fixes checked against what each author
+meant, and a title-link exemption that holds by construction.

@@ -13,7 +13,7 @@
 - **Created:** 2026-10-21
 - **Builds before:** [plan 0541](../0541-this-repositorys-record-mentions-are-gated.md); and
   [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s asks B (the target), the fix and C (the relation message), all held, B and the fix
-  on [bug 0400](../../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md). This plan
+  on [bug 0400](../../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md). This plan
   ships none of them.
 
 ## Problem
@@ -216,7 +216,7 @@ fixture.
 
 - **This repository's own gate:** [plan 0541](../0541-this-repositorys-record-mentions-are-gated.md).
 - **The target** ([proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md) ask B), **the fix** and **the relation message** (ask C): held by
-  [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s review; B and the fix on [bug 0400](../../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md).
+  [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s review; B and the fix on [bug 0400](../../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md).
 - **`.claude/skills/` and `kit/`**: not corpus roots ([bug 0535](../../bugs/0535-the-corpus-gate-does-not-read-skill-or-kit-files.md)).
 - **eess-md's own door to fixes, baselines and waiver disclosure**: [bug 0537](../../bugs/0537-eess-md-alone-has-no-run-level-services.md).
 

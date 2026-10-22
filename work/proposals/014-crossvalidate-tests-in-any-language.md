@@ -106,7 +106,7 @@ So the composition works, with three costs the presets do not have:
 
 - **An empty binding** closes only if the author declares `.expectNonEmpty()`; with a one-way
   direction even that does not close it (bug
-  [0400](../bugs/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)).
+  [0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)).
 - **Several tests per scenario is a false red.** `correspondence()` is a one-to-one join; the author
   must collapse citations to one element per key first. The presets have no such limit.
 - **Exemptions are hand-made.** A citation to an exempt scenario reads as a citation to nothing;

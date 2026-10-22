@@ -16,6 +16,11 @@ export interface AdrCitationsResolveOptions {
   readonly section?: string | RegExp
   /** Header pattern locating the mechanism column. Default `/mechanism/i` — non-English corpora pass their own (e.g. `/mekanisme/i`). */
   readonly mechanismColumn?: RegExp
+  /**
+   * Declare that the ADRs cite at least one test (ADR-010 §3): zero citations is then a finding,
+   * not a pass. Without it, zero citations passes, since nothing cited is missing (bug 0400).
+   */
+  readonly expectNonEmpty?: boolean
 }
 
 interface Citation {
@@ -162,7 +167,7 @@ export function adrCitationsResolve(
     identify: (d) => ({ name: `it('${d.title}')`, file: d.file }),
   }
 
-  correspondence({
+  const rule = correspondence({
     left,
     right,
     keyBy: (e) => e.title,
@@ -188,5 +193,7 @@ export function adrCitationsResolve(
       id: 'crossval/adr-citations-resolve',
       because: 'an ADR that cites a test must cite one that exists',
     })
-    .check()
+  // A declaration returns a new builder; the one that carries it is the one checked.
+  const declared = options.expectNonEmpty === true ? rule.expectNonEmpty() : rule
+  declared.check()
 }
