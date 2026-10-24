@@ -2,16 +2,8 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-22, after a redesign at the freeze and two review rounds, the
-  second the last design round, its findings applied without a third. The freeze measured that git sees half of this repository's closes as a delete and
-  an add, so a ledger carried across renames would red them; its method and enforcement reviews then
-  found the ledger's bootstrap could be reopened by any later PR. The ledger is gone: each file is
-  judged against the merge base's own counts, keyed by record identity (_The freeze_ below). Written
-  2026-10-21, split from [plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md)'s Phase 4
-  after PR #256's method and enforcement reviews, at the maintainer's instruction to dogfood
-  [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask A on this
-  repository.
-- **Implements:** [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
+- **State:** Done — built on branch `feat/0541-record-mentions-gated` and closed in [PR #260](https://github.com/nielspeter/eess/pull/260), 2026-10-25: every ledger box ticked, `validate` green. Frozen Ready 2026-10-22 after a redesign at the freeze and two review rounds; written 2026-10-21, split from [plan 0539](./0539-a-mention-of-a-record-is-a-link.md)'s Phase 4 at the maintainer's instruction to dogfood [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask A on this repository.
+- **Implements:** [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
 - **Priority:** Medium — this repository's records name each other as plain text thousands of times
   (4,696 unlinked mentions in 436 files at 659c076f, measured by the method review's instrument with
   the pattern below; the gate's summary prints the live number), and every new record written that
@@ -19,19 +11,19 @@
 - **Effort:** Medium, one PR. One rule and its base comparison in `scripts/check-corpus.mjs`, a
   base-resolution module with its own tests, and sabotage rows. No package change.
 - **Created:** 2026-10-21
-- **Builds after:** [plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md), whose `mentions()` it
-  uses. **Builds before:** [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md),
+- **Builds after:** [plan 0539](./0539-a-mention-of-a-record-is-a-link.md), whose `mentions()` it
+  uses. **Builds before:** [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md),
   which brings the count to zero.
 
 ## Problem
 
-[Plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md) gives a project the rule; this repository cannot turn it on red, and its two existing
+[Plan 0539](./0539-a-mention-of-a-record-is-a-link.md) gives a project the rule; this repository cannot turn it on red, and its two existing
 ratchets are unsafe for it. The kernel baseline's identity has no file and a set holds one copy of
 each hash, so one baselined `bug 0338` forgives it in every file, any number of times
-([bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md), plans
-[0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) and
-[0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)); and a metric
-ceiling never tightens ([bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md)).
+([bug 0388](../../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md), plans
+[0532](../0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) and
+[0533](../0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)); and a metric
+ceiling never tightens ([bug 0538](../../bugs/0538-a-metric-baseline-never-tightens.md)).
 
 A plain per-file count, the first design, failed review: closing a plan moves its file (38 renames
 git detected under `work/` in the month to 2026-10-21, at 659c076f, and 28 more moves it saw as a
@@ -65,7 +57,7 @@ mentions(c, { pattern: RECORD_MENTION })
 (`scripts/lib/proposal-ruling.mjs:288`). It answers which record a document belongs to: a numbered
 file, or a file inside a numbered record directory (`work/spikes/0001-eess-over-ts-archunit/`'s two
 files are `spike:1`), so a record naming itself is not a mention. Kinds are compared lower-cased, so
-`ADR-009` in [ADR-009](../../adr/009-agent-first-failure-surfaces.md) is its own.
+`ADR-009` in [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) is its own.
 
 **A file's census key.** Unlinked mentions are counted per file key and mention text (normalised:
 lower-case, runs of whitespace as one space). A file whose own name is `<number>-<slug>.md`, in a
@@ -96,7 +88,7 @@ the base and no frozen globs: the rule reads every document whatever is frozen, 
 options can throw at a base that predates them (a frozen glob dropped once its folder fills, a root
 added since). **Any failure to read or count the base** (a root that cannot be read, a corpus that
 throws, a base that examines zero mentions) is one unsuppressable configuration finding naming the
-base and the cause, never thousands of "raised" findings with the wrong remedy ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rules 1 and 4,
+base and the cause, never thousands of "raised" findings with the wrong remedy ([ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rules 1 and 4,
 ADR-009 rule 2). Then:
 
 1. **Raised.** A census key holding more of a text than it held at the base is red, naming the text
@@ -113,8 +105,8 @@ ADR-009 rule 2). Then:
 A paid-down mention cannot come back: the next PR's merge base holds the lower count.
 
 **Only "not a link" is counted**, split by rule id, not message text: both of `beLinked()`'s findings
-count, "is not a link" and "is in inline code, not a link" (162 of the 5,235 at `75df1b7b`). An unread mention ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)),
-the vacuity finding ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)) and every
+count, "is not a link" and "is in inline code, not a link" (162 of the 5,235 at `75df1b7b`). An unread mention ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)),
+the vacuity finding ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)) and every
 configuration finding are red regardless of the base, at the head. At the base only "not a link" is
 counted; the rule's other findings there are neither counted nor reported, since the head reports its
 own, and only a failure to read or count the base is the configuration finding above (corrected at
@@ -125,7 +117,7 @@ the build, which the build's testing review found the first wording did not matc
 kernel's own directive parser so the single-line, block and HTML forms all count
 (`packages/core/src/exclusion-comments.ts:72,112,120`): under this
 script nothing discloses what a waiver suppressed
-([bug 0537](../bugs/0537-eess-md-alone-has-no-run-level-services.md)), so quoted examples go in
+([bug 0537](../../bugs/0537-eess-md-alone-has-no-run-level-services.md)), so quoted examples go in
 fenced blocks, which the rule does not read.
 
 **The test seam.** `EESS_RECORD_MENTION_BASE=<tree-ish>` names the base tree directly, in place of
@@ -142,7 +134,7 @@ how much is still owed and against what.
 **What this does not catch, by design.** A mention moved from one line to another in the same file,
 or from one file to another key that held the same text: counts are per key and text, not per line.
 An invisible character inside a mention hides it from the rule
-([bug 0543](../bugs/0543-an-invisible-character-hides-a-mention.md)). A record's number reused in the
+([bug 0543](../../bugs/0543-an-invisible-character-hides-a-mention.md)). A record's number reused in the
 same PR that deletes the old record inherits its count; `check:numbers` keeps numbers in `work/` from
 being claimed twice. A shared key's two files may trade mentions at the base, where their counts are
 summed; there are none today (514 files, 514 keys). A direct push of several commits to `main` is
@@ -169,7 +161,7 @@ At `75df1b7b` unless stated, re-run by both reviews:
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | moves into a done folder since 2026-08-01, as `git log -M` reports them                                                                                                | 77 renames and 74 moves seen as a delete and an add: 49% are not renames to git                                                                                                                                                                                                                                                                                                                                                                                                    |
 | similarity of those moves                                                                                                                                              | the 39 detected renames since 2026-09-21 score 50% to 94%, 30 of them below 70%; the 74 missed moves score 2% to 49%, and `-M30%` still misses 42 of them (method review)                                                                                                                                                                                                                                                                                                          |
-| every move under `work/`, `adr/`, `docs/` since the first commit (2026-07-06)                                                                                          | 168: 166 found by pairing a delete with an add of one file name, and 2 that changed their slug as well ([bugs 0255](../bugs/fixed/0255-an-exclusion-comment-that-cannot-apply-is-inert.md) at `89343659`, 0229 at `f3ce5e45`, method review). Every one a numbered record keeping its number and lane; no unnumbered file under the roots was ever deleted                                                                                                                         |
+| every move under `work/`, `adr/`, `docs/` since the first commit (2026-07-06)                                                                                          | 168: 166 found by pairing a delete with an add of one file name, and 2 that changed their slug as well ([bugs 0255](../../bugs/fixed/0255-an-exclusion-comment-that-cannot-apply-is-inert.md) at `89343659`, 0229 at `f3ce5e45`, method review). Every one a numbered record keeping its number and lane; no unnumbered file under the roots was ever deleted                                                                                                                      |
 | numbered files tracked, against census keys                                                                                                                            | 514 files, 514 keys, none shared; one record is a directory of two files                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `check:numbers`' reach                                                                                                                                                 | `work/` only, one folder deep, keyed by digit width: the 23 ADRs are outside it, and `338-` beside `0338-` passes it (both reviews). Hence judgement 2                                                                                                                                                                                                                                                                                                                             |
 | the base counted from `git archive`, against the same commit counted on disk                                                                                           | equal on every key and text, except the three pairs this plan's own edit added to `plan:541` (the control that should move)                                                                                                                                                                                                                                                                                                                                                        |
@@ -186,7 +178,7 @@ At `75df1b7b` unless stated, re-run by both reviews:
   it still misses 42 of the 74.
 - **The ledger → the merge base's own counts.** With a ledger, an absent base ledger had to be "not
   judged", and the enforcement review showed that state reachable by any later PR: deleting the
-  ledger ([plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s end state), renaming it, or pointing the seam at a new file. Counting the base
+  ledger ([plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s end state), renaming it, or pointing the seam at a new file. Counting the base
   has no such state, judges the bootstrap PR's own additions, and drops the under and stale
   judgements and the update command, which existed only to keep a ledger equal to the tree.
 - **Key uniqueness is the gate's own** (judgement 2), since `check:numbers` does not reach ADRs or
@@ -231,7 +223,7 @@ In the production-script shape (`scripts/check-nonvacuity.mjs:136-143`): the wor
 rows set `EESS_RECORD_MENTION_BASE` to a tree built from the **working tree's** roots (a temporary
 `GIT_INDEX_FILE`: `read-tree HEAD`, the roots' working files added, the probe excluded), with the
 row's base-side probe added, so a dirty local tree does not red an exact-set row. No tracked file is
-touched ([bug 0231](../bugs/fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)'s
+touched ([bug 0231](../../bugs/fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)'s
 class), the built tree is an unreferenced object, and `check:integrity` names a leftover probe. Each
 row asserts the exact set of findings by rule id and text, the seam's finding included, through
 `firedOn` (`scripts/check-nonvacuity.mjs:531`), so the rule-id audit sees each id proven:
@@ -294,9 +286,9 @@ No package changes; `scripts/` only. `check:release` needs no changeset.
 
 ## Out of scope
 
-- **Bringing the count to zero**: [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
-- **`.claude/skills/` and `kit/`**: not corpus roots ([bug 0535](../bugs/0535-the-corpus-gate-does-not-read-skill-or-kit-files.md)).
-- **What a mention's link points at**: [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B, held.
+- **Bringing the count to zero**: [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
+- **`.claude/skills/` and `kit/`**: not corpus roots ([bug 0535](../../bugs/0535-the-corpus-gate-does-not-read-skill-or-kit-files.md)).
+- **What a mention's link points at**: [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B, held.
 - **`check:numbers` reaching `adr/` and digit widths**: judgement 2 covers this rule's need, and
   the allocator numbers only `work/` by design.
 
@@ -306,3 +298,5 @@ No package changes; `scripts/` only. `check:release` needs no changeset.
 - [x] Phase 2 — the seam rows, the production-base-path row, and the probes' names in `check:integrity`. Thirteen rows, all firing, 402 s run alone: the plan's ten, the waiver row as one row per form, and one row the plan did not list, `corpus/record-mention/base-unreadable` (the seam naming no tree), since the rule-id audit requires every id `check-corpus.mjs` can emit to be asserted by a fixture, and the node test alone proves the module, not the gate. The probes' names needed no change (Phase 2's Files). Sabotage: counting `HEAD` in place of the base reds the production-base row, as the freeze predicted.
 - [x] The build's review (enforcement and testing, 2026-10-24). One block, found by both: the release-variables test passed the variables as a parameter, so a module reading `process.env` or `origin/$GITHUB_BASE_REF` passed it; the test now sets them both ways, and those mutants red it. Plan detail, all applied: a test for no merge base and for a tree dirty only outside the roots; every seam row asserts that the terminal path prints each finding, since the seam's finding alone makes both exits 1; the production-base row commits a linked control first and asserts the raised mention is the one violation added on both exits, then deletes `main` and asserts the gate stops; one waiver probe sits in a done folder, since the ban reads frozen documents; a remedy per cause for an unreadable base; findings with no file print as the repository; `CLAUDE.md` names the seam. Residual, accepted rather than fixed: the order of `origin/main` before `main` and the base's scratch-directory removal are untested (low impact); a numbered record directory's files do not mention their own record; the probe numbers 0998 and 0999 will one day be real, and the rows then red loudly (`corpus/record-number-unique`, a shared key) rather than pass; `--format json` prints nothing on an unresolvable base, which exits 1 on its message; the inline-code arm is proven by the corpus's own 162 such mentions, not a probe; a local merge of `main` into a branch forgives the branch's earlier mentions (Design, _What this does not catch_), which CI's PR checkout judges.
 - [x] `npm run validate` green, with its time reported: exit 0 in 2,531 s (42 min) on 2026-10-25, 252 non-vacuity fixtures firing and all 36 rule ids `check-corpus.mjs` can emit asserted by one
+
+Deferred: none. Bringing the count to zero is [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s, in Out of scope from the start; the build review's residuals are accepted in the ledger above, not deferred.

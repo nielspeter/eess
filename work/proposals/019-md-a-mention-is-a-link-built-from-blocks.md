@@ -347,7 +347,7 @@ Kept beside the addendum above, which it corrects (PR #256's enforcement and met
   is red.
 - "Ready to become a plan: ask A with D, once the maintainer assents" is spent: the maintainer
   assented on 2026-10-21, and [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md) owns A
-  and D. This repository's own gate is [plan 0541](../plans/0541-this-repositorys-record-mentions-are-gated.md),
+  and D. This repository's own gate is [plan 0541](../plans/completed/0541-this-repositorys-record-mentions-are-gated.md),
   and its migration, which deletes that gate's ledger, is [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md).
 - **A is narrower than its disposition row says.** The row accepts "positions as facts (in code; in
   a link, and where: whole, opens, later, straddles)"; [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)
