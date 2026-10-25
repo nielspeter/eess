@@ -5,6 +5,8 @@ import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { frontmatter } from 'micromark-extension-frontmatter'
 import { frontmatterFromMarkdown } from 'mdast-util-frontmatter'
 import { isMap, parseDocument } from 'yaml'
+import { registerCacheReset } from '@nielspeter/eess/internal'
+import { createParseMemo, type ParseMemo } from './parse-memo.js'
 
 /**
  * Which lines of a markdown document are prose, read with the parser the corpus is read with (bugs 0286
@@ -62,11 +64,21 @@ function isFrontMatter(value: string): boolean {
  * the ledger — see front-matter lines either way, since only code blocks are set aside.
  */
 export function parseMarkdown(text: string): Root {
+  return structuredClone(memo.master(text))
+}
+
+function parseFresh(text: string): Root {
   const root = fromMarkdown(text, WITH_FRONT_MATTER)
   const first = root.children[0]
   if (first?.type !== 'yaml' || isFrontMatter(first.value)) return root
   return fromMarkdown(text, GFM_ONLY)
 }
+
+// Bug 0547: one parse per distinct text per process; the master tree never leaves this module, and
+// `parseMarkdown` hands each caller a copy (`./parse-memo.ts`). 2^24 characters is about 175 MB of
+// trees, twice this repository's corpus (spike 0546).
+const memo: ParseMemo = createParseMemo(2 ** 24, parseFresh)
+registerCacheReset(() => memo.reset())
 
 /**
  * A node's last line. A position's end is exclusive, so a block its container closes ends at column 1 of
@@ -195,7 +207,7 @@ export type SetAside = 'code-blocks' | 'closed-fences'
 export function proseText(
   text: string,
   setAside: SetAside,
-  root: Root = parseMarkdown(text),
+  root: Root = memo.master(text),
 ): string {
   const lines = text.split('\n')
   const blank = (first: number, last: number): void => {
@@ -217,7 +229,7 @@ export function proseText(
  * report should refuse rather than pick (bug 0287's review measured an example ruling inside a
  * list-item-ended fence becoming a proposal's verdict).
  */
-export function unclosedFences(text: string, root: Root = parseMarkdown(text)): number[] {
+export function unclosedFences(text: string, root: Root = memo.master(text)): number[] {
   return codeBlocks(text, root)
     .filter((b) => b.shape === 'unclosed-fence')
     .map((b) => b.first)
