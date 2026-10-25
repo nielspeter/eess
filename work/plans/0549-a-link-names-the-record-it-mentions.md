@@ -51,11 +51,9 @@ ones are reported by `beLinked()`'s rule, so the docs pair the two.
 
 The mention's `link` gains `text`, the link's text joined as a heading's is, and `target`, the
 resolution `links()` uses (`resolveLink`, `packages/md/src/model/resolve-link.ts:203`) as its own
-`LinkTarget`: `external`, `self` and `document` each with the path and the `MdDocument` they name (for
-`self`, the mention's own, so a reader of the target's title reads it for every kind that has one;
-`resolveLink`'s `self` gains both, at `packages/md/src/model/resolve-link.ts:163` and `:219` (a `#` link), part of the break),
-`not-in-corpus` or
-`directory` with their path, or `missing` with the paths tried. Whether a URL is external is read by
+`LinkTarget`, unchanged: `external`, `self`, `document` with its path and the `MdDocument` it names,
+`not-in-corpus` or `directory` with their path, or `missing` with the paths tried. `self` carries no
+fields, and needs none: its document is the mention's own, `m.doc` (`packages/md/src/model/mentions.ts:28`). Whether a URL is external is read by
 `links.ts`'s `EXTERNAL_RE` (`packages/md/src/model/links.ts:42`), exported model-internally, not from
 the root, so `mentions()` and `links()` cannot disagree about a link. Every kind is visible, so a caller cannot fold a missing file into "no
 relation". `mentions(corpus, { pattern, resolve? })` takes the same `LinkResolveOptions` a
@@ -83,9 +81,9 @@ the target's title from `link.target`'s document, so it never resolves a link a 
 4. the mention lies in the compared text, not in a stripped prefix, and `pattern` matches at its
    place in the title.
 
-The three `RegExp`s are read as `mentions()` reads its pattern (`packages/md/src/model/mentions.ts:40-53`):
-through a private copy without `g` or `y`, so no `lastIndex` is shared, and a prefix strips once, at
-the text's start. `pattern` must be the builder's own; the docs say so and a test row holds it.
+The three `RegExp`s are read through a private copy with the caller's `g` and `y` dropped, as
+`validateMentionPattern` makes one (`packages/md/src/model/mentions.ts:58`), so no `lastIndex` is
+shared, and a prefix strips once, at the text's start. `pattern` must be the builder's own; the docs say so and a test row holds it.
 
 Equality, not containment: a link text that only has to be found in the title is a one-word stamp
 (the mention and the title's next word, linked to a record whose title opens with that mention). To stamp a link green under
@@ -138,8 +136,7 @@ option, `collectMentions`' own return type, UNKNOWN for the new fields on an unr
 `areInTitleLinks` (Decision 3).
 
 **Files:** `packages/md/src/model/phrasing.ts`, `packages/md/src/model/mentions.ts`,
-`packages/md/src/model/links.ts`, `packages/md/src/model/resolve-link.ts`,
-`packages/md/src/builders/mentions.ts`,
+`packages/md/src/model/links.ts`, `packages/md/src/builders/mentions.ts`,
 `packages/md/src/predicates/mentions.ts`, `packages/md/src/index.ts`.
 
 ### Phase 2 — the worked example and docs
@@ -183,17 +180,17 @@ unread mentions.
 
 ## Files Changed
 
-| file                                                                      | phase |
-| ------------------------------------------------------------------------- | ----- |
-| `packages/md/src/model/phrasing.ts`, `packages/md/src/model/mentions.ts`  | 1     |
-| `packages/md/src/model/links.ts`, `packages/md/src/model/resolve-link.ts` | 1     |
-| `packages/md/src/builders/mentions.ts`                                    | 1     |
-| `packages/md/src/predicates/mentions.ts`, `packages/md/src/index.ts`      | 1     |
-| `packages/md/tests/builders/mentions.test.ts`                             | 1     |
-| `examples/md/a-link-names-the-record-it-mentions.test.ts` (new)           | 2     |
-| `docs/markdown.md`, `packages/md/README.md`                               | 2     |
-| `scripts/vacuity-matrix.mjs`                                              | 3     |
-| `.changeset/*.md` (eess-md minor, `**Breaking**`)                         | —     |
+| file                                                                     | phase |
+| ------------------------------------------------------------------------ | ----- |
+| `packages/md/src/model/phrasing.ts`, `packages/md/src/model/mentions.ts` | 1     |
+| `packages/md/src/model/links.ts`                                         | 1     |
+| `packages/md/src/builders/mentions.ts`                                   | 1     |
+| `packages/md/src/predicates/mentions.ts`, `packages/md/src/index.ts`     | 1     |
+| `packages/md/tests/builders/mentions.test.ts`                            | 1     |
+| `examples/md/a-link-names-the-record-it-mentions.test.ts` (new)          | 2     |
+| `docs/markdown.md`, `packages/md/README.md`                              | 2     |
+| `scripts/vacuity-matrix.mjs`                                             | 3     |
+| `.changeset/*.md` (eess-md minor, `**Breaking**`)                        | —     |
 
 ## Test inventory
 
@@ -210,14 +207,15 @@ Each drives `mentions(corpus, { pattern })` over `corpusFromText` or a disk fixt
 | the example's rows, a to m, l2, m2 and s, with the missing-file and directory rows and the empty mention side                                    | 2     |
 
 **Sabotage, before the PR:** clause 3 as containment turns row s green; dropping clause 2 turns row
-l2 green; accepting `self` turns row m2 green; each must turn its test red.
+l2 green; accepting `self` as a document whose title is the mention's own (`m.doc`) turns row m2
+green; each must turn its test red.
 
 ## Release
 
-| package               | bump                | why                                                                                                                                                                                                                     |
-| --------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@nielspeter/eess-md` | minor, **Breaking** | a predicate and an option; two required fields on the exported `MdMentionRef`, which no family package builds, `collectMentions`' own return type, and a path and a document on the exported `LinkTarget`'s `self` kind |
-| every other package   | none                | nothing a consumer can observe                                                                                                                                                                                          |
+| package               | bump                | why                                                                                                                                               |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@nielspeter/eess-md` | minor, **Breaking** | a predicate and an option; two required fields on the exported `MdMentionRef`, which no family package builds, `collectMentions`' own return type |
+| every other package   | none                | nothing a consumer can observe                                                                                                                    |
 
 ## Out of scope
 
@@ -248,6 +246,11 @@ Two rounds, architect and enforcement separately, both Changes needed each round
   (architect I1); rows l2 and m2, each failing one clause alone, so the clause-2 and `self` sabotage
   rows can fire, and the example's prefixes and titles stated (enforcement I1); the flag convention
   for the three `RegExp`s; the suggestion's owner; the wider break; the stale board pointer dropped.
+- **Architect re-check of the verification edits (Not verified, two Important):** the verification
+  pass had widened the exported `LinkTarget`'s `self` with a path and a document, so the m2 sabotage
+  could read a title. It was not needed, since the mention carries its own document, and it could
+  not be built, since `resolveLink`'s input holds only a path. `LinkTarget` stays unchanged and the
+  m2 sabotage reads `m.doc`; the flag wording now names the copy `validateMentionPattern` makes.
 
 ## Progress ledger
 

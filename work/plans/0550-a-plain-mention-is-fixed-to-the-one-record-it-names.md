@@ -56,9 +56,13 @@ matches nothing, such as `/(?!)/`, so leaving the refusal out is never silent. R
 is not enough, since Node imports a rule file without checking its types
 ([ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md)): a `fix` whose `foreign`
 is missing or not a `RegExp`, or one that matches the empty string (it would refuse every fix),
-throws an `ArchConfigError` when the rule is built, the door `validateMentionPattern` uses for
-`pattern` (`packages/md/src/model/mentions.ts:57-62`). Like `pattern`, it is read through a private
-copy without `g` or `y` (`packages/md/src/model/mentions.ts:40-53`).
+throws an `ArchConfigError` when `beLinked()` is called. The empty-match half is the door
+`validateMentionPattern` uses for `pattern` (`packages/md/src/model/mentions.ts:57-64`), with its own
+check and message, since that function's message speaks of mentions. The missing and non-`RegExp`
+halves are stricter than `pattern`, which throws a `TypeError` there
+([bug 0551](../bugs/0551-an-untyped-mention-pattern-throws-a-typeerror.md)). `foreign` is read
+through a private copy with the caller's `g` and `y` dropped, as `validateMentionPattern` makes one
+(`packages/md/src/model/mentions.ts:58`), so no `lastIndex` is shared.
 
 ### 2. What is fixed, and what is refused
 
@@ -286,10 +290,12 @@ Important; enforcement: Changes needed, Critical 1). Kept, not edited away:
 - **Architect I2:** the example cannot import `applyFixes`; the round trip moved to `packages/md/tests/`.
 - **Architect I3, enforcement M1:** the committed sabotage row named a test that reads `src`; it now
   names the example's, which loads `dist`.
-- **Verification pass (enforcement):** `self` gains its document, so the m2 sabotage of
+- **Verification pass (enforcement):** the m2 sabotage of
   [plan 0549](./0549-a-link-names-the-record-it-mentions.md) can fire; `foreign` is refused at run
-  time, not only in the type, by the thrown `ArchConfigError` `pattern` uses; Phase 0 counts what
-  `foreign` refuses.
+  time, not only in the type, by a thrown `ArchConfigError`; Phase 0 counts what `foreign` refuses.
+- **Architect re-check:** only the empty-match refusal shares `pattern`'s door; `pattern`'s own
+  missing and non-`RegExp` cases throw a `TypeError`, recorded as
+  [bug 0551](../bugs/0551-an-untyped-mention-pattern-throws-a-typeerror.md), not fixed here.
 - **Minors:** an `undefined` key, the configuration findings' kind and precedence, the planted
   anachronism, one amendment before the plan goes back, the exclusion mechanism left to [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md),
   `|` in a table cell, and which headings are read.
