@@ -120,7 +120,8 @@ export function hasEvidence(value: readonly ArchViolation[]): value is CollectRe
  *   not a large one.
  * - **`declaredEmpty` requires EVERY zero-contributing member to declare.** A
  *   `some()` here lets one declared part vouch for a hand-counted zero beside
- *   it, which is the whole failure this merge exists to prevent.
+ *   it, which is the whole failure this merge exists to prevent. A `notRun`
+ *   member is absent and is not asked, as long as one member ran.
  * - **`sourceEmpty` on any member outranks every declaration.** ADR-010 §3's
  *   precedence: a declaration asserts a fact about a loaded corpus, and over
  *   an empty source it asserts nothing.
@@ -225,12 +226,14 @@ export function mergeCollectResults(parts: readonly (readonly ArchViolation[])[]
     // satisfied by its own zero; the merge has nothing to add.
     //
     // `every`, not `some`: one declared part must never vouch for a
-    // hand-counted zero beside it.
+    // hand-counted zero beside it. A `notRun` member is absent, not undeclared
+    // (bug 0400: the release gate with its one rule waived and nothing declared),
+    // but at least one member must have run: all-off declares nothing.
     declaredEmpty:
       !anySourceEmpty &&
       examined === 0 &&
-      parts.length > 0 &&
-      parts.every((p) => p.declaredEmpty === true)
+      parts.some((p) => p.notRun !== true) &&
+      parts.every((p) => p.notRun === true || p.declaredEmpty === true)
         ? true
         : undefined,
   })

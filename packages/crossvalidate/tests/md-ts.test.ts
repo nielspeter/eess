@@ -30,6 +30,19 @@ describe('adrCitationsResolve() — MD↔TS (AST-grounded)', () => {
     expect(() => adrCitationsResolve(c(['docs/adr/0001-good.md']), proj())).not.toThrow()
   })
 
+  // Bug 0400: before it, the project's tests counted as evidence, so `expectNonEmpty` over zero
+  // citations was never consulted.
+  it('with expectNonEmpty, reds when the ADRs cite no test, however many tests the project holds', () => {
+    const none = { dir: 'docs/none/**' }
+    expect(
+      violationsOf(() => adrCitationsResolve(c(['docs/adr/0001-good.md']), proj(), none)),
+    ).toEqual([])
+    const v = violationsOf(() =>
+      adrCitationsResolve(c(['docs/adr/0001-good.md']), proj(), { ...none, expectNonEmpty: true }),
+    )
+    expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/\.expectNonEmpty\(\)/)])
+  })
+
   it('fails when a cited it() does not exist', () => {
     let err: unknown
     try {

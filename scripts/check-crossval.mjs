@@ -77,13 +77,20 @@ gate('diagram↔code (kernel charter, both directions)', () =>
 // The DEV tsconfig (includes tests/) — the build tsconfig excludes tests, so
 // cited it() titles would never resolve against it (this gate caught exactly
 // that misconfiguration on first run with real citations).
+//
+// `expectNonEmpty`: this repository's ADRs cite tests, so zero citations is a broken extraction or a
+// drifted `dir`, never a pass (bug 0400). EESS_CROSSVAL_ADR_ROOT points the ADR corpus at another
+// directory, the same input override as EESS_CROSSVAL_GHERKIN_ROOT below, so a fixture can run this
+// script over ADRs that cite nothing (`scripts/nonvacuity/bad-crossval-adr-empty.mjs`).
 gate('ADR↔test (citations resolve in the AST)', () => {
-  const adrs = corpus({ roots: ['adr/**'] })
-  adrCitationsResolve(adrs, project('packages/ts/tsconfig.json'), { dir: 'adr/**', ...opts })
-  // The denominator this gate ran on. A preset that resolves zero citations
-  // reports OK, so without a count a drifted `dir`/`roots` reads as a clean pass
-  // (CLAUDE.md: "if a count reads zero, treat that as a red flag"). Counted by
-  // the preset's own extractor, so the number cannot disagree with what it saw.
+  const adrs = corpus({ roots: ['adr/**'], cwd: process.env.EESS_CROSSVAL_ADR_ROOT ?? '.' })
+  adrCitationsResolve(adrs, project('packages/ts/tsconfig.json'), {
+    dir: 'adr/**',
+    expectNonEmpty: true,
+    ...opts,
+  })
+  // The denominator this gate ran on, counted by the preset's own extractor, so the
+  // number cannot disagree with what it saw. Zero is red above, by the declaration.
   const s = adrCitationStats(adrs, { dir: 'adr/**' })
   console.error(`  ADR↔test — ${s.citations} citations across ${s.adrs} ADRs`)
 })

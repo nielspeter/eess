@@ -145,6 +145,11 @@
  *                 direct assertions on scripts/lib/proposal-ruling.mjs's own
  *                 exports — one tier weaker (proves the module, not that
  *                 check-corpus.mjs invokes it; the five rows above cover that).
+ *   crossval/adr-citations-empty (production script — bug 0400)
+ *                 a throwaway adr/ whose one ADR cites no test, the real
+ *                 `scripts/check-crossval.mjs` pointed at it via
+ *                 EESS_CROSSVAL_ADR_ROOT → crossval/adr-citations-resolve's
+ *                 .expectNonEmpty() finding.
  *   crossval/scenario-exemption-stale, crossval/scenarios-covered-e2e
  *   (production script — proposal 005 / plan 0145)
  *                 a throwaway specs/ directory per scenario, the real
@@ -3622,6 +3627,11 @@ const gates = [
   ],
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['crossval/md-ts', () => gateNode('bad-md-ts.mjs', 'crossval/adr-citations-resolve')],
+  // Bug 0400: the real check-crossval.mjs over ADRs that cite no test, via EESS_CROSSVAL_ADR_ROOT.
+  [
+    'crossval/adr-citations-empty',
+    () => gateNode('bad-crossval-adr-empty.mjs', 'crossval/adr-citations-resolve'),
+  ],
   // Plan 0096: md↔gherkin/md↔mermaid dogfood bindings. Both presets share one
   // ruleId across multiple failure submodes, so each fixture asserts on
   // message, not just ruleId — mustSay here is still the ruleId (gateNode's
@@ -4783,6 +4793,7 @@ const GATE_FOR = {
     'crossval',
     'crossval/gherkin-ts',
     'crossval/md-ts',
+    'crossval/adr-citations-empty',
     'crossval/scenario-exemption-stale',
     'crossval/scenarios-covered-e2e',
     'crossval/md-gherkin',
