@@ -11,7 +11,7 @@
   only turns one way.
 - **Origin:** self-found, 2026-10-21, while choosing a ratchet for this repository's own adoption of
   [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask A (plan
-  [0541](../plans/0541-this-repositorys-record-mentions-are-gated.md)), which needed a per-file count that
+  [0541](../plans/completed/0541-this-repositorys-record-mentions-are-gated.md)), which needed a per-file count that
   falls and stays down.
 - **Reported:** 2026-10-21
 

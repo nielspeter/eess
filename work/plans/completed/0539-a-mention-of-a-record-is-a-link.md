@@ -6,12 +6,12 @@
 - **Implements:** [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
 - **Priority:** Medium — no project can state "our records are named by links" and have it fail the
   build; this repository alone writes thousands of mentions of its own records as plain text (its
-  gate's summary will print the live count, [plan 0541](../0541-this-repositorys-record-mentions-are-gated.md)).
+  gate's summary will print the live count, [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md)).
 - **Effort:** Medium, one PR. A new element type in eess-md (a model module, a builder, a
   predicate, a condition), its docs and a worked example, and a vacuity-matrix row. No kernel
   change.
 - **Created:** 2026-10-21
-- **Builds before:** [plan 0541](../0541-this-repositorys-record-mentions-are-gated.md); and
+- **Builds before:** [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md); and
   [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s asks B (the target), the fix and C (the relation message), all held, B and the fix
   on [bug 0400](../../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md). This plan
   ships none of them.
@@ -214,7 +214,7 @@ fixture.
 
 ## Out of scope
 
-- **This repository's own gate:** [plan 0541](../0541-this-repositorys-record-mentions-are-gated.md).
+- **This repository's own gate:** [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md).
 - **The target** ([proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md) ask B), **the fix** and **the relation message** (ask C): held by
   [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s review; B and the fix on [bug 0400](../../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md).
 - **`.claude/skills/` and `kit/`**: not corpus roots ([bug 0535](../../bugs/0535-the-corpus-gate-does-not-read-skill-or-kit-files.md)).

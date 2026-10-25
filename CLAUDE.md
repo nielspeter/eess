@@ -156,6 +156,15 @@ or diagrams, run the relevant gate and fix what it reports:
   declares `**Implements:** proposal NNN` against it (a prose mention doesn't
   count), and a malformed `**Ruling:**`/`**Implements:**` line or one naming a
   proposal that doesn't exist is reported rather than silently ignored.
+  A record mentioned by number (`bug 0338`, `plan 0541`, `proposal 019`,
+  `ADR-010`) must be a link to it (plan 0541): the corpus still holds thousands
+  of plain mentions, so each file is judged against the same rule's count at the
+  base, and a change may add none. Link what you write; a quoted example goes in
+  a fenced code block. It reads a **base ref** of its own: the first parent of a
+  merge commit, else the merge base with `origin/main` (else `main`), and no
+  environment variable but its test seam `EESS_RECORD_MENTION_BASE`, which reds
+  every run that sets it; it hard-errors on a shallow clone as `check:release`
+  does.
 - `npm run check:ledger` — honesty at close: a _done_ plan (a terminal `State:`
   token, or a plan in `work/plans/completed/`) carries no silently-open `- [ ]`.
   Close a plan by disposing every box (done-otherwise / deferred→<home> /
@@ -172,8 +181,8 @@ or diagrams, run the relevant gate and fix what it reports:
   (`npx changeset`), or an explicit `'@nielspeter/eess-<x>': none` if the change
   ships nothing a consumer can observe. Tests and package-local docs count as
   changes — the definition is changesets' own, and declining the bump is your
-  call to declare, not the tool's to guess. This is the only gate that reads a
-  **base ref**: `EESS_RELEASE_BASE`, else the PR's target, else `origin/main`,
+  call to declare, not the tool's to guess. With `check:corpus`, it is one of
+  two gates that read a **base ref**: `EESS_RELEASE_BASE`, else the PR's target, else `origin/main`,
   else `main`, and it hard-errors rather than pretending nothing changed, so a
   shallow clone fails loudly (CI needs `fetch-depth: 0`).
   It also reads the changeset **body**: one that marks a breaking change — a line

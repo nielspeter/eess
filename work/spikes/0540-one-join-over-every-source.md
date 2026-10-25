@@ -140,5 +140,5 @@ Kept, not edited away (PR #256's enforcement and method reviews):
   by integer and keying by digits as written give the same joins.
 - **Three counts of the same backlog differ.** [Plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)
   first said 4,657, this spike 4,682, the method review 4,696 at 659c076f: three instruments that
-  decide self-mentions differently, run on a corpus this PR was adding records to. [Plan 0541](../plans/0541-this-repositorys-record-mentions-are-gated.md)'s gate
+  decide self-mentions differently, run on a corpus this PR was adding records to. [Plan 0541](../plans/completed/0541-this-repositorys-record-mentions-are-gated.md)'s gate
   prints the number it holds.

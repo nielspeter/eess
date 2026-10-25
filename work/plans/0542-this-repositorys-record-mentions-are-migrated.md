@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-21 so that [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md)'s
+- **State:** Draft — written 2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s
   ledger has a named home for its removal (PR #256's method review, I3); since 0541's freeze on
   2026-10-22 it keeps no ledger, and this plan is the home of bringing its count to zero. It cannot go Ready until
   [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B and its fix
@@ -14,12 +14,12 @@
 - **Effort:** Large, and to be split at Ready by lane: the fixable mentions are mechanical, the
   colliding ones need a reader.
 - **Created:** 2026-10-21
-- **Builds after:** [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md), and the plan
+- **Builds after:** [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md), and the plan
   that builds [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s B and fix.
 
 ## Problem
 
-[Plan 0541](0541-this-repositorys-record-mentions-are-gated.md) holds this repository's unlinked mentions at today's count and lets it only fall. This
+[Plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md) holds this repository's unlinked mentions at today's count and lets it only fall. This
 plan brings it to zero, so the rule holds with nothing owed. There is no ledger to delete: 0541
 judges each file against the merge base's own counts (changed at its freeze, 2026-10-22).
 

@@ -1,6 +1,6 @@
 # Spike 0546: where a corpus check spends its time
 
-Measured 2026-10-25, after [plan 0541](../plans/0541-this-repositorys-record-mentions-are-gated.md)'s
+Measured 2026-10-25, after [plan 0541](../plans/completed/0541-this-repositorys-record-mentions-are-gated.md)'s
 build (PR #260) timed out a `check:nonvacuity` shard at its 20-minute limit
 (`.github/workflows/ci.yml:126`), and the maintainer observed that every project running eess-md
 pays for its corpus checks, not only this one. It ran as throwaway scripts against the built
