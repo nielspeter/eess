@@ -55,33 +55,33 @@ and the enforcement review:
 ## Verification
 
 Tests in `packages/md/tests/parse-memo.test.ts` and `packages/md/tests/parse-memo-wiring.test.ts`.
-Red before the fix were the memo tests (no memo existed) and the wiring test (three parses where one
+Red before the fix were the memo tests (no memo existed) and the wiring test (four parses where one
 is expected); the isolation guards were green before and after, and exist to go red on a wrong memo.
 Each test was run against its sabotage once, in the main checkout, each mutant applied to `src`
 and the files restored and compared (`cmp`) after. M9–M18 are the code review's findings: the first
 round of tests built their own memo, so the memo wired into `prose.ts` could be switched off with
 every test green.
 
-| sabotage                                             | red                                         |
-| ---------------------------------------------------- | ------------------------------------------- |
-| M1 the key is the text's length, no text compared    | T1, T2, the shared key, the bound           |
-| M2 `corpus()` caches by path and length              | T2, the reset                               |
-| M3 the memo is handed the parse before the fallback  | T3, the reader without a tree               |
-| M4 the master handed out, unfrozen                   | T4, the frozen master, the bound, the reset |
-| M5 a text over the bound gives an empty root         | T5                                          |
-| M6 no bound                                          | the bound                                   |
-| M7 the master not frozen                             | the frozen master                           |
-| M8 the memo never hits                               | the wiring, the reset, the frozen master    |
-| M9 the memo in `prose.ts` holds nothing (bound 0)    | the wiring, the reset                       |
-| M10 `parseMarkdown` and the readers bypass the memo  | the wiring, the reset                       |
-| M11 the reset not registered with the kernel         | the reset                                   |
-| M12 an evicted text's length not subtracted          | the bound                                   |
-| M13 a hit not refreshed (oldest first, not LRU)      | the bound                                   |
-| M14 a reader's default tree is the first pass        | the wiring, the reader without a tree       |
-| M15 the master frozen one level deep                 | the frozen master                           |
-| M16 the bound off by one                             | the bound, the memo's reset                 |
-| M17 a reset memo keeps its held length               | the memo's reset                            |
-| M18 `corpus()` caches by path and mtime (real files) | T2                                          |
+| sabotage                                             | red                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| M1 the key is the text's length, no text compared    | T1, T2, the shared key, the bound                                     |
+| M2 `corpus()` caches by path and length              | T2, the reset                                                         |
+| M3 the memo is handed the parse before the fallback  | T3, the reader without a tree                                         |
+| M4 the master handed out, unfrozen                   | T4, the frozen master, the bound, the reset                           |
+| M5 a text over the bound gives an empty root         | T5                                                                    |
+| M6 no bound                                          | the bound                                                             |
+| M7 the master not frozen                             | the frozen master                                                     |
+| M8 the memo never hits                               | the wiring, the reset, the frozen master, the bound, the memo's reset |
+| M9 the memo in `prose.ts` holds nothing (bound 0)    | the wiring, the reset                                                 |
+| M10 `parseMarkdown` and the readers bypass the memo  | the wiring, the reset                                                 |
+| M11 the reset not registered with the kernel         | the reset                                                             |
+| M12 an evicted text's length not subtracted          | the bound                                                             |
+| M13 a hit not refreshed (oldest first, not LRU)      | the bound                                                             |
+| M14 a reader's default tree is the first pass        | the wiring, the reader without a tree                                 |
+| M15 the master frozen one level deep                 | the frozen master                                                     |
+| M16 the bound off by one                             | the bound, the memo's reset                                           |
+| M17 a reset memo keeps its held length               | the memo's reset                                                      |
+| M18 `corpus()` caches by path and mtime (real files) | T2                                                                    |
 
 - [x] T1, the exact key: two texts of one length sharing a 5,000-character prefix get their own
       trees (a heading, a list).
@@ -111,9 +111,10 @@ every test green.
   10 s, so no reader writes to a frozen master. On CI, the same 240 non-vacuity fixtures took 26.2
   minutes of row time against 37.8 on `main`; the corpus rows 13.6 against 23.2.
 
-- [x] Code review (enforcement and testing lenses) of the PR: the code was judged correct and
-      fail-closed (a 120,000-call fuzz against a reference found no wrong tree); both found the
-      wiring untested, fixed by M9–M18 above.
+- [x] Code review of the PR, by the enforcement and the testing lens, then a re-review of the
+      answering commit by both: the code was judged correct and fail-closed (the enforcement review's
+      120,000-call fuzz against a reference found no wrong tree); both found the wiring untested,
+      closed by the wiring and memo tests above, which M9–M18 prove.
 - [x] A patch changeset for `@nielspeter/eess-md` (`.changeset/parse-each-text-once.md`); full
       `npm run validate` green before the commit, its exit code and time in the PR description.
 

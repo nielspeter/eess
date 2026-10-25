@@ -13,8 +13,8 @@ import { createHash } from 'node:crypto'
  *
  * Keyed by a hash of the text and then the text compared, so a collision is a miss: V8 hashes a long
  * string by its length, and a `Map` on the text itself was measured at 3 ms a lookup. Bounded by the
- * total length of the texts held (a proxy for the trees, 10–12.5 bytes a character, measured), least recently
- * used dropped first. The bound must hold a corpus, since LRU over a repeated scan larger than itself
+ * total length of the texts held (a proxy for the trees, 10–12.5 bytes a character, measured), least
+ * recently used dropped first. The bound must hold a corpus, since LRU over a repeated scan larger than itself
  * keeps nothing. It decides only whether a tree is kept, never whether a text is parsed, so running
  * out costs time and no verdict, and is no ADR-016 instrument: a text over the bound is parsed and not
  * kept, and a parse that throws keeps nothing.
