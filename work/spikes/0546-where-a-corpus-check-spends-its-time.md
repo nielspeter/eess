@@ -110,7 +110,7 @@ reading the files included, takes 15 ms on this corpus, whose long texts mostly 
    that grows with every gate added is a parse of a text already parsed in the same process.
 2. **The waste is reachable from eess-md's public surface**: a second `corpus()` over the same files,
    and `findState` (`@nielspeter/eess-md/rules/ledger`), whose tree is optional. `proseText` and
-   `unclosedFences` reparse too, but are on `/internal`, family plumbing (ADR-011). An adopter with
+   `unclosedFences` reparse too, but are on `/internal`, family plumbing ([ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)). An adopter with
    several rule files pays the first as this repository's scripts do. About 1,000 of this
    repository's repeats are scripts dropping a tree they hold (`scripts/lib/finished-not-closed.mjs:151`
    among them), which the scripts could recover alone; the cross-corpus repeats they cannot.
@@ -141,7 +141,7 @@ recorded here, since this record is what outlives them.
   twice this repository's corpus), least recently used evicted first. It must hold a corpus: LRU over
   a repeated scan larger than itself hits nothing. A text larger than the bound is parsed and not
   stored. A parse that throws stores nothing. The bound decides only whether a tree is kept, never
-  whether a text is parsed, so it is no ADR-016 instrument and emits no finding. The memo registers
+  whether a text is parsed, so it is no [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) instrument and emits no finding. The memo registers
   its reset with the kernel's `registerCacheReset`. Unbounded is refused: a string cannot be a weak
   key, so nothing would free an entry in a watch session or a test worker.
 - **What it costs and saves**, computed from the unit costs: `check:corpus` about 4.2 s of parsing
