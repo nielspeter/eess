@@ -148,7 +148,7 @@ export function findFinishedNotClosed(lanes) {
       const inDoneFolder = (lane.doneFolders ?? []).some((f) => doc.relPath.includes(`/${f}/`))
       if (inDoneFolder) continue
 
-      const found = findState(doc.text, vocabulary)
+      const found = findState(doc.text, vocabulary, doc.root)
       // No State line in prose — no item, or one whose State line is code, which
       // `ledger/state-in-code` and `ledger/unterminated-fence` report — or one
       // outside the vocabulary, which `ledger/unknown-state` reports. Guessing here
