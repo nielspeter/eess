@@ -75,7 +75,7 @@ function parseFresh(text: string): Root {
 }
 
 // Bug 0547: one parse per distinct text per process; the master tree never leaves this module, and
-// `parseMarkdown` hands each caller a copy (`./parse-memo.ts`). 2^24 characters is about 175 MB of
+// `parseMarkdown` hands each caller a copy (`./parse-memo.ts`). 2^24 characters is about 210 MB of
 // trees, twice this repository's corpus (spike 0546).
 const memo: ParseMemo = createParseMemo(2 ** 24, parseFresh)
 registerCacheReset(() => memo.reset())

@@ -137,7 +137,7 @@ recorded here, since this record is what outlives them.
 - **The key:** a sha1 of the text, then the stored text compared exactly, so a collision is a miss.
   Keying a `Map` on the text itself was measured at 3 ms a lookup for 2,000 long texts of one length
   (V8 hashes a long string by its length).
-- **The bound:** total stored text length, default 2^24 characters (about 175 MB of master trees,
+- **The bound:** total stored text length, default 2^24 characters (about 210 MB of master trees,
   twice this repository's corpus), least recently used evicted first. It must hold a corpus: LRU over
   a repeated scan larger than itself hits nothing. A text larger than the bound is parsed and not
   stored. A parse that throws stores nothing. The bound decides only whether a tree is kept, never
