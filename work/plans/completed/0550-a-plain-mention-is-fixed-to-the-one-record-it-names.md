@@ -459,6 +459,31 @@ What the build did that the plan did not say, kept here rather than edited into 
   (architect). A file with a byte-order mark is still refused with the generic reason: recorded.
   The last check, about 154k fuzzed inputs, found no fix at a wrong place; it found that a link
   beside `*` or `_` can change their emphasis, so a mention touching `*`, `_` or `~` is refused.
+- **A re-parse check on every fix, the maintainer's choice on 2026-10-26.** The last re-check's
+  structural fuzz (each fix applied, the tree compared) found what no character beside a mention
+  shows: a fix's `)` closing a `(` that a link definition's title left open, so the paragraph became
+  that title (H1), and a fix's `[` ending an e-mail address GFM then linked (H2). Asked whether to
+  close them now or record them, the maintainer chose the check. `model/fix-check.ts` keeps a fix
+  only when the document parses the same with exactly its new link added: blocks and their visible
+  text, definitions by label, URL and title, emphasis, reference labels, and links by URL and text.
+  Its review found that checking only the whole set let a fix through that is safe only beside
+  another, while `.excluding()` or an overlap can apply it alone (shown through the public API); so
+  each fix is checked alone, over the top-level block it sits in and one on each side, a table row
+  as a table of that one row, and the fixes kept are checked together over the whole document. Its
+  parses skip the parse memo, so a written text never pushes a corpus text out. Cost over this
+  repository, measured each step, 4,427 fixes and none refused: 0.45 s without the check, 4.9 s
+  checking the set only, 118 s checking each fix over the whole document, 85 s over its block and
+  neighbours, 11 s with a table row read alone, 12 s once every kept set, a single fix included, is
+  read over the whole document too (the architect's verification: the stretch is argued and fuzzed,
+  not proved, and that parse is its backstop; no input is known that only it refuses, so no
+  sabotage can redden it, and it stays because it can only refuse). A set that fails whole costs
+  one more parse per fix; it never ran here. The cost grows with the fixes, not the corpus, so a
+  corpus with no plain mention left pays nothing; [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s
+  migration run is where the 12 s falls. A stretch that does not start the document is read from a
+  fresh line, so a `---` there is not front matter (enforcement). With it came the architect's last minors: the inexact-span
+  message names the `&` case, the docs say how far an ambiguous `&` reaches, a mention whose own
+  text starts or ends with `*`, `_`, `~` or `\` is refused, and a target holding an entity is
+  refused by name.
 - **Sabotage, run before the PR** on the unit tests (they read `src`), each file restored after.
   Each turned only its row red:
 
@@ -481,6 +506,10 @@ What the build did that the plan did not say, kept here rather than edited into 
   | the entity step taken for a literal `&`                         | the literal-`&` span row                          |
   | the backslash check dropped                                     | the backslash row                                 |
   | the emphasis check dropped                                      | the emphasis row                                  |
+  | the re-parse check dropped                                      | the definition-title and e-mail rows              |
+  | the alone check replaced by the set check                       | the safe-only-beside-another row                  |
+  | the fresh-line start dropped                                    | the thematic-break row                            |
+  | the edge-mark check dropped                                     | the edge-mark row                                 |
 
   One guard fired nothing and was deleted, not kept: that a span's characters map to consecutive
   offsets. The source-equals-text check already guarantees the replacement, so no input can tell

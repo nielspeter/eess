@@ -793,8 +793,19 @@ shows every row below.
 - the mention is in inline code, follows `!`, `]` or an odd run of backslashes, touches `*`, `_` or
   `~` (a link beside them would change their emphasis), holds a bracket, or
   its text in the source is not the mention as written: an entity, emphasis or a line break inside
-  it, or a literal `&` earlier in the same run of text that looks like an entity (`&amp;` included),
-  where the fix does not guess where the text sits;
+  it, or a literal `&` that looks like an entity (`&amp;` included) earlier in the same stretch of
+  text, up to the nearest emphasis, code or link, where the fix does not guess where the text sits;
+  or its text starts or ends with `*`, `_`, `~` or `\`;
+- **writing it would change the document around it.** Each fix is checked by parsing, and kept
+  only when the document reads the same with exactly its new link added: the same blocks, visible
+  text, emphasis and links. A `)` closing a `(` that a link definition left open, or a `[` ending
+  an e-mail address, would otherwise change what a reader sees. Each fix is checked alone, since
+  `.excluding()` or a reader may apply it without the others, over the top-level block it sits in
+  and one on each side (a table row as a table of that one row); the fixes kept are then checked
+  together over the whole document, and when that fails each is added in turn, at one more parse
+  of the document per fix. The cost grows with the number of fixes, not with the corpus: over
+  eess's 580 documents, 4,427 fixes took 12 s against 0.45 s for `beLinked()` alone, and a corpus
+  with no plain mention left pays nothing;
 - its target cannot be written: a `|` when the mention sits in a table cell, a `<`, `>`, `\` or
   line break, a `#` or `?` in a path, or a path that is absolute or climbs out of the repository. A
   space or a parenthesis is kept by writing the destination in `<…>`;

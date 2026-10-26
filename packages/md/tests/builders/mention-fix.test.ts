@@ -174,7 +174,7 @@ describe('beLinked({ fix }): what is refused', () => {
     expect(outcome(read)).toEqual([
       'bug 0001 — it is in inline code',
       'bug 0002 — it follows "!", so a link would be an image',
-      'bug 0001 — its text in the source is not the mention as written (an entity, emphasis or line break in it)',
+      'bug 0001 — its text in the source is not the mention as written (an entity, emphasis or line break in it, or an "&" before it that may be an entity)',
       'bug 0049 — its target holds "|", which would end its table cell',
     ])
   })
@@ -216,6 +216,70 @@ describe('beLinked({ fix }): targets a link cannot hold, and brackets', () => {
       'bug 0001 — it touches "*", "_" or "~", whose emphasis a link beside it would change',
       'bug 0002 — it touches "*", "_" or "~", whose emphasis a link beside it would change',
       'bug 0001 — it touches "*", "_" or "~", whose emphasis a link beside it would change',
+    ])
+  })
+
+  it("a fix that would turn a paragraph into a link definition's title is refused, found by re-parsing", () => {
+    const refusal = 'a link here would change the document around it'
+    expect(outcome(run(note('[r]: http://r\n(bug 0001')))).toEqual([`bug 0001 — ${refusal}`])
+    expect(outcome(run(note('[r]: http://r\n  (bug 0001')))).toEqual([`bug 0001 — ${refusal}`])
+  })
+
+  it('in one document, a safe fix is kept beside one the re-parse refuses', () => {
+    expect(outcome(run(note('see bug 0001.\n\n[r]: http://r\n(bug 0002')))).toEqual([
+      'bug 0001 → [bug 0001](./bugs/0001-a.md)',
+      'bug 0002 — a link here would change the document around it',
+    ])
+  })
+
+  it('a fix that is safe only beside another is refused, since either can be applied alone', () => {
+    // Together the two leave the document as it was; the second alone turns both lines into a
+    // definition's title, which `.excluding()` dropping the first would apply.
+    expect(outcome(run(note('[r]: http://r\n(bug 0001 x\nbug 0002')))).toEqual([
+      'bug 0001 → [bug 0001](./bugs/0001-a.md)',
+      'bug 0002 — a link here would change the document around it',
+    ])
+  })
+
+  it('a fix after a thematic break is checked as the document reads it, not as front matter', () => {
+    expect(outcome(run(note('a\n\n---\n\nk: bug 0001\n\n---')))).toEqual([
+      'bug 0001 → [bug 0001](./bugs/0001-a.md)',
+    ])
+  })
+
+  it('a target holding an entity is refused, since a link destination would decode it', () => {
+    const extra = [{ key: 'bug:0003', target: 'https://e.com/a&amp;b' }]
+    expect(outcome(run(note('see bug 0003.'), { extra }))).toEqual([
+      'bug 0003 — its target "https://e.com/a&amp;b" holds an entity, which a link destination would decode',
+    ])
+  })
+
+  it('a fix that would make an e-mail address before it a link is refused, found by re-parsing', () => {
+    const c = corpusFromText({ ...BUGS, 'notes.md': '# Notes\n\nsee a@b.com.bug0001 now\n' })
+    const glued: MentionFix<Rec> = {
+      ...fixOver(localRecords(c)),
+      key: {
+        mention: (m) => (m.groups['n'] === undefined ? undefined : `bug:${m.groups['n']}`),
+        record: (r) => r.key,
+      },
+    }
+    const vs = mentions(c, { pattern: /\bbug(?<n>\d{4})\b/gi })
+      .resideInFile('notes.md')
+      .should()
+      .beLinked({ fix: glued })
+      .violations()
+    expect(outcome(vs)).toEqual(['bug0001 — a link here would change the document around it'])
+  })
+
+  it('a mention whose text starts or ends with a mark the link would change is refused', () => {
+    const c = corpusFromText({ ...BUGS, 'notes.md': '# Notes\n\nsee bug 0001* now\n' })
+    const vs = mentions(c, { pattern: /\bbug (?<n>\d{4})\*?/gi })
+      .resideInFile('notes.md')
+      .should()
+      .beLinked({ fix: fixOver(localRecords(c)) })
+      .violations()
+    expect(outcome(vs)).toEqual([
+      'bug 0001* — it starts or ends with a mark the link would change: "*", "_", "~" or "\\"',
     ])
   })
 

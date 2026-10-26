@@ -8,6 +8,7 @@ import {
 import { matchSelections } from '@nielspeter/eess/internal'
 import type { MdMention } from '../model/mentions.js'
 import { mentionContext } from '../model/mention-context.js'
+import { fixesThatKeepTheDocument, linkKey, type CheckedFix } from '../model/fix-check.js'
 import { EXTERNAL_RE } from '../model/links.js'
 import { isRepoPath, relativeLinkPath } from '../model/resolve-link.js'
 import { mdViolation } from '../model/violation.js'
@@ -104,6 +105,11 @@ function destinationOf(
   from: string,
 ): { readonly dest: string } | { readonly refused: string } {
   const url = EXTERNAL_RE.test(target)
+  if (/&[#A-Za-z0-9]+;/.test(target)) {
+    return {
+      refused: `its target "${target}" holds an entity, which a link destination would decode`,
+    }
+  }
   if (/[<>\\\n]/.test(target) || (!url && /[#?]/.test(target))) {
     return { refused: `its target "${target}" cannot be written as a link destination` }
   }
@@ -161,7 +167,7 @@ export function beLinked<R>(options: BeLinkedOptions<R> = {}): Condition<MdMenti
   }
 }
 
-type Repair = { readonly fix: ArchFix } | { readonly refused: string }
+type Repair = { readonly fix: ArchFix; readonly url: string } | { readonly refused: string }
 
 /** An odd run of backslashes right before `at` escapes the character there. */
 function oddBackslashesBefore(text: string, at: number): boolean {
@@ -193,7 +199,27 @@ function repairsFor<R>(
   for (const m of plain) {
     out.set(m, repairOf(fix, foreign, m, keys.get(m), [...(holders.get(m)?.values() ?? [])]))
   }
-  return out
+  return keptByTheDocument(out)
+}
+
+/** Each document's fixes, kept only where writing them leaves the same document with its mentions linked. */
+function keptByTheDocument(repairs: Map<MdMention, Repair>): Map<MdMention, Repair> {
+  const byDoc = new Map<MdMention['doc'], (CheckedFix & { readonly m: MdMention })[]>()
+  for (const [m, r] of repairs) {
+    if (!('fix' in r)) continue
+    const list = byDoc.get(m.doc) ?? []
+    list.push({ m, fix: r.fix, link: linkKey(r.url, m.text) })
+    byDoc.set(m.doc, list)
+  }
+  for (const [doc, list] of byDoc) {
+    const kept = fixesThatKeepTheDocument(doc.root, doc.text, list)
+    for (const { m, fix } of list) {
+      if (!kept.has(fix)) {
+        repairs.set(m, { refused: 'a link here would change the document around it' })
+      }
+    }
+  }
+  return repairs
 }
 
 function repairOf<R>(
@@ -220,10 +246,13 @@ function repairOf<R>(
   if (span === undefined) {
     return {
       refused:
-        'its text in the source is not the mention as written (an entity, emphasis or line break in it)',
+        'its text in the source is not the mention as written (an entity, emphasis or line break in it, or an "&" before it that may be an entity)',
     }
   }
   if (/[[\]]/.test(m.text)) return { refused: 'a bracket in it would end the link text' }
+  if (/^[*_~]|[*_~\\]$/.test(m.text)) {
+    return { refused: 'it starts or ends with a mark the link would change: "*", "_", "~" or "\\"' }
+  }
   const before = m.doc.text[span.start - 1]
   if (before === '!') return { refused: 'it follows "!", so a link would be an image' }
   if (/[*_~]/.test(before ?? '') || /[*_~]/.test(m.doc.text[span.end] ?? '')) {
@@ -249,6 +278,7 @@ function repairOf<R>(
   if ('refused' in written) return written
   const dest = written.dest
   return {
+    url: dest.startsWith('<') ? dest.slice(1, -1) : dest,
     fix: {
       file: m.doc.file,
       start: span.start,

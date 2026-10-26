@@ -67,6 +67,14 @@ export function parseMarkdown(text: string): Root {
   return structuredClone(memo.master(text))
 }
 
+/**
+ * The same parse as {@link parseMarkdown}, kept out of the memo: for a text read once and dropped,
+ * such as a document with a fix written into it (plan 0550), which must not push a corpus text out.
+ */
+export function parseUncached(text: string): Root {
+  return parseFresh(text)
+}
+
 function parseFresh(text: string): Root {
   const root = fromMarkdown(text, WITH_FRONT_MATTER)
   const first = root.children[0]
