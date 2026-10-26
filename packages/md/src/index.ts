@@ -20,6 +20,8 @@ export type {
   Condition,
   ConditionContext,
   ArchFix,
+  // Plan 0550: `beLinked({ fix })` names the records as a selection, which a caller builds.
+  Selection,
   PresetReportOptions,
   PresetBaseOptions,
 } from '@nielspeter/eess'
@@ -127,12 +129,15 @@ export type { MdTaskItemRef, BoxMarkState, TaskItemOptions } from './model/task-
 export { UNDECLARED_BOX_MARK, MALFORMED_BOX } from './builders/box-mark-findings.js'
 // Plan 0539: a match of the caller's pattern in a document's text, and whether it is a link.
 export { mentions, MentionRuleBuilder, UNREAD_MENTION } from './builders/mentions.js'
+export { MENTION_FIX_CONFIG } from './conditions/be-linked.js'
+export type { BeLinkedOptions, MentionFix } from './conditions/be-linked.js'
 export type { MdMention, MdUnreadMention, MentionOptions } from './builders/mentions.js'
 export { collectMentions } from './model/mentions.js'
 export type {
   MdMentionLink,
   MdMentionMatch,
   MdMentionRef,
+  MdMentionSpan,
   UnreadMentionRef,
 } from './model/mentions.js'
 export type { UnreadCause } from './model/phrasing.js'

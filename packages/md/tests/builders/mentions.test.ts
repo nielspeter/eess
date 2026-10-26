@@ -641,3 +641,56 @@ describe('areInTitleLinks (plan 0549)', () => {
     expect([verdict(), verdict()]).toEqual([true, true])
   })
 })
+
+describe('mentions(): span, where a fix can write (plan 0550)', () => {
+  const spans = (text: string): string[] =>
+    one(text)
+      .select({ label: 'm', identify: (m) => ({ name: m.text }) })
+      .elements.map((m: MdMention) =>
+        m.span === undefined ? `${m.text} -` : `${m.text} ${text.slice(m.span.start, m.span.end)}`,
+      )
+
+  it('span is the source slice for a plain mention, and absent with an entity, emphasis or a soft break', () => {
+    expect(spans('# A\n\nSee bug 0001 and plan 0002.\n')).toEqual([
+      'bug 0001 bug 0001',
+      'plan 0002 plan 0002',
+    ])
+    expect(spans('# A\n\nSee bug&#32;0001.\n')).toEqual(['bug 0001 -'])
+    expect(spans('# A\n\nSee **bug** 0001.\n')).toEqual(['bug 0001 -'])
+    expect(spans('# A\n\nSee bug\n0001.\n')).toEqual(['bug\n0001 -'])
+  })
+
+  it('span survives an escape or entity elsewhere in the text, a wrapped list item or blockquote, and CRLF', () => {
+    expect(spans('# A\n\nA \\* and &copy; then bug 0001.\n')).toEqual(['bug 0001 bug 0001'])
+    expect(spans('# A\n\n- first line\n  then bug 0001 here\n')).toEqual(['bug 0001 bug 0001'])
+    expect(spans('# A\n\n> first line\n> then bug 0001 here\n')).toEqual(['bug 0001 bug 0001'])
+    expect(spans('# A\r\n\r\nfirst line\r\nthen bug 0001 here\r\n')).toEqual(['bug 0001 bug 0001'])
+  })
+
+  it('span is absent after a literal & that looks like an entity: the walk gives up rather than guess', () => {
+    const glued = (text: string): string[] =>
+      mentions(corpusFromText({ 'a.md': text }), { pattern: /\b(?<kind>bug)(?<n>\d{4})\b/gi })
+        .select({ label: 'm', identify: (m) => ({ name: m.text }) })
+        .elements.map((m: MdMention) =>
+          m.span === undefined ? `${m.text} -` : `${m.text} ${String(m.span.start)}`,
+        )
+    // The second sits in the e-mail autolink, a text node of its own, whose walk starts afresh.
+    expect(glued('# A\n\nx &bug0001;bug0001@example.com\n')).toEqual(['bug0001 -', 'bug0001 16'])
+    expect(glued('# A\n\n&bug0001;bug0001;\n')).toEqual(['bug0001 -', 'bug0001 -'])
+    expect(spans('# A\n\nAt &amp; then bug 0001.\n')).toEqual(['bug 0001 -'])
+  })
+
+  it('an unread mention under a predicate reading span is reported, not dropped', () => {
+    const hasSpan: Predicate<MdMention> = {
+      description: 'have a span',
+      test: (m) => m.span !== undefined,
+    }
+    const v = one('# A\n\n<div>bug 0001</div>\n\nbug 0002\n')
+      .that()
+      .satisfy(hasSpan)
+      .should()
+      .beLinked()
+      .violations()
+    expect(v.filter((x) => x.ruleId === 'md/unread-mention').map((x) => x.line)).toEqual([3])
+  })
+})

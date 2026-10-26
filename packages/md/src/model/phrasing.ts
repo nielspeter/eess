@@ -31,6 +31,11 @@ export interface PhrasingSegment {
   readonly link?: PhrasingLink
   /** The segment is the link's title, not its text. */
   readonly title?: true
+  /**
+   * Each character's source offset, or -1 where none is known (plan 0550): an entity's character, or
+   * everything after the walk lost its place. Absent when no source was given.
+   */
+  readonly offsets?: readonly number[]
 }
 
 /** The inline text of one paragraph, heading or table cell, or of one link's title. */
@@ -62,8 +67,58 @@ const CLOSES_A = /^<\/a\s*>/i
 /** A link with no target is not a link to anything: `[x]()` and `[x](#)`. */
 const pointsNowhere = (url: string): boolean => url.trim() === '' || url.trim() === '#'
 
-/** Every run and every piece of unread text in `root`, in document order. */
-export function phrasingOf(root: Root): {
+const ENTITY = /^&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,31});/
+
+/**
+ * Each character of a text node's `value` mapped to its offset in `source`, walking both from the
+ * node's start (plan 0550). mdast drops what a reader does not see, and each is stepped over: a line's
+ * container prefix (indentation, `>`) after a line break, a `\r` before one, and the backslash of an
+ * escape. An entity's character has no single offset (-1). Anything else loses the place, and every
+ * character after it is -1. A place found is the one this walk reached in order, never a search.
+ */
+function sourceOffsets(value: string, source: string, from: number): number[] {
+  const out: number[] = []
+  let s = from
+  let afterBreak = false
+  for (const ch of value) {
+    for (let k = 0; k < ch.length - 1; k++) out.push(-1)
+    if (afterBreak) {
+      while (s < source.length && source[s] !== ch && /[ \t>]/.test(source[s] ?? '')) s++
+      afterBreak = false
+    }
+    if (ch === '\n' && source[s] === '\r') s++
+    if (source[s] === '&' && ENTITY.test(source.slice(s, s + 40))) {
+      // An entity's `&` decodes to another character, so a different one here means it did, and
+      // its whole reference is that one character. A literal `&` here is ambiguous: an entity that
+      // decoded to `&`, or one micromark left as it was. The place is lost rather than guessed.
+      if (ch === '&') break
+      const entity = ENTITY.exec(source.slice(s, s + 40))
+      out.push(-1)
+      s += entity?.[0].length ?? 1
+      continue
+    }
+    if (source.startsWith(ch, s)) {
+      out.push(s)
+      s += ch.length
+      if (ch === '\n') afterBreak = true
+      continue
+    }
+    if (source[s] === '\\' && source.startsWith(ch, s + 1)) {
+      out.push(s + 1)
+      s += 1 + ch.length
+      continue
+    }
+    break
+  }
+  while (out.length < value.length) out.push(-1)
+  return out
+}
+
+/** Every run and every piece of unread text in `root`, in document order. `source` gives segments their offsets. */
+export function phrasingOf(
+  root: Root,
+  source: string | undefined,
+): {
   readonly runs: PhrasingRun[]
   readonly unread: UnreadText[]
 } {
@@ -85,9 +140,19 @@ export function phrasingOf(root: Root): {
 
     const inline = (node: Nodes, link: PhrasingLink | undefined): void => {
       switch (node.type) {
-        case 'text':
-          push({ text: node.value, line: lineOf(node), inCode: false, ...(link ? { link } : {}) })
+        case 'text': {
+          const at = node.position?.start.offset
+          push({
+            text: node.value,
+            line: lineOf(node),
+            inCode: false,
+            ...(link ? { link } : {}),
+            ...(source !== undefined && at !== undefined
+              ? { offsets: sourceOffsets(node.value, source, at) }
+              : {}),
+          })
           return
+        }
         case 'inlineCode':
           push({ text: node.value, line: lineOf(node), inCode: true, ...(link ? { link } : {}) })
           return

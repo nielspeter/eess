@@ -370,7 +370,7 @@ meant, and a title-link exemption that holds by construction.
 B is [plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md): the caller's composition, as
 asked, with two facts on a mention (the link's text, and every kind of target it resolves to) and a
 title-link exemption that holds only when the link's text is the target's title. The fix is
-[plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), on `beLinked()`.
+[plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), on `beLinked()`.
 Both are Draft. A first draft of [plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md) that built the join and the fix from one eess-md factory
 was dropped after two review rounds (its record keeps them).
 
@@ -379,14 +379,14 @@ reviewed and disposed:
 
 | feedback                                                                               | disposition                                                                                                                                                                                                                               |
 | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the fix belongs in eess-md; a script per project repeats the same collision risk       | **accepted**: [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), the residual accepted knowingly, the dry run its guard                                                                                   |
+| the fix belongs in eess-md; a script per project repeats the same collision risk       | **accepted**: [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), the residual accepted knowingly, the dry run its guard                                                                         |
 | a dry run before applying                                                              | **exists**: `--fix` without `--apply`; the docs name it as the guard                                                                                                                                                                      |
 | the dry run grouped by target, and sampled                                             | **a proposal**, with a stopgap: [proposal 020](./020-a-fix-dry-run-a-reader-can-review.md); its shape needs a target the kernel's `ArchFix` does not carry; until then the fix's `describe` puts the target last, so a pipeline groups it |
-| a mention qualified by another project's name is reported, never linked                | **accepted**, [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): the caller's qualifier pattern, required, read in the mention's top-level block and a list's or table's lead-in                          |
-| the qualifier may sit only in the section heading above the mention                    | **accepted**, [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): the heading of each section containing the mention is read too; a match too wide fails safe                                              |
-| zero padding is part of the number                                                     | **accepted**, [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): the example keys digits as written, with a test row; the key stays the caller's                                                          |
-| a record's mention of itself is skipped; frozen folders are left alone                 | **exists**: `areSelfMentions` and the caller's selection; shown in [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s example                                                                            |
-| a mention that names no record (a record moved under its number) is reported           | **accepted**, [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): a refusal, never a guess                                                                                                                 |
+| a mention qualified by another project's name is reported, never linked                | **accepted**, [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): the caller's qualifier pattern, required, read in the mention's top-level block and a list's or table's lead-in                |
+| the qualifier may sit only in the section heading above the mention                    | **accepted**, [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): the heading of each section containing the mention is read too; a match too wide fails safe                                    |
+| zero padding is part of the number                                                     | **accepted**, [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): the example keys digits as written, with a test row; the key stays the caller's                                                |
+| a record's mention of itself is skipped; frozen folders are left alone                 | **exists**: `areSelfMentions` and the caller's selection; shown in [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s example                                                                  |
+| a mention that names no record (a record moved under its number) is reported           | **accepted**, [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md): a refusal, never a guess                                                                                                       |
 | kinds exact (a hypothesis `H1` is not a GPU `H100`); mixed spellings; other id schemes | **no change**: the pattern and the key are the caller's; docs                                                                                                                                                                             |
 | a link needs a heading fragment                                                        | **no change**: the target is the caller's function                                                                                                                                                                                        |
 
@@ -395,4 +395,8 @@ B and the fix stay **Held** until their plans are Ready.
 **2026-10-26.** Both plans went Ready on their Phase 0 measurements. B is built:
 [plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md) (PR #264), with
 `areLinked()` added at build and `areInTitleLinks` taking no `pattern`. The fix is
-[plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), Ready, next.
+[plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), Ready, next.
+
+**2026-10-26, later.** The fix is built:
+[plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) (PR #265).
+A, B and the fix are built; C stays held as its own kernel record.

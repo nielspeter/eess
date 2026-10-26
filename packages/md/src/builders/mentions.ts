@@ -13,6 +13,7 @@ import {
   type MdMention,
   type MdMentionLink,
   type MdMentionRef,
+  type MdMentionSpan,
   type MdUnreadMention,
   type UnreadMentionRef,
 } from '../model/mentions.js'
@@ -24,7 +25,7 @@ import type { UnreadCause } from '../model/phrasing.js'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { resideInFile, resideInFolder } from '../predicates/document.js'
 import { liftToDocument } from '../predicates/in-documents.js'
-import { beLinked } from '../conditions/be-linked.js'
+import { beLinked, type BeLinkedOptions } from '../conditions/be-linked.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 
 export type { MdMention, MdUnreadMention }
@@ -92,7 +93,7 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   private foundIn(doc: MdDocument): Found {
     const known = this.found.get(doc)
     if (known !== undefined) return known
-    const { mentions: raw, unread } = findMentions(doc.root, this.pattern)
+    const { mentions: raw, unread } = findMentions(doc.root, this.pattern, doc.text)
     const targets = new Map<PhrasingLink, LinkTarget>()
     const targetOf = (link: PhrasingLink): LinkTarget => {
       let target = targets.get(link)
@@ -163,13 +164,16 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
     return this.addPredicate(liftToDocument<MdMention>(p, p.description))
   }
 
-  /** Every selected mention sits in a link. Presence only: the link's target is not judged. */
-  beLinked(): this {
-    return this.addCondition(beLinked())
+  /**
+   * Every selected mention sits in a link. Presence only: the link's target is not judged. With
+   * `fix`, a plain mention exactly one record holds carries a fix linking it there (plan 0550).
+   */
+  beLinked<R>(options: BeLinkedOptions<R> = {}): this {
+    return this.addCondition(beLinked(options))
   }
 }
 
-/** What reading an unread mention's `link` or `inCode` throws: neither is known, nor any field of `link`. */
+/** What reading an unread mention's `link`, `inCode` or `span` throws: none is known, nor any field of `link`. */
 class UnknowableField extends Error {
   constructor() {
     super('an unread mention has no known link or code')
@@ -189,6 +193,9 @@ function asSeen(u: MdUnreadMention): MdMention {
       throw UNKNOWN
     },
     get link(): MdMentionLink | undefined {
+      throw UNKNOWN
+    },
+    get span(): MdMentionSpan | undefined {
       throw UNKNOWN
     },
   }

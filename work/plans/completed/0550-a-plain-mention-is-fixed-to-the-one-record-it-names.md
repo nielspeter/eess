@@ -2,27 +2,27 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-26 on Phase 0's measurements, Decision 2's one amendment and
-  the maintainer's acceptance of the residual, with no open question. Written 2026-10-25 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
-  held fix, split from [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) after that plan's
+- **State:** Done — built 2026-10-26 (PR #265) → completed/; frozen 2026-10-26 on Phase 0's measurements, Decision 2's one amendment and
+  the maintainer's acceptance of the residual, with no open question. Written 2026-10-25 for [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
+  held fix, split from [plan 0549](./0549-a-link-names-the-record-it-mentions.md) after that plan's
   second review round, shaped by adopter feedback the same day (019's addendum of 2026-10-25), and
   revised after a capped third round ("Review — 2026-10-25"). Phase 0 measured 2026-10-26: 150 of
   150 right, and seven wrong fixes outside the sample, all in one record landed verbatim with another
   numbering, a cause the fix cannot read; the maintainer accepted the residual the same day.
-- **Implements:** [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
+- **Implements:** [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
 - **Priority:** Medium — each corpus measured holds 3,000 to 4,700 plain mentions, which no one links
-  by hand; [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md) waits on it here.
+  by hand; [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md) waits on it here.
 - **Effort:** Medium, one PR in eess-md: a `span` on a mention, a fix option on `beLinked()` with its
   refusals, a shared path helper, a worked example, docs, one sabotage row. No kernel change.
 - **Created:** 2026-10-25
-- **Builds after:** [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md).
-- **Builds before:** [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
+- **Builds after:** [plan 0549](./0549-a-link-names-the-record-it-mentions.md).
+- **Builds before:** [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
 
 ## Problem
 
 `beLinked()` reports a plain mention and repairs nothing. eess already repairs what it can prove:
 `movedLinkFix` rewrites a broken link to the one file with its name
-(`packages/md/src/model/resolve-link.ts:257-280`, [plan 0066](./completed/0066-eess-deterministic-autofix.md)),
+(`packages/md/src/model/resolve-link.ts:257-280`, [plan 0066](./0066-eess-deterministic-autofix.md)),
 and `pointer-resolve` declines because its repair is a choice (`packages/md/src/conditions/pointer-resolve.ts:63`).
 A plain mention sits between: the fix is unambiguous only relative to the records the caller
 declares, and a source left undeclared makes it confidently wrong. That is why the fix was held.
@@ -48,21 +48,21 @@ mentions(c, { pattern })
 
 The fix sits on the finding it repairs, as `movedLinkFix` sits on `resolve()`'s, and matches through
 the kernel's `matchSelections` (`packages/core/src/internal.ts:73`). Not a kernel hook: a plain mention
-is not on [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s join's left side, and putting
-it there would report it twice. Not a factory shared with the join: [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s
+is not on [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s join's left side, and putting
+it there would report it twice. Not a factory shared with the join: [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s
 second review round found it read a title the caller did not name, made correct own-URL links red,
 and still let two calls diverge.
 
 `foreign` is required: a project that names no other project's records says so with a pattern that
 matches nothing, such as `/(?!)/`, so leaving the refusal out is never silent. Required in the type
 is not enough, since Node imports a rule file without checking its types
-([ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md)): a `fix` whose `foreign`
+([ADR-015](../../../adr/015-the-kernel-extends-resolution-never-execution.md)): a `fix` whose `foreign`
 is missing or not a `RegExp`, or one that matches the empty string (it would refuse every fix),
 throws an `ArchConfigError` when `beLinked()` is called. The empty-match half is the door
 `validateMentionPattern` uses for `pattern` (`packages/md/src/model/mentions.ts:57-64`), with its own
 check and message, since that function's message speaks of mentions. The missing and non-`RegExp`
 halves are stricter than `pattern`, which throws a `TypeError` there
-([bug 0551](../bugs/0551-an-untyped-mention-pattern-throws-a-typeerror.md)). `foreign` is read
+([bug 0551](../../bugs/0551-an-untyped-mention-pattern-throws-a-typeerror.md)). `foreign` is read
 through a private copy with the caller's `g` and `y` dropped, as `validateMentionPattern` makes one
 (`packages/md/src/model/mentions.ts:58`), so no `lastIndex` is shared.
 
@@ -102,17 +102,17 @@ mentions the kernel's empty-selection finding speaks, not these. The `--fix` doo
 configuration findings through (`packages/ts/src/cli/commands/check.ts:412-419`); both mean zero
 fixes, so nothing is applied on them.
 
-The replacement is `[<text>](<target>)`. A path target is made relative to the mention's document by
+The replacement is `[<text>](../<target>)`. A path target is made relative to the mention's document by
 a helper extracted from `movedLinkFix` into `packages/md/src/model/resolve-link.ts`, so the arch rule
 `eess/md-one-link-resolver` (`arch.rules.ts:291-304`) keeps its meaning; a URL target, detected with
-`EXTERNAL_RE` ([plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) exports it), is written
+`EXTERNAL_RE` ([plan 0549](./0549-a-link-names-the-record-it-mentions.md) exports it), is written
 verbatim; a path with a space or `)` is written in `<…>`. The fix's `describe` is fixed, with the
 target last, so a dry run can be grouped: `<file>:<line> link "<mention>" → <target>`.
 
 ### 3. The residual is accepted, and its guard is the dry run
 
 A mention of another project's record that no part of Decision 2's text names, in a project that
-holds the same number, is fixed to the local record, and [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s
+holds the same number, is fixed to the local record, and [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s
 join then agrees: a fix-written link is green by construction, since the join judges it by the key
 the fix chose it by. A qualifier further away (two paragraphs up, in another section, in a sentence
 that only implies the project) is not read. Nor does anything stop a caller giving the fix a
@@ -130,7 +130,7 @@ on 2026-10-26. All of this is accepted, knowingly:
   ```
 
   A grouped dry run in the tool, and the fix in the JSON report, are
-  [proposal 020](../proposals/020-a-fix-dry-run-a-reader-can-review.md);
+  [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md);
 
 - `foreign` refuses the qualified cases the feedback found;
 - the docs say all of it, under "What this cannot see", with the dry run named as the guard.
@@ -141,20 +141,20 @@ on 2026-10-26. All of this is accepted, knowingly:
 
 Three measurements over this repository and ts-archunit's record list, by throwaway scripts, recorded
 here with their counts, seeds and durations. They license
-[plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s migration of this repository,
+[plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s migration of this repository,
 not the fix's correctness for another project's sources; the docs say so.
 
-1. **Anachronisms**, over every candidate fix (3,079 at [spike 0540](../spikes/0540-one-join-over-every-source.md)):
+1. **Anachronisms**, over every candidate fix (3,079 at [spike 0540](../../spikes/0540-one-join-over-every-source.md)):
    a mention first written before the local record it would link to existed is suspect, not wrong
    by construction (corrected at Phase 0: some are a number claimed on an open branch, written
    before its record merged). Its date is the mention's first appearance in its file (`git log --follow -S`,
    earliest commit), not `git blame`, which dates a line's last edit. The instrument is first shown
    to find one anachronism planted in a scratch clone. The list goes to
-   [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md), which names how its run
+   [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md), which names how its run
    leaves those mentions out (`--fix --apply` has no per-fix filter); eess-md cannot read git, and
    the docs name the class. The duration is named before it runs: about 560 files.
 2. **What `foreign` refuses.** The candidates Decision 2's qualifier reading refuses here, counted
-   and a sample of them read: each is a mention [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)
+   and a sample of them read: each is a mention [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)
    links by hand, so the count is its cost, and a refusal that names no other project is a reading
    too wide.
 3. **The correctness sample.** From the candidates less the anachronisms and the refusals, 150 fixes at random with a
@@ -179,13 +179,13 @@ excludes.
 
 **Measured 2026-10-26** on `main` at c9e55336, Node 24.22.0, ts-archunit at b4084c9, by throwaway
 scripts over the built packages, which were not kept: the seeds below name the draws, the lists are
-recorded by value in [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s
+recorded by value in [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s
 Appendix and the verdicts in this plan's. Each run took under 7 s but the anachronism pass, 36.1 s
 (named before it ran: one to two minutes).
 
 - **The candidates.** 4,704 plain mentions, the corpus gate's own count. 3,098 have exactly one
   record (2,920 local, 178 only in ts-archunit), 1,601 have one in both, 5 have none.
-  [Spike 0540](../spikes/0540-one-join-over-every-source.md) counted 4,682 plain mentions and 3,079
+  [Spike 0540](../../spikes/0540-one-join-over-every-source.md) counted 4,682 plain mentions and 3,079
   one-record ones; recounted at its commit with this script, the plain total grew by 99 with the
   corpus and lost 77 to the spike's instrument, whose script was not kept. The mechanical refusals
   take 152: inline code 76, an inexact span 76 (every one a soft break), after `!` and `|` in a
@@ -207,7 +207,7 @@ Appendix and the verdicts in this plan's. Each run took under 7 s but the anachr
 - **Anachronisms.** The instrument found a planted case in a scratch clone, both files renamed.
   136 of the 2,920 local candidates, in 35 files, every one reaching `main` a PR or more before its
   record; 128 are not otherwise refused and leave the frame, listed in
-  [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s Appendix. 53 of the 136 date
+  [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s Appendix. 53 of the 136 date
   the text in the file, not the instance, as `git log -S` does. 13 other candidates could not be
   dated; all 13 are refused by `span`. Not every anachronism is wrong: some are a number claimed on a
   branch before its record merged.
@@ -220,7 +220,7 @@ Appendix and the verdicts in this plan's. Each run took under 7 s but the anachr
   only, and the fix's target, local or in ts-archunit's clone, and said whether the target is what
   the author meant, quoting the deciding words (all 206 quotes found verbatim in their files).
   **150 right, 0 wrong, 0 cannot tell**: zero in 150 bounds the wrong rate below 2% at 95%, mostly
-  over local records, since 3 draws are ts-archunit's. The reserve: 49 right, 1 wrong ([spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)).
+  over local records, since 3 draws are ts-archunit's. The reserve: 49 right, 1 wrong ([spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)).
 - **Readers set aside, kept here.** A first Sonnet reader matched each mention to the record list,
   the fix's own method (0 wrong, 1 cannot tell); a second, given the record list, looked the
   number up by script before answering (1 wrong). The second's one wrong,
@@ -254,12 +254,12 @@ misread draw.
 
 **Decided 2026-10-26 by the maintainer, in the working session: the residual is accepted**
 (Decision 3), over holding the fix and over a second amendment refusing a mention in quotation
-marks. Asked on the facts then held, 1 wrong in 150 and [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s three; corrected the same
+marks. Asked on the facts then held, 1 wrong in 150 and [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s three; corrected the same
 day to 0 in 150 and seven wrong fixes, all in that one file, four of them made by the amendment, and
 reported to the maintainer with the decision standing. The cause becomes an example row asserting
 the fix, so the residual is visible and a change to it is seen; this repository's run leaves
-[spike 0001](../spikes/0001-eess-over-ts-archunit/README.md) out by selection
-([plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)).
+[spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md) out by selection
+([plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)).
 
 ### Phase 1 — `span`
 
@@ -374,50 +374,157 @@ each must turn its test red. The exactly-one sabotage is committed (Phase 4).
 
 ## Out of scope
 
-- **A dry run grouped by target, and the fix in the JSON report:** [proposal 020](../proposals/020-a-fix-dry-run-a-reader-can-review.md).
-- **This repository's migration**, and how its run leaves the anachronisms out: [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
-- **eess-md's own door to applying fixes:** [bug 0537](../bugs/0537-eess-md-alone-has-no-run-level-services.md);
+- **A dry run grouped by target, and the fix in the JSON report:** [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md).
+- **This repository's migration**, and how its run leaves the anachronisms out: [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
+- **eess-md's own door to applying fixes:** [bug 0537](../../bugs/0537-eess-md-alone-has-no-run-level-services.md);
   fixes are applied through `eess-ts check --fix --apply`, as `movedLinkFix`'s are.
 
 ## Review — 2026-10-25
 
 One capped round, architect and enforcement separately, on this plan as split from
-[plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) (architect: Ship as Draft with three
+[plan 0549](./0549-a-link-names-the-record-it-mentions.md) (architect: Ship as Draft with three
 Important; enforcement: Changes needed, Critical 1). Kept, not edited away:
 
 - **Enforcement C1:** the guard named in Decision 3 was a flat dry run, while the adopters asked for
-  one grouped by target and [proposal 020](../proposals/020-a-fix-dry-run-a-reader-can-review.md) records that a flat list hides the error a reader can catch.
+  one grouped by target and [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md) records that a flat list hides the error a reader can catch.
   The fix's `describe` is now fixed with the target last, tested, and the docs give the grouping
-  pipeline until [proposal 020](../proposals/020-a-fix-dry-run-a-reader-can-review.md).
+  pipeline until [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md).
 - **Enforcement I2:** `foreign` read only the innermost block, missing a parent list item, a table
   header, a blockquote and a lead-in. It now reads the top-level block, the lead-in and the
   containing sections' headings; what it still does not read is named in Decision 3.
 - **Enforcement I3:** `foreign` could be left out or carry `g`. It is required, read through a copy,
   and an empty-matching one is a configuration finding.
-- **Architect I1:** `EXTERNAL_RE` is exported by [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md), which builds first.
+- **Architect I1:** `EXTERNAL_RE` is exported by [plan 0549](./0549-a-link-names-the-record-it-mentions.md), which builds first.
 - **Architect I2:** the example cannot import `applyFixes`; the round trip moved to `packages/md/tests/`.
 - **Architect I3, enforcement M1:** the committed sabotage row named a test that reads `src`; it now
   names the example's, which loads `dist`.
 - **Verification pass (enforcement):** the m2 sabotage of
-  [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) can fire; `foreign` is refused at run
+  [plan 0549](./0549-a-link-names-the-record-it-mentions.md) can fire; `foreign` is refused at run
   time, not only in the type, by a thrown `ArchConfigError`; Phase 0 counts what `foreign` refuses.
 - **Architect re-check:** only the empty-match refusal shares `pattern`'s door; `pattern`'s own
   missing and non-`RegExp` cases throw a `TypeError`, recorded as
-  [bug 0551](../bugs/0551-an-untyped-mention-pattern-throws-a-typeerror.md), not fixed here.
+  [bug 0551](../../bugs/0551-an-untyped-mention-pattern-throws-a-typeerror.md), not fixed here.
 - **Minors:** an `undefined` key, the configuration findings' kind and precedence, the planted
-  anachronism, one amendment before the plan goes back, the exclusion mechanism left to [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md),
+  anachronism, one amendment before the plan goes back, the exclusion mechanism left to [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md),
   `|` in a table cell, and which headings are read.
+
+## Built — 2026-10-26
+
+What the build did that the plan did not say, kept here rather than edited into it:
+
+- **`span` is decided per mention, by a source map.** Each character of a text node is mapped to its
+  source offset, stepping over a line's container prefix (indent, `>`), a `\r`, and an escape's
+  backslash; an entity's character maps to nothing. A mention has a span when its first character
+  maps and the source from there is the matched text, the one check that makes a fix replace
+  exactly what it read. (The first build tested a whole text node, so one wrapped list item lost
+  every fix in it; architect I2.) A file that starts with a byte-order mark gets no span at all, so
+  no fix: recorded, fail-safe.
+- **The context reader is its own module**, `packages/md/src/model/mention-context.ts`, not
+  `model/mentions.ts`: Decision 2's reading, ported line for line from Phase 0's measured script, so
+  what ships is what was measured.
+- **How a refusal reads.** A finding without a fix ends `— not fixed: <why>`; with no `fix` option
+  the message is [plan 0539](./0539-a-mention-of-a-record-is-a-link.md)'s, unchanged. The two configuration findings are `md/mention-fix-config`,
+  and either one turns every fix off for the run.
+- **The example.** `clean/` is the fixable case; ten `violating-` folders hold the refusals and the
+  fixed rows at other places (sibling item, sibling row, the renumbered residual), so every swap
+  changes what a test reads. Two folders carry one linked mention whose key meets a record, or the
+  keys-meet configuration finding, right on a one-mention corpus, would speak instead of the row.
+  The harness's swap check on it alone took 20 s, all ten load-bearing; `check:nonvacuity` runs the
+  file 1 + 2 × 10 = 21 times, about 17 s.
+- **Phase 4's row** is `examples/md-mention-fix-exactly-one`, under `check:examples`. Rewriting
+  `candidates.length !== 1` to `< 1` in the built `be-linked.js` turned only
+  `violating-two-sources` red; the row runs the example twice, before and after, about 1.6 s.
+- **Code review (architect and enforcement, 2026-10-26), what changed:**
+  - a hard line break reads as a line break, so a project's name before one is still read
+    (enforcement I1);
+  - a target is written only where a link destination keeps it: `<`, `>`, `\`, a line break, and
+    `#` or `?` in a path are refused; a space or parenthesis goes in `<…>`; an absolute path or one
+    climbing out of the repository is refused (enforcement I2, M1; architect M5);
+  - a mention right after `]`, or holding a bracket, is refused (enforcement M2, architect M5);
+  - one record listed twice under one target is one record (enforcement M4);
+  - the configuration finding has the kernel's `file: ''`, the rule's name in its element, and the
+    rule's `because` and `docs` (architect I1, M2, M3);
+  - `records`, `key` and `target` are checked when `beLinked()` is called, beside `foreign`
+    (architect M1); `phrasingOf` takes `source` as required (architect M6); each key is computed
+    once per mention (architect M7);
+  - the docs name what `foreign` does not read (an image's alt text, a link's URL, a heading in a
+    list item) and say "green by construction" holds only over one list of records (enforcement
+    M5, architect M4); the changeset names every export (architect M8).
+- **Verification round, what changed:** the source map took any `&name;` as an entity, so a literal
+  one micromark keeps (`&bug0001;`) moved every later place, and a fix landed on another copy of the
+  same text; the text check cannot see that. A literal `&` at an entity's shape now ends the walk,
+  and any other character there means the entity decoded (enforcement N1). A mention after an odd
+  run of backslashes is refused, since the link's `[` would be escaped (enforcement N2).
+  `findMentions` takes `source` as required, and an unreachable zero-mention guard is gone
+  (architect). A file with a byte-order mark is still refused with the generic reason: recorded.
+  The last check, about 154k fuzzed inputs, found no fix at a wrong place; it found that a link
+  beside `*` or `_` can change their emphasis, so a mention touching `*`, `_` or `~` is refused.
+- **A re-parse check on every fix, the maintainer's choice on 2026-10-26.** The last re-check's
+  structural fuzz (each fix applied, the tree compared) found what no character beside a mention
+  shows: a fix's `)` closing a `(` that a link definition's title left open, so the paragraph became
+  that title (H1), and a fix's `[` ending an e-mail address GFM then linked (H2). Asked whether to
+  close them now or record them, the maintainer chose the check. `model/fix-check.ts` keeps a fix
+  only when the document parses the same with exactly its new link added: blocks and their visible
+  text, definitions by label, URL and title, emphasis, reference labels, and links by URL and text.
+  Its review found that checking only the whole set let a fix through that is safe only beside
+  another, while `.excluding()` or an overlap can apply it alone (shown through the public API); so
+  each fix is checked alone, over the top-level block it sits in and one on each side, a table row
+  as a table of that one row, and the fixes kept are checked together over the whole document. Its
+  parses skip the parse memo, so a written text never pushes a corpus text out. Cost over this
+  repository, measured each step, 4,427 fixes and none refused: 0.45 s without the check, 4.9 s
+  checking the set only, 118 s checking each fix over the whole document, 85 s over its block and
+  neighbours, 11 s with a table row read alone, 12 s once every kept set, a single fix included, is
+  read over the whole document too (the architect's verification: the stretch is argued and fuzzed,
+  not proved, and that parse is its backstop; no input is known that only it refuses, so no
+  sabotage can redden it, and it stays because it can only refuse). A set that fails whole costs
+  one more parse per fix; it never ran here. The cost grows with the fixes, not the corpus, so a
+  corpus with no plain mention left pays nothing; [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s
+  migration run is where the 12 s falls. A stretch that does not start the document is read from a
+  fresh line, so a `---` there is not front matter (enforcement). With it came the architect's last minors: the inexact-span
+  message names the `&` case, the docs say how far an ambiguous `&` reaches, a mention whose own
+  text starts or ends with `*`, `_`, `~` or `\` is refused, and a target holding an entity is
+  refused by name.
+- **Sabotage, run before the PR** on the unit tests (they read `src`), each file restored after.
+  Each turned only its row red:
+
+  | sabotage                                                        | red                                               |
+  | --------------------------------------------------------------- | ------------------------------------------------- |
+  | `foreign` read in the mention's own block only                  | parent, header, blockquote, lead-in, heading rows |
+  | only the direct parent item read                                | the parent and grandparent row                    |
+  | only the mention's own cell read                                | the header and other-cell row                     |
+  | only the mention's paragraph of a blockquote read               | the blockquote row                                |
+  | the whole table or list read                                    | the sibling row                                   |
+  | the span's source-equals-text check dropped                     | the span rows                                     |
+  | no lead-in read                                                 | the lead-in row                                   |
+  | a hard break read as nothing                                    | the hard-break row                                |
+  | the `!`, `]`, `\|`-in-a-cell or inline-code check dropped, each | its own row                                       |
+  | an undefined key let through                                    | the undefined-key row                             |
+  | the destination or repository-path guard dropped                | the targets row                                   |
+  | duplicates not merged                                           | the listed-twice row                              |
+  | `records` or `target` not checked at build                      | the build-time row                                |
+  | the configuration findings dropped                              | both configuration rows                           |
+  | the entity step taken for a literal `&`                         | the literal-`&` span row                          |
+  | the backslash check dropped                                     | the backslash row                                 |
+  | the emphasis check dropped                                      | the emphasis row                                  |
+  | the re-parse check dropped                                      | the definition-title and e-mail rows              |
+  | the alone check replaced by the set check                       | the safe-only-beside-another row                  |
+  | the fresh-line start dropped                                    | the thematic-break row                            |
+  | the edge-mark check dropped                                     | the edge-mark row                                 |
+
+  One guard fired nothing and was deleted, not kept: that a span's characters map to consecutive
+  offsets. The source-equals-text check already guarantees the replacement, so no input can tell
+  the two apart.
 
 ## Progress ledger
 
 - [x] Phase 0 — the anachronism count, what `foreign` refuses, and the correctness sample, recorded;
       the stop rule fired and the maintainer accepted the residual (2026-10-26)
-- [ ] Phase 1 — `span`
-- [ ] Phase 2 — `beLinked({ fix })`, its refusals and configuration findings, the shared helper, exports
-- [ ] Phase 3 — the worked example, the round trip, and docs
-- [ ] Phase 4 — the committed sabotage row, its duration recorded
-- [ ] Every row of the Test inventory written and green, and every sabotage row red
-- [ ] The eess-md minor changeset
+- [x] Phase 1 — `span`
+- [x] Phase 2 — `beLinked({ fix })`, its refusals and configuration findings, the shared helper, exports
+- [x] Phase 3 — the worked example, the round trip, and docs
+- [x] Phase 4 — the committed sabotage row, its duration recorded
+- [x] Every row of the Test inventory written and green, and every sabotage row red
+- [x] The eess-md minor changeset
 
 ## Appendix — the correctness sample, 2026-10-26
 
@@ -632,3 +739,8 @@ x4	work/spikes/0001-eess-over-ts-archunit/CONCLUSION.md:146	bug 0087	work/bugs/f
 x5	work/spikes/0001-eess-over-ts-archunit/CONCLUSION.md:161	plan 0084	ts-archunit:plans/completed/0084-cycle-detection-that-ignores-type-only-imports.md	wrong	The spike's plan 0084 is port-the-fork-to-parity; the note says no such plan exists here and ts-archunit's 0084 is unrelated
 x6	work/bugs/BUGS.md:245	bug 0029	ts-archunit:bugs/fixed/0029-a-throwing-warn-truncates-the-rest-of-the-rule-file.md	right	Plan 0165 says bug 0029 (ruleFileTruncated, double print) reopened under jiti; eess has no bug 0029
 ```
+
+Deferred: none. The limits found in review are recorded under "What this cannot see" in
+`docs/markdown.md`; the grouped dry run and the fix in the JSON report stay
+[proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md)'s, and this repository's migration
+[plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s.

@@ -30,6 +30,12 @@ export interface MdMentionMatch {
   readonly link?: { readonly url: string }
 }
 
+/** Where a mention sits in its document's source, as 0-based offsets, end exclusive (plan 0550). */
+export interface MdMentionSpan {
+  readonly start: number
+  readonly end: number
+}
+
 /** The link a mention sits in, and where it points (plan 0549). */
 export interface MdMentionLink {
   readonly url: string
@@ -54,6 +60,11 @@ export interface MdMentionLink {
 export interface MdMentionRef extends Omit<MdMentionMatch, 'link'> {
   /** The link holding the match's last character, if any. */
   readonly link?: MdMentionLink
+  /**
+   * The match's place in the source, present only when the source there is the matched text: no
+   * escape, entity, emphasis, inline code edge or line break inside it. A fix can only write here.
+   */
+  readonly span?: MdMentionSpan
 }
 
 /** A mention: a match of the caller's pattern in a document's text, with its document. */
@@ -121,6 +132,7 @@ function* matches(text: string, re: RegExp, owner: string): Generator<RegExpMatc
 type FoundMention = Omit<MdMentionMatch, 'link'> & {
   readonly link?: PhrasingLink
   readonly offset?: number
+  readonly span?: MdMentionSpan
 }
 
 /** Every mention of `pattern` in one document, read and unread. */
@@ -128,7 +140,7 @@ export function collectMentions(
   root: Root,
   pattern: RegExp,
 ): { readonly mentions: MdMentionMatch[]; readonly unread: UnreadMentionRef[] } {
-  const { mentions, unread } = findMentions(root, pattern)
+  const { mentions, unread } = findMentions(root, pattern, undefined)
   return {
     mentions: mentions.map((m) => ({
       line: m.line,
@@ -172,13 +184,36 @@ function offsetInLink(
   return at - lead
 }
 
-/** Every mention of `pattern` in one document, each with its link and its place in the link's text. */
+/**
+ * A match's source span: inside one segment, with no line break, starting where the walk placed its
+ * first character, and the source there the matched text. The place is only as good as the walk,
+ * which gives up rather than guess (`sourceOffsets`); the text check catches a walk that drifted
+ * onto different bytes, not one that drifted onto the same text elsewhere.
+ */
+function spanOf(
+  seg: PhrasingSegment,
+  oneSegment: boolean,
+  at: number,
+  text: string,
+  source: string | undefined,
+): MdMentionSpan | undefined {
+  if (!oneSegment || seg.offsets === undefined || source === undefined || text.includes('\n')) {
+    return undefined
+  }
+  const start = seg.offsets[at]
+  if (start === undefined || start < 0) return undefined
+  const end = start + text.length
+  return source.slice(start, end) === text ? { start, end } : undefined
+}
+
+/** Every mention of `pattern` in one document, each with its link, its place in the link's text and in `source`. */
 export function findMentions(
   root: Root,
   pattern: RegExp,
+  source: string | undefined,
 ): { readonly mentions: FoundMention[]; readonly unread: UnreadMentionRef[] } {
   const owner = 'mentions'
-  const { runs, unread: unreadText } = phrasingOf(root)
+  const { runs, unread: unreadText } = phrasingOf(root, source)
   const mentions: FoundMention[] = []
   for (const run of runs) {
     const segs = run.segments
@@ -203,6 +238,7 @@ export function findMentions(
       const before = first.text.slice(0, index - (starts[a] ?? 0))
       const line = first.line + (before.match(/\n/g)?.length ?? 0)
       const offset = offsetInLink(segs, starts, a, b, index)
+      const span = spanOf(first, a === b, index - (starts[a] ?? 0), m[0], source)
       mentions.push({
         line,
         text: m[0],
@@ -210,6 +246,7 @@ export function findMentions(
         inCode: segs.slice(a, b + 1).some((s) => s.inCode),
         ...(last.link ? { link: last.link } : {}),
         ...(offset !== undefined ? { offset } : {}),
+        ...(span !== undefined ? { span } : {}),
       })
     }
   }

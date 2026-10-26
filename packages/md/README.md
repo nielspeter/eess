@@ -489,7 +489,9 @@ mentions(corpus({ roots: ['docs/**'] }), { pattern: /\bRFC\s+(?<n>\d+)\b/g })
 and `[x](#)` are not. Each mention's `link` carries its `text` and its `target` (where it resolves,
 as `resolveLink` says), so a `correspondence()` between your mentions and your records can check that
 a link opens the record it names, with `areInTitleLinks` taking out a link whose text is its target's
-title. See [the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the join,
+title. `beLinked({ fix })` gives a plain mention a fix, applied by `eess-ts check --fix --apply`,
+when exactly one record holds its key and no other project is named around it. See
+[the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the join, the fix,
 the keys that let a record name itself, and what a mention rule cannot see.
 
 ## Every page claimed once: `notExist()`
