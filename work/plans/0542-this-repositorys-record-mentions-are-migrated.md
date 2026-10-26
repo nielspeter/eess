@@ -6,14 +6,14 @@
   ledger has a named home for its removal (PR #256's method review, I3); since 0541's freeze on
   2026-10-22 it keeps no ledger, and this plan is the home of bringing its count to zero. It cannot go Ready until
   [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B and its fix
-  are built: [plan 0549](./0549-a-link-names-the-record-it-mentions.md) and
+  are built: [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) and
   [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), both Ready on
   2026-10-26 with their Phase 0 measured.
 - **Priority:** Low until B is built; then Medium.
 - **Effort:** Large, and to be split at Ready by lane: the fixable mentions are mechanical, the
   colliding ones need a reader.
 - **Created:** 2026-10-21
-- **Builds after:** [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md), [plan 0549](./0549-a-link-names-the-record-it-mentions.md) (B) and
+- **Builds after:** [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md), [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) (B) and
   [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) (the fix), both Ready
   2026-10-26; the fix's anachronism list names mentions this plan must keep out of its mechanical lane, and
   how (`--fix --apply` has no per-fix filter) is this plan's to decide at Ready.
@@ -51,10 +51,10 @@ Not written: they depend on the shape B's plan chooses for the fix. At Ready, on
 
 ## Out of scope
 
-- Building B or the fix: [plan 0549](./0549-a-link-names-the-record-it-mentions.md) and
+- Building B or the fix: [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) and
   [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md). Adopting them in
   this repository's `check:corpus` is this plan's, in its last phase: [spike 0540](../spikes/0540-one-join-over-every-source.md)
-  found nothing red over 1,207 judged links, and [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s
+  found nothing red over 1,207 judged links, and [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s
   title rule measured one more (`work/plans/ROADMAP.md`'s row for [plan 0454](./completed/0454-box-marks-are-the-callers.md)).
 
 ## Progress ledger

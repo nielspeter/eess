@@ -367,11 +367,11 @@ meant, and a title-link exemption that holds by construction.
 
 ### Addendum — 2026-10-25, plans for B and the fix, and adopter feedback
 
-B is [plan 0549](../plans/0549-a-link-names-the-record-it-mentions.md): the caller's composition, as
+B is [plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md): the caller's composition, as
 asked, with two facts on a mention (the link's text, and every kind of target it resolves to) and a
 title-link exemption that holds only when the link's text is the target's title. The fix is
 [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), on `beLinked()`.
-Both are Draft. A first draft of [plan 0549](../plans/0549-a-link-names-the-record-it-mentions.md) that built the join and the fix from one eess-md factory
+Both are Draft. A first draft of [plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md) that built the join and the fix from one eess-md factory
 was dropped after two review rounds (its record keeps them).
 
 Before the fix was planned, adopters were asked whether they would use it. The feedback, each item
@@ -391,3 +391,8 @@ reviewed and disposed:
 | a link needs a heading fragment                                                        | **no change**: the target is the caller's function                                                                                                                                                                                        |
 
 B and the fix stay **Held** until their plans are Ready.
+
+**2026-10-26.** Both plans went Ready on their Phase 0 measurements. B is built:
+[plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md) (PR #264), with
+`areLinked()` added at build and `areInTitleLinks` taking no `pattern`. The fix is
+[plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), Ready, next.

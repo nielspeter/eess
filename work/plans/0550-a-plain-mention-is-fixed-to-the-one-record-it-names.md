@@ -4,7 +4,7 @@
 
 - **State:** Ready — frozen 2026-10-26 on Phase 0's measurements, Decision 2's one amendment and
   the maintainer's acceptance of the residual, with no open question. Written 2026-10-25 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
-  held fix, split from [plan 0549](./0549-a-link-names-the-record-it-mentions.md) after that plan's
+  held fix, split from [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) after that plan's
   second review round, shaped by adopter feedback the same day (019's addendum of 2026-10-25), and
   revised after a capped third round ("Review — 2026-10-25"). Phase 0 measured 2026-10-26: 150 of
   150 right, and seven wrong fixes outside the sample, all in one record landed verbatim with another
@@ -15,7 +15,7 @@
 - **Effort:** Medium, one PR in eess-md: a `span` on a mention, a fix option on `beLinked()` with its
   refusals, a shared path helper, a worked example, docs, one sabotage row. No kernel change.
 - **Created:** 2026-10-25
-- **Builds after:** [plan 0549](./0549-a-link-names-the-record-it-mentions.md).
+- **Builds after:** [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md).
 - **Builds before:** [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
 
 ## Problem
@@ -48,8 +48,8 @@ mentions(c, { pattern })
 
 The fix sits on the finding it repairs, as `movedLinkFix` sits on `resolve()`'s, and matches through
 the kernel's `matchSelections` (`packages/core/src/internal.ts:73`). Not a kernel hook: a plain mention
-is not on [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s join's left side, and putting
-it there would report it twice. Not a factory shared with the join: [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s
+is not on [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s join's left side, and putting
+it there would report it twice. Not a factory shared with the join: [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s
 second review round found it read a title the caller did not name, made correct own-URL links red,
 and still let two calls diverge.
 
@@ -105,14 +105,14 @@ fixes, so nothing is applied on them.
 The replacement is `[<text>](<target>)`. A path target is made relative to the mention's document by
 a helper extracted from `movedLinkFix` into `packages/md/src/model/resolve-link.ts`, so the arch rule
 `eess/md-one-link-resolver` (`arch.rules.ts:291-304`) keeps its meaning; a URL target, detected with
-`EXTERNAL_RE` ([plan 0549](./0549-a-link-names-the-record-it-mentions.md) exports it), is written
+`EXTERNAL_RE` ([plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) exports it), is written
 verbatim; a path with a space or `)` is written in `<…>`. The fix's `describe` is fixed, with the
 target last, so a dry run can be grouped: `<file>:<line> link "<mention>" → <target>`.
 
 ### 3. The residual is accepted, and its guard is the dry run
 
 A mention of another project's record that no part of Decision 2's text names, in a project that
-holds the same number, is fixed to the local record, and [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s
+holds the same number, is fixed to the local record, and [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s
 join then agrees: a fix-written link is green by construction, since the join judges it by the key
 the fix chose it by. A qualifier further away (two paragraphs up, in another section, in a sentence
 that only implies the project) is not read. Nor does anything stop a caller giving the fix a
@@ -382,7 +382,7 @@ each must turn its test red. The exactly-one sabotage is committed (Phase 4).
 ## Review — 2026-10-25
 
 One capped round, architect and enforcement separately, on this plan as split from
-[plan 0549](./0549-a-link-names-the-record-it-mentions.md) (architect: Ship as Draft with three
+[plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) (architect: Ship as Draft with three
 Important; enforcement: Changes needed, Critical 1). Kept, not edited away:
 
 - **Enforcement C1:** the guard named in Decision 3 was a flat dry run, while the adopters asked for
@@ -394,12 +394,12 @@ Important; enforcement: Changes needed, Critical 1). Kept, not edited away:
   containing sections' headings; what it still does not read is named in Decision 3.
 - **Enforcement I3:** `foreign` could be left out or carry `g`. It is required, read through a copy,
   and an empty-matching one is a configuration finding.
-- **Architect I1:** `EXTERNAL_RE` is exported by [plan 0549](./0549-a-link-names-the-record-it-mentions.md), which builds first.
+- **Architect I1:** `EXTERNAL_RE` is exported by [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md), which builds first.
 - **Architect I2:** the example cannot import `applyFixes`; the round trip moved to `packages/md/tests/`.
 - **Architect I3, enforcement M1:** the committed sabotage row named a test that reads `src`; it now
   names the example's, which loads `dist`.
 - **Verification pass (enforcement):** the m2 sabotage of
-  [plan 0549](./0549-a-link-names-the-record-it-mentions.md) can fire; `foreign` is refused at run
+  [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) can fire; `foreign` is refused at run
   time, not only in the type, by a thrown `ArchConfigError`; Phase 0 counts what `foreign` refuses.
 - **Architect re-check:** only the empty-match refusal shares `pattern`'s door; `pattern`'s own
   missing and non-`RegExp` cases throw a `TypeError`, recorded as
