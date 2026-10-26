@@ -2,11 +2,12 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-25 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
+- **State:** Ready — frozen 2026-10-26 on Phase 0's census (5 exempt, 1 true red, Decision 3
+  unamended), with no open question. Written 2026-10-25 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
   held ask B (the target); its fix is [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
   Narrowed the same day after two review rounds (architect, enforcement; "Review — 2026-10-25"):
   B stays the caller's composition, as the proposal asked, and the fix, a separate capability, moved
-  to its own plan. It cannot go Ready until Phase 0's census is recorded here.
+  to its own plan.
 - **Implements:** [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
 - **Priority:** Medium — without B a link to the wrong record is green in every project running
   [plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md)'s `beLinked()`.
@@ -129,6 +130,34 @@ s of Phase 2 stay red.
 
 **Files:** this plan only.
 
+**Measured 2026-10-26** on `main` at c9e55336, Node 24.22.0, by throwaway scripts over the built
+packages, with ts-archunit at b4084c9 as the second source and the two prefixes of Phase 2:
+
+- **The instrument first.** On Phase 2's fixture every row came out as required: e, k, l, l2, m, m2,
+  s, c, d, i, the missing-file and the directory row red; a, b, f and j green, f the only
+  exemption; an empty mention side under `.expectNonEmpty()` red. All three sabotage rows fired, and
+  so did a fourth, the exemption switched off, which turns f red. 0.17 s.
+- **The corpus.** 582 documents, 6,673 mentions (none unread), 1,414 in a link. Decision 3 exempts 5,
+  the join judges 1,409 (1,381 to a local document, 22 own GitHub URLs, 6 to ts-archunit, none to
+  `self`, a missing file or a directory) and reports **1 red**. 5.2 s a run; a run that only loads the
+  corpus took 4.9 s, so loading is most of it.
+- **Every exemption is correct**, its link text the target's whole title less the prefixes: the
+  board rows above for [plan 0448](./completed/0448-a-bun-load-guard-and-bug-0439s-fix.md), [plan 0263](./completed/0263-adr-014s-residual-enforcement-rows.md), [bug 0327](../bugs/0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md) and [bug 0501](../bugs/0501-md-and-kernel-leftovers-from-plan-0457.md), and a fifth this record's count
+  by eye missed, `docs/tests-cannot-lie.md:4`, a link to [ADR-009](../../adr/009-agent-first-failure-surfaces.md) whose text is its title.
+  The fifth changes no verdict: judged, it is green.
+- **The one red is true**: the [plan 0454](./completed/0454-box-marks-are-the-callers.md) board row above, a click on [bug 0445](../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md) in its text landing on the plan. Its fix is the board row's, in [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)
+  when B gates this repository.
+- **No false red, so no amendment.** Only the two prefixes were needed: every link here that quotes
+  another record is a board row to a bug or a plan. A wider pair covering spikes, proposals and
+  ADRs still reports 1 red; it exempts 4, since it strips the ADR's number from its title and not
+  from the link text, and that link is then judged and green. A prefix stripping one side only turns
+  a title link into a judged one, which is safe.
+- **For Phase 2:** the census's first run matched this repository's own GitHub URL by case and made
+  3 correct `github.com/NielsPeter/…` links red. That is the caller's relation, not Decision 3; the
+  example matches the owner and repository in any letter case, and a row j2 (`NielsPeter`) holds it;
+  a row j3, an own URL whose path is in the wrong case, stays red, so the relation ignores case in
+  the owner and repository only.
+
 ### Phase 1 — the model and the predicate
 
 `link.text` and `link.target` (Decision 2), `EXTERNAL_RE` exported model-internally, the `resolve`
@@ -144,7 +173,8 @@ option, `collectMentions`' own return type, UNKNOWN for the new fields on an unr
 `examples/md/a-link-names-the-record-it-mentions.test.ts`, public blocks only, with `linkPrefix`
 `^\d{4} — ` and `titlePrefix` `^(Bug|Plan) \d{4}: `. Rows a to j are
 [spike 0540](../spikes/0540-one-join-over-every-source.md)'s, row j (a repository's own URL) green by
-the caller's relation. In the corpus of rows e and f, `0002-b.md`'s title is row f's link text with
+the caller's relation, and row j2, the same URL with the owner written `NielsPeter`, green too; row
+j3, an own URL whose path is in the wrong case, is red as a missing file. In the corpus of rows e and f, `0002-b.md`'s title is row f's link text with
 the title prefix for its number, so row f is the one green title link; six rows more are each red,
 two of them failing one clause alone:
 
@@ -159,8 +189,8 @@ m2 self only, in 0004-d.md titled "Bug 0004: bug 0001 is quoted": [bug 0001 is q
 s a one-word stamp: [bug 0001 is](../work/bugs/0002-b.md)
 ```
 
-Red: e, k, l, l2, m, m2, s, a missing-file link and a directory link, each its own
-`violating-<row>/` (`scripts/check-nonvacuity.mjs:1053-1190`); green: a, b, f, j in `clean/`. An empty
+Red: e, k, l, l2, m, m2, s, j3, a missing-file link and a directory link, each its own
+`violating-<row>/` (`scripts/check-nonvacuity.mjs:1053-1190`); green: a, b, f, j, j2 in `clean/`. An empty
 mention side under `.expectNonEmpty()` is red. The example asserts how many links the exemption
 drops, so a widened exemption is a red test. Each red folder adds two runs of the example's file to
 `check:nonvacuity`; the added duration is recorded at the build.
@@ -254,7 +284,7 @@ Two rounds, architect and enforcement separately, both Changes needed each round
 
 ## Progress ledger
 
-- [ ] Phase 0 — the exemption census, recorded
+- [x] Phase 0 — the exemption census, recorded (2026-10-26: 5 exempt, 1 true red, no amendment)
 - [ ] Phase 1 — `link.text`, `link.target`, the `resolve` option, `areInTitleLinks`, exports
 - [ ] Phase 2 — the worked example and docs
 - [ ] Phase 3 — the vacuity-matrix entry
