@@ -675,8 +675,90 @@ What a mention is:
   judge it, so it is reported.
 
 Each element carries `doc`, `line`, `text`, `groups` (your pattern's named captures), `inCode`, and
-`link` when it has one. `collectMentions(root, pattern)` returns the same `MdMentionRef`s and
-`UnreadMentionRef`s for one parsed document, for a condition of your own.
+`link` when it has one. `collectMentions(root, pattern)` returns each match (`MdMentionMatch`, with
+the link's `url` only) and each `UnreadMentionRef` for one parsed document, for a condition of your
+own.
+
+### Where a mention's link points: the target
+
+A mention's `link` says where it points, so a rule can check that a link names the record it opens,
+not another one:
+
+- **`link.text`**: the link's whole text, joined as a heading's is, so it compares with a title:
+  inline code keeps its backticks and an image adds nothing. It is not `links()`'s `text`, which
+  drops the backticks.
+- **`link.target`**: where the link resolves, as `links()` resolves it (`resolveLink`): `external`,
+  `self` (a `#fragment`, or a path back to its own document, whose document is the mention's `doc`),
+  `document` with its `path` and `doc`, `not-in-corpus` or `directory` with its `path`, or `missing`
+  with every path tried. Pass `mentions(c, { pattern, resolve })` the options a `links().resolve()`
+  rule takes, so extensionless links are not all `missing`.
+- **`link.offset`**: where the mention starts in `link.text`. It is absent in three cases: the
+  mention starts before the link (`plan [0070](…)`), it sits in the link's title, or the link holds
+  inline HTML or a hard line break, where no place in `link.text` is known. Read an absent offset
+  as "not known to start in the text", never as one of the three.
+
+`areLinked()` selects the mentions that sit in a link, as `beLinked()` reads one. eess-md does not
+decide which record a link should open: that is a join between your linked mentions and your
+records, the kernel's `correspondence()`. Each linked mention is keyed by the source its link
+points at and the record it names; each record by its source and number. `beComplete` reds a mention
+that names no record in that source, and `preserveRelations` reds one whose link opens another
+record. The worked example,
+[`examples/md/a-link-names-the-record-it-mentions.test.ts`](https://github.com/nielspeter/eess/blob/main/examples/md/a-link-names-the-record-it-mentions.test.ts),
+is the whole rule: two sources (a corpus's bugs and an upstream project's closed list), a project's
+own GitHub URL read as a path, and every row it judges.
+
+```ts
+correspondence({
+  left: linkedMentions,
+  right: records,
+  keyBy: { left: keyOf, right: (r) => r.key },
+})
+  .should()
+  .beComplete({ direction: 'left-to-right' })
+  .andShould()
+  .preserveRelations({
+    left: (m) => [pointsAt(m)],
+    right: (r) => [r.at],
+    direction: 'left-to-right',
+  })
+  .expectNonEmpty()
+  .check()
+```
+
+Three things a join needs that are easy to miss:
+
+- **The relation never returns `[]`.** `preserveRelations` skips an element with no relation, so a
+  mention whose link resolved to nothing would pass. Return the path or the URL for every kind: a
+  `missing` target's first path tried, a `self` target's own document.
+- **`.expectNonEmpty()`** reds a join over no linked mention. Without it, a pattern that matches
+  nothing, or a filter that drops every mention, passes. A corpus that has not linked any mention yet
+  reds too, as "examined zero units": the cause is that nothing is linked, not that the pattern is
+  broken.
+- **Pair it with `beLinked()`.** The join reads the mentions it can read; a mention in text no rule
+  can read is `beLinked()`'s finding (`md/unread-mention`), as is a mention outside any link.
+
+**A title link is not judged.** A board row quotes another record because the record it links to
+says so in its title:
+
+```md
+[0448 — a Bun load guard, and bug 0439's fix](./0448-a-bun-load-guard.md)
+```
+
+`areInTitleLinks({ linkPrefix, titlePrefix })` holds for such a mention, and
+`.that().satisfy(not(areInTitleLinks(…)))` takes it out of the join. It holds only when all four are true:
+
+1. the link resolves to a corpus document, never to its own;
+2. the link's text says more than the mention: a letter or digit outside it, so a link whose text is the mention and a full stop
+   is a mention that is the whole text;
+3. the link's text less `linkPrefix` equals the target's title less `titlePrefix`, whitespace
+   collapsed and ASCII letter case ignored (the title is the document's first heading, at depth 1, as
+   `haveTitle()` reads it);
+4. the mention starts in the link's text (`link.offset`), and not in the stripped prefix.
+
+The prefixes are yours, such as `/^\d{4} — /` for a board row and `/^(Bug|Plan) \d{4}: /` for a
+title; each strips once, at the start. It is equality, not containment: a link text that only had to
+occur in the title could be the mention and the title's next word, linked to any record whose title
+starts with that mention. Equality also puts the mention's own text at its place in the title.
 
 ### What this cannot see
 
@@ -687,10 +769,18 @@ Each element carries `doc`, `line`, `text`, `groups` (your pattern's named captu
   hyphen anywhere inside the mention, written as the character or as an entity (`&#8203;`), reads
   as the mention and is not matched
   ([bug 0543](../work/bugs/0543-an-invisible-character-hides-a-mention.md)).
-- **The target.** `beLinked()` decides that a link points somewhere, not where: a link to the wrong
-  record, a named `#anchor`, `about:blank` or any external URL is linked. `links().should().resolve()`
-  beside it reports a repository path that does not exist; it does not judge anchors or external
-  URLs.
+- **The target, from `beLinked()` alone.** `beLinked()` decides that a link points somewhere, not
+  where: a link to the wrong record, a named `#anchor`, `about:blank` or any external URL is linked.
+  The join above judges the target; `links().should().resolve()` beside it reports a repository path
+  that does not exist, and judges neither anchors nor external URLs.
+- **A title link to the wrong record whose text is that record's title.** It is exempt by
+  construction: its text names what it opens. So is a board row whose number is not its target's,
+  when two records share one title: `areInTitleLinks` compares the text less your prefix, and
+  never reads the number the prefix stripped. A second mention in the link counts as text beyond the
+  first, so a title naming two records exempts both.
+- **A record's mention of its own number in a reference-style link.** The join cannot read a
+  reference-style link, and `not(areSelfMentions(…))` takes the mention out of `beLinked()` without
+  reading its link, so neither reports it, wherever the link points.
 - **What a waiver hid**, unless you run the rule through eess-ts's runner, which names every
   suppression on a green run; a rule run from your own script is not told
   ([bug 0537](../work/bugs/0537-eess-md-alone-has-no-run-level-services.md)).

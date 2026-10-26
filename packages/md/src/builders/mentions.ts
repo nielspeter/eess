@@ -8,12 +8,18 @@ import {
 import { membership, undecidedViolations, type Membership } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import {
-  collectMentions,
+  findMentions,
   validateMentionPattern,
   type MdMention,
+  type MdMentionLink,
+  type MdMentionRef,
   type MdUnreadMention,
+  type UnreadMentionRef,
 } from '../model/mentions.js'
 import type { MdDocument } from '../model/document.js'
+import { EXTERNAL_RE } from '../model/links.js'
+import type { PhrasingLink } from '../model/phrasing.js'
+import { resolveLink, type LinkResolveOptions, type LinkTarget } from '../model/resolve-link.js'
 import type { UnreadCause } from '../model/phrasing.js'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { resideInFile, resideInFolder } from '../predicates/document.js'
@@ -26,7 +32,14 @@ export type { MdMention, MdUnreadMention }
 /** What a `mentions()` rule matches: the caller's pattern. No default exists (ADR-022). */
 export interface MentionOptions {
   readonly pattern: RegExp
+  /**
+   * How a mention's `link.target` resolves (plan 0549): the options a `links().resolve()` rule takes,
+   * so a corpus with extensionless links does not read every link as `missing`.
+   */
+  readonly resolve?: LinkResolveOptions
 }
+
+type Found = { readonly mentions: MdMentionRef[]; readonly unread: UnreadMentionRef[] }
 
 /** A mention in text this rule cannot read: one finding per mention, unsuppressable. */
 export const UNREAD_MENTION = 'md/unread-mention'
@@ -63,20 +76,44 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   protected readonly noun = 'mentions'
 
   private readonly pattern: RegExp
+  private readonly resolve: LinkResolveOptions
 
   /** One walk per document per builder: a document is built once and never mutated. */
-  private readonly found = new WeakMap<MdDocument, ReturnType<typeof collectMentions>>()
+  private readonly found = new WeakMap<MdDocument, Found>()
 
   constructor(corpus: Corpus, options: MentionOptions) {
     super(corpus)
     validateMentionPattern(options.pattern, 'mentions')
     this.pattern = options.pattern
+    this.resolve = options.resolve ?? {}
   }
 
-  private foundIn(doc: MdDocument): ReturnType<typeof collectMentions> {
+  /** The document's mentions, each link resolved once from the document's own path. */
+  private foundIn(doc: MdDocument): Found {
     const known = this.found.get(doc)
     if (known !== undefined) return known
-    const found = collectMentions(doc.root, this.pattern)
+    const { mentions: raw, unread } = findMentions(doc.root, this.pattern)
+    const targets = new Map<PhrasingLink, LinkTarget>()
+    const targetOf = (link: PhrasingLink): LinkTarget => {
+      let target = targets.get(link)
+      if (target === undefined) {
+        const external = EXTERNAL_RE.test(link.url)
+        target = resolveLink({ url: link.url, external, doc }, this.project, this.resolve)
+        targets.set(link, target)
+      }
+      return target
+    }
+    const mentions = raw.map(({ link, offset, ...m }): MdMentionRef => {
+      if (link === undefined) return m
+      const resolved: MdMentionLink = {
+        url: link.url,
+        text: link.text,
+        target: targetOf(link),
+        ...(offset !== undefined ? { offset } : {}),
+      }
+      return { ...m, link: resolved }
+    })
+    const found = { mentions, unread }
     this.found.set(doc, found)
     return found
   }
@@ -132,8 +169,7 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   }
 }
 
-/** Thrown by an unread mention's `link` and `inCode`, which are unknown: a predicate that reads them cannot judge it. */
-/** What reading an unread mention's `link` or `inCode` throws: neither is known. */
+/** What reading an unread mention's `link` or `inCode` throws: neither is known, nor any field of `link`. */
 class UnknowableField extends Error {
   constructor() {
     super('an unread mention has no known link or code')
@@ -152,7 +188,7 @@ function asSeen(u: MdUnreadMention): MdMention {
     get inCode(): boolean {
       throw UNKNOWN
     },
-    get link(): { readonly url: string } | undefined {
+    get link(): MdMentionLink | undefined {
       throw UNKNOWN
     },
   }

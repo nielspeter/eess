@@ -1,4 +1,5 @@
 import type { Nodes, Root } from 'mdast'
+import { headingName } from './document.js'
 
 /**
  * Phrasing runs (plan 0539): the inline text of each paragraph, heading and table cell, as segments
@@ -14,14 +15,22 @@ import type { Nodes, Root } from 'mdast'
  * and title. A link's own title is read, as linked.
  */
 
+/** A link a segment sits in: its URL, and its text joined as a heading's is (plan 0549). */
+export interface PhrasingLink {
+  readonly url: string
+  readonly text: string
+}
+
 /** One piece of a run's text and where it sits. */
-interface PhrasingSegment {
+export interface PhrasingSegment {
   readonly text: string
   /** 1-based line of the segment's first character. */
   readonly line: number
   readonly inCode: boolean
-  /** The link holding this segment, if any. */
-  readonly link?: { readonly url: string }
+  /** The link holding this segment, if any; one object per link, shared by its segments. */
+  readonly link?: PhrasingLink
+  /** The segment is the link's title, not its text. */
+  readonly title?: true
 }
 
 /** The inline text of one paragraph, heading or table cell, or of one link's title. */
@@ -74,7 +83,7 @@ export function phrasingOf(root: Root): {
       else htmlLink.text += seg.text
     }
 
-    const inline = (node: Nodes, link: { readonly url: string } | undefined): void => {
+    const inline = (node: Nodes, link: PhrasingLink | undefined): void => {
       switch (node.type) {
         case 'text':
           push({ text: node.value, line: lineOf(node), inCode: false, ...(link ? { link } : {}) })
@@ -86,7 +95,9 @@ export function phrasingOf(root: Root): {
           push({ text: '\n', line: lineOf(node), inCode: false, ...(link ? { link } : {}) })
           return
         case 'link': {
-          const target = pointsNowhere(node.url) ? undefined : { url: node.url }
+          const target = pointsNowhere(node.url)
+            ? undefined
+            : { url: node.url, text: headingName(node) }
           for (const child of node.children) inline(child, target)
           // A link's title belongs to its link: a mention there is as linked as its text.
           if (node.title) {
@@ -96,6 +107,7 @@ export function phrasingOf(root: Root): {
                   text: node.title,
                   line: lineOf(node),
                   inCode: false,
+                  title: true,
                   ...(target ? { link: target } : {}),
                 },
               ],

@@ -39,7 +39,8 @@ export interface MdLinkRef {
 }
 
 // A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative.
-const EXTERNAL_RE = /^([a-z][a-z0-9+.-]*:|\/\/)/i
+// Exported model-internally (plan 0549), so `mentions()` and `links()` cannot disagree about a link.
+export const EXTERNAL_RE = /^([a-z][a-z0-9+.-]*:|\/\/)/i
 
 /**
  * A block that can hold a link (plan 0405): a paragraph or a list item.

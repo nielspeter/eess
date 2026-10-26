@@ -4,6 +4,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
+  areInTitleLinks,
+  areLinked,
   areSelfMentions,
   corpus,
   corpusFromText,
@@ -468,5 +470,174 @@ describe('mentions(): it fails closed', () => {
     expect(said(mentions(c, { pattern: record() }).should().beLinked().violations())).toEqual([
       '3: "bug 0002" is not a link',
     ])
+  })
+})
+
+/** The selected mentions with their link facts (plan 0549). */
+const links = (b: ReturnType<typeof mentions>): string[] =>
+  b.select({ label: 'm', identify: (m) => ({ name: m.text }) }).elements.map((m: MdMention) => {
+    const l = m.link
+    if (l === undefined) return `${m.text} unlinked`
+    const t = l.target
+    const where = 'path' in t ? ` ${t.path}` : t.kind === 'missing' ? ` ${t.tried.join(',')}` : ''
+    return `${m.text} [${l.text}] @${String(l.offset)} ${t.kind}${where}`
+  })
+
+describe("mentions(): where a mention's link points (plan 0549)", () => {
+  it("link.text is the link's whole text, joined across emphasis and inline code as a heading's is", () => {
+    expect(links(one('# A\n\nSee [**bug** 0001 in `x.ts`](./b.md).\n'))).toEqual([
+      'bug 0001 [bug 0001 in `x.ts`] @0 missing b.md',
+    ])
+  })
+
+  it('link.offset is where the mention starts in the text, and absent when it starts before the link', () => {
+    expect(links(one('# A\n\n[see bug 0001](./b.md); plan [0002](./c.md).\n'))).toEqual([
+      'bug 0001 [see bug 0001] @4 missing b.md',
+      'plan 0002 [0002] @undefined missing c.md',
+    ])
+  })
+
+  it('link.offset is absent when the link holds inline HTML or a hard line break', () => {
+    expect(links(one('# A\n\n[x <b>y</b> bug 0001](./b.md) [x\\\ny bug 0002](./c.md)\n'))).toEqual([
+      'bug 0001 [x <b>y</b> bug 0001] @undefined missing b.md',
+      'bug 0002 [xy bug 0002] @undefined missing c.md',
+    ])
+  })
+
+  it("a mention in a link's title is linked, with no offset in the link's text", () => {
+    expect(links(one('# A\n\n[here](./b.md "bug 0001").\n'))).toEqual([
+      'bug 0001 [here] @undefined missing b.md',
+    ])
+  })
+
+  it('link.target is each of the six kinds: external, a #fragment, a document, a file outside the corpus, a directory, missing', () => {
+    const root = tree({
+      'docs/a.md': [
+        '# A',
+        '',
+        '[bug 0001](https://example.com/1) [bug 0002](#a) [bug 0003](./b.md)',
+        '[bug 0004](./c.txt) [bug 0005](./folder/) [bug 0006](./gone.md)',
+        '',
+      ].join('\n'),
+      'docs/b.md': '# B\n',
+      'docs/c.txt': 'c\n',
+      'docs/folder/x.txt': 'x\n',
+    })
+    const c = corpus({ cwd: root, roots: ['docs/**/*.md'] })
+    expect(links(mentions(c, { pattern: record() }).resideInFile('docs/a.md'))).toEqual([
+      'bug 0001 [bug 0001] @0 external',
+      'bug 0002 [bug 0002] @0 self',
+      'bug 0003 [bug 0003] @0 document docs/b.md',
+      'bug 0004 [bug 0004] @0 not-in-corpus docs/c.txt',
+      'bug 0005 [bug 0005] @0 directory docs/folder',
+      'bug 0006 [bug 0006] @0 missing docs/gone.md',
+    ])
+  })
+
+  it('an extensionless link is a document under the resolve option that tries .md, and missing without it', () => {
+    const c = corpusFromText({ 'a.md': '# A\n\n[bug 0001](./b)\n', 'b.md': '# B\n' })
+    const at = (b: ReturnType<typeof mentions>): string[] => links(b.resideInFile('a.md'))
+    expect(at(mentions(c, { pattern: record(), resolve: { tryExtensions: ['.md'] } }))).toEqual([
+      'bug 0001 [bug 0001] @0 document b.md',
+    ])
+    expect(at(mentions(c, { pattern: record() }))).toEqual(['bug 0001 [bug 0001] @0 missing b'])
+  })
+
+  it('areLinked() selects the mentions in a link, and an unread mention under it is reported', () => {
+    const b = one('# A\n\nbug 0001, [bug 0002](./a.md).\n\n<div>bug 0003</div>\n')
+      .that()
+      .satisfy(areLinked())
+    expect(links(b)).toEqual(['bug 0002 [bug 0002] @0 self'])
+    const v = b.should().beLinked().violations()
+    expect(v.filter((x) => x.ruleId === 'md/unread-mention').map((x) => x.line)).toEqual([5])
+  })
+
+  it('an unread mention under a predicate reading link.target is reported as md/unread-mention, not dropped', () => {
+    const toDocument: Predicate<MdMention> = {
+      description: 'link to a document',
+      test: (m) => m.link?.target.kind === 'document',
+    }
+    const v = one('# A\n\n<div>bug 0001</div>\n\n[bug 0002](./a.md)\n')
+      .that()
+      .satisfy(toDocument)
+      .should()
+      .beLinked()
+      .violations()
+    expect(v.filter((x) => x.ruleId === 'md/unread-mention').map((x) => x.line)).toEqual([3])
+  })
+})
+
+describe('areInTitleLinks (plan 0549)', () => {
+  const titles = {
+    'work/bugs/0001-a.md': '# Bug 0001: one\n',
+    'work/bugs/0002-b.md': '# Bug 0002: bug 0001 is *Quoted*\n',
+    'work/bugs/0003-c.md': '# Bug 0003: bug 0001\n',
+    'work/bugs/0005-e.md': '# Bug 0005: 0003 — bug 0001 x\n',
+    'work/bugs/0006-f.md': '# Bug 0006: bug 0001.\n',
+  }
+  const exempt = (line: string, options: Parameters<typeof areInTitleLinks>[0] = {}) => {
+    const c = corpusFromText({ ...titles, 'work/board.md': `# Board\n\n${line}\n` })
+    const p = areInTitleLinks({
+      linkPrefix: /^\d{4} — /,
+      titlePrefix: /^(Bug|Plan) \d{4}: /,
+      ...options,
+    })
+    return mentions(c, { pattern: record() })
+      .resideInFile('work/board.md')
+      .select({ label: 'm', identify: (m) => ({ name: m.text }) })
+      .elements.map((m: MdMention) => `${m.text} ${String(p.test(m))}`)
+  }
+
+  it("a link whose text is its target's title less the prefixes is exempt, letter case and markup aside", () => {
+    expect(exempt('[0002 — bug 0001 is quoted](./bugs/0002-b.md)')).toEqual(['bug 0001 true'])
+  })
+
+  it('clause 1: a link to itself or to no corpus document is never exempt', () => {
+    expect(exempt('[0002 — bug 0001 is quoted](#board)')).toEqual(['bug 0001 false'])
+    expect(exempt('[0002 — bug 0001 is quoted](./bugs/0009-gone.md)')).toEqual(['bug 0001 false'])
+  })
+
+  it("clause 2: a mention that is the link's whole text is never exempt, though it equals the title", () => {
+    expect(exempt('[bug 0001](./bugs/0003-c.md)')).toEqual(['bug 0001 false'])
+    expect(exempt('[`bug 0001`](./bugs/0003-c.md)')).toEqual(['bug 0001 false'])
+  })
+
+  it('clause 2: punctuation is not more than the mention', () => {
+    expect(exempt('[bug 0001.](./bugs/0006-f.md)')).toEqual(['bug 0001 false'])
+  })
+
+  it('clause 3: equality, not containment: a stamp that is part of the title is not exempt', () => {
+    expect(exempt('[bug 0001 is](./bugs/0002-b.md)')).toEqual(['bug 0001 false'])
+    expect(exempt('[0002 see bug 0001](./bugs/0002-b.md)')).toEqual(['bug 0001 false'])
+  })
+
+  it('clause 4: a mention inside the stripped prefix is not exempt', () => {
+    const line = '[Bug 0002 — bug 0001 is quoted](./bugs/0002-b.md)'
+    expect(exempt(line, { linkPrefix: /^Bug \d{4} — /i })).toEqual([
+      'Bug 0002 false',
+      'bug 0001 true',
+    ])
+  })
+
+  it("clause 4: a mention in the link's title is not exempt, though the link's text is the target's title", () => {
+    const line = '[bug 0001 is quoted](./bugs/0002-b.md "bug 0009")'
+    expect(exempt(line, { linkPrefix: /^$/ })).toEqual(['bug 0001 true', 'bug 0009 false'])
+  })
+
+  it('a prefix strips once, at the start', () => {
+    expect(exempt('[0005 — 0003 — bug 0001 x](./bugs/0005-e.md)')).toEqual(['bug 0001 true'])
+  })
+
+  it('a g prefix gives the same verdict twice', () => {
+    const c = corpusFromText({
+      ...titles,
+      'a.md': '# A\n\n[0002 — bug 0001 is quoted](./work/bugs/0002-b.md)\n',
+    })
+    const [m] = mentions(c, { pattern: record() })
+      .resideInFile('a.md')
+      .select({ label: 'm', identify: (x) => ({ name: x.text }) }).elements
+    const p = areInTitleLinks({ linkPrefix: /\d{4} — /g, titlePrefix: /(Bug|Plan) \d{4}: /g })
+    const verdict = (): boolean | undefined => (m === undefined ? undefined : p.test(m))
+    expect([verdict(), verdict()]).toEqual([true, true])
   })
 })

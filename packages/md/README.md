@@ -485,9 +485,12 @@ mentions(corpus({ roots: ['docs/**'] }), { pattern: /\bRFC\s+(?<n>\d+)\b/g })
   .check()
 ```
 
-Presence only: a link that points somewhere is linked, wherever it points; `[x]()` and `[x](#)` are not. See
-[the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the keys that let a
-record name itself, and what a mention rule cannot see.
+`beLinked()` decides presence: a link that points somewhere is linked, wherever it points; `[x]()`
+and `[x](#)` are not. Each mention's `link` carries its `text` and its `target` (where it resolves,
+as `resolveLink` says), so a `correspondence()` between your mentions and your records can check that
+a link opens the record it names, with `areInTitleLinks` taking out a link whose text is its target's
+title. See [the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the join,
+the keys that let a record name itself, and what a mention rule cannot see.
 
 ## Every page claimed once: `notExist()`
 
