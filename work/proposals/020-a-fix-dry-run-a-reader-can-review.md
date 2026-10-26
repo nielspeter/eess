@@ -2,7 +2,7 @@
 
 **State:** Draft — filed 2026-10-25 from adopter feedback on [proposal 019](./019-md-a-mention-is-a-link-built-from-blocks.md)'s
 fix; not reviewed.
-**Priority:** Medium — [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s
+**Priority:** Medium — [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s
 fix proposes thousands of edits in one run, and its safety rests on a reader checking them before
 `--apply`.
 **Origin:** inbound · adopter feedback, 2026-10-25. Every adopter asked would run the mention fix only
@@ -48,11 +48,11 @@ mentions sent to the same wrong target. A flat list hides it.
 1. **Where the target lives.** An optional `target` on `ArchFix` (a kernel change, additive), or a
    grouping key each fix states, or grouping by replacement text in eess-ts alone. A `target` on
    `ArchFix` together with a `fix` on the JSON wire changes the agent contract, and likely needs an
-   ADR row rather than only a plan. Until then, [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)
+   ADR row rather than only a plan. Until then, [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)
    fixes its `describe` with the target last, so a shell pipeline can group the dry run.
 2. **Grouped by what for `movedLinkFix`.** Its target is the moved file; the same field would serve.
 
 ## Out of scope
 
-- The mention fix itself: [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
+- The mention fix itself: [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
 - An interactive per-fix accept or reject.

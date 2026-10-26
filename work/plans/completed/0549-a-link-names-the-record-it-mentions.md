@@ -4,7 +4,7 @@
 
 - **State:** Done — built 2026-10-26 (PR #264) → completed/; frozen 2026-10-26 on Phase 0's census (5 exempt, 1 true red, Decision 3
   unamended), with no open question. Written 2026-10-25 for [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
-  held ask B (the target); its fix is [plan 0550](../0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
+  held ask B (the target); its fix is [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
   Narrowed the same day after two review rounds (architect, enforcement; "Review — 2026-10-25"):
   B stays the caller's composition, as the proposal asked, and the fix, a separate capability, moved
   to its own plan.
@@ -16,7 +16,7 @@
 - **Created:** 2026-10-25
 - **Builds after:** [plan 0539](./0539-a-mention-of-a-record-is-a-link.md) (built) and
   [bug 0400](../../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) (fixed).
-- **Builds before:** [plan 0550](../0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) and
+- **Builds before:** [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) and
   [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
 
 ## Problem
@@ -253,7 +253,7 @@ green; each must turn its test red.
 
 ## Out of scope
 
-- **The fix:** [plan 0550](../0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
+- **The fix:** [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
 - **This repository adopting B**, and its migration: [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
 - **The relation message** (ask C): held as its own kernel record by [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s review, with [bug 0084](../../bugs/0084-preserve-relations-right-to-left.md) first.
 
@@ -270,12 +270,12 @@ Two rounds, architect and enforcement separately, both Changes needed each round
   red, applied the exemption unasked, let two calls diverge, and turned B into new API. Dropped:
   Decision 1.
 - **Round 2, architect I5:** one PR had outgrown a sitting. Split: this plan is B; the fix is
-  [plan 0550](../0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
+  [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
 - **Kept from both rounds:** `link.target` as every kind, filled by the builder, with the caller's
   resolve options; UNKNOWN on unread mentions; the exempt-count assertion; the census reading the
   exemptions as well as the reds.
 - **Round 3 (capped; architect Ship as Draft with three Important, enforcement Changes needed):**
-  `EXTERNAL_RE` exported here, not in [plan 0550](../0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md),
+  `EXTERNAL_RE` exported here, not in [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md),
   and the target's `MdDocument` kept on `link.target`, so the predicate never resolves again
   (architect I1); rows l2 and m2, each failing one clause alone, so the clause-2 and `self` sabotage
   rows can fire, and the example's prefixes and titles stated (enforcement I1); the flag convention

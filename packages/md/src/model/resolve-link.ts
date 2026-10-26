@@ -233,6 +233,22 @@ export function resolveLink(
   return { kind: 'missing', tried }
 }
 
+/**
+ * A link from the document at `from` to the repo path `to`, relative and starting with `.`, as a
+ * Markdown author writes one. Shared by {@link movedLinkFix} and the mention fix (plan 0550), so path
+ * arithmetic stays in this module.
+ */
+export function relativeLinkPath(from: string, to: string): string {
+  const rel = posix.relative(posix.dirname(from), to)
+  return rel.startsWith('.') ? rel : './' + rel
+}
+
+/** Whether `path` names a place inside the repository: relative, and not climbing out of it. */
+export function isRepoPath(path: string): boolean {
+  const normal = posix.normalize(path)
+  return !path.startsWith('/') && normal !== '..' && !normal.startsWith('../')
+}
+
 /** Basename → every repo file with it, for {@link movedLinkFix}. Built once per caller. */
 export function basenameIndex(corpus: Corpus): ReadonlyMap<string, readonly string[]> {
   const byBasename = new Map<string, string[]>()
@@ -266,9 +282,7 @@ export function movedLinkFix(
   if (matches.length !== 1) return undefined // renamed (no match) or ambiguous → no fix
   const target = matches[0]
   if (target === undefined) return undefined
-  let rel = posix.relative(posix.dirname(link.doc.relPath), target)
-  if (!rel.startsWith('.')) rel = './' + rel
-  const replacement = rel + fragment
+  const replacement = relativeLinkPath(link.doc.relPath, target) + fragment
   if (replacement === link.url) return undefined
   return {
     file: link.doc.file,

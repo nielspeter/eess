@@ -760,6 +760,71 @@ title; each strips once, at the start. It is equality, not containment: a link t
 occur in the title could be the mention and the title's next word, linked to any record whose title
 starts with that mention. Equality also puts the mention's own text at its place in the title.
 
+### Fixing a plain mention: `beLinked({ fix })`
+
+`beLinked({ fix })` gives a plain mention a fix when exactly one record, in every source your corpus
+names, holds its key. `eess-ts check rules.ts --fix` lists the fixes without writing anything, and
+`--fix --apply` writes them. The records, the keys and where a record lives are yours:
+
+```ts
+mentions(c, { pattern: RECORD })
+  .that()
+  .satisfy(not(areSelfMentions({ mention: mentionKey, document: documentKey })))
+  .should()
+  .beLinked({
+    fix: {
+      records, // a Selection of every record a mention could name, from every source
+      key: { mention: mentionKey, record: (r) => r.key }, // keep the digits as written
+      target: (r) => r.target, // a repository path, written relative to the mention, or a URL
+      foreign: /\bupstream\b/i, // how this corpus names another project
+    },
+  })
+  .check()
+```
+
+The worked example,
+[`examples/md/a-plain-mention-is-fixed.test.ts`](https://github.com/nielspeter/eess/blob/main/examples/md/a-plain-mention-is-fixed.test.ts),
+shows every row below.
+
+**What is not fixed, and says why.** A finding with no fix ends `— not fixed: <why>`:
+
+- no record holds the key, or two or more do (each target is named), or `key.mention` returns
+  `undefined`;
+- the mention is in inline code, follows `!`, `]` or an odd run of backslashes, touches `*`, `_` or
+  `~` (a link beside them would change their emphasis), holds a bracket, or
+  its text in the source is not the mention as written: an entity, emphasis or a line break inside
+  it, or a literal `&` earlier in the same run of text that looks like an entity (`&amp;` included),
+  where the fix does not guess where the text sits;
+- its target cannot be written: a `|` when the mention sits in a table cell, a `<`, `>`, `\` or
+  line break, a `#` or `?` in a path, or a path that is absolute or climbs out of the repository. A
+  space or a parenthesis is kept by writing the destination in `<…>`;
+- **`foreign` matches in the text around it**: its own paragraph; in a table, its own row and the
+  header row; in a list, its own item and the paragraphs of every item it is nested under; a whole
+  blockquote; the paragraph directly before a top-level list or table; and the heading of every
+  section that contains it, the title included. A project's name is often only in a heading or a
+  list's lead-in. A match too wide costs one link by hand; one too narrow writes a wrong link. Not
+  read: an image's alt text, a link's URL, and a heading inside a list item, which starts no
+  section.
+
+`foreign` is required: a missing or non-`RegExp` one, or one that matches the empty string, is an
+`ArchConfigError`. A corpus that names no other project passes `/(?!)/`, which matches nothing.
+
+Two configuration findings (`md/mention-fix-config`), which `.warn()` and `.excluding()` cannot
+hide, each meaning that nothing is fixed: `records` holds no record; or no selected mention's key
+meets a record's key, linked mentions included, which is how a key that is spelled differently on
+the two sides shows. A record listed twice under one target is one record. `records`, `key`,
+`target` and `foreign` are checked when `beLinked()` is called, since a rule file is not
+type-checked: a missing or wrong one is an `ArchConfigError`.
+
+**Read the dry run before `--apply`.** Group it by target, largest first; a target that collects
+many mentions it should not is the error a reader can catch:
+
+```sh
+eess-ts check rules.ts --fix | grep 'would fix' | sed 's/.* → //' | sort | uniq -c | sort -rn
+```
+
+Each fix reads `<file>:<line> link "<mention>" → <target>`, the target last.
+
 ### What this cannot see
 
 - **A mention your pattern misses**: `bug number 338`, a bare `0338`, the second number of
@@ -781,6 +846,23 @@ starts with that mention. Equality also puts the mention's own text at its place
 - **A record's mention of its own number in a reference-style link.** The join cannot read a
   reference-style link, and `not(areSelfMentions(…))` takes the mention out of `beLinked()` without
   reading its link, so neither reports it, wherever the link points.
+- **What the fix cannot read.** A fix is right relative to the records you declare, and nothing
+  more:
+  - a project's name further away than the text it reads (two paragraphs up, in another section,
+    in a sentence that only implies it) is not read;
+  - a record from a project you did not declare is fixed to yours when yours holds its number;
+  - a number from another numbering (a branch's, an older one, a record copied in from elsewhere)
+    is fixed to the record that holds that number now, even when the text says the numbers
+    predate a renumbering;
+  - a mention written before the record it would name existed (it named something else then) is
+    fixed like any other: eess-md cannot read history.
+
+  A link the fix wrote is green under the target check above by construction when the two read the
+  same records with the same keys; give them one list of records.
+  A file that starts with a byte-order mark gets no fix at all: its offsets do not line up, so
+  every mention is refused. eess's own corpus measured no wrong fix in 150 sampled, and seven in one record
+  copied in verbatim; that measures this corpus, not yours. The dry run is the guard.
+
 - **What a waiver hid**, unless you run the rule through eess-ts's runner, which names every
   suppression on a green run; a rule run from your own script is not told
   ([bug 0537](../work/bugs/0537-eess-md-alone-has-no-run-level-services.md)).

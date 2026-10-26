@@ -1204,6 +1204,68 @@ function examplesMdLoadBearing(only) {
   }
 }
 
+/**
+ * Plan 0550, Phase 4: the mention fix's exactly-one test, rewritten to at-least-one in the BUILT
+ * `be-linked.js`, must turn the example's two-sources test red. The example loads `dist`; the unit
+ * tests load `src` and cannot see the rewrite. The load-bearing check above swaps folders, so it
+ * proves a finding and never a fix: this row is the one that proves a collision carries no fix.
+ */
+function gateMentionFixExactlyOne() {
+  const started = Date.now()
+  const built = join(repoRoot, 'packages', 'md', 'dist', 'conditions', 'be-linked.js')
+  const from = 'candidates.length !== 1'
+  const title = 'violating-two-sources: a key two sources hold is refused, both named'
+  const vitest = join(repoRoot, 'node_modules', '.bin', 'vitest')
+  const tmp = mkdtempSync(join(tmpdir(), 'eess-mention-fix-'))
+  const report = join(tmp, 'report.json')
+  const status = () => {
+    sh(vitest, [
+      'run',
+      '--root',
+      'examples',
+      'md/a-plain-mention-is-fixed.test.ts',
+      '--reporter=json',
+      `--outputFile=${report}`,
+    ])
+    try {
+      const parsed = JSON.parse(readFileSync(report, 'utf8'))
+      const results = (parsed.testResults ?? []).flatMap((t) => t.assertionResults ?? [])
+      return results.find((r) => r.title === title)?.status ?? 'missing'
+    } catch {
+      return 'no report'
+    } finally {
+      rmSync(report, { force: true })
+    }
+  }
+  try {
+    const before = status()
+    if (before !== 'passed') {
+      return {
+        ok: false,
+        detail: `unsabotaged, "${title}" is ${before}, so the row proves nothing`,
+      }
+    }
+    const after = withRewrittenFile(
+      built,
+      (text) => {
+        if (!text.includes(from)) {
+          throw new Error(
+            `non-vacuity: ${built} no longer holds "${from}" — rebuild, or fix the row`,
+          )
+        }
+        return text.replace(from, 'candidates.length < 1')
+      },
+      status,
+    )
+    return {
+      ok: after === 'failed',
+      detail: `exactly-one rewritten to at-least-one in dist: "${title}" is ${after} (${String(Date.now() - started)} ms)`,
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
 function gateExamplesMdLoadBearing() {
   const { ok, detail } = examplesMdLoadBearing()
   return { ok, detail }
@@ -5033,6 +5095,7 @@ const gates = [
       ]),
   ],
   ['examples/md-fixtures-are-load-bearing', gateExamplesMdLoadBearing],
+  ['examples/md-mention-fix-exactly-one', gateMentionFixExactlyOne],
   ['examples/md-load-bearing-reds-on-a-cross-read', gateExamplesMdLoadBearingRedsOnCrossRead],
   [
     'examples/md-load-bearing-reds-on-an-orphan-folder',
@@ -5439,6 +5502,7 @@ const GATE_FOR = {
   'check:examples': [
     'examples/does-not-compile',
     'examples/md-fixtures-are-load-bearing',
+    'examples/md-mention-fix-exactly-one',
     'examples/md-load-bearing-reds-on-a-cross-read',
     'examples/md-load-bearing-reds-on-an-orphan-folder',
     'examples/md-load-bearing-reds-on-a-weak-clean-test',

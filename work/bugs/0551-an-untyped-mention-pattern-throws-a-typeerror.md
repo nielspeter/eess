@@ -3,12 +3,12 @@
 ## Status
 
 - **State:** Draft — found 2026-10-25 by the architect's re-check of
-  [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md); reproduced, no
+  [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md); reproduced, no
   red test yet.
 - **Severity:** Low — the run still fails, so nothing passes that should not. The message names a
   property of `undefined`, not the option the caller got wrong.
 - **Origin:** self-found, 2026-10-25. Recorded rather than fixed in
-  [plan 0550](../plans/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), whose `foreign`
+  [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), whose `foreign`
   option gets the check this one lacks.
 - **Reported:** 2026-10-25
 
