@@ -1,7 +1,13 @@
 import { ArchConfigError } from '@nielspeter/eess'
 import type { Root } from 'mdast'
 import type { MdDocument } from './document.js'
-import { phrasingOf, type UnreadCause } from './phrasing.js'
+import {
+  phrasingOf,
+  type PhrasingLink,
+  type PhrasingSegment,
+  type UnreadCause,
+} from './phrasing.js'
+import type { LinkTarget } from './resolve-link.js'
 
 /**
  * Mentions (plan 0539): every match of the caller's pattern in a document's phrasing runs. eess-md
@@ -10,8 +16,8 @@ import { phrasingOf, type UnreadCause } from './phrasing.js'
  * soft break (a `\n` in the text) is one match, when the caller's pattern allows the break.
  */
 
-/** A match of the caller's pattern in a document's text. */
-export interface MdMentionRef {
+/** A match of the caller's pattern in one document's tree, as `collectMentions` reads it. */
+export interface MdMentionMatch {
   /** 1-based line of the match's first character. */
   readonly line: number
   /** The matched text, as joined from the run (a soft break is a `\n`). */
@@ -22,6 +28,32 @@ export interface MdMentionRef {
   readonly inCode: boolean
   /** The link holding the match's last character, if any. */
   readonly link?: { readonly url: string }
+}
+
+/** The link a mention sits in, and where it points (plan 0549). */
+export interface MdMentionLink {
+  readonly url: string
+  /**
+   * The link's whole text, joined as a heading's is, so it compares with a title: inline code keeps
+   * its backticks, an image adds nothing, the ends are trimmed. Not `links()`'s `MdLinkRef.text`,
+   * which drops the backticks.
+   */
+  readonly text: string
+  /** Where the link resolves, as `links()` resolves it (`resolveLink`), with the rule's resolve options. */
+  readonly target: LinkTarget
+  /**
+   * Where the mention starts in `text`, in characters. Absent in three cases: the mention begins
+   * before the link (`plan [0070](…)`); it sits in the link's title; or the link holds inline HTML
+   * or a hard line break, whose text this walk and `text` join differently, so no place in `text`
+   * is known. Absent never means a place: read it as "not known to start in `text`".
+   */
+  readonly offset?: number
+}
+
+/** A match of the caller's pattern in a document's text, with the link it sits in. */
+export interface MdMentionRef extends Omit<MdMentionMatch, 'link'> {
+  /** The link holding the match's last character, if any. */
+  readonly link?: MdMentionLink
 }
 
 /** A mention: a match of the caller's pattern in a document's text, with its document. */
@@ -85,14 +117,69 @@ function* matches(text: string, re: RegExp, owner: string): Generator<RegExpMatc
   }
 }
 
+/** A match as the walk finds it: the link it sits in, shared by its mentions, and its offset there. */
+type FoundMention = Omit<MdMentionMatch, 'link'> & {
+  readonly link?: PhrasingLink
+  readonly offset?: number
+}
+
 /** Every mention of `pattern` in one document, read and unread. */
 export function collectMentions(
   root: Root,
   pattern: RegExp,
-): { readonly mentions: MdMentionRef[]; readonly unread: UnreadMentionRef[] } {
+): { readonly mentions: MdMentionMatch[]; readonly unread: UnreadMentionRef[] } {
+  const { mentions, unread } = findMentions(root, pattern)
+  return {
+    mentions: mentions.map((m) => ({
+      line: m.line,
+      text: m.text,
+      groups: m.groups,
+      inCode: m.inCode,
+      ...(m.link ? { link: { url: m.link.url } } : {}),
+    })),
+    unread,
+  }
+}
+
+/**
+ * Where a match starts in its link's text, or `undefined` when it does not start there. The link's
+ * segments are joined as its text is (`headingName`: inline code in backticks, ends trimmed); a link
+ * whose segments do not join to that text (inline HTML inside it) gives no offset.
+ */
+function offsetInLink(
+  segs: readonly PhrasingSegment[],
+  starts: readonly number[],
+  a: number,
+  b: number,
+  index: number,
+): number | undefined {
+  const link = segs[b]?.link
+  if (link === undefined || segs[b]?.title === true) return undefined
+  let k = b
+  while (k > 0 && segs[k - 1]?.link === link) k--
+  if (a < k) return undefined
+  let joined = ''
+  let at: number | undefined
+  for (let i = k; i < segs.length && segs[i]?.link === link; i++) {
+    const s = segs[i]
+    if (s === undefined) break
+    const tick = s.inCode ? '`' : ''
+    if (i === a) at = joined.length + tick.length + (index - (starts[i] ?? 0))
+    joined += tick + s.text + tick
+  }
+  const lead = joined.length - joined.trimStart().length
+  if (at === undefined || joined.trim() !== link.text || at < lead) return undefined
+  return at - lead
+}
+
+/** Every mention of `pattern` in one document, each with its link and its place in the link's text. */
+export function findMentions(
+  root: Root,
+  pattern: RegExp,
+): { readonly mentions: FoundMention[]; readonly unread: UnreadMentionRef[] } {
   const owner = 'mentions'
   const { runs, unread: unreadText } = phrasingOf(root)
-  const mentions: MdMentionRef[] = []
+  const mentions: FoundMention[] = []
   for (const run of runs) {
     const segs = run.segments
     let joined = ''
@@ -115,12 +202,14 @@ export function collectMentions(
       if (first === undefined || last === undefined) continue
       const before = first.text.slice(0, index - (starts[a] ?? 0))
       const line = first.line + (before.match(/\n/g)?.length ?? 0)
+      const offset = offsetInLink(segs, starts, a, b, index)
       mentions.push({
         line,
         text: m[0],
         groups: groupsOf(m),
         inCode: segs.slice(a, b + 1).some((s) => s.inCode),
         ...(last.link ? { link: last.link } : {}),
+        ...(offset !== undefined ? { offset } : {}),
       })
     }
   }

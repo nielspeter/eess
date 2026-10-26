@@ -129,10 +129,15 @@ export { UNDECLARED_BOX_MARK, MALFORMED_BOX } from './builders/box-mark-findings
 export { mentions, MentionRuleBuilder, UNREAD_MENTION } from './builders/mentions.js'
 export type { MdMention, MdUnreadMention, MentionOptions } from './builders/mentions.js'
 export { collectMentions } from './model/mentions.js'
-export type { MdMentionRef, UnreadMentionRef } from './model/mentions.js'
+export type {
+  MdMentionLink,
+  MdMentionMatch,
+  MdMentionRef,
+  UnreadMentionRef,
+} from './model/mentions.js'
 export type { UnreadCause } from './model/phrasing.js'
-export { areSelfMentions } from './predicates/mentions.js'
-export type { SelfMentionKeys } from './predicates/mentions.js'
+export { areInTitleLinks, areLinked, areSelfMentions } from './predicates/mentions.js'
+export type { SelfMentionKeys, TitleLinkOptions } from './predicates/mentions.js'
 export { vocabulary, terms, fields, TermRuleBuilder } from './builders/vocabulary.js'
 // Plan 0468: a labelled value in the forms the caller names, and the helpers that cut one.
 export { cleanValue, untilDelimiter, longestOf } from './model/fields.js'

@@ -274,10 +274,10 @@ export default [
   // resolveLink, not with path arithmetic of their own. A condition or predicate
   // module that imports from `model/resolve-link.ts` is selected, and must not
   // also import a `path` module, under any of its spellings. Plan 0406 widened
-  // it to predicates/: the importers today are conditions/resolve.ts,
-  // conditions/linked-back.ts and predicates/live-target.ts. Only if all three
-  // stop importing it does the selection empty, and the rule fail with the
-  // zero-examined finding.
+  // it to predicates/, and plan 0549 to builders/: the importers today are
+  // conditions/resolve.ts, conditions/linked-back.ts, predicates/live-target.ts
+  // and builders/mentions.ts. Only if all four stop importing it does the
+  // selection empty, and the rule fail with the zero-examined finding.
   //
   // What it cannot see, stated rather than implied (ADR-016 rule 7):
   //  - a module that re-implements resolution and never imports resolve-link.ts
@@ -290,7 +290,7 @@ export default [
   // resolver exists.
   modules(p)
     .that()
-    .resideInFile('**/packages/md/src/{conditions,predicates}/*.ts')
+    .resideInFile('**/packages/md/src/{conditions,predicates,builders}/*.ts')
     .and()
     .importFrom('**/packages/md/src/model/resolve-link.ts')
     .should()

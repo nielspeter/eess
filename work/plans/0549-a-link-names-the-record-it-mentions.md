@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-26 on Phase 0's census (5 exempt, 1 true red, Decision 3
+- **State:** Ready — built 2026-10-26 on its branch, awaiting review and merge; frozen 2026-10-26 on Phase 0's census (5 exempt, 1 true red, Decision 3
   unamended), with no open question. Written 2026-10-25 for [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
   held ask B (the target); its fix is [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
   Narrowed the same day after two review rounds (architect, enforcement; "Review — 2026-10-25"):
@@ -69,6 +69,10 @@ Both are required on the exported `MdMentionRef`, so a consumer that builds one 
 type level; no family package does, and the changeset marks it `**Breaking**`, a minor on 0.x.
 
 ### 3. A title link is exempt only when its text is its target's title
+
+> **Superseded in part at build, 2026-10-26** (see "Built"): `areInTitleLinks` takes no `pattern`;
+> clause 2 is "the link's text says more than the mention"; clause 4 is "the mention starts in the
+> link's text, not in the stripped prefix". The text below is the frozen decision, kept.
 
 `areInTitleLinks({ pattern, linkPrefix?, titlePrefix? })` holds for a mention when all hold, reading
 the target's title from `link.target`'s document, so it never resolves a link a second time:
@@ -233,7 +237,7 @@ Each drives `mentions(corpus, { pattern })` over `corpusFromText` or a disk fixt
 | an extensionless link is a `document` under the `resolve` option that tries `.md`, and `missing` without it                                      | 1     |
 | an unread mention under a predicate reading `link.target` is reported as `md/unread-mention`, not dropped                                        | 1     |
 | `areInTitleLinks`: each of the four clauses decides a row of its own; letter case and markup in the title; a prefix that would strip the mention | 1     |
-| a `g` prefix strips once, at the start; a `g` pattern gives the same verdict twice                                                               | 1     |
+| a prefix strips once, at the start; a `g` prefix gives the same verdict twice (as built; the `g` pattern row went with `pattern`)                | 1     |
 | the example's rows, a to m, l2, m2 and s, with the missing-file and directory rows and the empty mention side                                    | 2     |
 
 **Sabotage, before the PR:** clause 3 as containment turns row s green; dropping clause 2 turns row
@@ -282,11 +286,83 @@ Two rounds, architect and enforcement separately, both Changes needed each round
   not be built, since `resolveLink`'s input holds only a path. `LinkTarget` stays unchanged and the
   m2 sabotage reads `m.doc`; the flag wording now names the copy `validateMentionPattern` makes.
 
+## Built — 2026-10-26
+
+What the build did that the plan did not say, kept here rather than edited into it:
+
+- **`link.offset`, a third field.** Clause 4 needs where the mention starts in the link's text, and
+  no field held it. It is `MdMentionLink.offset`, absent in three cases, all documented: the
+  mention starts before the link (`plan [0070](…)`), sits in the link's title, or the link holds
+  inline HTML or a hard break, whose segments do not join to its text. Each makes the mention
+  judged, never exempt. `link.text` is the link node's `headingName`, so the two texts clause 3
+  compares are joined one way; it is not `links()`'s `text`, and the docs say so.
+- **`areLinked()`, a predicate the plan did not name.** The join's left side is the linked mentions,
+  and no block selected them: the example's own predicate broke
+  `eess/examples-md-no-hand-built-rules` ("a hand-built predicate proves nothing about" the blocks).
+  The maintainer chose it on 2026-10-26 over a join over every mention, which reds each plain
+  mention a second time, and over filtering the selection by hand, which passes the rule's wording
+  and not its point. It reads `link` as `beLinked()` does, so an unread mention under it is
+  reported; one test row holds both.
+- **Not marked breaking.** `MdMentionRef` and `collectMentions` came with
+  [plan 0539](./completed/0539-a-mention-of-a-record-is-a-link.md), whose changeset is still
+  pending: v0.15.0 has no `model/mentions.ts`, and npm's eess-md is 0.12.0. Nothing that shipped
+  changes, so the changeset is a plain minor and says why. `collectMentions` returns
+  `MdMentionMatch`, the old shape.
+- **The example's rows.** One folder per red row, [spike 0540](../spikes/0540-one-join-over-every-source.md)'s c, d and i included,
+  `violating-no-linked-mention` for the empty mention side, and `violating-reference-link`: fifteen
+  `violating-` folders and `clean/` (a, b, f, j, j2; the exemption count 1; 14 examined). The
+  example pairs the join with `beLinked()`, as Decision 1 says, so a reference-style link the join
+  cannot read is red; the fixtures' titles link the record they quote, so the pair is green on
+  `clean/`. The neutral owner `acme` stands for the repository and the upstream.
+  `check:nonvacuity` runs the file 1 + 2 × 15 = 31 times, 0.79 s each here, about 25 s added; a
+  run of the harness's swap check on this example alone took 27 s and found every folder
+  load-bearing.
+- **Code review (architect and enforcement, 2026-10-26), what changed:**
+  - **`areInTitleLinks` takes no `pattern`** (architect I3). Clause 3's equality already puts the
+    mention's own text at its place in the title, so the pattern could only add letter case, as a
+    required copy of the builder's state the predicate could not check. Decision 3's clause 4 is
+    now "the mention starts in the link's text, not in the stripped prefix". Removing a required
+    option after release would be a break; nothing has shipped.
+  - **Clause 2 reads "says more than the mention"** (enforcement M3): a letter or digit outside it,
+    so a link whose text is the mention and a full stop is judged.
+  - **Rows the reviews asked for:** a mention in the link's title is not exempt (enforcement I1);
+    `link.offset` is absent with inline HTML or a hard break (architect I2); a prefix strips once;
+    punctuation is not more; the exact examined count (enforcement M1).
+  - **Smaller:** `titleOf` moved into `model/sections.ts` beside `titleFault`; the
+    `eess/md-one-link-resolver` rule now also selects `builders/`, where `mentions()` resolves.
+  - **Recorded, not fixed**, each under "What this cannot see" in the docs: a board row whose
+    number is not its target's, when two records share one title, is exempt (enforcement M4); a
+    second mention in the link counts as more than the first (verification); and a record's
+    mention of its own number in a reference-style link to another record is seen by neither rule
+    of the example's pair, since `not(areSelfMentions(…))` decides it out of `beLinked()` without
+    reading the link and the join cannot read the link (verification).
+  - **Measured, no change** (architect M4): every linked mention's link is resolved when the
+    builder walks a document; `check:corpus` took 7.4–7.6 s with this code built, as at the base.
+- **Sabotage, run before the PR** with eess-md rebuilt each time, its exit read, and the file
+  restored after. Each turned only its row red:
+
+  | sabotage                                   | red                                        |
+  | ------------------------------------------ | ------------------------------------------ |
+  | clause 3 as containment                    | `violating-stamp`, the unit stamp row      |
+  | clause 2 dropped                           | `violating-whole-text`, both clause-2 rows |
+  | `self` accepted, title from `m.doc`        | `violating-self-only`                      |
+  | clause 4's prefix check dropped            | the unit prefix row                        |
+  | an absent offset read as 0                 | the unit link-title row                    |
+  | the segment-join guard dropped             | the unit offset-absent row                 |
+  | the prefix stripped while it matches       | the unit strip-once row                    |
+  | `.expectNonEmpty()` dropped in the example | `violating-no-linked-mention`              |
+
+  A first attempt rebuilt with the wrong tsconfig, left `dist` stale and turned nothing red; a
+  strip-all written as a global replace of an anchored prefix strips once too, and fired nothing
+  until written as a loop.
+
 ## Progress ledger
 
 - [x] Phase 0 — the exemption census, recorded (2026-10-26: 5 exempt, 1 true red, no amendment)
-- [ ] Phase 1 — `link.text`, `link.target`, the `resolve` option, `areInTitleLinks`, exports
-- [ ] Phase 2 — the worked example and docs
-- [ ] Phase 3 — the vacuity-matrix entry
-- [ ] Every row of the Test inventory written and green, and the three sabotage rows red
-- [ ] The eess-md minor changeset, marked breaking
+- [x] Phase 1 — `link.text`, `link.target`, the `resolve` option, `areInTitleLinks`, exports
+      (and `link.offset`, see "Built")
+- [x] Phase 2 — the worked example and docs
+- [x] Phase 3 — the vacuity-matrix entry
+- [x] Every row of the Test inventory written and green, and the three sabotage rows red (and five more, see "Built")
+- [ ] The eess-md minor changeset, marked breaking — done-otherwise: a minor, not marked breaking,
+      since nothing it changes has shipped (see "Built")

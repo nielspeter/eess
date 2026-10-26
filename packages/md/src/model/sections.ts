@@ -216,6 +216,12 @@ export function headingNotes(
   return notes.sort((a, b) => a.line - b.line)
 }
 
+/** A document's title (plan 0549): its first section's heading when at depth 1, as `titleFault` reads it. */
+export function titleOf(doc: MdDocument): string | undefined {
+  const [first] = sectionsOf(doc)
+  return first !== undefined && first.depth === 1 ? first.name : undefined
+}
+
 /**
  * Plan 0522 (proposal 017 block 3): why a document has no title matching `name`, or `undefined`
  * when it has one. The title is the document's first section, a heading at its top level; it must be
@@ -233,11 +239,12 @@ export function titleFault(doc: MdDocument, name?: string | RegExp): string | un
       ? ''
       : `; the heading "${meant.name}" at line ${String(meant.line)} is inside a ${meant.container}, which does not start a section`
   if (first === undefined) return `no title: the document has no heading${note}`
-  if (first.depth !== 1) {
+  const title = titleOf(doc)
+  if (title === undefined) {
     return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}`
   }
-  if (name !== undefined && !matchName(first.name, name)) {
-    return `the title "${first.name}" (line ${String(first.line)}) is not "${String(name)}"`
+  if (name !== undefined && !matchName(title, name)) {
+    return `the title "${title}" (line ${String(first.line)}) is not "${String(name)}"`
   }
   return undefined
 }
