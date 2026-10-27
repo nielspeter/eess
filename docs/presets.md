@@ -96,7 +96,7 @@ as failures. `check` reports this rather than failing silently, but the fix is
 ## `recommended` — what each rule reads
 
 The floor's four rules do not all read the same subject, and the difference is visible in what they
-report (bug 0333):
+report ([bug 0333](../work/bugs/fixed/0333-the-recommended-floor-reads-functions-only.md)):
 
 | rule                      | subject             | reads                                                             |
 | ------------------------- | ------------------- | ----------------------------------------------------------------- |
@@ -259,7 +259,7 @@ agentGuardrails(p, {
 ### What each rule reads
 
 Its rules do not all read the same subject, and the difference is visible in what they report
-(bug 0337 — the same ruling `recommended` follows):
+([bug 0337](../work/bugs/fixed/0337-agent-guardrails-reads-function-bodies-only.md) — the same ruling `recommended` follows):
 
 | rule                                    | subject             | reads                                                             |
 | --------------------------------------- | ------------------- | ----------------------------------------------------------------- |
@@ -285,7 +285,7 @@ assertion it is, rather than going quiet.
 nothing named enclosing them — two top-level `eval` calls, say — are told apart by their position in
 that file. So if you accept both, then fix the first and add a different one, the new one matches the
 freed entry and is accepted silently. Findings inside named functions are not affected, and neither is
-the cross-file direction. This is tracked as bug 0338; until it is fixed, prefer reviewing a
+the cross-file direction. This is tracked as [bug 0338](../work/bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md); until it is fixed, prefer reviewing a
 `baseline --diff` over trusting a green run for these two rules.
 
 ### `noVerdictOutsideRules` — where a verdict may be written

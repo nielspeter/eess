@@ -9,7 +9,7 @@ snippet was executed against a real project before being written down.
 _Prerequisite for all three: Node >= 24. eess itself is ESM-only
 ([ADR-004](../adr/004-esm-only-package.md)), but your project doesn't have to
 be — the CLI loads your config and rule files via jiti, so `"type":
-"commonjs"` projects work as-is (bug 0074)._
+"commonjs"` projects work as-is ([bug 0074](../work/bugs/fixed/0074-init-esm-type-module.md))._
 
 ## 1. CI gate — GitHub Actions
 

@@ -1,6 +1,6 @@
 # Kernel architecture
 
-The `@nielspeter/eess` kernel's own class diagram, embedded here as a `mermaid` fence — the `md↔mermaid` dogfood plant (plan 0096), not an adopter template. It is a hand-maintained mirror of [`docs/architecture.mmd`](https://github.com/NielsPeter/eess/blob/main/docs/architecture.mmd), which the standalone `check:diagram`/`check:crossval` gates already prove matches `packages/core`; this embedded copy is validated separately by `check:crossval`'s `md↔mermaid` gate, in both directions. There is no automated sync between the two files — a human editing one must remember the other.
+The `@nielspeter/eess` kernel's own class diagram, embedded here as a `mermaid` fence — the `md↔mermaid` dogfood plant ([plan 0096](../work/plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)), not an adopter template. It is a hand-maintained mirror of [`docs/architecture.mmd`](https://github.com/NielsPeter/eess/blob/main/docs/architecture.mmd), which the standalone `check:diagram`/`check:crossval` gates already prove matches `packages/core`; this embedded copy is validated separately by `check:crossval`'s `md↔mermaid` gate, in both directions. There is no automated sync between the two files — a human editing one must remember the other.
 
 ```mermaid
 classDiagram
@@ -84,7 +84,7 @@ Two consequences worth knowing before you reach for it:
   or Yarn PnP.
 - **Nothing prevents you importing it.** A subpath export is published and resolvable
   by anyone; no mechanism in npm, TypeScript or this repo can stop it. The name is the
-  whole signal, which ADR-011's enforcement table records as `manual` rather than
+  whole signal, which [ADR-011](../adr/011-the-kernels-public-api-is-explicit.md)'s enforcement table records as `manual` rather than
   claiming otherwise.
 
 If you are writing a dialect rather than consuming one, that calculus is different —

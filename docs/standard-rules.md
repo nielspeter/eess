@@ -39,7 +39,7 @@ import {
 | `moduleNoTypeAssertions()`      | modules   | Source file must not contain `as` casts (allows `as const`)     |
 | `moduleNoNonNullAssertions()`   | modules   | Source file must not contain `!` non-null assertions            |
 
-The security rules — `noEval`, `noFunctionConstructor`, `noConsole`, `noProcessEnv` and their function and module variants — read a name **through its binding** (bug 0305): `const ev = eval; ev('1')`, `const { log } = console` and `import { env } from 'node:process'` are reported, while a local that merely keeps a global's name — `function Function() {}`, a parameter called `process` — is not. A name whose binding cannot be resolved is read as written, so a missing type definition cannot turn a rule off.
+The security rules — `noEval`, `noFunctionConstructor`, `noConsole`, `noProcessEnv` and their function and module variants — read a name **through its binding** ([bug 0305](../work/bugs/fixed/0305-security-rules-miss-a-global-reached-through-a-local-alias.md)): `const ev = eval; ev('1')`, `const { log } = console` and `import { env } from 'node:process'` are reported, while a local that merely keeps a global's name — `function Function() {}`, a parameter called `process` — is not. A name whose binding cannot be resolved is read as written, so a missing type definition cannot turn a rule off.
 
 `noTypeAssertions` (and its variants) allow `as const` since that narrows types rather than widening them. The class variants scan all the code a class runs: its members' method, constructor and accessor bodies, parameter defaults, property initializers and static blocks, and every decorator expression, computed member name and the `extends` expression — not `implements` or docstrings. Module variants scan the entire file — broader than function/class and useful for "nowhere in src/" enforcement.
 
@@ -114,7 +114,7 @@ the global. What they do **not** see is a global bound to a local name first —
 `const { log } = console`, `const { env } = process`, an `env` imported from `node:process` — and
 then used under that name. `import.meta.env` is a bundler convention, not Node's environment, and
 is outside `noProcessEnv`. And a local named like a global object, such as a parameter called
-`global`, `window` or `self`, is read as the global (bug 0305).
+`global`, `window` or `self`, is read as the global ([bug 0305](../work/bugs/fixed/0305-security-rules-miss-a-global-reached-through-a-local-alias.md)).
 
 ### When to use which variant
 
@@ -304,7 +304,7 @@ functions(p)
   .check()
 ```
 
-Note: comments _above_ a function (its docstring and leading comments) are checked too, and so are comments in its parameter list — a comment matcher starts at the function's declaration. The class variants read a member's parameter list as well (bug 0325), but no docstring: on a class, a comment above a member is documentation, not code (bug 0307).
+Note: comments _above_ a function (its docstring and leading comments) are checked too, and so are comments in its parameter list — a comment matcher starts at the function's declaration. The class variants read a member's parameter list as well ([bug 0325](../work/bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)), but no docstring: on a class, a comment above a member is documentation, not code ([bug 0307](../work/bugs/fixed/0307-class-body-rules-skip-class-code-outside-its-members.md)).
 
 ### Empty body detection
 

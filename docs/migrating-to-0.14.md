@@ -22,11 +22,11 @@ together.**
 ## If you only use the kernel and eess-ts
 
 Nothing to do. `@nielspeter/eess` 0.7.1 and `eess-ts` 0.13.1 are patches: the family loads under Bun
-again (bug 0439). From kernel (`@nielspeter/eess`) 0.5.1 on, importing most entries under Bun failed
+again ([bug 0439](../work/bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)). From kernel (`@nielspeter/eess`) 0.5.1 on, importing most entries under Bun failed
 at link time with `SyntaxError: Export named 'registerHooks' not found in module 'node:module'`. Every
 published entry and both CLIs load under the Bun version pinned in `.bun-version` (1.4.3), and CI
 checks that on every change. This is a load guard, not a claim of support: Node stays every package's
-runtime (ADR-020).
+runtime ([ADR-020](../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md)).
 
 ## Code edits
 
@@ -36,22 +36,22 @@ runtime (ADR-020).
 
 ## What can go red on update
 
-| package              | what is now checked                                                                                  | why it passed before                                   |
-| -------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `eess-md`            | `parseCodeBlocks` parses a fence whose tag differs only in letter case (` ```Mermaid `, ` ```JSON `) | it was skipped and named as a near miss (bug 0426)     |
-| `eess-md`            | an `.expectEmpty()` declared because the only blocks had a capitalised tag is reported as expired    | those blocks were not selected (bug 0426)              |
-| `eess-mermaid`       | `diagramKind` reads past a `%%{init}%%` directive that closes mid-line                               | the line was read as a directive still open (bug 0429) |
-| `eess-crossvalidate` | `tableErAgree` compares an `erDiagram` behind such a directive line                                  | `diagramKind` returned `''`, so it was skipped (0429)  |
+| package              | what is now checked                                                                                  | why it passed before                                                                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `eess-md`            | `parseCodeBlocks` parses a fence whose tag differs only in letter case (` ```Mermaid `, ` ```JSON `) | it was skipped and named as a near miss ([bug 0426](../work/bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)) |
+| `eess-md`            | an `.expectEmpty()` declared because the only blocks had a capitalised tag is reported as expired    | those blocks were not selected ([bug 0426](../work/bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md))          |
+| `eess-mermaid`       | `diagramKind` reads past a `%%{init}%%` directive that closes mid-line                               | the line was read as a directive still open ([bug 0429](../work/bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md))       |
+| `eess-crossvalidate` | `tableErAgree` compares an `erDiagram` behind such a directive line                                  | `diagramKind` returned `''`, so it was skipped (0429)                                                                                            |
 
 Remove an expired `.expectEmpty()`. Nothing else in a tag is normalised: ` ```mmd ` is not
-`mermaid`, and ` ```json5 ` is not `json` (ADR-019). The caller's side is folded too, so
+`mermaid`, and ` ```json5 ` is not `json` ([ADR-019](../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)). The caller's side is folded too, so
 `language: 'JSON'` selects ` ```json ` blocks; `ParsedCodeBlocks.language` and `summary()` keep your
 spelling.
 
 With the kind on the directive's own line, or behind a multi-line directive, eess-mermaid's ER grammar
 does not parse the diagram, so `tableErAgree` reports it as a gap in that grammar rather than
 comparing it. Put the directive and `erDiagram` on lines of their own to have it compared (the
-one-line case is bug 0433).
+one-line case is [bug 0433](../work/bugs/0433-a-kind-on-its-directives-line-is-a-comment-to-eess-mermaids-grammars.md)).
 
 `embeddedDiagramsMatchCode` goes the other way: a sequence or other non-class diagram behind such a
 line is now skipped, where it used to be read as a class diagram and reported.

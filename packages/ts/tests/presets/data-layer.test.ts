@@ -67,7 +67,9 @@ describe('dataLayerIsolation preset', () => {
     expect(violations.length).toBeGreaterThan(0)
   })
 
-  it('accepts a repository that extends the base through an intermediate class (bug 0295)', () => {
+  // Bug 0295. The title carries no record number, so the ADR row that cites it is not a plain
+  // mention (plan 0542).
+  it('accepts a repository that extends the base through an intermediate class', () => {
     // AuditRepository extends ScopedRepository, which extends BaseRepository: it keeps every
     // guarantee the base gives, so the rule's own rationale says it conforms. The extend
     // condition read only the direct clause and red it.

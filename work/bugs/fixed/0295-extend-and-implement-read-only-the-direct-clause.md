@@ -127,7 +127,8 @@ The docs can be corrected now, without the ruling, to say what the predicates do
       plus `it('the walk still matches by name where a level of the chain cannot be resolved')`
       and `it('a heritage cycle ends the walk instead of looping')`. The shipped preset:
       `packages/ts/tests/presets/data-layer.test.ts` ·
-      `it('accepts a repository that extends the base through an intermediate class (bug 0295)')`.
+      `it('accepts a repository that extends the base through an intermediate class')` (renamed by
+      [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 2 to drop the number, so the ADR row citing it holds no plain mention).
 - [x] sabotage matrix, run on the final tree after review, twelve rows — one per branch of each
       function in the walk — sha256-verified restores, over this file,
       `packages/ts/tests/predicates/heritage-predicates-compare-the-clause-text.test.ts` and the

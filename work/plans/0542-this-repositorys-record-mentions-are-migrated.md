@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phase 1 built 2026-10-27; the lanes next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1 and 2 built 2026-10-27; lane 3 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -199,6 +199,34 @@ Each lane is its own PR, in this order:
 
 **Files:** the lane's documents, `mention-fix.rules.ts`.
 
+**Lane 2 (Phase 2), built 2026-10-27**, at base 96b0461e:
+
+- The instrument found 16 anachronisms in 326 fixes, the Appendix's 16 exactly. The dry run gave
+  310 fixes and 46 refusals; the plan's 47th refusal, ts-archunit plan 0057 on `docs/calls.md:150`, sat on an
+  excluded line, which hides every mention on it.
+- The judge (Fable; seed 20261027) read the 30 fixes in the ts-archunit range and 20 sampled: 49
+  right, 1 wrong. `adr/002-ts-morph-ast-engine.md:221` names ts-archunit plan 0075, its element-cache plan,
+  not eess's; it was left out by element, and no other fix in the lane targets
+  [plan 0075](./0075-manifesto-reconciliation.md).
+  [Bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s
+  mention of the same number is likely ts-archunit's too, for lane 4 to read.
+- `--apply` wrote 307 links; one more, an anachronism read as right, was applied after.
+- Of the 16 anachronisms, 15 name the record they would link to: each was written in the PR that
+  claimed the number, before the record's file landed. They were linked by hand. One,
+  `docs/calls.md:150`, is ts-archunit's numbering and was reworded. The instrument errs toward
+  flagging, as designed, so most of what it flags is right.
+- By hand, 55 edits in 17 files: 10 mentions reworded to the ts-archunit form (the skipped count
+  went from 39 to 49), the rest linked; `docs/markdown.md`'s example forms moved into a fenced
+  block, as that page itself advises; two incidental examples reworded.
+- Two ADR Enforcement rows cite a test title holding a record number, which can be neither linked
+  nor fenced. The maintainer chose (2026-10-27) to rename the titles: `an undocumented exclusion
+fails the build` and `accepts a repository that extends the base through an intermediate class`
+  drop their numbers, each kept in a comment beside its test (`'@nielspeter/eess-ts': none`).
+  Lane 5 holds one more such citation, in
+  [bug 0325](../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md), treated the same way.
+- Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
+  reads 4,046 unlinked mentions, against 4,418 at the base.
+
 ### Phase 9 — the gate holds zero, and checks the target
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
@@ -316,7 +344,7 @@ document. Every new number was reproduced at 4a43bcc4.
 
 - [x] Ready (2026-10-27)
 - [x] Phase 1 — the gate's narrowing, proven, and the rule file
-- [ ] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
+- [x] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
 - [ ] Phase 3 — `work/spikes/`, `work/proposals/`
 - [ ] Phase 4 — `work/bugs/` (live)
 - [ ] Phase 5 — `work/bugs/fixed/`

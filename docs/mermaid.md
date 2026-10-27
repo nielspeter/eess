@@ -132,11 +132,11 @@ catches only a change in what those blocks hold.
   passes; the canaries make a forged pass deliberate, not impossible.
 - **Mermaid's own limits are the instrument.** A flowchart of more than 500 edges is refused by
   Mermaid's `maxEdges`; that error is not a syntax error, so it is reported as the instrument,
-  naming the block (bug 0436).
+  naming the block ([bug 0436](../work/bugs/0436-a-flowchart-past-mermaids-edge-limit-is-the-instrument.md)).
 - **The installed version is read from `node_modules`.** Under Yarn Plug'n'Play an installed
-  `mermaid` may read as not installed (not measured; bug 0437).
+  `mermaid` may read as not installed (not measured; [bug 0437](../work/bugs/0437-under-yarn-pnp-an-installed-mermaid-may-read-as-not-installed.md)).
 - **Frontmatter after a blank line or a comment claims no line.** Mermaid reads it; eess-mermaid's
-  line map does not, so a syntax error in such a block names the block, not a line (bug 0435).
+  line map does not, so a syntax error in such a block names the block, not a line ([bug 0435](../work/bugs/0435-the-line-map-reads-no-frontmatter-after-a-blank-line-or-a-comment.md)).
 - **No block, no parse.** When the corpus has no ` ```mermaid ` block, nothing is parsed, so a
   missing `mermaid` is not reported: the rule reports that it examined nothing, or, with
   `.expectEmpty()`, passes having judged nothing.

@@ -14,7 +14,7 @@ settled the first.
 in `packages/ts` — and the copies are 93–100% similar. They cannot be unified
 while one of them names a type the kernel has no concept of: `ArchProject`.
 
-Plan 0188 framed this as needing "a project abstraction for the kernel", and
+[Plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.md) framed this as needing "a project abstraction for the kernel", and
 warned that "giving it one constrains all five dialects forever". **Measured, the
 coupling is far smaller than that framing implies.** Six references across the two
 builders, and following each one to what it actually reads:
@@ -64,7 +64,7 @@ takes what it needs to _say_, not the thing it would have to _understand_.
 
 ## Alternatives rejected
 
-**A `Project` interface in the kernel.** What plan 0188 anticipated. Rejected on
+**A `Project` interface in the kernel.** What [plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.md) anticipated. Rejected on
 the measurement: a two-member interface named `Project` invites growth — the next
 caller that wants a third member has a place to put it, and five dialects inherit
 the constraint. Naming the fact instead of the source keeps the surface honest
@@ -76,9 +76,9 @@ do not have. `eess-md` has documents, `eess-gherkin` has scenarios. `isEmpty` is
 true in all five.
 
 **Leave the builders duplicated.** The status quo, and the reason this ADR
-exists: it is how `fork()` cleared conditions in one copy for months (bug 0156),
-how `setCallerAggregatesReports` went half-wired (bug 0163), and how a bare
-`eess-exclude-start` stayed silent in `eess-ts` (bug 0227).
+exists: it is how `fork()` cleared conditions in one copy for months ([bug 0156](../work/bugs/fixed/0156-should-twice-silently-drops-the-first-assertion.md)),
+how `setCallerAggregatesReports` went half-wired ([bug 0163](../work/bugs/0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)), and how a bare
+`eess-exclude-start` stayed silent in `eess-ts` ([bug 0227](../work/bugs/0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md)).
 
 ## Consequences
 
@@ -90,7 +90,7 @@ how `setCallerAggregatesReports` went half-wired (bug 0163), and how a bare
   implement and none is forced to.
 - A dialect that passes nothing gets weaker advice than `eess-ts` does. That is
   the honest position: the kernel cannot know why _your_ universe is empty, and
-  inventing a reason is what ADR-008 rule 2 refuses.
+  inventing a reason is what [ADR-008](./008-caller-owns-reporting.md) rule 2 refuses.
 
 ## Enforcement
 

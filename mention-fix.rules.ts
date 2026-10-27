@@ -31,9 +31,15 @@ const LANE: readonly string[] = []
  */
 const ANACHRONISMS: readonly string[] = []
 
+/**
+ * Fixes the lane's judge read as wrong, left out by element before applying, each with its cause (the
+ * plan records it). Split by glob as the anachronisms are.
+ */
+const JUDGED_WRONG: readonly string[] = []
+
 const c = corpus({ roots: CORPUS_ROOTS })
 assertLaneDisjoint(LANE, c.fileIndex)
-const excluded = anachronismsByGlob(LANE, ANACHRONISMS)
+const excluded = anachronismsByGlob(LANE, [...ANACHRONISMS, ...JUDGED_WRONG])
 
 export default LANE.map((glob) =>
   mentionFixRule(c, glob)

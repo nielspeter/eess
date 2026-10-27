@@ -12,10 +12,10 @@
 Every predicate in the family answers `true` or `false`. Some cannot always answer. eess-md's
 `haveField` reads a labelled value, and a document can give it twice, give it empty, or give it in a
 form the rule does not read; the value cannot be told. Answering `false` for such a document drops it
-from the rule's subjects, and the build says nothing. That is ADR-009's silent drop, made inside a
+from the rule's subjects, and the build says nothing. That is [ADR-009](./009-agent-first-failure-surfaces.md)'s silent drop, made inside a
 selector.
 
-Plan 0469 kept the finding by keying it on the predicate's identity inside one builder. The spike
+[Plan 0469](../work/plans/completed/0469-havefield-a-document-has-a-value.md) kept the finding by keying it on the predicate's identity inside one builder. The spike
 measured where that fails: inside every `not()`/`and()`/`or()`, which build new objects; through
 `.select()`, which hands back elements and nothing else; in eess-ts's own builder and combinators;
 through a hand-written wrapper around `test`; and in eess-md's `inScope` and `fields()` scans. The
@@ -39,7 +39,7 @@ readonly Undecided[]`. A non-empty result means the predicate cannot judge that 
    unknown; `not` keeps unknown unknown. Every combinator in the family takes its `undecided` from
    that table, and its `test` either from the table or, for `not`, by refusing an unknown input, so
    selection and reporting cannot disagree.
-3. **Only a definitely-selected subject reaches the rule's conditions and `examined`** (ADR-010). An
+3. **Only a definitely-selected subject reaches the rule's conditions and `examined`** ([ADR-010](./010-a-pass-is-constructed-from-evidence.md)). An
    undecided subject is represented by its causes. A finding about what the rule's own instrument
    could not read (a box mark no rule declared, a label in a form the rule does not read) still
    reaches a subject whose membership is undecided: there the undecided case is in scope, fail-closed.
@@ -49,15 +49,15 @@ readonly Undecided[]`. A non-empty result means the predicate cannot judge that 
    document (prose that disagrees, a label in another form): the verdict does not depend on it. A
    rule that wants every value readable and consistent asserts it in condition position.
 5. **The finding is unsuppressable, one per cause per rule.** It is about the instrument, not about
-   the subject's content, as with ADR-016's exhausted walk and plan 0454's unread box, so it carries
+   the subject's content, as with [ADR-016](./016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s exhausted walk and [plan 0454](../work/plans/completed/0454-box-marks-are-the-callers.md)'s unread box, so it carries
    `bypassFilters`: `.excluding()`, `.warn()`, an exclusion comment, a baseline and diff-aware mode do
    not remove it (only removing the rule does). It is one finding per cause **within a rule**, however
-   many subjects share it (ADR-009 rule 4), and deliberately not one per cause across rules, which
-   is where it departs from ADR-016 rule 3: whether a verdict depends on a cause is decided per rule,
+   many subjects share it ([ADR-009](./009-agent-first-failure-surfaces.md) rule 4), and deliberately not one per cause across rules, which
+   is where it departs from [ADR-016](./016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 3: whether a verdict depends on a cause is decided per rule,
    so each rule that depends on it says so.
 6. **A door that hands no findings back refuses.** `matchingElements`, `.select()`, and a predicate's
    `test` called on a subject its `undecided` reports each throw an `ArchConfigError` naming the door
-   and the first cause. That is ADR-014's rule for a door that hands nothing back. `.select()` is
+   and the first cause. That is [ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md)'s rule for a door that hands nothing back. `.select()` is
    usually called while a rule file loads, so its refusal stops that file, not one rule: it fails
    closed, naming the first of the causes. Carrying the findings through a selection instead is
    reopened when a consumer needs a side of `correspondence()` filtered by a predicate that can be
@@ -70,7 +70,7 @@ readonly Undecided[]`. A non-empty result means the predicate cannot judge that 
 
 ## Why this, and not the alternatives
 
-- **A dialect registry keyed on identity** (the spike's candidate A, and plan 0469's mechanism) is
+- **A dialect registry keyed on identity** (the spike's candidate A, and [plan 0469](../work/plans/completed/0469-havefield-a-document-has-a-value.md)'s mechanism) is
   lost inside every combinator, because the combinators are kernel code. A dialect cannot reach them.
 - **Report every unreadable subject the rule read** (scope (a)) fails closed but reports what the
   rule's verdict does not depend on. Of the records each adopter's field rules do not target, 54, 89
@@ -100,16 +100,16 @@ readonly Undecided[]`. A non-empty result means the predicate cannot judge that 
 
 Built by [plan 0486](../work/plans/completed/0486-a-predicate-that-cannot-judge-says-so.md). The
 tests are `packages/core/tests/undecided.test.ts` (kernel), `packages/md/tests/builders/have-field-undecided.test.ts`
-(eess-md, with a lift onto boxes built in the test, as plan 0457's `inDocuments` will forward
+(eess-md, with a lift onto boxes built in the test, as [plan 0457](../work/plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s `inDocuments` will forward
 `undecided`) and `packages/ts/tests/core/a-predicate-that-cannot-judge-is-refused.test.ts` (eess-ts).
-Each sabotage named below is a row of plan 0486's matrix, red on the test it guards. The kernel and
-eess-md titles are not cited by `it('…')`, since `check:crossval` resolves eess-ts's tests only (bug
-0262).
+Each sabotage named below is a row of [plan 0486](../work/plans/completed/0486-a-predicate-that-cannot-judge-says-so.md)'s matrix, red on the test it guards. The kernel and
+eess-md titles are not cited by `it('…')`, since `check:crossval` resolves eess-ts's tests only
+([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md)).
 
-> **Correction, 2026-10-19 (plan 0457, PR #245).** The eess-md test no longer builds its own lift: it
+> **Correction, 2026-10-19 ([plan 0457](../work/plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), PR #245).** The eess-md test no longer builds its own lift: it
 > drives the shipped `inDocuments`, and plan
 > [0457](../work/plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s
-> sabotage matrix rows 13 to 16 now prove the forwarding of `undecided` that plan 0486's rows proved
+> sabotage matrix rows 13 to 16 now prove the forwarding of `undecided` that [plan 0486](../work/plans/completed/0486-a-predicate-that-cannot-judge-says-so.md)'s rows proved
 > over the test-local lift. The paragraph above is kept as written.
 
 | Clause                                                                                                                             | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |

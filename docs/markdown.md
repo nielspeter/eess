@@ -58,12 +58,12 @@ back, and defaults to `process.cwd()` as the second bullet below explains).
 
 A root that matches no file, or only ignored files, while another root loads is refused with an
 `ArchConfigError` that names it: a mistyped root would otherwise drop its documents without a word
-(bug 0465). A root that is empty on purpose, such as a lane with no records yet or a test fixture that
+([bug 0465](../work/bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md)). A root that is empty on purpose, such as a lane with no records yet or a test fixture that
 writes only the folder its rule reads, is named in `expectEmptyRoots`. That declaration expires: once
-the root loads a document, it is refused until you remove the name (bug 0475). A test fixture that
+the root loads a document, it is refused until you remove the name ([bug 0475](../work/bugs/fixed/0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md)). A test fixture that
 builds a shared multi-root corpus can pass `ROOTS.filter((r) => r !== populatedRoot)`.
 
-A `frozen` glob you pass is judged the same way (bug 0499): one that can never match (a leading `/`,
+A `frozen` glob you pass is judged the same way ([bug 0499](../work/bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md)): one that can never match (a leading `/`,
 a `../`) is refused with its correction, and one that marks none of the loaded documents is refused
 unless it is named in `expectEmptyFrozen`, the declaration for a lifecycle folder with no record yet.
 That declaration expires too: once the glob marks a document, it is refused until you drop the name.
@@ -121,7 +121,7 @@ pointers(c).that().areLive().should().resolve().check()
 ```
 
 It is `corpus()` with the walk swapped out, so links and pointers resolve as they would over the
-same files on disk; a parity test over this package's own fixture trees holds that (plan 0455). The
+same files on disk; a parity test over this package's own fixture trees holds that ([plan 0455](../work/plans/completed/0455-a-corpus-built-from-text.md)). The
 options, `TextCorpusOptions`, are `corpus()`'s, with two differences: `roots` defaults to every `.md` key in the map, and
 there is no `cwd`. `frozen` keeps its default, so a document under `completed/` is frozen here too.
 A pointer's target is in the map or it is not there: the text corpus never reads your real code.
@@ -392,7 +392,7 @@ that follows it.
 
 The nearest label decides. Walking outwards from the link, the first block that
 is the declared label, or that opens with a wrapped label of its own, settles
-it. A plain line that is not the label — `bug 0402: [b](b.md)`, `Notes:`, a URL
+it. A plain line that is not the label — `Fixes: [b](b.md)`, `Notes:`, a URL
 — settles nothing, so an annotated item stays in its declaration and a
 `**Related to:**` item under an intro such as `Metadata:` is still read. A
 different wrapped label inside the declaration (`- **Supersedes:** [s](s.md)`)
@@ -421,7 +421,7 @@ selector also reports what it cannot read, as findings on the rule:
 - a declaration, in any form, holding reference-style links (`[text][ref]`),
   which eess-md does not read — its inline links are still selected;
 - a wrapped label spelt exactly right with nothing under it: either it names no
-  record (`**Related to:** bug 0253`), or it stands alone with no list directly
+  record (`**Related to:** the parser bug`), or it stands alone with no list directly
   under it. A template that writes `**Related to:** none` gets this finding;
   leave the label out instead;
 - a heading that misses a **string** `areInSection` declaration by case or
@@ -615,7 +615,7 @@ failure — an empty array means every item passed.
 A record named as text is checked by nothing; named by a link, a reader can follow it, and
 `links().should().resolve()` reports it when its path does not exist. `mentions()` finds every match of
 **your** pattern in a document's text, and `beLinked()` says each one sits in a link. eess-md fixes
-no pattern, no folder and no key: one project writes `bug 0338`, another `BUG-081`, a third
+no pattern, no folder and no key: one project writes `bug` and four digits, another `BUG-081`, a third
 `ADR-0018`, and each states its own.
 
 ```ts
@@ -652,17 +652,27 @@ mentions(c, { pattern: RECORD })
   .check()
 ```
 
-What a mention is:
+What a mention is, read with the pattern above. The forms are quoted in a fenced block, which is
+not read, so this page's own mention gate passes over them:
 
-- **Text in paragraphs, headings and table cells**, matched across emphasis (`**bug** 0338`) and
-  across a line break when your pattern allows it.
-- **Inline code is read.** `` `bug 0338` `` is a finding, "is in inline code, not a link": backticks
-  do not hide a mention. To quote an example, put it in a fenced block, which is not read, or waive
-  the line with a reason, `<!-- eess-exclude <rule-id>: <reason> -->`, which needs the rule to carry
-  an id (`.rule({ id: 'records/mention-is-a-link' })`).
-- **Linked** when the match's last character sits in a link that points somewhere, which covers
-  `[bug 0338](…)`, a link around inline code, the number alone in a link (`bug [0338](…)`), and a
-  link's own title. A link with no target, `[bug 0338]()` or `[bug 0338](#)`, is not a link.
+```text
+**bug** 0338        a mention, matched across emphasis
+`bug 0338`          a mention in inline code: "is in inline code, not a link"
+[bug 0338](…)       linked
+[`bug 0338`](…)     linked: a link around inline code
+bug [0338](…)       linked: the number alone in a link
+[bug 0338]()        not a link: a link with no target
+[bug 0338](#)       not a link: a link with no target
+```
+
+- **Text in paragraphs, headings and table cells**, matched across emphasis and across a line break
+  when your pattern allows it.
+- **Inline code is read**: backticks do not hide a mention. To quote an example, put it in a fenced
+  block, which is not read, or waive the line with a reason,
+  `<!-- eess-exclude <rule-id>: <reason> -->`, which needs the rule to carry an id
+  (`.rule({ id: 'records/mention-is-a-link' })`).
+- **Linked** when the match's last character sits in a link that points somewhere, a link's own
+  title included.
 - **Not read, and never an element:** fenced and indented code, front matter, and a block that is
   one HTML comment and nothing else.
 - **Reported as unread** (`md/unread-mention`, which nothing can suppress): a mention in a raw HTML
@@ -844,8 +854,8 @@ are; two records sharing a file name share a group. A grouping by record, from t
 
 ### What this cannot see
 
-- **A mention your pattern misses**: `bug number 338`, a bare `0338`, the second number of
-  `plans 0532 and 0533`, or a different letter case if your pattern lacks `i`. A year can look like
+- **A mention your pattern misses**: `bug number 338`, a bare `0338`, the second number when one
+  word names two (only the first is matched), or a different letter case if your pattern lacks `i`. A year can look like
   a number your pattern accepts.
 - **A mention hidden by an invisible character.** A zero-width space, zero-width joiner or soft
   hyphen anywhere inside the mention, written as the character or as an entity (`&#8203;`), reads
@@ -1070,7 +1080,7 @@ A finding names the section it was attributed to, the innermost selected one, in
 **The guard reads the same `const`.** On a positive rule a section scope that selects nothing is
 named (`inSections(are named "…") selected none of the corpus's N sections in M documents`), and a
 live one that holds none of the selected elements gives its three counts. On `notExist()` an empty
-scope is green, as an absence rule over nothing is (ADR-010 §3). Two things stand in front of that: the
+scope is green, as an absence rule over nothing is ([ADR-010](../adr/010-a-pass-is-constructed-from-evidence.md) §3). Two things stand in front of that: the
 section-name scan reports a heading that misses a string name by case or spacing, and the guard reds
 when no document has the section. A guard works only when it reads the rule's own `const`: a typo in
 the `const` reaches both, and the guard reds; a literal copied into each can be misspelt in one.
@@ -1138,7 +1148,7 @@ docs(c)
 
 **A `notExist()` rule does not check that its scope matches anything.** If the heading is renamed in
 the documents, or the name misspelt, the ratchet's scope matches no document and the rule stays
-green: an absence rule over nothing is satisfied (ADR-010 §3, ADR-018 C3). The guard is what catches
+green: an absence rule over nothing is satisfied ([ADR-010](../adr/010-a-pass-is-constructed-from-evidence.md) §3, [ADR-018](../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) C3). The guard is what catches
 it. Its condition repeats its selection, so it fails only when nothing is selected; the apparent
 simplification `.that().satisfy(areLive()).should().haveSection(SECTION)` is a different, stronger
 claim (every live document has the section). `.expectNonEmpty()` on the ratchet does not do this
@@ -1148,7 +1158,7 @@ own.) A scope built from `resideInFolder` or `resideInFile` is different: a brok
 (`inDocuments(resideInFolder('/work/**'))`) is reported on an absence rule exactly as the bare
 predicate is on `docs()`. `areFrozen()` and `areLive()` carry no glob; `corpus()` judges the
 `frozen` globs it is given instead, and refuses one that can never match (`frozen: ['/archive/**']`)
-or that marks none of the documents it loaded (bug 0499), unless it is named in `expectEmptyFrozen`.
+or that marks none of the documents it loaded ([bug 0499](../work/bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md)), unless it is named in `expectEmptyFrozen`.
 Writing the default list out makes it yours, and it is judged; the omitted default is not.
 
 **On a positive rule a scope that matched nothing is named.** `links(c).that().satisfy(inDocuments(
@@ -1375,7 +1385,7 @@ regex locating a labeled reference on a line (e.g. `/Bounded Context:/`);
 `value` (default: strip markdown emphasis characters and trim) extracts the
 referenced value from the text following the label match. It returns a
 `TermRuleBuilder`, whose elements are `MdTerm` (`value`, `raw` — the line's
-text after the label, before cleanup — `doc`, `line`, and since plan 0468 `label` and
+text after the label, before cleanup — `doc`, `line`, and since [plan 0468](../work/plans/completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md) `label` and
 `form: 'pattern'`). `.resideInFile(glob)`
 scopes to a file pattern; `.resolveAgainst(vocab)` is the condition — every
 reference's `value` must be a term of the given `Vocabulary`.
@@ -1460,7 +1470,7 @@ line``. When no form reads its shape (a blockquote, a task box, `__Status:__`, `
 ``… in a shape no form reads; rewrite it as `**Status:** v`, `## Status: v` or `**Status: v**` ``.
 Plain prose is never taken for a label: `Status: see the note` with no markup before the colon is
 neither read (unless you name `plain`) nor reported. With `region: 'header'`, a label below the
-header is neither read nor reported; plan 0469's `haveField` reports a value outside the region.
+header is neither read nor reported; [plan 0469](../work/plans/completed/0469-havefield-a-document-has-a-value.md)'s `haveField` reports a value outside the region.
 `fields()` reads the same label grammar as `honestyAtClose` (any indent, a bullet or a numbered
 marker), and a CRLF file reads as an LF one. This repository's own `check:corpus` reads every live
 plan's and bug's State this way.
@@ -1786,7 +1796,7 @@ cannot tell such a record from a document that is not one — a guide in the lan
 the template in a code block — so `ledger/state-in-code` reports that too; name a
 document like that in `boardFiles`.
 
-The last two are about a state the preset could not read at all (bug 0444):
+The last two are about a state the preset could not read at all ([bug 0444](../work/bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md)):
 
 - **`ledger/state-under-another-label`**: a record with no `State:` line whose header holds a
   value from the vocabulary under another label, such as `**Status:** Done` or `Status: Done`. A
@@ -1799,7 +1809,7 @@ The last two are about a state the preset could not read at all (bug 0444):
 A corpus that writes its state under another label passes `label: 'Status'`, or adds it with
 `aliases: ['Status']`. A record whose header carries its state as a heading, `## Status: Done`, is read too, under the
 labels in force; a run of `## Label: value` headings before the first plain section heading is one
-header (bug 0476). As with a label line, the value is matched from its start, so `## Status: Open
+header ([bug 0476](../work/bugs/fixed/0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md)). As with a label line, the value is matched from its start, so `## Status: Open
 questions` reads `Open`.
 
 The vocabulary finding, `ledger/unknown-state`, is the one a new adopter meets first, and it is a **violation,
@@ -1807,7 +1817,7 @@ not an ignore**: the default vocabulary is `Draft | Ready | Open | Done |
 Won't-do`, so a corpus using `In Review` or `Shipped` reds until you pass your own
 `states`/`terminalStates`. An unreadable state is reported rather than skipped on
 purpose — a record whose status nobody can parse is indistinguishable from one
-that has none, which is what bug 0120 is about.
+that has none, which is what [bug 0120](../work/bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md) is about.
 
 `findState(text, vocabulary, root?, labels?)` is the same scan the preset uses to read a
 document's status, exported so a caller can ask the question without a second
@@ -1831,7 +1841,7 @@ regexes and got all four of the above wrong.
 
 Like every preset, `honestyAtClose` throws by default: `HonestyAtCloseOptions`
 extends `PresetReportOptions`, so `report: 'return'` hands you the
-`ArchViolation[]` instead and `report: 'warn'` prints without failing (ADR-008 —
+`ArchViolation[]` instead and `report: 'warn'` prints without failing ([ADR-008](../adr/008-caller-owns-reporting.md) —
 the caller owns emission). The same is true of `adrEnforcement`.
 
 ```typescript
@@ -1867,7 +1877,7 @@ shape), `label` and `aliases` (the label a record's state is written under: defa
 `terminalStates` together, or neither**: either one alone throws
 an `ArchConfigError`. They declare one vocabulary, and a half used to take the other from the
 defaults — so a closing token you added to `states` was never terminal, its records were never
-treated as done, and their open boxes passed with no finding at all (bug 0284). To keep the
+treated as done, and their open boxes passed with no finding at all ([bug 0284](../work/bugs/fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)). To keep the
 defaults and add your own tokens, extend both lists. Then there is `expectEmptyHeaders` (declare that a freshly-bootstrapped lane may
 legitimately hold zero items yet — the declaration expires the day a real
 document appears).

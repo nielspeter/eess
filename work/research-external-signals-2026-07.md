@@ -187,10 +187,10 @@ highest-value move). See §5, candidate #2.
 **Graduation status (as of 2026-07-19).** #8 landed in the `eess-adr-author`
 skill (its "is this worth an ADR?" step); #9 landed in `eess-adr-validate`; #10
 is already congruent with the working-method kit's ledger deferrals; §3b and the
-§6 vocabulary shipped through plan 0072. #1 and #2 are drafted as
+§6 vocabulary shipped through [plan 0072](./plans/completed/0072-adoption-surface.md). #1 and #2 are drafted as
 [plan 0073](plans/0073-violation-telemetry-rule-staleness.md) (waiting on real
 adopter usage), which also absorbs the _coverage-growth_ half of the same
-telemetry from plan 0067 Phase 2. The rest are unclaimed.
+telemetry from [plan 0067](./plans/completed/0067-harness-informed-roadmap.md) Phase 2. The rest are unclaimed.
 
 **Not answered by this sweep.** eess mechanizes Tier 1 plus the md/crossval
 binding; a **Tier-2/3 mechanism** (clause → contract test, or a policy-as-code
