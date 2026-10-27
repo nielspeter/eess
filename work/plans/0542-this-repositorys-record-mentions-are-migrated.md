@@ -40,8 +40,8 @@ runs it, and then switches the gate to hold zero and to check that a link names 
    hiding no eess mention today. It is dropped: the 15 mentions written after it are reworded to
    the `ts-archunit` form in their lanes (16 at the first freeze, a miscount: corrected under
    Review). The fix's `foreign` keeps `upstream`, as the measurement did: it only refuses a fix, so
-   it hides nothing from the gate, and without it `--apply` would link those 15 before they are
-   reworded. The pattern is the caller's
+   it hides nothing from the gate, and without it `--apply` would link 3 of those 15 (the rest are refused
+   for other causes) before they are reworded. The pattern is the caller's
    ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)).
 
 3. **The seven done fold-era records are left out by name.**
@@ -58,8 +58,10 @@ runs it, and then switches the gate to hold zero and to check that a link names 
    [bug 0303](../bugs/0303-ts-archunit-adr-numbers-persist-in-eess-comments.md), where an exemption
    would leave new mentions unchecked for good. They go through their lanes instead (23 findings, no
    fix: each reworded or linked by hand). The seven are a named list with its reason in
-   `check:corpus`, never a glob; an entry naming no file is a finding, and a test pins the list to
-   its seven entries.
+   `check:corpus`, never a glob: each entry is an exact file path, the folder of
+   [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md) the one exception, so seven records
+   are eight documents. An entry naming no file, or a folder that is missing or empty, is a
+   finding, and a test pins the list to its seven entries as written.
 
 ## Measured — 2026-10-27, at 4a43bcc4, throwaway scripts
 
@@ -102,21 +104,26 @@ dry run gives its exact list.
   counts.
 - `mention-fix.rules.ts` at the repository root reads the same module: `beLinked({ fix })` over the
   records, `foreign` matching `ts-archunit` or `upstream` (Decision 2), the seven left out, a
-  `LANE` constant of globs that selects the lane's documents (`.that().resideInFile(…)`), empty in
-  this phase, `.expectNonEmpty()`, and an `.excluding()` list that holds the current lane's
-  anachronisms only. No mention changes.
+  `LANE` constant of globs, one rule per glob (`.that().resideInFile(glob)`), so a glob that
+  matches nothing is named as a dead glob rather than hidden by the others; empty in this phase, so the rule file declares
+  no rule and is not run.
+  An `.excluding()` list holds the current lane's anachronisms only. No mention changes.
 - `scripts/lib/mention-anachronisms.mjs`, new: Phase 0's anachronism instrument (40 s over all
   lanes), committed so each lane re-runs it at its own base; it prints the lane's anachronisms as
-  `.excluding()` entries.
+  `.excluding()` entries, and hard-errors on a shallow clone, as `check:corpus` does.
+- `check:corpus` prints how many mentions the lookbehind skipped, from this phase on.
 - **Break classes, each a `check:nonvacuity` row:** a mention written after `ts-archunit` is not
   counted while the same text without it is, probed for each alternative of the pattern (`bug`,
   `plan`, `spike`, `proposal`, `ADR-`) and for the `ts-archunit's` form; a mention in a listed file
   is not counted while the same text in an unlisted one is; a list entry naming no file is red. The
-  lookbehind's text and the list's seven entries are pinned by a test, so a widened word list or a
-  longer list is red.
+  lookbehind's text and the list's seven paths (deep-equal, not a count) are pinned by
+  `scripts/lib/record-mention.test.mjs`, so a widened word list or a swapped entry is red; the test
+  joins `check:corpus`'s `node --test` list in `package.json`, where a script test must be named to
+  run.
 
-**Files:** `scripts/lib/record-mention.mjs` (new), `scripts/lib/mention-anachronisms.mjs` (new),
-`scripts/check-corpus.mjs`, `scripts/check-nonvacuity.mjs`, `mention-fix.rules.ts` (new).
+**Files:** `scripts/lib/record-mention.mjs` (new), `scripts/lib/record-mention.test.mjs` (new),
+`scripts/lib/mention-anachronisms.mjs` (new), `scripts/check-corpus.mjs`,
+`scripts/check-nonvacuity.mjs`, `package.json`, `mention-fix.rules.ts` (new).
 
 ### Phases 2 to 8 — the lanes
 
@@ -126,8 +133,12 @@ Each lane is its own PR, in this order:
    output written as the rule file's `.excluding()` list, the rows that differ from the Appendix's
    for this lane named in the PR; the dry run, `eess-ts check mention-fix.rules.ts --fix`, read
    grouped by target file name (`docs/markdown.md`'s pipeline), its largest groups first. **Any
-   "Unused exclusion" line stops the lane** before step 3: with only this lane's entries in the list,
-   each one is a moved line. A fix count far from the table's row is explained before going on;
+   "Unused exclusion" line stops the lane** before step 3: the list was written from a re-run at this
+   lane's base, so an entry the rule does not match means the instrument and the rule disagree
+   about a line. **So does an Appendix row for this lane that the re-run misses**, until
+   that row is shown linked, reworded, or found by the re-run on its new line: an empty or short
+   re-run would otherwise apply every anachronism unread. A fix count far from the table's row is
+   explained before going on;
 2. **a judge reads every fix in the lane that sits in a file naming ts-archunit and links a record
    whose number ts-archunit also used** (294 over all lanes), and a seeded sample of 20 of the
    lane's other fixes, the seed recorded in the PR; the judge is an agent on a different model from
@@ -137,8 +148,8 @@ Each lane is its own PR, in this order:
 4. the lane's refusals, anachronisms and the other mentions on their lines closed by hand, as the
    Measured section says; the exclusions it closed removed from the rule file;
 5. **closed when the lane's documents hold no unlinked mention**: the rule file holds no exclusion
-   in `LANE`, and the dry run over `LANE` reports no finding (`.expectNonEmpty()` makes a glob
-   that matches nothing red, not clean).
+   in `LANE`, and the dry run over `LANE` reports no finding (with one rule per glob, a glob that
+   matches nothing is a dead-glob finding, not clean).
 
 **Files:** the lane's documents, `mention-fix.rules.ts`.
 
@@ -148,13 +159,17 @@ Each lane is its own PR, in this order:
   unlinked mention outside the seven is red, whatever the base holds. The base machinery goes:
   `scripts/lib/record-mention-base.mjs`, the `EESS_RECORD_MENTION_BASE` seam and its findings, the
   shallow-clone hard error, and the seam's own `check:nonvacuity` rows (the fixture base, the
-  unreadable base, the shallow clone). Phase 1's three rows stay, rewritten for the zero judgement.
+  unreadable base, the shallow clone). Phase 1's rows stay, rewritten for the zero judgement.
   The new rows: a mention the base already holds is still red (the switch itself, which a new
-  probe cannot show), and the same in a done folder, which the rule reads too.
-- **What it says.** The remedy no longer reads "each mention this change added": it says to link
-  the mention, or, for a ts-archunit number, to write it in Decision 2's form (straight
-  apostrophe), and a row shows that form, written in, clears the finding. The summary counts the
-  mentions examined, the mentions the lookbehind skipped, the documents left out (7) and the links
+  probe cannot show), built on the existing shared-clone row with the mention committed to the
+  clone, and the same in a done folder, which the rule reads too.
+- **What it says.** The remedy no longer reads "each mention this change added", and it is chosen
+  by cause, since the rule holds the record set. A number naming no eess record: write it in
+  Decision 2's form (straight apostrophe) if it is ts-archunit's, else correct it. A number naming
+  an eess record beyond ts-archunit's range: link it, with no word of the ts-archunit form. A number
+  inside that range: either, saying that the ts-archunit form takes the mention out of every
+  check. Each branch has a row showing its remedy, written in, clears the finding. The summary counts the
+  mentions examined, the mentions the lookbehind skipped, the records left out (7, eight documents) and the links
   the join judged.
 - **The target.** [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s join over Decision 1's records with `areInTitleLinks`,
   paired with `beLinked()`, `.expectNonEmpty()` written, reading the same left-out list as the
@@ -169,6 +184,7 @@ Each lane is its own PR, in this order:
   the rule holds zero.
 
 **Files:** `scripts/check-corpus.mjs`, `scripts/check-nonvacuity.mjs`, `scripts/lib/`,
+`package.json` (`record-mention-base.test.mjs` leaves the `node --test` list),
 `work/plans/ROADMAP.md`, `CLAUDE.md`, `mention-fix.rules.ts` (deleted).
 
 ## Out of scope
@@ -229,6 +245,22 @@ The revision (46ec9671) was re-checked by both lenses, both Ready with fixes. Ke
   takes no waiver; the board row; `upstream`'s 16 corrected to 15 (481 + 23 + 15 = 519); lanes 7
   and 8 counted apart; a census red beyond the known one recorded as a bug; each pattern
   alternative probed; a wrong fix in the sample widens the read to its target.
+
+The fixes were re-checked (cd6cf531). Enforcement, Ready with fixes, kept:
+
+- **P1:** with the exclusion list taken from a re-run, an empty re-run stopped nothing. A missed
+  Appendix row now stops the lane, and the instrument refuses a shallow clone.
+- **P2:** the pinning test was named nowhere that runs it. It joins `check:corpus`'s list and
+  compares the seven paths, not their count.
+- **P3, P4 and the Minors:** `.expectNonEmpty()` could not see one dead glob among several, so the
+  lane is one rule per glob; Phase 9's remedy is chosen by cause, so the ts-archunit form is not
+  offered as a way out for an eess mention; the switch row's base, the skipped count from Phase 1,
+  and the folder entry's exception stated.
+
+Method, Ready with fixes, kept: [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s folder makes the seven records eight documents, which
+the list, its test and the summary now say; 3 of the 15 `upstream` mentions, not all of them, are
+what `foreign` keeps from `--apply`; the first freeze's 16 counted one in the fold audit, a left-out
+document. Every new number was reproduced at 4a43bcc4.
 
 ## Progress ledger
 
