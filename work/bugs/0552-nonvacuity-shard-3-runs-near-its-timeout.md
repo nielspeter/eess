@@ -6,8 +6,8 @@
   job, step and per-row times; no fix chosen.
 - **Severity:** Medium — nothing passes that should not: a shard that times out is red, and a rerun
   clears it. But it reds a PR for a reason the PR did not cause, and already can on an unchanged tree:
-  two runs of one tree differed 1.6x (below), and the slowest shard needs about 17 minutes on a fast
-  runner. Its cost grows with every row added and every time `check:corpus` or the eess-md examples
+  two runs of the same harness over the same examples differed 1.6x (below), and the slowest shard
+  took about 17 minutes on #268. Its cost grows with every row added and every time `check:corpus` or the eess-md examples
   grow, with no row added. This is the second shard timeout this week, after
   [bug 0547](./fixed/0547-eess-md-parses-a-text-more-than-once-per-process.md)'s (PR #260, shard 2).
 - **Origin:** self-found, 2026-10-27, while building
@@ -33,7 +33,8 @@ step per shard, on `main` and on #268 (run ids in the Evidence section):
 | c6e7b8f9 (#267)     | 6m36s   | 8m53s   | **14m54s** | 10m53s  |
 | ae030ed2 (#268, PR) | 9m37s   | 8m53s   | **17m01s** | 11m32s  |
 
-Since #265 shard 3 has been 14–15 minutes on four runners in a row, then 17m01s; its job on #268 ran
+Since #265 shard 3 has been 14–15 minutes on three `main` runs in a row (and #267's PR rerun,
+14m46s), then 17m01s; its job on #268 ran
 17m40s with checkout, `npm ci` and the build. Each shard held 64 fixtures on #268, so the gap is cost,
 not count. Which shard is slowest is this week's: `k mod N` moves every later row to another shard
 when one is inserted ([plan 0509](../plans/completed/0509-shard-check-nonvacuity-in-ci.md)'s
