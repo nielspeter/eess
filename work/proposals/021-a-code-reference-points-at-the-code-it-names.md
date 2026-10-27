@@ -82,10 +82,15 @@ the sample's rows are recorded by value in the Appendix:
 ## Asks
 
 - **A — a code reference that names its code is checked against it.** A pointer or a link whose
-  text names a symbol (`` `name` (`path:line`) ``, ``[`name`](path#Lline)``) is red when the cited
-  line no longer holds the symbol, with the line where the symbol now sits named in the finding.
+  text names a symbol is red when the cited line no longer holds the symbol, with the line where
+  the symbol now sits named in the finding. The two forms are a pointer after the name,
+  `` `name` (`path:line`) ``, and a link whose text is `` `name` `` and whose target ends in a
+  `#Lline` anchor. (The link form is described rather than written: the docs link test reads an
+  indented fence as prose, [bug 0416](../bugs/0416-the-link-test-reads-an-indented-fence-as-prose.md).)
+
   How a reference names its symbol is the caller's ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)), and a pointer naming nothing stays as
   it is checked today.
+
 - **B — a link into code carries a line and is checked.** A link's `#L42` or `#L42-L48` is read: a
   line past the file's end is red, as a pointer's is, and under ask A its line must hold the name.
   A link is what a reader can click, which the maintainer asked for.
