@@ -4,7 +4,7 @@
 
 Accepted (2026-08-14). Implements plan
 [0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md). Ported from
-`ts-archunit` [ADR-008](https://github.com/nielspeter/ts-archunit/blob/main/adr/008-agent-first-failure-surfaces.md)
+`ts-archunit` ADR-008
 (accepted there 2026-07-29) — the doctrine eess's own fork of that engine
 predates. This is the "missing twin" `ts-archunit` ADR-010 names and eess never
 wrote: eess [ADR-008](./008-caller-owns-reporting.md) is a different decision ("caller owns reporting"), so the
@@ -119,7 +119,7 @@ greens were measured rather than argued:
 That last row is why rule 5 carries its enumeration corollary.
 
 Source:
-[ts-archunit ADR-008](https://github.com/nielspeter/ts-archunit/blob/main/adr/008-agent-first-failure-surfaces.md).
+ts-archunit ADR-008.
 
 ## Decision
 

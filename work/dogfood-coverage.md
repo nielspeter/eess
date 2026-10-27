@@ -108,7 +108,7 @@ declaration emit; test-suite consumers). **0** × everything else.
 ## eess-md (Phase 5 baseline, from the same audit)
 
 - Live-pointer check over the current corpus: 3 findings — 1 genuinely stale
-  (a pre-monorepo test path in a plan then numbered 0055, since fixed), 2 false positives
+  (a pre-monorepo test path in ts-archunit plan 0055, since fixed), 2 false positives
   from example/foreign pointers → the fence-aware liveness feature.
 - `docs/**` links unresolvable pending generic `tryExtensions`/`tryIndex`
   resolution (VitePress-style extensionless links).

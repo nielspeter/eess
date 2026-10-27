@@ -4,7 +4,7 @@
 
 Accepted (2026-08-14). Implements plan
 [0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md). Ported from
-`ts-archunit` [ADR-009](https://github.com/nielspeter/ts-archunit/blob/main/adr/009-a-pass-is-constructed-from-evidence.md)
+`ts-archunit` ADR-009
 (accepted there 2026-08-06, after a defect class recurred four times on the
 source project). This ADR is **prospective on eess's own kernel**: the seam it
 retypes (`{ violations, examined }`) does not exist in `packages/core` today —
@@ -83,7 +83,7 @@ binding ADR misstating which families exist is itself the argument for deriving
 the enumeration from the shipped artifact rather than from anything hand-written.
 
 Source:
-[ts-archunit ADR-009](https://github.com/nielspeter/ts-archunit/blob/main/adr/009-a-pass-is-constructed-from-evidence.md).
+ts-archunit ADR-009.
 
 **Why this lands now.** `@nielspeter/eess`'s kernel today has no `examined`
 count anywhere in its return shape — `ArchViolation[]` is the terminal type
