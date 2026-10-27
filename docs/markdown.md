@@ -827,14 +827,20 @@ the two sides shows. A record listed twice under one target is one record. `reco
 `target` and `foreign` are checked when `beLinked()` is called, since a rule file is not
 type-checked: a missing or wrong one is an `ArchConfigError`.
 
-**Read the dry run before `--apply`.** Group it by target, largest first; a target that collects
-many mentions it should not is the error a reader can catch:
+**Read the dry run before `--apply`.** Group it by where the fixes point, largest first; many
+mentions sent to one wrong record is the error a reader can catch. Each fix reads
+`<file>:<line> link "<mention>" → <target>`, the target last, as the link it writes: relative to
+the mentioning document, so one record cited from two folders is written two ways. Group by the
+target's file name instead, its anchor and query dropped:
 
 ```sh
-eess-ts check rules.ts --fix | grep 'would fix' | sed 's/.* → //' | sort | uniq -c | sort -rn
+eess-ts check rules.ts --fix | grep 'would fix' \
+  | sed 's/.* → //; s/[<>]//g; s/[#?].*//; s#/$##; s#.*/##' | sort | uniq -c | sort -rn
 ```
 
-Each fix reads `<file>:<line> link "<mention>" → <target>`, the target last.
+Each group is one record only where your records' file names are unique, as numbered ones usually
+are; two records sharing a file name share a group. A grouping by record, from the fix itself, is
+[proposal 020](../work/proposals/020-a-fix-dry-run-a-reader-can-review.md).
 
 ### What this cannot see
 

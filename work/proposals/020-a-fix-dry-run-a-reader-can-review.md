@@ -43,6 +43,17 @@ mentions sent to the same wrong target. A flat list hides it.
 - **Break class (no change):** `--apply` writes exactly what the dry run listed.
 - **Non-vacuity:** a fixture row per break class.
 
+## Dogfooding, 2026-10-27
+
+[Plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s dry run over this repository (eess's own records only, 3,907 fixes over 419 files)
+showed the stopgap pipeline does not group by record. A fix's `describe` names its target as the
+link destination it writes, relative to the mentioning document, so one record cited from different
+folders lands in different groups: the same [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md) counted once as `0456-kernel-…` and once as
+`plans/completed/0456-kernel-…`. A reader looking for many mentions sent to one wrong record would
+miss it. Ask A needs the target as a repository path. Until then the docs' pipeline groups by the
+target's file name, which is one record only where a corpus's record file names are unique, and
+says so.
+
 ## Open questions
 
 1. **Where the target lives.** An optional `target` on `ArchFix` (a kernel change, additive), or a
