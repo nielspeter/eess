@@ -129,6 +129,12 @@ on 2026-10-26. All of this is accepted, knowingly:
   eess-ts check rules.ts --fix | grep 'would fix' | sed 's/.* → //' | sort | uniq -c | sort -rn
   ```
 
+  **Corrected 2026-10-27, by dogfooding:** this pipeline does not group by record. The target is
+  written relative to the mentioning document, so one record cited from two folders lands in two
+  groups. The docs' pipeline now groups by the target's file name, and says where that is one
+  record; grouping by record is [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md)'s,
+  whose addendum of 2026-10-27 records the measurement.
+
   A grouped dry run in the tool, and the fix in the JSON report, are
   [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md);
 
