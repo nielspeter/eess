@@ -193,8 +193,11 @@ Each lane is its own PR, in this order:
    lane's other fixes, the seed recorded in the PR; the judge is an agent on a different model from
    the one running the lane. A wrong fix is left out by element before applying, its cause recorded
    in this plan, and the judge then reads every fix in the lane with the same target. The same
-   target's mentions in every later lane are searched for (`git grep`) and listed against those
-   lanes' ledger lines, since a file that does not name ts-archunit is not in their read set;
+   target's mentions in every later lane's files that do not name ts-archunit (which their read
+   set misses) are searched for (`git grep`) and listed against those lanes' ledger lines; and
+   every link to a ts-archunit GitHub URL in the lane's globs
+   (`git grep 'github.com/nielspeter/ts-archunit'`) is listed, to be written as plain text in
+   Decision 2's form in step 4 (lane 2's review found four the steps had not met);
 3. `--fix --apply`, before any hand edit, so no excluded line has moved;
 4. the lane's refusals, anachronisms and the other mentions on their lines closed by hand, as the
    Measured section says; the exclusions it closed removed from the rule file;
@@ -224,7 +227,7 @@ Each lane is its own PR, in this order:
   current path, and a record closed as a delete and an add, not a rename, reads as born the day it
   closed. Two are true anachronisms that still name their record: `docs/manifesto.md:459`'s
   [plan 0073](./0073-violation-telemetry-rule-staleness.md), two hours before the plan, and `adr/023`'s [plan 0496](./completed/0496-sections-as-elements.md), written in the PR after the one that
-  filed it. The error flags more, never fewer, so no wrong link came of it; but the Measured
+  filed it. In lane 2 the error flagged more, never fewer, so no wrong link came of it; but the Measured
   section's 145 counts it (corrected there), and the lanes whose targets sit in `fixed/` and
   `completed/` (4, 5, 7, 8) will meet more of it.
 - By hand, 55 edits in 17 files: 41 links, 11 rewordings to the ts-archunit form (the
@@ -365,10 +368,14 @@ document. Every new number was reproduced at 4a43bcc4.
 - [x] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
 - [ ] Phase 3 — `work/spikes/`, `work/proposals/` (carried from lane 2: ts-archunit plan 0075 in
       [proposal 010](../proposals/010-ts-performance-at-scale.md) at lines 67, 232 and 234; the file
-      names no ts-archunit, so the judge's read set misses it)
-- [ ] Phase 4 — `work/bugs/` (live) (carried from lane 2: ts-archunit plan 0075 and 0076 in
-      [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)
-      at line 69)
+      names no ts-archunit, so the judge's read set misses it; the ts-archunit GitHub links in
+      [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) (lines 48, 49) and
+      [spike 0540](../spikes/0540-one-join-over-every-source.md) (lines 47, 48, 54))
+- [ ] Phase 4 — `work/bugs/` (live) (carried from lane 2, for the judge:
+      [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s
+      mention of a plan numbered 0075 at line 69, read as ts-archunit's; the ts-archunit GitHub
+      links in [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md) (line 22)
+      and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24))
 - [ ] Phase 5 — `work/bugs/fixed/`
 - [ ] Phase 6 — `work/plans/` (live)
 - [ ] Phase 7 — `work/plans/completed/` 0001–0449
@@ -377,7 +384,9 @@ document. Every new number was reproduced at 4a43bcc4.
 
 ## Appendix — the 145 anachronisms, at 4a43bcc4
 
-Each a mention first written before the record it would link to existed, with both dates. The
+Each a mention first written before the record it would link to first appeared at its current
+path, with both dates (corrected 2026-10-27 at lane 2: see the Measured section; many are not true
+anachronisms). The
 reference each lane's own re-run is compared with: the lane's `.excluding()` list comes from that
 re-run at the lane's base, since a line here moves as its file changes. Fenced, so no gate reads it.
 
