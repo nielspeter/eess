@@ -1,6 +1,6 @@
 # Proposal 021 — a code reference points at the code it names
 
-**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; not reviewed.
+**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review).
 **Priority:** High — the records cite code as evidence (an ADR's Enforcement row, a bug's root
 cause), and a text heuristic finds most of the citations it can pair already pointing at the wrong
 line; in live records, which the gate reads, it passes them.
@@ -176,3 +176,163 @@ s28	work/proposals/promoted/005-crossvalidate-stale-wip-detection.md:135	Scenari
 s29	work/proposals/promoted/005-crossvalidate-stale-wip-detection.md:136	ScenariosCoveredOptions	gherkin-ts.ts:18	stale	unique	ScenariosCoveredOptions interface declared at 38.
 s30	work/proposals/promoted/004-corpus-content-explain.md:235	gateNode	scripts/check-nonvacuity.mjs:252-286	stale	unique	gateNode function declared at 3938; cited range now unrelated constants.
 ```
+
+## Review — 2026-10-27
+
+**Ruling: Split and sequence**
+
+Reviewed by the architect, product and enforcement lenses, each on its own survey of the code.
+All three said ship with changes. They agree the defect is real, well measured and belongs in a
+dialect: neither `@nielspeter/eess` nor `@nielspeter/eess-ts` moves for it, and nothing goes into
+the kernel. They also agree the proposal holds three shippable things, not one, and that none is
+ready to plan as written. So each ask is disposed on its own, and all three are `Held` on the
+conditions below.
+
+### Existing code survey, corrected
+
+- **[Bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md) already owns this
+  defect**, and the proposal did not cite it. It is a live Draft: the pointer gate proves a line
+  exists, not that it is the line being cited, measured over three sweeps. It also holds the design
+  fork this proposal skips. A reference can carry a line and a name, which can drift, or a name
+  alone, which cannot. And it records that `prettier` broke three corrected line numbers again with
+  no human edit. Its Verification boxes for this mechanism are `dropped-on-purpose` on a reason it
+  says was measured false.
+- **`mentions()` already does most of what a code reference needs.** It reads a caller's pattern
+  with named groups and no default, over visible text with inline code included. It carries the link
+  a match sits in, a source span for a fix, and findings for what it cannot read
+  (`packages/md/src/model/mentions.ts`, [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md),
+  [plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md) and
+  [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)). A third
+  scanner for "a name, then a pointer" would duplicate it.
+- **`beLinked({ fix })` is the precedent for ask C**, not `correspondence()` and not a new
+  crossvalidate join. It takes a kernel `Selection` of targets and a key, and joins through
+  `matchSelections`, so eess-md never imports eess-ts (`packages/md/src/conditions/be-linked.ts`).
+  `correspondence()` carries no fix and cannot express "anywhere in this range". Adding a fix channel
+  to it for one md condition would put a dialect concern into the kernel.
+- **`adrCitationsResolve` is related, not a template.** It returns `void` and calls `.check()`
+  itself, against [ADR-008](../../adr/008-caller-owns-reporting.md). A crossvalidate entry, if one is
+  ever added, returns the builder.
+- **eess-ts cannot select variables, and `check:corpus` loads no TypeScript project.** There is no
+  root `tsconfig.json`, and `scripts/*.mjs` and `arch.rules.ts` sit in no package project. Of the
+  sample's 26 drifted rows, a fix through today's eess-ts reaches about 12, not "at most 19". Five
+  targets are `const`s and four are in `.mjs` or root files.
+
+### Placement
+
+- **Ask A** belongs in eess-md, as one opt-in condition that works in any language. The cited line
+  holds a name the caller supplies, and a reference with no name is checked as today. The caller
+  supplies the reading of the name ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)).
+  The adjacency forms ship as an example under `examples/md/`, not as root blocks.
+- **Ask C** has a text half in eess-md and a declaration half that takes a `Selection` from the
+  caller's rule file. Nothing goes into the kernel.
+- **Ask B** stays out of `extractPointers`, because `sectionHolds` reads it and its denominator
+  would move.
+
+### Critical (must be settled before a plan)
+
+1. **The relation to [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)** is
+   declared, and its fork is decided: a line and a name, or a name alone. The decision has to meet
+   0215's `prettier` finding. A line number moves under the formatter this repository runs, so ask
+   A reds the build on every code edit above a cited, named line in a live record. That couples code
+   and records in a way the proposal never states. Either the fix ships with or before the gate, or
+   the gate warns until it does.
+2. **Acceptance criterion 1 cannot be met by a text check.** All 30 sample rows were drawn from the
+   221 whose cited line does not hold the name. So any text test reds the four not-locators (s08,
+   s10, s18, s24) by construction, and their verdict was a judge's, which is Tier 4, not Tier 1.
+   Either the criterion becomes "red, and the remedy is to reword", or the verdict needs a
+   declaration span, which only the AST can give. Open question 1 is blocking in practice, not open.
+3. **The green side has no break class, and "holds" fails open.** The enforcement lens rebuilt the
+   heuristic and classified the lines that hold. 25 of 81 (about 31%) hold on an import, a comment
+   or a call rather than where the name is declared. Two hold only as a substring of a longer word
+   (`link` in `linksOf`). The proposal measured the false-red rate and not the false-green one.
+   Needed: a judged sample of the holders, as for the 221; green-side rows (an import of `X`, a
+   comment naming `X`, `X` inside a longer identifier), each red or accepted on purpose by open
+   question 5's answer; and a token match, never a substring and never a `RegExp` built from a name.
+4. **"Now at line N" from a text search manufactures a false green.** The proposal's own example
+   shows it. Text puts `CollectResult` at an import and `buildConditionContext()` at a call. An
+   author who follows that rewrites the pointer to the wrong line, and the check then stays green for
+   good, the remedy-that-cannot-remediate class of
+   [bug 0363](../bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md). A text
+   check says "the cited line no longer contains `X`" and names no single line. Only a
+   declaration-aware resolver may say where the code is now.
+5. **Zero pairs is a pass.** The drift check needs its own rule id, its own selection and its own
+   `examined`, counting named references rather than pointers. Zero examined must be a finding unless
+   `.expectEmpty()` is declared, with a `check:nonvacuity` row that empties the pairing and reds
+   `check:corpus`. "Has a name" is decided before the condition runs (a predicate or the element
+   itself), so a dead pattern cannot hide behind 1,618 pointers.
+
+### Important
+
+- **Tier honesty.** The title claims a Tier-4 judgment, "points at the code it names". Its mechanism
+  is a Tier-1 proxy, and the Enforcement row it lands in names the proxy.
+- **[ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) is not
+  a warrant.** It is Proposed ("nothing below binds") and covers the strings a rule is written in,
+  not prose. Its exact-name clause resolves to a declaration, which a text-only ask A contradicts.
+  The proposal stands on [ADR-009](../../adr/009-agent-first-failure-surfaces.md),
+  [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md). No new ADR is needed
+  for the building block; the citation form this repository adopts is its own configuration.
+- **A resolver that cannot see a file says so.** That covers a file in no project, a language with
+  no parser, and an absent external root. Each is a finding where the verdict depends on it
+  ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md),
+  [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)), never a fall
+  back to text and never a pass.
+- **The sample becomes frozen fixtures**, through `corpusFromText`
+  ([plan 0455](../plans/completed/0455-a-corpus-built-from-text.md)) and a fixture code tree. Read
+  against the live tree, the rows would heal themselves as the dogfood fixes the 95.
+- **The baseline instrument was not kept.** A reconstruction from the prose gives 300 / 215 / 81 / 4,
+  not 312 / 221 / 87 / 4. "The difference from 221 explained" cannot fail until the regex and roots
+  are committed.
+- **The sample's false-red rate is mostly from documents the gate never reads.** 14 of 30 rows, and
+  three of the four not-locators, sit in frozen folders. On the 16 live rows it is 1 in 16.
+- **A separate rule id** (e.g. `corpus/pointers-hold`), so the existing
+  `eess-exclude corpus/pointers-resolve` sanctions do not silently cover drift. Its rows drive
+  `check-corpus.mjs` and assert the message. The summary says how much was drift-checked
+  ("K name code"), not "all ground in code".
+- **Backwards compatibility.** Ask A is a new condition, never a widening of `pointers().resolve()`,
+  which would red adopters' existing rules on upgrade. That makes it an eess-md minor. Ask C's
+  declaration half, if it lands in crossvalidate, is a crossvalidate minor.
+
+### Minor
+
+- Ranges: "somewhere in the range" is the reading that does not red a block citation, and it is also
+  where fail-open concentrates. A fix shifts the whole range or refuses.
+- Precedence: broken, then ambiguous, then past the end, then drifted, with one finding per pointer.
+- A fix is offered, never applied by the gate, and its refusals are findings: renamed, moved,
+  several, not a declaration, cannot judge.
+- "Drifted" spends the family's headline word on one finding. The message should carry the meaning.
+  The Appendix's verdict column uses "stale" in a third sense and should say "drifted".
+- "Code reference" stays a prose word. The entry points remain `pointers()` and `links()`, and a
+  rewrite sketches the call.
+- A line fragment, if ask B is built: read only on non-Markdown targets (`#l42` in a `.md` link is a
+  heading slug). Accept `L42-L48` and `L42-48`, and treat a malformed fragment as a finding.
+- "Found once" (ask C) needs one rule each for overloads, a method name repeated across classes, a
+  re-export, and which line a declaration starts on.
+- `work/proposals/promoted/` is live under `check:corpus`: four of the 16 live sample rows are there.
+  Recorded, not decided here.
+
+### Corrections the proposal committed in itself
+
+- It cited [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)
+  as grounding while that ADR binds nothing.
+- It did not survey the corpus for its own defect, and so missed
+  [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md).
+- It wrote acceptance criterion 1 as a Tier-1 break class for a verdict a judge made.
+- It asked for the form `` `name` (`path:line`) `` while measuring a different one,
+  `` `name` at path:line ``.
+- It did not keep the instrument its numbers came from.
+
+### Disposition
+
+| Ask                                                       | Disposition | What would unhold it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — a reference that names its code is checked against it | `Held`      | A rewrite that settles critical items 1–5: the relation to [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md) and its fork; criterion 1 restated (red-and-reword, or a declaration span); green-side break classes on a judged sample of the holders, with a token match; a finding that names no text-found line; its own rule id and denominator with a zero-examined row. The shape is one opt-in eess-md condition with a caller-supplied name, choosing between `pointers()` gaining a name and a `mentions()` condition. Then a re-review of A alone |
+| B — a link into code carries a line                       | `Held`      | A corpus that links into code with line fragments (none here: 15 links into code, 0 with `#L`), or the decision to rewrite pointers as links, which is out of scope now. Built as an option, never a change to `links().resolve()`'s verdict                                                                                                                                                                                                                                                                                                                                    |
+| C — a fix for a drifted reference                         | `Held`      | A built and its count re-taken; then the text half in eess-md on `beLinked({ fix })`'s `Selection` shape. The declaration half also needs eess-ts to select variables and to see `.mjs` and root files, or it states its reach (about 12 of 26 today) and reports what it cannot judge                                                                                                                                                                                                                                                                                          |
+
+The dogfood migration of this repository's live references is its own plan, as
+[plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md) is for mentions, so the
+eess-md release does not wait on the records.
+
+**Recommended next step:** rewrite this proposal against this review. Settle [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s fork and
+criterion 1 from the measurements, run the judged sample of the holders, and commit the instrument.
+Then re-review ask A alone. No plan until A is unheld.
