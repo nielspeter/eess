@@ -29,7 +29,7 @@
     "check:guardrails": "node scripts/check-guardrails.mjs",
     "check:diagram": "eess-mermaid check mermaid.rules.ts",
     "check:crossval": "node scripts/check-crossval.mjs",
-    "check:corpus": "node scripts/check-corpus.mjs && node --test scripts/lib/frozen-scope.test.mjs scripts/lib/pointer-classes.test.mjs scripts/lib/record-mention-base.test.mjs",
+    "check:corpus": "node scripts/check-corpus.mjs && node --test scripts/lib/frozen-scope.test.mjs scripts/lib/pointer-classes.test.mjs scripts/lib/record-mention-base.test.mjs scripts/lib/record-mention.test.mjs",
     "check:mermaid-parses": "node scripts/check-mermaid-parses.mjs",
     "check:spec": "eess-ts check spec.rules.ts",
     "changeset": "changeset",

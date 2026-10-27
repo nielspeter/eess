@@ -18,3 +18,14 @@ packages/ts/tests/fixtures/module-edge-forms/src/forms.ts
 # that form too. Prettier rewrites setext headings as ATX, which would make the fixture prove nothing
 # about it.
 examples/md/fixtures/in-documents/*/login.md
+
+# Plan 0542: the seven fold-era records left out of the record-mention gate are pinned by hash
+# (scripts/lib/record-mention.mjs), so a formatter must not rewrite them. A pinned file is data.
+work/plans/completed/0071-ts-archunit-parity.md
+work/plans/completed/0088-fold-ts-archunit-into-eess.md
+work/plans/completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md
+work/plans/completed/0165-integrate-the-copied-ts-archunit-engine.md
+work/fold-audit-2026-08-19.md
+work/spikes/0001-eess-over-ts-archunit/README.md
+work/spikes/0001-eess-over-ts-archunit/CONCLUSION.md
+work/bugs/fixed/0198-no-migration-path-from-ts-archunit.md
