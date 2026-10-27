@@ -27,7 +27,6 @@ import { join, relative, resolve, sep } from 'node:path'
 import {
   and,
   areLive,
-  areSelfMentions,
   corpus,
   correspondence,
   docs,
@@ -75,7 +74,15 @@ import { laneDirectories } from './lib/lane-coverage.mjs'
 // Extracted so the labels can be tested — they have been wrong twice in place.
 import { pointerSummary } from './lib/pointer-classes.mjs'
 import { LANES } from './lib/ledger-lanes.mjs'
-import { censusKeyOfPath, isPathKey, recordKey, recordKeyOfPath } from './lib/record-key.mjs'
+import { censusKeyOfPath, isPathKey } from './lib/record-key.mjs'
+import {
+  LEFT_OUT,
+  LEFT_OUT_REASON,
+  SKIPPED_AFTER_TS_ARCHUNIT,
+  leftOutFaults,
+  notLeftOut,
+  recordMentions,
+} from './lib/record-mention.mjs'
 import {
   BaseResolutionError,
   countAtBase,
@@ -1227,36 +1234,24 @@ const laneViolations =
 // into a paydown. The corpus still holds thousands of plain mentions (plan 0542 brings them to
 // zero), so the rule is judged against the base: a census key may not hold more of a text than
 // the same rule finds in the base's own tree (`./lib/record-mention-base.mjs` says which base, and
-// why there is no ledger). A record naming itself is not a mention (`./lib/record-key.mjs`).
+// why there is no ledger). A record naming itself is not a mention (`./lib/record-key.mjs`). The
+// pattern, and the seven fold-era records left out, are `./lib/record-mention.mjs`'s (plan 0542),
+// which the fix's rule file reads too.
 //
 // What this does not catch, by design: a mention moved within a file, or to another key that held
 // the same text (counts are per key and text, not per line); an invisible character inside a
 // mention (bug 0543); a record number reused by the PR that deletes the old record; a direct push
 // of several commits to `main`, judged on its last. The plan's Design section says why each is so.
+// Plan 0542 adds two, decided: a number written right after `ts-archunit` or `ts-archunit's` (any
+// number, an eess one included; the summary counts them), and any mention in the eight files of
+// the seven fold-era records left out, which are pinned by hash so that an edit to one is red.
 const RECORD_MENTION_RULE = 'corpus/record-mention-is-a-link'
-const RECORD_MENTION =
-  /\b(?<kind>bug|plan|spike)s?\s+(?<n>\d{4})\b|\b(?<kind>proposal)s?\s+(?<n>\d{3})\b|\b(?<kind>ADR)-(?<n>\d{3})\b/gi
 const RECORD_ROOTS = ROOTS.map((r) => r.replace(/\/\*\*$/, ''))
 const recordMentionRule = (corp) =>
-  mentions(corp, { pattern: RECORD_MENTION })
-    .that()
-    .satisfy(
-      not(
-        areSelfMentions({
-          mention: (m) =>
-            m.groups.kind === undefined || m.groups.n === undefined
-              ? undefined
-              : recordKey(m.groups.kind, m.groups.n),
-          document: (d) => recordKeyOfPath(d.relPath),
-        }),
-      ),
-    )
-    .should()
-    .beLinked()
-    .rule({
-      id: RECORD_MENTION_RULE,
-      because: 'a record named by number is one click from what it names only when it is a link',
-    })
+  recordMentions(corp).should().beLinked().rule({
+    id: RECORD_MENTION_RULE,
+    because: 'a record named by number is one click from what it names only when it is a link',
+  })
 
 // Both of `beLinked()`'s findings are counted, "is not a link" and "is in inline code, not a
 // link"; they are told apart from every other finding by rule id. A counted finding whose text
@@ -1441,6 +1436,32 @@ for (const d of allDocs) {
     )
   }
 }
+// Plan 0542, Decision 3: a left-out file is left out because it is not edited again, so a file that
+// is gone or changed since it was pinned is red. The exemption cannot outlive its premise, and a
+// mention added to one cannot hide there.
+const leftOut = leftOutFaults(c.root)
+for (const { path, cause } of leftOut) {
+  recordMentionFindings.push(
+    configFinding(
+      'corpus/record-mention-left-out',
+      join(c.root, path),
+      1,
+      cause === 'missing'
+        ? `the record-mention rule leaves out ${path}, which names no file (left out as ${LEFT_OUT_REASON}).`
+        : `the record-mention rule leaves out ${path}, whose text changed since it was pinned: it is left out as ${LEFT_OUT_REASON}.`,
+      cause === 'missing'
+        ? 'If the record moved, update its path in LEFT_OUT (scripts/lib/record-mention.mjs) and in its pinning test; if it was removed, remove the entry from both.'
+        : 'Revert the edit (a link repaired after a move does not unpin the file: destinations are not hashed); or, if the record is to change, take it off LEFT_OUT and its pinning test, so its mentions are judged like any other.',
+    ),
+  )
+}
+
+// What the lookbehind skips is counted, so a mention written after `ts-archunit` is visible even
+// though no rule judges it (plan 0542, Phase 1).
+const skippedAfterTsArchunit = mentions(c, { pattern: SKIPPED_AFTER_TS_ARCHUNIT })
+  .that()
+  .satisfy(notLeftOut)
+  .select({ label: 'skipped mention', ...anon }).elements.length
 const headUnlinked = unlinkedTotal(head.counts)
 const baseUnlinked = 'failure' in atBase ? undefined : unlinkedTotal(atBase.counts)
 
@@ -1612,7 +1633,9 @@ line(
 line(
   'mentions',
   `${String(headMentions.examined)} record mention(s) · ${String(headUnlinked)} unlinked here, ` +
-    `${baseUnlinked === undefined ? 'unknown' : String(baseUnlinked)} at the base (${baseLabel}) · ${
+    `${baseUnlinked === undefined ? 'unknown' : String(baseUnlinked)} at the base (${baseLabel}) · ` +
+    `${String(skippedAfterTsArchunit)} skipped after ts-archunit · ` +
+    `${String(LEFT_OUT.length - leftOut.length)} of ${String(LEFT_OUT.length)} left-out files as pinned · ${
       recordMentionFindings.length === 0
         ? '✓ no key holds more than at the base'
         : `✗ ${recordMentionFindings.length} finding(s)`

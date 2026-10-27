@@ -1995,6 +1995,7 @@ const RECORD_MENTION_IDS = [
   'corpus/record-mention-key-shared',
   'corpus/record-mention-waiver',
   'corpus/record-mention-base-unreadable',
+  'corpus/record-mention-left-out',
   'md/unread-mention',
 ]
 const SEAM_FINDING = ['corpus/record-mention-fixture-base', undefined, 'named by the test seam']
@@ -2335,6 +2336,139 @@ function gateRecordMentionProductionBase() {
         `(${String(control)}) on both exits, naming ${label}: ${oneMore}; ` +
         `main at HEAD → json exit ${onMain.code}, raised against the first parent: ${parent}; ` +
         `no main → exit ${noBase.code}, stops: ${stops}`,
+    }
+  } finally {
+    rmSync(clone, { recursive: true, force: true })
+  }
+}
+
+// --- Plan 0542, Phase 1: the gate's two narrowings, each shown to narrow only what it names ---
+
+const PROBE_997 = `${MENTION_PROBE_REL}/0997-probe.md`
+/** One mention per alternative of the pattern. */
+const EACH_ALTERNATIVE = ['bug 0338', 'plans 0541', 'spike 0386', 'proposal 019', 'ADR-008']
+const skippedCount = (r) => {
+  const m = /(\d+) skipped after ts-archunit/.exec(r.stderr)
+  return m === null ? undefined : Number(m[1])
+}
+
+/**
+ * A number written after `ts-archunit` or `ts-archunit's` is not counted, for every alternative of
+ * the pattern, while the same text without it is: a lookbehind on one alternative only, or on
+ * none, reds this row. The summary's skipped count rises by exactly the ten written, against a run
+ * without the probes, so a count wired to nothing reds it too.
+ */
+function gateRecordMentionTsArchunit() {
+  const before = skippedCount(runCorpusScript([]))
+  return gateRecordMentionSeam({
+    head: {
+      [PROBE_998]:
+        '# Probe\n\n' +
+        EACH_ALTERNATIVE.map((m) => `ts-archunit ${m} and ts-archunit's ${m}.`).join('\n\n') +
+        '\n',
+      [PROBE_997]: `# Probe\n\n${EACH_ALTERNATIVE.map((m) => `It names ${m}.`).join('\n\n')}\n`,
+    },
+    expected: [
+      ...EACH_ALTERNATIVE.map((m) => [
+        'corpus/record-mention-is-a-link',
+        PROBE_997,
+        `"${m.toLowerCase()}" is not a link 1 time(s) in bug:997, against 0`,
+      ]),
+      SEAM_FINDING,
+    ],
+    // The helper reads `extra`'s result as the verdict: a description on a pass, `false` on a fail.
+    extra: ({ terminal }) => {
+      const after = skippedCount(terminal)
+      return before !== undefined && after === before + 10
+        ? `skipped ${String(before)} → ${String(after)}`
+        : false
+    },
+  })
+}
+
+/**
+ * The left-out list, in a shared clone, so no tracked file here is touched:
+ *  1. a control run at `HEAD`: no left-out finding, and the summary's skipped count;
+ *  2. a commit rewriting a link destination in a listed file, as `/close` repairs a link after a
+ *     move: still no finding of the rule, since destinations are not hashed (a pin that hashed them,
+ *     or one that ignored everything, is told apart by step 3 and this step together);
+ *  3. a commit appending a mention, and one written after `ts-archunit`, to another listed file:
+ *     not counted, the skipped count unmoved (the count leaves the list out too), and red as a
+ *     changed pin; the same text in a new file beside the listed ones and in one inside spike
+ *     0001's folder, each counted; a listed file deleted, red as missing.
+ * The exit codes prove nothing alone (the deletion breaks inbound links): the exact sets and the
+ * terminal's text do.
+ */
+function gateRecordMentionLeftOut() {
+  const clone = mkdtempSync(join(tmpdir(), 'nonvacuity-mention-clone-'))
+  const git = (...args) =>
+    gitIn(clone, ['-c', 'user.name=nonvacuity', '-c', 'user.email=nonvacuity@invalid', ...args])
+  const repaired = 'work/bugs/fixed/0198-no-migration-path-from-ts-archunit.md'
+  const listed = 'work/plans/completed/0071-ts-archunit-parity.md'
+  const beside = 'work/plans/completed/__nonvacuity_probe_mention__.md'
+  const inFolder = 'work/spikes/0001-eess-over-ts-archunit/__nonvacuity_probe_mention__.md'
+  const gone = 'work/fold-audit-2026-08-19.md'
+  const text = '# Probe\n\nIt names bug 0338 in prose.\n'
+  const read = (rel) => readFileSync(join(clone, rel), 'utf8')
+  try {
+    const head = gitIn(repoRoot, ['rev-parse', 'HEAD'])
+    gitIn(repoRoot, ['clone', '-q', '--shared', '--no-checkout', repoRoot, clone])
+    git('remote', 'remove', 'origin')
+    git('checkout', '-q', '-B', 'main', head)
+    git('switch', '-q', '-c', 'probe')
+    const control = runCorpusScript([], { cwd: clone })
+    const before = skippedCount(control)
+    const quiet = !control.stderr.includes('the record-mention rule leaves out')
+
+    const original = read(repaired)
+    writeFileSync(join(clone, repaired), original.replace(/\]\(([^)\n]+)\)/, ']($1#moved)'))
+    const rewritten = read(repaired) !== original
+    git('commit', '-q', '-am', 'a repaired link')
+    const afterRepair = runCorpusScript(['--format', 'json'], { cwd: clone })
+    const repairQuiet = rewritten && exactMentionFindings(afterRepair, [])
+
+    writeFileSync(
+      join(clone, listed),
+      `${read(listed)}\nIt names bug 0338 in prose, and ts-archunit bug 0011.\n`,
+    )
+    writeFileSync(join(clone, beside), text)
+    writeFileSync(join(clone, inFolder), text)
+    git('add', '-f', '--', listed, beside, inFolder)
+    git('rm', '-q', '--', gone)
+    git('commit', '-q', '-m', 'probe')
+    const json = runCorpusScript(['--format', 'json'], { cwd: clone })
+    const terminal = runCorpusScript([], { cwd: clone })
+    const expected = [
+      ['corpus/record-mention-left-out', listed, 'whose text changed since it was pinned'],
+      ['corpus/record-mention-left-out', gone, 'which names no file'],
+      [
+        'corpus/record-mention-is-a-link',
+        beside,
+        '"bug 0338" is not a link 1 time(s) in this file',
+      ],
+      [
+        'corpus/record-mention-is-a-link',
+        inFolder,
+        '"bug 0338" is not a link 1 time(s) in this file',
+      ],
+    ]
+    const exact = exactMentionFindings(json, expected)
+    const says = expected.every(([, , m]) => terminal.stderr.includes(m))
+    const skippedHeld = before !== undefined && skippedCount(terminal) === before
+    return {
+      ok:
+        quiet &&
+        repairQuiet &&
+        exact &&
+        says &&
+        skippedHeld &&
+        json.code === 1 &&
+        terminal.code === 1,
+      detail:
+        `control at HEAD: no left-out finding: ${quiet}; a link destination rewritten: no finding ` +
+        `of the rule: ${repairQuiet}; then → json exit ${json.code}, exact findings (changed, ` +
+        `missing, two beside): ${exact}; terminal exit ${terminal.code} prints each: ${says}; ` +
+        `skipped count held at ${String(before)}: ${skippedHeld}`,
     }
   } finally {
     rmSync(clone, { recursive: true, force: true })
@@ -5157,6 +5291,9 @@ const gates = [
         ['probe-crash'],
       ),
   ],
+  // Plan 0542: appended, not placed with the rows above, so no other fixture changes shard.
+  ['corpus/record-mention/ts-archunit-skipped', gateRecordMentionTsArchunit],
+  ['corpus/record-mention/left-out', gateRecordMentionLeftOut],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5269,6 +5406,8 @@ const GATE_FOR = {
     'corpus/record-mention/fixture-base',
     'corpus/record-mention/base-unreadable',
     'corpus/record-mention/production-base',
+    'corpus/record-mention/ts-archunit-skipped',
+    'corpus/record-mention/left-out',
     'corpus/state-present',
     'corpus/state-present-conflict',
     'corpus/state-present-outside-status',

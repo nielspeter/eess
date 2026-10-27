@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phase 1 built 2026-10-27; the lanes next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -58,10 +58,11 @@ runs it, and then switches the gate to hold zero and to check that a link names 
    [bug 0303](../bugs/0303-ts-archunit-adr-numbers-persist-in-eess-comments.md), where an exemption
    would leave new mentions unchecked for good. They go through their lanes instead (23 findings, no
    fix: each reworded or linked by hand). The seven are a named list with its reason in
-   `check:corpus`, never a glob: each entry is an exact file path, the folder of
-   [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md) the one exception, so seven records
-   are eight documents. An entry naming no file, or a folder that is missing or empty, is a
-   finding, and a test pins the list to its seven entries as written.
+   `check:corpus`, never a glob: each entry is an exact file path, so
+   [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s two files are two entries and
+   seven records are eight entries. Each is pinned by its text's hash, so a file that is missing or
+   has changed is a finding: the exemption cannot outlive its premise (corrected at Phase 1's
+   review from a folder entry, under which any new file was exempt). A test pins the entries.
 
 ## Measured — 2026-10-27, at 4a43bcc4, throwaway scripts
 
@@ -125,6 +126,51 @@ dry run gives its exact list.
 `scripts/lib/mention-anachronisms.mjs` (new), `scripts/check-corpus.mjs`,
 `scripts/check-nonvacuity.mjs`, `package.json`, `mention-fix.rules.ts` (new).
 
+**Built (2026-10-27).** As planned, with these differences, measured at c6e7b8f9:
+
+- The anachronism instrument reproduces the freeze exactly over every lane, 3,899 fixes and 145
+  anachronisms, each Appendix row and no other, in 67.5 s, not 40 s.
+- One rule per glob needs the exclusions split by glob: lane 2's dry run gave 48 "Unused exclusion"
+  lines, each rule holding the other globs' entries. `anachronismsByGlob` gives each rule only its
+  own, matched as `resideInFile` matches, and an entry under no glob throws, since it would
+  otherwise be dropped without that line. Lane 2's dry run then gave its 326 fixes less its 16
+  anachronisms, 310, and no unused line. A mistyped glob reds as its own rule's dead selector, a moved
+  line prints one "Unused exclusion".
+- The gate's summary prints 38 mentions skipped after ts-archunit and "8 of 8 left-out files as
+  pinned"; its run time is unchanged (7.8 s).
+- **Changed at review (enforcement and testing lenses).** The left-out list was a dead-entry check
+  over seven paths, one a folder; it gave up a ratchet main has (a mention added to a left-out file
+  was red at the base, green after) on a premise nothing enforced, and its folder exempted any new
+  file. It is now eight exact files, each pinned by hash (CRLF read as LF), so an edit or a deletion
+  is `corpus/record-mention-left-out`. The instrument exited 0 with an empty list on a dead glob or
+  an unreadable fix; each now stops with exit 1 and nothing on stdout, an undated fix is named, and a
+  record renamed from another number is undated. Overlapping lane globs throw. The pin covers both
+  patterns' full sources. Two rows, appended at the end of the list so no other fixture changes
+  shard: `ts-archunit-skipped` (each alternative, both forms, and the skipped count up by exactly the
+  ten written) and `left-out`, in a shared clone (a mention appended to a listed file is not counted
+  and reds the pin, the same text beside it and inside [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s folder is counted, a deleted entry
+  is red). A unit test over `corpusFromText` covers each entry's matching and the fix.
+- **Each guard shown red** by a sabotage of what it guards, in `record-mention.mjs` alone: the
+  lookbehind dropped from the `ADR-` alternative; the skipped count wired to nothing; six file
+  entries matching nothing; the changed check and the missing check each removed; the match widened
+  to each entry's folder. Two first-draft breaks were no break (picomatch reads `./a.md` and
+  `a.md/**` as matching `a.md`) and were replaced. The first draft's skipped-count check returned a
+  string, which the row helper reads as a pass; it returns a boolean.
+- **Changed at the re-check.** The pin hashed the raw text, so `/close`'s link repair (seven live
+  records are linked from three left-out files) would unpin a file, and the remedy offered "update
+  the hash", which re-approves whatever else the edit added. The hash now blanks link destinations,
+  so a repair leaves the pin alone and any prose edit does not; the remedy no longer offers a re-pin;
+  and the eight files are in `.prettierignore`, so a formatter cannot rewrite them. The clone row
+  rewrites a destination first and expects no finding (the old raw hash reds there), and its
+  skipped count must not move when a `ts-archunit` mention lands in a left-out file (a count that
+  reads the left-out files reds there). A folder record's number is read from its folder.
+- **Known, not pinned.** The instrument's stops (dead glob, a finding that is not a mention's, an
+  unreadable or undated fix, a record renamed from another number, a shallow clone) were each shown
+  by hand, and no test holds them; its globs are typed by hand, so a set narrower than `LANE` is
+  caught only by step 1's comparison with the Appendix. Both are lane tools, deleted in Phase 9.
+  The two rows run `check:corpus` seven times between them, about a minute on CI, appended so no
+  other fixture changes shard.
+
 ### Phases 2 to 8 — the lanes
 
 Each lane is its own PR, in this order:
@@ -155,6 +201,10 @@ Each lane is its own PR, in this order:
 
 ### Phase 9 — the gate holds zero, and checks the target
 
+- **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
+  106 plans, 80 bugs, 28 proposals and 69 spikes, so `ts-archunit bug 0400` cannot be its record:
+  the lookbehind's escape is closed for every later number, with no false positive by construction
+  (Phase 1's enforcement review).
 - **Zero outright.** `corpus/record-mention-is-a-link` is judged as the other rules are: any
   unlinked mention outside the seven is red, whatever the base holds. The base machinery goes:
   `scripts/lib/record-mention-base.mjs`, the `EESS_RECORD_MENTION_BASE` seam and its findings, the
@@ -265,7 +315,7 @@ document. Every new number was reproduced at 4a43bcc4.
 ## Progress ledger
 
 - [x] Ready (2026-10-27)
-- [ ] Phase 1 — the gate's narrowing, proven, and the rule file
+- [x] Phase 1 — the gate's narrowing, proven, and the rule file
 - [ ] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
 - [ ] Phase 3 — `work/spikes/`, `work/proposals/`
 - [ ] Phase 4 — `work/bugs/` (live)
