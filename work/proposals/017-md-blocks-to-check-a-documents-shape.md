@@ -474,7 +474,7 @@ whole.
 - **Ask D over free prose cannot be made honest.** This repository's identifiers collide with those
   of the project its engine was ported from, using the same words, so a per-type pattern plus a
   foreign namespace cannot tell them apart: [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) wrote ts-archunit's bug 0039 bare, the ported project's;
-  [bug 0229](../bugs/0229-a-call-site-whose-arguments-carry-logic-reads-as-copy-paste.md) writes ts-archunit's plan 0103 bare, a number that is a bug's here; the 14 "ts-archunit ADR-NNN" sites resolve to
+  [bug 0229](../bugs/0229-a-call-site-whose-arguments-carry-logic-reads-as-copy-paste.md) wrote ts-archunit's plan 0103 bare, a number that is a bug's here; the 14 "ts-archunit ADR-NNN" sites resolve to
   the wrong ADR. A per-line "not a reference" marker is an escape an agent can stamp to go green
   ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 3), and a warning is the release nobody reads ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1). This proposal's own
   text would fail it.

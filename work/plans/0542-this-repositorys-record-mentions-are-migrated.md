@@ -284,8 +284,9 @@ fails the build` and `accepts a repository that extends the base through an inte
   [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s two examples of a form
   that cannot be told apart had been rewritten to show it told apart. Each was put right. A range of
   ts-archunit numbers in [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) was hidden
-  with an inserted word and is now in the ts-archunit form. So step 4 now has the second judge read
-  every rewording as well, for meaning, without the proposer's reasons.
+  with an inserted word and is now in the ts-archunit form. So step 4 now has the second judge read every rewording as well, for meaning, without the
+  proposer's reasons. Lane 3's own rewordings were read by its review, which had seen the reasons,
+  not by a judge reading without them.
 - **What the anachronism exclusions caught.** 36 of the 38 name their record and were linked; two
   are ts-archunit's and were reworded ([proposal 002](../proposals/002-comment-embedded-links.md)'s line 63, ts-archunit proposal 011 with ts-archunit plan 0057 beside it;
   [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s line 14, ts-archunit proposal 019 with a plan beside it). The second line hid a
@@ -304,8 +305,8 @@ fails the build` and `accepts a repository that extends the base through an inte
   [spike 0540](../spikes/0540-one-join-over-every-source.md) sit inside `md` fences of quoted probe
   input, which no gate reads; they are left as recorded, and Decision 1 says so.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
-  reads 3,142 unlinked mentions against 4,045 at the base; the skipped count, 53 at the base, reads 77 after the lane's edits and 81 at the commit, this
-  record's own ts-archunit forms included (`check:corpus`, 2026-10-28).
+  reads 3,142 unlinked mentions against 4,045 at the base; the skipped count, 53 at the base, reads 81 at the commit (`check:corpus`, 2026-10-28): 76
+  from the lane's edits and 5 in this record's own ts-archunit forms, a derivation by file.
 
 ### Phase 9 — the gate holds zero, and checks the target
 
