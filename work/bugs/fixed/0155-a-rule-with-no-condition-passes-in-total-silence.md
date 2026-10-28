@@ -107,7 +107,7 @@ Where the machinery lives now:
 | `assertsSomething()`        | `packages/core/src/rule-builder.ts:216`                                   |
 | `should()` sets the phase   | `packages/core/src/rule-builder.ts:122`                                   |
 | the finding constructor     | `packages/core/src/terminal-builder.ts:422`                               |
-| the rewritten contract test | `packages/core/tests/contract/extension-surface.test.ts:265` (was `:207`) |
+| the rewritten contract test | `packages/core/tests/contract/extension-surface.test.ts:268` (was `:207`) |
 
 **The check worth making, given the split, is that the fix survived on _both_
 implementations** — the failure mode [bug 0163](../0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)

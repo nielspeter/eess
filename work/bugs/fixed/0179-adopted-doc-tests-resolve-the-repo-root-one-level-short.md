@@ -202,9 +202,15 @@ a different defect.
 
 `cross-document-links-resolve.test.ts`'s source-comment check is kept even though
 `check:corpus` overlaps its corpus half: the two derive the link set differently,
-and [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5 is why a second independent derivation is worth having. (Until review caught it, this
-record cited that rule in ts-archunit's numbering, as ts-archunit's ADR-008 review rule 5: eess's [ADR-008](../../../adr/008-caller-owns-reporting.md) has
-no numbered rules at all — an instance of the very defect described below.)
+and [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5 is why a second independent derivation is worth having.
+
+This record cited the following until review caught it, though eess's [ADR-008](../../../adr/008-caller-owns-reporting.md) has no
+numbered rules at all — an instance of the very defect described below:
+
+```text
+ADR-008 review rule 5
+```
+
 The `src/`-comment direction is covered by no gate at all.
 
 ## Verification

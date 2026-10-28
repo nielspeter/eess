@@ -376,35 +376,46 @@ fails the build` and `accepts a repository that extends the base through an inte
 (the commit leaves it empty), under steps 2 and 4 as lane 4 left them:
 
 - The instrument found 9 anachronisms in 521 fixes, the Appendix's rows exactly. The dry run gave
-  509 fixes and 92 refusals, the table's figure; the grep found no ts-archunit GitHub link in the
-  lane.
+  509 fixes and 91 refusals: the table's 92 less the one lane 2 closed, [bug 0295](../bugs/fixed/0295-extend-and-implement-read-only-the-direct-clause.md)'s quoted test
+  title. The grep found no ts-archunit GitHub link in the lane.
 - Judge 1 (Fable, in two halves; seed 20261028) read every fix whose number ts-archunit also used,
-  213, and 20 sampled: 228 right, 5 wrong. Four are ts-archunit's numbering copied from a code or
-  test comment: [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s and [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s ts-archunit ADR-008 (eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md)), [bug 0199](../bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s
-  ts-archunit plan 0078 (the configuration-finding census) and [bug 0239](../bugs/fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)'s ts-archunit plan 0079
-  (the cardinality triage). The fifth, [bug 0278](../bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md)'s, named the fold plan where it meant PR #88, the kernel split. Each went into `JUDGED_WRONG` and was reworded; every other fix to those targets is
-  in the range, so the judges read them. `--apply` wrote 504 links across 108 files.
-- The rest by hand: a proposer (Fable) proposed 105 edits for 100 items; 97 were applied in 41
-  files, with 4 for the judged-wrong lines (one, [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s, fences the code comment it quotes). Two
-  were decided otherwise. One proposed renaming a test title to carry "ts-archunit bug 0016"; instead,
-  as lane 2 did, the two test titles in `packages/core/tests/contract/extension-surface.test.ts` that
-  held ts-archunit's bug 0016 dropped the number, each kept in a comment, and every record quoting
-  them was updated ([bug 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md), and [plan 0150](./0150-close-0088s-disclosed-review-findings.md), lane 6's). The other proposed editing a
-  reproduction inside a fence, and was first dropped, then applied, below. [Bug 0325](../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)'s citation of
-  a third test title went the same way as the two above. `'@nielspeter/eess': none` and
-  `'@nielspeter/eess-ts': none`.
+  213, and 20 sampled: 228 right, 5 wrong. Three are ts-archunit's numbering copied from a code or
+  test comment: [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s ts-archunit ADR-008 (eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md)), [bug 0199](../bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s ts-archunit
+  plan 0078 (the configuration-finding census) and [bug 0239](../bugs/fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)'s ts-archunit plan 0079 (the
+  cardinality triage). One, [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s ts-archunit ADR-008, came from the enforcement reviewer's
+  checklist (below). The fifth, [bug 0278](../bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md)'s, named the fold plan where it meant PR #88, the kernel
+  split. Each went into `JUDGED_WRONG` and was reworded; every other fix to those targets is in the
+  range, so the judges read them. `--apply` wrote 504 links across 108 files.
+- By hand: a proposer (Fable) proposed 105 edits for the 100 items; 93 were applied, 10 were
+  markers that another edit covers, and 2 were decided otherwise. With the 4 the builder wrote for
+  four judged-wrong lines (the proposer's own fence covers the fifth, [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s quoted code
+  comment), and one applied later, below, that makes 98. The two decided otherwise: a proposed
+  rename of a test title to carry "ts-archunit bug 0016" went instead the way lane 2 went, the two
+  titles in `packages/core/tests/contract/extension-surface.test.ts` holding ts-archunit's bug 0016
+  dropping the number, each kept in a comment, and every record quoting them updated ([bug 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md),
+  and [plan 0150](./0150-close-0088s-disclosed-review-findings.md), lane 6's); and a proposed edit to a reproduction inside a fence, applied later.
+  [Bug 0325](../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)'s quote of a third test title went the same way as the two. `'@nielspeter/eess': none`
+  and `'@nielspeter/eess-ts': none`.
 - Judge 2 (Fable), given no reasons, read 78: every rewording and fence and every hand link with a
   number in ts-archunit's range, whatever the file. 73 right, 4 wrong, 1 unsure. [Bug 0179](../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s
-  quoted wrong citation had been linked, which recreates the defect its paragraph describes; it is
-  described now. [Bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s three table cells, which quote a reproduction's input, no longer
-  matched the reproduction left unchanged; the reproduction takes the same placeholder for its
-  synthetic plan number. The unsure one, [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s "attribution, not colour", is the enforcement
-  reviewer's checklist (`.claude/agents/reviewer-enforcement.md:37`), which gives "Agent-First Failure Surfaces" ts-archunit's number,
-  ts-archunit's ADR-008, as reworded. That agent file still cites
-  ts-archunit's numbers for both ADRs; it is outside this plan's corpus.
+  quoted wrong citation had been linked, which recreates the defect its paragraph describes; the
+  citation is fenced now, as it stood. [Bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s three table cells, which quote a reproduction's
+  input, no longer matched the reproduction; the reproduction takes the same placeholder for its
+  synthetic plan number, with a dated note that the run and its test use the number. The unsure one,
+  [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s "attribution, not colour", is the enforcement reviewer's checklist
+  (`.claude/agents/reviewer-enforcement.md:37`), which gives "Agent-First Failure Surfaces"
+  ts-archunit's number, ts-archunit's ADR-008, as reworded; that file's numbering is
+  [bug 0303](../bugs/0303-ts-archunit-adr-numbers-persist-in-eess-comments.md)'s.
+- Five edits came after judge 2 ran and were read by the lane's method review instead: [bug 0179](../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s
+  fence, [bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s reproduction, and the three test-title quotes in [bugs 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md) and 0325 and [plan 0150](./0150-close-0088s-disclosed-review-findings.md). The review found [bug 0179](../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s first rewording a paraphrase of the quoted citation, now fenced,
+  and [bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s change unnoted, now noted. It also found [bug 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md)'s pointer to the renamed test
+  three lines off after the rename, corrected; and a nonvacuity fixture, `corpus/docs-only-owner`,
+  that sabotaged [bug 0219](../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md) by stripping its `Implements` line as plain text, which this lane had
+  linked; `validate` refused the probe that could no longer fire, and it now matches the line in
+  either form.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
-  reads 1,720 unlinked mentions against 2,335 at the base, and 169 skipped after ts-archunit
-  against 130 at the base (`check:corpus`, 2026-10-28), this record's own ts-archunit forms included.
+  reads 1,720 unlinked mentions against 2,335 at the base (its summary is kept with the lane's
+  evidence).
 
 ### Phase 9 — the gate holds zero, and checks the target
 
@@ -538,7 +549,8 @@ document. Every new number was reproduced at 4a43bcc4.
       and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24); ts-archunit plan 0075 confirmed by judge 1 and reworded, the
       GitHub links written as plain text)
 - [x] Phase 5 — `work/bugs/fixed/`
-- [ ] Phase 6 — `work/plans/` (live)
+- [ ] Phase 6 — `work/plans/` (live) (carried from lane 5: [plan 0150](./0150-close-0088s-disclosed-review-findings.md)'s prose mentions
+      of ts-archunit's bug 0016, its two test-title quotes already updated)
 - [ ] Phase 7 — `work/plans/completed/` 0001–0449
 - [ ] Phase 8 — `work/plans/completed/` 0450 and above
 - [ ] Phase 9 — the gate holds zero and checks the target
@@ -578,7 +590,7 @@ work/bugs/BUGS.md:336	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12
 work/bugs/BUGS.md:336	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:343	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:349	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
-work/bugs/BUGS.md:410	bug 0507	work/bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md	2026-10-19	2026-10-19
+work/bugs/BUGS.md:410	[bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)	work/bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md	2026-10-19	2026-10-19
 work/bugs/BUGS.md:437	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:456	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:469	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16

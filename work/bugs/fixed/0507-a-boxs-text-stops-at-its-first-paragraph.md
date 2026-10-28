@@ -42,6 +42,11 @@ A corpus of `plans/README.md` and one closed plan, `plans/completed/0001-x.md`, 
 Deferred: none
 ```
 
+_Note, 2026-10-28:_ the input above and the table below wrote a synthetic plan number,
+0002; they write `plan NNNN` since [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5, so the record-mention gate reads no synthetic number. The
+run and its test (`packages/md/tests/rules/a-box-reads-all-its-own-text.test.ts`) use 0002, and the
+deferral pattern accepts either, so the findings below are the same.
+
 | the box's deferral is written                                 | box `text`                                               | `honestyAtClose`                      |
 | ------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------- |
 | on the box's own line (`…done-otherwise, deferred→plan NNNN`) | `the parser change — done-otherwise, deferred→plan NNNN` | 1 finding, `ledger/deferred-none-lie` |

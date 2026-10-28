@@ -115,7 +115,8 @@ export named 'isStrictFamily'`.
 - [x] **A falsifying test, which this bug was first closed without.**
       `scripts/lib/tsconfig-surface.test.mjs`, run by `check:family`. Measured on
       the fixed tree: deleting the export AND its census row together, which is
-      PR #88's exact shape (the kernel split), left the matrix at 48 of 48 with `check:family`
+      PR #88's exact shape (the kernel split; the fold plan was named here until
+      [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5 corrected it, 2026-10-28), left the matrix at 48 of 48 with `check:family`
       and `check:surface` green beside it. The same sabotage now fails three
       cases, naming the symbols and saying a rule file will not load.
 - [x] **The fourth export instrumented too.** This record frames the bug as "the

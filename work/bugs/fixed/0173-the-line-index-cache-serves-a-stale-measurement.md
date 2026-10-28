@@ -51,7 +51,7 @@ repo had already measured and written down twice.
 
 ```
 A `SourceFile`'s identity SURVIVES an edit … A `SourceFile`-keyed cache without
-invalidation serves pre-edit edges after an edit: ADR-008's false green,
+invalidation serves pre-edit edges after an edit … : ADR-008's false green,
 manufactured by a cache.
 ```
 
