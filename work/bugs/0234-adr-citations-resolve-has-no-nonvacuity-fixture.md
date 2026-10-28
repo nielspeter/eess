@@ -16,7 +16,7 @@
 - **Origin:** self-found · surfaced while reviewing
   [proposal 008](../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md),
   which proposes extending this rule with a pluggable citation form. **Not
-  proposal 008's ask** — it needs no `**Implements:**` line.
+  [proposal 008](../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md)'s ask** — it needs no `**Implements:**` line.
 - **Reported:** 2026-09-03
 
 ## Symptom
@@ -68,7 +68,7 @@ A fix must fail when:
 2. And the existing tier fixture must keep proving tiers alone: the new fixture
    must not make `bad-adr.mjs` red for a reason that would mask a deleted tier
    check. Assert the **rule id**, not merely a non-zero exit — the discipline
-   `bad-adr.mjs` already applies against bug 0109's class.
+   `bad-adr.mjs` already applies against [bug 0109](./fixed/0109-nonvacuity-fixtures-read-a-crash-as-a-pass.md)'s class.
 
 ## Fix
 

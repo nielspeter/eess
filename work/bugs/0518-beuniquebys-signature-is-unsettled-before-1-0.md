@@ -11,7 +11,7 @@
 
 ## Symptom
 
-Three shapes of the block-13 API (plan 0459 and its addendum) were shipped without a decision:
+Three shapes of the block-13 API ([plan 0459](../plans/completed/0459-kernel-beuniqueby-and-gherkins-unique-titles.md) and its addendum) were shipped without a decision:
 
 1. **`key` returns only `string`** (architect M6). `docs().beUniqueBy(key, what)` takes
    `(d: MdDocument) => string` (`packages/md/src/builders/docs.ts`), and

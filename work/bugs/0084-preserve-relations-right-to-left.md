@@ -28,9 +28,9 @@ correspondence whose **right** side declares a relation absent from its left
 counterpart, assert one violation under `direction: 'right-to-left'`, and get
 `[]`.
 
-## Why ADR-010's guard does not catch it
+## Why [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s guard does not catch it
 
-Added 2026-09-04, from architecture review of bug 0242's fix. Worth stating
+Added 2026-09-04, from architecture review of [bug 0242](./fixed/0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md)'s fix. Worth stating
 because the natural assumption is that the evidence requirement already covers
 this, and it does not.
 
@@ -43,10 +43,10 @@ const examined = this.opts.left.elements.length + this.opts.right.elements.lengt
 That number is a property of the SELECTIONS, not of the checks. So a
 `preserveRelations({ direction: 'right-to-left' })` over two populated sides
 reports `{ violations: [], examined: <non-zero> }` — a pass constructed from a
-real denominator, which is exactly the shape ADR-010 accepts. The vacuity floor
+real denominator, which is exactly the shape [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) accepts. The vacuity floor
 sees a healthy check.
 
-This is the distinction ADR-010 draws and this case sits on the wrong side of:
+This is the distinction [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) draws and this case sits on the wrong side of:
 `examined` proves that elements were SELECTED, not that any predicate ran over
 them. A check that inspects nothing while its selections are full is invisible to
 it. Anyone extending the evidence requirement to correspondence should read this
@@ -86,7 +86,7 @@ Two things to settle while in there, both currently one-sided:
 - **Violation attribution.** `relations()` emits only `o.left.identify(l)`
   (`packages/core/src/correspondence.ts:214`) — one file, one line. A right→left
   violation must identify the **right** side, and the two-sided message
-  (both labels, both lines) is what proposal 001's `agree()` needs.
+  (both labels, both lines) is what [proposal 001](../proposals/001-md-corpus-rule-coverage.md)'s `agree()` needs.
 - **Non-vacuity.** Whatever lands must be represented in
   `scripts/check-nonvacuity.mjs`, or the next emptying goes unnoticed the same
   way.

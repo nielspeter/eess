@@ -86,7 +86,7 @@ reachable only through a folder the corpus gate has frozen.
 ## Related
 
 - [0327](./0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md) —
-  the same shape for ADR-011: a decision whose scope the code has outgrown.
+  the same shape for [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md): a decision whose scope the code has outgrown.
 - [0329](./0329-the-class-search-reads-no-comment-outside-a-members-parameters.md) — the live record
   whose premise sits in `fixed/`.
 - [0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md) — a second preset that does not

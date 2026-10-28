@@ -123,7 +123,7 @@ that would justify promoting it, arrived at by accident instead of on purpose.
 **It is deliberately NOT in the kernel today**, and the reasoning should be
 inherited rather than re-litigated: one consumer is speculative generality; the
 kernel emits no multi-location finding at all (that is what this record is);
-and ADR-011 makes the kernel root public API, so a hoist would publish a symbol
+and [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) makes the kernel root public API, so a hoist would publish a symbol
 whose only caller is one dialect's unit test — `@nielspeter/eess/internal` would
 be the ceiling, not the root.
 

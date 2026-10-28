@@ -4,15 +4,15 @@
 
 - **State:** Draft — measured; no red test yet. _Filed 2026-10-05 as "a basename exclusion
   never matches" from a probe on the wrong condition (`notExist()`, whose `element` is
-  `'SourceFile'`); adversarial review of spike 0386 measured the opposite on the condition the
+  `'SourceFile'`); adversarial review of [spike 0386](../spikes/0386-strings-that-name-code.md) measured the opposite on the condition the
   docs actually pair it with, and this record was rewritten the same day._
 - **Severity:** High — **a waiver that reaches further than written.** `.excluding('index.ts')`
   meant for one entry point also waives every other `index.ts` in the project, now and in
   future, and nothing says so. Each extra file it reaches is a false green.
-- **Origin:** spike 0386's research, corrected by its adversarial review.
+- **Origin:** [spike 0386](../spikes/0386-strings-that-name-code.md)'s research, corrected by its adversarial review.
 - **Reported:** 2026-10-05
-- **Placement (2026-10-20):** stays its own bug, with spike 0386. [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2 keeps
-  `element` as it is on purpose (`.excluding()` matches on it), so none of its children, plans 0532
+- **Placement (2026-10-20):** stays its own bug, with [spike 0386](../spikes/0386-strings-that-name-code.md). [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2 keeps
+  `element` as it is on purpose (`.excluding()` matches on it), so none of its children, [plans 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)
   to 0534, changes what an exclusion matches.
 
 ## Symptom
@@ -30,7 +30,7 @@ four violations; after `.excluding('index.ts', 'main.ts')`, only `src/orphan.ts`
 
 ## Fix
 
-Depends on the exclusions ruling spike 0386 prepares. A file waiver should identify a file —
+Depends on the exclusions ruling [spike 0386](../spikes/0386-strings-that-name-code.md) prepares. A file waiver should identify a file —
 a path resolved against the project — or a violation, not a name many files share. Until
 then, the docs should teach the anchored form (`/\/src\/index\.ts$/`) or scoping in `.that()`.
 

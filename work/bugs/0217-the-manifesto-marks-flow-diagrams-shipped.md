@@ -3,9 +3,9 @@
 ## Status
 
 - **State:** Draft — measured, and the finding nearly evaporated: it was established by
-  proposal 006's review and then omitted from all six records that review produced.
+  [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s review and then omitted from all six records that review produced.
 - **Deferred:** none
-- **Found:** 2026-08-22, review of proposal 006. Filed only after three reviewers each
+- **Found:** 2026-08-22, review of [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md). Filed only after three reviewers each
   named its absence — which is the reason it is worth saying out loud that a finding whose
   fix raises the finder's own workload is the one that goes unfiled.
 
@@ -44,9 +44,9 @@ is that a green which examined nothing is a lie; a spec that marks a capability 
 when nothing runs is the same defect one level up, in the document that defines the
 vocabulary it violates.
 
-It also has a measurable consequence already: proposal 006 set its Priority to Medium on
+It also has a measurable consequence already: [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md) set its Priority to Medium on
 the reasoning that "nothing here is currently over-claimed". That rationale is false, and
-it propagated into plan 0212's priority before review caught it.
+it propagated into [plan 0212](../plans/0212-eess-mermaid-fence-discoverability.md)'s priority before review caught it.
 
 ## Fix
 
@@ -68,13 +68,13 @@ record should not pretend otherwise.
 - [ ] **The one marker.** `## Mermaid Semantic Schemas` carries a status its own section can
       support — `partial` or `vision` — or its `graph TD` example is replaced by a kind eess
       models.
-- [x] Proposal 006's Priority rationale annotated in place, and plan 0212's derived rationale
+- [x] [Proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s Priority rationale annotated in place, and [plan 0212](../plans/0212-eess-mermaid-fence-discoverability.md)'s derived rationale
       re-stated — both done on this branch.
 - [ ] **A break class, or an honest `manual`.** Either build the narrow Tier-1 rule — _a
       `shipped` section whose worked example is a mermaid fence must name a kind eess has a
       grammar for_ — with a violating fixture, or record in the manifesto that its status
       markers are `manual` and no mechanism is claimed. Without one, closing this bug leaves
-      the next `shipped` over-claim equally free, which under ADR-009 is a check that cannot
+      the next `shipped` over-claim equally free, which under [ADR-009](../../adr/009-agent-first-failure-surfaces.md) is a check that cannot
       fail.
 
 > An earlier revision of this record was reported as applied and silently did not land, so

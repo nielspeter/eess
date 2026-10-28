@@ -51,7 +51,7 @@ does and exactly what it does not do for 18 of 20.
 
 Not built. Extend `every waiver in src/ actually suppresses something` to cover
 every rule id the presence row asserts, not one of them. The mechanism already
-exists — `commentSuppressions()` (shipped for bug 0041) reports what each rule
+exists — `commentSuppressions()` (shipped for ts-archunit bug 0041) reports what each rule
 silenced — so this is a loop over the four ids rather than new machinery.
 
 Two things to get right:

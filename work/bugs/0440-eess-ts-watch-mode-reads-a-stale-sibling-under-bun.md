@@ -6,13 +6,13 @@
   Measured in one test only; `eess-ts check --watch` end to end was not run under Bun.
 - **Severity:** Medium under Bun — a false verdict: after an edit to a file the rule file imports, a
   watch run checks the old content. None under Node, the only runtime eess supports today.
-- **Origin:** self-found · spike 0438, 2026-10-16.
+- **Origin:** self-found · [spike 0438](../spikes/0438-what-the-family-does-under-bun.md), 2026-10-16.
 - **Reported:** 2026-10-16
 
 ## Symptom
 
 `packages/ts/tests/cli/esm-sibling-import.test.ts`, "a second fresh load sees the edited sibling,
-not the first one", run under `bun --bun vitest` on a build with bug 0439's import patched, expected
+not the first one", run under `bun --bun vitest` on a build with [bug 0439](./fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)'s import patched, expected
 `second: 'v2'` and received `'v1'`. Under Node it passes.
 
 ## Root cause

@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 from plan 0469's review verification.
+- **State:** Draft — recorded 2026-10-18 from [plan 0469](../plans/completed/0469-havefield-a-document-has-a-value.md)'s review verification.
 - **Severity:** Low — no wrong verdict is known; a regression that adds a configuration finding to
   a `haveField` rule would pass the suite.
-- **Origin:** self-found · plan 0469's review, 2026-10-18.
+- **Origin:** self-found · [plan 0469](../plans/completed/0469-havefield-a-document-has-a-value.md)'s review, 2026-10-18.
 - **Reported:** 2026-10-18
 
 ## Symptom

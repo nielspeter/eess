@@ -89,7 +89,7 @@ and its only README example is the path form. Narrowing it is a break: a `minor`
 carrying a `**Breaking …**` marker and a migration line. Naming `@nielspeter/eess-crossvalidate` in the same changeset is **optional**, not required:
 it consumes `diagram()` but declares `@nielspeter/eess-mermaid` under `peerDependencies`, and
 `scripts/check-release.mjs` weighs regular `dependencies` only ("Who would inherit a break.
-Regular `dependencies` only."). An earlier draft cited bug 0185 as compelling it; review
+Regular `dependencies` only."). An earlier draft cited [bug 0185](./fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md) as compelling it; review
 measured that `release/break-names-dependents` will not require it and that crossvalidate is
 not bumped at all, so the "Updated dependencies" outcome cannot occur. Naming it is a choice
 that costs crossvalidate a version.

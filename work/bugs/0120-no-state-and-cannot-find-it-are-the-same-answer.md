@@ -21,7 +21,7 @@ tell them apart:
    line, nothing to check. Silence is correct.
 2. **This document is an item and I looked in the wrong place.** Its `State:`
    line exists, outside the scanned region. Silence is exactly wrong, and it is
-   what bug 0119 was.
+   what [bug 0119](./fixed/0119-placement-check-never-ran.md) was.
 
 Both return `null`; `headerStateViolation` returns `null`; the gate says nothing.
 

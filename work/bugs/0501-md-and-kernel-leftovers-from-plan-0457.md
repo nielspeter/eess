@@ -1,4 +1,4 @@
-# Bug 0501: names and duplicates plan 0457 left in the kernel and eess-md
+# Bug 0501: names and duplicates [plan 0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) left in the kernel and eess-md
 
 ## Status
 
@@ -14,7 +14,7 @@ Three leftovers, collected because one review found them together:
 
 1. **The kernel hook's name no longer says what it carries.** `RuleBuilder.deadGlobDiagnosis()`
    (`packages/core/src/rule-builder.ts`) now also carries eess-md's scope diagnosis, which is not
-   about globs; plan 0457 changed only its docstring. `CollectResult.deadGlob`
+   about globs; [plan 0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md) changed only its docstring. `CollectResult.deadGlob`
    (`packages/core/src/collect-result.ts`) still calls itself "a specific dead-glob explanation". A
    rename (`zeroExaminedDiagnosis`, for instance) is a kernel API change. `CorpusRuleBuilder` owns
    the override, so a later md diagnosis for dead globs on positive rules would have to be combined
@@ -28,8 +28,8 @@ Three leftovers, collected because one review found them together:
    `terms()`' `resideInFile` (`packages/md/src/builders/vocabulary.ts`) passes the document predicate
    straight to `addPredicate` with the same shape. Each could be `liftToDocument(p, description)`,
    keeping its rule text.
-3. **Two fields for one fact.** `ParsedCodeBlocks` carries `documentsLoaded: number` and, since plan
-   0457, `documents`; `documentsLoaded` always equals `documents.length`, and
+3. **Two fields for one fact.** `ParsedCodeBlocks` carries `documentsLoaded: number` and, since [plan
+   0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md), `documents`; `documentsLoaded` always equals `documents.length`, and
    `CodeBlockRuleBuilder.sourceEmpty()` could read the array.
 
 ## Fix

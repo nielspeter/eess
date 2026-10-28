@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — found by the working-method lens reviewing plan 0263's
+- **State:** Draft — found by the working-method lens reviewing [plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md)'s
   Phase 1, and measured against three phases of one plan.
 - **Severity:** Medium — not wrong code. A plan promoted to `Ready` promises its
   floor is self-contained, and `/plan-build` refuses a `Draft` on the strength of
@@ -10,7 +10,7 @@
   internalised and every link resolves. It never asks whether the phase's claim
   about the code is true, so a phase can name a seam that does not exist and
   still be `Ready`.
-- **Origin:** self-found · method review of PR #116 (plan 0263 Phase 1)
+- **Origin:** self-found · method review of PR #116 ([plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 1)
 - **Reported:** 2026-09-07
 
 ## Symptom
@@ -33,7 +33,7 @@ plan's own text says so:
   fixture could simply assert it. Measured, the CLI had the identical hole, and so
   did `eess-ts baseline` — which wrote a baseline artifact from a builder that
   certified nothing. A fourth instance arrived in the same phase's test file,
-  which asserted that a case "cannot be tested" without a cast ADR-005 forbids;
+  which asserted that a case "cannot be tested" without a cast [ADR-005](../../adr/005-no-any-no-type-assertions.md) forbids;
   two reviewers each wrote that test independently and both pass.
 - **Phase 1**, NOT caught, found only at build: `check-ledger.mjs` and
   `check-release.mjs` were assumed to reach the evidence gate the way

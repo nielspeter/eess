@@ -4,10 +4,10 @@
 
 - **State:** Draft — hit twice while fixing 0242, measured and bounded, not fixed.
 - **Severity:** Medium — **not a false green; a false RED pointed at the wrong
-  place.** It costs a reader the exact thing bug 0231 was filed to stop costing
+  place.** It costs a reader the exact thing [bug 0231](./fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md) was filed to stop costing
   them: a gate reds over a file they never wrote, while the gate that exists to
   name such a file reports the workspace clean.
-- **Origin:** self-found · killed a `check:nonvacuity` run twice during bug 0242
+- **Origin:** self-found · killed a `check:nonvacuity` run twice during [bug 0242](./fixed/0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md)
   and got two different outcomes from the same mistake — one named, one blamed
   on the corpus.
 - **Reported:** 2026-09-04
@@ -39,7 +39,7 @@ That works because it recognises a **name**: `PROBE_PREFIX = '__nonvacuity_probe
 
 A reader is now debugging an honesty-at-close violation in a bug record that
 does not exist in the corpus, told by the preceding gate that the workspace is
-fine. That is bug 0231's symptom exactly, with 0231's fix in place and not
+fine. That is [bug 0231](./fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)'s symptom exactly, with 0231's fix in place and not
 covering this one file.
 
 ## Measured, and bounded

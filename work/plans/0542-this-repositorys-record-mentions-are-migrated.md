@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phases 1–3 built 2026-10-27/28; lane 4 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1–4 built 2026-10-27/28; lane 5 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -308,6 +308,39 @@ fails the build` and `accepts a repository that extends the base through an inte
   reads 3,142 unlinked mentions against 4,045 at the base; the skipped count, 53 at the base, reads 81 at the commit (`check:corpus`, 2026-10-28): 76
   from the lane's edits and 5 in this record's own ts-archunit forms, a derivation by file.
 
+**Lane 4 (Phase 4), built 2026-10-28**, at base 3f22a927, with `LANE` set to `work/bugs/*.md`
+(the live bugs and the board; the commit leaves it empty):
+
+- The instrument found 13 anachronisms on 12 lines in 718 fixes, the Appendix's rows; three
+  `BUGS.md` rows sat one line lower, since the board gained a row above them, and were found there.
+  The dry run gave 700 fixes and 88 refusals (the table's 89, less one on an excluded line).
+- Judge 1 (Fable; seed 20261028) read the 94 fixes in the ts-archunit range, among them
+  [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s line 69 carried from lane 2, and 20 sampled:
+  113 right, 1 wrong. That carried line names ts-archunit plans 0075 and 0076, the element- and
+  module-edges caches, as the code comments under `packages/ts` show; it went into `JUDGED_WRONG`
+  and was reworded by hand. No other fix in the lane targets that plan, and lane 2's search found
+  none in later lanes.
+- `--apply` wrote 699 links across 152 files.
+- The rest by hand, under step 4 as lane 3's review left it. A proposer (Fable) proposed 109 edits
+  for the 102 items (the seven more are other mentions on excluded lines), and one more was added
+  for the carried line: 105 applied in 37 files, 60 links, 31 rewordings to the ts-archunit form, 12
+  other rewordings and 2 fences; 5 were covered by another's edit. All 12 anachronisms were read
+  against git and are over-flags, each record filed before or with its mention and closed later.
+  Judge 2 (Fable), given no reasons, read 72: every rewording and fence, and the 27 hand links in
+  files naming ts-archunit with a number in its range. 66 right, 6 wrong, every one a change of
+  meaning with the referent right: four rewordings altered verbatim quotes of source comments
+  ([bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md)'s quoted `execute-rule.ts` comment and three in [bug 0351](../bugs/0351-an-adr-citation-in-a-source-comment-is-gated-by-nothing.md)), one turned a recorded
+  misnumbering into the corrected form, and one board row came to say the wrong ADR has no rules.
+  Each was put right: the quotes are fenced whole as they stood at the base, the fix's own link
+  inside one of them going with it, and the two sentences say what was cited and how.
+- The lane's two ts-archunit GitHub links ([bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 22 and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md)'s line 24) are plain
+  text in the ts-archunit form; that bug, which is about those links, keeps its URL visible in
+  inline code.
+- Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
+  reads 2,335 unlinked mentions against 3,142 at the base, and 115 skipped after ts-archunit
+  (`check:corpus`, 2026-10-28), 81 at the base: 32 from the lane's edits and 2 in this record's own
+  forms, a derivation by file.
+
 ### Phase 9 — the gate holds zero, and checks the target
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
@@ -432,11 +465,12 @@ document. Every new number was reproduced at 4a43bcc4.
       [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) (lines 48, 49) and
       [spike 0540](../spikes/0540-one-join-over-every-source.md) (lines 47, 48, 54); ts-archunit plan 0075 excluded and reworded, the GitHub links left as
       recorded as fenced probe input, Decision 1 corrected)
-- [ ] Phase 4 — `work/bugs/` (live) (carried from lane 2, for the judge:
+- [x] Phase 4 — `work/bugs/` (live) (carried from lane 2, for the judge:
       [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s
       mention of a plan numbered 0075 at line 69, read as ts-archunit's; the ts-archunit GitHub
       links in [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md) (line 22)
-      and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24))
+      and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24); ts-archunit plan 0075 confirmed by judge 1 and reworded, the
+      GitHub links written as plain text)
 - [ ] Phase 5 — `work/bugs/fixed/`
 - [ ] Phase 6 — `work/plans/` (live)
 - [ ] Phase 7 — `work/plans/completed/` 0001–0449

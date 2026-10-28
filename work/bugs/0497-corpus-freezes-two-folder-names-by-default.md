@@ -2,12 +2,12 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-19 as ADR-022 clause 1's known exception; the default is read
+- **State:** Draft — recorded 2026-10-19 as [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1's known exception; the default is read
   from the code and its reach measured, the fix not started.
 - **Severity:** Low — no false green on its own: a frozen document's links are still gated. It is a
-  document shape on the root, which ADR-022 rules out, and it decides what `pointers().areLive()`
+  document shape on the root, which [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) rules out, and it decides what `pointers().areLive()`
   and every rule built on `frozen` examine for a caller who never named a frozen folder.
-- **Origin:** self-found · proposal 017, second Review, decision 2 ("Records owed": "`corpus()`'s
+- **Origin:** self-found · [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md), second Review, decision 2 ("Records owed": "`corpus()`'s
   frozen default"), filed with [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md).
 - **Reported:** 2026-10-19
 
@@ -32,9 +32,9 @@ live-target predicate and by the pointer resolver, so the default changes what e
 Remove the default: a corpus built without `frozen` marks no document frozen. It is a flagged break
 (it reds a corpus that relied on the default, since pointers in `completed/` become live), shipped
 with a migration line, `frozen: ['**/completed/**', '**/archived/**']`, and naming its dependants
-in the changeset (bug 0185). If plan 0455's `corpusFromText` has shipped by then sharing the
+in the changeset ([bug 0185](./fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)). If [plan 0455](../plans/completed/0455-a-corpus-built-from-text.md)'s `corpusFromText` has shipped by then sharing the
 default, as that plan writes it, it loses the default in the same change and the same release: one
-break for both constructors (ADR-022 clause 1). If it has not shipped, plan 0455 builds it without
+break for both constructors ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1). If it has not shipped, [plan 0455](../plans/completed/0455-a-corpus-built-from-text.md) builds it without
 the default. Every caller in this repository that omits `frozen` is listed and given its own globs in
 the same change; `scripts/check-ledger.mjs` is one.
 

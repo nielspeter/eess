@@ -16,7 +16,7 @@
   is measured insufficient. That is what moves the deferred half from nice-to-have to the
   actual fix.
 - **Deferred:** the anchored-citation half — see Verification
-- **Found:** 2026-08-22, across the review rounds on bug 0209 and proposal 006. Named as
+- **Found:** 2026-08-22, across the review rounds on [bug 0209](./fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md) and [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md). Named as
   deserving its own record in
   [0209](./fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md) and by two
   reviewers; never filed until now, which is itself the finding's shape.
@@ -38,11 +38,11 @@ passes, silently, forever.
 
 ## Measured — three instances, one day
 
-| citation                                                    | drifted onto                                                                   | gate  |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------ | ----- |
-| proposal 006 → `md-mermaid.ts:56` "selects mermaid fences"  | a JSDoc line, after bug 0209's fix moved the code                              | green |
-| proposal 006, **re-anchored** → `md-mermaid.ts:111` / `:93` | `suggestion:` (a violation field) and JSDoc, after the same PR's later commits | green |
-| `PROPOSALS.md:131` board row → `md-mermaid.ts:111`          | same                                                                           | green |
+| citation                                                                                                       | drifted onto                                                                                                        | gate  |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----- |
+| [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md) → `md-mermaid.ts:56` "selects mermaid fences"  | a JSDoc line, after [bug 0209](./fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)'s fix moved the code | green |
+| [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md), **re-anchored** → `md-mermaid.ts:111` / `:93` | `suggestion:` (a violation field) and JSDoc, after the same PR's later commits                                      | green |
+| `PROPOSALS.md:131` board row → `md-mermaid.ts:111`                                                             | same                                                                                                                | green |
 
 The second row is the one that matters: the re-anchor was written _in the paragraph
 documenting this defect_, verified at the time, and invalidated by a later commit in the
@@ -88,7 +88,7 @@ fix's own confirmation_. `0359`'s box read "the mechanism confirmed: whole-set
 either thing. The mechanism is real — the record's proof of it was false.
 
 **3. Correcting the five broke five more distinct citations (10 occurrences) in the same
-commit, and three of those five were broken by the correction's own code change.** The fix for bug 0362 that ships alongside
+commit, and three of those five were broken by the correction's own code change.** The fix for [bug 0362](./fixed/0362-a-typod-ratchet-is-green-in-both-tools.md) that ships alongside
 these corrections adds 23 lines to `vacuity-diagnosis.ts`. Every citation into that file
 below the insertion point moved by 23 — including the four pointing at the invariant that
 0355, 0357, 0348 and `BUGS.md` all quote, and the two pointing at the floor's cardinality
@@ -112,7 +112,7 @@ markdown under `work/`, `adr/` and `docs/`, plus the handful of test comments it
 to touch. Enforcement review then found **four more occurrences of this very citation** —
 `packages/ts/src/conditions/dependency.ts:223`, `:298`, `:383`, `:516`, each citing
 path-universe at line 72 — in **source comments**, which `check:corpus` does not scope
-to at all (bug 0351). So the sweep that documents the defect under-reported it by four,
+to at all ([bug 0351](./0351-an-adr-citation-in-a-source-comment-is-gated-by-nothing.md)). So the sweep that documents the defect under-reported it by four,
 for the structural reason the record is about, and a reviewer caught it rather than the
 gate or the author. Corrected in this branch; the count above includes them.
 
@@ -141,7 +141,7 @@ objects again — which it did, once, while this paragraph was being written._
 
 So `corpus/pointers-resolve` **does** carry an ambiguity check, and a good one. What let
 all six occurrences through is **scope**, not capability: every one of them lives in a
-source comment or a test, and the gate reads `work/`, `adr/` and `docs/` only (bug 0351).
+source comment or a test, and the gate reads `work/`, `adr/` and `docs/` only ([bug 0351](./0351-an-adr-citation-in-a-source-comment-is-gated-by-nothing.md)).
 That is a materially different finding from the one first written, and it points the
 remedy somewhere else: the cheapest win here is not a new check, it is the existing
 check's reach.
@@ -219,7 +219,7 @@ relies on, and `CLAUDE.md` states the stronger one.
 
 1. **Correct the claim now.** `CLAUDE.md:133` should say what the gate proves: the file
    exists and the line is in range. This is the honest half and it is one sentence. Under
-   ADR-009 an over-claimed guarantee is worse than a stated-weak one, because readers stop
+   [ADR-009](../../adr/009-agent-first-failure-surfaces.md) an over-claimed guarantee is worse than a stated-weak one, because readers stop
    checking.
 
 2. **Make aboutness checkable.** This repo already ships the shape, one lane over: ADR
@@ -245,7 +245,7 @@ relies on, and `CLAUDE.md` states the stronger one.
 > left to look deliverable: closing this bug on an undischargeable checklist is how a
 > `deferred→<home>` with no home gets written. **The honest half ships no gate** — after it
 > lands, a citation that drifts onto an unrelated line still passes silently. That is the
-> correct trade under ADR-009 (stated-weak beats over-claimed), and it is not a fix.
+> correct trade under [ADR-009](../../adr/009-agent-first-failure-surfaces.md) (stated-weak beats over-claimed), and it is not a fix.
 
 - [ ] `dropped-on-purpose` — red first: a pointer whose line exists but
       whose content has nothing to do with the citing prose. All three rows above are

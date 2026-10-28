@@ -3,10 +3,10 @@
 ## Status
 
 - **State:** Draft — reproduced 2026-10-07 against this repo's build at `b1335f5`. No red test yet.
-- **Severity:** Medium — a remedy that does not remedy (ADR-009). The block's one instruction to
+- **Severity:** Medium — a remedy that does not remedy ([ADR-009](../../adr/009-agent-first-failure-surfaces.md)). The block's one instruction to
   the agent fails, with exit 1, in any project that names its rule files on the command line
   rather than in a config.
-- **Origin:** inbound · the same report as bug 0396, confirmed here.
+- **Origin:** inbound · the same report as [bug 0396](./0396-doctor-assumes-every-rule-has-a-ts-morph-project.md), confirmed here.
 - **Reported:** 2026-10-07
 
 ## Symptom

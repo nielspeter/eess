@@ -108,7 +108,7 @@ Open questions before it is built:
   stdout document stays machine-clean. `writeReport` sends json to stdout. The
   helper has to preserve that difference or state why it may collapse.
 - **`check-all.ts` carries extra payload** — the diff notice and `untestedRules()`.
-- **Where it lives decides plan 0188's outcome, and the pessimism first written
+- **Where it lives decides [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)'s outcome, and the pessimism first written
   here was backwards.** This said a ts-side helper "is the right scope today and the
   wrong one" once [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)
   converges the copies. The opposite holds if it is placed correctly. 0188's stated
@@ -141,7 +141,7 @@ emission policy the caller installs"_ constrains all five dialects, and 0206 nam
 the gap it fills: the kernel has no mode meaning "run, throw, and let my caller
 emit". That is an amendment to
 [ADR-008](../../adr/008-caller-owns-reporting.md), not a Fix section in a bug record
-— the same rule that made plan 0188's first phase two ADRs.
+— the same rule that made [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)'s first phase two ADRs.
 
 Draw that line before building, or the decision lands buried.
 
@@ -155,9 +155,9 @@ it covered `executeWarn` — cited against a test whose fixture leaks through th
 Measured: gutting `executeWarn`'s aggregation branch to suppress everything left the
 cited test file green at 14/14 and the whole suite green. **Margin 0.**
 
-That is bug 0189's exact shape — a `gated` row resolving against a different path —
-inside the ADR whose own Enforcement preamble tells bug 0189's story, and it was
-introduced by the amendment written for bug 0203. ADR-009 rule 5's question answered
+That is [bug 0189](./fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)'s exact shape — a `gated` row resolving against a different path —
+inside the ADR whose own Enforcement preamble tells [bug 0189](./fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)'s story, and it was
+introduced by the amendment written for [bug 0203](./fixed/0203-a-preset-at-module-scope-prints-its-findings-twice.md). [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 5's question answered
 wrong: _what would this check do if the thing it guards were completely broken?_
 Pass.
 
@@ -208,7 +208,7 @@ Without this, the fix is centralisation and the record should not claim more.
 - [ ] **Every emitter is counted**, not just consistent — the second half this
       record originally missed. A fixture per emitter asserting that its output
       advances `violationsWritten()`. `executeWarn`'s exists
-      (`warn-terminal-leaks.rules.ts`, from bug 0207); `writeReport`'s is
+      (`warn-terminal-leaks.rules.ts`, from [bug 0207](./fixed/0207-a-rule-level-warn-emits-uncounted-so-the-leak-notice-stays-silent.md)); `writeReport`'s is
       `checkall-warn-leaks-under-baseline.rules.ts`; the kernel's is
       `mixed-quiet-and-leaking.rules.ts`.
 - [ ] A FIFTH emitter that calls neither the helper nor the counter is caught by

@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 from plan 0469's review; not yet reproduced.
+- **State:** Draft — recorded 2026-10-18 from [plan 0469](../plans/completed/0469-havefield-a-document-has-a-value.md)'s review; not yet reproduced.
 - **Severity:** Low — the build reds either way; the summary's count overstates the findings.
-- **Origin:** self-found · plan 0469's review, 2026-10-18.
+- **Origin:** self-found · [plan 0469](../plans/completed/0469-havefield-a-document-has-a-value.md)'s review, 2026-10-18.
 - **Reported:** 2026-10-18
 
 ## Symptom

@@ -30,7 +30,7 @@ form reachable.
   newline, `"Foo\nbar"`, so `areNamed('Foo bar')` misses it. The near-miss scan reports it (whitespace
   is folded there), so it fails closed.
 - **(7c) `haveContent()` counts a section holding only a link-reference definition**
-  (`[x]: http://…`) as non-empty. That is plan 0522's choice, stated in the docs' list of what the
+  (`[x]: http://…`) as non-empty. That is [plan 0522](../plans/completed/0522-the-rest-of-blocks-3-and-14-on-sections.md)'s choice, stated in the docs' list of what the
   scan and the conditions do not see; nothing pins it.
 
 ## Fix

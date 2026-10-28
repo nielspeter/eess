@@ -6,7 +6,7 @@
 - **Severity:** Low — no runtime effect. This is recorded debt, not a defect:
   `check:arch` is green because `rule-builder.ts` is now excluded from two
   rules it used to satisfy.
-- **Origin:** self-found · adopting ts-archunit's test corpus (bug 0155's
+- **Origin:** self-found · adopting ts-archunit's test corpus ([bug 0155](./fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md)'s
   assertion gate, ported to satisfy upstream's `assertion-gate.test.ts`)
 - **Reported:** 2026-08-19
 
@@ -25,7 +25,7 @@ pre-existing `TerminalBuilder` waiver.
 
 ## Root cause
 
-Bug 0155's assertion gate needs `assertsSomething()` and `assertionAdvice()`
+[Bug 0155](./fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md)'s assertion gate needs `assertsSomething()` and `assertionAdvice()`
 as **overridable hooks** — that is the mechanism by which each builder family
 (slice, schema, resolver, tsconfig, correspondence) carries its own remedy
 rather than a generic one. Overridable means they are methods on the class,
@@ -33,7 +33,7 @@ so they cannot be hoisted out the way the advice _text_ was
 (`packages/core/src/assertion-advice.ts`, a pure function of three fields).
 
 The comment above the rules in `arch.internal.rules.ts` previously recorded
-that RuleBuilder had dropped _back under_ both thresholds after plan 0088
+that RuleBuilder had dropped _back under_ both thresholds after [plan 0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)
 moved terminal methods into `TerminalBuilder`. This puts it over again, for a
 different reason.
 
@@ -44,7 +44,7 @@ lower the bar for every class in the repo to accommodate one, which is the
 "move the gate because the gate is inconvenient" move this project exists to
 prevent. A named waiver says exactly which class is over and why, and leaves
 the bar intact for everything else — the same shape as the existing
-`TerminalBuilder` and `/builders/` waivers, both justified by ADR-003.
+`TerminalBuilder` and `/builders/` waivers, both justified by [ADR-003](../../adr/003-fluent-builder-dsl.md).
 
 The thresholds are **eess's own hygiene heuristic**, not upstream's, and what
 they were blocking is a false-green fix. Correctness outranks class size. But
@@ -62,7 +62,7 @@ Split `RuleBuilder`. Candidate seams, none ruled:
    dialect builders both extend, so the hooks live together with the advice
    function they already delegate to.
 3. Accept that the two kernel grammar-base classes are permanently exempt and
-   say so in ADR-003 instead — a decision, not a waiver.
+   say so in [ADR-003](../../adr/003-fluent-builder-dsl.md) instead — a decision, not a waiver.
 
 Option 3 is the honest one if the split turns out to be artificial; it should
 be considered on its merits rather than treated as giving up.
@@ -71,7 +71,7 @@ be considered on its merits rather than treated as giving up.
 
 - [ ] `rule-builder.ts` is removed from both `.excluding()` lists in
       `arch.internal.rules.ts`, and `check:arch` is green without them — **or**
-      option 3 is chosen and ADR-003 records it.
+      option 3 is chosen and [ADR-003](../../adr/003-fluent-builder-dsl.md) records it.
 - [ ] Every builder family still carries its own assertion remedy (the
       behaviour the hooks exist for) — pinned by upstream's
       `assertion-gate.test.ts` rows for slice/schema/resolver.

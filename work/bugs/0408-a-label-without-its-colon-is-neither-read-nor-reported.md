@@ -10,7 +10,7 @@
   `**Related to** [c](c.md)` is that case and is not reported, so a rule over the declared links
   passes while that relation goes unchecked. Not High: the rule does not claim to read the
   colon-less form, and every `**Label:**` declaration it does select is checked.
-- **Origin:** self-found · enforcement and architect review of plan 0406, 2026-10-09.
+- **Origin:** self-found · enforcement and architect review of [plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md), 2026-10-09.
 - **Reported:** 2026-10-09
 
 ## Symptom
@@ -44,7 +44,7 @@ r.rule({ id: 'x' }).violations() // one finding: the `related to` near miss
 
 ## Root cause
 
-Plan 0405's label grammar requires the colon in every form (`packages/md/src/model/label.ts:13`), so
+[Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s label grammar requires the colon in every form (`packages/md/src/model/label.ts:13`), so
 a bold word with no colon is not a label to `wrappedLabelOf` (`:60`). Neither of the two scans that
 report what the selector cannot read looks at it:
 
@@ -55,25 +55,25 @@ report what the selector cannot read looks at it:
   "written with formatting eess-md does not read", only sees a bold run whose text contains a
   colon or is followed by one.
 
-The colon is required on purpose: it stops prose that merely begins with the word — `Related to bug
-0253, see …` — from reading as a declaration (plan 0405's decision). A bold run is weaker evidence of
-prose, but not none. ADR-018's Status block opens a prose sentence with one:
+The colon is required on purpose: it stops prose that merely begins with the word — `Related to the frozen-drift
+bug, see …` — from reading as a declaration ([plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s decision). A bold run is weaker evidence of
+prose, but not none. [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)'s Status block opens a prose sentence with one:
 
 ```md
 - **Extends** [ADR-009](…) (rule 1, and rule 3's corollary) and [ADR-010](…) to the strings a rule
   is written in. Applies [ADR-016](…) where the checker cannot see.
 ```
 
-Reading that as a label would make ADR-016 a declared target. That line is the counter-example any
+Reading that as a label would make [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) a declared target. That line is the counter-example any
 fix is measured against.
 
-ADR-018 is outside plan 0406's ADR Extends rule because it is Proposed, and that plan keeps it out
+[ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) is outside [plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md)'s ADR Extends rule because it is Proposed, and that plan keeps it out
 until it is ruled; its missing colon means the rule could not read it in any case.
 
 ## Fix
 
-Not designed. The grammar is plan 0405's, so the fix is a change to it, measured against this
-repository's corpus — ADR-018's sentence above among it — for false positives before it is chosen.
+Not designed. The grammar is [plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s, so the fix is a change to it, measured against this
+repository's corpus — [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)'s sentence above among it — for false positives before it is chosen.
 To weigh: reporting, not selecting, a bold run that opens a block and matches the declared label but
 for its colon (selecting it would re-open the prose false positive the colon exists to prevent); and
 whether a different spelling (`Related` / `Extend`) is in scope, or a blind spot the documentation
@@ -85,11 +85,11 @@ names, as `docs/markdown.md:245` names the plain-form case one.
       `wrappedLabelOf`): `- **Related to** [b](b.md)` and `**Related to** [c](c.md)` are each
       reported on their own line, or the documentation names the form as unread — whichever the fix
       decides — and a sabotage row goes red when that is undone
-- [ ] `Related to bug 0253, see [x](x.md)` (plain, no colon) stays unreported and unselected
-- [ ] ADR-018's prose sentence is not read as a declaration of ADR-016
+- [ ] `Related to the frozen-drift bug, see [x](x.md)` (plain, no colon) stays unreported and unselected
+- [ ] [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)'s prose sentence is not read as a declaration of [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
 - [ ] a different spelling (`**Related:**`) is either reported or named as a blind spot in the
       documentation
-- [ ] plan 0406's exclusion of ADR-018 is unchanged by the fix
+- [ ] [plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md)'s exclusion of [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) is unchanged by the fix
 - [ ] `npm run validate` green.
 
 Deferred: none.

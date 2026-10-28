@@ -2,13 +2,13 @@
 
 ## Status
 
-- **State:** Draft — surfaced by bug 0131's own round-2 review (two
+- **State:** Draft — surfaced by [bug 0131](./fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s own round-2 review (two
   independent personas, product and customer, converged on the same finding).
   No red test yet.
-- **Severity:** Medium — nothing is wrong in the mechanism (bug 0131 fixed
+- **Severity:** Medium — nothing is wrong in the mechanism ([bug 0131](./fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md) fixed
   that); this is an honesty-gap between what a caller is told to do and what
   actually works.
-- **Origin:** self-found · six-persona `/review` round 2 of bug 0131's fix
+- **Origin:** self-found · six-persona `/review` round 2 of [bug 0131](./fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s fix
 - **Reported:** 2026-08-16
 
 ## Symptom
@@ -43,7 +43,7 @@ the emitted message never names `expectEmptyHeaders`.
 
 ## Root cause
 
-`expectEmptyHeaders` (bug 0131) was added to close a false-positive, but its
+`expectEmptyHeaders` ([bug 0131](./fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)) was added to close a false-positive, but its
 existence was recorded only in `ledger.ts`'s own JSDoc, the changeset, and the
 bug/plan records — none of which a `kit/` adopter reads before wiring their
 own `check:ledger`. Separately, the kernel's `zeroExaminedViolation()` message

@@ -1,4 +1,4 @@
-# Bug 0097: two crossvalidate presets return `void` — ADR-008's "caller owns reporting" never reached them, and its gate can't see the gap
+# Bug 0097: two crossvalidate presets return `void` — [ADR-008](../../adr/008-caller-owns-reporting.md)'s "caller owns reporting" never reached them, and its gate can't see the gap
 
 ## Status
 
@@ -71,7 +71,7 @@ const violations = adrCitationsResolve(corpus(...), project(...), { report: 'ret
 
 ## Root cause
 
-Plan 0070 (ADR-008) split detection from emission and introduced `finishPreset`.
+[Plan 0070](../plans/completed/0070-caller-owns-reporting.md) ([ADR-008](../../adr/008-caller-owns-reporting.md)) split detection from emission and introduced `finishPreset`.
 It intended to migrate **every** preset — and its own inventory of "every
 preset" was already missing these two, twice:
 
@@ -97,10 +97,10 @@ builder terminal `.check()`, which emits and throws by a different route. So
 they were invisible to the survey that defined the work, and a hand-written list
 of "every preset" carried the gap into the plan, the commit, and the ADR row.
 
-Nothing downstream could catch it, because the only mechanism ADR-008 bound the
+Nothing downstream could catch it, because the only mechanism [ADR-008](../../adr/008-caller-owns-reporting.md) bound the
 clause to is a kernel unit test (below).
 
-**ADR-008's own gate cannot see this.** Its Enforcement table marks
+**[ADR-008](../../adr/008-caller-owns-reporting.md)'s own gate cannot see this.** Its Enforcement table marks
 
 > Presets return violations, don't force emission | 2 | `packages/core/tests/report.test.ts` — the `report: return` case | **gated**
 
@@ -117,7 +117,7 @@ header comment at `scripts/check-crossval.mjs:6` generalizes over all of them:
 
 > the crossvalidate presets return void and throw ArchRuleError
 
-That was true when written (plan 0060 mounted exactly the two `void` presets)
+That was true when written ([plan 0060](../plans/completed/0060-full-coverage-dogfooding.md) mounted exactly the two `void` presets)
 and is now half true — accurate for `diagramMatchesCode`/`adrCitationsResolve`,
 wrong for the four the script and its siblings have since gained. A reader can
 take either half as the rule and be wrong about the other. During the plan-0096
@@ -177,7 +177,7 @@ A minor changeset covers both packages' surface change.
 
 Deferred:
 
-- **Widening ADR-008's Enforcement mechanism so this class cannot recur** — the
+- **Widening [ADR-008](../../adr/008-caller-owns-reporting.md)'s Enforcement mechanism so this class cannot recur** — the
   clause needs a Tier-1 rule over `packages/*/src/**` asserting no exported
   preset returns `void`, not just a kernel unit test. That is an ADR-enforcement
   change with its own authoring/validation loop (`.claude/workflows/adr-enforce.mjs`),

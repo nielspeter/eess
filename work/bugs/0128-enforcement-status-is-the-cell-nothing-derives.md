@@ -30,7 +30,7 @@ file-existence granularity — the file is there, and nothing reads what it says
 one level finer: `corpus/pointers-resolve` verifies a `path:line` citation to
 line-range granularity, still without reading what the line says.
 
-The five test-file-only rows are all ADR-008's, and that ADR **discloses the
+The five test-file-only rows are all [ADR-008](../../adr/008-caller-owns-reporting.md)'s, and that ADR **discloses the
 limitation in its own preamble** (`adr/008-caller-owns-reporting.md:57`): the
 resolver scans only the eess-ts project, so `packages/core` tests are cited in
 prose deliberately. That is honest and is not the defect.
@@ -49,7 +49,7 @@ column for `haveTable`; no cell value is ever read.
 
 ## Reproduction
 
-ADR-005's first row reads:
+[ADR-005](../../adr/005-no-any-no-type-assertions.md)'s first row reads:
 
 | Clause             | Tier | Mechanism                                                                        | Status |
 | ------------------ | ---- | -------------------------------------------------------------------------------- | ------ |
@@ -59,7 +59,7 @@ ADR-005's first row reads:
 `eess/adr005-no-type-assertions` covers `as`, not `any`. Set it to `off`:
 `eslint.config.ts` still exists, so `check:corpus` passes; lint passes; the row
 still reads `gated`; `npm run validate` stays green; and the clause is enforced by
-nothing. The same holds for ADR-001's `Node.js >= 24` row — nothing reads
+nothing. The same holds for [ADR-001](../../adr/001-toolchain-node-vitest-eslint-prettier.md)'s `Node.js >= 24` row — nothing reads
 `engines.node` or the CI matrix, only that the two files exist.
 
 Shorter and equally decisive: set any Status cell to `definitely-gated`. Measured —
@@ -135,7 +135,7 @@ Three, in ascending cost; the first is independent of any engine work.
    `N of M gated rows carry a case-level citation` on success, and either require a
    resolvable citation for `gated` or introduce an honest weaker token for "CI runs
    it, nothing binds the clause to a case". Widening the resolver past eess-ts is
-   the enabling work, named in ADR-008's preamble and parked in plan 0070's Out of
+   the enabling work, named in [ADR-008](../../adr/008-caller-owns-reporting.md)'s preamble and parked in [plan 0070](../plans/completed/0070-caller-owns-reporting.md)'s Out of
    scope. **Its real cost is not runtime** (~5–10s) but the **uniqueness domain**:
    CLAUDE.md requires a cited `it('…')` title to be unique across the suite, and
    widening the resolver widens "the suite" from one package to six. The three
@@ -144,7 +144,7 @@ Three, in ascending cost; the first is independent of any engine work.
    citation acquires a repo-wide uniqueness obligation.
 3. **Bind the config-shaped rows to their content** — the 12 rows nothing reaches
    today. **This cannot live in `packages/md`.** Reading an eslint rule's severity
-   out of `eslint.config.ts` is AST work (ADR-002/ADR-007, `eess-ts`'s territory),
+   out of `eslint.config.ts` is AST work ([ADR-002](../../adr/002-ts-morph-ast-engine.md)/[ADR-007](../../adr/007-isolate-ast-engine-boundary.md), `eess-ts`'s territory),
    and `eess/md-isolated` forbids `packages/md` importing `packages/ts`. The home is
    `packages/crossvalidate` — an ADR row bound to a TypeScript fact is exactly the
    two-dialect correspondence that package exists for. A row citing `engines` is the
@@ -169,6 +169,6 @@ Three, in ascending cost; the first is independent of any engine work.
 Deferred, each re-homed:
 
 - **Case-level granularity for `gated`** (fix 2) — needs the resolver widened past
-  eess-ts, which is plan 0070's Out of scope and not this record's to reopen.
+  eess-ts, which is [plan 0070](../plans/completed/0070-caller-owns-reporting.md)'s Out of scope and not this record's to reopen.
 - **The 12 config-shaped rows** (fix 3) — `packages/crossvalidate`, per-row, its own
   record when a clause justifies it.

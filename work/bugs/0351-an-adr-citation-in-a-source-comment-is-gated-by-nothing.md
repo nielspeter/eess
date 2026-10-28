@@ -10,8 +10,8 @@
   so. This repo gates citations in ADRs (`check:corpus`) and test citations
   (`check:crossval`); an ADR reference in a source comment falls between them by
   construction.
-- **Origin:** an architecture reviewer quoted `ADR-009 Rule 4's "identities, never
-a bare total"` at this session, 2026-09-28. The clause does not exist in `adr/`.
+- **Origin:** an architecture reviewer quoted [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 4's "identities, never
+  a bare total" at this session, 2026-09-28. The clause does not exist in `adr/`.
   The reviewer had not invented it — they read it in
   `packages/ts/src/helpers/baseline.ts`, which is where this record starts.
 - **Reported:** 2026-09-28
@@ -30,17 +30,21 @@ Two sub-classes, and they are different defects.
 
 ### 1. A derived corollary hardened into a quotation (11 sites)
 
-`ADR-009 rule 4` is cited 11 times. Rule 4 is **"No snapshot assertions in
+[ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 4 is cited 11 times. Rule 4 is **"No snapshot assertions in
 agent-consumed tests."** The citations split:
 
 - **Derivation, and sound** — e.g. `packages/ts/src/core/diagnose.ts`: _"A count is
-  a snapshot, and under ADR-009 rule 4 a snapshot is the…"_. That reasons _from_
+  a snapshot, and under [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 4 a snapshot is the…"_. That reasons _from_
   the rule.
-- **Quotation, and not** — `packages/ts/src/helpers/baseline.ts`: `// Identities,
-never a bare total (ADR-009 rule 4).`; `packages/core/src/comment-suppression.ts`:
-  `## Identities, not a total (ADR-009 rule 4)`;
-  `packages/ts/src/helpers/baseline-diagnostics.ts`: `Identities, never a total
-(ADR-009 rule 4)`. These read as the rule's own words. They are not.
+- **Quotation, and not**:
+
+  ```text
+  packages/ts/src/helpers/baseline.ts:              // Identities, never a bare total (ADR-009 rule 4).
+  packages/core/src/comment-suppression.ts:         ## Identities, not a total (ADR-009 rule 4)
+  packages/ts/src/helpers/baseline-diagnostics.ts:  Identities, never a total (ADR-009 rule 4)
+  ```
+
+  These read as the rule's own words. They are not.
 
 So this is not eleven typos. It is **one inference compressed into a slogan and
 then repeated until it was indistinguishable from the text it was derived from.**
@@ -53,14 +57,14 @@ because the session had spent the day being corrected for exactly this.
 
 ### 2. A wrong ADR number — the ts-archunit numbering leak
 
-`packages/ts/src/builders/correspondence-builder.ts` cites **"ADR-008 Rule 5"**.
-ADR-008 has **zero** numbered rules (`grep -c "^### Rule" adr/008-…` → 0). The
-content described — _"two derivations plus a disagreement test"_ — is **ADR-009
+`packages/ts/src/builders/correspondence-builder.ts` cites **ts-archunit's ADR-008 Rule 5**, the number written bare.
+[ADR-008](../../adr/008-caller-owns-reporting.md) has **zero** numbered rules (`grep -c "^### Rule" adr/008-…` → 0). The
+content described — _"two derivations plus a disagreement test"_ — is **[ADR-009](../../adr/009-agent-first-failure-surfaces.md)
 Rule 5**.
 
 This is the imported-numbering drift `.claude/skills/review/SKILL.md` already
-records: _"'ADR-008/009' is ts-archunit's numbering, imported with the port; in
-this repo ADR-008 is caller owns reporting"_ — and it names three persona files and
+records: the slash pair, ts-archunit's ADR-008/009, is that project's numbering, _"imported with the port; in
+this repo [ADR-008](../../adr/008-caller-owns-reporting.md) is caller owns reporting"_ — and it names three persona files and
 one gate message carrying the same off-by-one, calling it "its own small cleanup".
 That cleanup has not happened, and this is a fourth site in shipped source.
 
@@ -72,7 +76,7 @@ read **documents**. An ADR reference inside a TypeScript comment is read by
 neither, so the one place the decisions are cited most often is the one place
 nothing checks.
 
-The ADR-009-rule-4 class needs more than a resolver, though: every one of those 11
+The [ADR-009](../../adr/009-agent-first-failure-surfaces.md)-rule-4 class needs more than a resolver, though: every one of those 11
 citations names a _real_ rule. What is wrong is the words attributed to it, and no
 mechanism distinguishes "derived from Rule 4" from "quoted from Rule 4".
 
@@ -84,10 +88,10 @@ toothless or unbuildable.
 
 **Two checks, both Tier 1:**
 
-| reference                                                          | what must hold                                   | catches                                                                                                 |
-| ------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| **deriving** — "under rule 4 a snapshot is barred"                 | the number **resolves**: ADR-009 has a Rule 4    | the `ADR-008 Rule 5` class outright, since ADR-008 has no numbered rules at all                         |
-| **quoting** — backticked or quote-marked text attributed to a rule | that text **occurs in the cited rule's section** | "Identities, never a bare total" — and **only** this check would, because its number resolved perfectly |
+| reference                                                          | what must hold                                                                                 | catches                                                                                                                                              |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **deriving** — "under rule 4 a snapshot is barred"                 | the number **resolves**: [ADR-009](../../adr/009-agent-first-failure-surfaces.md) has a Rule 4 | the wrong-number class (ts-archunit's ADR-008 Rule 5) outright, since [ADR-008](../../adr/008-caller-owns-reporting.md) has no numbered rules at all |
+| **quoting** — backticked or quote-marked text attributed to a rule | that text **occurs in the cited rule's section**                                               | "Identities, never a bare total" — and **only** this check would, because its number resolved perfectly                                              |
 
 The harness exists. This is the raw-source-text discipline `check:crossval` already
 applies to `it('…')` titles, pointed at a different corpus. The 82 `Rule N`
@@ -108,7 +112,7 @@ expensive problem look solved.
 
 ### Either way
 
-Fix the live instances: the slogans, and the `ADR-008 Rule 5`, which is wrong on
+Fix the live instances: the slogans, and the citation of ts-archunit's ADR-008 Rule 5, which is wrong on
 its face.
 
 ## Related
@@ -122,7 +126,7 @@ its face.
 ## Verification
 
 - [x] measured: 349 references / 115 files / 82 naming a Rule, the 11 rule-4 sites
-      read individually, and `ADR-008` having no numbered rules.
+      read individually, and [ADR-008](../../adr/008-caller-owns-reporting.md) having no numbered rules.
 - [x] the escape confirmed: a reviewer quoted the slogan as the ADR's words.
 - [ ] a ruling on the two-check design above — in particular whether the quoting
       check can distinguish an attributed quotation from ordinary prose reliably

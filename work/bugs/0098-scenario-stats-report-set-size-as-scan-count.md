@@ -88,7 +88,7 @@ it for.
 
 ## Why it matters
 
-This is not hypothetical: it was written. Plan 0096's reworked Phase 1 rests its
+This is not hypothetical: it was written. [Plan 0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)'s reworked Phase 1 rests its
 entire non-vacuity guard on `s.scenarios === 0`, justified in the plan text as
 
 > `scenarios` counts scenarios referenced by **title-bearing** citations, so
@@ -98,7 +98,7 @@ Every clause of that is false, and the plan reached its second review round with
 the claim intact — the first round had already replaced one vacuous guard with
 this one. A plan whose stated purpose is "a gate that scanned nothing must not
 read as green" was about to ship exactly that gate, because the field name read
-true. (Plan 0096 is corrected in the same pass that files this bug.)
+true. ([Plan 0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md) is corrected in the same pass that files this bug.)
 
 ## Fix
 

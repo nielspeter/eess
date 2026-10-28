@@ -66,9 +66,9 @@ Not decided. Ranked:
    (file plus export name), whose message names a remedy the author can apply:
    exclude that export by name, or narrow the selector — and report the shape
    upstream. It fails closed on the one unit, not on the rule.
-2. **An unsuppressable configuration finding** — the ADR-010 shape for an instrument
+2. **An unsuppressable configuration finding** — the [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) shape for an instrument
    failure, but its only remedy is one the author cannot perform: they cannot stop
-   TypeScript's language service throwing. ADR-009 rule 2 calls that worse than no
+   TypeScript's language service throwing. [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2 calls that worse than no
    message, and the reachable escape is `overrides: { … : 'off' }`, which deletes the
    rule for every export. The ruling must weigh option 1 against this tension, not
    default to it.

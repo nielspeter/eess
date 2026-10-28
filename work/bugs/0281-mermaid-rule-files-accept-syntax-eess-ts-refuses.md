@@ -7,7 +7,7 @@
   the alignment work is deferred until the break is worth taking.
 - **Severity:** Low-to-medium — not a false green. A rule file that compiles for
   one dialect and not the other, with nothing documenting either rule.
-- **Origin:** self-found · adversarial validation of ADR-015, then corrected by
+- **Origin:** self-found · adversarial validation of [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md), then corrected by
   an architecture review that falsified this record's first premise.
 
 ## This record was filed on a premise that turned out to be false
@@ -37,9 +37,9 @@ the kernel" — names the wrong cause. The duck-type it justifies is still worth
 keeping, for the duplicate-install case that no loader choice fixes.
 
 **This was an error made then, not ground that moved.** An earlier version of
-this record said plan 0165 measured a real split on an older `jiti`. Measured:
+this record said [plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) measured a real split on an older `jiti`. Measured:
 `package-lock.json` has pinned 2.7.0 since the initial commit and the declared
-range never changed, so plan 0165 ran under the same version. And
+range never changed, so [plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) ran under the same version. And
 [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)
 had already disproved the same claim three ways. The exculpation was invented,
 in a record whose subject is a false premise.
@@ -95,7 +95,7 @@ replaced rather than left standing.
 Two, and they are different:
 
 - **Documented here, gated:** the premise. If `jiti` ever does split the kernel,
-  `scripts/lib/module-registry-identity.test.mjs` reds and ADR-015's reasoning is
+  `scripts/lib/module-registry-identity.test.mjs` reds and [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md)'s reasoning is
   re-derived rather than drifting. Its duplicate-install case is the control that
   shows the probe can observe a split at all.
 - **Not gated:** the language divergence itself. Nothing asserts the two dialects
@@ -107,19 +107,19 @@ Two, and they are different:
 - [x] The premise re-measured with controls, and the record corrected in place
       rather than quietly retitled.
 - [x] The divergence measured in both dialects, across both project types.
-- [x] ADR-015's Decision, Context and the affected Enforcement row re-derived on
+- [x] [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md)'s Decision, Context and the affected Enforcement row re-derived on
       the measured ground.
 - [ ] `deferred→this record` — the alignment itself: native-first loading for
       `eess-mermaid` rule files, the `importFresh` equivalent for watch, and a
       migration note for the syntax that would stop loading.
 - [ ] `deferred→this record` — `docs/agent-integration.md:11` says the CLI loads
-      rule files via `jiti`, which is false for `eess-ts` since ADR-015. An
+      rule files via `jiti`, which is false for `eess-ts` since [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md). An
       adopter looking for the rule is told the opposite of it.
 - [x] `packages/mermaid/src/cli/commands/check.ts`'s duck-type comment named
       `jiti` as the cause; it now names installation topology, which is the cause.
 - [ ] `deferred→this record` — **`eess-ts`'s own CJS fallback widens the language
       for a sibling.** Restricting the fallback transform to erasable syntax is
-      the fix; nothing gates it today, and ADR-015 records the divergence rather
+      the fix; nothing gates it today, and [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md) records the divergence rather
       than closing it.
 
 Deferred: three, all to this record, held open by its own gate.

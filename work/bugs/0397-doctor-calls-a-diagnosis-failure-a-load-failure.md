@@ -2,12 +2,12 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-10-07 against this repo's build at `b1335f5`, with bug 0396's
+- **State:** Draft — reproduced 2026-10-07 against this repo's build at `b1335f5`, with [bug 0396](./0396-doctor-assumes-every-rule-has-a-ts-morph-project.md)'s
   rule file. No red test yet.
-- **Severity:** Medium — a false cause (ADR-009 rule 2). `doctor` says a rule file "could not be
+- **Severity:** Medium — a false cause ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2). `doctor` says a rule file "could not be
   loaded" when it loaded and `check` ran it. The reader goes looking for an import or module-format
   problem that does not exist.
-- **Origin:** inbound · the same report as bug 0396, confirmed here.
+- **Origin:** inbound · the same report as [bug 0396](./0396-doctor-assumes-every-rule-has-a-ts-morph-project.md), confirmed here.
 - **Reported:** 2026-10-07
 
 ## Symptom
@@ -20,7 +20,7 @@ Error: corpus.rules.ts could not be loaded (project.getSourceFiles is not a func
 
 ## Reproduction
 
-Bug 0396's command. Once 0396 is fixed this record has no known trigger, so its red test needs a
+[Bug 0396](./0396-doctor-assumes-every-rule-has-a-ts-morph-project.md)'s command. Once 0396 is fixed this record has no known trigger, so its red test needs a
 rule whose diagnosis throws on purpose; it closes on its own, not with 0396.
 
 ## Root cause
@@ -37,7 +37,7 @@ findings.push(...diagnose(loaded).map((f) => ({ ...f, ruleFile: file })))
 The `catch` reports every error as a load failure, including one thrown by `diagnose()` after the
 load succeeded. Reasoned, not measured: the `catch` also records it in `loadFailures`, so a
 `--format json` consumer would get the same wrong cause. Today that output is never written:
-`doctor spec.rules.ts --format json` prints nothing to stdout, because bug 0396's uncaught throw
+`doctor spec.rules.ts --format json` prints nothing to stdout, because [bug 0396](./0396-doctor-assumes-every-rule-has-a-ts-morph-project.md)'s uncaught throw
 (`packages/ts/src/cli/commands/doctor.ts:202`) comes first.
 
 ## Fix

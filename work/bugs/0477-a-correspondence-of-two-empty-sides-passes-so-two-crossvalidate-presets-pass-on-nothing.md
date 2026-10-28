@@ -2,13 +2,13 @@
 
 ## Status
 
-- **State:** Draft — found 2026-10-18 by bug 0403's fix, the first run of the vacuity matrix over
+- **State:** Draft — found 2026-10-18 by [bug 0403](./fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s fix, the first run of the vacuity matrix over
   the sibling dialects. Reproduced by the matrix's probes; no red unit test yet.
 - **Severity:** High — a silent pass. The kernel's `correspondence().beComplete()` over two empty
   selections passes, and so do the two presets that end in it: `diagramMatchesCode()` over an empty
   diagram and a zero-file project, and `adrCitationsResolve()` over an empty corpus and a zero-file
   project.
-- **Origin:** self-found · bug 0403's fix, 2026-10-18.
+- **Origin:** self-found · [bug 0403](./fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s fix, 2026-10-18.
 - **Reported:** 2026-10-18
 
 ## Symptom
@@ -26,14 +26,14 @@ kernel's entry red, which is intended: the join itself is the defect.
 
 ## Fix
 
-Not designed. Under ADR-010 §3 an absence rule may legitimately match nothing, but "both sides
+Not designed. Under [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) §3 an absence rule may legitimately match nothing, but "both sides
 empty" is not the same claim as "no element lacks a counterpart": it means neither input loaded.
 Candidates:
 
 - a join whose two sides both select nothing is an empty source, reported as such;
 - or each preset reports an empty input on either side.
 
-Decide which against ADR-010 §3 and ADR-014. `preserveRelations()` carries the same mark. Related
+Decide which against [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) §3 and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). `preserveRelations()` carries the same mark. Related
 limits of the join: [bug 0400](./fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) and
 [bug 0402](./0402-correspondence-checks-leak-between-rules-built-from-one-base.md).
 

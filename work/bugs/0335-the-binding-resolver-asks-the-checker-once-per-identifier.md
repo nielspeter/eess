@@ -11,7 +11,7 @@
   checker, not the walk: the pre-change matcher is ~24ms, adding `SyntaxKind.Identifier` costs ~1ms
   because the walk is already shared, and `functionNoConsole` is ~100ms.
 - **Origin:** the architecture review of PR #148, 2026-09-20, which measured the repeat work and
-  named ADR-007 Rule 2 beside it.
+  named [ADR-007](../../adr/007-isolate-ast-engine-boundary.md) Rule 2 beside it.
 - **Reported:** 2026-09-20
 
 ## Symptom
@@ -20,7 +20,7 @@
 candidate identifier, per rule, with no memo. Five rules over one file resolve the same identifiers
 five times. The package already records this exact finding for a different reader:
 `packages/ts/src/core/module-edges.ts:241` measured a 5x repeat for module edges and solved it with
-a per-file cache (plan 0076).
+a per-file cache ([plan 0076](../plans/0076-broader-deterministic-autofix.md)).
 
 Measured on the `recommended` floor gate over 270 files: 0.50–0.86s before this resolver, 0.90–1.07s
 after — about 1.5ms per file.
@@ -41,7 +41,7 @@ what it is allowed to key on and when it must be dropped, because a stale symbol
 verdict**, not a slow one — the failure mode is worse than the cost it removes, which is why this is
 filed rather than added at the end of the PR that created the need.
 
-**ADR-007 Rule 2 sits beside it.** A per-identifier `getSymbol()` inside an `ExpressionMatcher.matches()`
+**[ADR-007](../../adr/007-isolate-ast-engine-boundary.md) Rule 2 sits beside it.** A per-identifier `getSymbol()` inside an `ExpressionMatcher.matches()`
 callback is the chatty per-node pattern that ADR names as one that would not survive an
 out-of-process engine; every other checker use in this package is coarse or already batched behind a
 per-file cache. That clause's status is `manual`, so the architecture review is its mechanism, and

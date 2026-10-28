@@ -5,14 +5,14 @@
 - **State:** Draft — reproduced structurally against the shipped source; no red test yet.
 - **Severity:** High — **false green.** A rule with a catch-all exclusion cannot
   fail, and nothing says so: no violation, no configuration finding, and an
-  `examined` count that still reports a full denominator. ADR-009 rule 1 is "a
+  `examined` count that still reports a full denominator. [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1 is "a
   check that cannot fail is worth less than no check"; this is a check turned off
   in a way the evidence seam is blind to by construction.
 - **Origin:** self-found · surfaced while reviewing
   [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md),
   which carries a consuming project's measurement of this loophole firing in
   production. Three review lenses (architect, product, enforcement) reached it
-  independently. **This is not proposal 007's ask** — 007 asks for a read
+  independently. **This is not [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s ask** — 007 asks for a read
   accessor; this is the defect its evidence exposed, and it needs no
   `**Implements:**` line.
 - **Reported:** 2026-09-03
@@ -69,27 +69,29 @@ fail-**closed**: the finding still fires, CI is still red. Nobody has built the
 **The library predicted this exact moment.** `packages/ts/src/core/execute-rule.ts:218-232`,
 verbatim:
 
-> "Unused exclusion" above it warns about a pattern that silences NOTHING
-> (fail-closed — the finding still fires, CI is still red), while this warns about
-> a pattern that silences MULTIPLE real findings and every future one on the same
-> edges (fail-open — a green `check()`, one stderr line). ADR-009 states the
-> primary consumer does not read warnings. Kept advisory here, matching plan
-> 0104's own review resolution — **but the asymmetry is real and worth
-> re-litigating if this loophole is measured firing in practice, not settled by
-> the precedent alone.**
+```text
+"Unused exclusion" above it warns about a pattern that silences NOTHING
+(fail-closed — the finding still fires, CI is still red), while this warns about
+a pattern that silences MULTIPLE real findings and every future one on the same
+edges (fail-open — a green `check()`, one stderr line). ADR-009 states the
+primary consumer does not read warnings. Kept advisory here, matching plan
+0104's own review resolution — **but the asymmetry is real and worth
+re-litigating if this loophole is measured firing in practice, not settled by
+the precedent alone.**
+```
 
-_Corrected 2026-09-14:_ the source, and this quote of it, said **ADR-008**. ADR-008
+_Corrected 2026-09-14:_ the source, and this quote of it, cited ts-archunit's ADR-008 by its bare number. [ADR-008](../../adr/008-caller-owns-reporting.md)
 discusses the `warn` report mode, but it does not say the primary consumer does not
 read warnings; that is [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s
-Context, point 1. The misnumbering is carried over from ts-archunit, whose ADR-008 is
-eess's ADR-009. This corrects one site; the other 35 are
+Context, point 1. The misnumbering is carried over from ts-archunit, and ts-archunit's ADR-008 is
+eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md). This corrects one site; the other 35 are
 [0303](./0303-ts-archunit-adr-numbers-persist-in-eess-comments.md). The pointers into
 `packages/ts/src/core/execute-rule.ts` in this record, and the one into the kernel
 copy, were refreshed the same day — they had drifted by up to seventeen lines.
 [0298](./0298-an-exclusion-that-absorbs-several-subjects-says-nothing.md) is the
 partial-match half of this record.
 
-Proposal 007 is that measurement arriving. It carries a consuming project's
+[Proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md) is that measurement arriving. It carries a consuming project's
 tracker entry for this loophole firing in production, and proposes to hand the
 consumer private state so they can build the detector — which is why this record
 exists instead.
@@ -117,7 +119,7 @@ unused-exclusion warning; no cycle-edge identities, so no advisory. **Zero outpu
   number no document in this repo carries, see
   [0303](./0303-ts-archunit-adr-numbers-persist-in-eess-comments.md) — not a
   missing measurement.
-- **Unsuppressable**, like every other ADR-010 configuration finding — a finding
+- **Unsuppressable**, like every other [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) configuration finding — a finding
   about the rule's own instrument, not about what it examined.
 
 ## Break class
@@ -155,7 +157,7 @@ beside a contradicting one.
 - The same state exists on both `TerminalBuilder`s
   (`packages/core/src/terminal-builder.ts:68`, `packages/ts/src/core/terminal-builder.ts:127`)
   and both are public root exports. Fix it once, in the kernel, or
-  `eess-md`/`-mermaid`/`-gherkin`/`-crossvalidate` keep the hole. Note ADR-013 and
+  `eess-md`/`-mermaid`/`-gherkin`/`-crossvalidate` keep the hole. Note [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) and
   [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md) are already
   unifying these two copies — land it where that plan is heading, not beside it.
 
@@ -170,7 +172,7 @@ beside a contradicting one.
       a `.rules.ts` declaring one rule that genuinely violates over a committed
       fixture source, `.excluding(/.*/)` appended. Assert the violation's
       **identity** — the new rule id — not merely that it threw; that is
-      `bad-adr.mjs`'s own discipline against bug 0109's class, and it matters more
+      `bad-adr.mjs`'s own discipline against [bug 0109](./fixed/0109-nonvacuity-fixtures-read-a-crash-as-a-pass.md)'s class, and it matters more
       here because the rule under test is one that turns other findings off.
 - [ ] Sabotage: delete the subtraction and the fixture goes green while every
       functional test stays green — the "changes silence, not behaviour" shape

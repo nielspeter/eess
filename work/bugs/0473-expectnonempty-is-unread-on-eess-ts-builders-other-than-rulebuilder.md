@@ -10,7 +10,7 @@
 
 ## Symptom
 
-Bug 0467 made eess-ts read `.expectNonEmpty()` on a `.notExist()` rule, through the shared runner.
+[Bug 0467](./fixed/0467-eess-ts-expectnonempty-does-nothing.md) made eess-ts read `.expectNonEmpty()` on a `.notExist()` rule, through the shared runner.
 Several `TerminalBuilder` subclasses inherit the method but select by their own means:
 
 - `SliceRuleBuilder`;

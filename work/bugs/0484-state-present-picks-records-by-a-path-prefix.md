@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 from plan 0469's review.
+- **State:** Draft — recorded 2026-10-18 from [plan 0469](../plans/completed/0469-havefield-a-document-has-a-value.md)'s review.
 - **Severity:** Low — fails closed (zero examined reds), but the finding cannot name the cause.
-- **Origin:** self-found · plan 0469's review, 2026-10-18.
+- **Origin:** self-found · [plan 0469](../plans/completed/0469-havefield-a-document-has-a-value.md)'s review, 2026-10-18.
 - **Reported:** 2026-10-18
 
 ## Symptom

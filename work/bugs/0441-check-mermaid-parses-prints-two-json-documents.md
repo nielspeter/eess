@@ -2,12 +2,12 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16, an accepted residual of plan 0427's PR (#225), from its
+- **State:** Draft — recorded 2026-10-16, an accepted residual of [plan 0427](../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md)'s PR (#225), from its
   enforcement re-review.
 - **Severity:** Medium — an honesty gap on the board's scale: the script header promises `--format
 json` to machine consumers, and the stream does not parse as one document. Not a false green:
   every finding is on stdout and the exit is 1.
-- **Origin:** self-found · PR review of plan 0427, 2026-10-16.
+- **Origin:** self-found · PR review of [plan 0427](../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md), 2026-10-16.
 - **Reported:** 2026-10-16
 
 ## Symptom

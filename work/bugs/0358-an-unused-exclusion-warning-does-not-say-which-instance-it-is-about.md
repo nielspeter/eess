@@ -61,7 +61,7 @@ and what `workspace()` versus per-package `project()` handles exist for.
 Nothing in the line says which project the instance ran against, so two instances
 that differ only in their `ArchProject` produce byte-identical output.
 
-**This is ADR-009 rule 4's concern one level down.** The rule asks for identities
+**This is [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 4's concern one level down.** The rule asks for identities
 rather than a bare total; here there IS one finding per instance, and the finding
 does not carry the identity that distinguishes them.
 
@@ -76,7 +76,7 @@ rule's project — so this is about what to print and how much.
   cannot know another instance shares the id without state across calls. That makes
   "only when ambiguous" harder than it sounds and is the reason to decide rather
   than assume.
-- **Do nothing and document it.** Rejected in advance as the shape ADR-009 rule 2
+- **Do nothing and document it.** Rejected in advance as the shape [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2
   forbids: a message whose remedy ("it may be stale after a rename") is wrong for
   the reader's situation.
 

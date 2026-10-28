@@ -69,7 +69,7 @@ The 35 with no description at all, grouped. Treat this list as a convenience,
 not as the measurement — re-derive it:
 
 - `family re-export (index)`, `(crossvalidate)`, `(aggregation)`,
-  `family kernel-imports emptied` — the whole `check:family` gate (plan 0089)
+  `family kernel-imports emptied` — the whole `check:family` gate ([plan 0089](../plans/completed/0089-family-standalone-sufficiency.md))
 - `corpus/ledger/box`, `placement`, `state`, `deferred-lie`, `dead-selector`,
   `uncovered-lane`, `lane-done-vacuous`, `finished-not-closed` — the whole
   `check:ledger` gate
@@ -109,7 +109,7 @@ artifact is the ungated one.
 
 ## Why it matters
 
-This is not cosmetic, and the reason is written in the file itself. Bug 0127
+This is not cosmetic, and the reason is written in the file itself. [Bug 0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
 found that "every gate actually FAILS" was an over-claim: most fixtures prove
 their own condition fires, or prove a shipped preset fires over a hand-built
 corpus, and only some drive the real `check:*` invocation. Those are different
@@ -164,5 +164,5 @@ Deferred: none.
 - **The tiers themselves.** This record says the table is incomplete and
   ungated. It does not re-audit whether the 24 rows it does describe are
   described _accurately_ — that is a separate question and a harder one.
-- **Bug 0174's open half.** The CLIs still print a rule/file denominator rather
+- **[Bug 0174](./0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)'s open half.** The CLIs still print a rule/file denominator rather
   than `examined`. Different instrument, different record.

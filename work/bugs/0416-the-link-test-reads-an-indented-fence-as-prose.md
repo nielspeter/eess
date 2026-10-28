@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — measured 2026-10-14 on PR #207's CI run: a ` ```md ` example indented inside
-  a list item in bug 0414 failed this test with `bug 0414 -> a.md`. No red test yet.
+  a list item in [bug 0414](./0414-a-label-after-a-soft-break-is-reported-never-read.md) failed this test, which reported the example's link to `a.md` as broken. No red test yet.
 - **Severity:** Medium — a false red (`BUGS.md`'s Medium row). The test reports a link inside a code
   example as a broken link, so an author has to move or reshape a correct example to get green.
 - **Origin:** self-found · CI on PR #207, 2026-10-14.
@@ -20,7 +20,7 @@ an example link in it is reported as broken.
 
 `FENCE = /^```[\s\S]*?^```/gm` (`packages/ts/tests/docs/cross-document-links-resolve.test.ts:81`)
 anchors the fence at the start of a line, with no indentation allowed. It is a regex reading of
-Markdown, which is the class of defect bug 0290 fixed in eess-md: a code block nested in a list is
+Markdown, which is the class of defect [bug 0290](./fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md) fixed in eess-md: a code block nested in a list is
 not seen.
 
 The repository's other link gate, `check:corpus`, reads links through eess-md's mdast, and did not

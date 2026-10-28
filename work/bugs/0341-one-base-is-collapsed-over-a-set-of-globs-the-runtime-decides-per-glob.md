@@ -23,7 +23,7 @@ second is neither project-relative nor anchored:
 | `every((g) => isProjectRelative(g))` | `'absolute'`    | `syntacticFault` reports `'src/a/**'` `unanchored` — a **false red** on a glob the runtime matches                                                  |
 | `some((g) => isProjectRelative(g))`  | `'normalized'`  | `'*/b/**'` escapes the `unanchored` branch, and it is genuinely dead — `readsRootRelativePath` withholds the second view from it. A **false green** |
 
-The code currently spells it `every`, deliberately: ADR-009 takes the red. The `some` spelling was
+The code currently spells it `every`, deliberately: [ADR-009](../../adr/009-agent-first-failure-surfaces.md) takes the red. The `some` spelling was
 written during [0339](./fixed/0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md)
 and reverted before merge for exactly this reason.
 

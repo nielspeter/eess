@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — the rot channel is open; nothing is broken yet.
-- **Found:** 2026-08-20, architect and devops review of the bug 0179 fix.
+- **Found:** 2026-08-20, architect and devops review of the [bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) fix.
 
 ## Symptom
 
@@ -19,7 +19,8 @@ properties make that fragile in a way this repo normally refuses:
 1. **`blob/main` is a moving ref.** `ts-archunit` renames files on purpose —
    `bugs/NNNN` → `bugs/fixed/NNNN` is its close ritual, the same one eess uses.
    That is precisely the mechanism
-   [ts-archunit bug 0046](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0046-cross-document-links-rot-silently.md)
+   ts-archunit bug 0046
+   (`https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0046-cross-document-links-rot-silently.md`)
    is named after, now aimed at a repository eess does not control. (That citation
    is itself an instance of what this record describes — it is upstream history
    with no eess equivalent, and it is pinned to `main`.)
@@ -34,7 +35,7 @@ what a consumer's editor shows on hover.
 
 ## Root cause
 
-Bug 0179's fix converted foreign-corpus citations to absolute URLs — the right
+[Bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s fix converted foreign-corpus citations to absolute URLs — the right
 call, since those records genuinely have no eess equivalent — but pinned them to
 `main` rather than to an immutable ref.
 

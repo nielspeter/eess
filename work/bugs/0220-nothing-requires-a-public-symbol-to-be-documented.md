@@ -56,8 +56,8 @@ nobody asks is "does every public symbol have one?". That is the exact asymmetry
 [ADR-009](../../adr/009-agent-first-failure-surfaces.md) is about — a check whose green is
 constructed from what happens to be there.
 
-It is also the second instance of one pattern in one week. 0219 was the first: proposal
-004's `Docs-only` ruling named documentation as the whole remedy, and ten days later none
+It is also the second instance of one pattern in one week. 0219 was the first: [proposal
+004](../proposals/promoted/004-corpus-content-explain.md)'s `Docs-only` ruling named documentation as the whole remedy, and ten days later none
 of it existed with every gate green.
 
 ## Fix — the decision this needs first
@@ -82,7 +82,7 @@ and all three cost something real:
 2. **Per curated entry point.** Measured against this repo's own list of the entry points
    that matter — the 15 builders and presets `scripts/vacuity-matrix.mjs` probes —
    **0 of 15 are undocumented.** The rule would examine 15 and find nothing, today and
-   probably for a long time. Under ADR-010 that is a configuration finding unless declared,
+   probably for a long time. Under [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) that is a configuration finding unless declared,
    and declaring it means shipping a gate whose green is structural.
 
 3. **Ratchet on the count.** Cheap, and it is the shape `check:baseline` already uses. It

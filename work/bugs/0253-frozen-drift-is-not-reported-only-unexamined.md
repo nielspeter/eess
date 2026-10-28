@@ -50,7 +50,7 @@ the half that could hide a defect — is exactly right and is measured working.
 
 The reason to file rather than shrug: **this is the claims-outrun-mechanism class
 in the sentence that defines a contract**, and the gate printed it on every green
-run. Bug 0250's whole subject is that this class had no owner.
+run. [Bug 0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md)'s whole subject is that this class had no owner.
 
 ## What is corrected already, and what is not
 

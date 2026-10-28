@@ -66,7 +66,7 @@ Not decided. Candidates, cheapest first:
   does not depend on reading docs.
 - **Evict.** A cache that releases a project nothing holds. Harder than it looks —
   the memoized element collections and module edges are keyed on the `ArchProject`
-  identity (plan 0075/0076), so eviction has to be coordinated, and `resetProjectCache()`
+  identity (ts-archunit plans 0075 and 0076), so eviction has to be coordinated, and `resetProjectCache()`
   already exists as the coarse version.
 
 **Not a candidate: removing the memoization.** It exists so that a rule file with
@@ -75,7 +75,7 @@ shape.
 
 ## What this is not
 
-It is **not** the memory finding in spike 0345's "decision this brings back" —
+It is **not** the memory finding in [spike 0345](../spikes/0345-what-it-costs-to-load-a-monorepo.md)'s "decision this brings back" —
 those are about what one Program costs. This is about how many Programs are alive
 at once, it is adopter-side, and the adopter's own fix already takes it. The two
 are additive: their 3.49 GiB still contains whatever a single Program costs.

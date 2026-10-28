@@ -46,7 +46,7 @@ see `missing.ts:1`
 
 The control is D1's document with the directive line replaced by `> example`.
 
-**D3: a region widened with no directive inside code.** The document is in ADR-012's property 2 correction: two exclusion regions whose inner delimiters sit inside list items, indented four spaces. The default merges them into one exclusion covering lines 1–14, and the missing-file pointer on line 6, between the regions, is **silent**. With the same delimiters at column 0, the exclusions are lines 1–4 and 10–14 and the pointer is reported.
+**D3: a region widened with no directive inside code.** The document is in [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s property 2 correction: two exclusion regions whose inner delimiters sit inside list items, indented four spaces. The default merges them into one exclusion covering lines 1–14, and the missing-file pointer on line 6, between the regions, is **silent**. With the same delimiters at column 0, the exclusions are lines 1–4 and 10–14 and the pointer is reported.
 
 **Directly through the parser.** `parseExclusionComments('<pre>\n<!-- eess-exclude a/b: teaching -->\n</pre>\ntarget\n', 'doc.md')` returns one live exclusion.
 
@@ -82,7 +82,7 @@ None of these is a design; each rules one out or costs it.
   - Without injection, it dropped every prose directive after a fence.
   - It left a documented region-form waiver inert: a README with an install fence above a waived table went from 1 exclusion to 0, with **no warning**.
   - It had no HTML rule, so a directive in `<pre>` still applied.
-- **Composition cannot bound an injected masker.** ADR-012's property 3 is false for any default that tracks lexer state; see ADR-012's 2026-09-13 correction. A masker that blanks only a fence's delimiter lines makes the parser honour an `eess-exclude-start` written inside the fence. A fix that injects a masker must test the masker itself.
+- **Composition cannot bound an injected masker.** [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s property 3 is false for any default that tracks lexer state; see [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s 2026-09-13 correction. A masker that blanks only a fence's delimiter lines makes the parser honour an `eess-exclude-start` written inside the fence. A fix that injects a masker must test the masker itself.
 
 ## Verification ledger
 

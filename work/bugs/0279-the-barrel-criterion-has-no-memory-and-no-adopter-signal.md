@@ -117,7 +117,7 @@ inconsistency rather than an unobtainable type — weaker than the first, same
 cause.
 
 Neither is fixed here, and that is the point: whether the answer is to restore
-the producer or to withdraw the orphaned type is an ADR-011 question about how
+the producer or to withdraw the orphaned type is an [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) question about how
 the surface may evolve, and deciding it inside a bug-fix branch is the reflex
 that produced three incidents. They are recorded so the decision has its
 evidence.
@@ -134,7 +134,7 @@ A signal from outside the repo. Options worth weighing rather than assuming:
 - **Deciding that the barrel is frozen** and additions are the only change.
 
 Each is a decision about how the public surface evolves, which belongs in
-ADR-011 rather than in a bug fix.
+[ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) rather than in a bug fix.
 
 ## Verification ledger
 

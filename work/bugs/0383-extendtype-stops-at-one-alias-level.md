@@ -4,7 +4,7 @@
 
 - **State:** Draft — measured by review of the 0376 fix; no red test yet.
 - **Severity:** High — **a selector that silently matches less than it should.**
-  `extendType('BaseConfig')` misses aliases that reach `BaseConfig` the way ADR-017 rule 1
+  `extendType('BaseConfig')` misses aliases that reach `BaseConfig` the way [ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) rule 1
   says the relation reaches: at any depth. Nothing reports it.
 - **Origin:** enforcement and method review of
   [0376](./fixed/0376-extendtype-on-a-type-alias-reads-the-alias-name.md)'s fix, recorded
@@ -55,7 +55,7 @@ into its members and following each — so the two are likely one fix.
 ## Verification
 
 - [ ] red tests for the table's shapes, through `types(p).that().extendType(…)`
-- [ ] the wrapper question decided and recorded in ADR-017
+- [ ] the wrapper question decided and recorded in [ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)
 - [ ] the fix
 - [ ] `npm run validate` green.
 

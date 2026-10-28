@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — reproduced by sabotage.
-- **Found:** 2026-08-20, architect review of the bug 0179 fix; re-measured
+- **Found:** 2026-08-20, architect review of the [bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) fix; re-measured
   independently before filing.
 - **Severity:** a hole, not a break. Nothing is red today — all 26 completed
   plans carry a `State:` line.
@@ -45,7 +45,7 @@ is finished.
 
 ## How it surfaced
 
-Bug 0179 deleted an adopted test (`completed-plans-are-marked-done`) as redundant
+[Bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) deleted an adopted test (`completed-plans-are-marked-done`) as redundant
 with `check:ledger`. The disposition was right, and the redundancy holds for the
 contradiction case — but that test reported the missing-header case by identity,
 and this one does not. The hole predates the deletion; the deletion is what made
@@ -59,11 +59,11 @@ readable `State:` line is a `ledger/missing-state` finding. Documents elsewhere
 keep the current "not an item" behaviour, which the boards depend on.
 
 Resist the broad form. Asserting `scanned === withReadableState` globally would
-flag every board in `work/` and get suppressed, which is ADR-009 rule 3's warning.
+flag every board in `work/` and get suppressed, which is [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 3's warning.
 
 ## Verification
 
 - [ ] Deleting the `State:` line from a plan in `completed/` reddens
       `check:ledger`, naming the file.
 - [ ] `work/plans/ROADMAP.md` and `work/bugs/BUGS.md` stay silent.
-- [ ] The finding names the file, not a count (ADR-009 rule 4).
+- [ ] The finding names the file, not a count ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 4).

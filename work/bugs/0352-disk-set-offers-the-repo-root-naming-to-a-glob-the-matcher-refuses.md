@@ -5,7 +5,7 @@
 - **State:** Draft — measured on a real fixture, in both checkouts, against built `dist`.
 - **Severity:** Medium — **no false green; a false cause.** The dead-selector
   finding fires correctly. The advice it carries sends the author into their
-  `tsconfig` `include`/`exclude`, where nothing they do will fix it. ADR-009 rule 2
+  `tsconfig` `include`/`exclude`, where nothing they do will fix it. [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2
   is about exactly this.
 - **Origin:** architecture and product review of
   [0348](./fixed/0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md),

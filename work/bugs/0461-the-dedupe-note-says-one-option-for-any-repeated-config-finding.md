@@ -15,12 +15,12 @@ generated N rules that cannot enforce anything; they are not listed separately b
 edit." That wording is written for a preset's fan-out. eess-md's code-block instrument finding
 (`packages/md/src/builders/code-blocks.ts:119`, `bypassFilters: true`) is deduplicated the same way
 when several rules read one failed parse, and so, read from the source and not yet reproduced, gets
-the same note, which then names an option nobody set. Plan 0454's undeclared-box-mark finding would be the third case.
+the same note, which then names an option nobody set. [Plan 0454](../plans/completed/0454-box-marks-are-the-callers.md)'s undeclared-box-mark finding would be the third case.
 
 ## Fix
 
 The note states what was collapsed in terms that hold for every caller (N rules reported this same
-finding), or takes its wording from the finding. Kept out of plan 0454, which stays eess-md only.
+finding), or takes its wording from the finding. Kept out of [plan 0454](../plans/completed/0454-box-marks-are-the-callers.md), which stays eess-md only.
 
 ## Verification
 

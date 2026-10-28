@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — a design finding against ADR-007's Rule 2, raised as the
+- **State:** Draft — a design finding against [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s Rule 2, raised as the
   design review that row calls for. No red test; the remedy is an API addition.
 - **Severity:** Medium — a missing capability plus a boundary leak. Nothing is
   wrong today; the shape is.
@@ -39,10 +39,10 @@ me argument N as a string literal". `getName({ withArgument })` was built for
 _display_ (it elides at 80 chars, `arch-call.ts`), and callers repurposed it as
 a data channel because nothing else was offered.
 
-This is not an ADR-007 Rule 1 violation — no `ts-morph` import crosses into
+This is not an [ADR-007](../../adr/007-isolate-ast-engine-boundary.md) Rule 1 violation — no `ts-morph` import crosses into
 crossvalidate. It is Rule 2: the boundary leaks the engine's shape _textually_,
 and the knowledge that leaks (how TypeScript delimits and escapes a string) is
-the AST engine's by construction. ADR-007's Rule 2 row is `manual` / tier 4,
+the AST engine's by construction. [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s Rule 2 row is `manual` / tier 4,
 "design review against this ADR's Rule 2" — this record is that review.
 
 ## Why it matters

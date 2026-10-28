@@ -16,14 +16,14 @@
 ## Symptom
 
 **The digest exists and is good.** `docs/tests-cannot-lie.md:22-29` names the
-doctrine clause by clause, with links: ADR-010's `{ violations, examined }`,
-ADR-014's evidence at every seam, **ADR-009 Rule 1 by its own title** ("Actionable
-findings fail; they never warn") and Rule 2. Rule 4 and ADR-014 §5's fail-closed
+doctrine clause by clause, with links: [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s `{ violations, examined }`,
+[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s evidence at every seam, **[ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 1 by its own title** ("Actionable
+findings fail; they never warn") and Rule 2. Rule 4 and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §5's fail-closed
 `.warn()` are eighty lines further on, at `docs/tests-cannot-lie.md:108-109`.
 
 _An earlier version of this record cited `:22-29` for all six._ `check:corpus`
 stayed green over it because the pointer gate proves a line **exists**, not that it
-says what the citing sentence claims — this repo's own bugs 0138 and 0215, and a
+says what the citing sentence claims — this repo's own [bugs 0138](./0138-pointer-resolve-proves-existence-not-truth.md) and 0215, and a
 second instance of the class this record is about.
 
 Two measured gaps:
@@ -35,10 +35,10 @@ Two measured gaps:
 
 1. **The digest is unreachable from the always-loaded file.** `CLAUDE.md` carries
    the ADR index table and is in every agent's context by construction. Its row
-   for ADR-009 reads "A check that cannot fail is worth less than no check. Ported
+   for [ADR-009](../../adr/009-agent-first-failure-surfaces.md) reads "A check that cannot fail is worth less than no check. Ported
    from `ts-archunit` ADR-008; **six binding rules**" — it says six rules exist and
    points at a 360-line document, and nothing links to the digest that lists them.
-2. **One binding clause is in no digest at all.** ADR-009 Rule 1's _migration
+2. **One binding clause is in no digest at all.** [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 1's _migration
    corollary_ — "a migration's measuring instrument cannot be a warning either…
    the release that only warns is the release nobody reads", which then prescribes
    an explicitly invoked diagnostic — appears nowhere but inside Rule 1. A reader
@@ -46,9 +46,9 @@ Two measured gaps:
 
 ### The same-day instance
 
-Drafting plan 0346, with `CLAUDE.md` in context throughout:
+Drafting [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md), with `CLAUDE.md` in context throughout:
 
-- The plan asserted **"nothing added here warns"** as an absolute. ADR-009 Rule 1
+- The plan asserted **"nothing added here warns"** as an absolute. [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 1
   states the opposite discriminator explicitly — the test is whether the _remedy_
   is optional, and `recommended` ships two rules at warn deliberately for that
   reason. The absolute also contradicts [ADR-003](../../adr/003-fluent-builder-dsl.md),
@@ -111,7 +111,7 @@ Not decided; the cheap shape is clear and it is **not** a new ADR.
 ## Verification
 
 - [x] measured: the two greps above, the digest's coverage at
-      `docs/tests-cannot-lie.md:22-29`, and the two errors in plan 0346.
+      `docs/tests-cannot-lie.md:22-29`, and the two errors in [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md).
 - [ ] a ruling on whether the index rows change, or only gain the link
 - [ ] the link, and the migration corollary's digest entry
 - [ ] a changeset — or an explicit `none`, since this ships nothing an adopter

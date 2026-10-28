@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — reproduced 2026-10-07 against this repo's build at `b1335f5`, on this repo's
-  own `spec.rules.ts`. No red test yet. **A regression of a recorded crash:** plan 0150 found it
+  own `spec.rules.ts`. No red test yet. **A regression of a recorded crash:** [plan 0150](../plans/0150-close-0088s-disclosed-review-findings.md) found it
   on 2026-08-18 and backed its port out; `orphanExclusions` then shipped in #72 (2026-08-21) without the guard.
 - **Severity:** Medium — `eess-ts doctor` crashes, exit 1, on any rule file that exports a kernel
   dialect's builders (eess-md here; eess-mermaid and eess-gherkin build on the same kernel
@@ -27,7 +27,7 @@ TypeError: project.getSourceFiles is not a function or its return value is not i
     at runDoctor (…/dist/cli/commands/doctor.js:190:26)
 ```
 
-There are two throws: the first is caught and reported as a load failure (bug 0397); the second
+There are two throws: the first is caught and reported as a load failure ([bug 0397](./0397-doctor-calls-a-diagnosis-failure-a-load-failure.md)); the second
 is uncaught and ends the process.
 
 ## Reproduction
@@ -80,12 +80,12 @@ project.
 
 ## Fix
 
-Not designed. Plan 0150 (`work/plans/0150-close-0088s-disclosed-review-findings.md`) named one
+Not designed. [Plan 0150](../plans/0150-close-0088s-disclosed-review-findings.md) (`work/plans/0150-close-0088s-disclosed-review-findings.md`) named one
 direction: a kernel-placed `orphanExclusions` whose signature never mentions `ArchProject`, tested
-with a fixture whose `getProject()` returns a foreign object. This record owns the crash; plan
-0150's Phase 4 points here. Whatever the fix, a rule whose project is not a ts-morph project must be either
+with a fixture whose `getProject()` returns a foreign object. This record owns the crash; [plan
+0150](../plans/0150-close-0088s-disclosed-review-findings.md)'s Phase 4 points here. Whatever the fix, a rule whose project is not a ts-morph project must be either
 diagnosed by what applies to it or reported as not diagnosable by `doctor`. It must not crash, and
-it must not be skipped silently, which would read as a clean bill (bug 0268's class).
+it must not be skipped silently, which would read as a clean bill ([bug 0268](./0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)'s class).
 
 ## Verification
 
@@ -93,7 +93,7 @@ it must not be skipped silently, which would read as a clean bill (bug 0268's cl
       CLI, exits without a `TypeError` and says what it did and did not diagnose
 - [ ] the same for a mixed file (one eess-ts rule, one eess-md rule): the eess-ts rule is still
       diagnosed
-- [ ] `doctor` runs on every rule file in this repo, which is plan 0150's success criterion
+- [ ] `doctor` runs on every rule file in this repo, which is [plan 0150](../plans/0150-close-0088s-disclosed-review-findings.md)'s success criterion
 - [ ] `npm run validate` green.
 
 Deferred: none.

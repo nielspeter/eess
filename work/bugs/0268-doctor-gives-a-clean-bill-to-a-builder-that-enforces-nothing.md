@@ -2,21 +2,21 @@
 
 ## Status
 
-- **State:** Draft — measured against the real binary while writing ADR-014's
+- **State:** Draft — measured against the real binary while writing [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
   enforcement row, which had claimed the opposite as its reason to exclude this
   command from the clause.
 - **Severity:** Medium — a false green in the one command whose entire slot is
   justified by "a rule that certifies nothing". Not a build gate (`doctor` is a
-  diagnostic by decision, plan 0069), so it does not red CI on its own; what it
+  diagnostic by decision, [plan 0069](../plans/completed/0069-spec-corpus-reach.md)), so it does not red CI on its own; what it
   does is answer the question an author asks it with the wrong answer.
-- **Origin:** self-found · writing the ADR-014 enforcement row for plan 0263
+- **Origin:** self-found · writing the [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) enforcement row for [plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md)
   Phase 2
 - **Reported:** 2026-09-07
 
 ## Symptom
 
 A rule file whose builder hands back a bare array enforces nothing at all —
-that is the case ADR-014 exists for, and the case `eess-ts check`,
+that is the case [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) exists for, and the case `eess-ts check`,
 `eess-ts baseline`, `eess-ts check --fix` and `checkAll()` now all refuse.
 
 ```ts
@@ -49,7 +49,7 @@ structural typing is deliberate and documented — it lets a caller pass the sam
 The consequence is not deliberate. A bare `{ violations: () => [] }` supplies
 none of those members, so every diagnosis is skipped in turn and the findings
 array comes back empty. **Absence of a capability is read as absence of a
-fault** — a fail-open shape of exactly the kind ADR-009 rule 1 names, in the
+fault** — a fail-open shape of exactly the kind [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1 names, in the
 command written to detect that kind.
 
 The `rules.length === 0` guard does not catch it either, and its own comment
@@ -59,7 +59,7 @@ diagnoses to nothing walks straight past it.
 
 ## Why it matters
 
-The gap is narrow but it sits at the worst possible place. ADR-014's whole
+The gap is narrow but it sits at the worst possible place. [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s whole
 claim is that an evidence-free builder is now refused at every door that hands
 a verdict back. `doctor` hands back a _diagnosis_, not a verdict, so it is
 legitimately outside that clause — but an author who reaches for the
@@ -96,7 +96,7 @@ once. Shape 1 is honest about less.
       both, and a fix that covers one is the bug this command has had before.
 - [ ] `check:nonvacuity` asserts it by rule id, so an emptied fix cannot stay
       green.
-- [ ] ADR-014's enforcement row stops excusing `doctor` and points here.
+- [ ] [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s enforcement row stops excusing `doctor` and points here.
 
 Deferred: none.
 

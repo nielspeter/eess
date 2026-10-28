@@ -5,7 +5,7 @@
 - **State:** Draft — measured 2026-10-07 in CI on PR #191. No red test yet.
 - **Severity:** Low — a false red, not a false green, and only in this repository's own test. A
   correct record can fail CI while `check:corpus`, which reads the same file, stays green.
-- **Origin:** self-found 2026-10-07: plan 0405's draft failed CI on it.
+- **Origin:** self-found 2026-10-07: [plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s draft failed CI on it.
 - **Reported:** 2026-10-07
 
 ## Symptom

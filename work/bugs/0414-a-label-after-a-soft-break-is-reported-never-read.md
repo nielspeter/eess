@@ -64,12 +64,12 @@ a block. The syntax-tree scan finds the label-shaped `strong` that is not its pa
 child, and records it as unread by position (`packages/md/src/model/links.ts:152`). The finding is then raised at
 `packages/md/src/builders/declaration-findings.ts:141-150`.
 
-Plan 0405 chose the first line on purpose: "The label is read from the block's first source line"
+[Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md) chose the first line on purpose: "The label is read from the block's first source line"
 (`work/plans/completed/0405-md-select-the-links-a-block-declares.md`, its Design), and
 `docs/markdown.md:249` names "later in a paragraph" as a place where a label declares nothing. Its
 discussion of a shared grammar covers the label's forms, not its position: the ledger's per-line
 reading is not weighed there. The grammar it built is anchored to the start of a line, not of a block
-(`label.ts`'s `PREFIX`). This record overrules that one decision of plan 0405, for the wrapped forms
+(`label.ts`'s `PREFIX`). This record overrules that one decision of [plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md), for the wrapped forms
 only.
 
 ## Fix
@@ -85,10 +85,10 @@ first version of this decision; what they found is folded in below.
   - The blank-line form, which the consumer already uses, is two sibling paragraphs. The fix makes
     the soft-break form read the same way.
 - **A label alone on the paragraph's last line encloses the list directly after it**, exactly as a
-  label-alone paragraph does today (plan 0405's ownership rule). The shape is `**Status:** Draft`,
+  label-alone paragraph does today ([plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s ownership rule). The shape is `**Status:** Draft`,
   then `**Related to:**` alone on the next line, then a blank line and the list `- [a](a.md)`.
   Without this, the label would fall into the empty-declaration branch, whose "stands alone with no
-  list directly under it" would be false (ADR-009 rule 2).
+  list directly under it" would be false ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2).
 
 - **The new block keeps every finding a block start has.** Today a near miss, an empty declaration
   or a reference link at this position is still reported, through the position finding. The fix
@@ -124,8 +124,8 @@ first version of this decision; what they found is folded in below.
 **Out of scope:**
 
 - **Misspellings.** The consumer reports that `**Relatd to:**` is not caught, and treats that as
-  expected. The near-miss scan compares case and inner spacing only, by plan 0405's decision. Bug
-  0408's open box asks whether "a different spelling" is reported or named as a blind spot. This
+  expected. The near-miss scan compares case and inner spacing only, by [plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s decision. [Bug
+  0408](./0408-a-label-without-its-colon-is-neither-read-nor-reported.md)'s open box asks whether "a different spelling" is reported or named as a blind spot. This
   record reads that question as covering typos too, and leaves it there.
 - **A formatting variant after a soft break** (`**_Related to:_**`, a whole line in bold) is still
   reported by position. That remedy then leads to a formatting finding. Routing a line-start strong
@@ -149,7 +149,7 @@ Through the public entry point (`links().…violations()`) unless stated:
       clears it.
 - [ ] `areLabelled('State')` and `honestyAtClose` agree on a wrapped `**State:**` after a soft break.
       They disagree on a plain `State:` there, and a row pins that.
-- [ ] Plan 0405's `unread-label` fixture (`scripts/nonvacuity/bad-declared-block/unread-label.md`) is
+- [ ] [Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s `unread-label` fixture (`scripts/nonvacuity/bad-declared-block/unread-label.md`) is
       this shape. It moves to a position that stays unread (mid-line), and a soft-break near-miss row
       is added.
 - [ ] `packages/md/tests/builders/declared-block.test.ts`, the test titled "a wrapped label inside a

@@ -2,16 +2,16 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16 in plan 0413's PR, from its enforcement review. No red test
+- **State:** Draft — recorded 2026-10-16 in [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s PR, from its enforcement review. No red test
   of the fix yet.
 - **Severity:** Low — no false green, and since that PR no wrong line: such a block's syntax error
   claims no line and says why. What is left is a wrong remedy in one case (below).
-- **Origin:** self-found · PR review of plan 0413, 2026-10-16.
+- **Origin:** self-found · PR review of [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md), 2026-10-16.
 - **Reported:** 2026-10-16
 
 ## Symptom
 
-Mermaid 11.17.2, measured through plan 0413's worker, strips frontmatter that the line map's
+Mermaid 11.17.2, measured through [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s worker, strips frontmatter that the line map's
 frontmatter step (`packages/mermaid/src/parser/mermaid-line-map.ts:13`, Mermaid's own
 `frontMatterRegex`, anchored at the text's start) does not match:
 

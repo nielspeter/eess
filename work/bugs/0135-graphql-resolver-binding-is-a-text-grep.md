@@ -84,7 +84,7 @@ resolver file that mentions `id` for any reason.
 ## Root cause
 
 The condition was written against file **text**, not the AST, in a dialect whose
-entire premise is that it reads the AST (ADR-002: ts-morph is the sole AST
+entire premise is that it reads the AST ([ADR-002](../../adr/002-ts-morph-ast-engine.md): ts-morph is the sole AST
 engine). The resolver side is already loaded as real source files —
 `resolvers()` at `packages/ts/src/graphql/index.ts:82-88` filters
 `p.getSourceFiles()` — so the ts-morph nodes are in hand at the call site and
@@ -115,7 +115,7 @@ The GraphQL module is the one capability in the family with **no dogfood corpus*
 — this repo has no `.graphql` file outside `packages/ts/tests/fixtures/`. Every
 dialect eess ships as a package validates this repo's own artifacts first; this
 sub-path does not, and it is also the lowest-fidelity mechanism in the family.
-That is the correlation worth recording, and it is why proposal 003's Protobuf
+That is the correlation worth recording, and it is why [proposal 003](../proposals/003-future-dialect-candidates.md)'s Protobuf
 caveat ("no dogfood corpus") is a sharper filter than that proposal realized.
 
 ## Fix
@@ -133,7 +133,7 @@ caveat ("no dogfood corpus") is a sharper filter than that proposal realized.
    documents, so the field's own file and line are recoverable. Then remove the
    `firstFile` stamp and the three hard-coded `line: 1`s.
 4. **Implement or explicitly drop the orphan-resolver direction.** The docstring
-   and proposal 003 both claim it; nothing implements it. If it is out of scope,
+   and [proposal 003](../proposals/003-future-dialect-candidates.md) both claim it; nothing implements it. If it is out of scope,
    say so at the call site.
 5. **Wire a gate and a fixture**, or record the hole. Either add a `check:graphql`
    over a real fixture schema so `gateCoverage` can see it, or add a stated

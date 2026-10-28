@@ -47,7 +47,7 @@ from it.
 **Where it must not go.** Not behind eess-ts's engine boundary, and not in the
 kernel. "Which callees define a test" is **vitest/jest framework vocabulary** —
 `ArchCall.isTestCall()` would smuggle a test runner's vocabulary into a language
-dialect that has no business knowing what a test runner is (ADR-006). That is the
+dialect that has no business knowing what a test runner is ([ADR-006](../../adr/006-framework-rules-architecture.md)). That is the
 distinction from [0114](./0114-string-literal-lexis-lives-outside-the-engine.md),
 which moves _lexis_ — how TypeScript delimits a string — and genuinely does belong
 to the engine. Two follow-ups, two homes; only 0114 touches the boundary. Until an

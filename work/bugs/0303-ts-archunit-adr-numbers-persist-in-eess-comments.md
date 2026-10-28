@@ -5,8 +5,8 @@
 - **State:** Draft — measured by grep and classified by reading each site in
   context; no mechanism.
 - **Severity:** Low — comment drift, with one exception that prints:
-  `scripts/check-review-harness.mjs:173` tells a reader "the ADR-008/009 lens is
-  required".
+  `scripts/check-review-harness.mjs:173` tells a reader that the lens it requires is
+  ts-archunit's ADR-008/009.
 - **Origin:** self-found · correcting one such comment for
   [0233](./0233-an-exclusion-that-suppresses-every-violation-is-silent.md). Known and
   unrecorded before that: `.claude/skills/review/SKILL.md:72-75` notes the same
@@ -17,16 +17,20 @@
 
 eess ported two ADRs from ts-archunit under new numbers. ts-archunit's ADR-008
 (agent-first failure surfaces) is eess's
-[ADR-009](../../adr/009-agent-first-failure-surfaces.md); its ADR-009 (a pass is
+[ADR-009](../../adr/009-agent-first-failure-surfaces.md); ts-archunit's ADR-009 (a pass is
 constructed from evidence) is eess's [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md).
 eess's own [ADR-008](../../adr/008-caller-owns-reporting.md) is caller-owns-reporting.
 
-`grep -rn 'ADR-008' packages/*/src scripts .claude` returns **67** lines. Read in
+```sh
+grep -rn 'ADR-008' packages/*/src scripts .claude
+```
+
+That returns **67** lines. Read in
 context:
 
-- **35** use ts-archunit's numbering — they cite ADR-008 for a false green, a vacuous
+- **35** use ts-archunit's numbering — they cite ts-archunit's ADR-008 for a false green, a vacuous
   pass, a remedy that must be real, "rule 5", or the agent that does not read warnings;
-- **26** mean eess's ADR-008 — reporting, emission, `report` modes;
+- **26** mean eess's [ADR-008](../../adr/008-caller-owns-reporting.md) — reporting, emission, `report` modes;
 - **6** are ambiguous without a closer reading.
 
 The classification is a reading, not a mechanism.
@@ -65,16 +69,16 @@ The classification is a reading, not a mechanism.
 
 ### Not measured
 
-- `ADR-009` mentions that mean eess's ADR-010.
+- Mentions written as ts-archunit's ADR-009 that mean eess's [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md).
 - Plan numbers carried the same way. `packages/ts/src/core/execute-rule.ts:153`,
-  `:159` and `:219` cite "plan 0104", and no plan 0104 exists in `work/` — the only
+  `:159` and `:219` cite ts-archunit plan 0104 by its bare number, and no such plan exists in `work/` — the only
   0104 is a bug. Likely the same carry-over; not verified.
 
 ## Fix
 
 One sweep that reads each site, not a find-and-replace — 26 of the 67 are correct.
-A guard is possible for the unambiguous shapes (`ADR-008/009`, `ADR-008 rule N`,
-since eess's ADR-008 has no numbered rules) and not for the rest. One site was
+A guard is possible for the unambiguous shapes (the slash pair and the numbered rule, ts-archunit's ADR-008/009 and ts-archunit's ADR-008 rule N,
+since eess's [ADR-008](../../adr/008-caller-owns-reporting.md) has no numbered rules) and not for the rest. One site was
 already fixed in the change that filed this: `packages/ts/src/core/execute-rule.ts:228`.
 
 ## Verification

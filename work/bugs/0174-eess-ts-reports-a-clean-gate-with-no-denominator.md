@@ -89,7 +89,7 @@ A rule whose selector matches nothing still counts as one rule. So:
 > "If a count reads zero or far lower than expected, the gate matched nothing"
 
 cannot be acted on with a rule count. The number that answers vacuity is
-`examined` — the ADR-010 evidence quantity the floor already reads. It is not
+`examined` — the [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) evidence quantity the floor already reads. It is not
 reachable from the CLI today: `RuleBuilderLike` (`packages/core/src/rule-builder-like.ts:9`)
 declares only `violations()`, deliberately, so presets can satisfy it without
 depending on CLI types.
@@ -110,7 +110,7 @@ same blind spot.
 **Added 2026-10-18: eess-md inherits it.** [Plan 0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s
 `inDocuments` scope reports its counts (documents matched, elements examined) only when a rule
 examined zero, inside the finding. On a green run no CLI prints them, which is this bug's open half.
-The plan narrows proposal 017's "reports both counts" to the zero path and leaves the green-path
+The plan narrows [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s "reports both counts" to the zero path and leaves the green-path
 counts here, together with consumer-feedback decision 3's count of frozen documents a selection
 excluded, which no plan computes yet.
 
