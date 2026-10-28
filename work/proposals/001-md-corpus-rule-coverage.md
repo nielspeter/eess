@@ -88,10 +88,11 @@ works; the coverage is the problem, not the engine.
   `BUG-NNN`._ One live violation — a delivered case is `Type: Bug` and links to
   no defect record.
 - **(13)** Every plan's `State:` agrees with its ROADMAP row today, but through
-  a **mapping**, not equality: `Draft`↔`Udkast`, `Done`↔`✅`, `Won't-do`↔`🚫`.
+  a **mapping**, not equality: `Draft`↔`Proposed`, `Done`↔`✅`, `Won't-do`↔`🚫`.
   `correspondence()` offers `beComplete()` and `preserveRelations()` — existence
   and structure — so a plan closed in its file while its board row still reads
-  `Udkast` is invisible to every gate.
+  `Proposed` is invisible to every gate. (The board label in these examples was replaced with a neutral word on
+  2026-10-28; the point, a mapping and not equality, is unchanged.)
 
 Rules 11–13 are one shape: **a condition that applies only when another value
 holds.** Three of four lanes need it, and the bug lane hid it because
@@ -747,10 +748,10 @@ violation must _say_. Colour alone is not the proof; attribution is.
       for, and conditionals make it far easier to write one by accident — a
       typo'd field name is indistinguishable from a satisfied invariant.
 - [ ] **`agree()` — divergent values.** A plan whose file says `Done` while its
-      ROADMAP row says `Udkast` goes **red**, naming **both** sides with **both**
+      ROADMAP row says `Proposed` goes **red**, naming **both** sides with **both**
       line numbers.
 - [ ] **`agree()` — mapped values are not a violation.** `Draft` against
-      `Udkast` under the declared `normalize` is **green**. Strict equality
+      `Proposed` under the declared `normalize` is **green**. Strict equality
       here would fire on every row in the reference corpus, which is the failure
       mode that makes teams delete the rule rather than fix the data.
 - [ ] **`agree()` — unnormalised value.** A board cell that `normalize` leaves
