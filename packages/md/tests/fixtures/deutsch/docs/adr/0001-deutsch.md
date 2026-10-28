@@ -2,6 +2,6 @@
 
 ## Durchsetzung
 
-| Klausel             | Tier | Mechanismus | Status |
-| ------------------- | ---- | ----------- | ------ |
-| kein hartes Löschen | 1    | eess-ts     | gated  |
+| Klausel             | Tier | Umsetzung | Status |
+| ------------------- | ---- | --------- | ------ |
+| kein hartes Löschen | 1    | eess-ts   | gated  |
