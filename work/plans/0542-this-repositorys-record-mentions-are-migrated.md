@@ -193,7 +193,9 @@ Each lane is its own PR, in this order:
 2. **a judge reads every fix in the lane that links a record whose number ts-archunit also used**,
    whether or not its file names ts-archunit (the engine's code comments carry ts-archunit's
    numbers into records that do not; corrected 2026-10-28 at lane 4, when such a fix shipped; the
-   freeze's read set, fixes in files naming ts-archunit, was 294 over all lanes), and a seeded sample of 20 of the
+   freeze's read set, fixes in files naming ts-archunit, was 294 over all lanes; the new one is
+   about 600 for lanes 5 to 8, about 180, 90, 240 and 85, each lane's dry run giving the exact count;
+   it covers the same-target search for the three wrong targets so far, all inside the range), and a seeded sample of 20 of the
    lane's other fixes, the seed recorded in the PR; the judge is an agent on a different model from
    the one running the lane. A wrong fix is left out by element before applying, its cause recorded
    in this plan, and the judge then reads every fix in the lane with the same target. The same
@@ -205,7 +207,8 @@ Each lane is its own PR, in this order:
 3. `--fix --apply`, before any hand edit, so no excluded line has moved;
 4. the lane's refusals, anachronisms and the other mentions on their lines closed by hand, as the
    Measured section says; where an agent proposes the edits, a second judge reads, without the
-   proposer's reasons, every hand link in a file naming ts-archunit with a number in its range,
+   proposer's reasons, every hand link with a number in ts-archunit's range, whatever its file says
+   (corrected 2026-10-28 at lane 4, as step 2 was),
    every call that a number is ts-archunit's, and every other rewording, for meaning (lane 3's
    review); the exclusions it closed removed from the rule file;
 5. **closed when the lane's documents hold no unlinked mention**: the rule file holds no exclusion
@@ -331,7 +334,7 @@ fails the build` and `accepts a repository that extends the base through an inte
   (corrected 2026-10-28 at the lane's review, from "closed later" for all): a record closed by a
   delete and an add; the instrument dating a mention by its text's first appearance anywhere in the
   file, which gave six board rows citing [ADR-009](../../adr/009-agent-first-failure-surfaces.md) the date of an older row; and a squash merge's
-  ancestry, for one bug filed on a stacked branch.
+  ancestry, for two bugs on three lines filed on a stacked branch. Three are delete-and-add closes.
   Judge 2 (Fable), given no reasons, read 72: every rewording and fence, and the 27 hand links in
   files naming ts-archunit with a number in its range. 66 right, 6 wrong, every one a change of
   meaning with the referent right: four rewordings altered verbatim quotes of source comments
@@ -348,14 +351,24 @@ fails the build` and `accepts a repository that extends the base through an inte
   (`packages/ts/src/core/module-edges.ts` cites it), to eess's [plan 0076](./0076-broader-deterministic-autofix.md). [Bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md) does not name
   ts-archunit, so no judge read it. The cause is the engine: its code under `packages/*/src` came
   from ts-archunit, its comments cite 136 numbers inside ts-archunit's range, and records copy them
-  without naming the project. So the links lanes 2 to 4 had written to a number in that range, in
-  files not naming ts-archunit, were read by a third judge (Fable): 286 links, 283 right, 3 wrong.
+  without naming the project. So the links lanes 2 to 4 had written to a number in that range were read. A first retro read
+  286 of them, picked as those in files not naming ts-archunit: 283 right, 3 wrong. Its picking was
+  wrong, as the re-check found: it tested each file at lane 2's base, so it skipped files the lanes'
+  own rewordings had made name ts-archunit, and its reasons were mostly one per class, not per link.
+  So every one was derived again from the diff, 693 in-range links the lanes wrote
+  (`retro2-set.py`, kept with the evidence), and the 432 the first retro had not matched exactly were
+  read by two more judges (Fable), each reason quoting the passage: 430 right, 2 wrong, the two the
+  re-check had found by hand. Five wrong in all.
   [Bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md)'s; [bug 0268](../bugs/0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)'s, which is ts-archunit plan 0069, "no rule may certify nothing"
   (`packages/ts/src/cli/rule-file-findings.ts` cites it by name); and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s, which is
-  ts-archunit's ADR-008 rule 2, eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2, now written as both. Each is reworded, and
-  step 2's read set now covers every fix whose number ts-archunit also used, whatever the file says.
+  ts-archunit's ADR-008 rule 2, eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2, now written as both; and [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s and [proposal 010](../proposals/010-ts-performance-at-scale.md)'s, each a code comment's ts-archunit ADR-008, eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md). Each is reworded. Two more links the fix had put inside
+  [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s quoted examples of a reference "written as text" contradicted their sentence and
+  are described now. Step 2's and step 4's read sets now cover every number ts-archunit also used,
+  whatever the file says. The 423 such links the corpus held before the migration were never read by
+  a lane: [bug 0553](../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md). The 0543 table moved into a fence keeps its content in another notation;
+  left as it is.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
-  reads 2,335 unlinked mentions against 3,142 at the base, and 123 skipped after ts-archunit
+  reads 2,335 unlinked mentions against 3,142 at the base, and 130 skipped after ts-archunit
   against 81 at the base (`check:corpus`, 2026-10-28), the retro read's rewordings and this record's
   own ts-archunit forms included.
 
@@ -387,8 +400,9 @@ fails the build` and `accepts a repository that extends the base through an inte
   [plan 0454](./completed/0454-box-marks-are-the-callers.md), over 1,409 judged links) was taken
   with ts-archunit as a source, before Decision 1. A red beyond that row is recorded as a bug, not
   fixed here. Its rows: a crossed link red, a title link green, an empty mention side red. What it
-  cannot see: a link to a record whose number ts-archunit also used that the lanes' judge did not
-  read, and a linked mention written after `ts-archunit`, which the pattern skips.
+  cannot see: a link to a record whose number ts-archunit also used that no judge read (the 423
+  written before the migration are [bug 0553](../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md)), and a linked mention written after `ts-archunit`,
+  which the pattern skips.
 - `mention-fix.rules.ts`, `scripts/lib/mention-anachronisms.mjs` and
   `scripts/lib/record-mention.mjs`'s lane exports removed; `CLAUDE.md`'s `check:corpus` entry says
   the rule holds zero.
