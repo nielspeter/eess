@@ -53,7 +53,7 @@ $ git show ae981b2 --stat -- packages/crossvalidate/src/
 ```
 
 Its siblings show line-level diffs; this file shows a byte count. That commit is
-plan 0070 Phase 2 — the ADR-008 migration — so the one change that most needed
+[plan 0070](../../plans/completed/0070-caller-owns-reporting.md) Phase 2 — the [ADR-008](../../../adr/008-caller-owns-reporting.md) migration — so the one change that most needed
 review in this file was delivered as an opaque blob.
 
 ## Reproduction
@@ -146,7 +146,7 @@ same defect twice: once closed, once open, each reading as a complete account.
 
 **2. Neither filing left a guard.** 0144 closed with `Red test written first:
 n/a`, and box 1 here — the check — was never built. Two correct write-ups, zero
-mechanism. That is the state ADR-009 calls worse than no check, because a record
+mechanism. That is the state [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) calls worse than no check, because a record
 that describes a class reads as coverage of it.
 
 **3. Building the guard found the byte still live — and it was the FOURTH
@@ -193,7 +193,7 @@ the raw byte written where the two-character `\0` escape belonged. Fixed here.
       thing being measured to be normalised away.
 - [x] The guard carries its own denominator. Pointing its walk at a
       non-existent root makes it exit 1 saying it examined nothing, rather than
-      printing OK over nothing (ADR-010). Verified by sabotage.
+      printing OK over nothing ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)). Verified by sabotage.
 - [x] Non-vacuity coverage — scenario 6 of `scripts/nonvacuity/bad-waived-gates.mjs`.
       `check:integrity` runs four checks behind ONE `GATE_FOR` row, so a new
       check inside it is invisible to `gateCoverage()` by construction; without

@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Fixed — 2026-10-19, built on maintainer order in the pull request that builds plans
-  0496, 0505 and 0503 (`1621af4`). Reproduced 2026-10-19 on main's build (`9675402`) while planning
+  [0496](../../plans/completed/0496-sections-as-elements.md), [0505](../../plans/completed/0505-a-field-read-inside-a-named-section.md) and [0503](../../plans/completed/0503-in-sections-boxes-by-section.md) (`1621af4`). Reproduced 2026-10-19 on main's build (`9675402`) while planning
   [plan 0496](../../plans/completed/0496-sections-as-elements.md); the drop direction was found by PR #247's
   enforcement review and reproduced here the same day.
 - **Severity:** High — eess reports green on links it never examined. A heading inside a list item
@@ -12,14 +12,14 @@
   `examined`. It also selects links outside the section it names. No verdict in this repository is
   wrong today: its corpus holds no heading inside a container (measured below), and the only
   repository caller of `links().areInSection()` is a non-vacuity probe.
-- **Origin:** self-found · plan 0496's planning, 2026-10-19; the drop direction from PR #247's
+- **Origin:** self-found · [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s planning, 2026-10-19; the drop direction from PR #247's
   enforcement review.
 - **Reported:** 2026-10-19
 - **Builds after:** [plan 0496](../../plans/completed/0496-sections-as-elements.md), whose section index the fix
-  reads. Order: plan 0496, then this fix, then plan 0503; plan 0496 does not ship in a release
+  reads. Order: [plan 0496](../../plans/completed/0496-sections-as-elements.md), then this fix, then [plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md); [plan 0496](../../plans/completed/0496-sections-as-elements.md) does not ship in a release
   without this fix.
 - **Precondition of:** [plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md) (block 18,
-  `inSections`), recorded in proposal 017's conditions. Its fix ships in this release batch as its
+  `inSections`), recorded in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s conditions. Its fix ships in this release batch as its
   own pull request.
 
 ## Symptom
@@ -96,7 +96,7 @@ Both read with `corpus({ cwd, roots: ['**/*.md'] })`, and a `b.md` holding `# B`
 
 Measured over this repository's corpus (`work/`, `docs/`, `adr/`, 523 documents, 5,181 top-level
 headings), through eess-md's own `corpus()`: 0 headings inside a list item or a blockquote. The
-command is in plan 0496's "Measured". Nothing pins that zero.
+command is in [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s "Measured". Nothing pins that zero.
 
 ## Root cause
 
@@ -108,14 +108,14 @@ headings start a section. `buildDocument` was written for top-level headings and
 
 A rule over links and a rule over tables or sections, written with the same section name, select
 from different parts of the same document, and the links rule can be green on a link it dropped.
-Plan 0496 settles what a section is for every reader but links: a heading inside a container does
-not start a section, and its findings say so. Plan 0503 (`inSections`) attributes a link to the
-sections that contain its line through plan 0496's index, so until this is fixed the two would
+[Plan 0496](../../plans/completed/0496-sections-as-elements.md) settles what a section is for every reader but links: a heading inside a container does
+not start a section, and its findings say so. [Plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md) (`inSections`) attributes a link to the
+sections that contain its line through [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s index, so until this is fixed the two would
 disagree on any such document. That is why it is 0503's precondition.
 
 ## Fix
 
-One owner: links take their enclosing sections from plan 0496's section index (`sectionsOf(doc)`
+One owner: links take their enclosing sections from [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s section index (`sectionsOf(doc)`
 and its line lookup) instead of a running stack. A heading inside a container then scopes nothing
 outside it, and the drop direction is gone, as is the over-selection after the container.
 
@@ -127,13 +127,13 @@ note.
 
 ## Resolution
 
-Links read their sections from plan 0496's index: `linksOf(doc)` (`packages/md/src/model/links.ts`)
+Links read their sections from [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s index: `linksOf(doc)` (`packages/md/src/model/links.ts`)
 stamps each link's `sectionPath` with the names of the sections that contain its line
 (`sectionPathAt`), and `collectLinkBlocks` keeps no heading stack. One walk decides what a section is
 for tables, sections, `haveSection` and links. The shared section-name scan now names a heading of
 the declared name inside a container on `links()` too (it was held back on `links()` until this fix).
 
-**The open question, decided from ADR-009: no links-only exception.** A link inside the container
+**The open question, decided from [ADR-009](../../../adr/009-agent-first-failure-surfaces.md): no links-only exception.** A link inside the container
 (`y` under `- ## Listed`) is not in `Listed` either. `areInSection` reads sections, and a heading in a
 container is not one; keeping it for links alone would give the word two meanings in one package,
 which is the defect this bug is. The rule does not go quiet instead: `links(c).that().areInSection('Listed')`
@@ -145,7 +145,7 @@ Measured over this repository's corpus (`work/`, `docs/`, `adr/`), with eess-md'
 after the fix: 2,611 links, and the same section path for every one (a hash of
 `relPath:line:sectionPath` over all of them is equal). No verdict here changes.
 
-**Sabotage**, run with plan 0496's matrix at `1621af4`: `linksOf` stops stamping `sectionPath`; red on
+**Sabotage**, run with [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s matrix at `1621af4`: `linksOf` stops stamping `sectionPath`; red on
 `the drop direction` and `a link and the table under one heading report the same sectionPath`
 (`packages/md/tests/links-read-the-section-index.test.ts`).
 

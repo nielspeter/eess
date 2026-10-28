@@ -43,7 +43,7 @@ The order of the findings themselves is not changed; it is the reporter's.
 
 ### Sabotage matrix
 
-Committed before the run (`e80aeb82`). The core test reads the kernel's `dist` (bug 0519), so each
+Committed before the run (`e80aeb82`). The core test reads the kernel's `dist` ([bug 0519](../0519-a-core-test-of-an-internal-symbol-reads-dist.md)), so each
 mutant was rebuilt before its run and the build restored after. 2 rows, 2 red.
 
 | Row | Mutant                                                    | Named test (in `unique-by.test.ts`)                                                        | Result |

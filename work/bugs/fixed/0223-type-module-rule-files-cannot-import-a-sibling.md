@@ -89,7 +89,7 @@ rethrows. jiti — which _would_ resolve the specifier, because it applies TS re
 never reached.
 
 ⚠️ **The narrowness is deliberate and must not simply be widened.** The same file documents
-why (plan 0165, bug 0029): a rule file loaded through jiti gets jiti's own module registry, so
+why ([plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md), ts-archunit bug 0029): a rule file loaded through jiti gets jiti's own module registry, so
 its copy of eess-ts is a different instance — `instanceof ArchRuleError` goes false, and
 `execute-rule.ts`'s module-level `callerAggregatesReports` flag is set on one copy and read on
 the other, double-reporting every configuration finding. A broad `catch` that fell back on any
@@ -123,7 +123,7 @@ get-dangerously-wrong part of the impure half:
 call it and retry natively. `packages/mermaid/src/cli/load-rules.ts` is unaffected — it goes
 straight to jiti and never attempts a native import.
 
-The doctor message is now gated on `importsTestRunner(file)`, parsed with ts-morph per ADR-002.
+The doctor message is now gated on `importsTestRunner(file)`, parsed with ts-morph per [ADR-002](../../../adr/002-ts-morph-ast-engine.md).
 
 ## What the first attempt at a falsifier proved, which was nothing
 
@@ -166,7 +166,7 @@ independently.
 reproduces is not established.** Three candidates were named and none tested — jiti resolving
 a bare specifier for an ESM package in `node_modules` through native `import()` rather than
 transforming it; `withCallerAggregating` having become a dynamic extent rather than a latch
-(bug 0203); or a Node or jiti version change since plan 0165 measured it. The probe also
+([bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md)); or a Node or jiti version change since [plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) measured it. The probe also
 entered jiti through the format-refusal branch rather than the rejected widening, and its
 package was a symlink to this repo, so both sides shared one realpath; a consumer tree with a
 separately installed copy is the same shape and was not tested.

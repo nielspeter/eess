@@ -10,7 +10,7 @@
   behind parentheses. An options object with a handler in it is an ordinary way to pass a callback,
   and the builder's own example is `notHaveCallbackContaining(call('db.query'))`
   (`packages/ts/src/builders/call-rule-builder.ts:55`). No shipped rule or preset uses the callback
-  conditions, so the gap is in rules adopters write. ADR-010's `examined` counts the calls a rule
+  conditions, so the gap is in rules adopters write. [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s `examined` counts the calls a rule
   selected, not the callbacks it searched, so such a rule is green with a non-zero denominator while
   it cannot fire.
 - **Origin:** self-found · the enforcement review of
@@ -46,7 +46,7 @@ parentheses:** `within()` given `use((() => legacy(1)))` examines nothing, and b
 `use(() => 1); use((() => legacy(1)))`, it passes.
 
 _Correction, 2026-09-19:_ this record first said the enforcement review measured `within()` finding the
-parenthesized shape. That count of 1 was ADR-010's "examined 0 subjects" finding, not a match — found by
+parenthesized shape. That count of 1 was [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s "examined 0 subjects" finding, not a match — found by
 the method review, which read the message rather than the count.
 
 ## Fix
@@ -61,7 +61,7 @@ by a test and written in `docs/calls.md` rather than left to be discovered.
 
 **Parentheses are read where the collector already read them.** `extractCallbacks` reads each
 argument through `throughWrappers` — parentheses, `as`, `<T>`, `satisfies` and `!` — the list
-`functionValueOf` uses for a variable's initializer (bugs 0306, 0315). That is what closes the
+`functionValueOf` uses for a variable's initializer ([bugs 0306](./0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md), 0315). That is what closes the
 parenthesized shape for `within()` too, which this record measured examining nothing.
 
 **The list moved to `core/` so it composes with the object-literal walk.** The first version of
@@ -75,7 +75,7 @@ object-literal walk reads a property value through it.
 **The callbacks read before the fix come first, in both readers.** A match's identity is numbered
 in order, so a newly reachable callback ahead of an accepted one would otherwise take its ordinal —
 hiding the new finding and re-reporting the accepted one. Ordered as `findMatchesInEach` orders the
-roots bug 0323 made it test. Two deltas, two guards: the conditions put a callback that IS the
+roots [bug 0323](./0323-the-call-conditions-search-below-the-root.md) made it test. Two deltas, two guards: the conditions put a callback that IS the
 argument first, and `extractCallbacks` returns callbacks reached through a WRAPPER last, which
 `within()` inherits. The second was missing in the first version of this fix — the enforcement
 review measured `within()` moving an accepted `#1` — and its first repair asked whether the ARGUMENT
@@ -108,7 +108,7 @@ the wrapper decision still in two places.
 
 `within()` was measured over the same shapes: it reported the object-literal ones before and after,
 and the parenthesized and `as` shapes only after — before, it examined nothing and said so through
-ADR-010.
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md).
 
 ## Related
 

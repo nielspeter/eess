@@ -4,7 +4,7 @@
 
 - **State:** Fixed — gated, sabotage-verified on the real repo.
 - **Deferred:** none
-- **Found:** 2026-08-20, adopter review of the bug 0184 fix.
+- **Found:** 2026-08-20, adopter review of the [bug 0184](./0184-nothing-checks-that-a-breaking-changeset-bumps-minor.md) fix.
 - **Severity:** the silent path 0184 was opened about, one level up. Every gate is
   green along it, and correctly so.
 
@@ -149,7 +149,7 @@ weakness somewhere else — in what a GREEN run says about itself.
 
 The honest-zero line could be replaced with a fabricated
 `✓ N of N changeset(s) declare a break, each bumping past patch` in one edit, and
-both fixtures stayed green. That is the same sentence, verbatim, that bug 0184's
+both fixtures stayed green. That is the same sentence, verbatim, that [bug 0184](./0184-nothing-checks-that-a-breaking-changeset-bumps-minor.md)'s
 review caught lying over a severed rule. The earlier fix pinned
 `stats.breakingExamined` — the value, where the bug was diagnosed — and left the
 sentence, where it was seen, unasserted. No scenario ever entered that branch under
@@ -177,7 +177,7 @@ on.
       carries the break text. Previously `0.3.1` under "Patch Changes".
 - [x] `none` does not count. Pinned; without that row the bump condition was
       unexercised and survived deletion.
-- [x] **The shell wiring is covered** — the mistake bug 0184 made twice. The pure
+- [x] **The shell wiring is covered** — the mistake [bug 0184](./0184-nothing-checks-that-a-breaking-changeset-bumps-minor.md) made twice. The pure
       fixture passes `dependentsOf` in as a literal, so the code reading
       `dependencies` out of each `package.json` is reachable only end to end. Five
       mutations run, five caught.
@@ -193,7 +193,7 @@ on.
 has no bearing on this. Changing it moves nothing.
 
 What remains uncovered is a break that is never MARKED as one: both rules run only
-on changesets the detector recognises. That residue is inherited from bug 0184 —
+on changesets the detector recognises. That residue is inherited from [bug 0184](./0184-nothing-checks-that-a-breaking-changeset-bumps-minor.md) —
 **and it has a live instance on this very tree**, which review found and this
 record originally obscured by saying the rule "reddens nothing on the current
 tree" as though that showed good scoping.

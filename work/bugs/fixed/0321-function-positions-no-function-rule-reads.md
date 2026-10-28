@@ -64,14 +64,14 @@ the fix to establish.
 **Ruled, position by position, and measured from both sides.** Three of them are functions the
 collection simply could not reach, and they are now collected:
 
-- **a class expression's members** — the same members bug 0315 collects, in a class the walk did not
+- **a class expression's members** — the same members [bug 0315](./0315-the-function-builder-does-not-collect-constructors-accessors-or-wrapped-functions.md) collects, in a class the walk did not
   reach. Named by the binding that holds it: `const Expr = class { m() {} }` reports `Expr.m`.
 - **anything inside a namespace** — measured while fixing, and wider than this record first said: a
   namespace's function declarations and arrow consts were invisible too, not only its classes. A
   namespace is a scope that holds what a file holds, and `getFunctions()`, `getVariableDeclarations()`
   and `getClasses()` answer only for the node they are asked. Members carry the namespace path
   (`N.Inner.m`), so two namespaces may hold a class of one name without their findings colliding —
-  bug 0010's collision, which the object-literal collection already prefixes against.
+  ts-archunit bug 0010's collision, which the object-literal collection already prefixes against.
 - **an object literal's accessors** — the counterpart of the class accessors 0315 collected. The
   shared object-literal traversal takes them behind an option, because whether a rule about
   CALLBACKS should read a function that runs on access rather than on call is an open ruling

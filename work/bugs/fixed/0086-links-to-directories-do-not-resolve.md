@@ -125,7 +125,7 @@ class this fix exists to prevent, and the routing itself was the one piece of
 this change that could produce it undetected.
 
 **Fixed by extracting the routing into `scripts/lib/corpus-link-routing.mjs`**
-(mirroring bug 0121's `lane-coverage.mjs` precedent, which this record's first
+(mirroring [bug 0121](./0121-ledger-reads-two-of-four-lanes.md)'s `lane-coverage.mjs` precedent, which this record's first
 draft explicitly declined to follow — the reviewers were right to hold it to
 the same bar):
 

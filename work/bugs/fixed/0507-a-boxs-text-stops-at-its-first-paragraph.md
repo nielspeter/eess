@@ -3,8 +3,8 @@
 ## Status
 
 - **State:** Fixed — 2026-10-19, built on maintainer order in the pull request that builds plans
-  0496, 0505 and 0503 (`54204c8`). Reproduced 2026-10-19 on main's build (`9675402`), from adopter 3's
-  section input (proposal 017, "Adopter 3's section input — 2026-10-18", lesson 4).
+  [0496](../../plans/completed/0496-sections-as-elements.md), [0505](../../plans/completed/0505-a-field-read-inside-a-named-section.md) and [0503](../../plans/completed/0503-in-sections-boxes-by-section.md) (`54204c8`). Reproduced 2026-10-19 on main's build (`9675402`), from adopter 3's
+  section input ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), "Adopter 3's section input — 2026-10-18", lesson 4).
 - **Severity:** High — `honestyAtClose` is green on a closed record whose `Deferred: none` contradicts
   a deferral written on the box's second line. That is the lie `ledger/deferred-none-lie` exists to
   catch.
@@ -37,16 +37,16 @@ A corpus of `plans/README.md` and one closed plan, `plans/completed/0001-x.md`, 
 
 - [ ] the parser change — done-otherwise
 
-  deferred→plan 0002
+  deferred→plan NNNN
 
 Deferred: none
 ```
 
 | the box's deferral is written                                 | box `text`                                               | `honestyAtClose`                      |
 | ------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------- |
-| on the box's own line (`…done-otherwise, deferred→plan 0002`) | `the parser change — done-otherwise, deferred→plan 0002` | 1 finding, `ledger/deferred-none-lie` |
+| on the box's own line (`…done-otherwise, deferred→plan NNNN`) | `the parser change — done-otherwise, deferred→plan NNNN` | 1 finding, `ledger/deferred-none-lie` |
 | in a second paragraph (above)                                 | `the parser change — done-otherwise`                     | **0 findings**                        |
-| in a plain sub-bullet (`  - deferred→plan 0002`)              | `the parser change — done-otherwise`                     | **0 findings**                        |
+| in a plain sub-bullet (`  - deferred→plan NNNN`)              | `the parser change — done-otherwise`                     | **0 findings**                        |
 
 The record says nothing is deferred and defers the work, and the gate is green.
 

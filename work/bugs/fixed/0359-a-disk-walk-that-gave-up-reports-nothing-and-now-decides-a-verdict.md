@@ -76,7 +76,7 @@ number.
 
 That comment is corrected as part of the v0.10 work; this record is the behaviour.
 
-## The budget's justification is not supported — spike 0360
+## The budget's justification is not supported — [spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md)
 
 [Spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md) measured the walk,
 because the budget is defended by a claim about time that had never been measured: "a
@@ -150,8 +150,8 @@ future entry: **not "is it tool output" but "can a tsconfig include it".**
 report rather than a redesign;
 [0368](../../spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md) settled what
 the report must SAY, and reordered the fix. The shape is that an instrument which could not
-answer must say so — ADR-009's own subject — and that what it says must be actionable, which
-is ADR-009 rule 2.
+answer must say so — [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)'s own subject — and that what it says must be actionable, which
+is [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2.
 
 **In measured priority order:**
 
@@ -205,13 +205,13 @@ the spike's own hypothesis. The whole-repo walk is what the question requires.
 - **A configuration finding.** The strongest option and the most disruptive: a run
   whose disk walk exhausted reports it, unsuppressably, the way an empty project
   does. It is honest, and it fires on every rule in a large repository at once,
-  which is the noise ADR-009 rule 4 warns against — one cause, many findings.
+  which is the noise [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 4 warns against — one cause, many findings.
 - **One finding for the project, not one per rule.** ~~The precedent is
   `emptyProjectViolation`, which exists because the identity of that fault is the
   tsconfig rather than any glob.~~ Exhaustion has the same shape: one walk, one
   failure, one thing to say. **The precedent named here is wrong** — it is per-rule,
   measured; see the Fix above for the mechanism that does deliver one report.
-- **A line in the gate summary.** Cheapest, and it is a warning — which ADR-009
+- **A line in the gate summary.** Cheapest, and it is a warning — which [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)
   rule 1 says the primary consumer does not read. Adequate for "the walk was
   slow", not for "a gate is off".
 - **Extend the prune list.** Not considered when this record was written, and measured in
@@ -224,7 +224,7 @@ the spike's own hypothesis. The whole-repo walk is what the question requires.
   bound nobody can reach is still a bound. This does not fix the silence; it makes
   the silence unreachable in practice, which is a different and lesser thing.
 
-**The open question is whether a verdict may depend on a bounded walk at all.** Spike 0367
+**The open question is whether a verdict may depend on a bounded walk at all.** [Spike 0367](../../spikes/0367-must-the-disk-question-walk-the-whole-repo.md)
 answers the operative half: it may, **provided exhaustion is reported**, because no
 unbounded-free alternative exists for the globs people write. What the spike explicitly does
 **not** settle is whether the bound could be removed outright — every figure it took is warm,
@@ -254,7 +254,7 @@ tests.
 The docstring said the finding collapses to one report per project via
 `dedupeConfigFindings`. Written, not measured — and **false**: setting a constant `rule`
 is not enough, because the builder stamps `ruleId` with each rule's own id and the dedupe
-key prefers `ruleId`. Three rules produced **three** reports, which is the ADR-009 rule 4
+key prefers `ruleId`. Three rules produced **three** reports, which is the [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 4
 noise this fix claims to avoid.
 
 Caught by writing `it('three rules that all lost the check collapse to one report')`
@@ -263,7 +263,7 @@ precedent read off a function's name, and a count read off a docstring. Third ti
 the only one of the three caught before it shipped. Fixed by setting `ruleId` as well; the
 test now pins 3 before the collapse and 1 after, with the fan-out stated.
 
-## What independent validation of ADR-016 found in this fix
+## What independent validation of [ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) found in this fix
 
 The ADR this fix embodies was validated by a separate agent on a different model, per the
 repo's author-≠-verifier rule. It found a defect nothing else had:
@@ -292,16 +292,16 @@ corrected two inflated tiers in the ADR's own table.
 Each row a literal edit to the shipped source, restored from a sha256-verified backup with
 the restore verified. `t1` is `a-walk-that-gave-up-says-so.test.ts`, `t2` `the-floor.test.ts`.
 
-| row | edit                                                                    | result                              |
-| --- | ----------------------------------------------------------------------- | ----------------------------------- |
-| R0  | control, unmodified                                                     | green (both)                        |
-| S1  | exhaustion returns the silent `UNDETERMINED` again — the shipped defect | **RED** (4)                         |
-| S2  | the cardinality branch ignores exhaustion and goes green                | **RED** (3)                         |
-| S3  | the finding stops naming consumers (ADR-009 rule 2)                     | **RED** (2)                         |
-| S4  | consumers unsorted, so the named ones are arbitrary                     | **RED** (1)                         |
-| S5  | the filesystem-root guard dropped                                       | **RED** in t1 **and** t2            |
-| S6  | counting moved AFTER the budget check                                   | **RED** (3)                         |
-| S7  | REVERSE — break the non-cardinality remedy this fix must not touch      | green in t1, **RED** in the sibling |
+| row | edit                                                                                                    | result                              |
+| --- | ------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| R0  | control, unmodified                                                                                     | green (both)                        |
+| S1  | exhaustion returns the silent `UNDETERMINED` again — the shipped defect                                 | **RED** (4)                         |
+| S2  | the cardinality branch ignores exhaustion and goes green                                                | **RED** (3)                         |
+| S3  | the finding stops naming consumers ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2) | **RED** (2)                         |
+| S4  | consumers unsorted, so the named ones are arbitrary                                                     | **RED** (1)                         |
+| S5  | the filesystem-root guard dropped                                                                       | **RED** in t1 **and** t2            |
+| S6  | counting moved AFTER the budget check                                                                   | **RED** (3)                         |
+| S7  | REVERSE — break the non-cardinality remedy this fix must not touch                                      | green in t1, **RED** in the sibling |
 
 **S1 is the defect test.** It restores the exact pre-fix line and four assertions fail,
 which is what makes the fix falsifiable rather than merely present.
@@ -347,7 +347,7 @@ the file under edit would have reported this row as proving nothing.
       `violations()` through a real exhausted walk, and was measured RED before the fix
       (`expected 0 to be greater than 0` — the rule was green with nothing said).
 - [x] a **remedy-remediates** test, beyond the red one: removing the directory the message
-      names clears the finding and the rule resumes reporting. ADR-009 rule 2's corollary,
+      names clears the finding and the rule resumes reporting. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's corollary,
       and the `every-config-finding-is-classified` gate requires it.
 - [x] a changeset — an adopter-visible new finding plus a raised budget.
 - [x] `npm run validate` green.

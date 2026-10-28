@@ -4,7 +4,7 @@
 
 - **State:** Fixed — gated, sabotage-verified on the real repo.
 - **Deferred:** none
-- **Found:** 2026-08-20, devops review of the bug 0179 fix.
+- **Found:** 2026-08-20, devops review of the [bug 0179](./0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) fix.
 
 ## Symptom
 
@@ -29,7 +29,7 @@ convention is right and is being followed. Nothing enforces it.
 
 ## How it surfaced
 
-Bug 0179 deleted `version-bump-guard.test.ts`, correctly: it tested
+[Bug 0179](./0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) deleted `version-bump-guard.test.ts`, correctly: it tested
 `.github/scripts/assert-version-bump-is-safe.sh`, which eess never ported, and
 with the script absent the test was **fail-open** — `execFileSync` throws, so
 every "REFUSES…" row passed vacuously while only the "ALLOWS…" rows went red.
@@ -60,7 +60,7 @@ Measured rather than guessed, which mattered: the record proposed
 signal. Of the 9 pending changesets, 5 carry a `**Migration:**` section and 4
 declare a break, and **the two sets differ** — migration guidance accompanies
 plenty of non-breaking minors. Keying on it would redden correct work, and a gate
-that reddens correct work is one that gets suppressed (ADR-009 rule 1 — cited as
+that reddens correct work is one that gets suppressed ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1 — cited as
 rule 3 until review caught it; rule 3 is the say-there-is-no-escape-hatch rule,
 and only its by-construction corollary applies here).
 
@@ -208,5 +208,5 @@ decision rather than a gate defect.
 - [x] The gate reports its own denominator, whether or not it fires:
       `breaking ✓ 4 of 9 changeset(s) declare a break, each bumping past patch`.
       A rule that examined zero changesets and one that examined nine otherwise
-      print the same "0 findings", and only one of those is evidence (ADR-010).
+      print the same "0 findings", and only one of those is evidence ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
 - [x] `npm run validate` exits 0.

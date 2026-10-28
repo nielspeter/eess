@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phases 1–4 built 2026-10-27/28; lane 5 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1–5 built 2026-10-27/28; lane 6 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -372,6 +372,40 @@ fails the build` and `accepts a repository that extends the base through an inte
   against 81 at the base (`check:corpus`, 2026-10-28), the retro read's rewordings and this record's
   own ts-archunit forms included.
 
+**Lane 5 (Phase 5), built 2026-10-28**, at base 4452d7fd, with `LANE` set to `work/bugs/fixed/**`
+(the commit leaves it empty), under steps 2 and 4 as lane 4 left them:
+
+- The instrument found 9 anachronisms in 521 fixes, the Appendix's rows exactly. The dry run gave
+  509 fixes and 92 refusals, the table's figure; the grep found no ts-archunit GitHub link in the
+  lane.
+- Judge 1 (Fable, in two halves; seed 20261028) read every fix whose number ts-archunit also used,
+  213, and 20 sampled: 228 right, 5 wrong. Four are ts-archunit's numbering copied from a code or
+  test comment: [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s and [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s ts-archunit ADR-008 (eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md)), [bug 0199](../bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s
+  ts-archunit plan 0078 (the configuration-finding census) and [bug 0239](../bugs/fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)'s ts-archunit plan 0079
+  (the cardinality triage). The fifth, [bug 0278](../bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md)'s, named the fold plan where it meant PR #88, the kernel split. Each went into `JUDGED_WRONG` and was reworded; every other fix to those targets is
+  in the range, so the judges read them. `--apply` wrote 504 links across 108 files.
+- The rest by hand: a proposer (Fable) proposed 105 edits for 100 items; 97 were applied in 41
+  files, with 4 for the judged-wrong lines (one, [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s, fences the code comment it quotes). Two
+  were decided otherwise. One proposed renaming a test title to carry "ts-archunit bug 0016"; instead,
+  as lane 2 did, the two test titles in `packages/core/tests/contract/extension-surface.test.ts` that
+  held ts-archunit's bug 0016 dropped the number, each kept in a comment, and every record quoting
+  them was updated ([bug 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md), and [plan 0150](./0150-close-0088s-disclosed-review-findings.md), lane 6's). The other proposed editing a
+  reproduction inside a fence, and was first dropped, then applied, below. [Bug 0325](../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)'s citation of
+  a third test title went the same way as the two above. `'@nielspeter/eess': none` and
+  `'@nielspeter/eess-ts': none`.
+- Judge 2 (Fable), given no reasons, read 78: every rewording and fence and every hand link with a
+  number in ts-archunit's range, whatever the file. 73 right, 4 wrong, 1 unsure. [Bug 0179](../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s
+  quoted wrong citation had been linked, which recreates the defect its paragraph describes; it is
+  described now. [Bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s three table cells, which quote a reproduction's input, no longer
+  matched the reproduction left unchanged; the reproduction takes the same placeholder for its
+  synthetic plan number. The unsure one, [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s "attribution, not colour", is the enforcement
+  reviewer's checklist (`.claude/agents/reviewer-enforcement.md:37`), which gives "Agent-First Failure Surfaces" ts-archunit's number,
+  ts-archunit's ADR-008, as reworded. That agent file still cites
+  ts-archunit's numbers for both ADRs; it is outside this plan's corpus.
+- Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
+  reads 1,720 unlinked mentions against 2,335 at the base, and 169 skipped after ts-archunit
+  against 130 at the base (`check:corpus`, 2026-10-28), this record's own ts-archunit forms included.
+
 ### Phase 9 — the gate holds zero, and checks the target
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
@@ -503,7 +537,7 @@ document. Every new number was reproduced at 4a43bcc4.
       links in [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md) (line 22)
       and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24); ts-archunit plan 0075 confirmed by judge 1 and reworded, the
       GitHub links written as plain text)
-- [ ] Phase 5 — `work/bugs/fixed/`
+- [x] Phase 5 — `work/bugs/fixed/`
 - [ ] Phase 6 — `work/plans/` (live)
 - [ ] Phase 7 — `work/plans/completed/` 0001–0449
 - [ ] Phase 8 — `work/plans/completed/` 0450 and above

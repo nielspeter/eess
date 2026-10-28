@@ -32,9 +32,9 @@ this.unmetExpectNonEmptyViolation()]` — a real, distinct assertion, not
     against a fictional "stranger dialect," including the exact "bug 0016"
     copy-on-write independence test this plan's own Phase 3 asked for
     verbatim: `'copy() independence: a held selection is not mutated by
-.because() — the "bug 0016" contract'` and `'named-selection reuse
-across two branches does not leak conditions (bug 0016, RuleBuilder
-side)'`.
+.because()'` and `'named-selection reuse across two branches does not
+leak conditions (RuleBuilder side)'` (both titles dropped ts-archunit bug
+    0016's number in [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5).
   - **Finding 1 (`orphanExclusions()`) — still genuinely open, confirmed
     twice over.** Zero hits anywhere in `packages/*/src` (unchanged since
     this plan was drafted). Independently confirmed by unrelated plan 0147's

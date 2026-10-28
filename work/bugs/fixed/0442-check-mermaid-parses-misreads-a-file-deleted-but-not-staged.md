@@ -2,11 +2,11 @@
 
 ## Status
 
-- **State:** Fixed — 2026-10-18, in PR #236, which needed it: its dead-root refusal (bug 0465) turned this
+- **State:** Fixed — 2026-10-18, in PR #236, which needed it: its dead-root refusal ([bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md)) turned this
   misreading into a crash.
-- **Severity:** Medium — a false red on the board's scale, with a wrong remedy (ADR-009 rule 2): the
+- **Severity:** Medium — a false red on the board's scale, with a wrong remedy ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2): the
   tree has no Mermaid defect, and the remedy sends the author to debug eess-md.
-- **Origin:** self-found · PR review of plan 0427, 2026-10-16.
+- **Origin:** self-found · PR review of [plan 0427](../../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md), 2026-10-16.
 - **Reported:** 2026-10-16
 
 ## Symptom
@@ -26,7 +26,7 @@ Subtract `git ls-files --deleted` from the scope, or name that cause in the reme
 ## Resolution
 
 The gate drops a listed path that is not on disk (`existsSync`) before building its corpora, which is
-the Fix's first option. PR #236 needed it: bug 0465 made `corpus()` refuse a root that matches no
+the Fix's first option. PR #236 needed it: [bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) made `corpus()` refuse a root that matches no
 file, and the gate passes every listed path as a root, so the misreading had become an
 `ArchConfigError`. The pointers above are the lines as of this fix.
 

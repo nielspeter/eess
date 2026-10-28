@@ -121,7 +121,9 @@ describe('extension surface contract — a direct TerminalBuilder subclass (stra
     expect(builder.describeRule().because).toBe('a widget test')
   })
 
-  it('copy() independence: a held selection is not mutated by .because() — the "bug 0016" contract', () => {
+  // ts-archunit bug 0016's contract. The title carries no record number, so the records that quote
+  // it hold no plain mention (plan 0542).
+  it('copy() independence: a held selection is not mutated by .because()', () => {
     const base = new WidgetRuleBuilder({ widgets: [{ name: 'a' }] })
     const branchA = base.because('branch A')
     const branchB = base.because('branch B')
@@ -262,7 +264,8 @@ describe('extension surface contract — a RuleBuilder<T, P> subclass (stranger 
     }
   })
 
-  it('named-selection reuse across two branches does not leak conditions (bug 0016, RuleBuilder side)', () => {
+  // ts-archunit bug 0016, on the RuleBuilder side; see the note above.
+  it('named-selection reuse across two branches does not leak conditions (RuleBuilder side)', () => {
     const selection = new WidgetElementRuleBuilder(project).that().named('a')
     // Branch A: adds a real condition, genuinely fails against 'a'.
     expect(() => {

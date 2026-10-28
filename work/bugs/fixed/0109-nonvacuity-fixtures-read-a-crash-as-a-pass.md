@@ -101,7 +101,7 @@ that exists to prove the other gates cannot do that. Everything downstream of it
 inherits its confidence: the harness prints _"all gates fail on violating input
 — no gate is vacuous"_, which is the sentence the whole dogfood chain rests on.
 
-It is not hypothetical. Bug 0107's red test hit this exact class **on its first
+It is not hypothetical. [Bug 0107](./0107-number-allocation-scans-one-lane.md)'s red test hit this exact class **on its first
 run**, reporting `duplicate detected as expected` from a `MODULE_NOT_FOUND`. The
 fixture was written correctly by the same convention the five older ones use,
 and was wrong for the same reason.
@@ -190,7 +190,7 @@ caught teaches the next author nothing.
    code→diagram half alone satisfied a gate labelled for the diagram→code half.
    Reproduced with a diagram whose classes all exist in code: still threw, still
    exit 1, direction under test never exercised. `bad-crossval.mjs` now reads the
-   violations off the thrown error (`diagramMatchesCode` returns `void` — bug 0097) and requires a diagram→code violation specifically.
+   violations off the thrown error (`diagramMatchesCode` returns `void` — [bug 0097](../0097-crossval-presets-bypass-caller-owns-reporting.md)) and requires a diagram→code violation specifically.
 
 The generalisation these three share — _proving a gate ran is not proving the
 right rule fired_ — is only half-done. Five `gateNode` gates still pass a

@@ -3,19 +3,19 @@
 ## Status
 
 - **State:** Fixed — 2026-10-18, in the batch-2 pull request.
-- **Severity:** Medium — **an enforcement row claims more than its mechanism checks.** ADR-010's
+- **Severity:** Medium — **an enforcement row claims more than its mechanism checks.** [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s
   row "Every published check-constructor fails over a zero-file project (the vacuity matrix)" is
   `gated`, and the matrix enumerates only `@nielspeter/eess-ts`. A sibling dialect's constructor
   that started passing over an empty input would keep that row green. Not a false green measured
   in shipped code today: the eess-md constructors seen in this session refuse zero examined units
-  (bug 0396's reproduction printed "this rule examined zero units").
-- **Origin:** self-found 2026-10-07, checking how proposal 013's new eess-md condition would be
+  ([bug 0396](../0396-doctor-assumes-every-rule-has-a-ts-morph-project.md)'s reproduction printed "this rule examined zero units").
+- **Origin:** self-found 2026-10-07, checking how [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s new eess-md condition would be
   proven non-vacuous.
 - **Reported:** 2026-10-07
 
 ## Symptom
 
-ADR-010 binds "every current eess rule family (`eess-ts`'s builders, `eess-md`'s corpus rules,
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) binds "every current eess rule family (`eess-ts`'s builders, `eess-md`'s corpus rules,
 `eess-mermaid`'s diagram rules, `eess-gherkin`'s feature rules) and every future one"
 (`adr/010-a-pass-is-constructed-from-evidence.md`, Decision). Its Enforcement row for that clause
 (`adr/010-a-pass-is-constructed-from-evidence.md:295`) names `scripts/vacuity-matrix.mjs` and is
@@ -39,7 +39,7 @@ check-constructor from @nielspeter/eess-ts's own published exports map"
 
 ## Root cause
 
-The matrix was ported from ts-archunit, which had one dialect (plan 0088 Phase 4a). The family
+The matrix was ported from ts-archunit, which had one dialect ([plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 4a). The family
 grew four siblings; the enumeration did not follow, and the ADR row's wording ("every published
 check-constructor") was not narrowed to match.
 
@@ -50,7 +50,7 @@ published constructor refuses an empty one.
 ## Fix
 
 Not designed. Either the matrix enumerates every family package's exports map, each probed over
-its own empty input (an empty corpus, an empty diagram, an empty feature set), or ADR-010's row is
+its own empty input (an empty corpus, an empty diagram, an empty feature set), or [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s row is
 narrowed to what it checks and a row is added for each sibling.
 
 ## Resolution
@@ -71,7 +71,7 @@ The matrix probes the sibling dialects too (`scripts/vacuity-matrix.mjs`, "Sibli
   probed factories.
 - **Crashes.** A sibling probe that throws for an unrelated reason is a finding, because it has
   stopped reaching its check.
-- **ADR-010's row** now says what the matrix checks.
+- **[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s row** now says what the matrix checks.
 
 Its first run found real fail-opens with one cause: `correspondence()` over two empty selections, and
 the two presets that end in it, `diagramMatchesCode()` and `adrCitationsResolve()`. They are recorded
@@ -84,6 +84,6 @@ construct, and its zero-blocks case is `check:nonvacuity`'s `corpus/code-block-p
 - [x] done-otherwise: the red proof is a non-vacuity row, not a unit test. `vacuity-matrix/sibling-fail-open` replaces eess-md's `docs` probe with one that passes silently, and the matrix fails naming it.
 - [x] The matrix's own non-vacuity proof covers the sibling half: `vacuity-matrix/{sibling-fail-open,unaccounted-export,stale-entry,probe-crash}`. The kernel's `setCorrespondence()` is not probed: it returns data, not a check.
 - [x] `npm run validate` green.
-- [ ] deferred→bug 0477 — `correspondence()` and two crossvalidate presets pass over two empty inputs
+- [ ] deferred→[bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md) — `correspondence()` and two crossvalidate presets pass over two empty inputs
 
-Deferred: bug 0477
+Deferred: [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md)

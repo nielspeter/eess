@@ -9,7 +9,7 @@ below, which is the maintainer's to answer and is not this fix's to settle.`
   reports wrongly; a misconfigured rule still fails loudly. What is false is the
   **claim**: the type shipped to make a misconfiguration distinguishable from a
   crash, and at every reader it still is not. An exported symbol with no
-  consumer that reads as coverage — bug 0190's shape, and bug 0178's.
+  consumer that reads as coverage — [bug 0190](./0190-the-preset-constructs-nothing-finding-cannot-fire.md)'s shape, and [bug 0178](../0178-the-kernels-dead-glob-finding-cannot-fire.md)'s.
 - **Origin:** self-found · enforcement review of the guardrails arc after it
   merged (PR #91, 2026-09-03).
 - **Reported:** 2026-09-03
@@ -44,7 +44,7 @@ They still do. The changeset describes an outcome the diff does not produce.
 
 The audience is an AI coding agent reading a failure and deciding what to do
 next. "Your rule file is misconfigured — fix the argument" and "eess crashed" ask
-for opposite actions, and today they render identically. ADR-009 rule 2 is about
+for opposite actions, and today they render identically. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2 is about
 exactly this: the message must state what to do, and a message whose stated fix
 is wrong for the path that produced it is worse than none.
 
@@ -115,7 +115,7 @@ enough evidence to decide rather than keep filing.
       asked whether its remedy had been shown to remediate. Rather than classify
       it `stated-only`, the test now drives the real thrower, asserts the finding
       names its subject, then applies the stated fix and asserts it no longer
-      raises — ADR-009 rule 2's behavioural corollary. This producer can make
+      raises — [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's behavioural corollary. This producer can make
       that claim precisely because it knows its cause; its sibling
       `ruleFileFailure` is honestly `stated-only` for the opposite reason.
 - [x] Writing that test surfaced a name collision worth knowing: the entry point
@@ -154,7 +154,7 @@ enough evidence to decide rather than keep filing.
       by a dialect, 8 only inside core, 7 only by tests, and 4 by nothing at all.
       The test-only seven are why the rule is harder than it looks: reddening
       them would delete the seam `preset-dispatch.test.ts` uses to exercise the
-      very constructor bug 0190 is about.
+      very constructor [bug 0190](./0190-the-preset-constructs-nothing-finding-cannot-fire.md) is about.
 
 ## Related
 

@@ -161,7 +161,7 @@ fire.
 The first version of this record, the first commit message and the first PR body
 all said this glob produced **0 findings** — "a silently vacuous selector". That was
 measured with a probe that counted only the dead-selector class and then
-generalised. Re-measured against the whole `violations()` list, ADR-010's evidence
+generalised. Re-measured against the whole `violations()` list, [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s evidence
 floor fires, `bypassFilters: true` and unsuppressable:
 
 > This rule examined 0 subjects (the project loaded 2 files), so it enforces
@@ -171,15 +171,15 @@ floor fires, `bypassFilters: true` and unsuppressable:
 too broad.** Whether it was a false green depends on the rule's shape. Measured
 through the real `project()`, gate forced on and off:
 
-| the rule                          | gate ON (shipped)                                | gate OFF                       |
-| --------------------------------- | ------------------------------------------------ | ------------------------------ |
-| `…notImportFrom(x)`               | the dead-selector finding, which names the cause | ADR-010's floor — **degraded** |
-| `…notImportFrom(x).expectEmpty()` | the dead-selector finding                        | **nothing — green**            |
-| `…satisfy(notExist())`            | nothing                                          | nothing                        |
+| the rule                          | gate ON (shipped)                                | gate OFF                                                                                  |
+| --------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `…notImportFrom(x)`               | the dead-selector finding, which names the cause | [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s floor — **degraded** |
+| `…notImportFrom(x).expectEmpty()` | the dead-selector finding                        | **nothing — green**                                                                       |
+| `…satisfy(notExist())`            | nothing                                          | nothing                                                                                   |
 
 So **the gate does close a false green**, on the declared-empty shape, and this
 record's "it was never a false green" was wrong for it. The justification is
-ADR-009 **rule 1 and rule 2**, not rule 2 alone: rule 2 for the common shape, where
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md) **rule 1 and rule 2**, not rule 2 alone: rule 2 for the common shape, where
 the gate names the true cause rather than a generic one, and rule 1 for the
 declaration, where without the gate the check cannot fail at all.
 
@@ -419,7 +419,7 @@ this bug keeps the scope it started with:
   — `disk-set.ts` gates both of its prefixes on `readsRootRelativePath`, so a
   project-relative glob naming a sibling package classifies `holds-typescript` and
   the author is told "your tsconfig include/exclude keeps it out of the project".
-  False, and ADR-009 rule 2's confidently-wrong cause. Pre-existing; this ruling is
+  False, and [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's confidently-wrong cause. Pre-existing; this ruling is
   what makes it a designed outcome rather than an accident.
 - [0353](../0353-pathuniverse-and-viewsfor-are-one-dialects-vocabulary-in-the-kernel.md)
   — `PathUniverse` and `viewsFor` are a kernel public type with one materializer and

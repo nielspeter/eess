@@ -10,7 +10,7 @@
   pushed and observed green (PR #67, `check:release` passing) — no item
   left validation-owed.
 - **Severity:** High — the release gate exists specifically so a changed
-  package cannot merge without a changeset (bug 0106). This defect makes it
+  package cannot merge without a changeset ([bug 0106](./0106-no-gate-requires-a-changeset.md)). This defect makes it
   **fail closed in the wrong direction for a specific, common shape**: a real,
   correctly-declared release can read as undeclared, for every package a
   multi-package changeset covers, on every PR whose merge-preview commit has

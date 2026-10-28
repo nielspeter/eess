@@ -115,7 +115,7 @@ options are not "widen the regex" versus "leave it":
 1. **One owner, kernel or dialect-internal**, four callers, three copies deleted —
    0257's resolution applied.
 2. **Stop hand-rolling**: route the `State:`/`Deferred:`/`Ruling:` scans through the
-   mdast pass the dialect already runs. This is ADR-012's shape — the kernel borrows
+   mdast pass the dialect already runs. This is [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s shape — the kernel borrows
    a lexer it cannot own — one level down. It removes the misreading, but not the silence on an unclosed fence: by CommonMark that document has no State line and no box outside code, and 0286 records a widened pattern leaving that document with no readable state and still no finding. Needs option (4) beside it. An earlier version said mdast loses real content here; it does not.
 3. **Widen the regex in one place and consolidate**, which is (1) plus a patch.
 
@@ -144,7 +144,7 @@ Until the ownership question is answered there is nothing to gate, which is why 
 **The library author ruled options (1), (2) and (4): one owner, in the dialect, reading prose on the
 markdown parser it already runs, every copy moved onto it and a rule against a fifth, and a finding for an
 unterminated fence.** The owner is `packages/md/src/model/prose.ts` in eess-md — `proseText` — not the
-kernel: the kernel borrows a lexer it cannot own (ADR-012), and the markdown parser is the dialect's. A bug
+kernel: the kernel borrows a lexer it cannot own ([ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)), and the markdown parser is the dialect's. A bug
 record holds the ruling, as [0257](./0257-path-suffix-resolution-is-implemented-twice.md)'s did for the
 same shape; no ADR is written for it.
 
@@ -171,7 +171,7 @@ architecture rule that stops a fifth copy.
 the markdown parser for every reader in the family, and takes which code to set aside:
 
 - `'commonmark'` — every code block, as CommonMark reads it. The ledger reads this way and reports what it
-  cannot read: a fence that never closes, and a `State:` line found only in code (bug 0286).
+  cannot read: a fence that never closes, and a `State:` line found only in code ([bug 0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)).
 - `'closed-fences'` — only a fenced block that closes. `terms()`, the scenario-citation preset and the
   proposal-ruling script read this way: none of them can report an unclosed fence, so each reads past one
   rather than drop the rest of the document.
@@ -253,12 +253,12 @@ an `**Implements:**` line; the rest read `null` on both — and so is every docu
 across 21 documents).
 
 **Reached through `@nielspeter/eess-md/internal`**, the dialect's counterpart of the kernel's family
-plumbing (ADR-011): not public API, and skipped by the public-surface census like the kernel's. It
+plumbing ([ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md)): not public API, and skipped by the public-surface census like the kernel's. It
 exports `unterminatedFence` beside `proseText`, so a caller that sets aside only closed fences can still
 reach the fact it is choosing to read past, rather than holding a reading with no evidence of what it
-dropped (ADR-010). "The barrel never re-exports what is here" was a sentence in two files and a
+dropped ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)). "The barrel never re-exports what is here" was a sentence in two files and a
 mechanism in none; `scripts/lib/internal-not-reexported.test.mjs` now checks it in `check:family`, for
-every package that ships the subpath. Whether ADR-011's clauses — written about the kernel — cover a
+every package that ships the subpath. Whether [ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md)'s clauses — written about the kernel — cover a
 dialect's `/internal` at all is [0327](../0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md);
 the peer floor that makes the import resolvable for an adopter is
 [0328](../0328-a-sibling-peer-floor-is-a-manual-release-step.md). Neither is settled here. `eess-crossvalidate` imports it at runtime from `md-gherkin`, so its peer floor
@@ -270,7 +270,7 @@ packages' TypeScript only, and one of the four copies was a script. `scripts/lib
 runs in `check:arch`: no file under `packages`, `scripts`, `kit` or `.claude/workflows` may read a
 markdown fence with a regex — a backtick run and a tilde run alternated, or both in one character class —
 outside two named homes: the owner, and the kernel's masker, which cannot reach the dialect's parser
-(ADR-012). It walks the filesystem rather than listing tracked files, because a non-vacuity probe is
+([ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)). It walks the filesystem rather than listing tracked files, because a non-vacuity probe is
 `.gitignore`d by design, and prints the count it scanned.
 
 It fails on `main`, naming the three copies left there; on 0.6.0 it names four. Its homes are files, so

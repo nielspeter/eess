@@ -89,8 +89,8 @@ A diagram that names a class absent from code must be reported wherever it sits:
   - The eess-md and eess-crossvalidate suites passed.
   - The diagram, crossval, corpus and family gates were green.
 - **Nothing pins nesting in either direction.** Adding the deep walk left both suites green.
-- **Why it is a break.** Nested blocks entering `codeBlocks` is a behavioural break for md-mermaid and md-mermaid-er adopters, who gain findings, so eess-md's changeset must name eess-crossvalidate (bug 0185).
-  _Corrected at the fix:_ bug 0185 is about regular dependencies; crossvalidate takes eess-md as an
+- **Why it is a break.** Nested blocks entering `codeBlocks` is a behavioural break for md-mermaid and md-mermaid-er adopters, who gain findings, so eess-md's changeset must name eess-crossvalidate ([bug 0185](./0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
+  _Corrected at the fix:_ [bug 0185](./0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md) is about regular dependencies; crossvalidate takes eess-md as an
   optional peer, which RELEASING.md does not require naming. It is named anyway, so its changelog
   records the break its adopters see.
 
@@ -108,7 +108,7 @@ Deferred: none.
 
 `buildDocument` now collects code nodes at every depth, in document order (`collectCode`,
 `packages/md/src/model/document.ts:110`). The headings and tables loop is unchanged: tables nested
-in a list stay bug 0292's.
+in a list stay [bug 0292](../0292-a-table-nested-in-a-list-never-reaches-the-model.md)'s.
 
 **Tests, red first through the public entry points.**
 
@@ -139,7 +139,7 @@ Restored, all pass again.
 1 document, a top-level one. Across the 438 tracked `.md` files under `work/`, `adr/` and `docs/`,
 mdast finds 4 `mermaid` code nodes at the top level and **0 nested** (measured 2026-10-14 on this
 branch: `fromMarkdown` with GFM over `git ls-files 'work/*.md' 'adr/*.md' 'docs/*.md'`, counting `code` nodes with
-lang `mermaid` by depth). Proposal 006's review counted "3 nested"; those were this record's own
+lang `mermaid` by depth). [Proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s review counted "3 nested"; those were this record's own
 reproduction, text inside a ` ````text ` fence, and that proposal carries a dated correction.
 
 **Release.** eess-md `minor`, marked breaking: a nested block now reaches `codeBlocks`, so an

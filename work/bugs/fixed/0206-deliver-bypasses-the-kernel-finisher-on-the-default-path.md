@@ -48,7 +48,7 @@ That gap is the real subject here. It is the same one
 [ADR-008's amendment](../../../adr/008-caller-owns-reporting.md) records: aggregation
 is a property of the run, and the kernel's preset API is per-call.
 
-## This and bug 0205 prescribe opposite fixes for the same site
+## This and [bug 0205](../0205-four-emitters-restate-the-suppression-rule-and-disagree.md) prescribe opposite fixes for the same site
 
 [Bug 0205](../0205-four-emitters-restate-the-suppression-rule-and-disagree.md) wants
 `deliver()` wired into a shared ts-side emit-and-throw primitive. Option 2 below
@@ -70,7 +70,7 @@ Not decided. Three shapes, in increasing order of what they commit to:
    emission decision from the caller rather than the mode. Then the dialect
    delegates again and the duplication disappears. This is a kernel API change and
    wants weighing against the `ReportMode` vocabulary already in place.
-3. **Move the aggregation concept into the kernel.** Rejected on sight in bug 0203
+3. **Move the aggregation concept into the kernel.** Rejected on sight in [bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md)
    and still rejected: it puts a CLI concern in the kernel and adds a second
    process-global.
 
@@ -91,11 +91,11 @@ makes the drift loud.
       ("and the non-aggregating default reaches the same verdict"). Asserting
       only one is how the drift went unnoticed.
 
-**The picked direction, per plan 0235 Phase 0.** The aggregating branch keeps
-throwing without emitting — emission is the caller's under bug 0203 — but it now
+**The picked direction, per [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md) Phase 0.** The aggregating branch keeps
+throwing without emitting — emission is the caller's under [bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md) — but it now
 runs the gate first, so the `ArchRuleError` carries the receipt with the finding
 already in it. Teaching the kernel finisher a run-level aggregation mode was the
-alternative and is plan 0188's scope; a plan that must close in one PR does not
+alternative and is [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md)'s scope; a plan that must close in one PR does not
 reach into another plan's.
 
 Deferred: none.

@@ -85,7 +85,7 @@ The mirror is added anyway, taking it to 10.
 
 ## Why it matters
 
-ADR-009: _a check that cannot fail is worth less than no check, because it is
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md): _a check that cannot fail is worth less than no check, because it is
 counted as coverage._ These four are worse than 0186's two on exactly that
 clause. `noConsole` had no tests, so a reader counting coverage would find
 nothing. These have a `describe` block each. The coverage is legible, and false.
@@ -100,7 +100,7 @@ these tests among them. Only mutation sees it.
 
 Tests only. **No fixture was added** — `MixedVisibility` in
 `packages/ts/tests/fixtures/poc/src/members.ts` has carried a public, a
-protected, a private and a no-modifier member since plan 0030. What was missing
+protected, a private and a no-modifier member since ts-archunit plan 0030. What was missing
 was asserting against them.
 
 `tests/predicates/function.test.ts` gains a matrix: each predicate asserted
@@ -109,7 +109,7 @@ it must reject. Plus:
 
 - a **VACUITY row** — the fixture really carries three distinct scopes, asserted
   before anything is derived from it, because a fixture drifted to one
-  visibility would satisfy the matrix trivially (ADR-010);
+  visibility would satisfy the matrix trivially ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md));
 - a **mutual-exclusion row** — exactly one of the three matches each member,
   which catches a widening that per-predicate rows could miss if two drifted
   together;
@@ -230,8 +230,10 @@ block** — `expect(() => rule.check()).toThrow(ArchRuleError)`, or a
 outright that they were **flipped from `.not.toThrow()`** when the evidence floor
 landed:
 
-> `// Behaviour flip, plan 0099. This asserted '.not.toThrow()': a 'minLines' so …`
-> `// REVERSED at 0.23.0: this asserted '.not.toThrow()', pinning a detector …`
+```ts
+// Behaviour flip, plan 0099. This asserted '.not.toThrow()': a 'minLines' so …
+// REVERSED at 0.23.0: this asserted '.not.toThrow()', pinning a detector …
+```
 
 That is this concern, already found and fixed once, with the history kept in the
 tests that changed.

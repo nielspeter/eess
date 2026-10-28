@@ -8,7 +8,7 @@
 - **Severity:** High — a false green (`BUGS.md`'s High row). Text inside a Gherkin doc string, which
   is data, not a comment, suppresses a real violation. Meanwhile the comment form Gherkin actually
   has, `#`, is never read as a waiver.
-- **Origin:** self-found · second review of proposal 016, 2026-10-15. The architect lens found that
+- **Origin:** self-found · second review of [proposal 016](../../proposals/016-eess-py-a-python-dialect.md), 2026-10-15. The architect lens found that
   the kernel's default comment scanner treats every non-Markdown file as JavaScript, and asked that
   shipped file types be checked. This record is that check.
 - **Reported:** 2026-10-15
@@ -98,7 +98,7 @@ The block from the doc strings is read in both. The `#` comment on line 11 is re
 
 ## Fix
 
-**Decided from ADR-012, overrulable: a file the kernel cannot lex yields no directive.** ADR-012's
+**Decided from [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md), overrulable: a file the kernel cannot lex yields no directive.** [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s
 second property already says it: "when it cannot prove a span is a comment, it does not treat it as
 one. A directive is dropped rather than a violation silently suppressed." For a file that is neither
 code nor Markdown, the kernel cannot prove any span is a comment. So the default masker for such a
@@ -106,9 +106,9 @@ file now blanks every character but line breaks (`maskEverything`,
 `packages/core/src/exclusion-comments.ts`), and the comment that called the old choice conservative
 is corrected.
 
-- **Why not a Gherkin masker in eess-gherkin.** Under ADR-012's third property the kernel's default
+- **Why not a Gherkin masker in eess-gherkin.** Under [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s third property the kernel's default
   runs over any masker a dialect injects, so a dialect cannot widen what is read. A Gherkin masker
-  would need that property amended, which is proposal 016's change 2 (for Python's `#`). Enabling
+  would need that property amended, which is [proposal 016](../../proposals/016-eess-py-a-python-dialect.md)'s change 2 (for Python's `#`). Enabling
   waivers in other file types is that amendment's work, not this bug's.
 - **What changes for adopters.** A `//` waiver in a `.feature`, `.yml`, `.py`, `.mmd`, `.graphql` or
   other non-code, non-Markdown file no longer applies, and its finding reports again. That is a
@@ -130,10 +130,9 @@ is corrected.
       `packages/gherkin/tests/load.test.ts` went from 5 to 6 for the new fixture.
 
 - [ ] Saying so when a directive in such a file is ignored, as the draft's second option asked
-      ("with that said"): `deferred→bug 0421`
-      ([bug 0421](../0421-a-waiver-in-a-file-the-kernel-cannot-lex-is-ignored-in-silence.md)). The docs
+      ("with that said"): `deferred→`[bug 0421](../0421-a-waiver-in-a-file-the-kernel-cannot-lex-is-ignored-in-silence.md). The docs
       now state where directives are read.
-- [x] ADR-012 updated in the same PR, as the fix's review asked: a dated section applying property 2
+- [x] [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) updated in the same PR, as the fix's review asked: a dated section applying property 2
       to these files, and a `gated` Enforcement row citing the kernel test.
 
-Deferred: bug 0421
+Deferred: [bug 0421](../0421-a-waiver-in-a-file-the-kernel-cannot-lex-is-ignored-in-silence.md)

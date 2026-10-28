@@ -117,7 +117,7 @@ UTF-8 half did not arrive at all.
       file. The scenario reports
       `named the invalid-UTF-8 probe and never gave the UTF-8 reason`. An
       assertion on exit code and file name alone would have stayed green with the
-      guard deleted — the fail-open-inside-the-harness trap bug 0231 recorded and
+      guard deleted — the fail-open-inside-the-harness trap [bug 0231](./0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md) recorded and
       the NUL scenario already warns about, hit here on purpose.
 - [x] The NUL scenario passes unchanged under that same sabotage: the two are
       independent findings with independent remedies.
@@ -149,7 +149,7 @@ It is built. Sabotage-verified in both directions:
 | a scenario declared with no `gates` row           | `declares scenario "integrity/unregistered-probe" but no gate row runs it`                                              |
 | the scan pattern drifts so the check sees nothing | `declares no SCENARIOS this check could see — the pattern it scans for has drifted, so this check is asserting nothing` |
 
-The second row is the ADR-010 half: a check that can silently examine zero things
+The second row is the [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) half: a check that can silently examine zero things
 is the defect, not just a check that misses one thing.
 
 `PROBE_PATHS` remains hand-kept and unguarded. Named here rather than fixed,
@@ -202,8 +202,7 @@ still a wrong finding, not because the verdict depends on them.
 ## What became of the branch this came from
 
 `fix/0086-nul-bytes-in-published-dist` (2026-08-08, never pushed, no PR) was
-triaged file by file rather than cherry-picked or deleted on sight. Its "bug
-0086" is not this repo's bug 0086 — that number belongs to
+triaged file by file rather than cherry-picked or deleted on sight. The 0086 in its name is not this repo's [bug 0086](./0086-links-to-directories-do-not-resolve.md) — that number belongs to
 [links to directories do not resolve](./0086-links-to-directories-do-not-resolve.md),
 fixed long ago. The collision is a renumbering artifact and cost a few minutes of
 confusion, which is the argument for citing records by path and not by number

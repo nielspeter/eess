@@ -30,14 +30,14 @@ So for a broken ratchet:
 | `check`  | yes      | yes             |
 | `doctor` | yes      | **no**          |
 
-Bugs 0355, 0357 and 0362 spent three rounds establishing what that sentence must say for
+[Bugs 0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md), 0357 and 0362 spent three rounds establishing what that sentence must say for
 each cause — including that it must never offer deletion, because on an unsuppressable
 finding deletion is the only achievable exit. None of that reaches `doctor`.
 
 ## Root cause
 
 Deliberate, and correct as far as it went. `deadSelectorViolation`'s docstring claims
-parity between the tools for "cause and advice", and the parity that bug 0357 was about
+parity between the tools for "cause and advice", and the parity that [bug 0357](./0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) was about
 — _do the two tools agree about whether a rule is broken_ — is real and is pinned by
 `packages/ts/tests/core/doctor-and-check-agree-about-a-ratchet.test.ts`. The remedy was
 never part of that contract, so nothing broke when it was improved on one side only.

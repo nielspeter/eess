@@ -12,7 +12,7 @@
 
 ## Symptom
 
-Plan 0454 ([box marks are the caller's](../../plans/completed/0454-box-marks-are-the-callers.md))
+[Plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md) ([box marks are the caller's](../../plans/completed/0454-box-marks-are-the-callers.md))
 makes every mark beyond GFM's `[ ]` and `[x]` a finding, `md/undeclared-box-mark`, until the caller
 declares it, and a declaration may say only `'open'` or `'done'`.
 
@@ -28,8 +28,8 @@ The only other remedy the finding offers is to rewrite 1,680 lines in frozen rec
 ## Cause
 
 `validateMarks` in `packages/md/src/model/task-items.ts` refused any state but `'open'` and
-`'done'`, and `BoxMarkState` had only those two. Proposal 017's decision 5 says "the caller declares
-each extra mark as blocking a close or not". Plan 0454 read "not blocking a close" as done, so a
+`'done'`, and `BoxMarkState` had only those two. [Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s decision 5 says "the caller declares
+each extra mark as blocking a close or not". [Plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md) read "not blocking a close" as done, so a
 mark that blocks no close and is not done had no declaration.
 
 ## Fix
@@ -38,7 +38,7 @@ A third declarable state, `'unjudged'`:
 
 - `BoxMarkState` is `'open' | 'done' | 'unjudged'`, and `validateMarks` accepts the three and
   refuses anything else, `undefined` included. No state is filled in for a mark, so a mark is
-  unjudged only where the caller wrote `'unjudged'`; an undeclared mark is still a finding (ADR-009).
+  unjudged only where the caller wrote `'unjudged'`; an undeclared mark is still a finding ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md)).
 - `collectTaskItems` now validates its `marks` too. Before, it passed any value through as the box's
   `state`, so an untyped caller could forge a state by writing it.
   **Note (2026-10-19, PR #253's enforcement review, M1):** validation read only own keys, while the
@@ -60,9 +60,9 @@ A third declarable state, `'unjudged'`:
 
 `'unjudged'` says what the declaration does: no close rule judges the box. Rejected:
 
-- `'undecided'` is ADR-021's word for a predicate that cannot judge a subject, a finding; this is
+- `'undecided'` is [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s word for a predicate that cannot judge a subject, a finding; this is
   a declaration, and it must not read as one.
-- `'ignored'` and `'skipped'` name the silent ignore ADR-009 forbids. The box is not ignored: it is
+- `'ignored'` and `'skipped'` name the silent ignore [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) forbids. The box is not ignored: it is
   an element, and a rule can select it.
 - `'exempt'` reads as a waiver of a finding, which `.excluding()` and the waiver comments own.
 - `'unknown'` sits beside `ledger/unknown-state`, which is a finding.
@@ -113,7 +113,7 @@ back.
 ### Sabotage matrix
 
 Committed before the run (`7ef8e39a`); each mutant was applied, the named file run, and the source
-restored with `git checkout`. 9 rows, 9 red, in 12 s with bug 0526's two rows.
+restored with `git checkout`. 9 rows, 9 red, in 12 s with [bug 0526](./0526-uniquebys-others-list-follows-load-order.md)'s two rows.
 
 | Row | Mutant                                                | Named test (in `unjudged-box-mark.test.ts`)                                           | Result |
 | --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------- | ------ |

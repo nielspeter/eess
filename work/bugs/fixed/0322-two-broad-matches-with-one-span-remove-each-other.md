@@ -97,7 +97,7 @@ list survives beside the call. The source comment names this, and the tests pin 
 
 **A concise arrow's body, reported beside the match inside it.** `searchFunctionBody` adds a concise
 arrow's body when it matches, because both traversals test only descendants and `() => eval(x)`'s body
-is the call itself (bug 0224). For a broad matcher that found something inside the body, the body is
+is the call itself ([bug 0224](./0224-recommended-floor-misses-two-function-shapes.md)). For a broad matcher that found something inside the body, the body is
 an ancestor of that match, and adding it reported one match twice. In 0.5.1 a tie inside the body
 emptied the inner search, so the body was reported alone, once; keeping the tie made it twice, as it
 already was for a match strictly inside — `() => legacy(1)` under `expression(/legacy/)` was two

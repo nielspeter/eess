@@ -6,7 +6,7 @@
   2026-10-12 against this repository's build at `9765605`, with `mermaid` 11.17.2 as the reference
   parser.
 - **Severity:** Medium — an honesty gap between a stated claim and its mechanism (`BUGS.md`'s
-  Medium row), and a wrong remedy (ADR-009 rule 2), not a false green: the build is red when it
+  Medium row), and a wrong remedy ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2), not a false green: the build is red when it
   should be. The code states the principle itself — "blaming the author's syntax for a grammar gap
   is the wrong attribution" (`packages/crossvalidate/src/md-mermaid.ts:36-38`) — but its mechanism
   covers one diagram header and no construct inside a diagram. So the finding tells the author their
@@ -41,7 +41,7 @@ Five valid constructs are reported as the author's syntax error. Only `classDiag
 added clause "this is legal Mermaid that eess-mermaid does not model yet"
 (`KNOWN_UNMODELLED`, `md-mermaid.ts:39`), and its suggestion still says to fix the syntax.
 
-The ER binding has the same shape. **Measured again 2026-10-15, once plan 0214 made `md-mermaid-er`
+The ER binding has the same shape. **Measured again 2026-10-15, once [plan 0214](../../plans/completed/0214-extract-the-diagram-kind-predicate.md) made `md-mermaid-er`
 select an `erDiagram` behind `---` frontmatter:** eess-mermaid's `parseErDiagram` rejects the
 frontmatter (`lexer:1:1 unexpected character: ->-<-`), which Mermaid accepts, and the finding says the
 diagram "does not parse as standard Mermaid ER syntax". The same holds for a **multi-line**
@@ -55,7 +55,7 @@ path, `packages/crossvalidate/tests/fixtures/table-er/bad-unparseable.md`, whose
 `JobSchedule o{--o{ Bonus`, is accepted by `mermaid.parse()` (`{"diagramType":"er"}`). Whether it is
 "standard" is disputed rather than false: Mermaid's documented cardinality table lists `o{` only on
 the right-hand side, and the fixture labels itself "non-standard cardinality", so the parser is
-looser than the docs. That is the same question proposal 006's review held Ask C on — which parser
+looser than the docs. That is the same question [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s review held Ask C on — which parser
 owns syntax — and this record does not settle it. What holds either way: a fence Mermaid's parser
 accepts and renders is not fixed by "fix the syntax". The test over that fixture
 (`packages/crossvalidate/tests/md-mermaid-er.test.ts:80-84`) asserts the current message.
@@ -88,8 +88,8 @@ diagram.
 
 ## Fix
 
-**Decided 2026-10-15, from ADR-009 rule 2 and this record, overrulable: the first direction.** Until
-plan 0413 gives eess Mermaid's own parser, eess cannot tell a syntax error from a construct
+**Decided 2026-10-15, from [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2 and this record, overrulable: the first direction.** Until
+[plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) gives eess Mermaid's own parser, eess cannot tell a syntax error from a construct
 eess-mermaid does not model, so the finding says that and no more.
 
 - **Message.** Both bindings now say the fence "does not parse with eess-mermaid's class-diagram
@@ -120,7 +120,7 @@ eess-mermaid does not model, so the finding says that and no more.
 - The two strings live in `packages/crossvalidate/src/shared.ts`, so both bindings say the same
   thing.
 
-The second direction, telling the two causes apart with Mermaid's own parser, is plan 0413's.
+The second direction, telling the two causes apart with Mermaid's own parser, is [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s.
 
 ## Verification
 

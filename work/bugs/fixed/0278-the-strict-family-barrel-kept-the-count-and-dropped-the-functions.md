@@ -115,7 +115,7 @@ export named 'isStrictFamily'`.
 - [x] **A falsifying test, which this bug was first closed without.**
       `scripts/lib/tsconfig-surface.test.mjs`, run by `check:family`. Measured on
       the fixed tree: deleting the export AND its census row together, which is
-      plan 0088's exact shape, left the matrix at 48 of 48 with `check:family`
+      PR #88's exact shape (the kernel split), left the matrix at 48 of 48 with `check:family`
       and `check:surface` green beside it. The same sabotage now fails three
       cases, naming the symbols and saying a rule file will not load.
 - [x] **The fourth export instrumented too.** This record frames the bug as "the
@@ -124,7 +124,7 @@ export named 'isStrictFamily'`.
       has no runtime binding — an enforcement review measured that importing the
       package and reading its namespace, which is also how the published-surface
       census works, is blind to roughly fifty type-only names on this barrel. The
-      test now reads the barrel's own source with ts-morph (ADR-002). Measured:
+      test now reads the barrel's own source with ts-morph ([ADR-002](../../../adr/002-ts-morph-ast-engine.md)). Measured:
       deleting the `export type` line reds exactly that one case and no other,
       which is also the proof the three value checks could not see it.
 - [x] `docs/migrating-to-0.5.md` lists the removed names for both shrinking

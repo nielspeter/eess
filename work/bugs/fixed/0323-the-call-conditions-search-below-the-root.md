@@ -23,7 +23,7 @@ function tests a node's descendants and never the node itself
 (`packages/ts/src/helpers/body-traversal.ts:141`). An argument that is the match was never tested,
 and neither was a concise callback's body, which `getFunctionBody` returned as the expression
 itself (`packages/ts/src/helpers/body-traversal.ts:489` on `main` at d592d60; that reader was deleted in PR #147, which gave the
-conditions one callback definition — bug 0324).
+conditions one callback definition — [bug 0324](./0324-the-callback-conditions-read-a-direct-callback-only.md)).
 
 Measured on `e90c13b`, the same with either matcher, `call('legacy')` or `expression(/legacy\(1\)/)`:
 

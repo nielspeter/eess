@@ -202,7 +202,7 @@ things that are fixed above:
    edit worth reporting: the old brief's own wrong State-token line, dropped.
 4. **It flagged an unevidenced claim in its own brief** — "this repo has paid for
    the same finding being re-derived twice more than once" — which it could
-   evidence once and not twice. Replaced with the measured instance (bugs 0099
+   evidence once and not twice. Replaced with the measured instance ([bugs 0099](./0099-nul-bytes-make-md-gherkin-unsearchable.md)
    and 0144).
 
 A lens whose first act is to find the hole in its own mandate and an
@@ -230,7 +230,7 @@ Seven holes, each reproduced here before fixing, each closed:
 | frontmatter `name:` typo'd                           | red — the dispatcher binds `name:`, this gate bound the filename, and they were never compared. One character made a persona unreachable while everything read consistent                                          |
 | brief emptied to 0 bytes                             | red — a length floor                                                                                                                                                                                               |
 | brief replaced by a generic "review the code" prompt | red — each persona must still contain its own lens vocabulary. That is the drift this gate's header says it exists to prevent, and it was undetectable                                                             |
-| any of the four loop checks deleted                  | red — each tallies **inside its own loop**, so its number goes to zero, and a zero beside `OK` is itself a finding (ADR-010)                                                                                       |
+| any of the four loop checks deleted                  | red — each tallies **inside its own loop**, so its number goes to zero, and a zero beside `OK` is itself a finding ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md))                            |
 | either single-assertion check deleted                | red — they record that they ran                                                                                                                                                                                    |
 
 **The summary line was making the same over-claim the gate exists to catch.** It

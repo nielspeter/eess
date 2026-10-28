@@ -1,4 +1,4 @@
-# Bug 0238: the kernel's reason-free-waiver promotion is untested, and ADR-012 gates the clause on the dialect that forked it
+# Bug 0238: the kernel's reason-free-waiver promotion is untested, and [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) gates the clause on the dialect that forked it
 
 ## Status
 
@@ -10,7 +10,7 @@
   is wrong today: the promotion is present and correct. What is missing is
   anything that would notice if it stopped. Delete twenty lines from
   `packages/core/src/execute-rule.ts` and the kernel suite stays green while
-  four dialects silently apply reason-free waivers and exit 0. ADR-009 rule 1's
+  four dialects silently apply reason-free waivers and exit 0. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1's
   subject, reached through rule 5: the guard has no differently-derived
   disagreement.
 - **Origin:** self-found · architect review of the kernel-unification arc after
@@ -52,18 +52,18 @@ it says nothing about whether that warning ever becomes a finding.
 
 `packages/ts` forks `applyFilters`; `eess-md`, `eess-mermaid`, `eess-gherkin`
 and `eess-crossvalidate` do not — verified, they have no copy — so all four
-reach the kernel's. Those four are exactly the dialects ADR-012 exists to give
+reach the kernel's. Those four are exactly the dialects [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) exists to give
 this behaviour to. If the promotion regresses, a `// eess-exclude some/rule`
 with no reason silently suppresses a real finding in four of the five dialects,
 and every gate reports green.
 
-**And ADR-012's Enforcement table reads as coverage it does not have.** Its row
+**And [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s Enforcement table reads as coverage it does not have.** Its row
 for this clause (`adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md:139`) is
 `gated` on a test under `packages/ts/tests/`. That test exercises **eess-ts's
 fork**. So the clause is proven for the one dialect that does not depend on the
-kernel's copy, and unproven for the four that do. This is bug 0189's shape
+kernel's copy, and unproven for the four that do. This is [bug 0189](./0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)'s shape
 exactly — an ADR row green over a different path than the clause it states —
-and that record is already in `fixed/` for the same mistake in ADR-008.
+and that record is already in `fixed/` for the same mistake in [ADR-008](../../../adr/008-caller-owns-reporting.md).
 
 ## Reproduction
 
@@ -83,7 +83,7 @@ Consistent by inspection, and the reason the gap was invisible: two kernel tests
 call `applyFilters` (`execute-rule.test.ts`, `correspondence.test.ts`) and
 neither involves a reason-free directive, while
 `exclusion-reason-and-nesting.test.ts` — the file that looks like coverage, and
-the one ADR-012 cites — never called `applyFilters` at all.
+the one [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) cites — never called `applyFilters` at all.
 
 **A correction, because the first draft of this record blamed the wrong cause.**
 It said a worktree sabotage was attempted and that "vitest would not boot there".
@@ -124,7 +124,7 @@ line above a test that does not assert it.
    mistake is the same one the record's own Symptom describes — reasoning about
    a shared clause without asking which engine actually runs it.
 
-3. Correct ADR-012's row at `:139`: cite the kernel test as the mechanism for
+3. Correct [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s row at `:139`: cite the kernel test as the mechanism for
    the kernel's four dialects, and keep the `eess-ts` citation for the fork, or
    say plainly that the fork is covered separately. One clause, two engines,
    needs two citations or an honest note.
@@ -142,7 +142,7 @@ line above a test that does not assert it.
 - [x] A reason-free waiver in an `eess-md` rule produces the unsuppressable
       finding — asserted end to end by the fixture, not assumed from the kernel
       test.
-- [x] ADR-012's row names a mechanism per engine, and carries a dated correction
+- [x] [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s row names a mechanism per engine, and carries a dated correction
       saying what it claimed before.
 - [x] `npm run validate` green from a run that reached the last step. Re-run at
       close on `main` + this branch, and the two sabotages above re-measured on
@@ -172,7 +172,7 @@ detectable state** while a verification box legitimately remains open, and the
 discipline has to hold it.
 
 **The board said `Draft` too**, and nothing binds that either — filed while
-closing bug 0242 as
+closing [bug 0242](./0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md) as
 [0244](../0244-the-board-status-cell-is-bound-to-nothing.md). This record was one
 of the rows that made 0244's case.
 
@@ -187,7 +187,7 @@ claim about a merged tree is exactly the kind that goes stale:
   harness requires 1. On clean source it exits 1, which is the harness's
   "the gate fired" contract. The rebuild is the step: `dist/` is what the fixture
   reads.
-- ADR-012's clause row names three mechanisms, one per engine, and carries its
+- [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s clause row names three mechanisms, one per engine, and carries its
   dated correction.
 
 ## Related
@@ -195,7 +195,7 @@ claim about a merged tree is exactly the kind that goes stale:
 - [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) — the
   decision whose compensating half this record protects.
 - [0189](./0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
-  — the same shape in ADR-008: a row `gated` over an engine other than the one
+  — the same shape in [ADR-008](../../../adr/008-caller-owns-reporting.md): a row `gated` over an engine other than the one
   its clause governs, green for a full release cycle while the clause was
   violated.
 - [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md) — owns the

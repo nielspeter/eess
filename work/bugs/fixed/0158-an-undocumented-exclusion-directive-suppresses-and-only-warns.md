@@ -8,9 +8,9 @@
   `// eess-exclude <rule-id>` is a working kill switch for any rule, on any
   line, and the only feedback is a stderr line that does not fail the build.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0039), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (ts-archunit bug 0039), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** published `@nielspeter/eess` `0.2.2` / `eess-ts` `0.2.1` —
-  the defect predates plan 0088's fold.
+  the defect predates [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold.
 - **Reported:** 2026-08-19
 
 ## Symptom
@@ -99,7 +99,7 @@ Built and measured alongside [bug 0154](./0154-a-directive-inside-a-string-liter
    a caller can turn the inert-waiver case into a finding without also
    promoting file-shape complaints. Making it an _unsuppressable finding_
    rather than a warning is left to the caller and is **not** done here — that
-   is ADR-009 rule 1 territory and belongs with bug 0155's warning-vs-finding
+   is [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1 territory and belongs with [bug 0155](./0155-a-rule-with-no-condition-passes-in-total-silence.md)'s warning-vs-finding
    decision, which is still open.
 2. **Block frames form a stack**; one `-end` closes one `-start`. Nesting is now
    legal and emits no warning.
@@ -121,7 +121,7 @@ Landing (1) will surface violations in any corpus that currently relies on a
 reason-free directive — that is the fix working. This repo's own directives
 should be audited for reason-free instances before it lands.
 
-Coordinate with bug 0154: both fixes touch the same parser, and 0154's own
+Coordinate with [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md): both fixes touch the same parser, and 0154's own
 design question (how to blank literals in a kernel that cannot import
 ts-morph) may change this file's shape. Sequencing them together is likely
 cheaper than separately.

@@ -8,7 +8,7 @@
   and misspells the key gets the unescalated default, a stderr line, and a
   passing build.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0038), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (ts-archunit bug 0038), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). `validateOverrides(…): void` is unchanged in `810808b` (the
   `v0.2.3` release commit), so this is live for adopters today.
@@ -82,7 +82,7 @@ export function validateOverrides(
 ): void {
 ```
 
-**This predates plan 0088's fold** — the pre-fold tree carries the identical
+**This predates [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold** — the pre-fold tree carries the identical
 void-returning function. eess forked at ~0.17 and froze; upstream fixed this
 afterward and the fix was not carried across.
 

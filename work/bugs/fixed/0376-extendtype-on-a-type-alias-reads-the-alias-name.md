@@ -33,15 +33,15 @@ Not decided. Read the alias's type node rather than its printed type, and decide
 shapes count as "extends": an intersection member, yes; a wrapping object, no (the current
 comment says so); a generic wrapper such as `Partial<…>`, to be decided.
 
-ADR-017 rule 3 says the alias reading is "unchanged" by 0295. That is true, and this record
+[ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) rule 3 says the alias reading is "unchanged" by 0295. That is true, and this record
 is why "unchanged" is not the same as "works".
 
 ## Decision
 
-The record's three shapes, decided under ADR-017's rule that a heritage walk only adds:
+The record's three shapes, decided under [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)'s rule that a heritage walk only adds:
 
 - **an intersection member — yes**, read from the alias's type node, as written, as resolved
-  (an aliased import), or through the member interface's own `extends` chain (ADR-017 rule
+  (an aliased import), or through the member interface's own `extends` chain ([ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) rule
   1's relation). Parentheses and nested intersections are looked through.
 - **a wrapping object (`{ inner: BaseConfig }`) — no**, as the code's comment always said.
 - **a generic wrapper (`Partial<BaseConfig>`) — kept**, because the printed-type test already
@@ -59,7 +59,7 @@ test stays beside it, so the predicate only gains matches. A union member does n
       and `it('selects an intersection member written through an aliased import or reaching the type by its chain')`,
       both red before the fix; `it('keeps what matched before, and does not select a type that only holds the named one')`
       pins the other direction and passes on both.
-- [x] the fix — `intersectionNames`, beside the printed-type test; ADR-017 rule 3 and its C3
+- [x] the fix — `intersectionNames`, beside the printed-type test; [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) rule 3 and its C3
       row amended, and the 0.12 migration page moves this from "does not fix" to fixed.
 - [x] `npm run validate` green on `afa63c3` (exit 0, 530 s). The review commit after it adds
       tests and changes records and docs; the eess-ts suite and fast gates pass on it.

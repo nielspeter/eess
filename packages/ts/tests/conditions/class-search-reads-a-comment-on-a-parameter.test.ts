@@ -120,7 +120,9 @@ describe('bug 0325: the class search reads a comment on a parameter', () => {
     expect(functionFindings('  m(): /* TODO */ number { return 1 }')).toBe(1)
   })
 
-  it('still reads no docstring on the member itself (bug 0307)', () => {
+  // Bug 0307. The title carries no record number, so the bug record that quotes it is not a plain
+  // mention (plan 0542).
+  it('still reads no docstring on the member itself', () => {
     expect(classFindings('  /** TODO */\n  m() { return 1 }')).toBe(0)
     expect(classFindings('  // TODO\n  m() { return 1 }')).toBe(0)
     // The function rules read both, and the disagreement above the member is bug 0307's ruling,

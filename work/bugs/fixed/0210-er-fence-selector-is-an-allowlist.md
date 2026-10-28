@@ -34,9 +34,9 @@ USER { uuid id PK }
 
 ## Root cause
 
-An allowlist selector is fail-open: it drops whatever it fails to recognise. _(Narrowed by plan 0214,
+An allowlist selector is fail-open: it drops whatever it fails to recognise. _(Narrowed by [plan 0214](../../plans/completed/0214-extract-the-diagram-kind-predicate.md),
 which fixed this: the defect was that the allowlist was anchored to the raw fence body, not to the
-declared kind. The allowlist itself stays; plan 0214 explains why a denylist would be unsound
+declared kind. The allowlist itself stays; [plan 0214](../../plans/completed/0214-extract-the-diagram-kind-predicate.md) explains why a denylist would be unsound
 here.)_
 This is the identical defect [bug 0209](./0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)
 found and fixed in the sibling binding, which now selects by **excluding** the
@@ -69,7 +69,7 @@ carries the verification boxes below; this record closes `done-otherwise → 021
 ## Verification
 
 - [x] Red first: a themed `erDiagram` fixture was not selected
-      (`packages/crossvalidate/tests/md-mermaid-er.test.ts`, red before plan 0214's change).
+      (`packages/crossvalidate/tests/md-mermaid-er.test.ts`, red before [plan 0214](../../plans/completed/0214-extract-the-diagram-kind-predicate.md)'s change).
 - [x] After the fix it is selected and compared, and `tableErStats` counts it.
 - [x] A `---` frontmatter'd ER diagram likewise. done-otherwise: it is now selected, so it is no
       longer skipped in silence, but eess-mermaid's ER parser rejects the frontmatter, so it is
@@ -84,7 +84,7 @@ Deferred: none
 
 ## Out of scope
 
-- **Any kind registry or lockstep gate.** Proposal 006's open question 4 owns that, and
+- **Any kind registry or lockstep gate.** [Proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s open question 4 owns that, and
   [plan 0214](../../plans/completed/0214-extract-the-diagram-kind-predicate.md) records four falsified
   attempts as the floor for a fifth. Moving `declaredKind()` into `eess-mermaid` — which
   0214 does — is placement, not a registry.

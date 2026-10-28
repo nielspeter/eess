@@ -13,11 +13,11 @@
 **A root that is legitimately empty for now** has no way to say so. Example: `work/bugs/**` in a
 repository that has filed no bug yet.
 
-- Bug 0465 made `corpus()` refuse it beside live roots, and its only remedies are to correct the glob
+- [Bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) made `corpus()` refuse it beside live roots, and its only remedies are to correct the glob
   or remove the root.
-- Removing the root makes the folder silently unexamined once it appears, which is the class bug 0465
+- Removing the root makes the folder silently unexamined once it appears, which is the class [bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md)
   exists to stop.
-- ADR-018: resolving to nothing is a finding "unless matching nothing is the purpose", and ADR-010 §3
+- [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md): resolving to nothing is a finding "unless matching nothing is the purpose", and [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3
   requires a declaration path.
 
 **A root that matches files but no Markdown**, beside a live one, contributes nothing and is not
@@ -34,13 +34,13 @@ told apart from a mistyped Markdown root. Start with a spike over the three adop
 
 **The spike.** Each of the three adopters measured its `corpus()` calls read-only on 2026-10-18.
 
-- **Live trees:** every root of every call matches files. The refusal from bug 0465 breaks no live
+- **Live trees:** every root of every call matches files. The refusal from [bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) breaks no live
   corpus, and all three want it there.
 - **Fixtures:** one adopter's two test suites build its shared nine-root corpus in fixtures that hold
   only the one root each rule reads, so eight roots are empty on purpose. Those suites would throw.
 
 **The fix.** `corpus()` takes `expectEmptyRoots`, naming roots that are empty on purpose. It is a
-declaration, so it expires (ADR-010 §3):
+declaration, so it expires ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3):
 
 - a named root that loads no Markdown document is allowed beside other roots. A lane holding only a
   `.gitkeep`, or code, counts as empty;
@@ -61,6 +61,6 @@ broke existing callers, which list code globs as roots. Recorded as
 
 - [x] A design decided and recorded (Resolution).
 - [x] Red first, then green: `packages/md/tests/corpus-dead-root.test.ts`. The rows that pass `expectEmptyRoots` were red before the option existed. The typo-beside-a-live-root row passes on main as well, and is a regression guard. Sabotage of the expiry check, and of the stale check, each turned one row red (measured by hand, 2026-10-18).
-- [ ] deferred→bug 0478 — an undeclared root with files but no Markdown is still silent
+- [ ] deferred→[bug 0478](../0478-a-root-with-files-but-no-markdown-contributes-nothing-silently.md) — an undeclared root with files but no Markdown is still silent
 
-Deferred: bug 0478
+Deferred: [bug 0478](../0478-a-root-with-files-but-no-markdown-contributes-nothing-silently.md)

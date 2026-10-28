@@ -47,12 +47,21 @@ repo had already measured and written down twice.
 > when a file's text changes, so a stale array cannot be reached through a live
 > SourceFile.
 
-`packages/ts/src/core/module-edges.ts` says, marked **measured**: "A
-`SourceFile`'s identity SURVIVES an edit … A `SourceFile`-keyed cache without
+`packages/ts/src/core/module-edges.ts` says, marked **measured**:
+
+```
+A `SourceFile`'s identity SURVIVES an edit … A `SourceFile`-keyed cache without
 invalidation serves pre-edit edges after an edit: ADR-008's false green,
-manufactured by a cache." `descendant-cache.ts` calls it "the same trap plan
-0076 found one level up with `SourceFile`". Two prior findings, both recorded;
-the third instance was written as if reasoning.
+manufactured by a cache.
+```
+
+`descendant-cache.ts` calls it:
+
+```
+the same trap plan 0076 found one level up with `SourceFile`
+```
+
+Two prior findings, both recorded; the third instance was written as if reasoning.
 
 ## Fix
 

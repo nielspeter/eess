@@ -52,7 +52,7 @@
 - **Severity:** Medium — nothing was wrong in its output before this fix;
   `check:ledger` found real violations and had caught them
   ([0118](./0118-ledger-gate-skips-the-bug-lane.md),
-  [0119](./0119-placement-check-never-ran.md)). It was an ADR-003 divergence in
+  [0119](./0119-placement-check-never-ran.md)). It was an [ADR-003](../../../adr/003-fluent-builder-dsl.md) divergence in
   a **published** preset, and its cost was that every kernel-level guarantee —
   present and future — routed around it silently.
 - **Origin:** self-found · architect persona, six-persona review of
@@ -90,7 +90,7 @@ The honesty-at-close analysis is stateful across a document (find the `State:`
 token, then the region, then the boxes within it) — a real constraint, but not
 one that required raw iteration. The decision to hand-roll it instead of
 building on `docs()`/`taskItems()` was never recorded, and nothing in the file
-said why — an unrecorded ADR-003 departure in a shipped preset.
+said why — an unrecorded [ADR-003](../../../adr/003-fluent-builder-dsl.md) departure in a shipped preset.
 
 ## Fix
 
@@ -111,7 +111,7 @@ finding classes through `docs(corpus)` and `taskItems(corpus)` — both already
   No computed `.expectEmpty()`: nothing in the corpus can tell "no non-board
   documents authored yet" apart from "the selector broke." A caller who knows
   the former is legitimate (a freshly-bootstrapped lane) opts in via the new
-  `HonestyAtCloseOptions.expectEmptyHeaders`, which — per ADR-010 — **expires**:
+  `HonestyAtCloseOptions.expectEmptyHeaders`, which — per [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) — **expires**:
   the day a real document appears, the declaration itself becomes the finding.
 - `silentOpenBoxViolations` / `deferredLieViolations` — built the same way over
   `taskItems()`/`docs()`, each gated by an **independently-computed** peek, not
@@ -127,7 +127,7 @@ finding classes through `docs(corpus)` and `taskItems(corpus)` — both already
      six-persona `/review`: the peek and the real run filter the identical
      elements through the identical predicates with nothing in between, so
      the declaration is always self-consistent and can never expire — zero
-     protection against exactly the corruption class ADR-010 exists to
+     protection against exactly the corruption class [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) exists to
      catch, verified by re-deriving it from `RuleBuilder.select()`'s own
      source, not just asserted.
   4. **Shipped:** peek `openTaskItems` once

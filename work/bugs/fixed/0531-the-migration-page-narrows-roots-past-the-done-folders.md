@@ -61,6 +61,6 @@ Docs only, in `docs/migrating-to-0.15.md`:
 
 Residual, not deferred work: the check is one an adopter must remember to run. Nothing in
 `honestyAtClose` reports a done folder left outside its roots; that mechanism is adopter 1's request,
-recorded as input in proposal 017's "Consumer follow-up — 2026-10-20", item (a), and not planned.
+recorded as input in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s "Consumer follow-up — 2026-10-20", item (a), and not planned.
 
 Deferred: none

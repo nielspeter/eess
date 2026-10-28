@@ -1,9 +1,9 @@
-# Bug 0189: ADR-008's preset-default row is `gated` over an engine that changed
+# Bug 0189: [ADR-008](../../../adr/008-caller-owns-reporting.md)'s preset-default row is `gated` over an engine that changed
 
 ## Status
 
 - **State:** Fixed — 2026-08-21, in the PR that filed it. Both halves closed: the
-  engine enforces again, and ADR-008's row cites a mechanism that fails.
+  engine enforces again, and [ADR-008](../../../adr/008-caller-owns-reporting.md)'s row cites a mechanism that fails.
 - **Severity:** Medium — an ADR faithfulness failure, not a false green in a
   build. The same class as
   [bug 0163](../0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md),
@@ -61,9 +61,9 @@ exists to prevent.
 
 ## Root cause
 
-Plan 0165 Phase 3 restored `report` on all five presets **additively, by
+[Plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) Phase 3 restored `report` on all five presets **additively, by
 overload**, which was the right call: restoring the option must not silently
-change a documented default. But that leaves ADR-008 describing a default the
+change a documented default. But that leaves [ADR-008](../../../adr/008-caller-owns-reporting.md) describing a default the
 engine no longer has, and 0165 recorded it as `deferred→ADR` — to an ADR that was
 never written. This record is that home.
 
@@ -86,7 +86,7 @@ agent-first repo, not bookkeeping. Two reviewers of PR #72 flagged exactly that.
 
 What the record missed when it argued for (1):
 
-- **The builder default was never a decision.** Plan 0165 Phase 3 restored
+- **The builder default was never a decision.** [Plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) Phase 3 restored
   `report` "additive, by overload"; _additive_ means the default was meant to
   survive. The tell is that `'throw'`, `'return'` and `'warn'` all had names and
   the builder form had none — it was reachable only by saying nothing. Amending
@@ -115,7 +115,7 @@ clause is violated**, and it now does.
       shape that regressed — a bare call whose result is discarded. Re-introducing
       the old `deliver()` behaviour fails **112** tests; before this file existed
       it failed none of 3528.
-- [x] ADR-008's row now cites that test rather than
+- [x] [ADR-008](../../../adr/008-caller-owns-reporting.md)'s row now cites that test rather than
       `packages/core/tests/report.test.ts`, which covers the KERNEL's
       `finishPreset` default — a different path, and why the row was green over a
       clause it could not see.

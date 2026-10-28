@@ -15,7 +15,7 @@
   `review-proposal` skill's own Step 2 guard), and one real source file was
   silently invisible to that discipline. It produced a live false negative in
   a real review this same session — see Reproduction.
-- **Origin:** self-found · architect reviewer of proposal 005's third review
+- **Origin:** self-found · architect reviewer of [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)'s third review
   round caught it while independently verifying a citation the coordinator's
   own grep-based survey had gotten wrong
 - **Reported:** 2026-08-14
@@ -38,8 +38,8 @@ excludes it from a search entirely, no warning, no error.
 
 ## Reproduction
 
-While surveying `packages/crossvalidate/src/*.ts` for a review of proposal
-005's Rewrite v2 (the coordinator's own Step 2 existing-code survey, per the
+While surveying `packages/crossvalidate/src/*.ts` for a review of
+[proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)'s Rewrite v2 (the coordinator's own Step 2 existing-code survey, per the
 `review-proposal` skill), `grep -n "ExtractedCitation" packages/crossvalidate/src/md-gherkin.ts`
 returned zero hits. `ExtractedCitation` is in fact exported from that exact
 file, at (pre-fix) line 18. The false negative was used as evidence in a
@@ -55,7 +55,7 @@ packages/crossvalidate/src/md-gherkin.ts: data   # before the fix
 
 ## Root cause
 
-Some prior edit to this file (git blame: plan 0069 Phase 2, `fbd4d4b`) wrote
+Some prior edit to this file (git blame: [plan 0069](../../plans/completed/0069-spec-corpus-reach.md) Phase 2, `fbd4d4b`) wrote
 a literal NUL character into the source text instead of the two-character
 escape sequence `\0` inside a template literal. TypeScript/JS handle a raw
 NUL character in a string identically to the escape sequence at compile and

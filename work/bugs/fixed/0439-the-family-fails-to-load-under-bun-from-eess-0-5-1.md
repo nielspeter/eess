@@ -7,7 +7,7 @@
   from [spike 0438](../../spikes/0438-what-the-family-does-under-bun.md).
 - **Severity:** Medium — no false green: an import that fails is loud. But it is a shipped defect
   for every adopter on Bun, and eess-md, which has nothing to do with the CLI, is among them.
-- **Origin:** reported · an adopter monorepo on Bun 1.4.3, 2026-10-16; reproduced in spike 0438.
+- **Origin:** reported · an adopter monorepo on Bun 1.4.3, 2026-10-16; reproduced in [spike 0438](../../spikes/0438-what-the-family-does-under-bun.md).
 - **Reported:** 2026-10-16
 
 ## Symptom
@@ -23,7 +23,7 @@ every published eess from 0.5.1 on carries the import.
 ## Root cause
 
 `packages/core/src/cli-config.ts:3` imports `registerHooks` by name from `node:module`, for the
-CLI's `.js` → `.ts` resolve hook (bug 0223). `@nielspeter/eess/internal` re-exports
+CLI's `.js` → `.ts` resolve hook ([bug 0223](./0223-type-module-rule-files-cannot-import-a-sibling.md)). `@nielspeter/eess/internal` re-exports
 `cli-config.js`, and the dialects reach the kernel's internals through it, so the CLI's hook is on
 the load path of library entries such as `corpus()`. Bun's `node:module` has no `registerHooks`, and
 in a `.js` ES module a missing named import fails the whole graph at link time even if the function
@@ -31,7 +31,7 @@ is never called.
 
 **Why no test saw it:** no test imports a published entry under plain `bun`, and a green suite on
 Bun does not prove the package loads there. eess-md's suite takes the kernel from the built
-`dist/internal.js`, the failing build, and still passed: spike 0438 measured eess-md's suite at 300 of 300 under `bun --bun vitest` on
+`dist/internal.js`, the failing build, and still passed: [spike 0438](../../spikes/0438-what-the-family-does-under-bun.md) measured eess-md's suite at 300 of 300 under `bun --bun vitest` on
 the same build whose entry fails to import under plain `bun`: vitest's module runner links what Bun
 itself refuses.
 
@@ -42,7 +42,7 @@ The spike measured one fix: a namespace import (`import * as nodeModule from 'no
 `@nielspeter/eess-ts/cli` as loaded: it runs the CLI when imported and exits non-zero with "No
 command specified", the same under Node. It also recommends taking
 the CLI's loader exports off `@nielspeter/eess/internal`, so a library entry never links CLI code;
-that was not built. The plan decides which, and its red test must import each published entry under plain `bun`, not run a suite. _Decided 2026-10-17 by plan 0448: the namespace import alone, a patch; the move off `/internal` is plan 0449._
+that was not built. The plan decides which, and its red test must import each published entry under plain `bun`, not run a suite. _Decided 2026-10-17 by [plan 0448](../../plans/completed/0448-a-bun-load-guard-and-bug-0439s-fix.md): the namespace import alone, a patch; the move off `/internal` is [plan 0449](../../plans/0449-the-clis-loader-leaves-the-kernels-internal-entry.md)._
 
 ## Verification
 
@@ -52,7 +52,7 @@ that was not built. The plan decides which, and its red test must import each pu
 - [x] Green: every published entry loads under plain `bun`, the list derived from each package's
       `exports`; an entry that runs a command when imported (`eess-ts/cli`) counts as loaded when
       its error is the command's own, not a link error — 28 entries and 2 bins, locally and in CI on
-      Linux (plan 0448)
+      Linux ([plan 0448](../../plans/completed/0448-a-bun-load-guard-and-bug-0439s-fix.md))
 - [x] Published, and the adopter told the version numbers: tag `v0.14.0` (PR #233) at 880483c1,
       whose CI, `bun-load` included, was green before the tag push; eess 0.7.1 published with
       provenance 2026-10-17. Installed from npm into a scratch folder by this release's
@@ -60,6 +60,6 @@ that was not built. The plan decides which, and its red test must import each pu
       resolving `@nielspeter/eess` to that folder's kernel 0.7.1. The adopter was told the versions and reported eess 0.7.1 with
       eess-md 0.11.0 loads under Bun 1.4.3. The adopter also reported it loads under Bun
       1.3.12, the version their CI runs, on macOS only (not their CI's Linux). eess itself checks
-      only the version in `.bun-version`, and ADR-020 makes no claim for any Bun
+      only the version in `.bun-version`, and [ADR-020](../../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) makes no claim for any Bun
 
 Deferred: none

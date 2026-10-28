@@ -7,9 +7,9 @@
 - **Severity:** High — false green. Two byte-identical functions are reported
   as no duplication at all, with no finding of any kind, in the realistic case.
 - **Origin:** self-found · [fold audit](../../fold-audit-2026-08-19.md)
-  (upstream bug 0013)
+  (ts-archunit bug 0013)
 - **Shipped in:** the published `@nielspeter/eess-ts` (`0.2.1`) — the bare
-  `collectFunctions(sf)` calls predate plan 0088's fold.
+  `collectFunctions(sf)` calls predate [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold.
 - **Reported:** 2026-08-19
 
 ## Closed 2026-08-23 — already fixed, record left open
@@ -46,10 +46,10 @@ passes `{ includeObjectLiteralFunctions: true }`); these two were not.
 
 Against `packages/ts/dist`, two byte-identical object-literal arrows:
 
-| corpus                                   | examined | findings                                   |
-| ---------------------------------------- | -------- | ------------------------------------------ |
-| object-literal functions **only**        | 0        | 1 — ADR-010's zero-examined config finding |
-| the same, **plus one ordinary function** | 2        | 0 — **silent**                             |
+| corpus                                   | examined | findings                                                                                              |
+| ---------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| object-literal functions **only**        | 0        | 1 — [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s zero-examined config finding |
+| the same, **plus one ordinary function** | 2        | 0 — **silent**                                                                                        |
 
 The second row is the dangerous one and the realistic one. Any non-object-
 literal function in scope makes `examined` non-zero, so the fail-closed floor
@@ -62,12 +62,12 @@ is satisfied and the missed duplicates are reported as nothing at all.
 without the `{ includeObjectLiteralFunctions: true }` option the collector
 supports.
 
-Predates plan 0088's fold; upstream fixed all three call sites, eess carried
+Predates [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold; upstream fixed all three call sites, eess carried
 only the `resolvers()` one. See the [fold audit](../../fold-audit-2026-08-19.md).
 
 ## Why it matters
 
-The zero-examined guard (ADR-010) is what normally converts "this rule saw
+The zero-examined guard ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)) is what normally converts "this rule saw
 nothing" into a loud config finding. Here it is **defeated by adjacency**: the
 population is non-empty for the wrong reason, so the floor reports nothing
 while the subjects the rule exists to compare are absent from it.

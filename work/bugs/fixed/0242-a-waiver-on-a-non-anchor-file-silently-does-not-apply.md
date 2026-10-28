@@ -56,7 +56,7 @@ investigated and neither is the cheap correct first move:
   [0239](./0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)
   and now in the JSON contract. So widening either drops the line check for
   related files, coarsening a line-scoped waiver into a file-scoped one — which
-  is ADR-009 rule 3's corollary about a marker that goes green from more places
+  is [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 3's corollary about a marker that goes green from more places
   — or needs a second positioned field days after the last one, for a Low bug.
 - **Reporting the near-miss has no data where it would live.** `orphanExclusions`
   is only invoked by `doctor` (`packages/ts/src/cli/commands/doctor.ts:110`),
@@ -88,7 +88,7 @@ the very bug it was written for.
 test that _deliberately reverses the walk_ can tell, because it stops relying on
 the filesystem to disagree with itself. `baseline-portability.test.ts` already
 builds exactly that — a second fixture whose source enumeration is reversed — so
-it is a differently-derived guard on this fix (ADR-009 rule 5) rather than a
+it is a differently-derived guard on this fix ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5) rather than a
 duplicate of the unit test: one asserts the choice as pure data, the other drives
 it through a real ts-morph project and reads the reported subject back out.
 

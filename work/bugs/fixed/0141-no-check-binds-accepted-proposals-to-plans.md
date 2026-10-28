@@ -14,7 +14,7 @@
   accepted in this repo, so nothing is passing over drift that is present
   today — the gap is unexercised, not currently lying.
 - **Origin:** self-found · asked directly whether proposal→plan linkage is
-  dogfooded, while closing out proposal 005's own two-round review
+  dogfooded, while closing out [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)'s own two-round review
 - **Reported:** 2026-08-14
 
 ## Symptom
@@ -36,9 +36,9 @@ grep -rli "proposal" work/plans/*.md work/plans/completed/*.md
 # work/plans/ROADMAP.md
 ```
 
-Read each: 0089/0101 both _exclude_ proposal 001's concept from their own
+Read each: 0089/0101 both _exclude_ [proposal 001](../../proposals/001-md-corpus-rule-coverage.md)'s concept from their own
 scope ("out of scope for this plan"); 0090 describes ts-archunit's own
-historical proposals as heritage being folded in, and cites proposal 002 only
+historical proposals as heritage being folded in, and cites [proposal 002](../../proposals/002-comment-embedded-links.md) only
 as a dependency to re-check at close. **None of the four is a plan that
 implements a proposal.** No proposal file anywhere contains a "→ plan NNNN"
 back-reference either. The link this repo's own documentation describes has
@@ -75,11 +75,11 @@ Results, measured:
 
 | fixture | Ruling     | plan cites it back | check result                             |
 | ------- | ---------- | ------------------ | ---------------------------------------- |
-| 0900    | Ship as-is | yes (plan 0950)    | 0 violations — silent                    |
+| 0900    | Ship as-is | yes (fixture 0950) | 0 violations — silent                    |
 | 0901    | Ship as-is | no                 | **flagged**, named, with a suggested fix |
 | 0902    | Reject     | no (correctly)     | not evaluated — excluded, not accepted   |
 
-Negative control: removing plan 0950's citation of 0900 immediately flagged
+Negative control: removing fixture 0950's citation of 0900 immediately flagged
 **both** 0900 and 0901 — confirmed the mechanism discriminates, not a fluke of
 which fixture happened to be checked. Reverted after measuring; nothing in
 the real corpus was touched.
@@ -191,7 +191,7 @@ critical findings below.
    plan→proposal citations in this repo today
    (`work/plans/0089-family-standalone-sufficiency.md:176`,
    `work/plans/0101-sibling-gates-go-fail-closed.md:117` — both citing
-   proposal 001 to exclude it; `work/plans/0090-adopt-ts-archunit-work-corpus.md:237`
+   [proposal 001](../../proposals/001-md-corpus-rule-coverage.md) to exclude it; `work/plans/0090-adopt-ts-archunit-work-corpus.md:237`
    — citing 002 only as a re-check dependency) would all satisfy
    `plan.text.includes(...)`. This record's own Symptom section (lines
    36-39) reads those three as non-implementations; its own Fix would score
@@ -236,7 +236,7 @@ critical findings below.
   this check is repo-local, not silently omit the question.
 - `correspondence()`/`beComplete()` are kernel exports (`@nielspeter/eess`),
   not `@nielspeter/eess-md`'s — "built entirely from public APIs... no
-  kernel changes" understates real kernel coupling, relevant to plan 0089's
+  kernel changes" understates real kernel coupling, relevant to [plan 0089](../../plans/completed/0089-family-standalone-sufficiency.md)'s
   open concern about md-only consumers being unaware they depend on the
   kernel.
 - `beComplete({direction: 'left-to-right'})` reports `leftAmbiguous` for a

@@ -4,7 +4,7 @@
 
 - **State:** Fixed — all three methods split; `npm run check:arch` green, and no
   new exclusion was added to get there.
-- **Found:** 2026-08-19, finishing plan 0165's arch-violation sweep (202 → 4).
+- **Found:** 2026-08-19, finishing [plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md)'s arch-violation sweep (202 → 4).
 
 ## Symptom
 
@@ -31,7 +31,7 @@ ladder.
 **Length is half genuine.** `maxMethodLines` uses `linesOfCode()`, which is
 `end - start + 1` — the SPAN, comments included (`tests/helpers/complexity.test.ts`
 pins that deliberately: _"counts span lines"_). Of the seven methods the rule
-flagged during plan 0165, five were under 50 lines of actual code and over only
+flagged during [plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md), five were under 50 lines of actual code and over only
 because this codebase comments densely on purpose; those five are excluded in
 `arch.internal.rules.ts` with the measurements recorded. These two are not —
 88 and 72 code lines are over the bar on their own.
@@ -44,7 +44,7 @@ walk). `emptyDiscoveryMessage` splits cleanly by discovery mode — `matching` v
 `assignedFrom` — which are two independent fault ladders sharing only a tail
 string.
 
-**Not attempted in plan 0165 deliberately** — a mechanical split was tried there
+**Not attempted in [plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) deliberately** — a mechanical split was tried there
 and reverted, because brace-counting cannot see into the template literals these
 methods are mostly made of. Done here by hand instead, one method at a time, with
 the suite run after each.

@@ -11,7 +11,7 @@
   points at a line that may not exist in the named file, and an agent sent to
   line 5 of `index.ts` finds nothing there. Nothing is hidden; time is wasted. Same
   class as [0242](./0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md).
-- **Origin:** self-found · architect review of proposal 010, verified by execution
+- **Origin:** self-found · architect review of [proposal 010](../../proposals/010-ts-performance-at-scale.md), verified by execution
 - **Reported:** 2026-09-06
 
 ## Symptom
@@ -72,14 +72,14 @@ A finding must report its own line. Inline exclusion comments anchor on
 `violation.line` (`packages/core/src/exclusion-comments.ts:475`), so an
 `// eess-exclude` on the barrel's actual `export` line does not apply — the
 0242 shape, fail-closed. The code frame and the GitHub annotation are rendered
-from the same pair and point at nothing. Under ADR-009 a violation must be
+from the same pair and point at nothing. Under [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) a violation must be
 actionable; this one names the right symbol at the wrong place.
 
 **Not the same defect as [0243](../0243-a-barrel-re-export-counts-as-a-use.md)**,
 which lives in the same function and is about the _verdict_ — a re-export
 counted as a use of the declaring module's symbol. This record is about the
 _location_ when the subject is itself the barrel. The two must not be folded:
-a fix for one changes nothing about the other, and proposal 010's Ask C (an
+a fix for one changes nothing about the other, and [proposal 010](../../proposals/010-ts-performance-at-scale.md)'s Ask C (an
 index in place of the LanguageService) must inherit neither.
 
 ## Fix

@@ -10,7 +10,7 @@ fixture → 0254`.
   reads.** Nothing is broken today. What is missing is anything that would notice
   when it breaks — and one of the seven documents already makes a false claim
   about the corpus's own shape.
-- **Origin:** self-found · landing spike 0001's conclusion, where an edit was made
+- **Origin:** self-found · landing [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s conclusion, where an edit was made
   expecting `check:corpus` to reject something and the gate turned out not to look.
 - **Reported:** 2026-09-04
 
@@ -25,15 +25,15 @@ const ROOTS = ['work/plans/**', 'work/proposals/**', 'work/bugs/**', 'adr/**', '
 Three lanes under `work/`, and nothing else. Measured 2026-09-04, **seven**
 markdown documents under `work/` fall outside every root:
 
-| document                                               | what it is                          |
-| ------------------------------------------------------ | ----------------------------------- |
-| `work/README.md`                                       | **the corpus's own one-screen map** |
-| `work/dogfood-coverage.md`                             | a coverage record                   |
-| `work/fold-audit-2026-08-19.md`                        | an audit                            |
-| `work/research-external-signals-2026-07.md`            | a research note                     |
-| `work/spikes/0001-eess-over-ts-archunit/CONCLUSION.md` | a spike's terminal record           |
-| `work/spikes/0001-eess-over-ts-archunit/README.md`     | its companion                       |
-| `work/spikes/0002-fold-delta.md`                       | a measurement appendix to plan 0088 |
+| document                                               | what it is                                                                                      |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `work/README.md`                                       | **the corpus's own one-screen map**                                                             |
+| `work/dogfood-coverage.md`                             | a coverage record                                                                               |
+| `work/fold-audit-2026-08-19.md`                        | an audit                                                                                        |
+| `work/research-external-signals-2026-07.md`            | a research note                                                                                 |
+| `work/spikes/0001-eess-over-ts-archunit/CONCLUSION.md` | a spike's terminal record                                                                       |
+| `work/spikes/0001-eess-over-ts-archunit/README.md`     | its companion                                                                                   |
+| `work/spikes/0002-fold-delta.md`                       | a measurement appendix to [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md) |
 
 Their links and `path:line` pointers are unchecked. Verified by the gate's own
 summary being **byte-identical** with and without the two spike documents — same
@@ -183,7 +183,7 @@ honest box disposition at close, not document lifecycles.
 
   `dropped-on-purpose` requires the case not to exist. It exists sixteen times,
   six of them created by this commit, and it is a pass constructed from no
-  evidence — ADR-010's own subject. That is 0254's, not this record's, but the
+  evidence — [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s own subject. That is 0254's, not this record's, but the
   disposition had to stop claiming the population was gone.
 
 - [x] **The document count moves, and the gate prints it on every run.** Stated
@@ -221,7 +221,7 @@ Two smaller exceptions inside `work/` itself, both measured: picomatch's default
 `dot: false` means a `work/.hidden/` directory does not match `work/**`, and the
 kernel's built-in ignore set skips any `dist`/`coverage`/`node_modules`
 directory under it — which is what keeps the vendored `node_modules` inside
-spike 0001 out of the corpus, so it is wanted here rather than merely tolerated.
+[spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md) out of the corpus, so it is wanted here rather than merely tolerated.
 
 ## Related
 

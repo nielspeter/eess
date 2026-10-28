@@ -9,8 +9,8 @@
   was ruled to need, and the same shape as
   [0219](./0219-corpus-listing-surface-is-undocumented.md): a capability that ships,
   in the package the proposal names, that no page shows.
-- **Implements:** proposal 008
-- **Origin:** self-found — the `Docs-only` ruling on proposal 008 (2026-09-03) named
+- **Implements:** [proposal 008](../../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md)
+- **Origin:** self-found — the `Docs-only` ruling on [proposal 008](../../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md) (2026-09-03) named
   documentation as the fix, and `check:corpus`'s `docs-only-ruling-names-no-owner`
   rule reported the ruling with nothing owning it the moment the ruling was saved.
   That rule exists because 004's identical ruling went unowned for ten days.
@@ -45,7 +45,7 @@ And nothing showed the two together for this case. Measured 2026-09-03:
 Three places said "compose your own" and none said how. A consuming project read
 all three, concluded eess-md "cannot do this itself", and wrote a ~50-line binding
 of its own — a regex over each ADR's raw text, a snapshot file for the live set,
-and a hand-rolled both-directions diff. Proposal 008 then asked for a
+and a hand-rolled both-directions diff. [Proposal 008](../../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md) then asked for a
 `citationForms` plugin on the preset, which its review declined: the plugin would
 make an opinionated preset a plugin host, owning overlap and ordering for twenty
 lines a user can already write.
@@ -98,8 +98,8 @@ titles at all.)_
       import-bearing TS fences. This is the real verification: the fence dereferences `r.get('mechanism')`, `r.doc.relPath`
       and `r.line` on `MdRow`, and calls `beComplete({ direction: 'both' })`, so
       `tsc` fails it if any of those drift from the shipped types.
-- [x] `check:corpus`'s `docs-only-ruling-names-no-owner` finding on proposal 008
-      clears with this record's `Implements` line, and proposal 008 moves to
+- [x] `check:corpus`'s `docs-only-ruling-names-no-owner` finding on [proposal 008](../../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md)
+      clears with this record's `Implements` line, and [proposal 008](../../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md) moves to
       `promoted/` with no `Held` row to block it.
 - [x] `npm run validate` green from a run that reached the last step.
 

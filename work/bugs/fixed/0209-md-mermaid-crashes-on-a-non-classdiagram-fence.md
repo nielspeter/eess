@@ -73,7 +73,7 @@ is no `try` in the function.
 
 Adding a content filter stops the crash. It also converts a **loud failure into a
 silent one**: a corpus with no `classDiagram` fences would then examine zero
-blocks, produce zero violations, and return green. Under ADR-010 a pass must be
+blocks, produce zero violations, and return green. Under [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) a pass must be
 constructed from evidence, and this function has no `examined` notion at all —
 there is no counter, no stats export, and no zero-guard anywhere in
 `packages/crossvalidate/src/md-mermaid.ts`.
@@ -197,7 +197,7 @@ matrix could not see, all now closed:
 
 **Still open, deliberately:** whether a crossvalidate preset may pass over zero
 examined units with only opt-in evidence. Review is right that this is an
-ADR-010 perimeter question affecting all five dialects — `scripts/vacuity-matrix.mjs`
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) perimeter question affecting all five dialects — `scripts/vacuity-matrix.mjs`
 probes only `eess-ts`, so no sibling preset is covered — and that deciding it
 inside a bug record would bury it. Not answered here.
 

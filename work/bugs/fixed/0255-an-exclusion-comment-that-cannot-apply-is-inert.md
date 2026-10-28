@@ -87,7 +87,7 @@ see the round below. The shipped report names a placeholder, never a live id.
 ## Fix
 
 **The precedent was already in the same function.** `applyFilters` has warned
-since bug 0044 that an `.excluding()` pattern matching zero violations "may be
+since ts-archunit bug 0044 that an `.excluding()` pattern matching zero violations "may be
 stale after a rename". Comment directives had no equivalent. This gives them the
 one the chain form already had — no new syntax, no scope change.
 
@@ -194,7 +194,7 @@ scoping. A false green on this record's own terms.
 This is a named, recurring defect class, not bad luck:
 [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md) lists
 `execute-rule` among 27 duplicated modules and records three prior incidents of
-a fix landing on one copy while nothing noticed; ADR-012 documents the same
+a fix landing on one copy while nothing noticed; [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) documents the same
 shape one layer down. `check:family`, `check:arch` and `check:nonvacuity` all
 pass either way — they check re-exports and one-sided behaviour, not cross-copy
 parity, exactly as 0188 warns. **This would have been the fourth incident.** Both
@@ -220,7 +220,7 @@ literal the warning emits.
 
 **The count, stated properly, because the first attempt at it was itself a
 miscount.** Four vacuous assertions in total, and they are not one per commit:
-one shipped in bug 0254's branch (a backtick where the message uses quotes); two
+one shipped in [bug 0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md)'s branch (a backtick where the message uses quotes); two
 shipped together in this branch's first commit; the fourth never shipped at all —
 my own sabotage caught it before it was committed. Review caught the first three;
 I caught the fourth. That last part is the direction it needs to keep moving, and

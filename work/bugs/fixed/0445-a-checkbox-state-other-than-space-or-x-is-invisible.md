@@ -3,10 +3,10 @@
 ## Status
 
 - **State:** Fixed — 2026-10-18, in PR #240 with [plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md)
-  (proposal 017 block 17): box marks beyond GFM's are declared by the caller, and an undeclared one is
+  ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) block 17): box marks beyond GFM's are declared by the caller, and an undeclared one is
   a finding. Recorded 2026-10-16; reproduced on main's build.
 - **Severity:** Medium — a false green: a closed record whose items are all `[~]` passes the closing check. In this repository, at report time, four `[~]` items sat in closed records that `check:ledger` could not see: `work/bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md:160`, `:167` and `:201`, and `work/bugs/fixed/0256-the-spike-lane-is-run-but-never-declared.md:130`. Adopters report more (as reported, not measured here).
-- **Origin:** inbound · two adopter monorepos (unnamed), feedback on proposal 017, verified here.
+- **Origin:** inbound · two adopter monorepos (unnamed), feedback on [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), verified here.
 - **Reported:** 2026-10-16
 
 ## Symptom
@@ -29,7 +29,7 @@ way for the caller to declare it and no report that it was ignored.
 ## Fix
 
 The caller names extra box marks and what each means (open or done), with no default marks beyond
-GFM's (proposal 017's principle). A list item whose text starts with a bracketed mark the caller did not name is reported as an unknown box state rather than skipped. **Breaking:** a corpus that carries such marks and passes today will red (this repository's four included), so the fix ships as a flagged break with a migration line ("declare the mark, or rewrite the box").
+GFM's ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s principle). A list item whose text starts with a bracketed mark the caller did not name is reported as an unknown box state rather than skipped. **Breaking:** a corpus that carries such marks and passes today will red (this repository's four included), so the fix ships as a flagged break with a migration line ("declare the mark, or rewrite the box").
 
 ## Verification
 

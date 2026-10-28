@@ -9,7 +9,7 @@
 - **Severity:** High — **false green in a preset sold to agent-focused projects.**
   `agentGuardrails(p, { noInlineLogic: ['eval'] })` reports `eval` inside a function and nothing for
   a bare top-level `eval` or one in a class's static block. Measured on this branch's build:
-  `["c"]`, `[]`, `[]`. That is bug 0333's symptom exactly, in the preset whose own documentation
+  `["c"]`, `[]`, `[]`. That is [bug 0333](./0333-the-recommended-floor-reads-functions-only.md)'s symptom exactly, in the preset whose own documentation
   said to prefer it alone.
 - **Origin:** the method review of PR #149, 2026-09-20, which asked why the ruling stopped at one
   preset.
@@ -18,7 +18,7 @@
 ## Symptom
 
 Measured, `agentGuardrails(p, { src: '**/src/**', noInlineLogic: ['eval'], report: 'return' })`.
-**Every fixture holds a function**, so the preset has a subject and ADR-010's empty-selection
+**Every fixture holds a function**, so the preset has a subject and [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s empty-selection
 finding cannot fire — the first version of this table used fixtures with no function at all, where
 the `[]` rows were accompanied by an error-severity vacuity finding, which is the opposite of a
 silent pass. The delta review of PR #149 caught that; the conclusion survived it, the evidence did
@@ -91,7 +91,7 @@ and was re-run rather than reported with its deltas taken against a red baseline
 Two rows are deliberately **reverse** sabotage: R4 moves a rule the fix left alone, and R5 weakens the
 new test's own identity. A matrix of only forward rows cannot tell a control from a comment.
 
-### This widens bug 0338, measured
+### This widens [bug 0338](../0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md), measured
 
 The interaction was predicted before the fix and then measured, rather than discovered afterwards. One
 fixture directory, edited in place so the file path is constant, hashed with the real
