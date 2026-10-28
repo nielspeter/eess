@@ -369,9 +369,9 @@ export function edgeDiscriminator(edge: ModuleEdge): string {
   // machine that computed it. `localeCompare` reads the host locale, and this file already said
   // so 60 lines above (`indexEdges`: "exactly the machine-dependent ordering `conditions/slice.ts`
   // goes out of its way to eliminate, because a value that differs per machine gives one finding
-  // two identities") — and then used it here anyway. Measured on plain ASCII: `zebra, aardvark`
-  // sorts to `aardvark,zebra` under `en-US` and to `zebra,aardvark` under `da-DK`, because Danish
-  // collates `aa` as `å`, after `z`. Same import, two baseline hashes, diverging only between a
+  // two identities") — and then used it here anyway. Measured on plain ASCII: `hrad, chata`
+  // sorts to `chata,hrad` under `en-US` and to `hrad,chata` under `cs-CZ`, because Czech collates
+  // `ch` after `h`. Same import, two baseline hashes, diverging only between a
   // developer's machine and CI. `src/core/project.ts` uses this comparator for the same reason.
   if (edge.names.length > 0)
     return [...edge.names].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(',')

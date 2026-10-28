@@ -1,10 +1,10 @@
 # 103: A done-item whose summary lies about its deferrals
 
-**State:** Done — leveret i PR #1003
+**State:** Done — geliefert in PR #1003
 
 Deferred: none
 
-## Verifikation
+## Überprüfung
 
-- [x] Første ting virker — verificeret.
-- [ ] Fase 2-oprydning — deferred→ work/plans/ROADMAP.md
+- [x] Erstes funktioniert — verifiziert.
+- [ ] Aufräumen in Phase 2 — deferred→ work/plans/ROADMAP.md

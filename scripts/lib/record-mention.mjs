@@ -61,7 +61,8 @@ export const LEFT_OUT = [
   },
   {
     path: 'work/plans/completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md',
-    sha256: '5980eddaad524e7b6bd1e999fefef1d19e6ffe50305fa6569837407c4dedc19f',
+    // Re-pinned 2026-10-28: a locale tag removed at the maintainer's direction.
+    sha256: 'dc834b2aa97a2546ad4700ef11a73970335b6f68800834ed76c9705a1d462073',
   },
   {
     path: 'work/plans/completed/0165-integrate-the-copied-ts-archunit-engine.md',
