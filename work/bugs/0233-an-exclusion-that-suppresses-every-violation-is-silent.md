@@ -67,7 +67,7 @@ fail-**closed**: the finding still fires, CI is still red. Nobody has built the
 "an exclusion that does **everything**" direction, which is fail-**open**.
 
 **The library predicted this exact moment.** `packages/ts/src/core/execute-rule.ts:218-232`,
-verbatim:
+verbatim (the bold on the last sentence is this record's, not the source's):
 
 ```text
 "Unused exclusion" above it warns about a pattern that silences NOTHING
@@ -80,7 +80,8 @@ re-litigating if this loophole is measured firing in practice, not settled by
 the precedent alone.**
 ```
 
-_Corrected 2026-09-14:_ the source, and this quote of it, cited ts-archunit's ADR-008 by its bare number. [ADR-008](../../adr/008-caller-owns-reporting.md)
+_Corrected 2026-09-14:_ the source, and this quote of it, cited ts-archunit's ADR-008 by its bare number (reworded 2026-10-28, [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4: the
+number in the form the record-mention gate reads as ts-archunit's). [ADR-008](../../adr/008-caller-owns-reporting.md)
 discusses the `warn` report mode, but it does not say the primary consumer does not
 read warnings; that is [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s
 Context, point 1. The misnumbering is carried over from ts-archunit, and ts-archunit's ADR-008 is

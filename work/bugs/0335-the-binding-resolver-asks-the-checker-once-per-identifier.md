@@ -20,7 +20,7 @@
 candidate identifier, per rule, with no memo. Five rules over one file resolve the same identifiers
 five times. The package already records this exact finding for a different reader:
 `packages/ts/src/core/module-edges.ts:241` measured a 5x repeat for module edges and solved it with
-a per-file cache ([plan 0076](../plans/0076-broader-deterministic-autofix.md)).
+a per-file cache (ts-archunit plan 0076).
 
 Measured on the `recommended` floor gate over 270 files: 0.50–0.86s before this resolver, 0.90–1.07s
 after — about 1.5ms per file.

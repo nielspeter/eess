@@ -7,7 +7,7 @@
   command from the clause.
 - **Severity:** Medium — a false green in the one command whose entire slot is
   justified by "a rule that certifies nothing". Not a build gate (`doctor` is a
-  diagnostic by decision, [plan 0069](../plans/completed/0069-spec-corpus-reach.md)), so it does not red CI on its own; what it
+  diagnostic by decision, ts-archunit plan 0069), so it does not red CI on its own; what it
   does is answer the question an author asks it with the wrong answer.
 - **Origin:** self-found · writing the [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) enforcement row for [plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md)
   Phase 2

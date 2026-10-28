@@ -85,7 +85,8 @@ names, as `docs/markdown.md:245` names the plain-form case one.
       `wrappedLabelOf`): `- **Related to** [b](b.md)` and `**Related to** [c](c.md)` are each
       reported on their own line, or the documentation names the form as unread — whichever the fix
       decides — and a sabotage row goes red when that is undone
-- [ ] `Related to the frozen-drift bug, see [x](x.md)` (plain, no colon) stays unreported and unselected
+- [ ] The fixture's plain line, no colon (`packages/md/tests/fixtures/declared-block/docs/forms.md:17`),
+      stays unreported and unselected
 - [ ] [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)'s prose sentence is not read as a declaration of [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
 - [ ] a different spelling (`**Related:**`) is either reported or named as a blind spot in the
       documentation

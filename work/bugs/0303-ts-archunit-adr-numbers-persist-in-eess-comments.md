@@ -69,7 +69,7 @@ The classification is a reading, not a mechanism.
 
 ### Not measured
 
-- Mentions written as ts-archunit's ADR-009 that mean eess's [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md).
+- Mentions that cite ts-archunit's ADR-009 by its bare number and mean eess's [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md).
 - Plan numbers carried the same way. `packages/ts/src/core/execute-rule.ts:153`,
   `:159` and `:219` cite ts-archunit plan 0104 by its bare number, and no such plan exists in `work/` — the only
   0104 is a bug. Likely the same carry-over; not verified.

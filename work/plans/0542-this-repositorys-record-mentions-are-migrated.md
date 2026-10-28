@@ -190,8 +190,10 @@ Each lane is its own PR, in this order:
    that row is shown linked, reworded, or found by the re-run on its new line: an empty or short
    re-run would otherwise apply every anachronism unread. A fix count far from the table's row is
    explained before going on;
-2. **a judge reads every fix in the lane that sits in a file naming ts-archunit and links a record
-   whose number ts-archunit also used** (294 over all lanes), and a seeded sample of 20 of the
+2. **a judge reads every fix in the lane that links a record whose number ts-archunit also used**,
+   whether or not its file names ts-archunit (the engine's code comments carry ts-archunit's
+   numbers into records that do not; corrected 2026-10-28 at lane 4, when such a fix shipped; the
+   freeze's read set, fixes in files naming ts-archunit, was 294 over all lanes), and a seeded sample of 20 of the
    lane's other fixes, the seed recorded in the PR; the judge is an agent on a different model from
    the one running the lane. A wrong fix is left out by element before applying, its cause recorded
    in this plan, and the judge then reads every fix in the lane with the same target. The same
@@ -318,14 +320,18 @@ fails the build` and `accepts a repository that extends the base through an inte
   [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s line 69 carried from lane 2, and 20 sampled:
   113 right, 1 wrong. That carried line names ts-archunit plans 0075 and 0076, the element- and
   module-edges caches, as the code comments under `packages/ts` show; it went into `JUDGED_WRONG`
-  and was reworded by hand. No other fix in the lane targets that plan, and lane 2's search found
-  none in later lanes.
+  and was reworded by hand. No other fix in the lane targets ts-archunit plan 0075's eess namesake, and lane 2's
+  search found none in later lanes. Its neighbour, ts-archunit plan 0076, was not searched, and the
+  fix linked it once, wrongly: see the retro read below.
 - `--apply` wrote 699 links across 152 files.
 - The rest by hand, under step 4 as lane 3's review left it. A proposer (Fable) proposed 109 edits
   for the 102 items (the seven more are other mentions on excluded lines), and one more was added
   for the carried line: 105 applied in 37 files, 60 links, 31 rewordings to the ts-archunit form, 12
-  other rewordings and 2 fences; 5 were covered by another's edit. All 12 anachronisms were read
-  against git and are over-flags, each record filed before or with its mention and closed later.
+  other rewordings and 2 fences; 5 were covered by another's edit. All 12 anachronisms were read against git and are over-flags, with three causes
+  (corrected 2026-10-28 at the lane's review, from "closed later" for all): a record closed by a
+  delete and an add; the instrument dating a mention by its text's first appearance anywhere in the
+  file, which gave six board rows citing [ADR-009](../../adr/009-agent-first-failure-surfaces.md) the date of an older row; and a squash merge's
+  ancestry, for one bug filed on a stacked branch.
   Judge 2 (Fable), given no reasons, read 72: every rewording and fence, and the 27 hand links in
   files naming ts-archunit with a number in its range. 66 right, 6 wrong, every one a change of
   meaning with the referent right: four rewordings altered verbatim quotes of source comments
@@ -333,13 +339,25 @@ fails the build` and `accepts a repository that extends the base through an inte
   misnumbering into the corrected form, and one board row came to say the wrong ADR has no rules.
   Each was put right: the quotes are fenced whole as they stood at the base, the fix's own link
   inside one of them going with it, and the two sentences say what was cited and how.
-- The lane's two ts-archunit GitHub links ([bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 22 and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md)'s line 24) are plain
-  text in the ts-archunit form; that bug, which is about those links, keeps its URL visible in
-  inline code.
+- The GitHub-link grep printed four lines in the lane: two links, [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 22 and
+  [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md)'s line 24, now plain text in the ts-archunit form; [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 13, in a fence; and
+  its line 58, in inline code. [Bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md), which is about those links, keeps its URL visible in inline
+  code.
+- **A wrong link shipped, and a retro read found two more.** The lane's review found that `--apply`
+  had linked [bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md)'s mention of the module-edges per-file cache, ts-archunit plan 0076
+  (`packages/ts/src/core/module-edges.ts` cites it), to eess's [plan 0076](./0076-broader-deterministic-autofix.md). [Bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md) does not name
+  ts-archunit, so no judge read it. The cause is the engine: its code under `packages/*/src` came
+  from ts-archunit, its comments cite 136 numbers inside ts-archunit's range, and records copy them
+  without naming the project. So the links lanes 2 to 4 had written to a number in that range, in
+  files not naming ts-archunit, were read by a third judge (Fable): 286 links, 283 right, 3 wrong.
+  [Bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md)'s; [bug 0268](../bugs/0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)'s, which is ts-archunit plan 0069, "no rule may certify nothing"
+  (`packages/ts/src/cli/rule-file-findings.ts` cites it by name); and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s, which is
+  ts-archunit's ADR-008 rule 2, eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2, now written as both. Each is reworded, and
+  step 2's read set now covers every fix whose number ts-archunit also used, whatever the file says.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
-  reads 2,335 unlinked mentions against 3,142 at the base, and 115 skipped after ts-archunit
-  (`check:corpus`, 2026-10-28), 81 at the base: 32 from the lane's edits and 2 in this record's own
-  forms, a derivation by file.
+  reads 2,335 unlinked mentions against 3,142 at the base, and 123 skipped after ts-archunit
+  against 81 at the base (`check:corpus`, 2026-10-28), the retro read's rewordings and this record's
+  own ts-archunit forms included.
 
 ### Phase 9 — the gate holds zero, and checks the target
 
