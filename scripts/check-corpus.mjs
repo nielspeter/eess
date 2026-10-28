@@ -1451,7 +1451,7 @@ for (const { path, cause } of leftOut) {
         : `the record-mention rule leaves out ${path}, whose text changed since it was pinned: it is left out as ${LEFT_OUT_REASON}.`,
       cause === 'missing'
         ? 'If the record moved, update its path in LEFT_OUT (scripts/lib/record-mention.mjs) and in its pinning test; if it was removed, remove the entry from both.'
-        : 'Revert the edit (a link repaired after a move does not unpin the file: destinations are not hashed); or, if the record is to change, take it off LEFT_OUT and its pinning test, so its mentions are judged like any other.',
+        : 'Revert the edit (a link repaired after a move does not unpin the file: destinations are not hashed); or, if the record is to change, take it off LEFT_OUT and its pinning test, so its mentions are judged like any other. A deliberate edit that adds no record mention may instead update the hash, with a dated comment at the entry and, in the PR, the record-mention count before and after.',
     ),
   )
 }

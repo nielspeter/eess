@@ -48,7 +48,7 @@ export const SKIPPED_AFTER_TS_ARCHUNIT = new RegExp(
 
 /**
  * Each left-out file and its pin: the SHA-256 of its text with link destinations blanked and CRLF
- * read as LF (`textHash`), as of 2026-10-27.
+ * read as LF (`textHash`), as of 2026-10-27 unless the entry says otherwise.
  */
 export const LEFT_OUT = [
   {

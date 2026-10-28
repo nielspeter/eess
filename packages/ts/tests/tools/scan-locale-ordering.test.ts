@@ -13,7 +13,7 @@
  * agree for every ASCII pair anyone would write in a fixture, so the row passes with the defect
  * present. **Measured**: a row asserting the discriminator for an import of two such names
  * passed **16/16 with `localeCompare` reinstated**. Running the whole suite under a locale
- * whose collation differs also passed — 3177/3177 — because the fixtures that would
+ * whose collation differs also passed — 3177/3177, on the earlier pair — because the fixtures that would
  * separate the two do not exist. A guard written for this defect, that cannot detect this
  * defect, is exactly what ADR-009 rule 5 is about.
  *

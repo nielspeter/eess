@@ -49,12 +49,12 @@ describe('acceptance: plain MADR corpus (generic primitives only)', () => {
 // Acceptance A flavor (localization is config, not fork): the same
 // adrEnforcement preset validates a German ADR via header/section patterns.
 describe('acceptance: localized (German) ADR via adrEnforcement config', () => {
-  it('validates a Durchsetzung / Mechanismus table with config, no fork', () => {
+  it('validates a Durchsetzung / Umsetzung table with config, no fork', () => {
     const c = corpus({ roots: ['docs/adr/*.md'], cwd: deutschRoot })
     expect(() =>
       adrEnforcement(c, {
         section: /durchsetzung/i,
-        columns: { tier: /tier/i, mechanism: /mechanismus/i, status: /status/i },
+        columns: { tier: /tier/i, mechanism: /umsetzung/i, status: /status/i },
       }),
     ).not.toThrow()
   })

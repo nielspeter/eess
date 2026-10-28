@@ -283,7 +283,9 @@ describe('the discriminator is machine-independent', () => {
 
     // **This row does NOT guard the locale defect, and saying so is the point.** Measured:
     // with `localeCompare` reinstated it passes 16/16, because on an `en-US` machine the two
-    // comparators agree for every ASCII pair. It pins the expected identity VALUE and nothing
+    // comparators agree for every lowercase ASCII pair (measured on the earlier pair, and again
+    // on this one, 2026-10-28). Run under `LC_ALL=cs_CZ.UTF-8` with `localeCompare`
+    // reinstated, it goes red: a manual replay of the defect, not a CI guard. It pins the expected identity VALUE and nothing
     // more. `tests/tools/scan-locale-ordering.test.ts` is the guard — a source scan, because
     // no runtime row can see a defect whose symptom depends on the machine running it.
     //
