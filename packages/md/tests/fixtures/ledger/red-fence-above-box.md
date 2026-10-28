@@ -1,6 +1,6 @@
 # 104: Fence above a silent box (line-number guard)
 
-**State:** Done — leveret i PR #1004
+**State:** Done — geliefert in PR #1004
 
 The close ritual walks a ledger like this:
 
@@ -9,6 +9,6 @@ The close ritual walks a ledger like this:
 - [ ] illustrative box B
 ```
 
-## Verifikation
+## Überprüfung
 
-- [ ] Rigtig prod-run mangler stadig
+- [ ] Echter Prod-Lauf fehlt noch

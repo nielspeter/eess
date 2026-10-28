@@ -38,21 +38,21 @@ A rules file (`work.rules.ts`) was written to enforce the conventions that
 corpus **already publishes about itself** in `work/README.md`, `BUGS.md` and
 `REFINEMENT.md`. Of thirteen intended rules, **three were expressible**:
 
-| #   | Rule the corpus documents about itself                            | Expressible?                           |
-| --- | ----------------------------------------------------------------- | -------------------------------------- |
-| 1   | bug records carry `Symptom` / root cause / `Fix` / `Verifikation` | ✅ `haveSection`                       |
-| 2   | board rows' `Status` and `Oprindelse` cells stay in their enums   | ✅ `haveTableRowsSatisfying`           |
-| 3   | a stakeholder-clarifications table has its five declared columns  | ✅ `haveTable`                         |
-| 4   | every item carries `**State:**` from the neutral enum             | ⚠️ value yes, drift no                 |
-| 5   | item filenames match `NNN-kebab.md`                               | ❌ predicate-only                      |
-| 6   | referenced evidence files exist                                   | ❌ no builder for this reference shape |
-| 7   | a non-terminal item is not silently stale                         | ❌ no temporal condition               |
-| 8   | a redaction marker names its reason                               | ❌ no content condition                |
-| 9   | every board row has a file, every file has a row                  | ⚠️ possible, undiscoverable            |
-| 10  | every convention declares Tier / Mechanism / Status               | ❌ ADR-shaped only                     |
-| 11  | a story is `promoted` only with all four gate boxes checked       | ❌ no conditional                      |
-| 12  | a support case of `Type: Bug` links to a `BUG-NNN`                | ❌ no conditional                      |
-| 13  | a plan's `State:` agrees with its ROADMAP row                     | ❌ existence only                      |
+| #   | Rule the corpus documents about itself                           | Expressible?                           |
+| --- | ---------------------------------------------------------------- | -------------------------------------- |
+| 1   | bug records carry `Symptom` / root cause / `Fix` / verification  | ✅ `haveSection`                       |
+| 2   | board rows' `Status` and `Oprindelse` cells stay in their enums  | ✅ `haveTableRowsSatisfying`           |
+| 3   | a stakeholder-clarifications table has its five declared columns | ✅ `haveTable`                         |
+| 4   | every item carries `**State:**` from the neutral enum            | ⚠️ value yes, drift no                 |
+| 5   | item filenames match `NNN-kebab.md`                              | ❌ predicate-only                      |
+| 6   | referenced evidence files exist                                  | ❌ no builder for this reference shape |
+| 7   | a non-terminal item is not silently stale                        | ❌ no temporal condition               |
+| 8   | a redaction marker names its reason                              | ❌ no content condition                |
+| 9   | every board row has a file, every file has a row                 | ⚠️ possible, undiscoverable            |
+| 10  | every convention declares Tier / Mechanism / Status              | ❌ ADR-shaped only                     |
+| 11  | a story is `promoted` only with all four gate boxes checked      | ❌ no conditional                      |
+| 12  | a support case of `Type: Bug` links to a `BUG-NNN`               | ❌ no conditional                      |
+| 13  | a plan's `State:` agrees with its ROADMAP row                    | ❌ existence only                      |
 
 The three that shipped found **62 real violations** on first run, so the gate
 works; the coverage is the problem, not the engine.
@@ -88,10 +88,11 @@ works; the coverage is the problem, not the engine.
   `BUG-NNN`._ One live violation — a delivered case is `Type: Bug` and links to
   no defect record.
 - **(13)** Every plan's `State:` agrees with its ROADMAP row today, but through
-  a **mapping**, not equality: `Draft`↔`Udkast`, `Done`↔`✅`, `Won't-do`↔`🚫`.
+  a **mapping**, not equality: `Draft`↔`Proposed`, `Done`↔`✅`, `Won't-do`↔`🚫`.
   `correspondence()` offers `beComplete()` and `preserveRelations()` — existence
   and structure — so a plan closed in its file while its board row still reads
-  `Udkast` is invisible to every gate.
+  `Proposed` is invisible to every gate. (The board label in these examples was replaced with a neutral word on
+  2026-10-28; the point, a mapping and not equality, is unchanged.)
 
 Rules 11–13 are one shape: **a condition that applies only when another value
 holds.** Three of four lanes need it, and the bug lane hid it because
@@ -100,9 +101,11 @@ holds.** Three of four lanes need it, and the bug lane hid it because
 capability in this proposal.
 
 Section vocabulary shows the same drift the field builder would catch:
-`Root cause` ×21 vs `Rod-årsag` ×8, `Fix` ×38 vs `Rettelse` ×11, plus
-`Konsekvens` ×16 — a section 16 records need that the published template does
-not define.
+`Root cause` ×21 vs the same section under a second-language name ×8, `Fix` ×38 vs
+its second-language name ×11, plus a consequences section ×16 — a section 16 records
+need that the published template does not define. (The corpus's own section names
+were replaced with descriptions on 2026-10-28, as were its language's words in the examples
+below; the counts and the examples' points are unchanged.)
 
 ### This repo, measured 2026-08-13 — rule 13's shape, dogfooded
 
@@ -220,7 +223,7 @@ docs(c)
   .that()
   .resideInFolder('work/bugs/**')
   .should()
-  .haveNameMatching(/^\d{3}-[a-z0-9æøå-]+\.md$/)
+  .haveNameMatching(/^\d{3}-[a-z0-9-]+\.md$/)
   .check()
 
 // 6 — the third reference shape: inline-code repo-relative paths
@@ -244,9 +247,9 @@ terms(c, { label: /^\s*(?:[-*]\s+)?(?:\*\*)?Updated:?(?:\*\*)?/, region: 'header
 // 8 — content conditions
 docs(c)
   .that()
-  .haveContentMatching(/_\[…er fjernet/)
+  .haveContentMatching(/_\[…removed/)
   .should()
-  .haveContentMatching(/_\[…er fjernet: [^\]]+\]_/)
+  .haveContentMatching(/_\[…removed: [^\]]+\]_/)
   .because(
     'an agent that cannot tell "nothing was said" from "something was removed" fills the gap with a guess',
   )
@@ -450,7 +453,7 @@ is deferred to its own proposal.
 
 ### `clauseEnforcement()` — unbind the tier table from the ADR shape
 
-`adrEnforcement` binds `## Håndhævelse` tables to rule ids, but only for ADRs.
+`adrEnforcement` binds a localised Enforcement table to rule ids, but only for ADRs.
 `work/README.md` is also a spec document and its conventions carry no
 declarations at all. Generalise: any document may declare clauses with
 Tier / Mechanism / Status, and the gate fails on a **missing declaration**,
@@ -585,8 +588,8 @@ should be memoised per document alongside the existing pointer extraction.
   eess family exists to replace.
 - **A preset per convention** (`corpusHygiene()`), skipping the builders.
   Faster to ship, but presets bake in one corpus's vocabulary. The reference corpus
-  is Danish, four-lane, and uses `Rod-årsag` and `Rettelse`; a preset built for
-  it would not fit the next corpus. Builders first, presets on top.
+  is bilingual, four-lane, and names its root-cause and fix sections in its own
+  language; a preset built for it would not fit the next corpus. Builders first, presets on top.
 - **Frontmatter instead of header fields.** Would make the header extractor
   unnecessary — YAML parses for free. Rejected as a **requirement**: the corpus
   deliberately uses neutral-token-plus-local-prose (`**State:** Done — shipped
@@ -747,10 +750,10 @@ violation must _say_. Colour alone is not the proof; attribution is.
       for, and conditionals make it far easier to write one by accident — a
       typo'd field name is indistinguishable from a satisfied invariant.
 - [ ] **`agree()` — divergent values.** A plan whose file says `Done` while its
-      ROADMAP row says `Udkast` goes **red**, naming **both** sides with **both**
+      ROADMAP row says `Proposed` goes **red**, naming **both** sides with **both**
       line numbers.
 - [ ] **`agree()` — mapped values are not a violation.** `Draft` against
-      `Udkast` under the declared `normalize` is **green**. Strict equality
+      `Proposed` under the declared `normalize` is **green**. Strict equality
       here would fire on every row in the reference corpus, which is the failure
       mode that makes teams delete the rule rather than fix the data.
 - [ ] **`agree()` — unnormalised value.** A board cell that `normalize` leaves

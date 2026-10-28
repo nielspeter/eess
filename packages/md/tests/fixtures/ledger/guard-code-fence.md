@@ -1,6 +1,6 @@
 # 101: A done-item that shows an example checklist in a code fence
 
-**State:** Done — leveret i PR #1001
+**State:** Done — geliefert in PR #1001
 
 The close-out ritual walks a ledger like this:
 
@@ -9,6 +9,6 @@ The close-out ritual walks a ledger like this:
 - [ ] neither is this one
 ```
 
-## Verifikation
+## Überprüfung
 
-- [x] Alt reconciler — verificeret.
+- [x] Alles abgeglichen — verifiziert.

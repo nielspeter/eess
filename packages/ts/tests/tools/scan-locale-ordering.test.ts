@@ -10,17 +10,17 @@
  * debug.
  *
  * A behavioural row cannot see it. On an `en-US` machine `localeCompare` and codepoint order
- * agree for every ASCII pair anyone would write in a fixture, so the row passes with the defect
- * present. **Measured**: a row asserting the discriminator for `import { zebra, aardvark }`
- * equals `aardvark,zebra` passed **16/16 with `localeCompare` reinstated**. Running the whole
- * suite under `LC_ALL=da_DK.UTF-8` also passed — 3177/3177 — because the fixtures that would
- * separate the two do not exist. A guard written for this defect, that cannot detect this
- * defect, is exactly what ADR-009 rule 5 is about.
+ * agree for every pair of lowercase-letter names, the kind a fixture's names are, so the row
+ * passes with the defect present. **Measured**: a row asserting the discriminator for an
+ * import of two such names passed **16/16 with `localeCompare` reinstated**. Running the
+ * whole suite under a locale whose collation differs also passed — 3177/3177, on the earlier
+ * pair — because the fixtures that would separate the two do not exist. A guard written for
+ * this defect, that cannot detect this defect, is exactly what ADR-009 rule 5 is about.
  *
- * The pair that separates them needs no unusual characters: Danish collates `aa` as `å`, after
- * `z`, so `['zebra','aardvark']` sorts to `zebra,aardvark` under `da-DK` and `aardvark,zebra`
- * everywhere else. This project's author works on a Danish machine; CI runs with no `LANG`, so
- * ICU defaults to `en-US`. The divergence appears only between the two.
+ * The pair that separates them needs no unusual characters: Czech collates `ch` after `h`, so
+ * `['hrad','chata']` sorts to `hrad,chata` under `cs-CZ` and `chata,hrad` by codepoint. A
+ * developer's machine can run any locale; CI runs with no `LANG`, so ICU defaults to `en-US`.
+ * The divergence appears only between the two.
  *
  * ## What the codebase already knew
  *
@@ -87,11 +87,11 @@ describe('a machine-dependent sort cannot reach a baseline identity', () => {
 
   it('and byCodepoint disagrees with localeCompare, so the rule is not cosmetic', () => {
     // The differently-derived value: if these agreed, the scan above would be pedantry.
-    expect(['zebra', 'aardvark'].sort((a, b) => a.localeCompare(b, 'da-DK')).join(',')).toBe(
-      'zebra,aardvark',
+    expect(['hrad', 'chata'].sort((a, b) => a.localeCompare(b, 'cs-CZ')).join(',')).toBe(
+      'hrad,chata',
     )
-    expect(['zebra', 'aardvark'].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(',')).toBe(
-      'aardvark,zebra',
+    expect(['hrad', 'chata'].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(',')).toBe(
+      'chata,hrad',
     )
   })
 })

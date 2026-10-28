@@ -59,7 +59,7 @@ function twoSlices(featureToLegacy: string): ArchProject {
   })
   tsm.createSourceFile(
     '/src/legacy/index.ts',
-    `export type Old = { n: number }\nexport const old = 1\nexport const alpha = 1\nexport const beta = 2\nexport const zebra = 1\nexport const aardvark = 2\nexport default old\n`,
+    `export type Old = { n: number }\nexport const old = 1\nexport const alpha = 1\nexport const beta = 2\nexport const hrad = 1\nexport const chata = 2\nexport default old\n`,
   )
   tsm.createSourceFile('/src/feature/index.ts', `${featureToLegacy}\nexport const fresh = 1\n`)
   return {
@@ -271,31 +271,32 @@ describe('the discriminator is machine-independent', () => {
     // place hardest to debug. `module-edges.ts` documented that hazard 60 lines above the line
     // that committed it, and the guard added in v0.56.0 to "pin the sort" used `alpha`/`beta`,
     // which collate identically everywhere, so it fired on "sort deleted" and not on "sort is
-    // locale-dependent". Under `LC_ALL=da_DK.UTF-8` the whole suite stayed green.
+    // locale-dependent". Under a locale whose collation differs the whole suite stayed green.
     //
-    // `aardvark`/`zebra` is the cheapest pair that separates the two: plain ASCII, and Danish
-    // collates `aa` as `å`, which sorts AFTER `z`.
+    // `chata`/`hrad` is a cheap pair that separates the two: plain ASCII, and Czech collates
+    // `ch` after `h`, so `chata` sorts AFTER `hrad` there.
     const found = notImportFrom(
-      twoSlices(
-        "import { zebra, aardvark } from '../legacy/index.js'\nexport const u = [zebra, aardvark]",
-      ),
+      twoSlices("import { hrad, chata } from '../legacy/index.js'\nexport const u = [hrad, chata]"),
     )
     expect(found).toHaveLength(1)
-    expect(found[0]?.identity).toBe(`${MODULE}::import::${RESOLVED}::aardvark,zebra`)
+    expect(found[0]?.identity).toBe(`${MODULE}::import::${RESOLVED}::chata,hrad`)
 
     // **This row does NOT guard the locale defect, and saying so is the point.** Measured:
     // with `localeCompare` reinstated it passes 16/16, because on an `en-US` machine the two
-    // comparators agree for every ASCII pair. It pins the expected identity VALUE and nothing
-    // more. `tests/tools/scan-locale-ordering.test.ts` is the guard — a source scan, because
+    // comparators agree for every lowercase ASCII pair (measured on the earlier pair, and again
+    // on this one, 2026-10-28). Run under `LC_ALL=cs_CZ.UTF-8` with `localeCompare`
+    // reinstated, it goes red: a manual replay of the defect, not a CI guard. It pins the
+    // expected identity VALUE and nothing more.
+    // `tests/tools/scan-locale-ordering.test.ts` is the guard — a source scan, because
     // no runtime row can see a defect whose symptom depends on the machine running it.
     //
     // The two assertions below are facts about JavaScript, not about this implementation.
     // They are here so the scan's premise is checkable from the row that motivated it.
-    expect(['zebra', 'aardvark'].sort((a, b) => a.localeCompare(b, 'da-DK')).join(',')).toBe(
-      'zebra,aardvark',
+    expect(['hrad', 'chata'].sort((a, b) => a.localeCompare(b, 'cs-CZ')).join(',')).toBe(
+      'hrad,chata',
     )
-    expect(['zebra', 'aardvark'].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(',')).toBe(
-      'aardvark,zebra',
+    expect(['hrad', 'chata'].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(',')).toBe(
+      'chata,hrad',
     )
   })
 })

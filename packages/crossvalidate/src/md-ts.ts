@@ -14,7 +14,7 @@ export interface AdrCitationsResolveOptions {
   readonly dir?: string
   /** Enforcement section heading. Default `/^enforcement$/i`. */
   readonly section?: string | RegExp
-  /** Header pattern locating the mechanism column. Default `/mechanism/i` — non-English corpora pass their own (e.g. `/mekanisme/i`). */
+  /** Header pattern locating the mechanism column. Default `/mechanism/i` — non-English corpora pass their own (e.g. `/umsetzung/i`). */
   readonly mechanismColumn?: RegExp
   /**
    * Declare that the ADRs cite at least one test (ADR-010 §3): zero citations is then a finding,

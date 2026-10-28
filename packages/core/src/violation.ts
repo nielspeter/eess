@@ -196,8 +196,8 @@ export function remedyRepeatsMessage(violation: ArchViolation): boolean {
  *
  * `String.prototype.localeCompare` without an explicit locale reads the **host** locale from
  * `LANG`/`LC_ALL`, so a value sorted with it differs between a developer's machine and CI.
- * Measured on plain ASCII: `['zebra','aardvark']` sorts to `aardvark,zebra` under `en-US` and
- * to `zebra,aardvark` under `da-DK`, because Danish collates `aa` as `å`, after `z`. One
+ * Measured on plain ASCII: `['hrad','chata']` sorts to `chata,hrad` under `en-US` and to
+ * `hrad,chata` under `cs-CZ`, because Czech collates `ch` after `h`. One
  * finding, two baseline hashes, diverging only in the place hardest to debug.
  *
  * The codebase already knew: `module-edges.ts` wrote *"`localeCompare` is ICU/locale sensitive
