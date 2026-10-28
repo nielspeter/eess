@@ -590,7 +590,7 @@ work/bugs/BUGS.md:336	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12
 work/bugs/BUGS.md:336	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:343	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:349	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
-work/bugs/BUGS.md:410	[bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)	work/bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md	2026-10-19	2026-10-19
+work/bugs/BUGS.md:410	bug 0507	work/bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md	2026-10-19	2026-10-19
 work/bugs/BUGS.md:437	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:456	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
 work/bugs/BUGS.md:469	ADR-009	adr/009-agent-first-failure-surfaces.md	2026-08-12	2026-08-16
