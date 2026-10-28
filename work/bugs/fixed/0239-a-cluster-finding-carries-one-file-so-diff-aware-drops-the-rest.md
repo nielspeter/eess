@@ -12,7 +12,7 @@
 - **Severity:** High — **false green on the most realistic adoption path.** A
   developer copies a body into a second file, runs the gate with `--changed`,
   and is told nothing. Before the pair-to-cluster collapse the same edit
-  reported. ADR-009 rule 1's subject: the finding cannot fire where it matters
+  reported. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1's subject: the finding cannot fire where it matters
   most.
 - **Origin:** self-found · testing review of the `duplicateBodies` arc after it
   merged (PR #91, 2026-09-03). The arc shipped without a panel because an API
@@ -118,7 +118,7 @@ is headline claim two of a breaking changeset, and reversing or deleting it is
 invisible to the suite. `peakSimilarity` (`:69`) is asserted only as
 `toMatch(/\d+% similar/)` at `packages/ts/tests/smells/clusters.test.ts:69`,
 which any number satisfies — the message reads "is up to 0% similar" and passes.
-That is ADR-009 rule 5's corollary exactly: assert the value, not the shape.
+That is [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5's corollary exactly: assert the value, not the shape.
 
 Both rejections that arc added **are** non-vacuously tested, in both directions,
 and the review confirmed it; this is not a blanket criticism of the arc's tests.
@@ -170,7 +170,7 @@ and the review confirmed it; this is not a blanket criticism of the arc's tests.
       through the documented agent-actionable stream. Found by review, fixed,
       and sabotage-verified: removing the field reds that test alone.
 - [x] The repo caught the fix's own tests. `check:vacuity`'s cardinality ratchet
-      (plan 0079) refused five assertions that checked how many findings survived
+      (ts-archunit plan 0079) refused five assertions that checked how many findings survived
       the filter rather than which — the same weakness this record found in the
       arc it fixes, written by the person fixing it. They compare identities now.
 

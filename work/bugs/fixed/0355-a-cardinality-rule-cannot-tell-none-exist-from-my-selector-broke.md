@@ -7,7 +7,7 @@
 - **Severity:** High — **a true false green.** A rule asserting CARDINALITY
   (`.notExist()` and friends) whose selector silently stops matching produces
   **zero findings** and exit 0. Every other rule shape has something beneath it —
-  the dead-selector diagnosis, or the ADR-010 evidence floor. This one is exempt
+  the dead-selector diagnosis, or the [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) evidence floor. This one is exempt
   from **both**, by design, and the design cannot tell "none exist" from "my
   selector broke".
 - **Scope — narrowed after measurement, and this record twice said otherwise.**

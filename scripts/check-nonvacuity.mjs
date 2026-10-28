@@ -3591,11 +3591,12 @@ function gateCorpusProposalCriteriaEmpty() {
 
 // Proposal 004 is ruled `Docs-only` and owned by bug 0219. Strip the bug's
 // declaration and the remedy has no owner — which is the state 004 was actually
-// in for ten days.
+// in for ten days. The declaration is matched written plain or as a link: plan
+// 0542 linked it, and a probe pinned to one spelling stops proving anything.
 function gateCorpusDocsOnlyOwner() {
   return corpusSabotage(
     join(repoRoot, 'work', 'bugs', 'fixed', '0219-corpus-listing-surface-is-undocumented.md'),
-    (t) => t.replace('- **Implements:** proposal 004\n', ''),
+    (t) => t.replace(/- \*\*Implements:\*\* (?:proposal 004|\[proposal 004\]\([^)]*\))\n/, ''),
     'corpus/docs-only-ruling-names-no-owner',
     '004',
   )

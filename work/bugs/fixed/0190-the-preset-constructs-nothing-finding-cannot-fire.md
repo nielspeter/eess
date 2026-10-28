@@ -3,24 +3,24 @@
 ## Status
 
 - **State:** Fixed — deleted rather than wired; the emitter refuses an
-  evidence-free verdict instead (plan 0235, ADR-014).
+  evidence-free verdict instead ([plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md), [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)).
 - **Severity:** High — **raised from Medium on 2026-09-03** (see Escalation
   below). Filed as an unreachable configuration finding that reads as coverage —
-  ADR-009 rule 1's object, sibling of
+  [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1's object, sibling of
   [bug 0178](../0178-the-kernels-dead-glob-finding-cannot-fire.md). What changed is
   not the analysis but the evidence: the runtime path this record calls "the
   uncovered one" has now been measured firing in a consuming project, with a cost.
   An unreachable finding that reads as coverage is a Medium; the same finding once
   the case it cannot catch is known to be shipping silently is not.
 - **Origin:** self-found · auditing the eight upstream `completed/` plans that
-  reference ADR-009 (the evidence-and-vacuity body of work) for mechanisms that
+  reference ts-archunit's ADR-009 (the evidence-and-vacuity body of work) for mechanisms that
   are present but not connected
 - **Reported:** 2026-08-21
 
 ## Symptom
 
 `presetConstructsNothingViolation`
-([`packages/core/src/preset-dispatch.ts`](../../../packages/core/src/preset-dispatch.ts) — **deleted 2026-09-06**, see plan 0235 Phase 0)
+([`packages/core/src/preset-dispatch.ts`](../../../packages/core/src/preset-dispatch.ts) — **deleted 2026-09-06**, see [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md) Phase 0)
 cannot be produced by anything this repo ships. An adopter whose preset
 constructs zero rules gets no finding.
 
@@ -58,13 +58,13 @@ rules" is not a fact available at that seam. The one place that holds the
 builders is `deliver()` in `packages/ts/src/presets/shared.ts`, in the dialect —
 and the finding lives in the kernel.
 
-That is the same kernel/dialect split bug 0178 records for `deadGlobViolation`:
+That is the same kernel/dialect split [bug 0178](../0178-the-kernels-dead-glob-finding-cannot-fire.md) records for `deadGlobViolation`:
 a finding constructor in `packages/core` whose triggering fact is only ever
 computed in `packages/ts`.
 
 ## Why it matters
 
-Plan 0100 upstream (`0100-a-preset-that-constructs-nothing.md`) exists precisely
+ts-archunit plan 0100 (`0100-a-preset-that-constructs-nothing.md`) exists precisely
 because a preset that builds nothing passes silently. The finding was written.
 It reads, in every census and every export list, as the thing that covers that
 case. It covers nothing.
@@ -109,29 +109,29 @@ available at that seam. It changes two things:
    in _Why it matters_ — the matrix is eess's CI auditing eess's own five presets
    and "says nothing about an adopter's preset". The adopter's preset is precisely
    what was measured failing. The choice is between options 1 and 2.
-2. **That option 2 is bigger than this record implies, and has a design.** Proposal
-   009's Ask A asks for exactly the seam move, and its review found the _mechanism_
+2. **That option 2 is bigger than this record implies, and has a design.**
+   [Proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s Ask A asks for exactly the seam move, and its review found the _mechanism_
    it proposed cannot work — a `WeakSet` keyed on violation objects cannot speak
    about an empty array, and the empty array is the dominant path (every clean
    preset run). The review's alternative is to mint the **container**: the receipt
    `CollectResult` (`packages/core/src/terminal-builder.ts:39`), which is already
-   the evidence shape ADR-010 mandates and which every terminal already produces.
+   the evidence shape [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) mandates and which every terminal already produces.
    That is the same "give the kernel the fact, not the array" move option 2 names,
    at a granularity that works.
 
 **The decision now exists as [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)**
 (Accepted 2026-09-03), which takes option 2 in the container's shape — the
 receipt as a **required field** on the emitter, not a minted registry, so
-ADR-010 §2's cap is untouched — and names this record's red test as one of its
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §2's cap is untouched — and names this record's red test as one of its
 Enforcement rows. The preset-specific remedy this constructor carries stays with
-the preset plumbing that knows it is a preset (ADR-014 §4); the kernel emitter
-names the hand-assembler's remedy instead. This record stays open until plan 0235 lands and the finding is producible or gone.
+the preset plumbing that knows it is a preset ([ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §4); the kernel emitter
+names the hand-assembler's remedy instead. This record stays open until [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md) lands and the finding is producible or gone.
 
 Also relevant, and not this record's to decide: 009's review found the seam move
-collides with two binding texts — ADR-010:136 (_"nothing may add a fourth"_
-kernel `WeakSet` registry) and ADR-008:30-31 (`reportViolations` _"never throws or
+collides with two binding texts — [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md):136 (_"nothing may add a fourth"_
+kernel `WeakSet` registry) and [ADR-008](../../../adr/008-caller-owns-reporting.md):30-31 (`reportViolations` _"never throws or
 filters"_). Neither forbids fixing this; both mean the fix is a recorded decision
-rather than an implementation detail. Note the ADR-010 clause constrains one
+rather than an implementation detail. Note the [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) clause constrains one
 _mechanism_ — a run-scoped counter in the shape of `violationsEmittedCount()`
 (`packages/core/src/report.ts:51`, whose docstring already argues the general case:
 _"Count emissions, not silences"_) adds no registry at all.
@@ -141,7 +141,7 @@ sequencing together rather than one at a time:
 [0206](./0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) (the
 dialect's default path bypasses the kernel finisher) and
 [0097](../0097-crossval-presets-bypass-caller-owns-reporting.md) (two presets return
-`void`, so ADR-008 never reached them).
+`void`, so [ADR-008](../../../adr/008-caller-owns-reporting.md) never reached them).
 
 ## Fix
 
@@ -188,6 +188,6 @@ the symbol is gone. It must not stay exported and unreachable.
 **Closed as "gone", not "producible".** The kernel constructor is deleted; the
 finding an adopter now gets is the emitter's, which reaches every hand-assembler
 rather than only the presets someone remembered to guard. The gap the deletion
-would otherwise have left is bug 0261, closed with this one.
+would otherwise have left is [bug 0261](./0261-an-all-off-preset-returns-neither-a-finding-nor-a-declaration.md), closed with this one.
 
 Deferred: none.

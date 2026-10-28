@@ -14,7 +14,7 @@
 An accepted ceiling is a number **in a unit**, and the baseline compared across a
 change of unit without noticing.
 
-Bug 0170 changed `linesOfCode` from counting a span to counting code — measured
+[Bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md) changed `linesOfCode` from counting a span to counting code — measured
 on this repo, `TerminalBuilder` went from 1218 to 372. The identity hash is
 `file::element::metric` and none of those moved, so every baselined entry kept
 matching and kept suppressing — now against a ceiling denominated in something
@@ -57,14 +57,14 @@ Record what the number **counts**, and refuse to compare across a change.
   to say so, and the line rules now declare `unit: 'code-lines'`.
 - The baseline persists it and compares it. Incomparable means **not known**, so
   the finding is reported rather than silently re-accepted — failing closed,
-  because assuming two numbers agree is not evidence that they do (ADR-010).
+  because assuming two numbers agree is not evidence that they do ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
 - `MEANING_NEVER_CHANGED` keeps old baselines working where they are still
   valid: an unstamped `complexity` entry counts what it always counted, so
   failing it would be a false regression. `code-lines` is deliberately absent
   from that set, and that absence is the whole fix.
 - A `staleMeasurementFinding` meta-finding supplies the cause and the remedy.
   Without it the upgrade reports untouched code as new violations with nothing
-  connecting that to the release note — the ADR-009 rule 2 failure this exists
+  connecting that to the release note — the [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2 failure this exists
   to prevent. It is `bypassFilters`, because a baseline must not be able to
   suppress the finding that says the baseline cannot be trusted.
 
@@ -94,4 +94,4 @@ baseline entry means, and the last review caught exactly that shape of half-fix.
 
 The thresholds themselves. `maxClassLines(300)` now admits roughly three times
 the code it used to, and re-deriving the repo's own numbers is a separate
-judgement — noted in bug 0170.
+judgement — noted in [bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md).

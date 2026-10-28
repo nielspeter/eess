@@ -3,10 +3,10 @@
 ## Status
 
 - **State:** Fixed — 2026-10-15, in the PR that closes it. Measured the same day on the branch fixing
-  bug 0423.
+  [bug 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md).
 - **Severity:** High — a false green (`BUGS.md`'s High row). An `erDiagram` in a fence tagged
   ` ```Mermaid ` whose attribute the property table lacks is not compared, and nothing is reported.
-- **Origin:** self-found · fixing bug 0423, 2026-10-15. The same defect on the ER binding's path,
+- **Origin:** self-found · fixing [bug 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md), 2026-10-15. The same defect on the ER binding's path,
   recorded rather than folded into that fix.
 - **Reported:** 2026-10-15
 
@@ -21,11 +21,11 @@ the run passes (PR #214's review).
 ## Root cause
 
 `md-mermaid-er.ts` selects `b.lang === 'mermaid' || b.lang === null`, an exact comparison, as
-`md-mermaid.ts` did before bug 0423's fix.
+`md-mermaid.ts` did before [bug 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md)'s fix.
 
 ## Fix
 
-Use the case-insensitive `isMermaidTag()` that bug 0423's fix added to
+Use the case-insensitive `isMermaidTag()` that [bug 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md)'s fix added to
 `packages/crossvalidate/src/shared.ts`, keeping the `lang === null` case.
 
 ## Verification

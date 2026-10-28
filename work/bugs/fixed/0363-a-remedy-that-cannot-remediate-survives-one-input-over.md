@@ -9,7 +9,7 @@
   said the seam was the same and fixing one would have grown a second copy.
 - **Severity:** Medium — **no wrong verdict; an impossible remedy on an unsuppressable
   finding.** The finding is correct and the `Fix:` line beside it cannot be carried out.
-  ADR-009 rule 2: "a message whose stated fix is impossible on the path that produced it
+  [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2: "a message whose stated fix is impossible on the path that produced it
   is worse than no message: the agent tries it, it fails, and the agent then does the
   forbidden thing."
 - **Origin:** review of [0362](./0362-a-typod-ratchet-is-green-in-both-tools.md).
@@ -184,9 +184,9 @@ concluding the conjunct was dead because I had built it with the slash.
 — `resideInFolder` declares `parent-dir`, `resideInFile` declares `file-path` — and `Map.set`
 let the second site's "no route" erase the first's. Measured: `check` went **green** on a
 ratchet that can never match while `doctor` reported it, which is the divergence the kernel's
-own `glob-site.ts` records as "bug 0040's silence half". The other order reported twice, the
+own `glob-site.ts` records as the "silence half" of ts-archunit bug 0040. The other order reported twice, the
 extra finding carrying the **non-cardinality** remedy — "remove the rule" — on an unsuppressable
-cardinality finding, which is the ADR-009 rule 2 defect this family has already shipped once and
+cardinality finding, which is the [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2 defect this family has already shipped once and
 which `CARDINALITY_REMEDY`'s own docstring forbids.
 
 Now a disjunction over **dead** sites only (first defined route wins, `Map.has` rather than

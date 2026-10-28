@@ -7,7 +7,7 @@
   walk the chain, as selectors and as conditions. Breaking, marked `minor`.
 - **Severity:** High — **false green.** As a selector, `extend('Base')` drops every
   class that reaches `Base` through an intermediate class, and `examined` stays
-  above zero, so the ADR-010 floor has nothing to fire on. As a condition the same
+  above zero, so the [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) floor has nothing to fire on. As a condition the same
   comparison reds the grandchild. The docs teach the reading this breaks:
   `docs/index.md:224` says `.extend('BaseRepository')` is "filter to subclasses".
 - **Origin:** self-found · probing `eess-ts` against the findings of an external
@@ -60,8 +60,8 @@ mentioned the text match.
   nudged toward an exclusion.
 - **The docs teach the subclass reading:** `docs/index.md:224`,
   `docs/classes.md:31` and `docs/classes.md:60`.
-- **ADR-009's inherited evidence carries this shape** — rows `notImportFrom('picomatch')`
-  and `onlyImportFrom`: real subjects examined, blind to one form. ADR-010's Notes
+- **[ADR-009](../../../adr/009-agent-first-failure-surfaces.md)'s inherited evidence carries this shape** — rows `notImportFrom('picomatch')`
+  and `onlyImportFrom`: real subjects examined, blind to one form. [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s Notes
   name the class as its adequacy limit, which the evidence type cannot close.
 
 ## Fix
@@ -117,7 +117,7 @@ The docs can be corrected now, without the ruling, to say what the predicates do
       `it('CONTROL — extend() selects a generic base and a base the checker cannot resolve')`.
 - [x] a ruling — [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md),
       covering all four. `eess-mermaid`'s `extend` is ruled on and not built:
-      deferred→[bug 0374](./0374-eess-mermaid-extend-reads-one-edge.md), and ADR-017's C6 row was
+      deferred→[bug 0374](./0374-eess-mermaid-extend-reads-one-edge.md), and [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)'s C6 row was
       `pending` on it (built since, in 0374, and the row is gated).
 - [x] the docs (`docs/index.md`, `docs/classes.md`, `docs/types.md`, `docs/api-reference.md`)
       and both builders' JSDoc say the predicates walk; `docs/migrating-to-0.12.md` written.

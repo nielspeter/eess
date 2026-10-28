@@ -66,7 +66,7 @@ replaced.
 
 ## Why it matters
 
-ADR-009's inherited evidence table carries the shape — its `onlyImportFrom` row: blind to
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md)'s inherited evidence table carries the shape — its `onlyImportFrom` row: blind to
 `export … from` and `import()`, with **0** violations on edges that do cross the boundary.
 Destructuring `process` is an ordinary refactor; the agent this project ships for needs no intent
 to escape the rule.

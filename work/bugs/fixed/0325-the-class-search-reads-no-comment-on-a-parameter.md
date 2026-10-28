@@ -59,7 +59,7 @@ row of 0329, an empty parameter list.
 
 The record's two questions, both answered by construction and each with a test:
 
-- **Identities.** The pass runs LAST, after the four passes bugs 0300, 0307 and 0309 established,
+- **Identities.** The pass runs LAST, after the four passes [bugs 0300](./0300-class-body-search-reads-methods-constructors-and-accessors-only.md), 0307 and 0309 established,
   so a comment inside a default keeps the ordinal a baseline accepted and a newly read one is
   numbered after it.
 - **Duplicates.** Deduplicated by the comment's own position against everything the earlier passes
@@ -92,7 +92,7 @@ Measured, one member per shape, `comment(/TODO/)`, before and after:
 | `m(): /* TODO */ number { … }` — outside the span | 0             | 0            | 1              |
 
 The last four rows are the boundary: what a reader sees inside the parentheses is read, the
-docstring stays bug 0307's, and the return type stays bug 0329's.
+docstring stays [bug 0307](./0307-class-body-rules-skip-class-code-outside-its-members.md)'s, and the return type stays [bug 0329](../0329-the-class-search-reads-no-comment-outside-a-members-parameters.md)'s.
 
 ## Related
 
@@ -116,7 +116,8 @@ docstring stays bug 0307's, and the return type stays bug 0329's.
       `it('numbers a comment in the parameter list after the ones read before it')`. The KNOWN-GAP
       file is replaced, as 0323's was.
 - [x] the ruling's two limits pinned —
-      `it('still reads no docstring on the member itself (bug 0307)')` and
+      `it('still reads no docstring on the member itself')` (the title dropped its number in
+      [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5) and
       `it('does not let a comment in a parameter decorator satisfy a must-contain rule')`.
 - [x] a changeset — `.changeset/searches-read-every-shape.md`, a breaking `minor` for
       `@nielspeter/eess-ts`: a green class comment rule may now report a comment in a parameter list.

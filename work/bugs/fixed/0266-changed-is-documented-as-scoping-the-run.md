@@ -3,14 +3,14 @@
 ## Status
 
 - **State:** Fixed — filed and fixed 2026-09-06 in the same PR (the 0236
-  shape): the docs sentence, the large-projects note and the ADR-002 row.
+  shape): the docs sentence, the large-projects note and the [ADR-002](../../../adr/002-ts-morph-ast-engine.md) row.
   `Deferred: none`.
 - **Severity:** Medium — the one claim/check gap both reviews of
   [proposal 010](../../proposals/010-ts-performance-at-scale.md) found. An adopter
   who wires the agent-hook recipe expecting a faster run on a large repository
   gets the same run and a shorter report, and nothing tells them so.
-- **Implements:** proposal 010
-- **Origin:** self-found · the second review of proposal 010 ruled the
+- **Implements:** [proposal 010](../../proposals/010-ts-performance-at-scale.md)
+- **Origin:** self-found · the second review of [proposal 010](../../proposals/010-ts-performance-at-scale.md) ruled the
   proposal's "docs slice" `Accepted` as `Docs-only` and found it owned by no
   record; this is that record.
 - **Reported:** 2026-09-06
@@ -73,7 +73,7 @@ the sentence beside it claims.
    per-rule-file `project()` lever, and its cost in one sentence.
 3. `adr/002-ts-morph-ast-engine.md` — a `pending` row in the Enforcement table
    for the three mitigations at line 96, stating that none is built and that
-   proposal 010's Ask A is the file-set narrowing one, held on its own
+   [proposal 010](../../proposals/010-ts-performance-at-scale.md)'s Ask A is the file-set narrowing one, held on its own
    measurement.
 
 ## Verification
@@ -84,7 +84,7 @@ the sentence beside it claims.
       naming a gate that reads no prose.
 - [x] `docs/agent-integration.md` no longer says "scopes the run" or "fast".
 - [x] `docs/cli.md` names the lever and its cost, under "Large projects".
-- [x] ADR-002's table carries the row, status `deprecated` — the promise is
+- [x] [ADR-002](../../../adr/002-ts-morph-ast-engine.md)'s table carries the row, status `deprecated` — the promise is
       recorded as measured and not kept, rather than as pending work; `check:corpus`
       (ADR tables) green.
 - [x] `npm run check:fast`, `check:ledger`, `check:docs-code` green in the PR;

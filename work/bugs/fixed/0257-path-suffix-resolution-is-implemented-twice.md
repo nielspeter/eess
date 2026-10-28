@@ -67,7 +67,7 @@ of paths — no `ArchProject`, no ts-morph, nothing dialect-shaped — which is
 exactly `path-universe.ts`'s own argument for living there, and satisfies
 [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s test: the
 kernel takes the _fact_ (a list of paths), not the project that produced it. It is
-family plumbing rather than public API, so `internal.ts` exports it (ADR-011).
+family plumbing rather than public API, so `internal.ts` exports it ([ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md)).
 
 **An index rather than a two-argument function**, because `eess-md` resolves
 hundreds of citations against thousands of paths and had built a last-segment
@@ -78,7 +78,7 @@ per binding.
 **What each caller kept.** The policy, which genuinely differs: whether a `none`
 is broken, whether an `ambiguous` fails or warns, when to consult external roots,
 what the message says. The primitive answers one question — _which path did they
-mean?_ — and the ambiguity messages already agreed after bug 0254, so nothing had
+mean?_ — and the ambiguity messages already agreed after [bug 0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md), so nothing had
 to converge.
 
 ### The original text, kept
@@ -178,7 +178,7 @@ have to re-derive why the obvious fold was not done.
       the larger figures; the evidence is stronger than the claim was, which is
       the harmless direction to be wrong in and still worth correcting.
 
-- [x] The ambiguity messages already agreed — bug 0254 converged `eess-md`'s
+- [x] The ambiguity messages already agreed — [bug 0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md) converged `eess-md`'s
       wording on `eess-crossvalidate`'s, which is what made this duplication
       visible in the first place. Nothing had to change.
 - [x] 10 kernel tests over the primitive, covering the cases the callers depend

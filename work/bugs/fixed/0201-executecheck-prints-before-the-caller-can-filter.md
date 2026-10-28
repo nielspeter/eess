@@ -61,7 +61,7 @@ flag `false`. Three disproofs:
   amount of making it cross registries would silence a `.check()`.
 - **jiti is not the default loader.** `packages/ts/src/cli/import-rule-module.ts`
   imports natively first and reaches jiti only on a module-format refusal
-  (a `"type": "commonjs"` consumer — bug 0074).
+  (a `"type": "commonjs"` consumer — [bug 0074](./0074-init-esm-type-module.md)).
 - Measured under one shared module graph, no jiti: the rule file printed anyway.
 
 It matters because that version proposed three fixes and **two of them could not
@@ -111,7 +111,7 @@ same reason `executeWarn` may suppress only its `bypassFilters` entries.
 The counter is not decoration. Once `.check()` stopped leaking, the
 `baselineNotApplied` notice became **reachable and wrong** on that path — it fired
 on a run where nothing leaked, which is a claim constructed from a default
-(ADR-010). `suppressedCheckWrites()` lets the CLI read a per-file delta and tell
+([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)). `suppressedCheckWrites()` lets the CLI read a per-file delta and tell
 the two throws apart: a `.check()` we silenced (no notice owed) from a preset's
 throw, which emits through the kernel and never reaches this function.
 
@@ -146,7 +146,7 @@ from 8 leaked blocks to 2. No kernel change required.
    caller, and `.check()` printing is relied on in test files, where there is no
    aggregator — so the flag's default must stay "print".
 2. **Give the terminal an explicit report mode** rather than a module-level flag,
-   so the decision travels with the call. Closest to ADR-008's "caller owns
+   so the decision travels with the call. Closest to [ADR-008](../../../adr/008-caller-owns-reporting.md)'s "caller owns
    reporting", largest change.
 3. **Have the CLI refuse to load self-executing rule files at all** and require the
    array export. Most drastic; would break existing rule files that work today.
@@ -179,7 +179,7 @@ working precedent for exactly this split.
       this box predicted. It became reachable-and-wrong on the fixed path — worse —
       and is now gated on measured leakage. Its remaining live path is
       [bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md);
-      when that lands, the notice must be removed or its last path named (ADR-010).
+      when that lands, the notice must be removed or its last path named ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
 - [x] `npm run validate` exits 0 — 3547 tests, 263 files.
 
 Deferred: [0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md)

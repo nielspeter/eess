@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Fixed — 2026-10-19, on branch `fix/fail-open-batch` (with bugs 0508 and 0506's
-  crossvalidate half, and plan 0481). Recorded 2026-10-19 from PR #245's enforcement review.
+- **State:** Fixed — 2026-10-19, on branch `fix/fail-open-batch` (with [bugs 0508](./0508-an-unknown-report-mode-prints-and-passes.md) and 0506's
+  crossvalidate half, and [plan 0481](../../plans/completed/0481-this-repository-dogfoods-notexist.md)). Recorded 2026-10-19 from PR #245's enforcement review.
 - **Severity:** Medium — a false green on the shape adopters ask for first ("a closed record carries
   no open box", `honestyAtClose` rebuilt from blocks).
 - **Origin:** self-found · PR #245's review (enforcement, I1)
@@ -11,10 +11,10 @@
 
 ## Symptom
 
-`areFrozen()`/`areLive()` (plan 0457) and `pointers().areFrozen()`/`.areLive()` read
+`areFrozen()`/`areLive()` ([plan 0457](../../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)) and `pointers().areFrozen()`/`.areLive()` read
 `MdDocument.frozen`, which `corpus()` sets from `picomatch(options.frozen ?? DEFAULT_FROZEN)`
 (`packages/md/src/corpus.ts:78`). Nothing checks those globs: `corpus()` validates `roots`
-(bug 0465) but not `frozen`, and the predicates declare no `globs`, so plan 0456's
+([bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md)) but not `frozen`, and the predicates declare no `globs`, so [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s
 `cardinalitySelectorFault()` has nothing to judge. A text-faulted or over-broad `frozen` glob
 empties a frozen or live scope without a word under an absence rule.
 
@@ -30,7 +30,7 @@ Measured 2026-10-19 on PR #245's build, over a two-page corpus (`archive/old.md`
 | `frozen: ['**']`, `taskItems().areOpen().satisfy(inDocuments(areLive())).should().notExist()`            | 0        | 0        |
 | `frozen: ['/archive/**']`, `links().satisfy(inDocuments(areFrozen())).should().resolve()`                | 1        | 0        |
 
-The second row's finding is plan 0456's: "This absence rule examined nothing because its selector
+The second row's finding is [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s: "This absence rule examined nothing because its selector
 resideInFolder("/archive/\*\*") is broken: a leading `/` …". The fourth row's finding blames the
 predicate ("inDocuments(are frozen) matched none of the corpus's 2 documents — the document
 predicate is dead"), where the fault is the `frozen` option.
@@ -48,7 +48,7 @@ examined 0, green.
 ## Fix
 
 Undecided in detail, two checks at load beside each other: `corpus()` judges each `frozen` glob's
-text with `globTextFault`, as it does for `roots`; and, as bug 0465 does for a root that matches no
+text with `globTextFault`, as it does for `roots`; and, as [bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) does for a root that matches no
 file, it reports a `frozen` glob that matches no loaded document. A dead frozen glob does not fail
 closed: it empties `inDocuments(areFrozen())`, so an absence rule over it is green. (It turns
 `areLive()` into every document, which is over-strict and visible, but the frozen side is the one
@@ -68,9 +68,9 @@ the adopters' ratchet reads.)
 - a glob that marks none of the documents the corpus loaded (`archve/**`), judged only when the
   corpus loaded one.
 
-Decided in the build, from bug 0465's fix and ADR-016/018:
+Decided in the build, from [bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md)'s fix and [ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)/018:
 
-- **A refusal at load, not a finding on each rule's receipt.** Bug 0465 measured the receipt route:
+- **A refusal at load, not a finding on each rule's receipt.** [Bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) measured the receipt route:
   the kernel's dedupe key includes the rule id, so ten rules over one corpus would report one glob
   ten times. One authored mistake, one refusal, on every door that loads a corpus.
 - **"Marks no loaded document", not "matches no file".** A frozen glob outside the roots, or one
@@ -81,27 +81,27 @@ Decided in the build, from bug 0465's fix and ADR-016/018:
   bug exists to protect, an absence rule over the frozen documents
   (`taskItems(c).that().areOpen().satisfy(inDocuments(areFrozen())).should().notExist()`), removal
   fails open: the first record filed in the folder is outside `areFrozen()`, and its open box reds
-  nothing. So the remedy is a declaration, as `expectEmptyRoots` is for a root (bug 0475):
+  nothing. So the remedy is a declaration, as `expectEmptyRoots` is for a root ([bug 0475](./0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md)):
   `corpus({ expectEmptyFrozen })` names frozen globs that may mark nothing. A name that is not one of
   `frozen` is refused (with `frozen` omitted, every name is, since the default is not the caller's
   to declare); a declared glob that marks a document is refused, telling the caller to drop the
-  declaration (ADR-010 §3); a declaration does not excuse a text fault.
+  declaration ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3); a declaration does not excuse a text fault.
 - **The default globs are not judged when `frozen` is omitted.** `**/completed/**` and
-  `**/archived/**` are eess-md's convention (ADR-018 C4), not a string the caller wrote, and most
+  `**/archived/**` are eess-md's convention ([ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) C4), not a string the caller wrote, and most
   corpora lack one of them. Written out, the same list is the caller's and is judged; the docs'
   quickstarts passed it explicitly and were changed to omit it (review, PR for this batch).
 - **A corpus that loads nothing is not judged for dead frozen globs.** Every glob marks nothing
-  there; the empty source is its own finding (bug 0465's precedent). Text faults are still refused.
+  there; the empty source is its own finding ([bug 0465](./0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md)'s precedent). Text faults are still refused.
 - **Flagged as an eess-md break** (a minor): it reds corpora that loaded before. It red this
   repository's own `check:corpus`, whose `FROZEN` listed `**/wont-do/**` and `**/archived/**` with
   no record under either. The first build removed both; after review they are back, declared in
   `EMPTY_FROZEN` (`scripts/check-corpus.mjs`), so the first record filed in either folder is
   frozen, and the declaration then expires.
-- **Plan 0457's guard-pair test** loaded `frozen: ['archive/**']` over a corpus with no archive; it
+- **[Plan 0457](../../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s guard-pair test** loaded `frozen: ['archive/**']` over a corpus with no archive; it
   now holds an archived page outside the ratchet's live scope (`packages/md/tests/in-documents.test.ts`).
 
 The reproduction's rows after the fix: the first and fourth are refused at load, naming the
-`frozen` option; the second is plan 0456's finding, unchanged; the third (`frozen: ['**']`, every
+`frozen` option; the second is [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s finding, unchanged; the third (`frozen: ['**']`, every
 document frozen, `areLive()` empty) is not refused, because a corpus frozen throughout can be
 intended. Re-measured on this branch (0 findings, examined 0) and recorded as
 [bug 0510](../0510-a-frozen-glob-that-marks-every-document-empties-arelive.md).
@@ -110,7 +110,7 @@ intended. Re-measured on this branch (0 findings, examined 0) and recorded as
 
 - [x] Red test written first: the first table row reds once the glob is judged — `packages/md/tests/corpus-frozen-globs.test.ts`; 4 of its 8 tests failed on the unfixed code (the leading-slash, dead, both-named and text-over-empty rows)
 - [ ] validation-owed: `npm run validate` green (it runs after this record is written, at the branch's head; its result is reported on the PR, and CI is the gate)
-- [ ] deferred→bug 0510 — a frozen glob that marks every loaded document is not refused
+- [ ] deferred→[bug 0510](../0510-a-frozen-glob-that-marks-every-document-empties-arelive.md) — a frozen glob that marks every loaded document is not refused
 
 Sabotage matrix (mutant applied to `packages/md/src/corpus.ts`, then restored with `git checkout`):
 
@@ -132,4 +132,4 @@ Sabotage matrix (mutant applied to `packages/md/src/corpus.ts`, then restored wi
 | 7   | a declaration excuses a text fault | `a declaration does not excuse a text fault`                                                                                                                    |
 | 8   | the declaration ignored            | `a declared frozen glob that marks no document loads`, `the declaration expires: a declared glob that marks a document is refused`                              |
 
-Deferred: bug 0510
+Deferred: [bug 0510](../0510-a-frozen-glob-that-marks-every-document-empties-arelive.md)

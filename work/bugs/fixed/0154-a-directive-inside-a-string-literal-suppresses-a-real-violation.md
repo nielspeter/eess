@@ -5,7 +5,7 @@
 - **State:** Fixed — landed 2026-08-23, red test first, every number in the Landed section
   re-measured against this tree rather than carried over from the August worktree.
   `Deferred: none` — eess-md's fenced-code-block case was scoped out by the original design
-  and is unchanged, not newly deferred. Surfaced by plan 0150 Phase 4's three-persona review
+  and is unchanged, not newly deferred. Surfaced by [plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md) Phase 4's three-persona review
   (enforcement, architect and testing converged on it independently), then reproduced
   end-to-end against the built dist.
 - **Severity:** High — a silent hole in the enforcement path. A live violation
@@ -13,13 +13,13 @@
   the failure class the product exists to prevent, in the kernel's own
   suppression machinery.
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) and
-  `@nielspeter/eess-ts` (`0.2.1`). **The defect predates plan 0088's fold** —
+  `@nielspeter/eess-ts` (`0.2.1`). **The defect predates [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold** —
   `git show 810808b:packages/core/src/exclusion-comments.ts` (the `v0.2.3`
   release commit) carries the identical `SINGLE_LINE_RE` and
   `sourceText.split('\n')`. The fold did not introduce it; the fold's failure
   was **not bringing ts-archunit's 0043 fix across with the engine it copied**.
   That distinction matters for scope — see "A wider question" below.
-- **Origin:** self-found · `/review` of plan 0150 Phase 4 (`orphanExclusions()`)
+- **Origin:** self-found · `/review` of [plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md) Phase 4 (`orphanExclusions()`)
 - **Reported:** 2026-08-18
 
 ## Symptom
@@ -41,7 +41,7 @@ Two consequences, one severe and one noisy:
    exclusion naming a rule id of `<rule-id>`, and the user-facing string in
    `packages/core/src/comment-suppression.ts:82` parses as two more.
 
-Consequence 2 was inert until plan 0150 built `orphanExclusions()` — a garbage
+Consequence 2 was inert until [plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md) built `orphanExclusions()` — a garbage
 id simply never equals a real violation's `ruleId`, so nothing downstream ever
 looked. That plan is the first consumer to surface the parse, and it turns the
 garbage into user-facing findings whose stated remedy is to **delete the
@@ -92,7 +92,7 @@ that split is why the Fix below treats prose as an open sub-question.
 > An earlier draft gave this as `npx eess-ts doctor arch.rules.ts
 arch.internal.rules.ts`. **That does not reproduce on `main`** — it prints
 > "No rules that cannot enforce anything", because `orphanExclusions()` was
-> reverted with plan 0150 Phase 4 and exists in no `src/`. A reader running it
+> reverted with [plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md) Phase 4 and exists in no `src/`. A reader running it
 > would conclude this record is stale. The parser call above is the
 > reproduction; the `doctor` framing returns once Phase 4 lands.
 
@@ -104,15 +104,15 @@ literal-blanking pass and no comment-position check, so any line whose raw text
 contains `// eess-exclude <something>` is read as a directive regardless of
 what that line actually _is_.
 
-This is a **known, fixed defect in the ancestor**. ts-archunit hit it as its own
-bug 0043 and fixed it by parsing and blanking every string-like literal — and
+This is a **known, fixed defect in the ancestor**. ts-archunit hit it as
+ts-archunit bug 0043 and fixed it by parsing and blanking every string-like literal — and
 block comments — before scanning (in that repo's own
 `src/core/exclusion-comments.ts`, under the heading "Every string-like literal,
 blanked"; as of 2026-08-18, a separate checkout, deliberately not cited as a
 `path:line` pointer since it does not ground in this repo). Its own comment
 records finding it the hard way: _"this very file's docstring
 explains the bug, contains the directive text, and the moment comments started
-being read correctly it declared a live exclusion"_). Plan 0088 folded
+being read correctly it declared a live exclusion"_). [Plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md) folded
 ts-archunit's engine into eess but this hardening did not come across with it —
 the eess kernel's parser is the pre-0043 shape.
 
@@ -172,7 +172,7 @@ this record said must be answered before the fix lands is answered below.**
    template, and regex literal and every block comment — length- and
    line-preserving, so reported lines are unchanged — before the directive
    regexes run. Line comments are deliberately _not_ blanked; they are the
-   target. **This resolves the ADR-002 question:** the kernel cannot import
+   target. **This resolves the [ADR-002](../../../adr/002-ts-morph-ast-engine.md) question:** the kernel cannot import
    ts-morph, so the scanner is text-only rather than AST-based. The failure
    direction is safe — a mis-lex can only _hide_ a directive (a waiver stops
    working, loudly), never invent one.
@@ -196,7 +196,7 @@ live. Stated rather than left to be discovered.
 
 **The repo's own gate caught the fix.** The first version of the scanner used
 `as string` / `as number` for `noUncheckedIndexedAccess` narrowing — four
-ADR-005 violations, reported by `check:arch` against this repo. Rewritten with
+[ADR-005](../../../adr/005-no-any-no-type-assertions.md) violations, reported by `check:arch` against this repo. Rewritten with
 explicit `undefined` checks; `check:arch` green.
 
 The original prescription, kept for reference:
@@ -219,7 +219,7 @@ and ships HTML-comment forms explicitly for markdown corpora
 (`packages/core/src/exclusion-comments.ts:53-58`), so eess-md carries the same
 defect for `<!-- eess-exclude … -->` inside a fenced code block.
 
-**ADR-002 note:** the fix needs syntax awareness. ts-archunit's uses the AST.
+**[ADR-002](../../../adr/002-ts-morph-ast-engine.md) note:** the fix needs syntax awareness. ts-archunit's uses the AST.
 The kernel has no ts-morph dependency by design (`arch.rules.ts` gates
 `eess/kernel-no-engine-deps`), so a literal-blanking pass here must be
 hand-rolled over text, not delegated to a parser — or the blanking must live on
@@ -255,12 +255,12 @@ mechanical port, and is the reason this bug is filed rather than fixed inline.
 
 ## A wider question this raises
 
-ts-archunit fixed this as **its own bug 0043**, and the fix did not come across
-in plan 0088's fold. That is not necessarily a one-off. ts-archunit has **72
+ts-archunit fixed this as **its own record, ts-archunit bug 0043**, and the fix did not come across
+in [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold. That is not necessarily a one-off. ts-archunit has **72
 fixed bugs**; **52 of them name a file `packages/core/src` also has**. Each is
 a fix that either came across with the engine or did not, and nothing in the
-fold's own record distinguishes the two — 0043 was found only because plan
-0150 happened to build the one consumer that reads the parse.
+fold's own record distinguishes the two — 0043 was found only because
+[plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md) happened to build the one consumer that reads the parse.
 
 This does **not** claim the other 51 are missing; it claims nobody has
 checked, and that the one sample taken came back negative. The audit is
@@ -269,9 +269,9 @@ honest time to run it is **before [plan 0100](../../plans/0100-publish-the-fold-
 publishes the fold** — today `npm` still serves the pre-fold `0.2.2`/`0.2.1`,
 so nothing folded has reached a user yet.
 
-## Impact on plan 0150
+## Impact on [plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md)
 
-Plan 0150 Phase 4 (`orphanExclusions()`) is **blocked** on this. Its port
+[Plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md) Phase 4 (`orphanExclusions()`) is **blocked** on this. Its port
 carried ts-archunit's soundness claim — _"Sound because `parseExclusionComments`
 only ever removes directives when blanking literals"_ — into a kernel that does
 no blanking, so the claim is false here and the capability is unusable against

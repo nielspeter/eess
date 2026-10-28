@@ -99,7 +99,7 @@ physical-source-lines metric, not a statement count.
       worktree: this lands in **0.4.0**.
 - [x] The violation message says what it measured. "`TerminalBuilder` has 372
       lines" named a number the author cannot find in a 1218-line file; it now
-      reads "372 code lines" (ADR-008: attribution, not colour). Safe for
+      reads "372 code lines" (ts-archunit's ADR-008, eess's [ADR-009](../../../adr/009-agent-first-failure-surfaces.md): attribution, not colour). Safe for
       existing baselines — a metric finding sets `identity` explicitly, and
       `hashViolation` hashes `rule::identity`, so the message is not in the hash.
 - [x] The carve-outs this justified in `arch.internal.rules.ts` are re-measured

@@ -11,10 +11,10 @@
   about them, and `.check()` returns normally. This is the defect the product
   exists to prevent, in the library's own engine.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0019), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (ts-archunit bug 0019), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). The guard is at `rule-builder.ts:337` in `810808b` (the `v0.2.3`
-  release commit), so this is live for adopters today — not gated behind plan 0100.
+  release commit), so this is live for adopters today — not gated behind [plan 0100](../../plans/0100-publish-the-fold-retire-ts-archunit.md).
 - **Reported:** 2026-08-19
 
 ## Symptom
@@ -64,7 +64,7 @@ if (this._conditions.length === 0 && this._phase === 'predicate') {
 The guard can only fire for the predicate-only shape. And even when it fires it
 is a `writeStderr` warning (`:335`), never a finding.
 
-**This predates plan 0088's fold** — `git show 810808b:packages/core/src/rule-builder.ts`
+**This predates [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold** — `git show 810808b:packages/core/src/rule-builder.ts`
 carries the identical line at `:337`. eess forked from ts-archunit at ~0.17 and
 froze; upstream fixed this afterward and the fix was not carried across.
 
@@ -74,7 +74,7 @@ unsuppressable finding. `grep -rn "assertsSomething\|collectWithAssertionGuard"
 packages/` returns **zero hits** in eess.
 
 Note the deliberate decision recorded at `rule-builder.ts:330-332` — that an
-assertion-less rule "stays a stderr warning, not the unsuppressable ADR-010
+assertion-less rule "stays a stderr warning, not the unsuppressable [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)
 finding." That decision is defensible; what is not is that the warning it
 routes to cannot fire for the documented rule shape.
 
@@ -107,7 +107,7 @@ Where the machinery lives now:
 | `assertsSomething()`        | `packages/core/src/rule-builder.ts:216`                                   |
 | `should()` sets the phase   | `packages/core/src/rule-builder.ts:122`                                   |
 | the finding constructor     | `packages/core/src/terminal-builder.ts:422`                               |
-| the rewritten contract test | `packages/core/tests/contract/extension-surface.test.ts:265` (was `:207`) |
+| the rewritten contract test | `packages/core/tests/contract/extension-surface.test.ts:268` (was `:207`) |
 
 **The check worth making, given the split, is that the fix survived on _both_
 implementations** — the failure mode [bug 0163](../0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)
@@ -128,8 +128,8 @@ from the tree entirely.
 Found in PR #70's review, and it constrains the fix.
 
 `packages/core/tests/contract/extension-surface.test.ts:207` —
-`it('named-selection reuse across two branches does not leak conditions (bug
-0016, RuleBuilder side)')` — ends with a branch that calls `.should()` and
+`it('named-selection reuse across two branches does not leak conditions (RuleBuilder side)')` (ts-archunit
+bug 0016's shape; the title dropped its number in [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5) — ends with a branch that calls `.should()` and
 adds no condition, asserting `not.toThrow()`. Its comment claims that branch
 _"hits the 'predicates but no conditions' assertion-less path and passes."_
 
@@ -143,7 +143,7 @@ Two consequences:
 - **Fixing part 1 below changes what that test asserts** (the branch starts
   warning); **fixing part 2 breaks it** (the branch starts throwing). The test
   and its comment must be rewritten as part of this fix, not after.
-- **Plan 0150 cites this test title** as its evidence that plan 0088's
+- **[Plan 0150](../../plans/0150-close-0088s-disclosed-review-findings.md) cites this test title** as its evidence that [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s
   review-finding 4 is closed
   (`work/plans/0150-close-0088s-disclosed-review-findings.md`). That evidence
   is weaker than the citation implies: the test does exercise the copy-on-write
@@ -159,10 +159,10 @@ whichever of the two is picked up first; neither blocks the other.
 
 ## Ruling — unsuppressable configuration finding, not a warning (2026-08-19)
 
-The open question this record carried. Decided against ADR-009's own
+The open question this record carried. Decided against [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)'s own
 discriminator, with the blast radius measured rather than estimated.
 
-**ADR-009 rule 1 states the test:** _"The discriminator is whether the remedy
+**[ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1 states the test:** _"The discriminator is whether the remedy
 is optional, not whose check it is… A finding the reader is expected to judge
 has an optional remedy and should warn. A finding with one correct answer must
 fail."_
@@ -170,13 +170,13 @@ fail."_
 An assertion-less rule has **no optional remedy**. There is no state in which
 "it keeps asserting nothing" is correct — the answer is add a condition or
 delete the rule, and either way something must change. Contrast the two rules
-ADR-009 itself names as deliberately `warn`: `no-silent-catch` and
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md) itself names as deliberately `warn`: `no-silent-catch` and
 `no-empty-bodies` warn _because_ they have known suppressible false positives
 the user must judge one by one. This has none.
 
 **The counter-argument in the code answers a different question.**
 `rule-builder.ts:330-332` reads: _"distinct from the zero-examined case above
-and stays a stderr warning, not the unsuppressable ADR-010 finding — examined
+and stays a stderr warning, not the unsuppressable [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) finding — examined
 is non-zero either way."_ That is **true, and it settles a different point**:
 it correctly rules out reusing `zeroExaminedViolation()`'s message, because
 this is not the zero-examined case. It does not establish that the answer is a
@@ -257,7 +257,7 @@ belongs in a helper.
       per selected element, since running the assertion-less rule itself now
       returns the finding under test.
 - [x] The warning-vs-finding decision is recorded in this file — see Ruling:
-      an unsuppressable configuration finding, per ADR-009 rule 1's
+      an unsuppressable configuration finding, per [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1's
       optional-remedy discriminator.
 - [x] `extension-surface.test.ts` and its comment rewritten so branch B proves
       "no leak" with its own passing condition, not via silence.

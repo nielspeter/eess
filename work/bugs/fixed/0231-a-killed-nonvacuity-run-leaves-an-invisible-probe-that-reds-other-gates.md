@@ -247,7 +247,7 @@ later reader needs to judge the choice:
 The obvious fix is a `check:integrity` row: it is already the workspace-hygiene
 gate, it is fast, and it would name the leftover with a remedy instead of
 letting an unrelated rule report a phantom violation. That is the repo's own
-standard (ADR-009 rule 2).
+standard ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2).
 
 **It is not a one-liner, and the reason is worth stating before anyone starts.**
 Scenario 6 in `bad-waived-gates.mjs:329` plants `__nonvacuity_probe_nul__.ts`
@@ -261,7 +261,7 @@ if (!nul.out.includes('__nonvacuity_probe_nul__') || nul.status === 0) { … }
 was the raw NUL bytes. Add a "no leftover probe" rule to `check:integrity` and
 that fixture goes green on the new rule instead of the one it exists to prove:
 a fail-open inside the non-vacuity harness. Tightening it to assert the NUL
-reason is correct independently — it is bug 0110's own lesson, "assert the
+reason is correct independently — it is [bug 0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s own lesson, "assert the
 identifier, not just the exit code" — so this is two changes that must land
 together.
 

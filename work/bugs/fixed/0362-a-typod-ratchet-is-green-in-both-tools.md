@@ -176,7 +176,7 @@ the rows above are the answer._
 **Second fix — the wrong remedy one cause over:**
 
 - [x] reproduced: the quoted `cause` / `Fix:` pair above, measured on `'./src/**'`.
-- [x] a remedy-**remediates** test, not only remedy-contains — ADR-009 rule 2's corollary:
+- [x] a remedy-**remediates** test, not only remedy-contains — [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's corollary:
       `it('the stated fix, applied, clears the finding on both cardinality routes')` applies
       each stated fix (correct the selector; widen the include, via a second tsconfig) and
       asserts the configuration finding clears, with a vacuity guard that the widened

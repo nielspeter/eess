@@ -82,7 +82,7 @@ Note the two consumers pull in opposite directions and both want this:
 
 - `docs().haveSection()` wants frontmatter **gone** from the section list.
 - The term extractor (`vocabulary.ts`) scans **text lines**, so it reads
-  frontmatter today and should keep doing so — see proposal 001, where the
+  frontmatter today and should keep doing so — see [proposal 001](../../proposals/001-md-corpus-rule-coverage.md), where the
   source becomes a `region` value. Fixing the parser must not remove that
   ability; the `yaml` node keeps its raw content and its position.
 
@@ -93,7 +93,7 @@ Note the two consumers pull in opposite directions and both want this:
       depth-2 entry.
 - [x] The `yaml` node carries the frontmatter's raw text and start line.
 - [x] `terms()` still matches labels inside frontmatter (the text-line scan is
-      unaffected) — a regression test, since proposal 001 depends on it.
+      unaffected) — a regression test, since [proposal 001](../../proposals/001-md-corpus-rule-coverage.md) depends on it.
 - [x] `MdTable.sectionPath` on a frontmatter-bearing document no longer includes
       the phantom section.
 - [x] `npm run check:corpus` unchanged on this repo (no corpus document here

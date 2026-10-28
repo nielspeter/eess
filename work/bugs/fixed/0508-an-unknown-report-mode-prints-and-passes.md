@@ -2,15 +2,15 @@
 
 ## Status
 
-- **State:** Fixed — 2026-10-19, on branch `fix/fail-open-batch` (with bugs 0499 and 0506's
-  crossvalidate half, and plan 0481). Recorded 2026-10-19; reproduced on main (7ef7a1d).
+- **State:** Fixed — 2026-10-19, on branch `fix/fail-open-batch` (with [bugs 0499](./0499-corpus-does-not-check-its-frozen-globs.md) and 0506's
+  crossvalidate half, and [plan 0481](../../plans/completed/0481-this-repository-dogfoods-notexist.md)). Recorded 2026-10-19; reproduced on main (7ef7a1d).
 - **Severity:** High — a caller without TypeScript's check (a JavaScript rule file, or a mode read
   from config or the environment) that misspells the mode gets a green exit over real violations. The
   violations are printed, so a person reading the log may notice; an agent reading the exit code will
-  not (ADR-009). Bug 0157 (a misspelt `overrides` key) set the precedent for this severity. No caller
+  not ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md)). [Bug 0157](./0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md) (a misspelt `overrides` key) set the precedent for this severity. No caller
   in this repository passes an unknown mode today: every `report:` in `scripts/` and `*.rules.ts` is
   a literal `'return'`, `'warn'`, `'throw'` or `'builders'` (grep, 2026-10-19).
-- **Origin:** self-found · noticed while reproducing bug 0507 (filed on PR #247's branch), whose
+- **Origin:** self-found · noticed while reproducing [bug 0507](./0507-a-boxs-text-stops-at-its-first-paragraph.md) (filed on PR #247's branch), whose
   reproduction called `honestyAtClose(c, { report: false })` and printed its violations; confirmed
   with a misspelt mode. 0507's counts are unaffected: the return value is the same in every mode.
 - **Reported:** 2026-10-19
@@ -69,8 +69,8 @@ modes. eess-ts's `deliver` needed no change: it handles `'builders'` and hands e
 Decided in the build, against the record:
 
 - **Not flagged as a break.** The refusal reds only a run whose `report` value is outside the
-  published `ReportMode` type, and that run was printing real violations above a zero exit. Bug
-  0284's refusal was flagged because it refused values its type admitted; this one admits nothing
+  published `ReportMode` type, and that run was printing real violations above a zero exit.
+  [Bug 0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)'s refusal was flagged because it refused values its type admitted; this one admits nothing
   new and refuses nothing typed. The changeset is a patch for `eess` and `eess-ts`.
 - **eess-ts refuses first, with all four modes** (review fix). The kernel's message lists its three
   modes, so an eess-ts caller who misspelt `'builders'` was told to choose among modes that did not

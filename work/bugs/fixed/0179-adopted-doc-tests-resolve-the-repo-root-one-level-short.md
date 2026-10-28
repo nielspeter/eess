@@ -34,8 +34,8 @@ also encode that project's:
 - **conventions** — `**Status:**` headers where eess writes `- **State:**`;
 - **numbering** — citations to `bugs/fixed/0044-…` and
   `adr/008-agent-first-failure-surfaces.md`, whose numbers mean _different
-  documents_ in eess. eess's ADR-008 is "caller owns reporting"; the agent-first
-  one is ADR-009.
+  documents_ in eess. eess's [ADR-008](../../../adr/008-caller-owns-reporting.md) is "caller owns reporting"; the agent-first
+  one is [ADR-009](../../../adr/009-agent-first-failure-surfaces.md).
 
 That last one was the dangerous class: not a dead link but a **live link to the
 wrong decision**.
@@ -82,7 +82,7 @@ blanket `'../../..'` would have been wrong.
   honest options were to delete them or to write an upgrade page to satisfy a test,
   and writing product docs to make a test green is backwards. Adopting them
   conditionally ("check it if it exists") would be worse: a gate that cannot fail
-  (ADR-009).
+  ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md)).
 - **`completed-plans-are-marked-done`** — a duplicate. `check:ledger` already
   enforces it, better and natively. Verified by experiment: setting a completed
   plan's State to `Draft` produces `ledger/state-folder-mismatch — State: Draft
@@ -113,7 +113,7 @@ but filed in a done-folder`.
   [bug 0182](../0182-a-done-folder-document-with-no-state-line-is-not-an-item.md).
 
 - **`every-plan-declares-its-blast-radius`** — would silently convert a
-  review-enforced rule into a gate. eess's ADR-009 says in as many words that
+  review-enforced rule into a gate. eess's [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) says in as many words that
   "Rules 1–4 and rule 6 are **review-enforced**", its Enforcement table has no row
   for rule 6, and `CLAUDE.md` does not require the line.
 
@@ -128,7 +128,7 @@ but filed in a done-folder`.
   The ruling is unchanged and is strengthened by the real numbers. But a triage
   table justified by arithmetic nobody ran is the wrong precedent in this repo.
 
-  **And the real justification is stronger than the one given.** ADR-009 does not
+  **And the real justification is stronger than the one given.** [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) does not
   merely leave rule 6 review-enforced by omission; it says so outright at line 229:
   "We deliberately do **not** dogfood these six rules as `eess-ts` rules against
   this repo's own source." Adopting that test would have contradicted a binding
@@ -158,26 +158,38 @@ having done it rather than deleting the tests:
 3. **146 source-comment citations into a foreign corpus.** Repaired by matching on
    **slug** rather than number, which is verifiable rather than invented: 22 resolved
    to an eess record (confirming the fold renumbering — ts-archunit ADR-008 →
-   eess ADR-009, bug 0020 → eess 0156, bug 0038 → eess 0157) and 124 became absolute
+   eess [ADR-009](../../../adr/009-agent-first-failure-surfaces.md), ts-archunit bug 0020 → eess 0156, ts-archunit bug 0038 → eess 0157) and 124 became absolute
    `ts-archunit` URLs, which is what they are: citations of upstream history with no
    eess equivalent. 0 ambiguous. Four fixture strings (`./old.md`, `./ghost.md`)
    were excluded by guard — they are test data, not citations.
 
 ### A defect this fix introduced, found in review and repaired
 
-Repointing the hrefs left the **labels** untouched, so 13 citations read
-`[ADR-008]` while resolving to `adr/009-…`, and `[bug 0020]` while resolving to
-`work/bugs/0156-…`. A reader greps the label, not the href — so the fix for "a
+Repointing the hrefs left the **labels** untouched, so 13 citations read as
+follows:
+
+```text
+[ADR-008]  while resolving to adr/009-…
+[bug 0020] while resolving to work/bugs/0156-…
+```
+
+A reader greps the label, not the href — so the fix for "a
 live link to the wrong decision" produced exactly that, and converted a loud
 failure (a dead link, which the gate saw) into a silent one (a resolving link
 with a wrong name, which no gate sees).
 
 Worse in scale, and pre-existing from the adoption rather than from this fix:
-**177 unlinked prose references** said `ADR-008 rule N` or `ADR-009 part N`.
-eess's ADR-008 (`caller-owns-reporting`) has **no numbered rules at all**; the
-rules are ADR-009's, and the numbered Decision parts are ADR-010's. Both mappings
+**177 unlinked prose references** said one of these two forms:
+
+```text
+ADR-008 rule N
+ADR-009 part N
+```
+
+eess's [ADR-008](../../../adr/008-caller-owns-reporting.md) (`caller-owns-reporting`) has **no numbered rules at all**; the
+rules are [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)'s, and the numbered Decision parts are [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s. Both mappings
 were verified in range before rewriting — the cited rule numbers are 1–6 and
-ADR-009 has Rules 1–6; the cited part numbers are 1, 3 and 4 and ADR-010 has
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md) has Rules 1–6; the cited part numbers are 1, 3 and 4 and [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) has
 parts 1–4.
 
 Repaired: 13 labels synced to their targets, 177 prose references renumbered, and
@@ -190,9 +202,15 @@ a different defect.
 
 `cross-document-links-resolve.test.ts`'s source-comment check is kept even though
 `check:corpus` overlaps its corpus half: the two derive the link set differently,
-and ADR-009 rule 5 is why a second independent derivation is worth having. (This
-record cited `ADR-008 review rule 5` until review caught it: eess's ADR-008 has
-no numbered rules at all — an instance of the very defect described below.)
+and [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5 is why a second independent derivation is worth having.
+
+This record cited the following until review caught it, though eess's [ADR-008](../../../adr/008-caller-owns-reporting.md) has no
+numbered rules at all — an instance of the very defect described below:
+
+```text
+ADR-008 review rule 5
+```
+
 The `src/`-comment direction is covered by no gate at all.
 
 ## Verification
@@ -205,7 +223,7 @@ The `src/`-comment direction is covered by no gate at all.
       `upgrading.md` carve-out was removed as vacuous.
 - [x] **Per ROW, not merely per file.** The line above was first written at file
       granularity and was false at row granularity, which is the granularity
-      ADR-010 uses: two rows of `doc-globs-are-anchored` filtered
+      [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) uses: two rows of `doc-globs-are-anchored` filtered
       `ANCHORING_REQUIRED`, a set empty by construction, so no input could redden
       them and the file-level floor was satisfied by a sibling bucket. Measured —
       a `./`-prefixed glob added to `docs/cli.md` left all five rows green while

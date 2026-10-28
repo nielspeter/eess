@@ -8,7 +8,7 @@
 - **Severity:** Medium — a cardinality rule whose glob is decidably broken (rooted, or naming Markdown
   the corpus never loaded) passes. eess-ts guards against it on its own; any other dialect that ships
   a cardinality condition inherits the silent pass. A typo naming nothing stays green after the fix
-  (bug 0355's ruling; see below).
+  ([bug 0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)'s ruling; see below).
 - **Origin:** self-found · PR #235's reviews, 2026-10-18.
 - **Reported:** 2026-10-18
 
@@ -29,14 +29,14 @@ a cardinality-marked condition on eess-md's `docs()`:
 | `gudies/**` | 0 findings, examined 0 → green | 1 finding ("examined zero units") |
 
 **What the fix does not change.** The `gudies/**` row above names nothing in the repository, and under
-bug 0355's ruling that cannot be told from a ratchet that holds (a deleted folder), so it stays green
+[bug 0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)'s ruling that cannot be told from a ratchet that holds (a deleted folder), so it stays green
 after the fix. It is caught only where the folder is the corpus's root: then the corpus is empty, and
-an empty corpus is a finding (plan 0456). What the fix closes is a glob whose fault is decidable: a
+an empty corpus is a finding ([plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md)). What the fix closes is a glob whose fault is decidable: a
 rooted `/` glob, or one naming Markdown the repository holds that the corpus never loaded.
 
-eess-ts closed the same class in its own dialect, with a disk discriminator (bug 0355) and a
-syntactic clause (bug 0362). The kernel has neither, and eess-md has no cardinality condition yet,
-so the exposure arrives with proposal 017's block 6. eess-mermaid's selectors are class names,
+eess-ts closed the same class in its own dialect, with a disk discriminator ([bug 0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)) and a
+syntactic clause ([bug 0362](./0362-a-typod-ratchet-is-green-in-both-tools.md)). The kernel has neither, and eess-md has no cardinality condition yet,
+so the exposure arrives with [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 6. eess-mermaid's selectors are class names,
 not paths, so this kernel order does not reach it; its empty-diagram pass is
 [bug 0463](../0463-a-mermaid-notexist-over-an-empty-diagram-passes.md).
 
@@ -45,7 +45,7 @@ not paths, so this kernel order does not reach it; its empty-diagram pass is
 In the kernel, a cardinality rule that examined zero first asks the dialect whether its selector is
 at fault, under [bug 0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)'s
 ruling: a fault decidable from the glob text (a leading `/`, a `../` segment, or a `./` segment after the
-first; picomatch strips a leading `./`, so that one is not a fault, measured in plan 0456), a
+first; picomatch strips a leading `./`, so that one is not a fault, measured in [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md)), a
 backslashes used as path separators (including before `*` or `?`, so `guides\**` is caught), every
 candidate replaced by `/` at once, where that glob selects real files and the glob as written selects
 none, or a glob naming
@@ -58,7 +58,7 @@ Planned in [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.
 
 Each red-first row drives the entry point that compiles on main: eess-md's public `docs()` builder
 with a cardinality-marked condition built from `@nielspeter/eess/internal`, so it fails on the defect
-and not on the API plan 0456 adds.
+and not on the API [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md) adds.
 
 - [x] Red first, measured at build: a cardinality rule over a rooted `/guides/**` glob passes today
       (`packages/md/tests/selector-fault.test.ts`, committed failing as 57259275: zero findings,

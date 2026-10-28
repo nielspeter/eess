@@ -57,7 +57,7 @@ honesty about warnings that **stopped being produced**, and the two are
 indistinguishable from the green side — which is the manifesto's own sentence
 about a rule that never fires being either a solved problem or a vacuous check.
 
-Bug 0239 is the live instance of that risk in the same detector: `clusterRank`
+[Bug 0239](./0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md) is the live instance of that risk in the same detector: `clusterRank`
 and `peakSimilarity` can both be neutered with the whole suite staying green.
 
 ## Fix
@@ -70,7 +70,7 @@ and `peakSimilarity` can both be neutered with the whole suite staying green.
 3. For `no-copy-paste` specifically, a fixture that plants a genuine duplicate
    pair and asserts the finding is produced, so "the count went to zero" and "the
    detector went silent" stop being the same observation. Whether the gate should
-   also block on it is a separate decision and is **not** proposed here: bug 0169
+   also block on it is a separate decision and is **not** proposed here: [bug 0169](../0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md)
    settled that the detector's weight is advisory.
 
 ## Verification
@@ -105,7 +105,7 @@ and `peakSimilarity` can both be neutered with the whole suite staying green.
       review, and it was a real omission: a `SIGKILL` mid-scenario would have
       left a probe behind that the next run no longer cleared. `check:integrity`
       would still NAME it — its scan is prefix-based, not a list — so the
-      misattribution half of bug 0231 was never at risk; what was lost was the
+      misattribution half of [bug 0231](./0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md) was never at risk; what was lost was the
       auto-recovery the list's own comment promises. Verified by planting two
       probes by hand and watching a run sweep them.
 - [x] Two stale pinned numbers removed while here, the same class of defect as

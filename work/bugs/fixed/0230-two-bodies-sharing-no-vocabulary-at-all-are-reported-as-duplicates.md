@@ -56,7 +56,7 @@ packages/ts/src/smells/similar-pairs.ts
   fast rejection 2  min(a.distinctVocabulary, b.distinctVocabulary) < floor
 ```
 
-Plan 0103's floor asks "does this body carry enough vocabulary to be evidence?"
+ts-archunit plan 0103's floor asks "does this body carry enough vocabulary to be evidence?"
 — a per-body question. Nothing asks the **pairwise** one: _do these two bodies
 carry any of the same vocabulary?_ `computeSimilarity` cannot supply it either,
 and must not: it scores LCS over syntax KINDS only, which is what makes it a
@@ -129,7 +129,7 @@ the two pairs named above and nothing else.
       reported. `packages/ts/tests/smells/shared-vocabulary.test.ts` ·
       `it('reports nothing for two same-shaped records with no shared identifier')`.
       Confirmed red before the guard, and the first fixture had to be widened
-      to eight fields a side to clear plan 0103's floor at all — which is
+      to eight fields a side to clear ts-archunit plan 0103's floor at all — which is
       itself the reason the defect is rare.
 - [x] Red test that must stay green: the `implement` / `haveDecorator` shape,
       the real finding with the fewest shared items on this repo, is still

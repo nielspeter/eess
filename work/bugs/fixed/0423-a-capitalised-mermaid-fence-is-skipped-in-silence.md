@@ -25,14 +25,14 @@ passes.
 
 The selector compares `b.lang === 'mermaid'` (`packages/crossvalidate/src/md-mermaid.ts`,
 `classDiagramBlocks`). A tag that differs only in case is neither selected nor reported as a near
-miss. Plan 0412's `parseCodeBlocks` handles the same case by disclosing a case-folded near-miss tag;
+miss. [Plan 0412](../../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s `parseCodeBlocks` handles the same case by disclosing a case-folded near-miss tag;
 these bindings do not.
 
 ## Fix
 
 **Decided 2026-10-15, overrulable: read the tag case-insensitively.** A fence tagged `Mermaid` is plainly
 meant as a diagram. Reading it closes the false green with nothing for the author to change. The other
-candidate, plan 0412's exact match with the near miss disclosed, would either stay quiet beside read
+candidate, [plan 0412](../../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s exact match with the near miss disclosed, would either stay quiet beside read
 fences or make authors retag. `isMermaidTag()` in `packages/crossvalidate/src/shared.ts` is used by both
 of `md-mermaid`'s selectors, the comparison and `embeddedDiagramStats`.
 

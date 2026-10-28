@@ -19,7 +19,7 @@
 ## Symptom
 
 A rule built with `.because('…')` and consumed through `.violations()` — the
-ADR-008 caller-owns-emission path — emits violations whose `because` is unset:
+[ADR-008](../../../adr/008-caller-owns-reporting.md) caller-owns-emission path — emits violations whose `because` is unset:
 
 ```json
 {

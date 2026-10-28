@@ -5,13 +5,13 @@
 - **State:** Fixed — all four barrels carry both constructors, asserted by a
   test that runs under `check:family`.
 - **Severity:** Medium — it costs an adopter a direct kernel dependency, which is
-  the exact thing plan 0089 and ADR-011 exist to avoid.
+  the exact thing [plan 0089](../../plans/completed/0089-family-standalone-sufficiency.md) and [ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md) exist to avoid.
 - **Origin:** self-found · writing the 0.5 migration guide, when the docs-code
   gate refused a claim about where `mergeCollectResults` lives.
 
 ## Symptom
 
-ADR-014 made `collectResult` and `mergeCollectResults` the two constructors an
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) made `collectResult` and `mergeCollectResults` the two constructors an
 adopter needs to build or combine a receipt. A consumer who installs one dialect
 should reach both without a second install. Measured on `main`:
 
@@ -53,7 +53,7 @@ thing to be written".
 
 ## The corruption that must produce a violation
 
-A dialect barrel that does not publish a symbol ADR-014 names as required for
+A dialect barrel that does not publish a symbol [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) names as required for
 building or merging a receipt.
 
 ## Fix sketch
@@ -77,7 +77,7 @@ the general problem 0275 describes.
       the sentence about to reach six published CHANGELOGs is one the suite holds.
 - [x] **The required-set assertion is worth having, and this is the decision.**
       The test is not a list of what happens to be exported — it names what
-      ADR-014 requires an adopter to be able to do, and checks each barrel against
+      [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) requires an adopter to be able to do, and checks each barrel against
       that. It also guards its own list: a final case asserts every required name
       is still on the kernel root, so renaming a constructor reds here rather than
       leaving four tests quietly asserting a symbol nobody exports.
@@ -109,12 +109,12 @@ this is the fix that makes its own sentence true.
 on its first outing.** The first fix asserted the two constructors a pending
 changeset happened to name. Measured consequence: `eess-gherkin` could build a
 receipt and merge two, and could reach neither `finishPreset` nor
-`reportViolations` to hand one to — while ADR-014 records that this package
+`reportViolations` to hand one to — while [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) records that this package
 publishes no binary, so "the seam is the preset a caller finishes". `eess-md` was
 missing the emitter and the error guard too.
 
-The set is now derived clause by clause: the two constructors (ADR-014), the one
-emitter (ADR-008), `finishPreset` for the packages whose seam is a preset, and
+The set is now derived clause by clause: the two constructors ([ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)), the one
+emitter ([ADR-008](../../../adr/008-caller-owns-reporting.md)), `finishPreset` for the packages whose seam is a preset, and
 `isArchConfigError` so a caller can recognise what that seam throws. Adding a
 clause to those ADRs means adding a name here, which is the coupling that makes
 this a check of the decision rather than of the code.
@@ -132,7 +132,7 @@ unified because a hand-synced pair drifts. This test is a third consumer, so it
 now reads those sets and fails on a contradiction rather than becoming a fourth
 definition.
 
-**The clause is in ADR-011, not only here.** A method review pointed out that
+**The clause is in [ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md), not only here.** A method review pointed out that
 this fix made `check:family` block the build on a rule no ADR stated — the
 supply half has a clause and a `gated` row, the demand half existed in a bug
 record's ledger box. A decision that reds CI belongs in the decision record. The
@@ -140,7 +140,7 @@ row is added, and it carries the derivation, the two guards on the guard, and th
 crossvalidate scope limit, so the coupling this record claims is held by
 something other than a sentence.
 
-**And the shape is not newly noticed.** ADR-011 already states this exact
+**And the shape is not newly noticed.** [ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md) already states this exact
 mismatch as a decided premise: the rule's `because` promises a standalone
 consumer never needs a second install, its implementation compares against what
 the package's source imports, "those are not the same set". This bug is that

@@ -3,13 +3,13 @@
 ## Status
 
 - **State:** Fixed — by construction: the receipt contract reports it, with no
-  guard of its own (plan 0235).
+  guard of its own ([plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md)).
 - **Severity:** High — **false green.** The flagship dialect's flagship preset
   can be switched off entirely and every gate reports it healthy. This is the
-  class ADR-009/010 exist to make unrepresentable, in the package adopters
+  class [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)/010 exist to make unrepresentable, in the package adopters
   install.
 - **Created:** 2026-09-05
-- **Found by:** self-found · building plan 0235 Phase 0, checking whether that
+- **Found by:** self-found · building [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md) Phase 0, checking whether that
   plan's D5 could be wired as written
 
 ## Symptom
@@ -83,7 +83,7 @@ declaration never engages.
 Two further facts, both measured, close the alternative:
 
 - **No `eess-ts` preset calls `dispatchRule`** — zero call sites; only
-  `eess-md`'s `adrEnforcement` does. So the mint ADR-014 §3 originally named for
+  `eess-md`'s `adrEnforcement` does. So the mint [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3 originally named for
   this case cannot reach `recommended` or `layeredArchitecture` at all.
 - **The codebase forbids a user to write the declaration eess would mint.**
   `declaredEmptyFindings` reports an `expectEmpty` id naming an `'off'` rule:
@@ -96,8 +96,8 @@ instrument, never one eess infers from a configuration.
 **A correction recorded rather than edited away.** The first version of this
 record argued the opposite — that all-off should be marked `declaredEmpty` and
 the defect was only that the receipt failed to say so. That rested on reading
-ADR-014 §3 as written and on misreading the `UNSUPPRESSABLE` sentence's "a
-permanent decision that never expires" as a blessing. In ADR-010 §3's grammar
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3 as written and on misreading the `UNSUPPRESSABLE` sentence's "a
+permanent decision that never expires" as a blessing. In [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3's grammar
 "never expires" is the diagnostic, not the endorsement: a declaration whose
 expiry can never engage asserts nothing.
 
@@ -112,12 +112,12 @@ the receipt is where the evidence lives and a standalone guard would build a
 parallel floor that 0235 then replaces. `recommended` and `layeredArchitecture`
 join the census as call sites passing the fact.
 
-Plan 0235's Phase 0 must NOT route these two presets through `assertEnabled`:
+[Plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md)'s Phase 0 must NOT route these two presets through `assertEnabled`:
 that finding's message ("every rule it can build sits behind an optional flag,
 and none was set") is false of both — their rules are on by default. Two causes,
 two messages. That correction is recorded in 0235's Phase 0.
 
-**The reachable remedies for an author who means it** are the ones ADR-010 §3
+**The reachable remedies for an author who means it** are the ones [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3
 already names: leave the rules on and declare them empty, so the declaration
 expires the day it stops being true; or remove a call that enforces nothing.
 
@@ -130,7 +130,7 @@ Measured: `adrEnforcement` (`eess-md`) with `adr/enforcement-declared`,
 
 That settles placement. `deliver()` is `eess-ts`-only and not exported, and
 `eess-md` and `eess-crossvalidate` reach `finishPreset` with no `deliver()` in
-between (plan 0235's D6 states this). A `deliver()`-scoped guard would cover the
+between ([plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md)'s D6 states this). A `deliver()`-scoped guard would cover the
 five `eess-ts` presets and leave `adrEnforcement`, `honestyAtClose` and
 crossvalidate's six emitting green over zero constructed checks. The finding
 belongs at the seam both dialects share.
@@ -157,6 +157,6 @@ belongs at the seam both dialects share.
 **Closed by construction, not by a guard.** An all-off preset produces zero
 builders, the kernel merge sums zero members with no declaration, and the
 emitter reports it. That is why this record's "Fix" argued against a standalone
-guard: it would have built a parallel floor that plan 0235 then replaced.
+guard: it would have built a parallel floor that [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md) then replaced.
 
 Deferred: none.

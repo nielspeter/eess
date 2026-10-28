@@ -123,7 +123,7 @@ ambiguous code pointer: "rule-builder.ts:1" matches 2 files
 **No autofix**, deliberately: choosing among the candidates is a judgement, and a
 deterministic rewrite would pick whichever sorted first and call it repaired.
 
-**Severity is the caller's, not the condition's** (ADR-008). The condition emits a
+**Severity is the caller's, not the condition's** ([ADR-008](../../../adr/008-caller-owns-reporting.md)). The condition emits a
 violation; `.check()` fails on it and `.warn()` reports it, exactly as for broken
 and stale. The record asked whether to ship `.warn()`-first — that turned out to
 be the wrong question, because it is not the dialect's call to make.

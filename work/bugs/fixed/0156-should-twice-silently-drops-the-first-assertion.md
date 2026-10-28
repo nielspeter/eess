@@ -7,7 +7,7 @@
 - **Severity:** High — false green. Two assertions are written, one is
   enforced, real findings are discarded, and the build passes with no output.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0020), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (ts-archunit bug 0020), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). `fork._conditions = []` is at `rule-builder.ts:294` in `810808b`
   (the `v0.2.3` release commit), so this is live for adopters today.
@@ -18,7 +18,7 @@
 Found auditing the backlog: the board carried this as an open High while the fix was on
 `main` and under test. No code changed to close it.
 
-**Evidence, two independent kinds** — the source and a committed test, per ADR-009 rule 5:
+**Evidence, two independent kinds** — the source and a committed test, per [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5:
 
 - `packages/core/src/rule-builder.ts:318` — `fork()` carries _"Nothing here clears the
   conditions (bug 0156). It used to, and a second `.should()` therefore silently discarded
@@ -29,7 +29,7 @@ Found auditing the backlog: the board carried this as an open High while the fix
 **Why it matters beyond one record.** A fixed bug left open is not harmless: it inflates the
 board's High count, and the next person triaging cannot tell it from real work. Three of the
 five bugs this audit checked were in that state, and the only way to tell was to read the
-source — bug 0161's fix, for one, landed with no reference to its number at all, so no grep
+source — [bug 0161](./0161-smell-detectors-silently-miss-object-literal-functions.md)'s fix, for one, landed with no reference to its number at all, so no grep
 would have found it.
 
 ## Symptom
@@ -78,14 +78,14 @@ protected fork(): this {
 
 Upstream's fix was to delete that one line so conditions accumulate.
 
-**This predates plan 0088's fold** — `git show 810808b:packages/core/src/rule-builder.ts`
+**This predates [plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold** — `git show 810808b:packages/core/src/rule-builder.ts`
 carries the identical line at `:294`. eess forked from ts-archunit at ~0.17 and
 froze; upstream fixed this afterward and the fix was not carried across.
 
 Worth noting what eess _does_ have: bug-0016 copy-on-write works, so the held
 builder is no longer mutated (`held.violations()` still reports 4 after
 deriving). eess has the copy and still has the clear — precisely the state
-upstream was in between its bugs 0016 and 0020.
+upstream was in between ts-archunit's bugs 0016 and 0020.
 
 ## Fix
 
@@ -101,7 +101,7 @@ Measured, in an isolated worktree against a green baseline:
 | kernel suite                                           | 145/145   | **145/145** ✓                                                      |
 | eess-ts suite                                          | 2215/2216 | **2215/2216** (same pre-existing environmental failure both sides) |
 
-**Why the clear was never load-bearing.** It looks like bug 0016's no-leak
+**Why the clear was never load-bearing.** It looks like ts-archunit bug 0016's no-leak
 mechanism — `should()` calls `fork()`, and the contract test at
 `packages/core/tests/contract/extension-surface.test.ts:207` reuses a held
 selection across two branches. But that selection is `.that().named('a')`:

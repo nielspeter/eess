@@ -2,11 +2,11 @@
 
 ## Status
 
-- **State:** Fixed — 2026-10-18, in PR #236 (with bugs 0467, 0466 and 0465).
+- **State:** Fixed — 2026-10-18, in PR #236 (with [bugs 0467](./0467-eess-ts-expectnonempty-does-nothing.md), 0466 and 0465).
 - **Severity:** High — a false green on the gate's own claim. Two of three adopter corpora that use
   this preset write `Status:` in most lanes, so its state-to-folder half never runs for them, and the
   preset reports nothing about it.
-- **Origin:** inbound · reported by two adopter monorepos (unnamed) in their feedback on proposal 017,
+- **Origin:** inbound · reported by two adopter monorepos (unnamed) in their feedback on [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md),
   verified here.
 - **Reported:** 2026-10-16
 
@@ -34,7 +34,7 @@ still runs.
 ## Root cause
 
 The label is a constant, not an option, and an unreadable state is skipped rather than counted
-against the verdict. ADR-010: a check that examined nothing is not a pass.
+against the verdict. [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md): a check that examined nothing is not a pass.
 
 ## Fix
 
@@ -42,11 +42,11 @@ A label option, with aliases, read through the shared label grammar; and a findi
 records have no readable state (as `expectEmptyHeaders` already does for an empty lane). The default
 stays `State`, so no caller's labels change; but a corpus that passes today because its state half
 never ran will red, so this ships as a flagged break with a migration line ("pass `label`, or declare
-the lane"). Proposal 017's block 5 generalises the placement half; this fix does not wait for it.
+the lane"). [Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 5 generalises the placement half; this fix does not wait for it.
 
 The "no readable state" finding applies only to the lanes the caller declares (the preset's `lanes`
 option), never to every folder under a root. An adopter runs its ledger over folders that carry no
-state (UI extractions, mail drafts, index files), and those must stay quiet (proposal 017, "Consumer
+state (UI extractions, mail drafts, index files), and those must stay quiet ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), "Consumer
 follow-up — 2026-10-18").
 
 ## Resolution
@@ -64,7 +64,7 @@ reader in the preset. A blank label is refused. Two findings close the silent pa
   not two. Its remedy is built from the options in force:
   - narrow the corpus to the record folders;
   - otherwise, pass the label the records use;
-  - a `## Status:` heading is not a label this preset reads (plan 0468 owns that form).
+  - a `## Status:` heading is not a label this preset reads ([plan 0468](../../plans/completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md) owns that form).
 
 The Fix asked that the finding apply "only to the lanes the caller declares". The preset has no lane
 list, so each call is a lane. A caller whose single call covers record and non-record folders gets
@@ -82,13 +82,13 @@ Residuals, each recorded:
   (`**Questions:** Open`), is reported. It is loud, not silent, and its remedy names `boardFiles`.
   A test row pins it.
 - **Both labels in one header**, when the caller names both, resolve to whichever comes first,
-  silently. Plan 0469's conflict finding is the home for that shape.
+  silently. [Plan 0469](../../plans/completed/0469-havefield-a-document-has-a-value.md)'s conflict finding is the home for that shape.
 
 ## Verification
 
 - [x] Red first: the five-record table above, through the public preset (`packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`). With default options 0002 and 0005 got no finding on main.
 - [x] Green: every record is pinned by `[rule, record]`, with default options, with `aliases: ['Status']`, and with `label` together with `aliases`. Each finding has a `check:nonvacuity` row.
 - [x] done-otherwise: each call is a lane, since the preset has no lane list (Resolution). A stateless folder beside records gives no finding, and a stateless-only call gives one, with "narrow the corpus" as its remedy.
-- [ ] deferred→bug 0476 — a heading-form state beside readable records is still silent
+- [ ] deferred→[bug 0476](./0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md) — a heading-form state beside readable records is still silent
 
-Deferred: bug 0476
+Deferred: [bug 0476](./0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md)

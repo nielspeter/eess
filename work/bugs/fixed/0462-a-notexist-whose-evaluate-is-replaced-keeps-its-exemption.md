@@ -3,10 +3,10 @@
 ## Status
 
 - **State:** Fixed — 2026-10-18, in PR #239 with [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md):
-  `marksAssertsCardinality` freezes what it marks. Recorded 2026-10-18 while drafting plan 0456.
+  `marksAssertsCardinality` freezes what it marks. Recorded 2026-10-18 while drafting [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md).
 - **Severity:** Low — it takes a deliberate edit to a returned condition; the result is the forgery
   `packages/core/src/cardinality.ts` exists to prevent.
-- **Origin:** self-found · plan 0456's drafting, 2026-10-17.
+- **Origin:** self-found · [plan 0456](../../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s drafting, 2026-10-17.
 - **Reported:** 2026-10-18
 
 ## Symptom
@@ -21,7 +21,7 @@ through eess-ts's public entry, with a selection that matches nothing (`classes(
 | `{ description: 'x', evaluate: () => [] }` | red: "This rule examined 0 subjects" |
 | `notExist()` with `evaluate = () => []`    | pass; `Object.isFrozen` is `false`   |
 
-So any no-op condition can be exempted from the empty-selection gate (ADR-010) by assigning it into a
+So any no-op condition can be exempted from the empty-selection gate ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)) by assigning it into a
 returned `notExist()`, the one-line escape `cardinality.ts`'s docstring describes for the symbol it
 replaced. All five `notExist` copies (four in eess-ts, one in eess-mermaid) share it.
 

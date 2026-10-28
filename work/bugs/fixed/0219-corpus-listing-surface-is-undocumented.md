@@ -3,11 +3,11 @@
 ## Status
 
 - **State:** Fixed — documented 2026-08-23, in the same PR that filed it.
-  `Deferred: bug 0220`.
+  `Deferred:` [bug 0220](../0220-nothing-requires-a-public-symbol-to-be-documented.md).
 - **Priority:** Low — not a correctness gap. It is the whole remedy
   [proposal 004](../../proposals/promoted/004-corpus-content-explain.md) was ruled to need,
   and the ruling landed on 2026-08-13 with nothing owning the work since.
-- **Implements:** proposal 004
+- **Implements:** [proposal 004](../../proposals/promoted/004-corpus-content-explain.md)
 - **Origin:** self-found — auditing the proposals lane after
   [plan 0216](../../plans/completed/0216-dogfood-the-proposals-lane.md) gave it terminal states. 004
   read `Draft` with a header saying its primitive was **declined** and the ruling was
@@ -40,8 +40,8 @@ public on the exported `Corpus` interface, and `Corpus`/`CorpusOptions` are expo
 
 ## Root cause
 
-Not a code defect — a documentation gap that outlived the record that found it. Proposal
-004 asked for a corpus-content `explain` equivalent; the survey found the capability
+Not a code defect — a documentation gap that outlived the record that found it.
+[Proposal 004](../../proposals/promoted/004-corpus-content-explain.md) asked for a corpus-content `explain` equivalent; the survey found the capability
 already ships in both dialects it named, so the ruling was `Docs-only`. **`Docs-only` names
 a remedy and creates no owner**, so the remedy evaporated: no plan, no bug, no board row
 tracked it for ten days, and the proposal's own header read as though the matter was

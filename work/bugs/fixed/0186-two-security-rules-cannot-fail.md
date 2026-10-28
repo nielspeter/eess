@@ -6,7 +6,7 @@
   **0 → 4** and **0 → 2**. (This line read `0 → 5 and 0 → 3` until 2026-08-21 —
   the pre-correction figures the Verification section below already disowns.
   A header contradicting its own ledger is worse than either number alone,
-  because the header is what a reader sees first. Caught reviewing plan 0193,
+  because the header is what a reader sees first. Caught reviewing [plan 0193](../../plans/0193-measure-the-margin.md),
   which cites these four values as its acceptance anchors.)
 - **Severity:** Medium
 - **Origin:** self-found · falsifiability sweep over all 51 `src/rules/` primitives,
@@ -70,7 +70,7 @@ fixture that existed contained `console.log`, and a class containing
 ## Why it matters
 
 This is the defect the project exists to prevent, in the project's own tree.
-ADR-009: _a check that cannot fail is worth less than no check, because it is
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md): _a check that cannot fail is worth less than no check, because it is
 counted as coverage._ Both rules are counted as enforceable primitives by
 `scan-enforceable-primitives.ts`.
 
@@ -98,13 +98,13 @@ rules examine):
 
 **The expectations are cross-derived, not hand-typed.** `fixtureLinesMatching()`
 scans the fixture's TEXT for the sites and compares against the lines the rule's
-AST walk reported — ADR-009 rule 5: a derivation is unguarded until a
+AST walk reported — [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5: a derivation is unguarded until a
 differently-derived value can disagree with it. Hand-typing `[25, 29, 34]` would
 agree with the rule by construction and survive any fixture edit.
 
 Each cross-derivation carries its own vacuity guard (`expect(expectedLines)
 .toHaveLength(3)`), because an empty scan would otherwise satisfy the comparison
-against zero violations — the same vacuous green one level up (ADR-010).
+against zero violations — the same vacuous green one level up ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
 
 A consequence, recorded because it is load-bearing: **no comment in the fixture
 may contain a literal `console.`/`JSON.parse` spelling**, or the text scan counts
@@ -182,8 +182,8 @@ a margin count quoted without its mutation operator means nothing.** 0193
 measures that the operator choice alone moves a single primitive's margin
 between 2 and 1.
 
-A first draft of this section deferred that to "plan 0088 Phase 5, still
-`pending`". **That was wrong and `check:corpus` caught the link.** Plan 0088 is
+A first draft of this section deferred that to "[plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 5, still
+`pending`". **That was wrong and `check:corpus` caught the link.** [Plan 0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md) is
 **Done** — all seven phases landed — and its Phase 5 is "Reconcile the eess-ts
 dogfood gates", unrelated to margin. The `pending` row in its enforcement table
 is a different clause (remedy fixtures). No plan or bug in the corpus owns

@@ -8,9 +8,9 @@
 - **Severity:** **High** — a **green build on a corrupt record**. Not a false red,
   not a misdirection: `honestyAtClose` examines the record, reads its state,
   classifies nothing as done, finds nothing, and reports a pass with a
-  denominator. This is the class ADR-009 exists for and the one this project
+  denominator. This is the class [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) exists for and the one this project
   calls disqualifying.
-- **Origin:** self-found · six-lens review of bugs 0282/0283, established while
+- **Origin:** self-found · six-lens review of [bugs 0282](../rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)/0283, established while
   checking whether a remedy one of those records prescribed was corrective
 - **Reported:** 2026-09-12
 
@@ -59,7 +59,7 @@ through `belongsToADoneItem`, deliberately, "so a corruption of
 `belongsToADoneItem` itself doesn't also blind this peek". Both paths then agree,
 **correctly**, that under this configuration nothing is done.
 
-So ADR-010's evidence requirement is satisfied honestly. The rule examined its
+So [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s evidence requirement is satisfied honestly. The rule examined its
 subjects and found no done items, because the caller declared a world with none.
 The defect is one level up: **nothing checks that the declaration is coherent.**
 
@@ -210,7 +210,7 @@ filed as [0379](./0379-a-case-variant-across-the-vocabulary-pair-drops-the-place
 
 `resolveVocabulary` in `packages/md/src/rules/ledger.ts` is the one place both
 `honestyAtClose` and `ledgerStats` read the pair, so the denominator cannot disagree with the
-check. A half throws `ArchConfigError` (ADR-014's configuration finding): it names both
+check. A half throws `ArchConfigError` ([ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s configuration finding): it names both
 options and the edit that keeps the defaults while adding tokens.
 
 `docs/markdown.md`'s own example passed `terminalStates` alone — this record's configuration,
@@ -224,7 +224,7 @@ taught in the docs. It now passes both and says why.
       `withReadableState: 1` — the gate saw the record and classified it as not
       done.
 - [x] Confirmed the emptiness declaration is an independent peek, not a circular
-      one, and that ADR-010 is therefore satisfied honestly.
+      one, and that [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) is therefore satisfied honestly.
 - [x] Confirmed this repo cannot reach the configuration: `LANES` supplies both
       options for every lane.
 - [x] Confirmed the path from `ledger/unknown-state`'s advice to this

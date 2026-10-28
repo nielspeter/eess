@@ -11,7 +11,7 @@
 ## Symptom
 
 `honestyAtClose` reads a state line in the label grammar (`**State:**`, `State:`, a bullet), never a
-heading such as `## Status: Done`. Bug 0444's two new findings cover a state the preset cannot read:
+heading such as `## Status: Done`. [Bug 0444](./0444-honesty-at-close-reads-state-only-and-says-nothing.md)'s two new findings cover a state the preset cannot read:
 
 - `ledger/no-readable-state` fires only when no record in the call has a state line;
 - `ledger/state-under-another-label` looks at labels, not headings.
@@ -22,16 +22,16 @@ is not a label form.
 
 ## Fix
 
-Either read the heading form as a caller-named form, which is the shape plan 0468 plans for
+Either read the heading form as a caller-named form, which is the shape [plan 0468](../../plans/completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md) plans for
 `fields()` (`heading`), or report a record whose header has a `## <label>: <vocabulary value>`
 heading and no readable state, as `ledger/state-under-another-label` does for labels. The preset's
-rebuild on public blocks (proposal 017, the second Review's decision 1) is the natural home.
+rebuild on public blocks ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), the second Review's decision 1) is the natural home.
 
 ## Resolution
 
 A state written as a heading is read. `## Status: Done` in a record's header is read under the labels
 in force, as a label line is, and a value outside the vocabulary (`## Status: Shipped`) is reported
-as an unknown state, as a label line's is. The header follows plan 0468's rule: a `## Label: value`
+as an unknown state, as a label line's is. The header follows [plan 0468](../../plans/completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s rule: a `## Label: value`
 heading continues it rather than ending it, so `## Severity: High` followed by `## Status: Done` is
 read. Only `##` headings count.
 

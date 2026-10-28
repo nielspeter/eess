@@ -2,16 +2,16 @@
 
 ## Status
 
-- **State:** Fixed — 2026-10-15, in the PR that closes it. Recorded the same day at plan 0413's
+- **State:** Fixed — 2026-10-15, in the PR that closes it. Recorded the same day at [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s
   freeze, which settled the rule.
 - **Severity:** Medium — an honesty gap between two parts of the family (`BUGS.md`'s Medium row). No
   false green: before the fix, `parseCodeBlocks` disclosed the tag it did not read, as a near miss.
-- **Origin:** self-found · the review of PR #214 (bug 0423), and plan 0413's freeze, 2026-10-15.
+- **Origin:** self-found · the review of PR #214 ([bug 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md)), and [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s freeze, 2026-10-15.
 - **Reported:** 2026-10-15
 
 ## Symptom
 
-A fence tagged `Mermaid` is read by eess-crossvalidate's md-mermaid since bug 0423, which compares the
+A fence tagged `Mermaid` is read by eess-crossvalidate's md-mermaid since [bug 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md), which compares the
 tag case-insensitively. eess-md's `parseCodeBlocks(corpus, { language: 'mermaid', … })` matches it
 exactly, does not read it, and names it as a near miss, telling the author to retag it `mermaid`. One
 fence, two answers to "is this Mermaid?".
@@ -19,11 +19,11 @@ fence, two answers to "is this Mermaid?".
 ## Root cause
 
 `parseCodeBlocks` (`packages/md/src/model/code-block-parse.ts`) tested `block.lang === language`; a tag
-equal only when case-folded went to `nearMisses`. Plan 0412 chose exact matching before bug 0423 chose the other way.
+equal only when case-folded went to `nearMisses`. [Plan 0412](../../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) chose exact matching before [bug 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md) chose the other way.
 
 ## Fix
 
-**Decided by [ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md) (first at plan 0413's freeze, 2026-10-15): a tag is matched case-insensitively,
+**Decided by [ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md) (first at [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s freeze, 2026-10-15): a tag is matched case-insensitively,
 family-wide.** A fence tagged `Mermaid` (or `JSON`) is plainly meant as that language, and reading it
 needs nothing from the author. So `parseCodeBlocks` reads a tag equal to the language when case-folded.
 The near-miss disclosure then has nothing left to disclose for a case difference, and goes, with its
@@ -32,13 +32,13 @@ tests, its non-vacuity row (`near-miss` in `scripts/nonvacuity/bad-code-block-pa
 `ParsedCodeBlocks.nearMisses` field (read by `deadGlobDiagnosis` in
 `packages/md/src/builders/code-blocks.ts`, which changes with it), unless a reason to keep them is recorded. eess-md takes a minor
 whose changeset carries a `**Breaking**` line: an export goes, and a block that was disclosed is now
-parsed, so a green build can go red. Proposal 006's condition 10 gets a dated note.
+parsed, so a green build can go red. [Proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s condition 10 gets a dated note.
 
-ADR-019 also sets the shape of the fix: one comparison function in eess-md behind
+[ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md) also sets the shape of the fix: one comparison function in eess-md behind
 `@nielspeter/eess-md/internal`, which `parseCodeBlocks` uses and eess-crossvalidate's `isMermaidTag`
 delegates to; an `arch.rules.ts` rule against any other `.lang` comparison; and a near-miss fixture
 on each side (` ```mmd `, ` ```json5 `) proving nothing but case is folded. The changeset carries
-ADR-019's Consequences.
+[ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)'s Consequences.
 
 ### As built
 
@@ -52,7 +52,7 @@ ADR-019's Consequences.
 - So crossvalidate's peer floor on eess-md must rise to `>=0.11.0`, the release that adds the
   export. It rises **in the release commit**, not here: raised in this PR first, `npm ci` failed with
   `ETARGET` (PR #222's devops review, measured), which RELEASING.md forbids. The crossvalidate
-  changeset carries the instruction. ADR-019 had said the delegation ships nothing an adopter can
+  changeset carries the instruction. [ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md) had said the delegation ships nothing an adopter can
   observe; its Consequences carry a dated correction.
 - The arch rule is `eess/one-code-block-tag-comparison` in `arch.rules.ts`. It matches a `.lang`
   equality (other than with `null`/`undefined`), a method called on `.lang`, and `switch (x.lang)`.
@@ -79,9 +79,9 @@ ADR-019's Consequences.
       goes quiet).
 - [x] The near-miss fixtures, on both sides: ` ```mmd ` in both crossvalidate bindings, ` ```mmd `
       and ` ```json5 ` through `parseCodeBlocks`.
-- [x] Two sabotages of `tagIsLanguage`: the exact comparison reds the four case tests (bugs 0423
+- [x] Two sabotages of `tagIsLanguage`: the exact comparison reds the four case tests ([bugs 0423](./0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md)
       and 0424's included, through the built eess-md); an `mmd`/`json5` alias reds the four alias tests.
-- [x] ADR-019's pending Enforcement rows moved to `gated`.
+- [x] [ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)'s pending Enforcement rows moved to `gated`.
 - [x] `npm run validate` green.
 
 Deferred: none

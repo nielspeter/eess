@@ -20,7 +20,7 @@ relationship edge joins the class to `superName`. In a diagram drawing
 `Base <|-- Mid` and `Mid <|-- Leaf`, `extendName('Base')` selects `Mid` and not `Leaf`.
 The `extend` condition in the same builder has the same reading.
 
-ADR-017 decides that a heritage word means one thing across the family: reachability, not
+[ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) decides that a heritage word means one thing across the family: reachability, not
 one clause. `eess-mermaid` breaks that today.
 
 ## Fix
@@ -54,7 +54,7 @@ ending it, validate — are covered by the boxes below._
       `it('notExtendStereotype() reports a stereotyped ancestor at any depth')` and
       `it('a cycle in the diagram ends the walk')`. Each chain is three levels deep.
 - [x] the condition, the predicate and `notExtendStereotype` walk the edges; a cycle ends the walk.
-      `notExtendStereotype` was not in the record as filed — it is the same word, so ADR-017
+      `notExtendStereotype` was not in the record as filed — it is the same word, so [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)
       rule 6 covers it. At depth its message names the path — for example `Deep extends Base (via Leaf, Mid)` (corrected 2026-10-04: first quoted without
       the parentheses, which never matched the code) — since the class has no edge to the ancestor to go and find — added after
       enforcement review.
@@ -77,7 +77,7 @@ ending it, validate — are covered by the boxes below._
       drawn first, and exact per-class messages._
       _A first run killed only `npx` and left two vitest workers spinning for minutes; review
       found them._ A hang rather than a failure is accepted on purpose: a bound on the walk
-      would be an ADR-016 instrument that can run out. _First written "and CI's job timeout still reds it" — but no workflow sets a timeout, so the run would hold a runner for GitHub's six-hour default before failing; testing review found it, and the gap is [bug 0378](../0378-ci-jobs-have-no-timeout.md)._
+      would be an [ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) instrument that can run out. _First written "and CI's job timeout still reds it" — but no workflow sets a timeout, so the run would hold a runner for GitHub's six-hour default before failing; testing review found it, and the gap is [bug 0378](../0378-ci-jobs-have-no-timeout.md)._
 - [x] the `eess-mermaid` and `eess-crossvalidate` suites pass — 115 and 94 tests, counted by
       `vitest run` on the final tree. _An earlier "111" was counted before the realization pin
       was added; method review measured 112 at that commit; the enforcement review's

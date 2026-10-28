@@ -4,20 +4,20 @@
 
 - **State:** Fixed — 2026-10-19: the crossvalidate half on branch `fix/fail-open-batch` (#251), the
   md half by [plan 0496](../../plans/completed/0496-sections-as-elements.md), built on maintainer
-  order the same day; one shared matcher is bug 0511's. Reproduced 2026-10-19 on main's build (`9675402`); recorded from proposal
-  017's "Records owed" and PR #247's enforcement review (I1).
+  order the same day; one shared matcher is [bug 0511](../0511-a-g-flagged-column-or-table-matcher-skips-tables.md)'s. Reproduced 2026-10-19 on main's build (`9675402`); recorded from
+  [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s "Records owed" and PR #247's enforcement review (I1).
 - **Severity:** Medium — a silent drop in selector position, so a rule can be green on documents it
   never examined. It needs the caller to pass a `g` or `y` flag, which nothing refuses.
-- **Origin:** self-found · proposal 017's second Review (records owed); reproduced while revising
-  plan 0496.
+- **Origin:** self-found · [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s second Review (records owed); reproduced while revising
+  [plan 0496](../../plans/completed/0496-sections-as-elements.md).
 - **Reported:** 2026-10-19
 
 ## Symptom
 
 `matchName` calls `.test()` on the caller's `RegExp` as given, in two copies:
 
-- `packages/md/src/model/query.ts` at `9675402` (since plan 0496 `packages/md/src/model/name-match.ts:21-23`, without `g`/`y`), used by `hasSection` (`docs().haveSection()` in both
-  phases, the root `haveSection` condition, the root section predicate, `predicateHaveSection` once ADR-023's pull request lands) and by `inSection` (tables'
+- `packages/md/src/model/query.ts` at `9675402` (since [plan 0496](../../plans/completed/0496-sections-as-elements.md) `packages/md/src/model/name-match.ts:21-23`, without `g`/`y`), used by `hasSection` (`docs().haveSection()` in both
+  phases, the root `haveSection` condition, the root section predicate, `predicateHaveSection` once [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)'s pull request lands) and by `inSection` (tables'
   `section` option and `links().areInSection()`);
 - `packages/crossvalidate/src/md-ts.ts:31-33`, used to find the ADR table's section.
 
@@ -48,12 +48,12 @@ corpus where only `p2.md` lacked the table would be green.
 ## Fix
 
 Strip `g` and `y` once, when the matcher is taken (a non-global copy, as `vocabulary.ts` makes), in
-one place. Plan 0496 builds on md's `matchName` and strips the flags there in its build, with a test
-row and a sabotage row, which closes the md copy: plan 0496's ledger disposes this bug's first box for md in the same pull
+one place. [Plan 0496](../../plans/completed/0496-sections-as-elements.md) builds on md's `matchName` and strips the flags there in its build, with a test
+row and a sabotage row, which closes the md copy: [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s ledger disposes this bug's first box for md in the same pull
 request and updates the board row, so the md half is never fixed without a record. This bug owns the crossvalidate copy: it should
 import md's matcher (through `@nielspeter/eess-md/internal`, as it already does for `proseText`)
-rather than keep a second one. The md verdict change ships in plan 0496's release note; if this bug
-is fixed first, it takes both copies and plan 0496 only relies on it.
+rather than keep a second one. The md verdict change ships in [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s release note; if this bug
+is fixed first, it takes both copies and [plan 0496](../../plans/completed/0496-sections-as-elements.md) only relies on it.
 
 ## Progress
 
@@ -67,12 +67,12 @@ above `## Enforcement` hides the defect: the non-matching heading is tested firs
 
 Released as a marked break (`minor`, `**Breaking:**`), corrected after review: a green
 `adrCitationsResolve` with a `g`-flagged `section` can now red on a citation it used to skip, the
-same reason plan 0496 marks md's half a break.
+same reason [plan 0496](../../plans/completed/0496-sections-as-elements.md) marks md's half a break.
 
 Decided against the record: crossvalidate keeps a non-global copy of its own instead of importing
-md's matcher. md's `matchName` is not exported, and `packages/md/src/model/query.ts` is plan 0496's
-to change in a build running beside this one. The third box below is bug 0511's: it owns the one
-shared non-global helper both packages read (moved from plan 0496 after review, since that plan's
+md's matcher. md's `matchName` is not exported, and `packages/md/src/model/query.ts` is [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s
+to change in a build running beside this one. The third box below is [bug 0511](../0511-a-g-flagged-column-or-table-matcher-skips-tables.md)'s: it owns the one
+shared non-global helper both packages read (moved from [plan 0496](../../plans/completed/0496-sections-as-elements.md) after review, since that plan's
 ledger never took the crossvalidate side).
 
 The same hazard on paths this bug does not name (a caller's column matchers in eess-md and
@@ -89,13 +89,13 @@ Sabotage matrix (mutant applied to `packages/crossvalidate/src/md-ts.ts`, then r
 ## Verification
 
 - [x] Red first: the third row above examines 4 and reports all four documents — done-otherwise
-      for eess-md by plan 0496: md's matcher strips `g`/`y` once per `RegExp` (`stateless`,
+      for eess-md by [plan 0496](../../plans/completed/0496-sections-as-elements.md): md's matcher strips `g`/`y` once per `RegExp` (`stateless`,
       `packages/md/src/model/name-match.ts`); the row is `bug 0506, md: a g-flagged haveSection
 selector examines all four documents` (`packages/md/tests/sections.test.ts`), red with `g`
-      kept (`examined` 2) and green with it stripped; plan 0496's changeset carries the verdict
+      kept (`examined` 2) and green with it stripped; [plan 0496](../../plans/completed/0496-sections-as-elements.md)'s changeset carries the verdict
       change
 - [x] Red first: the crossvalidate ADR binding with a `g`-flagged section finds the table in every
       document — `packages/crossvalidate/tests/md-ts.test.ts`, red on the unfixed code
-- [ ] One matcher for both packages — deferred→bug 0511 (it owns one shared non-global helper, exported through `@nielspeter/eess-md/internal`, that md's `matchName` and crossvalidate's `nonGlobal` are both replaced by)
+- [ ] One matcher for both packages — deferred→[bug 0511](../0511-a-g-flagged-column-or-table-matcher-skips-tables.md) (it owns one shared non-global helper, exported through `@nielspeter/eess-md/internal`, that md's `matchName` and crossvalidate's `nonGlobal` are both replaced by)
 
-Deferred: bug 0511
+Deferred: [bug 0511](../0511-a-g-flagged-column-or-table-matcher-skips-tables.md)

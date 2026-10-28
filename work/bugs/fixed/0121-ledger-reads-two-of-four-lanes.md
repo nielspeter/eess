@@ -107,7 +107,7 @@ Two parts, implemented 2026-08-13. The second is the one that generalises.
    this record's own stated intent.
 
    Reuses `ledgerStats`'s label/region scanning (fenced-code stripping, the
-   preamble+first-section boundary bug 0119 fixed) via an empty vocabulary
+   preamble+first-section boundary [bug 0119](./0119-placement-check-never-ran.md) fixed) via an empty vocabulary
    (`states: []`), rather than re-deriving the scan — the exact re-derivation
    mistake `ledgerStats`'s own docstring warns this script against, made once
    already in this file's history.

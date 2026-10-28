@@ -82,7 +82,7 @@ and 0201 fixed only the ts one. Before that the two copies had identical emissio
 semantics; now they diverge **behaviourally**, which is precisely what
 [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md) was raised to
 **High** for on 2026-08-21 — "the fix had landed in `packages/ts` with the engine
-copy and never reached the kernel". Latent today (bug 0163 measured that no
+copy and never reached the kernel". Latent today ([bug 0163](../0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md) measured that no
 aggregating caller drives the kernel copy), but it is the second instance in two
 days and it was unrecorded until review caught it.
 
@@ -113,7 +113,7 @@ tests that previously asserted the notice over the preset, `checkAll()` and
 **The kernel copy stays divergent, knowingly.** `packages/core/src/execute-rule.ts`'s
 own `executeCheck` still emits unconditionally. It has no flag to read —
 `callerAggregatesReports` is ts-dialect state the kernel cannot see and should not —
-and bug 0163 measured that no aggregating caller drives it. Converging the two
+and [bug 0163](../0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md) measured that no aggregating caller drives it. Converging the two
 copies is [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md)'s job,
 and this is now a second recorded instance for it.
 
@@ -140,13 +140,13 @@ caught it going dead on the first `check:arch`.
 The changeset said "Nothing changes outside the CLI", which was the claim that
 would have shipped to npm and was false for exactly this reason. Corrected.
 
-## ADR-008 amended, because the code now contradicts it
+## [ADR-008](../../../adr/008-caller-owns-reporting.md) amended, because the code now contradicts it
 
-ADR-008 stated "The default stays print-then-throw" and gated a Tier-2 row reading
+[ADR-008](../../../adr/008-caller-owns-reporting.md) stated "The default stays print-then-throw" and gated a Tier-2 row reading
 "Default preset behavior unchanged (emit + throw)". Under an aggregating caller the
 default is now **throw without emit**, and that row's cited test asserts only the
 throw — so it would have stayed green over a clause the code no longer holds. That
-is bug 0189's shape, in the ADR that narrates bug 0189.
+is [bug 0189](./0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)'s shape, in the ADR that narrates [bug 0189](./0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md).
 
 The amendment states the real rule, names the invariant every read site must
 satisfy — **suppress exactly what rides the throw, and nothing else** — and adds two
@@ -197,7 +197,7 @@ module scope.
 
 So the reader was told to do what they had already done, and `report: 'builders'` —
 the actual fix — appeared **nowhere** in the output, since this PR correctly stopped
-the notice that used to carry it. ADR-009 rule 2: a failure that states no usable
+the notice that used to carry it. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2: a failure that states no usable
 remedy is one where the reader invents one.
 
 `ruleFileTruncated`'s suggestion now names the preset case first, states that a

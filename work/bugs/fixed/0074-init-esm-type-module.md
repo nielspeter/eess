@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Fixed — red-first reproduced, fixed to green (config loads via jiti), e2e re-verified, suite + validate green. Deferred: none.
-- **Reported:** 2026-07-19 — self-found while executing plan 0072's recipes
+- **Reported:** 2026-07-19 — self-found while executing [plan 0072](../../plans/completed/0072-adoption-surface.md)'s recipes
   against the published npm package (deferred from that plan's close as
   `0074-init-esm-type-module`).
 
@@ -56,7 +56,7 @@ Load the config through jiti, exactly as rule files are loaded — one loader
 behavior for both user-authored TypeScript inputs. No scaffold change, no
 mutating the user's `package.json`, works in ESM and CJS consumer projects
 alike. Follow-up in the same change: the docs' interim
-`npm pkg set type=module` prerequisite (added by plan 0072 as the workaround)
+`npm pkg set type=module` prerequisite (added by [plan 0072](../../plans/completed/0072-adoption-surface.md) as the workaround)
 is retired, since the constraint disappears.
 
 ## Verification

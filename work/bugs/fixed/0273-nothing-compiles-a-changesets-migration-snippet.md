@@ -60,7 +60,7 @@ thing the bug was filed for — which is this repo's own subject, one level up.
 
 ## The instance that produced this bug
 
-Plan 0263 Phase 5 removed `throwIfViolations` from three barrels and its
+[Plan 0263](../../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 5 removed `throwIfViolations` from three barrels and its
 changeset told adopters:
 
 > `finishPreset` is exported from the same three places the alias was, so the
@@ -76,7 +76,7 @@ SyntaxError: The requested module '@nielspeter/eess-ts/presets' does not provide
 The subpath is the one `docs/getting-started.md` teaches, and
 `docs/api-reference.md` documented the removed alias under its presets table, so
 the adopter who followed the docs is exactly the one the migration failed. Three
-reviewers found it; no gate did. This is ADR-009 rule 2 — a remedy must be
+reviewers found it; no gate did. This is [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2 — a remedy must be
 verified to remediate — missed in the very plan that shipped five
 `emitter/remedy-remediates` fixtures for that clause.
 
@@ -102,7 +102,7 @@ Only the imports, because that is where the defect lives. A migration reads
 `finishPreset(violations, …)`, where `violations` is the reader's variable and
 not one a changeset can invent; demanding a runnable example would push authors
 toward ceremony or toward the skip directive, and a gate people route around is
-worth less than none (ADR-009 rule 1). `tsc` reports TS2305 for a named member a
+worth less than none ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1). `tsc` reports TS2305 for a named member a
 module does not export whether or not the name is ever used, so an import line
 alone is a complete check of the claim.
 
@@ -193,15 +193,15 @@ paragraph about this repo's drafting process instead of a migration. A product
 review named it: the consumer of a changelog entry is an adopter, and that
 paragraph had no consumer outside the repo.
 
-Removing it exposed that the same fault was already there — `plan 0263`,
-`plan 0235`, `plan 0070`, `bug 0185`, `ADR-008`, `docs/api-reference.md`. All are
+Removing it exposed that the same fault was already there — [plan 0263](../../plans/completed/0263-adr-014s-residual-enforcement-rows.md),
+[plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md), [plan 0070](../../plans/completed/0070-caller-owns-reporting.md), [bug 0185](./0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md), [ADR-008](../../../adr/008-caller-owns-reporting.md), `docs/api-reference.md`. All are
 gone; the changeset now reads as a changelog entry and nothing in it points at a
 document an adopter cannot open.
 
 **The remedy line was inverted for this population.** On a failure the gate said
 "fix the example, or mark it illustrative with the skip directive". For a docs
 fence that is right; for a changeset it offers, as a co-equal option, silencing
-the exact defect the population was added to catch — ADR-009 rule 1. The message
+the exact defect the population was added to catch — [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1. The message
 now branches: a changeset failure says the import line is a claim about where a
 symbol is exported, that a red means the claim is wrong or the barrel is missing
 an export, and that the skip directive is for a "before" example only. Both

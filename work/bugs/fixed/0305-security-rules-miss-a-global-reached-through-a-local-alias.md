@@ -72,7 +72,7 @@ chain is. Four cases, answering the record's "how far":
 - **anything else local** — a function, a class, a parameter, a variable holding something else — is
   not the global, and nothing is reported.
 - **a binding that cannot be resolved** falls back to the name as written. A missing type definition
-  must never turn a rule off (ADR-009), so an unresolvable name errs toward reporting.
+  must never turn a rule off ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md)), so an unresolvable name errs toward reporting.
 
 A `let` is read through its initializer like a `const`. It can be reassigned later, so the answer is
 not certain — and for a prohibition the uncertain direction to take is the one that reports.

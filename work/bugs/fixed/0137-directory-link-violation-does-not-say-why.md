@@ -21,7 +21,7 @@ link with the same message regardless of _why_ it's broken:
 message: `broken link: "${link.url}" does not resolve to a file in the repo`,
 ```
 
-Since bug 0086, this repo runs two resolution profiles over the same corpus —
+Since [bug 0086](./0086-links-to-directories-do-not-resolve.md), this repo runs two resolution profiles over the same corpus —
 `docs/` (the VitePress site) keeps `resolveDirectories` off, because a bare
 directory with no index isn't a real page there; everywhere else
 (`work/**`, `adr/**`) has it on, because GitHub renders any real directory as
@@ -90,7 +90,7 @@ Only the directory case is covered — not a missing `tryIndex` file, not a
 missing `tryExtensions` entry. Those are real, symmetrical gaps (an
 extensionless link that would resolve with the right `tryExtensions` entry
 gets the same generic message today), but this bug's own Symptom and
-Reproduction are specifically about the directory case bug 0086 introduced;
+Reproduction are specifically about the directory case [bug 0086](./0086-links-to-directories-do-not-resolve.md) introduced;
 widening to the other two would be answering a question this record never
 asked. Left as a candidate follow-up, not filed — no evidence yet that either
 one has actually confused anyone, unlike the directory case, which did.

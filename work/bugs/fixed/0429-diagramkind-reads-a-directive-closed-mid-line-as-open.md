@@ -5,8 +5,8 @@
 - **State:** Fixed — 2026-10-15, in the PR that closes it. Recorded the same day from PR #219's
   architect review.
 - **Severity:** Medium — a selector that goes dead in silence: an `erDiagram` whose directive line ends
-  in a comment is not selected by `tableErAgree`, so it is never checked (bug 0210's class).
-- **Origin:** self-found · the architect review of plan 0413's re-freeze, 2026-10-15.
+  in a comment is not selected by `tableErAgree`, so it is never checked ([bug 0210](./0210-er-fence-selector-is-an-allowlist.md)'s class).
+- **Origin:** self-found · the architect review of [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s re-freeze, 2026-10-15.
 - **Reported:** 2026-10-15
 
 ## Symptom
@@ -29,14 +29,14 @@ closed mid-line, followed by anything, stayed open to the end of the block, so n
 
 Close the directive at the first `}%%` on the line, wherever it is, and read what follows it as the
 rest of the line. A red test first, through `diagramKind` and through `tableErAgree`'s selection.
-Plan 0413's internal preamble walk extends this function, so the fix lands before that build or with
-it; it is not part of plan 0413.
+[Plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s internal preamble walk extends this function, so the fix lands before that build or with
+it; it is not part of [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md).
 
 ### As built
 
 `declaredLine` closes a directive at its first `}%%`, on the line that opened it or a later one, and
 reads the rest of that line as a line of its own: a comment, another directive, or the kind itself.
-Measured first in `mermaid` 11.17.2, with the spike 0425/0428 worker harness (`mermaid.parse` per
+Measured first in `mermaid` 11.17.2, with the [spike 0425](../../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)/0428 worker harness (`mermaid.parse` per
 block, in a scratch directory not kept in the repository): every shape the tests use returned
 `{ ok: true }` — a directive closed mid-line by a comment, a multi-line one closed mid-line, two on one
 line, the kind on the directive's own line (one-line, multi-line, and after two directives).
@@ -48,10 +48,10 @@ where eess-mermaid's ER grammar parses it: behind a one-line directive ended by 
 one line. With the kind on the directive's own line, or behind a multi-line directive, the grammar
 fails and the block is reported as a grammar gap (PR #223's reviews, measured); before, it was skipped
 in silence. The one-line case is [bug 0433](../0433-a-kind-on-its-directives-line-is-a-comment-to-eess-mermaids-grammars.md);
-the multi-line one was already disclosed under bug 0409.
+the multi-line one was already disclosed under [bug 0409](./0409-md-mermaid-blames-the-author-for-a-grammar-gap.md).
 
-This fix also takes away the block plan 0413 chose to show Mermaid's `ok` winning over the walk, since
-the walk no longer misreads it; plan 0413 carries a dated note.
+This fix also takes away the block [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) chose to show Mermaid's `ok` winning over the walk, since
+the walk no longer misreads it; [plan 0413](../../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) carries a dated note.
 
 ## Verification
 

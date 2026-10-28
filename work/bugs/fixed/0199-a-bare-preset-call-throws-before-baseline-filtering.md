@@ -18,7 +18,7 @@ export default [...recommended(p)]
 ```
 
 evaluates the preset at **module-evaluation time**. `deliver()` defaults to
-`report: 'throw'` (ADR-008), so the preset throws the moment it finds a
+`report: 'throw'` ([ADR-008](../../../adr/008-caller-owns-reporting.md)), so the preset throws the moment it finds a
 violation — **before** the CLI's baseline filtering ever runs. The `--baseline`
 flag is silently inert.
 
@@ -79,7 +79,7 @@ cross registries. Disproved three ways by review:
 2. **jiti is not the default loader.** `packages/ts/src/cli/load-rules.ts` calls
    `importRuleModule`, and `packages/ts/src/cli/import-rule-module.ts` imports
    **natively first**, reaching jiti only on a module-format refusal (a
-   `"type": "commonjs"` consumer — bug 0074).
+   `"type": "commonjs"` consumer — [bug 0074](./0074-init-esm-type-module.md)).
 3. **Measured with one shared registry and no jiti at all.** A fixture importing the
    same module graph as the test's `runCheck` — so the flag was fully visible to it
    — printed all four violations unfiltered anyway.
@@ -115,7 +115,7 @@ the same `isArchRuleError` boundary as `ruleFileTruncated()` and only when
 **Option 1 or 3 would be the real repair and both are blocked on a decision.**
 Making the flag cross registries needs a `globalThis` singleton — a pattern this
 codebase uses **nowhere** today, and process-global mutable state in a library
-whose ADR-008 is about not doing reporting implicitly. That belongs in an ADR, not
+whose [ADR-008](../../../adr/008-caller-owns-reporting.md) is about not doing reporting implicitly. That belongs in an ADR, not
 in a bug fix, and it is [bug 0201](./0201-executecheck-prints-before-the-caller-can-filter.md).
 Until then a wrong-looking build that explains itself beats one that does not.
 
@@ -131,7 +131,7 @@ so.
 The design question is which layer owns it:
 
 1. **The preset consults the baseline** — requires the baseline path to be
-   reachable from `deliver()`, which crosses the boundary ADR-008 draws between
+   reachable from `deliver()`, which crosses the boundary [ADR-008](../../../adr/008-caller-owns-reporting.md) draws between
    detection and emission.
 2. **The CLI refuses the combination** — if `--baseline` is passed and a rule
    file throws out of a preset, report that specifically: "`--baseline` was not
@@ -141,7 +141,7 @@ The design question is which layer owns it:
    to `'builders'`, since the CLI is the caller that owns reporting.
 
 Option 2 is the smallest thing that removes the silence. Option 3 is closest to
-ADR-008's "caller owns reporting" but changes a default again.
+[ADR-008](../../../adr/008-caller-owns-reporting.md)'s "caller owns reporting" but changes a default again.
 
 ## Corrected again on review — the trigger was a double negative
 
@@ -160,8 +160,8 @@ and no notice fired.** `report: 'warn'` is a public `ReportMode`, so this needs 
 contrivance; a `try { …check() } catch {}` around a tolerated rule reproduces it.
 
 **A silence built on a stale signal is worse than the false claim it replaced**,
-because the run says nothing at all — the exact shape ADR-010 exists to reject,
-committed while fixing an ADR-010 defect.
+because the run says nothing at all — the exact shape [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) exists to reject,
+committed while fixing an [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) defect.
 
 The trigger now reads a delta over **emissions**, counted at both emitters —
 `writeReport` in the dialect and `reportViolations` in the kernel. That answers the
@@ -195,7 +195,7 @@ file lets the CLI do the reporting')` — a run whose rules the CLI executes
       `✓ eess-ts — 4 rules across 1 file · 0 failing` and no notice.
 - [x] The producer is classified in
       `packages/ts/tests/core/every-config-finding-is-classified.test.ts`
-      (plan 0078) — the repo's own gate caught it unclassified on the first run.
+      (ts-archunit plan 0078) — the repo's own gate caught it unclassified on the first run.
 - [x] `dropped-on-purpose` — the break class is **not** registered in
       `scripts/check-nonvacuity.mjs`, and on review that is the right call rather
       than a debt. That script registers **`check:*` repo gates**; not one of the

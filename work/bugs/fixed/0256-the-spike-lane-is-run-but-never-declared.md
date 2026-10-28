@@ -29,7 +29,7 @@ first commit. An in-flight spike's pointers would be unexamined for its whole
 life, and the person writing it would get no signal — the same silent-coverage
 shape 0249 exists to close, reintroduced one directory down.
 
-Not a live defect: this repo has two spikes and both are terminal (spike 0001's
+Not a live defect: this repo has two spikes and both are terminal ([spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s
 plan is `State: Done`). It is a claim outrunning its mechanism, in a mechanism
 argued from that claim.
 
@@ -107,7 +107,7 @@ spike cites code this repo does not own. Measured: `work/spikes/` contains **zer
 nothing today, and deleting the glob entry would change no violations. That is the
 same shape as the qualifier it replaced: a reason the corpus does not bear out.
 
-What the freeze is actually for is in spike 0001's own landing note, which records
+What the freeze is actually for is in [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s own landing note, which records
 rewriting its single `path:line` citation into prose **so this mechanism would not
 catch it**. The population is empty because it was emptied by hand. The freeze is
 **prospective** — so the next spike need not do that — and the gate's comment now
@@ -162,7 +162,7 @@ about.
 - [x] The kit says how to freeze, not just to freeze: `corpus({ frozen: [...] })`
       from `@nielspeter/eess-md`. An adopter who followed the template's own
       advice to wire up `check:corpus` previously met a verb with no object.
-- [x] "One record", not "one document" — this repo's own spike 0001 is a
+- [x] "One record", not "one document" — this repo's own [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md) is a
       directory of two files, so the written rule was narrower than the corpus it
       claims to describe.
 
@@ -171,7 +171,7 @@ freeze's reason twice — the paragraph this record added, and an older one from
 [0253](../0253-frozen-drift-is-not-reported-only-unexamined.md)'s fix about the
 suffix-resolution trap. Two accounts of one mechanism, written by different edits,
 is the shape this record diagnoses elsewhere; they are one paragraph now, and the
-trap connection is the stronger for sitting beside the note about spike 0001
+trap connection is the stronger for sitting beside the note about [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)
 hand-defusing exactly that hazard.
 
 **No mechanism binds the three statements about this lane** —

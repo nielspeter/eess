@@ -7,7 +7,7 @@
   `accepted` list written on one machine matches nothing on another, so every accepted finding
   escalates to error on CI. Nothing is forgiven that should not be. But the obvious remedy is to
   paste the CI machine's subjects instead, which only moves the problem.
-- **Origin:** architecture and product review of plan 0346's Phase 2, 2026-10-05.
+- **Origin:** architecture and product review of [plan 0346](../../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2, 2026-10-05.
 - **Reported:** 2026-10-05
 
 ## Symptom
@@ -28,7 +28,7 @@ The architecture reviewer measured one such subject on `HEAD`:
 
 ## Fix
 
-**Built as spike 0392's C5, decided by the maintainer on 2026-10-06** after three review rounds each
+**Built as [spike 0392](../../spikes/0392-what-makes-an-accepted-entry-portable.md)'s C5, decided by the maintainer on 2026-10-06** after three review rounds each
 found a version of this fix that accepted a finding `main` reports. The spike measured six matchers
 over fifteen cases; [spike 0392](../../spikes/0392-what-makes-an-accepted-entry-portable.md) holds
 the table and the harness.
@@ -43,7 +43,7 @@ the table and the harness.
   - **The name** is what makes it an identity: a root-relative path alone makes the same layout in
     two repositories look alike. No name, no portable form.
   - **Whole tokens, not substrings,** so a root that spells a path segment (`/app` and
-    `src/app/user.ts`) keeps two files apart — bug 0391's shape, which the baseline hash still has.
+    `src/app/user.ts`) keeps two files apart — [bug 0391](../0391-the-identity-scrub-replaces-the-root-inside-a-path.md)'s shape, which the baseline hash still has.
 - **The match.** An entry matches a finding by its raw subject (what a list written before the fix
   holds) or by its portable form. The entry itself is never rewritten.
 - **The advice** prints the portable form.
@@ -59,8 +59,8 @@ the table and the harness.
     measured that prefix case still colliding.)
   - **a subject that already spells the portable syntax**, which turns portable matching off for
     its rule (below).
-- **A subject that spells the portable syntax turns portable matching off for its rule** (spike
-  0393; option A's matching half, taken by the coordinating agent on the maintainer's instruction;
+- **A subject that spells the portable syntax turns portable matching off for its rule** ([spike 0393](../../spikes/0393-can-a-portable-syntax-be-unspellable.md);
+  option A's matching half, taken by the coordinating agent on the maintainer's instruction;
   its "report a finding" half was not built). If any finding of a deferred warning has `<root:` in its raw subject (identity, or element
   and message), that rule compares raw subjects only, exactly as on `main`. When another finding of
   the rule is outside the list, its advice names the subjects that spell it and the remedy; when none
@@ -70,7 +70,7 @@ the table and the harness.
   escalated every finding of such a rule instead; review measured that as stricter than `main` for a
   raw list and stricter than the spike's option A, and it was narrowed.)
 - **The baseline hashes are unchanged.** `portableSubjectOf` (`packages/core/src/violation.ts`) is
-  the one definition both hashes use; it keeps the substring scrub, which is bug 0391's to fix.
+  the one definition both hashes use; it keeps the substring scrub, which is [bug 0391](../0391-the-identity-scrub-replaces-the-root-inside-a-path.md)'s to fix.
 
 **Residuals, stated.**
 
@@ -82,7 +82,7 @@ the table and the harness.
   closed.
 - **An entry kept for a finding that spelled the portable syntax.** While that finding is present
   the rule matches raw subjects only; once it is fixed, an entry kept for it can equal another
-  finding's portable form. Pinned by a second `KNOWN RESIDUAL` test (spike 0393).
+  finding's portable form. Pinned by a second `KNOWN RESIDUAL` test ([spike 0393](../../spikes/0393-can-a-portable-syntax-be-unspellable.md)).
 - **Not portable, and fails closed:** builders that name no project (3 never do, 2 only when given
   one, of 15), repositories without a root `package.json` name, and paths written inside prose
   rather than as a `::` token.
@@ -96,8 +96,8 @@ the table and the harness.
    accepted `pkgB/src/x.ts` after A was fixed, in a no-marker tree, a two-`package.json` tree and a
    submodule tree.
 2. **Substring scrub, a root per builder, none without a project** (`f384f25`). Enforcement review
-   measured one list shared across projects greener than `main`, and bug 0391's shape across runs.
-   This is spike 0392's column H: greener on 10 of its 15 rows.
+   measured one list shared across projects greener than `main`, and [bug 0391](../0391-the-identity-scrub-replaces-the-root-inside-a-path.md)'s shape across runs.
+   This is [spike 0392](../../spikes/0392-what-makes-an-accepted-entry-portable.md)'s column H: greener on 10 of its 15 rows.
 3. **The count behind "10 always, 2 when given one, 3 never".** Method review counted the 15
    concrete builders that descend from `TerminalBuilder`. An earlier version of this record said 7
    name their project, which did not reproduce.
@@ -108,7 +108,7 @@ the table and the harness.
       another — `packages/ts/tests/core/an-accepted-list-is-portable.test.ts`. It went red before
       the fix: the advice printed the checkout path, and the pasted list escalated to `error`.
 - [x] the advice text prints the portable subject — same file.
-- [x] each of spike 0392's cases (24 of the 27 tests through the public path, 3 on the kernel
+- [x] each of [spike 0392](../../spikes/0392-what-makes-an-accepted-entry-portable.md)'s cases (24 of the 27 tests through the public path, 3 on the kernel
       function `portableTokens`) — same file: another checkout, a list
       written before the fix, a worktree, a checkout without `.git`, a different finding,
       two packages without a repository marker, two same-named packages inside one repository,

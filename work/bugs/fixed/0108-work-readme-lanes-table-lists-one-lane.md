@@ -11,7 +11,7 @@
   finding below). Filed rather than
   silently corrected because the document's stated job is to be the map a fresh
   agent reads first, and because the claim is mechanically bindable (see _Fix_).
-- **Origin:** self-found · reviewing inbound proposal 002, when the proposals
+- **Origin:** self-found · reviewing inbound [proposal 002](../../proposals/002-comment-embedded-links.md), when the proposals
   lane turned out to be undocumented
 - **Reported:** 2026-08-12
 
@@ -185,7 +185,7 @@ Deferred:
 
 - **A README and lifecycle for `work/proposals/`** — what states a proposal
   moves through, whether it has a board, and where a ruled proposal goes when
-  it is neither accepted nor rejected. Proposal 002 is the first record to need
+  it is neither accepted nor rejected. [Proposal 002](../../proposals/002-comment-embedded-links.md) is the first record to need
   it. That is a convention decision, not a defect, so it is not resolved here.
   deferred→[plan 0259](../../plans/0259-a-lifecycle-for-the-proposals-lane.md).
 
@@ -193,5 +193,5 @@ Deferred:
   working-method docs (`docs/working-method.md`)". Review measured that file:
   zero occurrences of "proposal". Naming a filename is not naming an owner —
   the item would have sat in a frozen record, on no board, with no number, which
-  is precisely the silent deferral `/close` exists to prevent. Plan 0259 is the
+  is precisely the silent deferral `/close` exists to prevent. [Plan 0259](../../plans/0259-a-lifecycle-for-the-proposals-lane.md) is the
   home, authored in the review round rather than promised.

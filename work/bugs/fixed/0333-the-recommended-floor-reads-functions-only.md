@@ -34,7 +34,7 @@ measured; ten reported nothing:
 | a silent catch in a static block              | **0**  | 1              |
 
 **A bare `eval('x')` at the top of a file passed a preset whose rule is named `no-eval`.** That is
-not an exotic position, and it is what took this record from the three positions bug 0321 ruled out
+not an exotic position, and it is what took this record from the three positions [bug 0321](./0321-function-positions-no-function-rule-reads.md) ruled out
 to "the floor reads function bodies and nothing else".
 
 ## Root cause

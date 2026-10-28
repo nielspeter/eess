@@ -7,15 +7,15 @@
   `9d18f0e`; red tests first, 2026-10-21.
 - **Severity:** High — **a false green that the documented remedy cannot catch.** A
   `correspondence()` checked in one direction, whose checked side selects nothing, passes. Adding
-  `.expectNonEmpty()`, the declaration ADR-010 §3 provides for exactly this, does not turn it red.
-- **Origin:** self-found 2026-10-07, measuring the composition proposal 013 describes. A consuming
+  `.expectNonEmpty()`, the declaration [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3 provides for exactly this, does not turn it red.
+- **Origin:** self-found 2026-10-07, measuring the composition [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md) describes. A consuming
   project hit the same false green independently, in its own corpus, the same day.
 - **Reported:** 2026-10-07
 - **Blocks (2026-10-21):** [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
   ask B and its fix. [Spike 0540](../../spikes/0540-one-join-over-every-source.md) reproduced this bug on
   their composition: a join whose mention side is empty is green with or without `.expectNonEmpty()`.
-- **Tier:** 1–2. A kernel evidence defect under ADR-010 (§1, the unit; §3, declarations) and
-  ADR-014 (the receipt carries `examined`).
+- **Tier:** 1–2. A kernel evidence defect under [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) (§1, the unit; §3, declarations) and
+  [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) (the receipt carries `examined`).
 
 ## Symptom
 
@@ -34,7 +34,7 @@ All rows are `beComplete()`; L is the left side, R the right. Measured with this
 - **Row b is the defect.** The author declared the checked side must never be empty, and the rule
   passed with it empty.
 - **Row e is its mirror.** It tells the author their corpus grew, when the side it checks is
-  empty. That is a false cause (ADR-009 rule 2).
+  empty. That is a false cause ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2).
 - **Through eess-md:** a reciprocity rule whose left side is the links on a `**Related to:**` line
   stays green when the predicate's marker is misspelt, with or without `.expectNonEmpty()`. With no
   links at all and `.expectNonEmpty()`, it goes red.
@@ -75,7 +75,7 @@ check that asserted nothing.
 - The comment above the count states the design: "one side alone being empty is still real
   examination of the other" (`correspondence.ts:135-138`). That is true for `direction: 'both'`,
   where L=[] and R=[x] does go red (`x` has no matching left). It is false for one direction.
-- ADR-010 §1 fixes the unit for `correspondence()` as "the key sets of its two sides"
+- [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §1 fixes the unit for `correspondence()` as "the key sets of its two sides"
   (`adr/010-a-pass-is-constructed-from-evidence.md:124-125`). For a one-way check, that unit
   includes a side nothing reads.
 
@@ -93,8 +93,8 @@ The remedy for that case exists and works: `.expectNonEmpty()` turns it red (row
 **Prior art.** eess-ts's `crossProject()` already reports an empty side and takes a per-side
 declaration: `emptinessFindings` (`packages/ts/src/builders/correspondence-findings.ts:223`) and
 `expectEmpty(side)` (`packages/ts/src/builders/correspondence-builder.ts:273`). The kernel's
-`correspondence()` has neither. This is the shape of bug 0355, but not its remedy: 0355 asked the
-disk, and a kernel `Selection` has no paths (ADR-013), so a disk check does not belong in core.
+`correspondence()` has neither. This is the shape of [bug 0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md), but not its remedy: 0355 asked the
+disk, and a kernel `Selection` has no paths ([ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md)), so a disk check does not belong in core.
 
 ## Exposed callers
 
@@ -123,15 +123,15 @@ and the builder sums them (`packages/core/src/correspondence.ts`, `CheckResult`)
 `beComplete()` in both directions, the checked side for a one-way one, and the left elements a
 `preserveRelations()` compared, which is none under `direction: 'right-to-left'`
 ([bug 0084](../0084-preserve-relations-right-to-left.md)'s gap, now visible to `.expectNonEmpty()`).
-Why (b): ADR-010 §3 already rules that an absence assertion over an empty selection is satisfied,
+Why (b): [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3 already rules that an absence assertion over an empty selection is satisfied,
 as `.notExist()` is, and rows a and d make the same claim. (a) would red row a and keep row d green,
 which amends §3 as well as §1 and splits one claim into two verdicts. (b) amends only §1's unit,
 which [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) now records, and makes the
-declaration ADR-010 provides work. A `correspondence()` with no check chained now reads nothing,
+declaration [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) provides work. A `correspondence()` with no check chained now reads nothing,
 so it reports zero examined units over any sides; it used to pass over non-empty ones.
 
 `crossval/adr-citations-resolve` declares it: `adrCitationsResolve` takes `expectNonEmpty`, which
-ADR-010 §3 requires of a preset that calls `.check()` itself, and `scripts/check-crossval.mjs`
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3 requires of a preset that calls `.check()` itself, and `scripts/check-crossval.mjs`
 passes it. `scripts/release-gate.mjs` declares each rule empty on its checked side alone.
 
 **The merge, found by the first full validate (2026-10-21), widened with the maintainer's approval.**
@@ -147,7 +147,7 @@ are not.
 
 What the decision had to weigh, as recorded before it:
 
-Changing the unit for a one-way check amends ADR-010 §1 ("the key sets of its two sides"), so it
+Changing the unit for a one-way check amends [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §1 ("the key sets of its two sides"), so it
 goes through an ADR amendment, not this record. The amendment is written with the fix, in the plan
 or PR that builds it; until then this record owns getting it written. It is a breaking change for
 adopters whose one-way correspondences start reporting, and its changeset is marked so.
@@ -185,7 +185,7 @@ The release gate keeps "the declaration comes from the input, the count from the
 The first version of this record (2026-10-07) said the cardinality exemption caused the headline
 case and called the double count "a second, smaller defect". Enforcement review showed the
 exemption is never consulted when `examined` is above zero, so the order was backwards. Method
-review found the record had missed `.expectNonEmpty()`, the eess-ts prior art, and ADR-010 §1, and
+review found the record had missed `.expectNonEmpty()`, the eess-ts prior art, and [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §1, and
 that its fix was a decision written into a bug. A second review round found that break class 1 could
 not be met by fixing the count alone, because the exemption then applies; the decision above now
 says so.

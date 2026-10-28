@@ -7,7 +7,7 @@
   wrong supposition is the more useful half.
 - **Severity:** Medium — a false green at a published dialect's build gate. Not
   higher only because `eess-mermaid` has far fewer adopters than `eess-ts`; the
-  shape is the one ADR-014 exists to refuse, and the family's binding ADR reads
+  shape is the one [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) exists to refuse, and the family's binding ADR reads
   as though it were covered.
 - **Origin:** self-found · product review of PR #118
 - **Reported:** 2026-09-07
@@ -41,7 +41,7 @@ said the dialect's contract has "no receipt … so there is nothing for an evide
 gate to read", and framed the fix as a dialect-wide contract change. Measured,
 that was wrong in the way that matters: `ClassRuleBuilder extends RuleBuilder`,
 which extends the kernel's `TerminalBuilder`, where `violations(): CollectResult`
-has been the contract since ADR-014. **Every real builder already carried a
+has been the contract since [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). **Every real builder already carried a
 receipt** — a real rule with a dead selector already reddened, because `.check()`
 reaches the kernel's gate. The premise came from reading the CLI's own
 `RuleBuilderLike` interface and not the class hierarchy behind it.
@@ -54,7 +54,7 @@ loader keys on `violations`, which is why the same probe reds there.
 A second, independent hole sat beside it: a rule file exporting `[]` printed
 `✓ eess-mermaid — 0 rules across 1 file · 0 failing` and exited 0.
 
-This is the shape `eess-ts` had before it learned otherwise, one dialect over — though **not** in plan 0263 Phase 2, which is where an earlier draft of this record credited it. Measured from history: the `'violations' in value` guard dates to PR #72 and `ruleFileContributedNoRules` to PR #74; 0263 Phase 2 (PR #118) added only the `finishPreset` wiring. The correction matters because the corrected root cause below names the guard as the actual fault, so crediting 0263 credits it for the two parts it did not do. The
+This is the shape `eess-ts` had before it learned otherwise, one dialect over — though **not** in [plan 0263](../../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 2, which is where an earlier draft of this record credited it. Measured from history: the `'violations' in value` guard dates to PR #72 and `ruleFileContributedNoRules` to PR #74; 0263 Phase 2 (PR #118) added only the `finishPreset` wiring. The correction matters because the corrected root cause below names the guard as the actual fault, so crediting 0263 credits it for the two parts it did not do. The
 kernel work it depends on is already done and published: `CollectResult`,
 `collectResult`, `mergeCollectResults` and the emitter findings are all on the
 kernel root, and `finishPreset(receipt, { report: 'return' })` is the same seam
@@ -62,7 +62,7 @@ the `eess-ts` doors now use.
 
 ## Why it matters
 
-ADR-014's enforcement row for this clause is written dialect-neutrally — "a rule
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s enforcement row for this clause is written dialect-neutrally — "a rule
 file exporting an evidence-free builder reds `check`, `check --fix`, `baseline`
 and `checkAll`" — and is marked `gated`. `check` is also the name of
 `eess-mermaid`'s command. A reader of the family's binding ADR has no way to
@@ -83,7 +83,7 @@ A wiring change in the dialect's CLI, not a contract change — three parts:
    rule. Real builders have both and are unaffected.
 2. **`check` reads the receipt.** It loads **per rule file** and runs
    `finishPreset(builder.violations(), { report: 'return' })`, attributes an
-   unattributed finding to the rule file it came from (bug 0026's seam, which
+   unattributed finding to the rule file it came from (ts-archunit bug 0026's seam, which
    this dialect had not learned), then emits through `reportViolations` — the
    kernel seam that gates, prints, and escalates an emitter finding to a throw.
 3. **A rule file that contributes no rules reds**, with its own finding, rather
@@ -134,7 +134,7 @@ failing`, exit 0. A rule that ran and failed ceased to exist under a
       trace.
 - [x] The repo's own `check:diagram` stays green — the control that matters,
       since a gate that reds on everything would satisfy the rest.
-- [x] ADR-014's clause names this dialect's door now that it is true of it.
+- [x] [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s clause names this dialect's door now that it is true of it.
 
 Deferred: none.
 
