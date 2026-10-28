@@ -126,7 +126,7 @@ Two reasons, both measured in their tree:
    explicit lib. `workspace()` builds its Program from the **alphabetically
    first** tsconfig and `apps/` sorts before `packages/`, so UI code would be
    checked without DOM. eess patched its own `getCompilerOptions()` to answer per
-   package (bug 0058), but the Program still uses one config's options — so any
+   package (ts-archunit bug 0058), but the Program still uses one config's options — so any
    rule needing type resolution in `packages/ui` is not safe to move.
 
 ### The product gap, stated precisely
@@ -326,7 +326,7 @@ Which means:
 - **It is decidable, just not from the rules.** Build the project both ways once,
   diff the file sets, and ask whether any declared selector matches a file that only
   resolution adds. This spike did exactly that in twenty lines. That makes it a
-  **diagnostic** — explicitly invoked, per ADR-009 rule 1's migration corollary, not
+  **diagnostic** — explicitly invoked, per [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1's migration corollary, not
   a warning nobody reads — that can give each adopter their own answer instead of
   eess guessing on their behalf.
 
@@ -361,7 +361,7 @@ Three candidates, none costed beyond the table above:
   source — and no inspection of a rule can see that. **What replaces it is a
   diagnostic:** build both ways once, diff the file sets, report whether any
   declared selector matches a file only resolution adds. Explicitly invoked, per
-  ADR-009 rule 1's migration corollary.
+  [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1's migration corollary.
 - **Share a file cache between `project()` and `workspace()`.** Invisible to rule
   authors. The case for it is the section above: an adopter who needs both shapes
   holds both, and they share nothing. Bounded — AST and file text can be shared,

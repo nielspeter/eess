@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phases 1 and 2 built 2026-10-27; lane 3 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1–3 built 2026-10-27/28; lane 4 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -23,7 +23,9 @@ runs it, and then switches the gate to hold zero and to check that a link names 
 
 1. **eess alone.** The fix and the target check declare this repository's records only.
    ts-archunit's are not a source and are never linked to: the 11 links to its GitHub URLs outside
-   the fold records are reworded in their lanes. **A record** is a numbered file in a lane folder
+   the fold records are reworded in their lanes (corrected 2026-10-28 at lane 3: 11 by
+   `git grep`, of which 6 are links in prose, 4 in lane 2 and 2 in lane 4; the other 5 sit in fenced
+   probe input in two spikes, which no gate reads, and are left as recorded). **A record** is a numbered file in a lane folder
    (`adr/` directly, `work/{bugs,plans,spikes,proposals}/` at any depth below), or a numbered folder
    there, read through its `README.md`; a numbered file inside a numbered folder is not one. 525
    records at the freeze.
@@ -200,7 +202,10 @@ Each lane is its own PR, in this order:
    Decision 2's form in step 4 (lane 2's review found four the steps had not met);
 3. `--fix --apply`, before any hand edit, so no excluded line has moved;
 4. the lane's refusals, anachronisms and the other mentions on their lines closed by hand, as the
-   Measured section says; the exclusions it closed removed from the rule file;
+   Measured section says; where an agent proposes the edits, a second judge reads, without the
+   proposer's reasons, every hand link in a file naming ts-archunit with a number in its range,
+   every call that a number is ts-archunit's, and every other rewording, for meaning (lane 3's
+   review); the exclusions it closed removed from the rule file;
 5. **closed when the lane's documents hold no unlinked mention**: the rule file holds no exclusion
    in `LANE`, and the dry run over `LANE` reports no finding (with one rule per glob, a glob that
    matches nothing is a dead-glob finding, not clean).
@@ -231,8 +236,8 @@ Each lane is its own PR, in this order:
   section's 145 counts it (corrected there), and the lanes whose targets sit in `fixed/` and
   `completed/` (4, 5, 7, 8) will meet more of it.
 - By hand, 55 edits in 17 files: 41 links, 11 rewordings to the ts-archunit form (the
-  skipped count, 39 at the base, reads 54 at the head: these 11, and 4 in this plan's own record
-  of the lanes),
+  skipped count, 39 at the base, read 54 at e53014bd: these 11, and 4 in this plan's own record
+  of the lanes; 53 after the re-check's last rewording, as lane 3's base read it),
   and 3 incidental examples reworded. Besides those: `docs/markdown.md`'s example forms moved into
   a fenced block, as that page itself advises, and one more example reworded there; and the four
   links to ts-archunit's GitHub URLs in this lane (`adr/009` and `adr/010`, two each) written as
@@ -247,6 +252,61 @@ fails the build` and `accepts a repository that extends the base through an inte
   record cites it, so it is lane 5's to settle.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
   reads 4,045 unlinked mentions against 4,418 at the base (96b0461e), both from its summary.
+
+**Lane 3 (Phase 3), built 2026-10-28**, at base d3945424, with `LANE` set to `work/spikes/**` and
+`work/proposals/**` (the commit leaves it empty):
+
+- The instrument found 38 anachronisms on 36 lines in 792 fixes, the Appendix's rows exactly (two
+  lines of [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md) hold two each; one exclusion
+  per line). Lane 2's carried ts-archunit plan 0075, at
+  [proposal 010](../proposals/010-ts-performance-at-scale.md)'s lines 67, 232 and 234, went into
+  `JUDGED_WRONG` before the dry run. The dry run gave 746 fixes and 109 refusals (the table's 111,
+  less two on excluded lines). The GitHub-link grep printed seven lines: the five links below and two
+  URLs in inline code, which are not links.
+- The judge (Fable; seed 20261028) read the 57 fixes in the ts-archunit range and 20 sampled: 77
+  right. `--apply` wrote the 746.
+- The rest was closed by hand with two agents beside the lane. A proposer (Fable) read the 148
+  items in context and proposed an exact edit for each, 157 in all (the nine more are other mentions
+  on excluded lines). A second judge (Fable) read the 29 riskiest: the 11 links in files naming
+  ts-archunit with a number in its range, and the 18 rewordings that call a number ts-archunit's.
+  29 right; most ts-archunit numbers were pinned by a code comment or a fold-audit row, two by
+  eess's own numbering (its plans start at 0051) and one by dates and the eess plan's content.
+  Corrected 2026-10-28 at the lane's review: this said the second judge "had not seen the proposer's
+  reasoning", but its input carried the proposer's one-line reason for each row. 142 edits applied
+  in 24 files: 80 links, 43 rewordings, 18 to the ts-archunit form, and one example moved into a
+  fence; 15 items were covered by another's edit. One rewording was applied by hand after the fix
+  had linked the first mention it quoted.
+- **The review found three rewordings wrong, which no judge had read** (a plain rewording was
+  outside the second judge's set):
+  [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B row had come
+  to mean a different test; [proposal 001](../proposals/001-md-corpus-rule-coverage.md)'s quoted
+  message had become a `path:line` that never held what it says; and
+  [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s two examples of a form
+  that cannot be told apart had been rewritten to show it told apart. Each was put right. A range of
+  ts-archunit numbers in [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) was hidden
+  with an inserted word and is now in the ts-archunit form. So step 4 now has the second judge read every rewording as well, for meaning, without the
+  proposer's reasons. Lane 3's own rewordings were read by its review, which had seen the reasons,
+  not by a judge reading without them.
+- **What the anachronism exclusions caught.** 36 of the 38 name their record and were linked; two
+  are ts-archunit's and were reworded ([proposal 002](../proposals/002-comment-embedded-links.md)'s line 63, ts-archunit proposal 011 with ts-archunit plan 0057 beside it;
+  [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s line 14, ts-archunit proposal 019 with a plan beside it). The second line hid a
+  wrong fix the judge could not have read: that proposal names no ts-archunit, and its plan number is
+  ts-archunit's, which `--apply` would have linked to eess's
+  [plan 0070](./completed/0070-caller-owns-reporting.md). The lane's other fixes to that plan were
+  read (judge 1's j004, j006, j008), and its plain mentions in lanes 4 to 8 all mean eess's. The
+  flags were a mix: some true anachronisms filed minutes after the mention ([bugs 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md), [bug 0403](../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)),
+  some over-flags from a delete-and-add close.
+- Quoted strings were described where a number had to leave them (a code comment, an output
+  message, a probe input, an adopter's quote); each still reads true. The lane's one `upstream`
+  mention, [spike 0540](../spikes/0540-one-join-over-every-source.md)'s fixture source name at line
+  62, is its share of Decision 2's 15, reworded without the number.
+- The five ts-archunit GitHub links in
+  [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) and
+  [spike 0540](../spikes/0540-one-join-over-every-source.md) sit inside `md` fences of quoted probe
+  input, which no gate reads; they are left as recorded, and Decision 1 says so.
+- Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
+  reads 3,142 unlinked mentions against 4,045 at the base; the skipped count, 53 at the base, reads 81 at the commit (`check:corpus`, 2026-10-28): 76
+  from the lane's edits and 5 in this record's own ts-archunit forms, a derivation by file.
 
 ### Phase 9 — the gate holds zero, and checks the target
 
@@ -366,11 +426,12 @@ document. Every new number was reproduced at 4a43bcc4.
 - [x] Ready (2026-10-27)
 - [x] Phase 1 — the gate's narrowing, proven, and the rule file
 - [x] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
-- [ ] Phase 3 — `work/spikes/`, `work/proposals/` (carried from lane 2: ts-archunit plan 0075 in
+- [x] Phase 3 — `work/spikes/`, `work/proposals/` (carried from lane 2: ts-archunit plan 0075 in
       [proposal 010](../proposals/010-ts-performance-at-scale.md) at lines 67, 232 and 234; the file
       names no ts-archunit, so the judge's read set misses it; the ts-archunit GitHub links in
       [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) (lines 48, 49) and
-      [spike 0540](../spikes/0540-one-join-over-every-source.md) (lines 47, 48, 54))
+      [spike 0540](../spikes/0540-one-join-over-every-source.md) (lines 47, 48, 54); ts-archunit plan 0075 excluded and reworded, the GitHub links left as
+      recorded as fenced probe input, Decision 1 corrected)
 - [ ] Phase 4 — `work/bugs/` (live) (carried from lane 2, for the judge:
       [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s
       mention of a plan numbered 0075 at line 69, read as ts-archunit's; the ts-archunit GitHub

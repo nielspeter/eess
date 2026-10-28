@@ -47,7 +47,7 @@ between A and B, the maintainer answered "and this cannot be decide by investatg
 which the coordinator read as: a question a spike can settle should not come back to them. The coordinator took the
 recommended option and reported it, open to being overruled.
 
-**As built** (bug 0389, PR #181): a rule with a subject containing `<root:` compares raw subjects
+**As built** ([bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md), PR #181): a rule with a subject containing `<root:` compares raw subjects
 only, exactly as on `main`, and its advice names the subjects and the remedy. A first build
 (`bcfe457`) escalated every finding of such a rule instead; review measured that as stricter than
 option A and than `main`, and it was narrowed. **Not built: a finding of its own.** Nothing is
@@ -59,7 +59,7 @@ option A was for; the report half is not delivered.
 **What A does not close.** The findings above say "nothing produced after the release can
 collide", and the Recommendation below says "every list written from now on". That is too
 strong: an entry kept for a literal finding still equals another finding's portable form once the
-literal finding is fixed, whenever the entry was written. Bug 0389 records it as a residual, and a
+literal finding is fixed, whenever the entry was written. [Bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) records it as a residual, and a
 test pins it.
 
 ## Recommendation

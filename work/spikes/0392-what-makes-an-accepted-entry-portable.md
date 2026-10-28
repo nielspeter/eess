@@ -60,7 +60,7 @@ Each row's layout is built fresh; the harness ran in under a second.
 ## What this shows
 
 - **Scrubbing text as a substring is the wrong mechanism.** H and C2 fail the `/app` rows: a root
-  that also spells a path segment aliases two files (bug 0391). Replacing whole path tokens (C3–C5)
+  that also spells a path segment aliases two files ([bug 0391](../bugs/0391-the-identity-scrub-replaces-the-root-inside-a-path.md)). Replacing whole path tokens (C3–C5)
   passes every `/app` row by construction.
 - **A root-relative path is not an identity.** Any form relative to a root makes the same layout
   under two different roots look alike. That is every "greener" cell in C3: per-package roots, and
@@ -80,7 +80,7 @@ Each row's layout is built fresh; the harness ran in under a second.
 
 **Decided by the maintainer, 2026-10-06: C5, with the shared-package-name case accepted as a named
 residual** (the maintainer chose the option "C5, accept the named residual" when asked in the
-session that built PR #181). Built in PR #181 for bug 0389, where the residual is pinned by a test that turns red if
+session that built PR #181). Built in PR #181 for [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md), where the residual is pinned by a test that turns red if
 it is ever closed.
 
 ## Where this left the decision
@@ -88,7 +88,7 @@ it is ever closed.
 C5 is the only measured form that ports and is greener than `main` on a single, named case. Whether
 that case is an acceptable residual is the maintainer's call, because accepting a risk is. If it is
 not, the honest alternative is to leave `accepted` comparing raw subjects (`main`) and fix the paste
-experience instead (bug 0389 stays open). Either way PR #181's matcher at `942e53a` (H) should not ship:
+experience instead ([bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) stays open). Either way PR #181's matcher at `942e53a` (H) should not ship:
 it is greener than `main` on 10 rows here.
 
 Not measured: subjects that carry a path inside prose rather than as a `::` token (C3–C5 leave those

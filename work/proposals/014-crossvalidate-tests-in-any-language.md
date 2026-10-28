@@ -16,7 +16,7 @@ shown inline, run from a session scratchpad; the consumer's own suite was not ru
 Gherkin is language-neutral; the presets that bind it to tests are not. A consuming project whose
 tests are pytest functions wants what a TypeScript project gets from the scenario presets: every
 scenario in `features/*.feature` cited by a test, every citing test pointing at a real scenario,
-exempt tags honoured and reported when stale, and a pass that is built from evidence (ADR-010).
+exempt tags honoured and reported when stale, and a pass that is built from evidence ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)).
 
 It cannot have them. Its citations live where its tests live — a `@pytest.mark.scenario("…")`
 marker, a docstring, a test id — and nothing in eess reads those. The presets read their test side
@@ -32,7 +32,7 @@ from a TypeScript project and from nothing else.
   it with `calls()` for `it`/`test` call titles. The module imports `@nielspeter/eess-ts` at runtime
   (`:9`), so importing it requires eess-ts.
 - **The citation's shape is already public.** `TestCitationSite { title, file, line }` (`:58`) was
-  exported by plan 0145 "so a consumer can report a citation's own location". What is private is
+  exported by [plan 0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md) "so a consumer can report a citation's own location". What is private is
   the code that fills it — `itTitles` — so the gap is a seam over an existing type, not a new input
   shape.
 - **The only test-side hook parses a title.** `extract?: TestCitationExtractor` (`:35`, `:40`,
@@ -52,7 +52,7 @@ from a TypeScript project and from nothing else.
 - **The three presets carry evidence the raw composition does not.** They end in `finishPreset`
   (`:184`, `:267`, `:335`), whose evidence gate reports a binding that examined nothing;
   `scenarioTestStats` returns counts with no gate. A `correspondence().beComplete()` is exempt from
-  that gate by design — it is an absence assertion (ADR-010;
+  that gate by design — it is an absence assertion ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md);
   `packages/core/src/correspondence.ts:157`) — so an empty binding is green unless the author adds
   `.expectNonEmpty()`.
 
@@ -133,7 +133,7 @@ So the composition works, with three costs the presets do not have:
 - **Break class:** an empty binding — no scenarios, no citations, or both — is not green: the
   presets' existing evidence gate reports it, with no declaration needed.
 - **Break class:** a citation source that is missing or unreadable is a finding, never read as an
-  empty list (ADR-009). How it is supplied is open question 1.
+  empty list ([ADR-009](../../adr/009-agent-first-failure-surfaces.md)). How it is supplied is open question 1.
 - **Not a finding:** two tests citing one scenario.
 - **Non-vacuity:** a fixture row for each break class, plus a row proving the supplied-side form and
   the TypeScript form report the same findings for the same citations.
@@ -147,7 +147,7 @@ So the composition works, with three costs the presets do not have:
 
 ## Open questions
 
-1. **Where the citations come from.** eess extracts from source it parses (ADR-002, ADR-007); it does
+1. **Where the citations come from.** eess extracts from source it parses ([ADR-002](../../adr/002-ts-morph-ast-engine.md), [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)); it does
    not parse Python. The likely shape is that the consumer's own test runner produces the list (a
    pytest `conftest.py` hook over `--collect-only`, writing JSON) and eess takes it in code or reads
    a declared file. Reading `.py` files with a pattern instead is a text grep — the shape bug
@@ -171,7 +171,7 @@ So the composition works, with three costs the presets do not have:
 
 - Reading Python, or any other language, inside eess.
 - Any change to the TypeScript form of the presets.
-- Bug 0400's one-way count, which has its own record.
+- [Bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)'s one-way count, which has its own record.
 
 ## Consumer evidence — 2026-10-10
 
@@ -205,7 +205,7 @@ What it bears on, for the review to weigh:
   check — eess parsed no Python. It is a static parse of the files pytest would collect, not
   pytest's own collection, which differs from the hook this question guessed at: it cannot see a
   test made by parametrization or a mark applied at runtime, and it is a real parse, not the text
-  grep bug 0135 warns about.
+  grep [bug 0135](../bugs/0135-graphql-resolver-binding-is-a-text-grep.md) warns about.
 - **Open question 3** (a stale list): no list is kept, so freshness is the caller's by
   construction. One consumer's choice, not yet evidence that every caller would make it.
 - **The missing-source break class** in Ask A: the extractor reports an unreadable or misplaced

@@ -67,7 +67,7 @@ entries; at 50,000 it fires on trees that cost 76ms.
 **It does not establish that the budget should simply be raised and forgotten.**
 Raising it moves the cliff without making the failure honest: at any budget,
 exhaustion still answers `not-determined` for every glob, still means green, and still
-says nothing. ADR-009 is explicit that a detector which cannot fire must say so rather
+says nothing. [ADR-009](../../adr/009-agent-first-failure-surfaces.md) is explicit that a detector which cannot fire must say so rather
 than pass. So the two changes are independent and only one of them is optional.
 
 ## What this does NOT measure
@@ -85,7 +85,7 @@ than pass. So the two changes are independent and only one of them is optional.
 
 Two changes, and the record should be explicit that they are independent:
 
-1. **Report exhaustion.** Required by ADR-009 regardless of where the budget sits, and
+1. **Report exhaustion.** Required by [ADR-009](../../adr/009-agent-first-failure-surfaces.md) regardless of where the budget sits, and
    the honest minimum: a run whose walk gave up must say so. One finding for the
    project rather than one per rule — the precedent is `emptyProjectViolation`, whose
    identity is the tsconfig rather than any glob.

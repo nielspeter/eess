@@ -1,13 +1,13 @@
 # Proposal 009 — core: a verdict cannot be assembled by hand — the emitters accept only what the pipeline minted
 
-**State:** Draft — surveyed against the repo source at core 0.5.0 / md 0.4.0 / ts 0.4.0 (`packages/core/src/report.ts`, `violation.ts`, `execute-rule.ts`, `index.ts`, `packages/ts/src/presets/shared.ts`) and against ADR-008, ADR-010 and ADR-011; the two headline measurements below were re-run in this repo, not carried over. No red test written yet.
-**Priority:** High — closes a gap between what eess claims and what it checks. ADR-010 says a pass without evidence is _unrepresentable_; the kernel root exports a seam at which it is one line.
+**State:** Draft — surveyed against the repo source at core 0.5.0 / md 0.4.0 / ts 0.4.0 (`packages/core/src/report.ts`, `violation.ts`, `execute-rule.ts`, `index.ts`, `packages/ts/src/presets/shared.ts`) and against [ADR-008](../../adr/008-caller-owns-reporting.md), [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md); the two headline measurements below were re-run in this repo, not carried over. No red test written yet.
+**Priority:** High — closes a gap between what eess claims and what it checks. [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) says a pass without evidence is _unrepresentable_; the kernel root exports a seam at which it is one line.
 **Origin:** inbound — a consuming project (`@nielspeter/eess` `0.4.0`, `@nielspeter/eess-md` `0.5.0`, `@nielspeter/eess-ts` `0.4.0`), found when an agent working there was asked why three corpus gates had gone silently inert in one week. The project is not named here: this repo does not carry consumer identities. Its field numbers appear below as reported context; every load-bearing claim is re-verified against this repo's own source.
 **Affects:** `packages/core/src/report.ts` (`finishPreset`, `reportViolations`), `packages/core/src/violation.ts` (`ArchViolation`), `packages/core/src/execute-rule.ts` (`applyFilters`, the natural mint point), `packages/core/src/index.ts` (the root surface), `packages/ts/src/presets/agent-guardrails.ts`, `packages/md/README.md` / `docs/markdown.md`.
 
 ## Problem
 
-ADR-010's Decision reads: _"A pass that is merely 'no violations were collected' is unrepresentable."_ Its
+[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s Decision reads: _"A pass that is merely 'no violations were collected' is unrepresentable."_ Its
 mechanism is the terminal seam — `collectViolations()` returns `CollectResult`
 (`packages/core/src/terminal-builder.ts:39`: `{ violations, examined, sourceEmpty? … }`), so every
 builder-family verdict carries evidence and a zero-examined rule becomes a configuration finding. The
@@ -18,7 +18,7 @@ The kernel root also exports `finishPreset(violations: ArchViolation[], options?
 array a builder produced from an array a consumer typed. `ArchViolation` is a plain interface
 (`packages/core/src/violation.ts:28`) — `spec.rules.ts` in this very repo constructs it as an object
 literal, correctly, inside a `Condition`. So the following program is type-correct, uses only root
-exports, follows three separately-documented affordances, and constructs exactly the pass ADR-010
+exports, follows three separately-documented affordances, and constructs exactly the pass [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)
 calls unrepresentable:
 
 ```ts
@@ -41,7 +41,7 @@ nothing. Each was green. Each fix hand-rolled one more floor. The third defect s
 that fixed the second. The agent that wrote them had been told to "embrace eess" in the same session
 and had a working `eess-md` rule file in the same directory.
 
-The vacuity matrix cannot see this family, and ADR-010 says why in its own Context: _"an enumeration
+The vacuity matrix cannot see this family, and [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) says why in its own Context: _"an enumeration
 derived from the work in front of you does not contain the family outside your view."_ The matrix
 enumerates the `package.json` exports map for check-**constructors**; `finishPreset` is a reporter, so
 it is outside the enumeration while being the one seam a consumer walking around the pipeline must
@@ -80,10 +80,10 @@ presets are safe. It is also why `finishPreset` has never needed to know: every 
 family had already been through a terminal. The seam was designed for callers who hold a verdict,
 and it cannot check that they do.
 
-**What ADR-011 already decided, and what this does not re-ask.** ADR-011's first cut moved
+**What [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) already decided, and what this does not re-ask.** [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)'s first cut moved
 `reportViolations` / `finishPreset` behind `/internal`; review sent them back to the root as _"named
-seams in ADR-008"_ — a caller embedding eess owns emission, and `finishPreset` is how a preset honours
-`report: 'return' | 'warn'`. That reasoning holds and this proposal keeps both on the root. ADR-011's
+seams in [ADR-008](../../adr/008-caller-owns-reporting.md)"_ — a caller embedding eess owns emission, and `finishPreset` is how a preset honours
+`report: 'return' | 'warn'`. That reasoning holds and this proposal keeps both on the root. [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)'s
 own Enforcement table also records the ceiling honestly: _"Consumers do not import
 `@nielspeter/eess/internal` — None possible. A subpath export is published and resolvable by any
 consumer"_ (`manual`). So **hiding is not the mechanism**. The mechanism has to be one that leaves the
@@ -129,19 +129,19 @@ reporter would have to satisfy.
 
 **The empty case is the important one.** A hand-assembled array that _found_ something is at least
 honest about what it found. The array that is empty because the loop examined nothing, or skipped
-everything, is the pass ADR-010 exists to forbid — and it reaches `finishPreset` as `[]`, which is
+everything, is the pass [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) exists to forbid — and it reaches `finishPreset` as `[]`, which is
 indistinguishable from a clean run. Under A, `[]` from a caller with no minted evidence is the
 finding, exactly as a zero-examined rule is at the terminal.
 
-### B. Preset plumbing off the root (kernel, additive under ADR-011 §2)
+### B. Preset plumbing off the root (kernel, additive under [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) §2)
 
 `dispatchRule`, `validateOverrides` and `throwIfViolations` are exported from the kernel root
 (`packages/core/src/index.ts:47`). No `docs/` page or package README teaches a consumer to call any
 of them; `throwIfViolations` is documented as _"kept for backward compatibility"_. They are
-preset-authoring plumbing, and ADR-011 §2 already provides the place: `/internal`, which a dialect may
+preset-authoring plumbing, and [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) §2 already provides the place: `/internal`, which a dialect may
 import and must not re-export. eess-ts's `shared.ts` re-exports `validateOverrides` from the root
-_specifically_ to satisfy ADR-011 clause 2 — moving the symbol makes that re-export unnecessary rather
-than illegal. `finishPreset` and `reportViolations` stay on the root, per ADR-008 and the ADR-011
+_specifically_ to satisfy [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) clause 2 — moving the symbol makes that re-export unnecessary rather
+than illegal. `finishPreset` and `reportViolations` stay on the root, per [ADR-008](../../adr/008-caller-owns-reporting.md) and the [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)
 review; B is about the three symbols that review did not send back.
 
 ### C. A guardrail that catches the consumer walking around the pipeline (eess-ts)
@@ -183,7 +183,7 @@ beside the `report` table.
 ## What this cannot do, stated so the proposal does not over-claim
 
 A library cannot make `for … process.exit(1)` impossible. Nothing in npm, TypeScript or this repo
-controls a consumer's exit code, which is the same fact ADR-011's `manual` row records for `/internal`.
+controls a consumer's exit code, which is the same fact [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)'s `manual` row records for `/internal`.
 The honest claim is narrower and still worth having: **a verdict cannot be obtained from eess without
 evidence** — by omission (A: the emitters refuse it at run time), by placement (B: the plumbing is not
 where a consumer reaches), by file (C: the guardrail names it), and by prose (D). A consumer who
@@ -191,14 +191,14 @@ bypasses eess entirely has not misused eess; they have not used it, and that is 
 
 ## Alternatives considered
 
-- **Retype `finishPreset` to take `{ violations, examined }`** — ADR-010's own shape, threaded from
+- **Retype `finishPreset` to take `{ violations, examined }`** — [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s own shape, threaded from
   the terminal. Considered first and rejected as the primary: a hand-rolled loop supplies
   `examined: documents.length` honestly and is _still_ inert in exactly the way the consumer measured
-  (the skip is inside the loop). ADR-010's Notes name this: evidence _"wired from the wrong layer …
+  (the skip is inside the loop). [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s Notes name this: evidence _"wired from the wrong layer …
   satisfies the letter over a fiction."_ A count is a proxy for the pipeline; A requires the pipeline.
-- **Hide `finishPreset` / `reportViolations` behind `/internal`** — tried in ADR-011's first cut,
-  reversed on review for ADR-008's reason. Not re-asked; see Evidence.
-- **A type brand alone** — edit-time only; erased at run time; bypassed by `as`, which ADR-005 bans
+- **Hide `finishPreset` / `reportViolations` behind `/internal`** — tried in [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)'s first cut,
+  reversed on review for [ADR-008](../../adr/008-caller-owns-reporting.md)'s reason. Not re-asked; see Evidence.
+- **A type brand alone** — edit-time only; erased at run time; bypassed by `as`, which [ADR-005](../../adr/005-no-any-no-type-assertions.md) bans
   here and consumers may not. Companion to A, not a substitute (Open questions).
 - **Wire `presetConstructsNothingViolation` into `finishPreset` for the `[]` case** — closes the empty
   array and nothing else: a hand-made non-empty array still passes, and an inert loop that found one
@@ -224,7 +224,7 @@ bypasses eess entirely has not misused eess; they have not used it, and that is 
   real violation read as hand-made and turns the whole family red; the test asserts identity, not
   shape.
 - **A, the aggregating caller.** `preset(p, { report: 'return' })` followed by
-  `reportViolations(result)` — ADR-008's harness case — still emits every violation. Break class:
+  `reportViolations(result)` — [ADR-008](../../adr/008-caller-owns-reporting.md)'s harness case — still emits every violation. Break class:
   the registry must survive the path from `evaluateConditions` through `applyFilters` to
   `deliver()`'s `flatMap`; a registration sited after a filter that drops elements loses the
   suppressed ones from the set while they may still be reported under `warn`.
@@ -232,14 +232,14 @@ bypasses eess entirely has not misused eess; they have not used it, and that is 
   `@nielspeter/eess/internal` resolves; `check:family` and
   `packages/ts/tests/standalone-surface.test.ts` stay green with `validateOverrides` no longer
   forwarded by `shared.ts`. Break class: a dialect barrel that forwards the moved symbol —
-  `it('no symbol behind @nielspeter/eess/internal is reachable from eess-ts')` covers eess-ts; ADR-011
+  `it('no symbol behind @nielspeter/eess/internal is reachable from eess-ts')` covers eess-ts; [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)
   records that md/mermaid/gherkin/crossvalidate are unguarded on that clause, and this ask does not
   widen it.
 - **C.** A fixture module under `src/` containing `finishPreset(vs)` reds `agentGuardrails` naming
   `preset/agent/no-parallel-checker`; the same call in `src/arch.rules.ts` does not. Break class:
   the `not(isRuleOrTestFile)` predicate declares its globs (`globAnyOf`) or the vacuity diagnosis
   cannot tell an empty `src` from a predicate that excluded everything. Non-vacuity row in
-  `check-nonvacuity.mjs` per the fixture contract (bug 0109): sentinel on every exit path, rule id
+  `check-nonvacuity.mjs` per the fixture contract ([bug 0109](../bugs/fixed/0109-nonvacuity-fixtures-read-a-crash-as-a-pass.md)): sentinel on every exit path, rule id
   asserted, not just exit 1.
 - **D.** `check:docs-code` and `check:corpus` green; no new symbol.
 
@@ -252,11 +252,11 @@ bypasses eess entirely has not misused eess; they have not used it, and that is 
 - **Copies.** A `WeakSet` is identity-keyed, so a consumer that maps violations
   (`vs.map((v) => ({ ...v, file: rel(v.file) }))`) before `reportViolations` produces objects the
   registry has never seen. Either `reportViolations` stays lenient and only `finishPreset` requires
-  minting (they have different audiences under ADR-008), or a documented `remint(v, from)` exists for
+  minting (they have different audiences under [ADR-008](../../adr/008-caller-owns-reporting.md)), or a documented `remint(v, from)` exists for
   the harness case. A symbol property would spread with `...` — and be forgeable, which
   `cardinality.ts` already rejected. Design taste; the evidence here does not settle it.
 - **Where the mint sits.** `applyFilters` (`packages/core/src/execute-rule.ts:114`) is where `ruleId` is stamped, but
-  ADR-010's terminal (`TerminalBuilder.evidencedViolations()`) is where evidence is decided; the mint
+  [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s terminal (`TerminalBuilder.evidencedViolations()`) is where evidence is decided; the mint
   belongs wherever a violation is last touched by kernel code before any caller can hold it.
 - **The stale docstring** at `scripts/vacuity-matrix.mjs:213`. Whether that is a bug against the
   matrix, a bug against the unwired helper, or simply resolved by A — it should not survive this
@@ -283,19 +283,19 @@ The enforcement lens supplied the decisive test: **no `scripts/check-nonvacuity.
 
 **A's named mint site does not cover the flagship dialect.** Ask A says make `applyFilters` (`packages/core/src/execute-rule.ts:114`) the mint. There are **two** `applyFilters`: the kernel's at `packages/core/src/execute-rule.ts:42` and `eess-ts`'s fork at `packages/ts/src/core/execute-rule.ts:62` — and `packages/ts/src/core/terminal-builder.ts:18` imports the local one, so eess-ts's terminal never calls the kernel's. A mint at the cited line registers nothing eess-ts produces, `deliver()` hands `finishPreset` an array of entirely unminted violations, and A replaces all of them. That is the "turns the whole family red" break class the proposal itself states, reproduced by the mint site it names. Open Question 3 frames the mint's location as taste; it is a correctness precondition, and the survey missed the fork.
 
-**A as specified deletes true findings.** Its stated behaviour — a non-minted element is _replaced_ by one generic finding — destroys real, more actionable findings. `packages/crossvalidate/src/md-mermaid.ts:88` pushes a hand-built `crossval/embedded-diagram` parse-failure literal, carrying `because` and a deliberately-single remedy, into the array that reaches `finishPreset` at `:157`. Four synthetic builders in `packages/ts/src/presets/shared.ts` (`:127`, `:199`, `:265`, `:321`) hand-build `ArchViolation` literals and return them through `{ violations: () => … }`, never touching `applyFilters` — all four are `bypassFilters: true` ADR-010 configuration findings, so A would replace `assertEnabled`'s specific remedy with generic advice that is wrong for that case. Five of this repo's own gates call `reportViolations` on hand-assembled arrays (`check-baseline`, `check-corpus`, `check-guardrails`, `check-ledger`, `check-release`); `check-corpus` is mixed — builder call sites plus hand-assembled families — so A would collapse real broken-link and stale-pointer findings into one meta-finding and lose every `file`/`line`. Replacing a true finding with a meta-finding is an actionability regression under ADR-009, and the proposal does not price it. Its Open Questions half-anticipate this; the survey never looked at the repo's own scripts.
+**A as specified deletes true findings.** Its stated behaviour — a non-minted element is _replaced_ by one generic finding — destroys real, more actionable findings. `packages/crossvalidate/src/md-mermaid.ts:88` pushes a hand-built `crossval/embedded-diagram` parse-failure literal, carrying `because` and a deliberately-single remedy, into the array that reaches `finishPreset` at `:157`. Four synthetic builders in `packages/ts/src/presets/shared.ts` (`:127`, `:199`, `:265`, `:321`) hand-build `ArchViolation` literals and return them through `{ violations: () => … }`, never touching `applyFilters` — all four are `bypassFilters: true` [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) configuration findings, so A would replace `assertEnabled`'s specific remedy with generic advice that is wrong for that case. Five of this repo's own gates call `reportViolations` on hand-assembled arrays (`check-baseline`, `check-corpus`, `check-guardrails`, `check-ledger`, `check-release`); `check-corpus` is mixed — builder call sites plus hand-assembled families — so A would collapse real broken-link and stale-pointer findings into one meta-finding and lose every `file`/`line`. Replacing a true finding with a meta-finding is an actionability regression under [ADR-009](../../adr/009-agent-first-failure-surfaces.md), and the proposal does not price it. Its Open Questions half-anticipate this; the survey never looked at the repo's own scripts.
 
-**The redesign that works: mint the container, not the element.** `CollectResult` (`packages/core/src/terminal-builder.ts:39`) is already the evidence shape ADR-010 mandates — `{ violations, examined, sourceEmpty?, deadGlob? }` — and every terminal produces one. A registry keyed on the _receipt_ rather than on each violation answers empty **and** non-empty, and survives `vs.map((v) => ({ ...v }))`, which the element-keyed design cannot address at all. The proposal rejected `finishPreset({ violations, examined })` for a correct reason — a caller-supplied `examined` number is forgeable — then applied the unforgeable device at the wrong granularity and never considered the combination. That combination is the design. Stated honestly: a receipt closes correctness, not forgeability; only the first is available from A as written.
+**The redesign that works: mint the container, not the element.** `CollectResult` (`packages/core/src/terminal-builder.ts:39`) is already the evidence shape [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) mandates — `{ violations, examined, sourceEmpty?, deadGlob? }` — and every terminal produces one. A registry keyed on the _receipt_ rather than on each violation answers empty **and** non-empty, and survives `vs.map((v) => ({ ...v }))`, which the element-keyed design cannot address at all. The proposal rejected `finishPreset({ violations, examined })` for a correct reason — a caller-supplied `examined` number is forgeable — then applied the unforgeable device at the wrong granularity and never considered the combination. That combination is the design. Stated honestly: a receipt closes correctness, not forgeability; only the first is available from A as written.
 
-**B — rejected.** Its stated premise is measurably false: "No `docs/` page or package README teaches a consumer to call any of them" — `docs/api-reference.md:566-568` documents all three in the public API table, and `packages/core/README.md:54` documents `Dispatchable`. They are also not kernel-root-only: `packages/md/src/index.ts:30-31` re-exports `dispatchRule` and `validateOverrides` as public `eess-md` API, and `packages/ts/src/index.ts:489,542` re-exports all three. ADR-011 clause 2 forbids re-exporting `/internal`, so B deletes documented public symbols from three packages with no in-dialect replacement, breaking the invariant `family.rules.ts:83` states verbatim: _"a standalone consumer of one dialect must never need a second, direct `@nielspeter/eess` install."_ B's acceptance criteria consider only `validateOverrides` in eess-ts and miss `eess-md` entirely. **Recorded disagreement:** the enforcement lens ruled B "ship as-is"; the architect and product lenses both rejected it, and the coordinator verified the false premise and the md re-export directly. The rejection stands on that evidence, and the dissent is noted rather than dropped.
+**B — rejected.** Its stated premise is measurably false: "No `docs/` page or package README teaches a consumer to call any of them" — `docs/api-reference.md:566-568` documents all three in the public API table, and `packages/core/README.md:54` documents `Dispatchable`. They are also not kernel-root-only: `packages/md/src/index.ts:30-31` re-exports `dispatchRule` and `validateOverrides` as public `eess-md` API, and `packages/ts/src/index.ts:489,542` re-exports all three. [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) clause 2 forbids re-exporting `/internal`, so B deletes documented public symbols from three packages with no in-dialect replacement, breaking the invariant `family.rules.ts:83` states verbatim: _"a standalone consumer of one dialect must never need a second, direct `@nielspeter/eess` install."_ B's acceptance criteria consider only `validateOverrides` in eess-ts and miss `eess-md` entirely. **Recorded disagreement:** the enforcement lens ruled B "ship as-is"; the architect and product lenses both rejected it, and the coordinator verified the false premise and the md re-export directly. The rejection stands on that evidence, and the dissent is noted rather than dropped.
 
 **C — narrow it.** Two changes. Drop `dispatchRule` from the banned-call pattern: it is the sanctioned preset-authoring call, used correctly at `packages/md/src/rules/adr.ts:131-141`, and banning it contradicts the rule's own imperative, which names only `finishPreset`/`reportViolations`. And fix the exemption: `not(isRuleOrTestFile)` exempts `*.rules.ts`/`*.test.ts`/`*.spec.ts` but not a gate script, a shape this repo ships five of. The honest rule is not "never call the emitter" but "don't call it holding something you never counted."
 
 **D — ship it, independently.** It is a discovery fix rather than new API: the proposal's own Evidence table shows the dead-selector finding arriving with zero configuration on the builder path, so the capability the consumer needed already shipped and they did not find it. Docs-only, zero risk, no dependency on A/B/C.
 
-**Release shape for what survives.** D: docs only, `none` changesets. C: `@nielspeter/eess-ts` minor on 0.x — additive in API terms, but a new rule in a shipped preset reds adopters on upgrade, so the changelog must name the rule id and the `overrides` opt-out. If A is later pursued as a redesign it is `@nielspeter/eess` minor-as-break on 0.x and must **name** `-ts`, `-md`, `-crossvalidate` and `-gherkin` in the same changeset (bug 0185's class), which the Scope section does not.
+**Release shape for what survives.** D: docs only, `none` changesets. C: `@nielspeter/eess-ts` minor on 0.x — additive in API terms, but a new rule in a shipped preset reds adopters on upgrade, so the changelog must name the rule id and the `overrides` opt-out. If A is later pursued as a redesign it is `@nielspeter/eess` minor-as-break on 0.x and must **name** `-ts`, `-md`, `-crossvalidate` and `-gherkin` in the same changeset ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)'s class), which the Scope section does not.
 
-**Recommended next step.** Ship D as documentation now. Ship C narrowed as its own small plan. Take A back to design as the container mint — and note that A is a new binding decision about what the kernel's emitters accept, so it belongs in an ADR before a plan, argued against ADR-008 and ADR-010 rather than buried here. Drop B. The Problem section should survive all of it: it is the strongest part of this proposal and it is correct.
+**Recommended next step.** Ship D as documentation now. Ship C narrowed as its own small plan. Take A back to design as the container mint — and note that A is a new binding decision about what the kernel's emitters accept, so it belongs in an ADR before a plan, argued against [ADR-008](../../adr/008-caller-owns-reporting.md) and [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) rather than buried here. Drop B. The Problem section should survive all of it: it is the strongest part of this proposal and it is correct.
 
 ### Addendum, same review — two findings that arrived after the ruling was written, one of which corrects it
 
@@ -303,16 +303,16 @@ The enforcement lens supplied the decisive test: **no `scripts/check-nonvacuity.
 
 **Ask A is barred by a binding ADR as written, not merely under-specified.** Two direct textual conflicts, both verified:
 
-- **ADR-010:136** — of the kernel-bound unforgeable `WeakSet`-backed registries: _"each guards a distinct, named audience, and **nothing may add a fourth**."_ Ask A adds a fourth, at any granularity. Whether an _admission_ gate falls outside a clause written about _suppression_ mechanisms is a decision someone must record, not infer.
-- **ADR-008:30-31** — _"`reportViolations(violations, { format, reason })` is the single emitter … **It never throws or filters.**"_ Ask A makes it filter, and via `finishPreset` throw, on inputs that pass today. That is an amendment to ADR-008's text, not an implementation of it.
+- **[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md):136** — of the kernel-bound unforgeable `WeakSet`-backed registries: _"each guards a distinct, named audience, and **nothing may add a fourth**."_ Ask A adds a fourth, at any granularity. Whether an _admission_ gate falls outside a clause written about _suppression_ mechanisms is a decision someone must record, not infer.
+- **[ADR-008](../../adr/008-caller-owns-reporting.md):30-31** — _"`reportViolations(violations, { format, reason })` is the single emitter … **It never throws or filters.**"_ Ask A makes it filter, and via `finishPreset` throw, on inputs that pass today. That is an amendment to [ADR-008](../../adr/008-caller-owns-reporting.md)'s text, not an implementation of it.
 
-A third, weaker: ADR-011 §1, since A changes the contract of two root symbols across six independently-versioned packages.
+A third, weaker: [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) §1, since A changes the contract of two root symbols across six independently-versioned packages.
 
-The decision A actually asks for is one sentence: **the emission seam, not only the terminal seam, requires evidence — a verdict handed to `reportViolations`/`finishPreset` must carry proof it was examined.** ADR-010 §2 binds _"every published family's terminal path — `.check()` / `.warn()`"_ and is silent on the preset/reporter path, which is exactly why the gap this proposal found is reachable. That silence is the finding, and closing it is an ADR — call it 014 — with a plan under it. This does not change the ruling; it sharpens what "take A back to design" means.
+The decision A actually asks for is one sentence: **the emission seam, not only the terminal seam, requires evidence — a verdict handed to `reportViolations`/`finishPreset` must carry proof it was examined.** [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) §2 binds _"every published family's terminal path — `.check()` / `.warn()`"_ and is silent on the preset/reporter path, which is exactly why the gap this proposal found is reachable. That silence is the finding, and closing it is an ADR — call it 014 — with a plan under it. This does not change the ruling; it sharpens what "take A back to design" means.
 
 That ADR is now accepted:
 [ADR-014 — the emitter refuses a verdict without evidence](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
-(Accepted 2026-09-03). Ask A's row reads `Accepted, reshaped` → plan 0235; the redesign it owed is ADR-014 §1–§2, which takes the receipt as a required field rather than a mint.
+(Accepted 2026-09-03). Ask A's row reads `Accepted, reshaped` → [plan 0235](../plans/completed/0235-the-emitter-takes-a-receipt.md); the redesign it owed is [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §1–§2, which takes the receipt as a required field rather than a mint.
 
 ### Disposition, per ask
 

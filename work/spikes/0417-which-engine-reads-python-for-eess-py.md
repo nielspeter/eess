@@ -12,7 +12,7 @@ so the engine is a choice, and it decides which rules eess-py can state at all. 
 1. **What eess-ts's rules actually need from an engine.** Syntax alone, names resolved across files,
    or a type checker.
 2. **Whether each candidate delivers those facts correctly** on real code.
-3. **Whether each candidate fails closed** (ADR-009): a file Python rejects must never be read as a
+3. **Whether each candidate fails closed** ([ADR-009](../../adr/009-agent-first-failure-surfaces.md)): a file Python rejects must never be read as a
    clean file, because then a rule over it passes on code that does not run.
 
 ## Method
@@ -190,7 +190,7 @@ reporting stay in TypeScript on the eess kernel, like every other dialect.
 - **The interpreter is the project's own.** A Python project always has one, and its version is the
   version the code is meant to run on. That turns the version dependency (Result 4) into the right
   answer, not a drawback. If the interpreter is missing, or older than the version the project
-  declares, that is one instrument finding (ADR-016), never a `SyntaxError` per file blaming the
+  declares, that is one instrument finding ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)), never a `SyntaxError` per file blaming the
   code.
 - **Files that do not parse, imports that do not resolve, and names that are neither under a root
   nor installed** are findings, never skipped. Result 5's silent "external" is the shape to refuse.
@@ -201,9 +201,9 @@ reporting stay in TypeScript on the eess kernel, like every other dialect.
 - **No type checker in the first slice.** Type-level conditions read the annotation as written, or
   wait for a later proposal.
 
-Choosing the engine is a binding decision, the Python counterpart of ADR-002 and ADR-007, so it
+Choosing the engine is a binding decision, the Python counterpart of [ADR-002](../../adr/002-ts-morph-ast-engine.md) and [ADR-007](../../adr/007-isolate-ast-engine-boundary.md), so it
 becomes an ADR when the proposal is accepted. The choice was made here from the measurements and
-the mission (ADR-009, ADR-010, ADR-016), and it can be overruled.
+the mission ([ADR-009](../../adr/009-agent-first-failure-surfaces.md), [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md), [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)), and it can be overruled.
 
 ## Not measured
 
@@ -213,7 +213,7 @@ the mission (ADR-009, ADR-010, ADR-016), and it can be overruled.
 - **The cost of a subprocess round trip on a small project**: interpreter start-up, a few hundred
   milliseconds expected, not measured.
 - **Pyright** as a later type-fact provider, and its install size: 34 MB for the npm package here.
-- **Base-class walks across files** (ADR-017's "any depth"). Only the per-file facts and import
+- **Base-class walks across files** ([ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)'s "any depth"). Only the per-file facts and import
   resolution were measured; a walk composes them.
 - **Whether the helper should run `compile` as well**, for the checks only it makes (`return`
   outside a function), and what that costs.
@@ -221,7 +221,7 @@ the mission (ADR-009, ADR-010, ADR-016), and it can be overruled.
 
 ## Corrections after review (2026-10-14)
 
-Proposal 016's review (architect, product, enforcement) found these errors in this record. The
+[Proposal 016](../proposals/016-eess-py-a-python-dialect.md)'s review (architect, product, enforcement) found these errors in this record. The
 claims above are annotated in place, not edited away.
 
 - **Nothing can recover tree-sitter's four clean files** (enforcement). Result 3 said a broken file's

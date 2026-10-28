@@ -36,7 +36,7 @@ check. Builds were not timed.
 
 Three instruments:
 
-1. **The probe.** The 12 cross-file cases from bug 0388. Each runs three scenarios:
+1. **The probe.** The 12 cross-file cases from [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md). Each runs three scenarios:
    - **cross-file:** baseline the finding in `a/`, fix `a/`, make the same finding in `b/`;
    - **unchanged:** re-run the same code against its own baseline;
    - **rename:** move `a/` to `z/`, where the fixture allows it.
@@ -71,7 +71,7 @@ Three instruments:
 | `accepted` list, `b` replaces `a` | `b` stays `warn` (forgiven) | `b` escalates to `error` | **`b` stays `warn` (still forgiven)** |
 
 The `accepted` subject under A is `/proj/src/a/x.ts::handle::handle is not exported`: it now
-holds the author's absolute path, which is bug 0389's defect widened to every finding.
+holds the author's absolute path, which is [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s defect widened to every finding.
 
 ### 2. The suites: test churn, and one misread guard
 
@@ -125,7 +125,7 @@ codebase repeats names.
   smaller one.
 - **E does not close the `accepted` hole.** A list of subjects carries no file, so under E it
   still forgives the same finding in another file. Fixing that means putting the file into what
-  `accepted` compares: A's derivation, applied to one consumer. Bug 0389's portable subject is
+  `accepted` compares: A's derivation, applied to one consumer. [Bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s portable subject is
   the precondition in both cases.
 - **E's matching depends on how `file` was recorded.** Older baselines and files outside the root
   give false reds. The file check must be keyed to the baseline's format version, or skipped
@@ -163,7 +163,7 @@ root. The guard tests the per-file version broke pass under E0.
 **What these tables do not show.** Every probe here called `isKnown`. Driven through
 `filterNew`, E0 also emits a meta-finding in the 0388 case and on a rename that blames an
 edited rule and tells the author to regenerate, which forgives the new finding again.
-Enforcement review measured it; plan 0346's Phase 2 now requires the diagnosis to name the file.
+Enforcement review measured it; [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2 now requires the diagnosis to name the file.
 
 ## Edits, and E+
 
@@ -224,7 +224,7 @@ collision that gave `''` its own `#1`, the regenerate delta) changes meaning.
 
 No variant is recommended here. Three review rounds each found another path where the variant
 then specified forgives something today's code reports, so the maintainer chose (2026-10-06) to
-record what is proven and settle the rest in a time-boxed spike at the start of plan 0346's
+record what is proven and settle the rest in a time-boxed spike at the start of [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s
 Phase 2.
 
 **Proven:**
@@ -232,7 +232,7 @@ Phase 2.
 - Checking the file each entry records closes the 12 cases (E, E0, E+).
 - A list of `accepted` subjects forgives a fixed-and-replaced finding in another file unless it
   compares the file too (open under today's code, E and E0; closed under E+, measured with
-  absolute paths — the portable form is bug 0389's and unmeasured).
+  absolute paths — the portable form is [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s and unmeasured).
 - Under per-file grouping, an entry with no recorded `file` must not match a finding that has one
   (under E0 that is a policy choice, not a proof).
 - The current diagnosis blames an edited rule and says "regenerate" when a hash matches in
@@ -244,17 +244,17 @@ Phase 2.
 per-file grouping (right files on edits, still the misattributed meta-finding on a new duplicate,
 and every consumer keyed by hash alone must be re-keyed, which nobody has yet listed); the no-root rule; the attribution's discriminator;
 identity-bearing and metric findings that move file. (Sibling dialects colliding within one
-file is plan 0188's: the kernel `applyFilters` does not disambiguate at all.)
+file is [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)'s: the kernel `applyFilters` does not disambiguate at all.)
 
 ## Reproducing
 
 The variant patches, the probes and the movement test were written for this spike and are **not
-in the repo**. Section 1's cases are bug 0388's table, and plan 0346's red tests reproduce them.
+in the repo**. Section 1's cases are [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s table, and [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s red tests reproduce them.
 **Section 3's movement counts cannot be re-run from the repo**; the rules and filters that
 produced them are listed in "Method" so a re-measure can be built. E0 is E's matcher change
 alone: `isKnown` and `hasEntry` in both baselines also require the entry's recorded `file`
 to equal the finding's (portable form in eess-ts, baseline-relative in the kernel), and an
-entry recorded without a file is let through. That last detail is the spike's; plan 0346 makes
+entry recorded without a file is let through. That last detail is the spike's; [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) makes
 it fail closed instead. E+ is the first E (per-file grouping in the kernel's group key and
 `terminal-builder.ts`'s collision check) plus two changes: `accepted` compares
 `${file}::${subject}`, and an entry with no recorded file does not match.

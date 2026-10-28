@@ -24,8 +24,8 @@ the build.
 ## What 018's review decided, and where this proposal answers it
 
 [Proposal 018](./rejected/018-md-a-mention-of-a-record-is-a-link.md) was ruled Reject on 2026-10-21; its
-review listed eight decisions a successor must make in its text. Each is made here, from spike
-0536's measurements, and can be overruled in review.
+review listed eight decisions a successor must make in its text. Each is made here, from
+[spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md)'s measurements, and can be overruled in review.
 
 | 018's review asked for                                       | here                                                                                                                                          |
 | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -52,7 +52,7 @@ because it is not a link, and the author's link is what the join then checks.
   (`bug [0119](…)`) name the right record.
 - **No link names the wrong record today.** Over 1,119 subject links here and 1,861 in the adopter,
   the kernel's join found none. Judging every mention inside a link's text instead would have been
-  red seven times, each a quoted title (`[0327 — ADR-011 is written…](./0327-….md)`), and right
+  red seven times, each a quoted title (a link to [bug 0327](../bugs/0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md) whose text is that bug's own title, naming an ADR), and right
   none; that fixed the subject rule in ask A.
 - **Patterns are the project's.** The adopter writes its own bugs and plans with three digits and
   its ADRs with four; its mentions of this repository's records use four. Keyed by number alone, the
@@ -165,9 +165,14 @@ The same shape, with the caller's own sides, covers the rest:
 ### C — `preserveRelations` names the counterpart, in the kernel
 
 When a matched pair disagrees, the message names the counterpart and its relations:
-`mention "bug 0338" relates to "work/bugs/0339-x.md"; its record counterpart "work/bugs/0338-y.md"
-relates to "work/bugs/0338-y.md"`, and `RelationSpec` takes an optional `suggest`, as
-`beComplete` does. Additive; every dialect's correspondences gain it.
+
+```text
+mention "bug 0338" relates to "work/bugs/0339-x.md"; its record counterpart "work/bugs/0338-y.md"
+relates to "work/bugs/0338-y.md"
+```
+
+`RelationSpec` takes an optional `suggest`, as `beComplete` does. Additive; every dialect's
+correspondences gain it.
 
 ### D — "What this cannot see", in the docs
 
@@ -200,9 +205,11 @@ that adoption's plan.
 
 **B (the example's tests)**
 
-- `[bug 0001](./0002-b.md)` is red, naming both records; `[bug 0009](…)` is red as naming nothing;
-  `[plan 0001](…)` where 0001 is a bug is red, and the example's `suggest` names the bug.
-- `[0002 — bug 0001 is quoted](./0002-b.md)` is green; `[see bug 0002](./README.md)` is red.
+- A mention linked to another record's file (`./0002-b.md` for 0001) is red, naming both records; one
+  linked, whose number no record holds (0009), is red as naming nothing; a `plan` mention whose number is a
+  bug's is red, and the example's `suggest` names the bug.
+- A title link whose text quotes a second mention is green; `see` plus a mention, linked to the
+  README, is red.
 - An external link whose URL is not the one for its key is red; the right URL is green; a key
   outside the caller's list is red.
 
@@ -267,7 +274,7 @@ left element with exactly one counterpart over the union.
 exempt from the empty-selection rule, so a broken pattern with N records on the right is green. The
 proposal claimed the opposite.
 
-**A quoted mention is a one-word stamp** (architect I3): `[see bug 0002](./0001-a.md)` is green,
+**A quoted mention is a one-word stamp** (architect I3): a link reading `see` and then a mention, pointing at another record, is green,
 because a mention later in a link's text only needs the link to name some record.
 
 **C is not additive** (product 2, architect I5; coordinator-checked). A baseline entry hashes the
@@ -286,18 +293,18 @@ proposal and is recorded as [bug 0537](../bugs/0537-eess-md-alone-has-no-run-lev
 ### Corrections this record made in itself (kept, not edited away)
 
 - **The ask B example does not work.** Its pattern ends `\d{3}\b`, so it matches nothing in
-  `bug 0338` (coordinator-checked in Node), the form every B acceptance row uses; `keyFromPath` is
+  a four-digit mention (coordinator-checked in Node), the form every B acceptance row uses; `keyFromPath` is
   never defined; under `noUncheckedIndexedAccess`, `m.groups.kind` and `m.link.target` are possibly
   undefined, and the natural repair, an empty relation list, makes an external or unresolved link
   green, because `preserveRelations` skips an empty list.
 - **`stateless()` is the wrong helper.** It strips `g` (`packages/md/src/model/name-match.ts:11-18`);
   reading every match needs a private global copy.
-- **The `<span>` acceptance row is wrong.** `see <span>bug 0338</span> here` parses as text, HTML,
+- **The `<span>` acceptance row is wrong.** `see <span>…</span> here`, a mention inside the span, parses as text, HTML,
   text, HTML, text (coordinator-checked), so the mention is plain text, not unread. Only an HTML
   block hides one. Image alt and link titles are unread and were not listed.
 - **"The link walk tracks inline ancestry" is false.** `collectLinkBlocks` tracks block ancestry and
-  URL spans; the shared walk is a new model module, not a reuse. Proposal 015 was left out.
-- **"Disclosed on green" is true under eess-ts only**, here and in spike 0536.
+  URL spans; the shared walk is a new model module, not a reuse. [Proposal 015](./015-md-wikilinks-are-read-or-reported.md) was left out.
+- **"Disclosed on green" is true under eess-ts only**, here and in [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md).
 - **Soft breaks were missed.** A pattern with `[ -]` cannot see `bug` at a line's end and its number
   on the next; 228 lines in this repository end with a kind word, so the spike's counts are low by up
   to that many. This record does it itself ("from spike" / "0536's measurements").
@@ -309,28 +316,28 @@ proposal and is recorded as [bug 0537](../bugs/0537-eess-md-alone-has-no-run-lev
 
 ### Disposition, per ask
 
-| ask                                   | disposition            | owner or condition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A** — `mentions()` and `beLinked()` | **Accepted, reshaped** | [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md), on the maintainer's assent 2026-10-21, reshaped by the review: positions as facts (in code; in a link, and where: whole, opens, later, straddles) not one enum; a global copy of the pattern, not `stateless()`; a self-mention predicate in the `are` form taking the mention's and the document's key; unread causes reported where a rule's predicates reach them (ADR-021, as `taskItems()` does); soft breaks found; no fix yet |
-| **B** — the target, by composition    | **Held**               | Unholds when a prototype shows, from public blocks, a union join whose left key carries the source read from the link, green on correct links to both of two overlapping sources, red on a crossed link, on a URL no source claims and on a quoted mention under another record's link; with a guard that makes an empty mention side red                                                                                                                                                                     |
-| **The fix** (A's `candidates`)        | **Held**               | Unholds with B: derived from the join (a kernel hook called only for exactly one counterpart over the union), with a fixture where an external source holds the key and no fix fires                                                                                                                                                                                                                                                                                                                          |
-| **C** — the relation message          | **Held**               | Unholds as its own kernel record: the existing `suggest` fills `suggestion` for both checks, findings keep their baseline identity or the change ships as breaking naming the dialects, [bug 0084](../bugs/0084-preserve-relations-right-to-left.md) decided first, and the corpus gate's reach-around moved back onto `correspondence()` as its proof                                                                                                                                                        |
-| **D** — "what this cannot see"        | **Accepted**           | [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md), Phase 3; adds soft breaks, years, autolinks, a wrong-but-existing link under a quoted mention, and the eess-ts-only disclosure                                                                                                                                                                                                                                                                                                       |
+| ask                                   | disposition            | owner or condition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** — `mentions()` and `beLinked()` | **Accepted, reshaped** | [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md), on the maintainer's assent 2026-10-21, reshaped by the review: positions as facts (in code; in a link, and where: whole, opens, later, straddles) not one enum; a global copy of the pattern, not `stateless()`; a self-mention predicate in the `are` form taking the mention's and the document's key; unread causes reported where a rule's predicates reach them ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md), as `taskItems()` does); soft breaks found; no fix yet |
+| **B** — the target, by composition    | **Held**               | Unholds when a prototype shows, from public blocks, a union join whose left key carries the source read from the link, green on correct links to both of two overlapping sources, red on a crossed link, on a URL no source claims and on a quoted mention under another record's link; with a guard that makes an empty mention side red                                                                                                                                                                                                                                         |
+| **The fix** (A's `candidates`)        | **Held**               | Unholds with B: derived from the join (a kernel hook called only for exactly one counterpart over the union), with a fixture where an external source holds the key and no fix fires                                                                                                                                                                                                                                                                                                                                                                                              |
+| **C** — the relation message          | **Held**               | Unholds as its own kernel record: the existing `suggest` fills `suggestion` for both checks, findings keep their baseline identity or the change ships as breaking naming the dialects, [bug 0084](../bugs/0084-preserve-relations-right-to-left.md) decided first, and the corpus gate's reach-around moved back onto `correspondence()` as its proof                                                                                                                                                                                                                            |
+| **D** — "what this cannot see"        | **Accepted**           | [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md), Phase 3; adds soft breaks, years, autolinks, a wrong-but-existing link under a quoted mention, and the eess-ts-only disclosure                                                                                                                                                                                                                                                                                                                                                                           |
 
 **Ready to become a plan:** ask A with D, once the maintainer assents. B, the fix and C are not.
 
-### Addendum — 2026-10-21, spike 0540
+### Addendum — 2026-10-21, [spike 0540](../spikes/0540-one-join-over-every-source.md)
 
 [Spike 0540](../spikes/0540-one-join-over-every-source.md) prototyped B and the fix on this
 repository, at the maintainer's instruction to dogfood the design. Of the B row's unhold conditions,
 three hold: one join over the union of sources, keyed by the source read from the link, is green on
 correct links to both of two overlapping sources and red on a crossed link, on a URL no source claims
-and on `[see bug 0002](./0001-a.md)` (a title-link rule replaces "subject or quoted"); over this
+and on a `see`-then-mention link to another record (a title-link rule replaces "subject or quoted"); over this
 repository's 1,207 judged links it reports nothing. The fix row's condition holds too: the fix keyed
 over the same sources without the source fixes 3,079 of 4,682 plain mentions here and fires on no
 collision (1,598). The fourth B condition does not hold: an empty mention side is green with or
 without `.expectNonEmpty()`, which is open [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md).
-So B and the fix stay **Held**, now on two things: bug 0400 fixed, and a choice between the spike's
+So B and the fix stay **Held**, now on two things: [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) fixed, and a choice between the spike's
 two shapes for the fix (a kernel hook on `correspondence()`, or `beLinked()` taking the sources by
 value).
 
@@ -339,10 +346,10 @@ value).
 Kept beside the addendum above, which it corrects (PR #256's enforcement and method reviews):
 
 - "The fix row's condition holds too" over-claims: 3,079 is the count with exactly one candidate,
-  not a measured-correct fix. **The fix stays Held on three things now:** bug 0400, the choice of
+  not a measured-correct fix. **The fix stays Held on three things now:** [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md), the choice of
   shape, and a sample of its fixes checked against what each author meant.
-- **B's conditions gain one:** spike 0540's title-link rule is itself a one-token escape
-  (`[0002 see bug 0001](./0002-b.md)` is green), so B's exemption for a title link must hold by
+- **B's conditions gain one:** [spike 0540](../spikes/0540-one-join-over-every-source.md)'s title-link rule is itself a one-token escape
+  (a link whose text opens with its target's number and then mentions another record is green), so B's exemption for a title link must hold by
   construction, the link's text being the target's own title, with that escape a fixture row that
   is red.
 - "Ready to become a plan: ask A with D, once the maintainer assents" is spent: the maintainer
@@ -357,7 +364,7 @@ Kept beside the addendum above, which it corrects (PR #256's enforcement and met
   This proposal leaves that check out of scope, and no record asks for it; the sentence stays in the
   record-authoring skills as instruction, and a gate for it would be its own proposal.
 
-### Addendum — 2026-10-21, bug 0400 fixed
+### Addendum — 2026-10-21, [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) fixed
 
 [Bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) is fixed: a
 one-way `beComplete()` counts only the side it checks, so an empty mention side with

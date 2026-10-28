@@ -11,8 +11,8 @@ actually run.
 
 A baseline identity has two duties that pull against each other. It must
 **survive** an edit that does not change the finding, and **break** when the
-finding changes. 0338's ruling — derived from the manifesto, ADR-009 Rule 3,
-ADR-010 and `packages/core/src/violation.ts`'s slot-versus-reference paragraph —
+finding changes. 0338's ruling — derived from the manifesto, [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 3,
+[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and `packages/core/src/violation.ts`'s slot-versus-reference paragraph —
 rules out position and line. It does **not** say which form of reference to use.
 That is what this measures.
 

@@ -54,7 +54,7 @@ space-only pattern found 9. That is the case for the pattern being the caller's.
 `work/`, 2,188 of 2,193 plain plan and bug mentions resolve to an existing record by number and 5
 to none.
 
-Proposal 017 measured the dead half here (2026-10-16): 117 plain references naming a number no
+[Proposal 017](../017-md-blocks-to-check-a-documents-shape.md) measured the dead half here (2026-10-16): 117 plain references naming a number no
 record holds, 29 naming a number another kind holds, many of them the numbers of ts-archunit.
 
 **ts-archunit is retired.** Its engine is eess-ts now; its repository
@@ -75,7 +75,7 @@ with this repository's are a finite, closed set of history, not a namespace that
   code extensions only; a `.md` path is not a pointer.
 - **[Proposal 015](../015-md-wikilinks-are-read-or-reported.md)** asks to scan text nodes for
   `[[…]]` outside code. Ask A here needs the same walk; whichever is built first owns it.
-- **Proposal 017, D1** (references at declared positions such as `Implements:` and `deferred→`) is
+- **[Proposal 017](../017-md-blocks-to-check-a-documents-shape.md), D1** (references at declared positions such as `Implements:` and `deferred→`) is
   held; **D2** (references in free prose) is rejected. This proposal reads free prose, so it is
   D2's ground.
 - **No dialect has a mention element.** eess-ts's `access()` and `call()` match a spelling in code,
@@ -88,8 +88,8 @@ Genuinely new, and eess-md's: a mention is Markdown text, and no other dialect w
 D2 asked eess-md to read a reference in prose and decide what it names. Its review gave three
 reasons that cannot be made honest; each is answered here, or this proposal fails with it.
 
-1. **"Identifiers collide with the ported project's, in the same words."** D2 had to decide what
-   `bug 0039` means. This ask does not: its first condition is only that a mention the caller's
+1. **"Identifiers collide with the ported project's, in the same words."** D2 had to decide which project
+   a bare `bug NNNN` means. This ask does not: its first condition is only that a mention the caller's
    pattern matches is inside a link (Tier 1, syntax). The author decides what it names, by choosing
    the target, and the target is then checked by what already checks links. And the collision D2
    met is history, not a live namespace: ts-archunit is retired (above), so no new colliding
@@ -129,13 +129,13 @@ declared namespaces.
 
 Each break class is a fixture row in the vacuity matrix (`scripts/check-nonvacuity.mjs`).
 
-- **A — break class:** a document with one plain `bug 0001` beside a linked one is red at the plain
+- **A — break class:** a document with one plain mention beside a linked one is red at the plain
   one's line; the same document with both linked is green.
 - **A — break class (false red):** a mention inside a fenced block is not an element; a mention
   inside link text is linked.
 - **A — vacuity:** a pattern that matches nothing in the selection is a finding, never a green
   ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md); [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) for a string naming nothing).
-- **B — break class:** `[bug 0338](./0339-x.md)` is red, naming 0338 and 0339; a mention naming no
+- **B — break class:** a bug mention linked to another bug's file is red, naming both numbers; a mention naming no
   file is red with its own message, not the "points elsewhere" one ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2).
 - **B — break class:** an external link outside every declared namespace is red; a declared
   namespace no link uses is red.
@@ -214,7 +214,7 @@ returning one file cannot say "names two". (Coordinator-verified at 017's Decisi
    waiver, which the record names as the one sanctioned marker.
 2. A is presence of a link only, and says so; a wrong target is B's.
 3. B is a `correspondence()` composition keyed by the pattern's named captures, with "names
-   nothing", "names two", "wrong kind" (`plan 0103` where 0103 is a bug) and "points elsewhere" as
+   nothing", "names two", "wrong kind" (a `plan` mention whose number is a bug's) and "points elsewhere" as
    separate causes, each with its own remedy.
 4. A foreign link agrees only when its URL equals a caller function of the captured key, and,
    since ts-archunit is retired and finite, the key is in a closed list in the rule file.
@@ -222,11 +222,11 @@ returning one file cannot say "names two". (Coordinator-verified at 017's Decisi
    it.
 6. D emits an `ArchFix` only for a plain mention whose key no declared foreign namespace also
    holds, and never for a B mismatch; a fixture proves the fix does not fire on a collision. It
-   names the existing mechanism (plan 0066, `movedLinkFix`), and the record says an adopter applies
+   names the existing mechanism ([plan 0066](../../plans/completed/0066-eess-deterministic-autofix.md), `movedLinkFix`), and the record says an adopter applies
    it with `eess-ts check --fix --apply`: eess-md has no `bin` and `applyFixes` is exported from
    `@nielspeter/eess/internal` only (`packages/core/src/internal.ts:24`).
-7. One inline walk in `packages/md/src/model/` shared with `links()` and proposal 015, with the
-   edge cases stated: reference-style links (reported as not read, plan 0405's precedent), HTML
+7. One inline walk in `packages/md/src/model/` shared with `links()` and [proposal 015](../015-md-wikilinks-are-read-or-reported.md), with the
+   edge cases stated: reference-style links (reported as not read, [plan 0405](../../plans/completed/0405-md-select-the-links-a-block-declares.md)'s precedent), HTML
    (disclosed, not skipped), a mention split by emphasis, and lines taken from source offsets.
 8. The pattern needs named groups, checked when the rule is built (an `ArchConfigError` without
    them), and is read through `stateless()`.
@@ -243,12 +243,12 @@ baseline) is in the acceptance criteria; the option is `external`, matching `lin
 
 **Corrections this record made in itself** (kept, not edited away):
 
-- It cited ADR-018 as binding twice. ADR-018 is Proposed, "not ready to rule"
+- It cited [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) as binding twice. [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) is Proposed, "not ready to rule"
   (`adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md:3`); the two findings
-  it cited are sound as this proposal's own acceptance rows, under ADR-010 for the empty pattern.
+  it cited are sound as this proposal's own acceptance rows, under [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) for the empty pattern.
 - It cited `scripts/check-nonvacuity.mjs` as "the vacuity matrix". That is the sabotage matrix; the
-  zero-file matrix is `scripts/vacuity-matrix.mjs`, which covers eess-md since bug 0403's fix.
-- It fails its own ask A: "Proposal 017 measured" and "**Proposal 017, D1**" are plain mentions, as
-  are the examples in inline code. The record names records the way the corpus it measures does.
+  zero-file matrix is `scripts/vacuity-matrix.mjs`, which covers eess-md since [bug 0403](../../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s fix.
+- It fails its own ask A: its two mentions of [proposal 017](../017-md-blocks-to-check-a-documents-shape.md) (the "measured the dead half" sentence
+  and the D1 bullet) were plain when reviewed, as were the examples in inline code. The record names records the way the corpus it measures does.
 - It counted 43 "frozen" files by folder name; `corpus()` freezes only what a caller declares
-  (ADR-022), so "frozen" was this author's word, not the tool's.
+  ([ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md)), so "frozen" was this author's word, not the tool's.

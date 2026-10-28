@@ -40,7 +40,7 @@ The labelled flowchart, class, state and mindmap blocks, the four that fail in p
 `createRequire(import.meta.url).resolve('mermaid/package.json')` resolves it. Walking up from
 `import.meta.resolve('mermaid')` gives the same file. Both read `11.17.2`.
 
-**3. The shapes are as plan 0413's table says.**
+**3. The shapes are as [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s table says.**
 
 | block                                              | thrown                                     | line                                                    |
 | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
@@ -77,7 +77,7 @@ and the index posted before each block names the block in flight.
 
 ## Decision
 
-Plan 0413's design holds as written; nothing here sends it back. The freeze records:
+[Plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s design holds as written; nothing here sends it back. The freeze records:
 
 - the worker is gated on running under vitest and the CLI loader, which it does;
 - the version is read with `createRequire(...).resolve('mermaid/package.json')`;
@@ -107,7 +107,7 @@ So the jison line is `hash.loc.first_line` when `loc` exists, else `hash.line + 
 before the kind line are added. Also: the 14-block run's "all parsed" meant "all answered"; 10 of the
 14 were rejected on purpose. The 485 ms is a single run; the review's re-run took 853 ms.
 
-## Superseded by spike 0428 (2026-10-15)
+## Superseded by [spike 0428](./0428-where-mermaid-puts-an-errors-line.md) (2026-10-15)
 
 The line rule above, in §4, the Decision and the corrections, is wrong for a block with a `%%`
 comment after the kind line: Mermaid removes whole-line comments **anywhere**, so a single offset of

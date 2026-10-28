@@ -8,7 +8,7 @@ before eess-py is argued for. Took about 25 minutes.
 ## The question
 
 Python already has architecture-rule tools. eess-py is worth building only where it differs. The
-difference the proposal claimed is failing closed (ADR-009, ADR-010): a rule never passes on code it
+difference the proposal claimed is failing closed ([ADR-009](../../adr/009-agent-first-failure-surfaces.md), [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)): a rule never passes on code it
 did not read, on a selector that matched nothing, or on an import it could not resolve. Where do the
 existing tools pass in those cases?
 
@@ -78,7 +78,7 @@ table shows PyTestArch passing `plain` and `relative`. See Corrections._
 "src/myapp")`, a plausible first attempt and the spike's own first attempt, every module is named
   `src.myapp.…`. The import `myapp.infrastructure` then matches no module in the graph, and the
   edge is dropped as external. With rule names adjusted to `src.myapp.…`, `plain` and `relative`
-  pass. This is spike 0417's Result 5, the silent "external", in a shipped tool. _Falsified by
+  pass. This is [spike 0417](./0417-which-engine-reads-python-for-eess-py.md)'s Result 5, the silent "external", in a shipped tool. _Falsified by
   review: the edge is kept, renamed. See Corrections._
 
 **3. Where eess-py could actually differ**, from what was measured:
@@ -94,7 +94,7 @@ eess-py would match them, not beat them.
 
 ## Decision
 
-The rewrite of proposal 016 argues for eess-py from the family, not from fail-closed alone. These
+The rewrite of [proposal 016](../proposals/016-eess-py-a-python-dialect.md) argues for eess-py from the family, not from fail-closed alone. These
 tools already refuse a broken file and an empty selector. The measured difference is narrower:
 
 - unresolved and dynamic imports;
@@ -102,7 +102,7 @@ tools already refuse a broken file and an empty selector. The measured differenc
 
 The larger difference is not about Python at all. It is that a Python rule can be bound to an ADR's
 Enforcement table, a Mermaid diagram, Gherkin scenarios and Markdown specs, in one family with one
-evidence receipt (ADR-014). None of these tools does that, and none was measured doing it, because
+evidence receipt ([ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)). None of these tools does that, and none was measured doing it, because
 none claims to.
 
 Decided by delegation from the measurements; can be overruled.
@@ -110,14 +110,14 @@ Decided by delegation from the measurements; can be overruled.
 ## Not measured
 
 - **tach and deply**, and lint tools (Ruff, Bandit) for the security rules.
-- **The tools' behaviour on the editable-install case** (proposal 016's review, Critical 3).
+- **The tools' behaviour on the editable-install case** ([proposal 016](../proposals/016-eess-py-a-python-dialect.md)'s review, Critical 3).
 - **Larger projects.** Each variant is one file in one package.
 - **Agent-actionability of their output**, which the proposal also claims. Not measured, so the
   rewrite does not claim it as a difference.
 
 ## Corrections after review (2026-10-14)
 
-Proposal 016's second review (architect, product, enforcement, method) found these errors in this
+[Proposal 016](../proposals/016-eess-py-a-python-dialect.md)'s second review (architect, product, enforcement, method) found these errors in this
 record. The claims above are annotated in place.
 
 - **The wrong scan root does not drop edges** (enforcement; re-run by the coordinator). With root
@@ -131,7 +131,7 @@ record. The claims above are annotated in place.
 - **"A rule naming a module that does not exist" was measured on the source only** (enforcement,
   product, measured). With the forbidden **target** misspelt, `myapp.infrastucture`, import-linter
   reports the contract kept (exit 0) and pytest-archon passes. Only PyTestArch raises
-  `ModuleUnknown`. That is a fourth gap, and the most direct ADR-018 case of all.
+  `ModuleUnknown`. That is a fourth gap, and the most direct [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) case of all.
 - **The `missing` row shows no missed violation** (product). An import of a module that does not
   exist breaks no layer, and the code would fail at import anyway. The evidence for "an unresolved
   import is a finding" is `from myapp.infrastructure.nope import x`, an unresolved import into the
@@ -140,8 +140,8 @@ record. The claims above are annotated in place.
   gap the first bullet explains, so it is not evidence here.)_
 - **Cases the spike missed** (enforcement, measured): import-linter drops a namespace package (a
   directory with no `__init__.py`) and passes, reporting "0 dependencies".
-- **"A file that does not parse fails in all three" rests on one probe** (method), `def f(:`. Spike
-  0417's other eight probes, including the two that only `compile` catches, were not run against
+- **"A file that does not parse fails in all three" rests on one probe** (method), `def f(:`.
+  [Spike 0417](./0417-which-engine-reads-python-for-eess-py.md)'s other eight probes, including the two that only `compile` catches, were not run against
   these tools.
 
 ## Harness

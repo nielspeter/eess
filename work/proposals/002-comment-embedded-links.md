@@ -34,7 +34,7 @@ gets zero benefit from a dialect whose whole thesis is "cross-links resolve,
 code pointers point at real lines" (`docs/markdown.md:5`), because it sits on
 the wrong side of a file-extension filter.
 
-This is a distinct reference shape from proposal 001's rule 6 (`fileRefs()`)
+This is a distinct reference shape from [proposal 001](./001-md-corpus-rule-coverage.md)'s rule 6 (`fileRefs()`)
 — that one is about a **markdown document** citing a path as _inline code_
 (`` `support/mails/….eml` ``), a bare-path shape with no link syntax, checked
 against corpus-internal evidence files. This proposal is about a **source
@@ -60,25 +60,25 @@ citations (39%) resolve to nothing**, across 24 distinct targets.
 The drift is real and already realised. Three examples, all in the kernel's own
 public documentation:
 
-- `packages/core/src/condition.ts:27` — "See proposal 011 / plan 0057."
+- `packages/core/src/condition.ts:27` — "See …", citing ts-archunit proposal 011 and ts-archunit plan 0057.
   Neither exists here.
-- `packages/core/src/report.ts:9` — "(plan 0070, ADR-008)". Plan 0070 lives
+- `packages/core/src/report.ts:9` — "([plan 0070](../plans/completed/0070-caller-owns-reporting.md), [ADR-008](../../adr/008-caller-owns-reporting.md))". [Plan 0070](../plans/completed/0070-caller-owns-reporting.md) lives
   only in `work/plans/completed/`; it moved when it closed.
-- `packages/core/src/apply-fixes.ts:22` — "(plan 0066)". Likewise.
+- `packages/core/src/apply-fixes.ts:22` — "([plan 0066](../plans/completed/0066-eess-deterministic-autofix.md))". Likewise.
 
 The second and third are exactly the lifecycle the submission describes: a
 citation written when the target was live, left behind when our own close
 convention moved the file. Written as relative links they would be 404s today.
 
-**Two of the 51 are unambiguous, native, current drift.** `ADR-009` is cited as
+**Two of the 51 are unambiguous, native, current drift.** [ADR-009](../../adr/009-agent-first-failure-surfaces.md) is cited as
 an existing decision at `scripts/check-review-harness.mjs:23` and
-`scripts/nonvacuity/bad-review-harness.mjs:8`. `adr/` stops at 008 — plan 0088
+`scripts/nonvacuity/bad-review-harness.mjs:8`. `adr/` stops at 008 — [plan 0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)
 Phase 2 is what will create it. Both citations shipped in a PR merged the same
 day this review ran, under a full green `npm run validate`. Filed as bug
 [0103](../bugs/fixed/0103-adr-009-cited-but-does-not-exist.md).
 
-The remaining 49 are ts-archunit ancestor numbers (plans 0001–0042, 0057,
-proposals 010/011). This repo's own sequence starts at 0051, so they are not rot
+The remaining 49 are ts-archunit ancestor numbers (ts-archunit plans 0001–0042, 0057,
+ts-archunit proposals 010/011). This repo's own sequence starts at 0051, so they are not rot
 — they are citations into a corpus we have not adopted yet, which is precisely
 the work of plan
 [0090](../plans/0090-adopt-ts-archunit-work-corpus.md). **This is the blocker
@@ -87,8 +87,8 @@ gate cannot go green here, and a gate that cannot go green cannot be dogfooded.
 
 ### The encoding gap — why the proposed API sees none of this
 
-The 130 citations are **bare identifiers** — `(plan 0070)`, `ADR-008`,
-`proposal 011`. Almost none use the markdown-link syntax this proposal
+The 130 citations are **bare identifiers** — a parenthesised plan number, a bare `ADR-NNN`, a
+proposal by number. Almost none use the markdown-link syntax this proposal
 extracts. Running the design below exactly as specified over the same 218
 files yields:
 
@@ -159,7 +159,7 @@ makes the rework cheap rather than a rewrite.
    unnamed.** Reusing `linkResolves()` unmodified inherits every open defect in
    it, including "a link to a directory that exists is reported broken". A
    comment citing `../../work/bugs/` is exactly that shape. The submission cites
-   bug 0087 and misses 0086.
+   [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md) and misses 0086.
 
 ### Corrections to specific claims in the text below
 
@@ -181,7 +181,7 @@ makes the rework cheap rather than a rewrite.
 ### Placement
 
 `eess-md`, but as a narrower element type, not as `commentLinks()`. Resolving
-`plan 0070` to a file is a **corpus** lookup, and no other dialect has a corpus:
+a bare `plan NNNN` to a file is a **corpus** lookup, and no other dialect has a corpus:
 not `eess-ts` (which does own the AST-exact alternative — it already exports
 `comment(pattern)` at `packages/ts/src/index.ts:191`, so the submission's
 costing of that path as unbuilt is wrong), not `eess-crossvalidate` (whose
@@ -252,14 +252,14 @@ straight into the **unmodified** `linkResolves()` condition
 - **Autofix comes for free.** `ArchFix` and its applier
   (`packages/core/src/apply-fixes.ts`) operate on `{file, start, end,
 replacement}` with no markdown-specific assumption anywhere in that
-  signature. `movedLinkFix()` (`packages/md/src/model/resolve-link.ts:257-280`, moved from `conditions/resolve.ts` by plan 0404) already
+  signature. `movedLinkFix()` (`packages/md/src/model/resolve-link.ts:257-280`, moved from `conditions/resolve.ts` by [plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)) already
   computes a relative-path rewrite from any `link.urlStart`/`urlEnd` inside
   any `link.doc.file` — pointed at a `.ts` file's comment instead of a `.md`
   file's prose, the same "byte-eksakt" repair `eess:fix` already gives
   markdown applies unchanged. This is a genuine, unplanned payoff of reusing
   `MdLink` rather than inventing a parallel element.
 - Matches the established precedent for heuristic extraction: `fileRefs()`
-  (proposal 001, `work/proposals/001-md-corpus-rule-coverage.md:342-344`)
+  ([proposal 001](./001-md-corpus-rule-coverage.md), `work/proposals/001-md-corpus-rule-coverage.md:342-344`)
   "must take an opt-in scope... Absent an explicit scope it should match
   nothing rather than guess." The same caution applies here for the same
   reason — this is heuristic text scanning, not an AST guarantee, so an
@@ -310,10 +310,10 @@ this proposal recommends the first as a first cut, not as a final answer:
    `[text](url)` syntax pointing at a non-existent file, which is not a
    pattern that occurs by accident in real string literals.
 2. **AST-exact (rejected for v1, candidate follow-on).** `@nielspeter/eess-ts`
-   is `ts-morph`-backed (ADR-002, ADR-007) and exposes real comment nodes
+   is `ts-morph`-backed ([ADR-002](../../adr/002-ts-morph-ast-engine.md), [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)) and exposes real comment nodes
    with no lexer ambiguity. Two ways to use it, both heavier than this
    proposal's evidence justifies today: pull `eess-ts` into `eess-md`
-   (violates ADR-007's confinement of the AST engine behind one boundary),
+   (violates [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s confinement of the AST engine behind one boundary),
    or add this as a new `@nielspeter/eess-crossvalidate` preset alongside
    `adrCitationsResolve`/`md-ts.ts`. The latter is architecturally cleaner
    but is a **behavioral binding tool** by charter
@@ -321,7 +321,7 @@ this proposal recommends the first as a first cut, not as a final answer:
    dialects") solving a **file-existence** problem — plain link resolution,
    the same claim `links()` already makes for md↔md. Reaching for
    cross-dialect AST binding to answer "does this file exist" is more
-   machinery than the question needs, and ADR-006's "rules prove themselves
+   machinery than the question needs, and [ADR-006](../../adr/006-framework-rules-architecture.md)'s "rules prove themselves
    in real projects first" argues for shipping the cheap version against a
    real corpus before justifying the expensive one. See Open Questions.
 
@@ -454,7 +454,7 @@ own convention that a gate whose red has never been watched is not evidence
    recommends shipping the regex approach first and treating real false
    positives/negatives observed against the reference corpus (or any other
    real consuming project) as the trigger for reconsidering the AST-exact
-   path — consistent with ADR-006's "rules prove themselves in real projects
+   path — consistent with [ADR-006](../../adr/006-framework-rules-architecture.md)'s "rules prove themselves in real projects
    first." Unresolved: what threshold of observed false positives justifies
    revisiting, and whether that revisit stays inside `eess-md` or becomes a
    `crossvalidate` preset.

@@ -4,7 +4,7 @@ Measured 2026-10-15, after the post-merge architect and enforcement review of
 [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) (frozen in PR #217) found that
 its line rule, measured in [spike 0425](./0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)
 only on blocks whose comments came first, did not hold. Time-boxed to an hour; it took about 45
-minutes. `mermaid` 11.17.2, `jsdom` 29.1.1, Node 24, the spike 0425 harness.
+minutes. `mermaid` 11.17.2, `jsdom` 29.1.1, Node 24, the [spike 0425](./0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md) harness.
 
 ## The questions
 
@@ -71,7 +71,7 @@ first. The error's `name` is `Error`; only `constructor.name` says `MermaidParse
 | the same with a newline after                 | `UnknownDiagramError`                                                                                  |
 | `%%{init: …}` never closed, then a kind       | `UnknownDiagramError`                                                                                  |
 
-The first two are the author's error, and only the text says so: under plan 0413's outcome table they
+The first two are the author's error, and only the text says so: under [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s outcome table they
 fall to "anything else", the instrument.
 
 **6. Yes to both, by copying a self-contained worker file.** A ten-line worker (no `jsdom`; it reads
@@ -87,7 +87,7 @@ No option on `mermaidParser()` is needed for the stub, the missing-peer or the o
 
 ## Recommendation for the re-freeze
 
-Plan 0413 goes back to Draft. The findings above are measured; what follows is this spike's
+[Plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) goes back to Draft. The findings above are measured; what follows is this spike's
 recommendation to the re-freeze, which decides each item (the plan's "Owed at the re-freeze" list):
 
 - **The line comes from a map, not an offset.** eess-mermaid mirrors the four preprocessing regexes
@@ -113,13 +113,13 @@ recommendation to the re-freeze, which decides each item (the plan's "Owed at th
 - **The version is the worker's, by the walk up.** The host compares it with the version it declared
   and reports a mismatch as an instrument finding.
 - **Tests copy the built worker file** into a scratch directory with a stub or no `mermaid`. No public
-  option names a module to run (ADR-015).
+  option names a module to run ([ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md)).
 
 ## Correction after review (2026-10-15)
 
 PR #219's enforcement review measured a trailing comment **on the kind line**: `flowchart TD %% t`,
 then a valid line, then an error on body line 3, is reported on line 1, an undercount of two, not
-one. So "one line fewer for each" in Q2 is not a law; plan 0413's re-freeze withholds the line for
+one. So "one line fewer for each" in Q2 is not a law; [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s re-freeze withholds the line for
 any block with a trailing comment rather than bounding the undercount.
 
 ## Not measured
@@ -132,7 +132,7 @@ any block with a trailing comment rather than bounding the undercount.
 
 ## Harness
 
-`probe4.mjs`, `probe5.mjs`, `probe6.mjs` (the blocks above, through spike 0425's worker),
+`probe4.mjs`, `probe5.mjs`, `probe6.mjs` (the blocks above, through [spike 0425](./0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)'s worker),
 `linemap.mjs` and `checkmap.mjs` (the map and its 18 cases), and `seam/` (the copied worker against a
 stub), in a directory where `npm i mermaid@11 jsdom` has run. The map, as measured:
 

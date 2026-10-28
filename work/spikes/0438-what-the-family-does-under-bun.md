@@ -11,7 +11,7 @@ record and a plan. Time-boxed to an hour; it took about an hour. Bun 1.4.3, Node
 
 1. Which published entry points load under Bun, and what stops the rest?
 2. With that fixed, do real calls give the same answers under Bun as under Node?
-3. Does the eess-ts CLI work under Bun, including its `.js` → `.ts` resolve hook (bug 0223)?
+3. Does the eess-ts CLI work under Bun, including its `.js` → `.ts` resolve hook ([bug 0223](../bugs/fixed/0223-type-module-rule-files-cannot-import-a-sibling.md))?
 4. Can each package's own test suite run on the Bun runtime, and what fails?
 
 ## Result
@@ -97,7 +97,7 @@ The 9 that remain:
   "the parser threw" (`packages/md/src/model/code-block-parse.ts:320`). That is read from the code,
   not run under Bun. Not yet explained.
 - **Four eess-mermaid CLI tests fail inside vitest only.** "check passes for a clean rule file",
-  "explain dumps rules as JSON", "explain --markdown" and the bug 0269 CONTROL test: `exitCode` is
+  "explain dumps rules as JSON", "explain --markdown" and the [bug 0269](../bugs/fixed/0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md) CONTROL test: `exitCode` is
   1 where the test expects falsy. The same command run directly under Bun (`bun dist/cli/bin.js
 check tests/fixtures/rules/passing.rules.ts`) is green with exit 0. The tests drive `run()` in
   process and reset `process.exitCode = undefined`; the suspect is that reset or state between
@@ -129,7 +129,7 @@ So the 9 are 1 + 2 + 4 + 2: eess-mermaid 6, eess-crossvalidate 1, eess-ts 2.
   in (the first probe here typed 18 and missed 10), and tests that assert a Node mechanism are marked as such rather
   than skipped silently.
 
-## Correction (2026-10-16, ADR-020's review)
+## Correction (2026-10-16, [ADR-020](../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md)'s review)
 
 Q4 first said vitest ran on Node "without `--bun`". The run that gave `node v24.14.0` was vitest
 started by Node, not by Bun without the flag. Measured since: `bun node_modules/.bin/vitest run`,

@@ -150,8 +150,10 @@ context, as [003](./003-future-dialect-candidates.md) and
 [004](./promoted/004-corpus-content-explain.md) both do.
 
 **What the violation must say.** Both sides, both lines — per this section's own
-two-sided rule. `plan 0089:176 excludes "proposal 001" as future surface, but
-001's Ruling is "Ship as-is"` sends the author to reconcile the clause. A
+two-sided rule. A message naming the plan's line (written when it was
+[plan 0089](../plans/completed/0089-family-standalone-sufficiency.md)'s line 176) and the proposal's ruling,
+`plan NNNN:176 excludes "proposal 001" as future surface, but 001's Ruling is "Ship as-is"`, sends
+the author to reconcile the clause. A
 one-sided `"proposal 001" has no matching ruling` would send them to add a
 ruling that already exists.
 
@@ -356,7 +358,7 @@ the mistake `ledger.ts` already shows: one hard-coded regex per field name.
 > surveying it.**
 
 `terms(c, { label })` already yields the element, blanks fenced code
-line-preservingly, through the family’s one prose reader since bug 0287 (`vocabulary.ts:110-112`), scopes with `resideInFile(glob)`,
+line-preservingly, through the family’s one prose reader since [bug 0287](../bugs/fixed/0287-four-copies-of-one-fence-lexer-across-three-packages.md) (`vocabulary.ts:110-112`), scopes with `resideInFile(glob)`,
 and checks an enum via `resolveAgainst(vocabulary(c, { terms: [...] }))` — which
 is `beOneOf` under another name. Evidence rule 4's enum half is expressible
 today:
@@ -400,7 +402,7 @@ element rather than a new one:
 
 > **Caveat on frontmatter, and a prerequisite.** Reading it is free; the _AST_ is
 > wrong about it. The corpus parses with GFM extensions only
-> (`packages/md/src/corpus.ts`, before bug 0087's fix) and no frontmatter extension, so the
+> (`packages/md/src/corpus.ts`, before [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md)'s fix) and no frontmatter extension, so the
 > closing `---` turns the last frontmatter line into a **setext heading**. The
 > fixture above is reported by `docs()` as having a depth-2 section named
 > `"State: Ready\ntitle: A doc"` — a phantom section at line 2. `haveSection`
@@ -686,7 +688,7 @@ violation must _say_. Colour alone is not the proof; attribution is.
       source is not reported and the winning value is the one asserted against.
       Untestable until that ruling exists — which is the point of ruling first.
 - [ ] **Frontmatter — no phantom section.** A frontmatter-bearing document
-      reports the sections it actually has. _Fixed 2026-10-14 by bug 0087: front matter
+      reports the sections it actually has. _Fixed 2026-10-14 by [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md): front matter
       that is a YAML mapping now parses to a `yaml` node
       (`packages/md/src/model/prose.ts:64`); the rest of this item is the record as
       written._ Today it does not: the closing `---`
@@ -836,7 +838,7 @@ and has no generic `assertsSomething`.
 > claim was load-bearing in the section that sequences follow-on work, and it
 > made the acceptance criteria below look harder to meet than they are.
 >
-> **Update, 2026-08-14 (bug 0127's fix, PR #57).** `bad-links.mjs` and
+> **Update, 2026-08-14 ([bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s fix, PR #57).** `bad-links.mjs` and
 > `bad-pointers.mjs` no longer exist — both were converted to plant a probe
 > and drive `scripts/check-corpus.mjs` itself, so "no CLI is involved" is now
 > false for those two specifically (`bad-adr.mjs` is unchanged and the claim

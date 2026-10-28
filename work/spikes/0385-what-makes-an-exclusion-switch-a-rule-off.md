@@ -23,14 +23,14 @@ check that has been turned off, and that is close to the centre of what eess is 
 
 ## What eess is for, as it bears on this
 
-- **A green gate must mean something.** The manifesto's promise; ADR-009 rule 1: _"a check
+- **A green gate must mean something.** The manifesto's promise; [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1: _"a check
   that cannot fail is worth less than no check."_
-- **The primary consumer is an agent, and agents do not read warnings** (ADR-009, Context).
+- **The primary consumer is an agent, and agents do not read warnings** ([ADR-009](../../adr/009-agent-first-failure-surfaces.md), Context).
   Whatever the answer is, it cannot be a stderr line.
-- **An agent under pressure takes the shortest path to green.** ADR-009 rule 3's corollary:
+- **An agent under pressure takes the shortest path to green.** [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 3's corollary:
   _"A marker an agent can stamp on any file to go green is worse than no marker, because it is
   a silent, one-line diff. Prefer exclusion by construction … over any list, marker, or flag."_
-- **A pass is constructed from evidence** (ADR-010). `.excluding()` runs after the evidence
+- **A pass is constructed from evidence** ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)). `.excluding()` runs after the evidence
   gate, so `{ violations, examined }` cannot see what it removed — the structural blindness
   0233 records.
 - **Record the gap, don't fake the gate, ratchet it closed** (manifesto, on baselines). A
@@ -94,14 +94,14 @@ against it — and it treats a reviewable allowlist as a switched-off check, whi
 
 **C. A, and make every exclusion carry a reason** — as exclusion comments already must (the
 kernel reports an `eess-exclude` with no reason). That raises the cost of shapes 2 and 3 for
-the reviewer, which ADR-009 rule 3 says is where the enforcement of a waiver really lives. It
+the reviewer, which [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 3 says is where the enforcement of a waiver really lives. It
 is a public API change to `.excluding()` and a separate decision, and it belongs with
 [0298](../bugs/0298-an-exclusion-that-absorbs-several-subjects-says-nothing.md), which owns the
 partial case (one pattern silently absorbing several subjects).
 
 ## Recommendation
 
-**A, now; C as its own decision with 0298.** A is the property ADR-009 rule 1 names — a check
+**A, now; C as its own decision with 0298.** A is the property [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1 names — a check
 that cannot fail — decided statically, measured to fire on nothing legitimate, and it closes
 the case measured in production. B costs every allowlist a marker to defend against a shape
 (universal) that A catches outright, and the marker is the thing rule 3 warns against.
@@ -113,6 +113,6 @@ and 0298 both need to point at it rather than each carry a version of it.
 ## What the withdrawn fix leaves
 
 Kept for whichever option is chosen: one kernel helper, called from both `applyFilters` copies
-(the direction plan 0188 is unifying them in), and red tests through `tsconfig()`, `classes()`
+(the direction [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md) is unifying them in), and red tests through `tsconfig()`, `classes()`
 and eess-md's `docs()`. Only its trigger was wrong. The patch is not in the repo; it is
 rebuilt from this record.

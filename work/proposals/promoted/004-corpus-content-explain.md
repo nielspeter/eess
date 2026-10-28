@@ -164,7 +164,7 @@ catches — see _The defect this proposal surfaced_ below.
   any path containing a space, and both APIs take `readonly string[]`. If a flag
   survives at all it must be repeatable (`--root a --root b`), never split.
 - **_Proposed shape_ puts formatting on the library terminal** ("JSON by
-  default, `--markdown` for humans"). ADR-008's principle is that detection
+  default, `--markdown` for humans"). [ADR-008](../../../adr/008-caller-owns-reporting.md)'s principle is that detection
   returns data and the caller owns emission; `.describe()` must return a value,
   with formatting and stdout in the CLI command — which is the side of the line
   both existing `explain` commands are already on.
@@ -263,7 +263,7 @@ deciding whether to add to it.
 - Is this actually `eess-md`/`eess-gherkin` scope, or does it belong one level
   up — a kernel-level `describe()` any dialect implements, so `eess-ts explain`
   becomes the first consumer of a shared shape rather than the one-off it is
-  today? Not surveyed against ADR-006's dialect boundary.
+  today? Not surveyed against [ADR-006](../../../adr/006-framework-rules-architecture.md)'s dialect boundary.
 - Cheaper fix worth ruling out first: is a documented, stable `--list`/`--verbose`
   convention on every dialect's CLI (not a new `explain` concept) sufficient? The
   incident above would have been prevented by _either_ shape — this proposal
