@@ -10,7 +10,7 @@
  * debug.
  *
  * A behavioural row cannot see it. On an `en-US` machine `localeCompare` and codepoint order
- * agree for every ASCII pair anyone would write in a fixture, so the row passes with the defect
+ * agree for every lowercase ASCII pair, the kind a fixture's names are, so the row passes with the defect
  * present. **Measured**: a row asserting the discriminator for an import of two such names
  * passed **16/16 with `localeCompare` reinstated**. Running the whole suite under a locale
  * whose collation differs also passed — 3177/3177, on the earlier pair — because the fixtures that would

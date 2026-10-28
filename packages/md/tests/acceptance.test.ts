@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { ArchRuleError } from '@nielspeter/eess'
 import { corpus, docs, links, pointers } from '../src/index.js'
 import { adrEnforcement } from '../src/rules/adr.js'
 
@@ -57,5 +58,19 @@ describe('acceptance: localized (German) ADR via adrEnforcement config', () => {
         columns: { tier: /tier/i, mechanism: /umsetzung/i, status: /status/i },
       }),
     ).not.toThrow()
+  })
+
+  it('needs its columns option: without it the localized table is not found', () => {
+    // The red half: the German header is not one the default pattern reads, so dropping
+    // `columns` (or a default widened to read it) is seen here, not only by hand.
+    const c = corpus({ roots: ['docs/adr/*.md'], cwd: deutschRoot })
+    let messages: string[] = []
+    try {
+      adrEnforcement(c, { section: /durchsetzung/i })
+    } catch (e) {
+      if (!(e instanceof ArchRuleError)) throw e
+      messages = e.violations.map((v) => v.message)
+    }
+    expect(messages).toEqual([expect.stringMatching(/no table with the required columns/)])
   })
 })
