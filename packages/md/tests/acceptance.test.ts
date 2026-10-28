@@ -6,7 +6,7 @@ import { adrEnforcement } from '../src/rules/adr.js'
 
 const fixtures = dirname(fileURLToPath(import.meta.url))
 const madrRoot = join(fixtures, 'fixtures/madr')
-const danskRoot = join(fixtures, 'fixtures/dansk')
+const deutschRoot = join(fixtures, 'fixtures/deutsch')
 
 // Acceptance B (generic fitness): a stranger with plain MADR ADRs — no
 // enforcement tiers — gets real value using ONLY the generic primitives,
@@ -47,14 +47,14 @@ describe('acceptance: plain MADR corpus (generic primitives only)', () => {
 })
 
 // Acceptance A flavor (localization is config, not fork): the same
-// adrEnforcement preset validates a Danish ADR via header/section patterns.
-describe('acceptance: localized (Danish) ADR via adrEnforcement config', () => {
-  it('validates a Håndhævelse / Mekanisme table with config, no fork', () => {
-    const c = corpus({ roots: ['docs/adr/*.md'], cwd: danskRoot })
+// adrEnforcement preset validates a German ADR via header/section patterns.
+describe('acceptance: localized (German) ADR via adrEnforcement config', () => {
+  it('validates a Durchsetzung / Mechanismus table with config, no fork', () => {
+    const c = corpus({ roots: ['docs/adr/*.md'], cwd: deutschRoot })
     expect(() =>
       adrEnforcement(c, {
-        section: /håndhævelse/i,
-        columns: { tier: /tier/i, mechanism: /mekanisme/i, status: /status/i },
+        section: /durchsetzung/i,
+        columns: { tier: /tier/i, mechanism: /mechanismus/i, status: /status/i },
       }),
     ).not.toThrow()
   })

@@ -637,8 +637,8 @@ const c = corpus({
 })
 
 adrEnforcement(c, {
-  section: /håndhævelse/i,
-  columns: { tier: /tier/i, mechanism: /mekanisme/i, status: /status/i }, // Danish headers
+  section: /durchsetzung/i,
+  columns: { tier: /tier/i, mechanism: /mechanismus/i, status: /status/i }, // German headers
 })
 ```
 

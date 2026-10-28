@@ -106,7 +106,7 @@ schemes) becomes **configuration**:
 | Frozen terminal folders              | Pointers/links in `completed/`, `fixed/`, `delivered/` describe history — reported, never failed   | corpus config + `areFrozen()` predicate |
 | Fenced code is stripped              | Illustrative snippets and templates are not live claims                                            | corpus parser (always)                  |
 | Ambiguous reports, never fails       | A bare-basename pointer matching several files is a hint to write the full path, not a build break | pointer conditions                      |
-| Localized table headers              | Column matching by pattern (`/mekanisme\|mechanism/i`), not literal English strings                | `rules/adr` options                     |
+| Localized table headers              | Column matching by pattern (`/mechanismus\|mechanism/i`), not literal English strings              | `rules/adr` options                     |
 | Basename lookup with ambiguity guard | Bare filenames resolve repo-wide only when unique                                                  | pointer/link resolution                 |
 
 ## Package layout
@@ -259,7 +259,7 @@ const c = corpus({
 
 adrEnforcement(c, {
   dir: 'docs/adr/**',
-  columns: { tier: /tier/i, mechanism: /mechanism|mekanisme/i, status: /status/i }, // non-English header
+  columns: { tier: /tier/i, mechanism: /mechanism|mechanismus/i, status: /status/i }, // non-English header
   tiers: [1, 2, 3, 4, 5],
   verifyCitations: true, // cited paths exist; cited it('…') titles exist in cited test files
 })

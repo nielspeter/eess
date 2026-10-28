@@ -1231,7 +1231,7 @@ diff-line count suggested: an extremely dense, extensively-measured module
 distinguishing "does this reference types" from "does this cause module
 evaluation", a source-order ordinal system solving a real baseline-identity
 collision class, a locale-independent sort forced by a measured
-`en-US`/`da-DK` divergence, a per-file cache with its own `onModified`
+divergence between two locales, a per-file cache with its own `onModified`
 invalidation) accreting the fixes for 4 distinct historical bugs (0022,
 0028, 0058, 0059) and 4 plans (0071, 0076, 0087, 0094) — the single most
 carefully-engineered file surveyed anywhere in this fold so far. It has two

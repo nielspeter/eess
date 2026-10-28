@@ -2,6 +2,6 @@
 
 **State:** Draft — not actually finished
 
-## Verifikation
+## Überprüfung
 
 - [x] nothing to reconcile here

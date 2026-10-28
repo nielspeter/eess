@@ -1,6 +1,6 @@
 ---
 name: eess-adr-author
-description: Translate an ADR / architecture-decision clause into an enforceable eess mechanism — usually an eess-ts architecture rule (the fluent modules/classes/functions/types DSL) plus the Enforcement-table row (Tier | Mechanism | Status). Use whenever you're making an ADR clause enforceable, filling in or adding an `## Enforcement` / `## Håndhævelse` table, writing an `arch.rules.ts` / `*.rules.ts` rule for a decision, or the user says "make this decision enforceable", "write an eess rule", "gate this ADR", "add enforcement", or asks which tier/mechanism a clause needs. Pair it with eess-adr-validate to check the translation afterward.
+description: Translate an ADR / architecture-decision clause into an enforceable eess mechanism — usually an eess-ts architecture rule (the fluent modules/classes/functions/types DSL) plus the Enforcement-table row (Tier | Mechanism | Status). Use whenever you're making an ADR clause enforceable, filling in or adding an `## Enforcement` table (or one under a localised heading), writing an `arch.rules.ts` / `*.rules.ts` rule for a decision, or the user says "make this decision enforceable", "write an eess rule", "gate this ADR", "add enforcement", or asks which tier/mechanism a clause needs. Pair it with eess-adr-validate to check the translation afterward.
 user-invocable: true
 ---
 

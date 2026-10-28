@@ -1,10 +1,10 @@
 # 099: A done-item that silently dropped scope
 
-**State:** Done — leveret i PR #999 (`feat/example`)
-**Dato:** 2026-07-09
+**State:** Done — geliefert in PR #999 (`feat/example`)
+**Datum:** 2026-07-09
 
-## Verifikation
+## Überprüfung
 
-- [x] Første ting virker — verificeret 2026-07-09.
-- [ ] Anden ting mangler stadig at blive kørt i prod.
-- [x] Tredje ting dækket af tests.
+- [x] Erstes funktioniert — verifiziert 2026-07-09.
+- [ ] Zweites muss noch in Prod laufen.
+- [x] Drittes durch Tests abgedeckt.

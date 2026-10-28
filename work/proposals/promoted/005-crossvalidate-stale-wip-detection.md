@@ -146,7 +146,7 @@ to a kernel-level primitive (`beDisjoint()`, the unbuilt dual of
   or after 0112, and rewrite this criterion around a committed fixture rather
   than a stats function a caller must remember to both call and eyeball.
 - **Evidence §3 carries the reporting project's own vocabulary** (a
-  filename, a Danish scenario title) that should be re-sourced to this
+  filename, a non-English scenario title) that should be re-sourced to this
   repo's own corpus per the house rule on inbound proposals — the measured
   counts (19 scenarios, 3 files, `0.2.0`) are the part worth keeping; the
   shape reproduces identically against `specs/scenario-binding.feature`.
@@ -1167,8 +1167,8 @@ Reproduced against the published `@nielspeter/eess-crossvalidate@0.2.0`
    correctly reported 0 violations — 1 required scenario, 19 excluded. The
    exemption itself works exactly as documented.
 3. **Spike:** added one real test —
-   `it.skip('f1-filtrering.feature › Sagsbehandler filtrerer på flere felter samtidig (AND-logik)', ...)`
-   — citing one of the 19 `@wip` scenarios, without removing its tag.
+   an `it.skip(…)` whose title cites one of the 19 `@wip` scenarios by its feature file and
+   scenario title (described here, not quoted, 2026-10-28), without removing its tag.
    Re-ran the same `scenariosCovered` call. Result: still "1 required
    scenario (19 @wip, excluded)" — completely unchanged. The
    `ts→gherkin` direction (`scenarioTestsResolve`, doesn't look at tags)

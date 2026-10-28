@@ -1,10 +1,10 @@
 # 105: Deferred: none that is honest (no deferral present)
 
-**State:** Done — leveret i PR #1005
+**State:** Done — geliefert in PR #1005
 
 Deferred: none
 
-## Verifikation
+## Überprüfung
 
-- [x] Alt leveret — verificeret.
-- [ ] Gammel kolonne fjernet — dropped-on-purpose: ikke længere relevant.
+- [x] Alles geliefert — verifiziert.
+- [ ] Alte Spalte entfernt — dropped-on-purpose: nicht mehr relevant.
