@@ -18,7 +18,7 @@
 and `publish.yml` run under GitHub's default `timeout-minutes: 360`.
 
 Synchronous walks are the known way to hang: the heritage walks in `eess-ts` and
-`eess-mermaid` (ADR-017 C5) have no bound by design, since a bound would be an ADR-016
+`eess-mermaid` ([ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) C5) have no bound by design, since a bound would be an [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
 instrument that can run out. If a guard on one of them regressed, vitest's per-test timeout
 could not interrupt the loop. Measured for `eess-mermaid`: removing its visited guard makes a
 cycle test run until killed (60 s in the sabotage matrix, killed by process group). The
@@ -30,7 +30,7 @@ overflows — in seconds to a minute or so for one looping shape, longer for a w
 ## Fix
 
 Not decided: a `timeout-minutes` on each job, set from the measured duration of a green run
-(local `npm run validate` runs measured 473–649 s on 2026-10-04) _(corrected 2026-10-04: first written as "about 8–11 minutes", which was not measured)_ with headroom, per ADR-016 clause 5. Measure CI's
+(local `npm run validate` runs measured 473–649 s on 2026-10-04) _(corrected 2026-10-04: first written as "about 8–11 minutes", which was not measured)_ with headroom, per [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) clause 5. Measure CI's
 own duration first.
 
 ## Verification

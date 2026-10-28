@@ -116,7 +116,7 @@ remove, and it is currently the thing telling the next reader the problem is sol
       summary distinguishable from the healthy run. Identical today but for timing.
 - [ ] The comment at `packages/ts/src/cli/commands/check.ts:148` (line moved from
       `:60` since this bug was filed — the file was rewritten for per-file
-      attribution by plan 0147, unrelated to this defect) states the property
+      attribution by [plan 0147](../plans/completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md), unrelated to this defect) states the property
       the code has.
 - [ ] The `--format json` / `github` paths stay machine-clean (the comment's second
       line is correct and must survive).

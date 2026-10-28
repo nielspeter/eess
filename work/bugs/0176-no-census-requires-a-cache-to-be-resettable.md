@@ -24,7 +24,7 @@ Four module-level caches key on `SourceFile` or `ArchProject`:
 
 Three followed the convention by hand. The fourth did not, and the result was a
 public metric returning a number corresponding to nothing after any in-process
-edit (bug 0173). Nothing in the suite or the gate chain fired.
+edit ([bug 0173](./fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)). Nothing in the suite or the gate chain fired.
 
 ## Root cause
 

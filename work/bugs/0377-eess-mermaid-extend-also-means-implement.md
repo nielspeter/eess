@@ -40,7 +40,7 @@ cannot happen by accident.
 
 ## Fix
 
-**What `extend` means is decided:** ADR-017 rule 6 — the same as in `eess-ts`, where `extend`
+**What `extend` means is decided:** [ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) rule 6 — the same as in `eess-ts`, where `extend`
 and `implement` are separate (its C6b row is `pending` on this record). What is open is how to
 get there:
 

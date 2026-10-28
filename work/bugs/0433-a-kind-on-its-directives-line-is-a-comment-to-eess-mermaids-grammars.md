@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-15 from PR #223's reviews (bug 0429). Measured; no red test of
+- **State:** Draft — recorded 2026-10-15 from PR #223's reviews ([bug 0429](./fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md)). Measured; no red test of
   its own yet.
-- **Severity:** Low — no false green: since bug 0429 the block is selected and reported as a gap in
+- **Severity:** Low — no false green: since [bug 0429](./fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md) the block is selected and reported as a gap in
   eess-mermaid's grammar. The defect is that valid Mermaid is reported, and the remedy does not name
   the one-line fix.
 - **Origin:** self-found · PR #223's enforcement and method reviews, 2026-10-15.
@@ -21,7 +21,7 @@ parseClassDiagram('%%{init: {"theme":"dark"}}%%\nclassDiagram\n  class A') // pa
 
 Measured on the built `@nielspeter/eess-mermaid`, 2026-10-15. `mermaid` 11.17.2 parses all four. Through
 `tableErAgree`, the first block is reported as not parsing with eess-mermaid's ER grammar
-(`packages/crossvalidate/tests/md-mermaid-er.test.ts`, the bug 0429 grammar-gap test), and the
+(`packages/crossvalidate/tests/md-mermaid-er.test.ts`, the [bug 0429](./fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md) grammar-gap test), and the
 remedy sends the author to the Mermaid Live Editor and an upstream report, not to the newline that
 clears it.
 
@@ -42,6 +42,6 @@ makes Mermaid's own parser answer syntax, which may change what this gap costs; 
 ## Verification
 
 - [ ] Red test first, through `parseErDiagram` and `parseClassDiagram`
-- [ ] The bug 0429 grammar-gap test in `md-mermaid-er.test.ts` updated to expect a comparison
+- [ ] The [bug 0429](./fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md) grammar-gap test in `md-mermaid-er.test.ts` updated to expect a comparison
 
 Deferred: none

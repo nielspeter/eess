@@ -5,7 +5,7 @@
 - **State:** Draft — probed on 2026-10-21 by PR #257's enforcement review against eess-md's build of
   that branch; no red test yet.
 - **Severity:** Medium — **a mention a reader sees can be hidden from `mentions()` by a character
-  nobody sees.** `bug`, a zero-width space and `0338` render as `bug0338` or `bug 0338` to a
+  nobody sees.** `bug`, a zero-width space and `0338` render as `bug0338` or as the plain mention to a
   reader, are not matched by a caller's pattern, and so are neither a finding nor an element. An
   agent facing a red `beLinked()` can stamp one in, and a reviewer reading the rendered diff cannot
   tell.
@@ -19,12 +19,14 @@
 Each of these is green under `mentions(c, { pattern: /\bbug\s+\d{4}\b/g }).should().beLinked()`
 in a corpus that holds other mentions (examined 1, findings 0), measured by the review's probes:
 
-| text, as written in the source           | what a reader sees |
-| ---------------------------------------- | ------------------ |
-| `bug`, U+200B ZERO WIDTH SPACE, ` 0338`  | `bug 0338`         |
-| `bug&#8203;0338`                         | `bug0338`          |
-| `bug 03`, U+00AD SOFT HYPHEN, `38`       | `bug 0338`         |
-| `b`, U+200D ZERO WIDTH JOINER, `ug 0338` | `bug 0338`         |
+```text
+text, as written in the source              what a reader sees
+------------------------------------------  ------------------
+"bug", U+200B ZERO WIDTH SPACE, " 0338"     bug 0338
+"bug&#8203;0338"                            bug0338
+"bug 03", U+00AD SOFT HYPHEN, "38"          bug 0338
+"b", U+200D ZERO WIDTH JOINER, "ug 0338"    bug 0338
+```
 
 The pattern is the caller's ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)),
 so no pattern eess-md could ship is wrong here; but a caller cannot reasonably be asked to allow an

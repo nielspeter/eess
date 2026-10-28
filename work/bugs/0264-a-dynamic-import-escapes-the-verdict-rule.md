@@ -9,7 +9,7 @@
   each other's blind spot". They do not, for one shape, and the claim was in the
   source until this bug corrected it.
 - **Created:** 2026-09-06
-- **Origin:** enforcement review · plan 0237's build
+- **Origin:** enforcement review · [plan 0237](../plans/completed/0237-eess-runtime-use-only-in-rule-files.md)'s build
 
 ## Symptom
 
@@ -52,7 +52,7 @@ Not decided. The building block exists: `FORWARD_EDGE_KINDS` in the same module
 already treats `dynamic` as a real edge kind for a different condition, so a
 third leg — "no dynamic import whose specifier matches the eess globs, whatever
 it is destructured into" — is composable rather than novel. Deliberately not
-done inside plan 0237: it is a new condition-level decision, and 0237 shipped
+done inside [plan 0237](../plans/completed/0237-eess-runtime-use-only-in-rule-files.md): it is a new condition-level decision, and 0237 shipped
 with the gap **stated** in four places instead.
 
 ## Verification

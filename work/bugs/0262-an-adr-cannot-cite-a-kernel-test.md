@@ -2,13 +2,13 @@
 
 ## Status
 
-- **State:** Draft — reproduced while writing ADR-014's Enforcement rows.
+- **State:** Draft — reproduced while writing [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s Enforcement rows.
 - **Severity:** Medium — not a false green in a rule, but a **weakened
   enforcement tier**: a kernel clause can be backed only by a file path, where a
   dialect clause gets an AST-grounded `it()` citation. The gate silently offers
   less proof for the package it most needs it from.
 - **Created:** 2026-09-06
-- **Origin:** self-found · moving ADR-014's rows to `gated` under plan 0235
+- **Origin:** self-found · moving [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s rows to `gated` under [plan 0235](../plans/completed/0235-the-emitter-takes-a-receipt.md)
 
 ## Symptom
 
@@ -21,7 +21,7 @@ adrCitationsResolve(adrs, project('packages/ts/tsconfig.json'), { dir: 'adr/**',
 
 That project is `eess-ts`. Its `include` does not reach `packages/core/tests`, so
 **every citation into a kernel test fails to resolve**. Measured: ten citations
-added to ADR-014's Enforcement table, all naming real, passing tests in
+added to [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s Enforcement table, all naming real, passing tests in
 `packages/core/tests/emitter-refuses-without-evidence.test.ts`, all reported as
 `clause … cites missing test`.
 
@@ -49,7 +49,7 @@ whose enforcement rows cannot reach the strongest available tier — and the
 convention in CLAUDE.md presents the `it()` citation as the normal way to write
 a row, with no note that half the repo cannot use it.
 
-ADR-014's rows are currently written with the file path plus the test's subject
+[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s rows are currently written with the file path plus the test's subject
 in prose. The file-existence half is still gated; the AST half is not.
 
 ## Fix
@@ -71,4 +71,4 @@ Not decided. Two shapes:
 - [ ] a red test: an ADR citing a real `packages/core/tests` title resolves
 - [ ] the reverse still fires: an ADR citing a title that exists nowhere reds
 - [ ] fixture-shaped `it()` titles in test fixtures do not pollute the resolver
-- [ ] ADR-014's rows upgraded from file-path to `it()` citations once it lands
+- [ ] [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s rows upgraded from file-path to `it()` citations once it lands

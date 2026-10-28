@@ -2,13 +2,13 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-10-15 on `main` at `8fc69538`, while fixing bug 0409. No red test
+- **State:** Draft — measured 2026-10-15 on `main` at `8fc69538`, while fixing [bug 0409](./fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md). No red test
   yet, and the cause is not traced.
 - **Severity:** Medium — a missing capability (`BUGS.md`'s Medium row). Nothing passes that should
   fail; a finding an author has a reason to waive cannot be waived. `docs/dogfooding.md` calls
   `// eess-exclude` "the tool's own sanction mechanism" for inline exceptions, without a caveat for
   the crossvalidate presets.
-- **Origin:** self-found · fixing bug 0409, 2026-10-15. Bug 0409's remedy was going to say "waive it
+- **Origin:** self-found · fixing [bug 0409](./fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md), 2026-10-15. [Bug 0409](./fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)'s remedy was going to say "waive it
   with a reason"; the probe showed that would not work, so the remedy says to narrow the corpus globs
   instead.
 - **Reported:** 2026-10-15
@@ -54,12 +54,12 @@ through, so this likely holds for every crossvalidate preset, not only md-mermai
 
 Not traced. The crossvalidate presets build their findings by hand and hand them to `finishPreset`;
 exclusion comments are applied in the kernel's rule execution, which a hand-built preset may never
-pass through. Bug 0097 records related gaps in how these presets report.
+pass through. [Bug 0097](./0097-crossval-presets-bypass-caller-owns-reporting.md) records related gaps in how these presets report.
 
 ## Fix
 
 Not designed. Either the presets apply exclusion comments like a builder's rules do, or the docs
-name these presets as ones a comment cannot waive. If waivers come to work here, bug 0409's remedy
+name these presets as ones a comment cannot waive. If waivers come to work here, [bug 0409](./fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)'s remedy
 (`grammarGapRemedy` in `packages/crossvalidate/src/shared.ts`) should switch from "isolate the fence in
 its own document" to a per-finding waiver.
 

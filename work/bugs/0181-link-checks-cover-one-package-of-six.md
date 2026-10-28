@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — measured.
-- **Found:** 2026-08-20, architect and devops review of the bug 0179 fix.
+- **Found:** 2026-08-20, architect and devops review of the [bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) fix.
 - **Severity:** a placement gap. Two real defect classes are checked for
   `eess-ts` and unchecked for the kernel and four sibling dialects.
 
@@ -15,7 +15,7 @@ Two properties are enforced, and both are enforced in exactly one package:
 package's tarball (`files: ["dist","README.md","LICENSE"]`), so a relative link
 in one resolves to nothing from npm or `node_modules`. The only mechanism is
 `packages/ts/tests/docs/shipped-links.test.ts`, which reads `packageRoot` — its
-own package. Bug 0179 fixed `eess-ts`; review then found **11 more** in `core`,
+own package. [Bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) fixed `eess-ts`; review then found **11 more** in `core`,
 `md`, `mermaid` and `crossvalidate`, one of which (`mermaid` →
 `../../plans/0059-…`) was dead in the repository too. Those are fixed, but
 nothing stops the twelfth.
@@ -31,7 +31,7 @@ nothing stops the twelfth.
 | `md`                                    | 2                        | **no**   |
 | `mermaid` · `gherkin` · `crossvalidate` | 0                        | n/a      |
 
-Bug 0179's fix is the first commit to put eess-relative citations into
+[Bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s fix is the first commit to put eess-relative citations into
 `packages/core/src`, and nothing checks them.
 
 ## Root cause
@@ -51,7 +51,7 @@ comment resolves" are true of every package.
 Not built. Move both properties into a `check:*` gate over all six packages.
 
 Keeping the `eess-ts` test as a second, independent derivation is fine and
-defensible (ADR-009 rule 5); keeping it as the ONLY derivation for five packages
+defensible ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 5); keeping it as the ONLY derivation for five packages
 is the defect.
 
 Note the ordering dependency: `packages/ts/tests/roots.ts` is correctly placed

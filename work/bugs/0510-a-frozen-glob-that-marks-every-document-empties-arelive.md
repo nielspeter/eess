@@ -2,17 +2,17 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-19 as bug 0499's residual; measured on branch
+- **State:** Draft — recorded 2026-10-19 as [bug 0499](./fixed/0499-corpus-does-not-check-its-frozen-globs.md)'s residual; measured on branch
   `fix/fail-open-batch`, no red test yet.
 - **Severity:** Low — it needs a frozen glob as wide as the corpus, which a reviewer sees; the
-  narrower faults (a glob that can never match, or marks nothing) are refused since bug 0499.
-- **Origin:** self-found · bug 0499's build (its reproduction's third row)
+  narrower faults (a glob that can never match, or marks nothing) are refused since [bug 0499](./fixed/0499-corpus-does-not-check-its-frozen-globs.md).
+- **Origin:** self-found · [bug 0499](./fixed/0499-corpus-does-not-check-its-frozen-globs.md)'s build (its reproduction's third row)
 - **Reported:** 2026-10-19
 
 ## Symptom
 
 `corpus({ cwd, roots: ['**/*.md'], frozen: ['**'] })` marks every loaded document frozen, so
-`areLive()` selects none, and an absence rule scoped to it is green with nothing examined. Bug 0499
+`areLive()` selects none, and an absence rule scoped to it is green with nothing examined. [Bug 0499](./fixed/0499-corpus-does-not-check-its-frozen-globs.md)
 judges a caller's frozen glob for text faults and for marking no document; a glob that marks every
 document passes both.
 

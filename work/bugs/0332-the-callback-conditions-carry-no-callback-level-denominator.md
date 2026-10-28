@@ -2,11 +2,11 @@
 
 ## Status
 
-- **State:** Draft — measured on PR #147's build. The fix is a decision about ADR-010's unit, not a
+- **State:** Draft — measured on PR #147's build. The fix is a decision about [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s unit, not a
   patch.
 - **Severity:** Medium — **a pass constructed from the wrong denominator.** A rule whose callbacks
   are all in shapes the shared definition cannot read reports `examined: 1` — the call — and goes
-  green. `within()`, given the same file, reports `examined: 0` and an ADR-010 configuration
+  green. `within()`, given the same file, reports `examined: 0` and an [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) configuration
   finding that cannot be suppressed. Same blindness, two verdicts: the reader that can say "I
   enforced nothing" says it, and the reader that cannot stays silent.
 - **Origin:** the enforcement review of PR #147, 2026-09-20. The Severity section of
@@ -19,21 +19,21 @@
 Measured on PR #147's build, `call('legacy')` over `use([() => legacy(1)])` — a shape
 [0331](./0331-the-callback-definition-reads-an-object-literal-and-nothing-else.md) records as unread:
 
-| reader                      | verdict | `examined` | what it says                             |
-| --------------------------- | ------- | ---------- | ---------------------------------------- |
-| `notHaveCallbackContaining` | green   | 1          | nothing                                  |
-| `within(...).functions()`   | red     | 0          | ADR-010: "this rule examined 0 subjects" |
+| reader                      | verdict | `examined` | what it says                                                                                     |
+| --------------------------- | ------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| `notHaveCallbackContaining` | green   | 1          | nothing                                                                                          |
+| `within(...).functions()`   | red     | 0          | [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md): "this rule examined 0 subjects" |
 
 `examined: 1` is honest at its declared unit — one call WAS selected and examined. The number that
 answers vacuity for these conditions is how many callbacks were searched, and nothing carries it.
 
 ## Root cause
 
-ADR-010 requires a pass to be constructed from evidence — `{ violations, examined }` — and the unit
+[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) requires a pass to be constructed from evidence — `{ violations, examined }` — and the unit
 of `examined` is the rule's subject. For `calls()` the subject is the call, so a condition that
 searches _inside_ a call has a denominator one level coarser than the thing it reads. `within()`
 escapes it by making the callback the subject: its subjects are the extracted functions, so an empty
-extraction is an empty selection and ADR-010 fires.
+extraction is an empty selection and [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) fires.
 
 Every condition that searches below its subject has this shape —
 `notHaveArgumentContaining` over arguments, `searchClassBody` over members — so a fix is a decision
@@ -45,11 +45,11 @@ printing no denominator, this one is about a rule carrying the wrong one.
 
 Not decided. Three directions, in rising order of cost:
 
-- **Report it where it is already known.** The callback conditions could emit an ADR-010
+- **Report it where it is already known.** The callback conditions could emit an [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)
   configuration finding when a selected call yields zero callbacks and the rule is a prohibition —
   the same finding `within()` produces, from the reader that currently stays silent.
 - **A second denominator.** Carry `examinedBelow` beside `examined` for conditions that search below
-  their subject, and let the emitters read it. Touches ADR-010 and ADR-014.
+  their subject, and let the emitters read it. Touches [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md).
 - **Nothing, declared.** Say that `examined` is per-subject by design and that vacuity below the
   subject is `within()`'s job, then document it in `docs/calls.md` so an adopter knows which reader
   to use when the question is "did this rule look at anything".
@@ -66,7 +66,7 @@ notice.
 ## Verification
 
 - [ ] reproduced by a test that pins both verdicts on one file
-- [ ] a ruling on ADR-010's unit for a condition that searches below its subject
+- [ ] a ruling on [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s unit for a condition that searches below its subject
 - [ ] the fix, and the ADR amended if the unit changes
 - [ ] `npm run validate` green.
 

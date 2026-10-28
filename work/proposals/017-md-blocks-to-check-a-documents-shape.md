@@ -198,7 +198,7 @@ this repository's sabotage harness (31 probes).
   labelled block declares ([plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)), `areInSection()` the links under a heading, and
   `beLinkedBack()` checks the target answers ([plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md),
   `packages/md/src/builders/links.ts:128`). `check:corpus` uses them for `**Extends:**` between
-  ADRs. A reference written as text ("[bug 0439](../bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)", "[ADR-020](../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md)") is not a link and is read by nothing.
+  ADRs. A reference written as text (a record named by its number, with no link) is not a link and is read by nothing.
   Wikilinks are [proposal 015](./015-md-wikilinks-are-read-or-reported.md)'s subject and are not read either.
 - **Placement exists**, in both directions, for `State:` only, inside `honestyAtClose`.
 - **Value normalisation exists twice**, in the ledger (`WRAP`, `packages/md/src/rules/ledger.ts:154`)
@@ -599,7 +599,7 @@ valuesOrPattern)` makes "a fixed bug has a Verification section" one rule; `poin
 >
 > **D. A reference is resolved against the type it names, and a type declares the relationships it
 > allows.** A reference is any way one document names another: a link (read today), a reference by
-> identifier written as text ("[bug 0439](../bugs/fixed/0439-the-family-fails-to-load-under-bun-from-eess-0-5-1.md)", "[ADR-020](../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md)", "[proposal 013](./promoted/013-md-a-declared-relation-is-reciprocated.md)"), or a wikilink ([proposal 015](./015-md-wikilinks-are-read-or-reported.md)
+> identifier written as text (a record named by its number, with no link), or a wikilink ([proposal 015](./015-md-wikilinks-are-read-or-reported.md)
 > owns reading it; this ask consumes what 015 reads). A type declares how its documents are named
 > (`bug NNNN`, `ADR-NNN`, a wiki page's title); a reference that names an identifier no document of
 > that type holds, or one another type holds, is a finding. `relations` declares what a type may
@@ -608,7 +608,12 @@ valuesOrPattern)` makes "a fixed bug has a Verification section" one rule; `poin
 > being [plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md)'s check moved onto the declaration rather than a second mechanism beside it. A
 > namespace a corpus cites but does not hold (another project's numbers) is declared as foreign and
 > not resolved.
->
+
+_Note, 2026-10-28:_ in ask D above, the submission's three example identifiers "written as text"
+(a bug, an ADR and a proposal, each by its number) are described rather than quoted, by
+[plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4: written plainly they are mentions the record-mention gate requires to be
+links, and linked they would contradict the sentence they illustrate.
+
 > **E. A type's lifecycle is declared, and placement follows it.** `states` names the state field
 > (any label, a list of aliases, or the heading form), its vocabulary, which states are terminal, and
 > which folder each state lives in, including a folder that is kept but bound to one state.

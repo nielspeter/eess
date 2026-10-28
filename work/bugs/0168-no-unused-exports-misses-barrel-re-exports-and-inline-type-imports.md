@@ -52,7 +52,7 @@ Two distinct blind spots in the usage scan, both about **type-position imports**
 
 ## Why it matters beyond the noise
 
-This is the failure class ADR-009 is about, pointed the wrong way. A false
+This is the failure class [ADR-009](../../adr/009-agent-first-failure-surfaces.md) is about, pointed the wrong way. A false
 positive on a correct export teaches the reader that the honest response to this
 rule is a waiver comment — and once waiving is the habit, the _true_ positives
 get waived the same way. That is exactly what happened on this branch: 51

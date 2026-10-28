@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — found by architecture review of bug 0362's second fix.
+- **State:** Draft — found by architecture review of [bug 0362](./fixed/0362-a-typod-ratchet-is-green-in-both-tools.md)'s second fix.
 - **Severity:** Low — **nothing is wrong today; a guarantee that reads as stronger than
   it is.** The two declarations agree, so no behaviour depends on the duplication. What
   it costs is the compile-time safety a reader would reasonably assume they have.
@@ -35,7 +35,7 @@ to stop relying on rather than a contract"
 
 ## Why it matters now
 
-Bug 0362's second fix leans on exhaustiveness over this union in three places —
+[Bug 0362](./fixed/0362-a-typod-ratchet-is-green-in-both-tools.md)'s second fix leans on exhaustiveness over this union in three places —
 `contradictsAbsence`, `ON_DISK_ADVICE` and the new `isSyntacticFault`'s sibling reasoning
 — each written so that a fifth member stops the build rather than falling into a default
 that guesses. That protection is real, and it is one layer deep: it fires when the
@@ -52,7 +52,7 @@ function accepts a `DiskSet`**. Its only consumer, `diagnoseGlob`, is unexported
 published surface asks adopters to understand a type they have no way to hand to anything, which
 is the consumer-principle question this record already opens for the kernel side, now measurable
 on the dialect side too. `check:surface` reports it as part of eess-ts's undocumented exports
-(bug 0220, no ruling).
+([bug 0220](./0220-nothing-requires-a-public-symbol-to-be-documented.md), no ruling).
 
 The practical consequence while that is undecided: #168 added a member to `DiskSet` and made it
 **optional** rather than required, because a required member would have stopped
@@ -64,9 +64,9 @@ Inert today precisely because nobody has a reason to implement one, which is the
 
 Not decided, and the choice is a product one rather than a mechanical one: either the
 dialect imports the kernel's type and the duplication goes, or the kernel's declaration
-is removed as unused and the type is owned by the dialect that materialises it. ADR-013's
+is removed as unused and the type is owned by the dialect that materialises it. [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s
 reasoning points at the first; the fact that nothing imports it points at the second.
-Deciding needs the ADR-011/ADR-013 boundary read together, so it is a decision, not a
+Deciding needs the [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)/[ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) boundary read together, so it is a decision, not a
 patch.
 
 ## Related
@@ -80,7 +80,7 @@ patch.
 
 ## Verification
 
-- [ ] the direction decided and recorded against ADR-011/ADR-013.
+- [ ] the direction decided and recorded against [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)/[ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md).
 - [ ] one declaration, with the other's consumers migrated.
 - [ ] a test that a fifth member breaks the build at every exhaustive site — measured by
       adding one, not asserted.

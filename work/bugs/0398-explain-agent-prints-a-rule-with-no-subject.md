@@ -17,7 +17,7 @@
 ## Symptom
 
 In this repo, `node packages/ts/dist/cli/bin.js explain spec.rules.ts --format agent` prints
-`- that are internal and point into adr/ should resolve to an existing file`. Over bug 0396's
+`- that are internal and point into adr/ should resolve to an existing file`. Over [bug 0396](./0396-doctor-assumes-every-rule-has-a-ts-morph-project.md)'s
 inbound rule file it prints:
 
 ```

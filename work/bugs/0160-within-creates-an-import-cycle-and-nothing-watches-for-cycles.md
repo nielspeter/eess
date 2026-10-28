@@ -8,7 +8,7 @@
   architectural defect in this repo's own source that its own tool would
   catch, and does not, because the rule was never written.
 - **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
-  (upstream bug 0054)
+  (ts-archunit bug 0054)
 - **Shipped in:** the published `@nielspeter/eess-ts` (`0.2.1`) —
   `within.ts:2`'s value-import is unchanged in `810808b`. The cycle ships to
   adopters, though nothing about it is user-visible.
@@ -47,7 +47,7 @@ The capability works. It has simply never been pointed at this repo.
 **value** (it constructs one), not as a type, so the edge is real at runtime
 rather than erased.
 
-> **Update, 2026-08-19 (plan 0165 Phase 2).** The file moved from `helpers/` to
+> **Update, 2026-08-19 ([plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) Phase 2).** The file moved from `helpers/` to
 > `builders/`, which is the relocation this record proposed, and the cycle is
 > **gone** — measured: nothing under `builders/` imports `within.js`, so the
 > back-edge that closed the loop no longer exists. That resolves the first half.
@@ -56,7 +56,7 @@ rather than erased.
 > is updated so it names the file that exists rather than the one that did.
 
 Upstream restructured `within()` so the helper does not reach back into the
-builders layer. That fix predates plan 0088's fold and was not carried across
+builders layer. That fix predates [plan 0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold and was not carried across
 — see the [fold audit](../fold-audit-2026-08-19.md).
 
 The missing dogfood rule is eess's own gap, not inherited: `arch.rules.ts` and

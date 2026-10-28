@@ -31,7 +31,7 @@ in the sentence that defines the split between gate and human:
 The same doctrine sits in `docs/working-method.md`. **"The reviewer" is precisely
 the working-method lens** — closability, ledger honesty, whether a disposition is
 truthful rather than merely present. In this repo that noun now has a file
-(`.claude/agents/reviewer-method.md`, bug 0250). In the kit it stays undefined,
+(`.claude/agents/reviewer-method.md`, [bug 0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md)). In the kit it stays undefined,
 so an adopter is told a mechanism is necessary-but-not-sufficient and is handed
 only the mechanism.
 

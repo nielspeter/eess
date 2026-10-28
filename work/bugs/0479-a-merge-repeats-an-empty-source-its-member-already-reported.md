@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 while building plan 0456.
+- **State:** Draft — recorded 2026-10-18 while building [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md).
 - **Severity:** Low — no verdict changes colour; one cause is reported twice, so a reader counts two
   faults where there is one.
-- **Origin:** self-found · plan 0456's build, 2026-10-18.
+- **Origin:** self-found · [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s build, 2026-10-18.
 - **Reported:** 2026-10-18
 
 ## Symptom
@@ -18,11 +18,11 @@ emitter's gate does not: it returns at `violations.length > 0`
 branch exists for a hand-assembled receipt, because a terminal that loaded nothing already reports
 it. The two seams disagree about the same receipt.
 
-Measured on plan 0456's branch, before `honestyAtClose` was changed to return early on an empty
+Measured on [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s branch, before `honestyAtClose` was changed to return early on an empty
 corpus: over a corpus whose roots match nothing, the preset's three rules each reported the empty
 source, and the merge added a fourth finding, `emitter/source-empty`. Four findings, one cause.
 
-Since plan 0456 every eess-md corpus builder reports an empty source, so any caller who merges two
+Since [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md) every eess-md corpus builder reports an empty source, so any caller who merges two
 or more md rules over an empty corpus meets this. `honestyAtClose` is shaped around it: it returns
 early on an empty corpus (`packages/md/src/rules/ledger.ts`), which a fix here can undo.
 

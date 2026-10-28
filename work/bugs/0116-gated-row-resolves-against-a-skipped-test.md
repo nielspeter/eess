@@ -44,7 +44,7 @@ Before 0105 this was masked in one direction and mis-signalled in the other: the
 AST gate could not see `it.skip` at all, so a `gated` row citing one went red —
 for the wrong reason (the test "did not exist"), and a _`pending`_ row citing one
 went red too, which is the false red 0105 fixed. `eess-md`'s text-level check had
-always accepted modifier forms, so `check:corpus` had this hole too. _(2026-10-04: bug 0111
+always accepted modifier forms, so `check:corpus` had this hole too. _(2026-10-04: [bug 0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md)
 removed that check — `eess-md` no longer resolves titles — so the hole is now
 `adrCitationsResolve`'s alone.)_
 

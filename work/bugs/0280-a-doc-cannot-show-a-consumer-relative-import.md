@@ -67,7 +67,7 @@ failure this corpus has a pointer gate for, and the gate does not check prose.
 
 **An untagged fence.** Dropping the `ts` info string hides the fence from the
 compiler, and `check:docs-code` already counts untagged fences carrying imports
-precisely because that is the dodge (bug 0273's own residual).
+precisely because that is the dodge ([bug 0273](./fixed/0273-nothing-compiles-a-changesets-migration-snippet.md)'s own residual).
 
 **Prose.** What the 0223 changeset does today, and what
 [bug 0275](./0275-a-migration-can-still-state-its-claim-in-prose.md) is filed

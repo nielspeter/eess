@@ -8,7 +8,7 @@
 - **Severity:** Medium — **a silent narrowing of SELECTION, which is the shape of a false
   green.** A function nested deeper than the cap is not selected, so a rule over it examines
   fewer subjects and can pass while the code violates it, and nothing says the cap was hit.
-- **Origin:** self-found. ADR-016 clause 1 says an instrument that stops short must report
+- **Origin:** self-found. [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) clause 1 says an instrument that stops short must report
   it; validation of that ADR asked which other instruments stop short, and this one does.
 - **Reported:** 2026-09-30
 
@@ -22,7 +22,7 @@ collection and the callback extractor, so both inherit the cap.
 A function at depth 4 is **not collected**. It is therefore not a subject, so:
 
 - a rule asserting something about it examines a smaller population and passes;
-- `examined` counts the subjects that WERE found, so the ADR-010 floor sees a non-zero
+- `examined` counts the subjects that WERE found, so the [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) floor sees a non-zero
   count and does not fire;
 - nothing reports that the traversal stopped.
 
@@ -49,7 +49,7 @@ bug's own origin story is about.
 
 ## Fix
 
-Not decided, and it should follow ADR-016 clause 1 rather than invent its own answer: if the
+Not decided, and it should follow [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) clause 1 rather than invent its own answer: if the
 traversal stops short, say so. The open question is whether a depth cap is even the right
 instrument here — clause 6 prefers a bound that comes from the question over one that comes
 from a budget, and "how deep do object literals nest in real code" may have an exact answer
@@ -69,5 +69,5 @@ that needs no cap.
       goes green. If it cannot be constructed, this record closes as `won't-do` with the
       evidence, not as a fix.
 - [ ] whether this repo's own rules or any shipped preset reach the cap.
-- [ ] the fix, following ADR-016 clause 1 — and clause 6 considered before a deeper cap is
+- [ ] the fix, following [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) clause 1 — and clause 6 considered before a deeper cap is
       chosen over no cap.

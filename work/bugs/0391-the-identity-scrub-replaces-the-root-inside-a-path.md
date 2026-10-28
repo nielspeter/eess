@@ -7,9 +7,9 @@
 - **Severity:** High — **two different findings can share one baseline hash.** The scrub that makes
   a finding's identity portable replaces the identity root wherever its text appears, not only as
   a path prefix. A baseline entry for one finding then forgives a different one.
-- **Origin:** enforcement review of the bug 0389 fix, 2026-10-06. The defect predates 0389: the
-  baseline hash has used this scrub since ts-archunit's bug 0010 (folded into this repo). Bug
-  0389's `accepted` comparison does not: it replaces whole path tokens instead (spike 0392).
+- **Origin:** enforcement review of the [bug 0389](./fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) fix, 2026-10-06. The defect predates 0389: the
+  baseline hash has used this scrub since ts-archunit's bug 0010 (folded into this repo). [Bug
+  0389](./fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s `accepted` comparison does not: it replaces whole path tokens instead ([spike 0392](../spikes/0392-what-makes-an-accepted-entry-portable.md)).
 - **Reported:** 2026-10-06
 - **Placement (2026-10-20):** stays its own bug: its fix is undecided and is a different
   derivation (the root scrub, not the matched node). [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)'s file check separates the headline pair
@@ -33,7 +33,7 @@ kernel:
 
 - **The false green.** The first two rows are different files with the same scrubbed identity. A
   checkout at `/app`, the usual Docker `WORKDIR`, with a `src/app/` folder reaches it. The
-  baseline hash uses this text. (Bug 0389's `accepted` comparison replaces whole path tokens, so
+  baseline hash uses this text. ([Bug 0389](./fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s `accepted` comparison replaces whole path tokens, so
   it keeps these two apart.)
 - **Portability breaks too.** The same file scrubs one way under `/app` and another under
   `/home/me/app`. A baseline written in a container matches nothing on a laptop. That direction
@@ -51,12 +51,12 @@ imports x` must still scrub).
 
 Not decided here: neither boundary alone distinguishes the checkout path from a path segment that
 spells it, as Root cause shows. Candidates are scrubbing only the first occurrence in each path
-token, or scrubbing the `file` field rather than free text. Spike 0392 measured whole-token
-replacement for bug 0389's `accepted` comparison; it is a candidate here too, with the same cost:
+token, or scrubbing the `file` field rather than free text. [Spike 0392](../spikes/0392-what-makes-an-accepted-entry-portable.md) measured whole-token
+replacement for [bug 0389](./fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s `accepted` comparison; it is a candidate here too, with the same cost:
 it leaves a path written inside prose unscrubbed, so such a subject would stop being portable. Enforcement review of the 0389 fix
 measured that requiring a left delimiter would stop scrubbing paths inside prose messages, which
 regresses portability. Any change here moves the hash of every entry
-whose text contained the root inside a path, so it needs the migration treatment plan 0346
+whose text contained the root inside a path, so it needs the migration treatment [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)
 describes, and a `HASH_VERSION` decision.
 
 ## Verification

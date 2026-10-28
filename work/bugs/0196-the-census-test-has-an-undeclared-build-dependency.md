@@ -48,7 +48,7 @@ that reds on a stale build inherits the flake, and margin's failure direction is
 the dangerous one: noise ADDS failing files, so it lifts a genuine margin **0** —
 the gate's only red state — to **1**, silently clearing it.
 
-ADR-009 states both halves of the countermeasure and 0193 currently ports one:
+[ADR-009](../../adr/009-agent-first-failure-surfaces.md) states both halves of the countermeasure and 0193 currently ports one:
 
 > Assert a green baseline before the first patch, **and hold the tree
 > exclusively** (an isolated git worktree, or nobody else running).

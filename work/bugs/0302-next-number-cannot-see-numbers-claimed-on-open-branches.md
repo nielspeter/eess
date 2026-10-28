@@ -15,11 +15,11 @@
 On 2026-09-14, `npm run next-number` printed `0282` — the checkout's highest was
 0281 — while numbers were already claimed off `main`:
 
-| where                                       | claims                             |
-| ------------------------------------------- | ---------------------------------- |
-| PR #128, opened 2026-09-13                  | bugs 0282–0288                     |
-| PR #129, opened 2026-09-13, stacked on #128 | bugs 0289–0293                     |
-| a local branch, not pushed                  | rejected bug 0282, draft plan 0294 |
+| where                                       | claims                                                                                                                                               |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PR #128, opened 2026-09-13                  | [bugs 0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)–0288                                                         |
+| PR #129, opened 2026-09-13, stacked on #128 | [bugs 0289](./0289-a-fence-its-container-closes-hides-the-next-line.md)–0293                                                                         |
+| a local branch, not pushed                  | rejected [bug 0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md), a draft plan that claimed 0294 and was never merged |
 
 Four records were filed as 0282–0285 and had to be renumbered to 0295–0298, along
 with their test titles, rule ids, board rows, a changeset and a correction note in

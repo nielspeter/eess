@@ -3,17 +3,17 @@
 ## Status
 
 - **State:** Draft — measured; no red test yet. Fix direction decided (option E, 2026-10-06); built by
-  plan 0532, split from plan 0346, after spike 0395.
+  [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), split from [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md), after [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md).
 - **Severity:** High — **a baseline forgives a finding nobody reviewed.** Fix the file you
   baselined, make the same mistake in another file, and the build stays green. Of the floor's
   rules, `no-empty-bodies` was probed, through a hand-built builder with the preset's rule id
   rather than through the preset. It ships at `warn`, so it fails a build only when an adopter
   raises it to error.
-- **Origin:** enforcement review of plan 0346's refresh, 2026-10-05, which widened a
+- **Origin:** enforcement review of [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s refresh, 2026-10-05, which widened a
   six-producer probe into this class.
 - **Reported:** 2026-10-05
 - **Placement (2026-10-20):** owned by [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), the Phase 2 build split from [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md), which fixes and
-  closes this record. It cannot go Ready until spike 0395 decides the `accepted` half.
+  closes this record. It cannot go Ready until [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) decides the `accepted` half.
 
 ## Symptom
 
@@ -27,15 +27,15 @@ Measured on 2026-10-05 in throwaway worktrees of `main` at `9423420`. The probe 
 kept in the repo; the red tests in Verification replace them. **`b` was not reported in any of
 these twelve:**
 
-| condition                                                                | where the two files share |
-| ------------------------------------------------------------------------ | ------------------------- |
-| `notHaveDefaultExport`, `haveDefaultExport`                              | basename `index.ts`       |
-| `moduleContain`, and `moduleUseInsteadOf`'s missing-good half            | basename `index.ts`       |
-| `haveNoUnusedExports`, `beImported` (bug 0159), `onlyBeImportedVia`      | basename `index.ts`       |
-| `haveMatchingCounterpart`, `haveConsistentExports`                       | basename `index.ts`       |
-| `classes().should().extend('Base')`                                      | class name `Svc`          |
-| `functions().should().beExported()`                                      | function name `handle`    |
-| `recommended`'s `no-empty-bodies` condition (`functionNotHaveEmptyBody`) | function name `noop`      |
+| condition                                                                                                                              | where the two files share |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `notHaveDefaultExport`, `haveDefaultExport`                                                                                            | basename `index.ts`       |
+| `moduleContain`, and `moduleUseInsteadOf`'s missing-good half                                                                          | basename `index.ts`       |
+| `haveNoUnusedExports`, `beImported` ([bug 0159](./0159-violation-identities-collide-across-distinct-findings.md)), `onlyBeImportedVia` | basename `index.ts`       |
+| `haveMatchingCounterpart`, `haveConsistentExports`                                                                                     | basename `index.ts`       |
+| `classes().should().extend('Base')`                                                                                                    | class name `Svc`          |
+| `functions().should().beExported()`                                                                                                    | function name `handle`    |
+| `recommended`'s `no-empty-bodies` condition (`functionNotHaveEmptyBody`)                                                               | function name `noop`      |
 
 The controls carry an identity that names the path: `moduleNotContain` and `haveMaxExports`.
 Both report `b`, plus one stale-baseline finding for the entry that matched nothing.
@@ -50,7 +50,7 @@ and message can repeat across files.
   `violation.identity ?? \`${violation.element}::${violation.message}\``.
 - `packages/ts/src/helpers/baseline.ts:237-248` hashes `rule::subjectOf(v)`.
 - `packages/core/src/baseline.ts:122-135` on `91b420a` was a second `hashViolation` with its own
-  copy of the same fallback. Bug 0389 routed both hashes through `portableSubjectOf`, without
+  copy of the same fallback. [Bug 0389](./fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) routed both hashes through `portableSubjectOf`, without
   changing their values, so the fallback now has one definition.
 - `packages/ts/src/helpers/baseline.ts:86` documents the identity as "rule + file + content
   hash". The hash does not implement that, and `isKnown` matches on the hash alone.
@@ -61,7 +61,7 @@ warning list.
 
 ## Fix
 
-**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by the Phase 2 build plan split from plan 0346. The baseline matcher also checks the `file` each entry records; that closes the 12 cases. The rest of the design (grouping, every consumer keyed by hash alone, a baseline with no recorded root) is open and laid out for a decision by plan 0346's Phase 2 spike, a record of its own: three review rounds each found a variant greener than today on another path (spike 0390, "Where this leaves the decision"). Proven so far: an `accepted` list must compare the file too, and the diagnosis must name the file rather than blame an edited rule. _(2026-10-20: the rest was decided in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision, except `accepted`, which is [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md)'s; [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) builds it.)_
+**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by the Phase 2 build plan split from [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md). The baseline matcher also checks the `file` each entry records; that closes the 12 cases. The rest of the design (grouping, every consumer keyed by hash alone, a baseline with no recorded root) is open and laid out for a decision by [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2 spike, a record of its own: three review rounds each found a variant greener than today on another path ([spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md), "Where this leaves the decision"). Proven so far: an `accepted` list must compare the file too, and the diagnosis must name the file rather than blame an edited rule. _(2026-10-20: the rest was decided in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision, except `accepted`, which is [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md)'s; [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) builds it.)_
 
 The options as they were put:
 

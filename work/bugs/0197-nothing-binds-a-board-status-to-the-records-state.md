@@ -4,7 +4,7 @@
 
 - **State:** Draft — one live instance; the gap is the finding, not the count.
 - **Deferred:** none
-- **Found:** 2026-08-21, testing review of PR #73 (noticed on bug 0186's row,
+- **Found:** 2026-08-21, testing review of PR #73 (noticed on [bug 0186](./fixed/0186-two-security-rules-cannot-fail.md)'s row,
   which this PR fixed by hand).
 
 ## Symptom
@@ -26,7 +26,7 @@ record that says `Fixed`, sitting in `fixed/`, struck through on the board.
 Struck through, filed under `fixed/`, record reads `**State:** Fixed`. Every
 other signal on the row says done; the Status cell says Draft.
 
-Bug 0186 had the identical defect until PR #73 fixed it **by hand** — which is
+[Bug 0186](./fixed/0186-two-security-rules-cannot-fail.md) had the identical defect until PR #73 fixed it **by hand** — which is
 the reason to file this rather than fix the one cell and move on: the corpus has
 now produced this twice, and the second one was only caught because a reviewer
 happened to read the row.

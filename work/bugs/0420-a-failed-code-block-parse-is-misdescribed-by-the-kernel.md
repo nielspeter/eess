@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-10-15 against PR #209's build of plan 0412 (eess-md
+- **State:** Draft — reproduced 2026-10-15 against PR #209's build of [plan 0412](../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) (eess-md
   `parseCodeBlocks`). Found by that PR's review (architect and enforcement). No red test yet, and the
   fix is not designed.
 - **Severity:** Medium — an honesty gap between what a message says and what happened (`BUGS.md`'s
@@ -96,7 +96,7 @@ Not designed. Candidates:
 - **Part 1.** Suppress the unused-exclusion warning for a rule whose result carries an unsuppressable
   instrument finding, or word it so it says no element was judged.
 - **Part 2.** Key an instrument finding on its cause as well, or give instrument findings their own
-  collapse note. ADR-016 C3 asks for one finding per instrument failure, not one per instrument.
+  collapse note. [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) C3 asks for one finding per instrument failure, not one per instrument.
 
 ## Verification
 

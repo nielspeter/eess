@@ -41,7 +41,7 @@ directive is inert and silent, which is the shape this repo files bugs about.
 **Case B** is worse than silence: eess-ts sends the author to the `-end` line for
 a fault that is on the `-start` line. A `Fix:` pointing at the wrong directive is
 worse than no `Fix:` — that is [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s
-own argument, and bug 0174 is filed about a status line naming the wrong fault.
+own argument, and [bug 0174](./0174-eess-ts-reports-a-clean-gate-with-no-denominator.md) is filed about a status line naming the wrong fault.
 
 ## Root cause
 
@@ -60,7 +60,7 @@ packages/ts/src/core/exclusion-comments.ts   bug 0039, bug 0043
 
 This is exactly the hazard [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)
 is written about — _"A fix lands on one copy and nothing notices"_ — and it is now
-that plan's **third** measured case, after bug 0156's kernel half and bug 0163.
+that plan's **third** measured case, after [bug 0156](./fixed/0156-should-twice-silently-drops-the-first-assertion.md)'s kernel half and [bug 0163](./0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md).
 It is also the freshest: the fix that did not travel landed nine days ago.
 
 **A caution for whoever fixes this, learned while filing it.** The obvious way to

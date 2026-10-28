@@ -7,7 +7,7 @@
   (see [Correction](#correction) — the first version was filed on a hypothesis
   that measurement did not support).
 - **Severity:** Low — narrower than first filed. `minDistinctVocabulary`
-  (plan 0103) already rejects the common case; what remains is a small residue
+  (ts-archunit plan 0103) already rejects the common case; what remains is a small residue
   where the extracted call site's arguments are themselves logic.
 - **Origin:** self-found · dogfooding `agentGuardrails` over this repo
   (`check:guardrails`) and working the findings from 84 down to 34.
@@ -41,7 +41,7 @@ return <sharedHelper>(<arg>, { <key>: <value>, ... })
 which normalizes to the same stream for every caller, with the arguments
 landing in `variationBetween` as varying axes.
 
-**Plan 0103's vocabulary floor already handles most of this**, and does so on a
+**ts-archunit plan 0103's vocabulary floor already handles most of this**, and does so on a
 principle rather than by accident: a body whose only content is configuration
 carries few distinct identifiers, and "neither body has enough distinct
 vocabulary for a match to be evidence of anything" is exactly the right reason

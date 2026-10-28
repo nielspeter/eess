@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — measured by two reviews of the 0111 fix; no red test yet.
-- **Severity:** High — **malformed input ignored, not reported** (ADR-009). A row citing
+- **Severity:** High — **malformed input ignored, not reported** ([ADR-009](../../adr/009-agent-first-failure-surfaces.md)). A row citing
   `` `it('foo")` `` — a typo — names no test, and no gate says so. Not live in this repo: all
   43 cited titles in `adr/**` parse.
 - **Origin:** enforcement review of the first 0111 attempt, confirmed by method review of

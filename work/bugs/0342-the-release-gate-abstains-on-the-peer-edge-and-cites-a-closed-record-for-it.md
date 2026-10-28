@@ -34,7 +34,7 @@ Two things are wrong around it, not in it.
    checking whether this PR needed to name `eess-crossvalidate` gets "there is nobody" when the answer
    is "there is somebody and this rule does not weigh them".
 2. **The open decision lives in a closed record.** The comment ends "Widening to peers is an OPEN
-   decision (bug 0185), not a closed one" — and 0185 is `State: Fixed`, in `work/bugs/fixed/`, which
+   decision ([bug 0185](./fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)), not a closed one" — and 0185 is `State: Fixed`, in `work/bugs/fixed/`, which
    `scripts/check-corpus.mjs:159` freezes. The decision it defers to therefore has no live home, which
    is [0330](./0330-what-a-rule-reads-is-ruled-in-archived-bug-records.md)'s pathology in the release
    lane.

@@ -1,4 +1,4 @@
-# Bug 0327: ADR-011 is written about the kernel, and the family now has two `/internal` entry points
+# Bug 0327: [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) is written about the kernel, and the family now has two `/internal` entry points
 
 ## Status
 
@@ -34,16 +34,16 @@ rather than broken:
 **Shipped:** the invariant that a barrel never re-exports its own `/internal` now has a mechanism for
 every package that ships the subpath — `scripts/lib/internal-not-reexported.test.mjs`, run by
 `check:family`. Before it, the kernel's clause and eess-md's copy of the sentence were both prose, which
-is the shape ADR-009 rules out.
+is the shape [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rules out.
 
-**Not shipped, and this record's subject:** whether ADR-011's Decision covers the family or only the
+**Not shipped, and this record's subject:** whether [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)'s Decision covers the family or only the
 kernel. The options, none costed:
 
-1. Amend ADR-011: scope "the kernel" to "every package in the family", and generalise row 2's mechanism
+1. Amend [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md): scope "the kernel" to "every package in the family", and generalise row 2's mechanism
    from one barrel to all of them (`standalone-surface.test.ts` reads one package's barrel; the loop is
    the change). The architecture review's ask.
-2. A separate ADR for dialect-level `/internal`, leaving ADR-011 about the kernel.
-3. Decide that a dialect's `/internal` needs no ADR, and say so in ADR-011 so the next reader does not
+2. A separate ADR for dialect-level `/internal`, leaving [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) about the kernel.
+3. Decide that a dialect's `/internal` needs no ADR, and say so in [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) so the next reader does not
    have to infer it — with the mechanism above standing as the family-wide clause.
 
 ## Why it is a decision and not a patch
@@ -55,7 +55,7 @@ and the ADR lane is where a binding decision belongs (see the working method's A
 
 ## Verification
 
-- [x] Confirmed ADR-011's Decision and Enforcement rows name the kernel only.
+- [x] Confirmed [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)'s Decision and Enforcement rows name the kernel only.
 - [x] Confirmed `public-surface.mjs:124` skips `./internal` for every package, and that the skip predates
       this use.
 - [x] Confirmed the barrel invariant now has a mechanism, and that it reds on a planted leak.

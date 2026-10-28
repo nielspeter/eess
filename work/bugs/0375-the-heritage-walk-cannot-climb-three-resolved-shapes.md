@@ -42,7 +42,7 @@ is this record's to decide, and eess-ts would then honour the member rather than
 
 Not decided. Each shape has an obvious extension — climb a class expression, split an
 intersection into its members, walk a class named in `implements` as its own heritage — and
-each needs its own decision about whether ADR-017 means it. A class in `implements` is the
+each needs its own decision about whether [ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) means it. A class in `implements` is the
 least obvious: TypeScript treats it as its instance type, which is structural, not a heritage
 link.
 

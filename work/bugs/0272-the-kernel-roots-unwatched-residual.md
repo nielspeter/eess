@@ -5,7 +5,7 @@
 - **State:** Draft — narrow, measured, and much smaller than this record first
   claimed.
 - **Severity:** Low
-- **Origin:** plan 0263 Phase 5, then **corrected by a method review of the
+- **Origin:** [plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 5, then **corrected by a method review of the
   same PR**, which found the original filing rested on a false negative.
 
 ## The correction that produced this record
@@ -29,7 +29,7 @@ marking half of it `pending` propagated one unrun test into five artifacts.
 | a **value** export                       | `packages/ts/tests/standalone-surface.test.ts` — reds with `expected [ 'throwIfViolations' ] to have a length of +0` |
 | a **type** export                        | `check:surface` — reds as `1 of 101 symbols … appear in no docs/ page`                                               |
 
-Both run inside `npm run validate`. The ADR-014 row is `gated` on the first plus
+Both run inside `npm run validate`. The [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) row is `gated` on the first plus
 the published-surface matrix.
 
 ## The residual that is real
@@ -40,7 +40,7 @@ Two narrow gaps survive, each needing two coordinated acts rather than one slip.
 `packages/ts/tests/standalone-surface.test.ts` imports `FAMILY_ONLY`,
 `KERNEL_INTERNAL`, `ANSI_INTERNAL` and `KERNEL_PRIVATE_BEFORE_THE_SPLIT` from
 `scripts/lib/kernel-surface.mjs` and excludes their members. Importing the sets
-rather than restating them is right and deliberate — plan 0165 records a
+rather than restating them is right and deliberate — [plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) records a
 hand-synced pair drifting — but it means a name added to a set in the same
 change is exempted with nothing to say so. `KERNEL_INTERNAL` is currently empty
 and its own docstring calls it "a real category, currently unused".
@@ -58,11 +58,11 @@ Neither gap is reachable by a single careless edit, and closing them properly
 means a checked-in census of the kernel root asserted both directions — the shape
 `packages/ts` proves out. That mechanism would red on every legitimate kernel
 root addition by design, which is a change to how the kernel's public API
-evolves and belongs in an ADR-011 amendment rather than in a plan phase.
+evolves and belongs in an [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) amendment rather than in a plan phase.
 
 ## Verification ledger
 
-- [ ] A decision on whether the kernel root's membership is frozen (ADR-011
+- [ ] A decision on whether the kernel root's membership is frozen ([ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)
       amendment, or an explicit "no, the two guards are enough").
 - [ ] If yes: the census, asserted both directions, with a vacuity arm proving
       the scan reads the real root, and covering types as well as values.

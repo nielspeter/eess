@@ -6,7 +6,7 @@
 - **Found:** 2026-08-20, enforcement review of the `fold-audit-0154-0160` branch
   (finding C2).
 - **Severity:** an unreachable configuration finding that reads as coverage —
-  ADR-009 rule 1's object.
+  [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1's object.
 
 ## Symptom
 

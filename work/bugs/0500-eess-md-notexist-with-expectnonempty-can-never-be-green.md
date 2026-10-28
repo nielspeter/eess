@@ -12,9 +12,9 @@
 
 On an eess-md builder, a `notExist()` rule that declares `.expectNonEmpty()` reds on every element
 it examines (the absence assertion) and on examining none (the unmet declaration), so no corpus
-makes it green. eess-ts reports that combination as a finding of its own since bug 0467
-(`work/bugs/fixed/0467-eess-ts-expectnonempty-does-nothing.md`); bug 0473 covers eess-ts's other
-builders. Nothing records eess-md's side, and plan 0457's docs tell adopters about the difference in
+makes it green. eess-ts reports that combination as a finding of its own since [bug 0467](./fixed/0467-eess-ts-expectnonempty-does-nothing.md)
+(`work/bugs/fixed/0467-eess-ts-expectnonempty-does-nothing.md`); [bug 0473](./0473-expectnonempty-is-unread-on-eess-ts-builders-other-than-rulebuilder.md) covers eess-ts's other
+builders. Nothing records eess-md's side, and [plan 0457](../plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s docs tell adopters about the difference in
 prose.
 
 ## Reproduction

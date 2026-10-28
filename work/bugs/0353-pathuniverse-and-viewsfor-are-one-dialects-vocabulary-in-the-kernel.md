@@ -37,10 +37,10 @@ Its field names are eess-ts vocabulary: `tsconfigRelative*`, and since 0348
 `repoRelative*`. `viewsFor` is a short array-literal dispatch that now also takes
 the dialect's policy answer as a required boolean.
 
-The placement is justified at `packages/core/src/index.ts:33-36` as ADR-011's
+The placement is justified at `packages/core/src/index.ts:33-36` as [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)'s
 requirement that a public signature be nameable without reaching into family
 plumbing — but `eess-ts` already re-exports the type. It declared its own copy until
-plan 0188 measured a 100%-identical pair; the right resolution of a 100%-identical
+[plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md) measured a 100%-identical pair; the right resolution of a 100%-identical
 pair with one consumer is arguably to delete the unused copy, not to promote it.
 
 ## Fix

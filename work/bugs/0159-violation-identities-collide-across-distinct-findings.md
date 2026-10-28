@@ -12,7 +12,7 @@
   eess on an existing codebase. When two distinct findings share one identity,
   accepting one silently accepts the other, and the second never reappears.
 - **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
-  (upstream bugs 0064, 0067, 0065)
+  (ts-archunit bugs 0064, 0067, 0065)
 - **Shipped in:** partly. Collision (3) — reverse-dependency findings with no
   `identity` — is in the published `0.2.x` (`reverse-dependency.ts` in
   `810808b` has zero `identity` mentions). Collision (2), the `duplicate-pair::`
@@ -21,7 +21,7 @@
 - **Placement (2026-10-20):** collision 3 is owned by [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), which flips its KNOWN-GAP test and
   records it fixed here; collisions 1 and 2 stay in this record. Their members sit in one file and
   are indistinguishable by content, so the file check cannot separate them, and their producers
-  (`dependency.ts`, duplicate bodies) do not call `identifyMatches`, so plan 0533 does not either.
+  (`dependency.ts`, duplicate bodies) do not call `identifyMatches`, so [plan 0533](../plans/0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) does not either.
 
 ## Symptom
 
@@ -88,7 +88,7 @@ _number_ of findings.
   did come across (`:136` names the importer by path); the identity half did
   not.
 
-All three predate plan 0088's fold — eess forked from ts-archunit at ~0.17 and
+All three predate [plan 0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold — eess forked from ts-archunit at ~0.17 and
 froze; upstream fixed them afterward and the fixes were not carried. See the
 [fold audit](../fold-audit-2026-08-19.md) for how this was found.
 
@@ -124,7 +124,7 @@ Built and measured in an isolated worktree against a green baseline
 
 > **Correction — this record's own prescription was wrong.** It said to
 > discriminate the duplicate-pair identity _"but not with a run-ordinal"_,
-> arguing an ordinal would recreate upstream bug 0056 (identities unstable
+> arguing an ordinal would recreate ts-archunit bug 0056 (identities unstable
 > across runs). Checked against what upstream actually shipped: **its answer
 > _is_ a run-ordinal.** For identical bodies with identical names there is no
 > content left to discriminate on — that is what makes them duplicates. What
@@ -167,7 +167,7 @@ which never fixed it either — the repair pass is the answer there, and the
 disclosure keeps it honest.
 
 **A gate caught the fix, again.** The three new kernel exports were not
-reachable from `eess-ts`, which plan 0089's standalone-sufficiency contract
+reachable from `eess-ts`, which [plan 0089](../plans/completed/0089-family-standalone-sufficiency.md)'s standalone-sufficiency contract
 (`check:family`) reports. Re-exported.
 
 ## State on 2026-10-05
@@ -210,13 +210,13 @@ close claimed more than was true. What holds and what does not:
   false green in `check:corpus` and `check:diagram`.
 
 **The fix for collision 3** is now
-[bug 0388](./0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s. Review of plan
-0346 found that `beImported` is one instance of a kernel fault: with no `identity`, the file is
-not in a finding's baseline hash at all. Plan 0346's Phase 2 fixes that class by checking
+[bug 0388](./0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s. Review of [plan
+0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) found that `beImported` is one instance of a kernel fault: with no `identity`, the file is
+not in a finding's baseline hash at all. [Plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2 fixes that class by checking
 the file each baseline entry records. Whether collision 3's own entry moves depends on Phase 2's
-grouping decision, which is open. _(2026-10-20: decided in spike 0394 as per-file grouping, so an
-entry today's code suffixed across files moves, and plan 0533's `--migrate` carries it; built by
-plan 0532.)_ When that ships, this record says collision 3 is fixed and its KNOWN-GAP
+grouping decision, which is open. _(2026-10-20: decided in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md) as per-file grouping, so an
+entry today's code suffixed across files moves, and [plan 0533](../plans/0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)'s `--migrate` carries it; built by
+[plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md).)_ When that ships, this record says collision 3 is fixed and its KNOWN-GAP
 test has flipped; collisions 1 and 2 keep it open.
 
 ## Verification
@@ -232,7 +232,7 @@ test has flipped; collisions 1 and 2 keep it open.
 - [ ] The cross-cutting test carries its own **denominator**: assert the
       finding count is the expected non-zero number _and_ that identities are
       pairwise distinct. "No two share an identity" passes vacuously on 0 or 1
-      findings (ADR-010).
+      findings ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)).
 - [ ] Control: identical findings that genuinely _are_ the same still share an
       identity, so baselining does not become per-run noise.
 - [x] The "detect collisions generically" ruling is recorded — `identityCollisions()`

@@ -17,7 +17,7 @@
 
 ## Symptom
 
-Bug 0127's fix corrected `scripts/check-nonvacuity.mjs`'s own summary line and
+[Bug 0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s fix corrected `scripts/check-nonvacuity.mjs`'s own summary line and
 header doc comment from "every gate actually FAILS" / "N gates proven" to "N
 fixtures fired... no fixture is silently green" — an accurate statement, since
 most fixtures only prove their own condition fires or a shipped preset fires

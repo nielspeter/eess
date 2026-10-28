@@ -18,16 +18,16 @@ reported as an unmet declaration, not as the glob that matched nothing.
 **The unmet text's remedy is wrong on two rule shapes:**
 
 - On a `.notExist()`-shaped rule it says "fix the selection". A non-empty selection then fails the
-  condition, so the rule can never pass (bug 0466).
+  condition, so the rule can never pass ([bug 0466](./fixed/0466-expectnonempty-is-offered-for-a-glob-typo-on-a-cardinality-rule.md)).
 - On a positive rule it says "remove .expectNonEmpty()". Removing it only swaps the finding for the
-  zero-examined one, the shape bug 0069 recorded in eess-ts.
+  zero-examined one, the shape ts-archunit bug 0069 recorded in eess-ts.
 
-eess-ts was given its own finding for the `.notExist()` shape in bug 0467.
+eess-ts was given its own finding for the `.notExist()` shape in [bug 0467](./fixed/0467-eess-ts-expectnonempty-does-nothing.md).
 
 ## Fix
 
 - Rank a nameable dead glob above the unmet declaration, as eess-ts's floor does.
-- Word the finding per shape. Once plan 0456's `notExistCondition` lets the kernel recognise a
+- Word the finding per shape. Once [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s `notExistCondition` lets the kernel recognise a
   `.notExist()`, report that combination as never able to pass, as eess-ts does.
 
 ## Verification

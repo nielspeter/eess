@@ -5,7 +5,7 @@
 - **State:** Draft — recorded 2026-10-16; reproduced here on main's build. No red test yet.
 - **Severity:** Low — a false red, not a false green; but the workaround is turning
   `verifyCitations` off, which turns off the real check too.
-- **Origin:** inbound · an adopter monorepo (unnamed), feedback on proposal 017, verified here.
+- **Origin:** inbound · an adopter monorepo (unnamed), feedback on [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md), verified here.
 - **Reported:** 2026-10-16
 
 ## Symptom
@@ -17,13 +17,13 @@
 resolves. Adopters then pass `verifyCitations: false`, which also stops checking the paths that are
 real.
 
-Related, not this bug: bug 0128 (the Status column is validated by nothing).
+Related, not this bug: [bug 0128](./0128-enforcement-status-is-the-cell-nothing-derives.md) (the Status column is validated by nothing).
 
 ## Fix
 
 Decide what a citation is so that a dotted identifier is not one: for example, a path needs a
 separator or a known extension, or the cell's identifiers are resolved and the rest reported as
-unread. ADR-018's rule applies: a string that names code is resolved, or the rule says why not.
+unread. [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)'s rule applies: a string that names code is resolved, or the rule says why not.
 
 ## Verification
 

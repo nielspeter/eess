@@ -12,9 +12,9 @@
 - **Origin:** the enforcement reviews of PR #149, 2026-09-20 — first as the weakest identity in the
   system, then confirmed on the delta after the silent-catch half was fixed.
 - **Reported:** 2026-09-20
-- **Placement (2026-10-20):** the identity is built by [plan 0533](../plans/0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) (plan 0346's Phases 1 and 3, split
+- **Placement (2026-10-20):** the identity is built by [plan 0533](../plans/0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) ([plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phases 1 and 3, split
   2026-10-20), which ticks this record's boxes for what it builds and leaves it open for the
-  `PropertyAssignment` box. The absence-finding row of the table below is plan 0532's file check.
+  `PropertyAssignment` box. The absence-finding row of the table below is [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)'s file check.
 
 ## Symptom
 
@@ -30,7 +30,7 @@ Measured on PR #149's build:
 The cross-file direction was fixed by PR #149 (each identity carries its file). The **within-file**
 direction was not, and the absence findings were never in scope.
 
-**A second, narrower instance, measured by bug 0337 (2026-09-26).** A match can have an enclosing
+**A second, narrower instance, measured by [bug 0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md) (2026-09-26).** A match can have an enclosing
 function that the module-scope namer still cannot name. `enclosingScopeName` names a class, an
 interface, a function declaration, a member, and an arrow assigned to a **variable** — but not an
 arrow held in a `PropertyAssignment`, which is the handler-map shape agents generate constantly.
@@ -88,7 +88,7 @@ The file-level findings in `packages/ts/src/conditions/body-analysis-module.ts:4
 `identity` at all, so their baseline subject is `element::message`, and the message names the file
 without a line.
 
-Before bug 0333 the floor read function bodies only, so none of these positions was reported and the
+Before [bug 0333](./fixed/0333-the-recommended-floor-reads-functions-only.md) the floor read function bodies only, so none of these positions was reported and the
 bucket did not exist. Widening what the floor reads is what made a weak identity reachable from the
 default preset.
 
@@ -114,7 +114,7 @@ Enforcement review caught the overclaim: the first version said three clauses
    don't fake the gate, ratchet it closed." A positional entry does the opposite
    of all three — it records gap A and forgives gap B, the gate is green for code
    nobody reviewed, and the count stays flat while the problems rotate.
-2. **ADR-009 Rule 3's corollary**: "an escape hatch is not automatically safer
+2. **[ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 3's corollary**: "an escape hatch is not automatically safer
    than none. A marker an agent can stamp on any file to go green is **worse**
    than no marker, because it is a silent, one-line diff. Prefer exclusion **by
    construction** (structure the scope so the exception cannot arise) over any
@@ -130,7 +130,7 @@ Enforcement review caught the overclaim: the first version said three clauses
    does not rule a shape-keyed entry in, and this record no longer says it does.
    (Enforcement review, which called the original framing proving-too-much.)
 
-3. **ADR-010**: a pass is constructed from evidence. A pass inherited from a
+3. **[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)**: a pass is constructed from evidence. A pass inherited from a
    _different_ finding's evidence is a default wearing evidence's clothes.
 4. **And the one this record first missed** — `packages/core/src/violation.ts`,
    which states the question directly and was cited nowhere:
@@ -212,7 +212,7 @@ The ruling is settled and the mechanism is proven. What is not measured:
 
 ### And a second sub-problem, which none of the candidates above touches
 
-The instance bug 0337 added — an arrow held in a `PropertyAssignment`, whose module-scope name is the
+The instance [bug 0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md) added — an arrow held in a `PropertyAssignment`, whose module-scope name is the
 FILE where the function-scope name was `routes.objectHandler` — has a different cause and a different
 fix from the three candidates above. Those are about a match with **no** enclosing declaration; this is
 a match **with** one that a second namer cannot see. Review of PR #151 flagged the risk plainly: settle
@@ -246,7 +246,7 @@ Its own box is below, so this record cannot close over it.
 - [ ] a pin per row, each asserting the new finding IS reported
 - [x] a ruling on what identifies a match with no enclosing declaration — **the
       exclusion is derived, the selection is measured**. The manifesto's baseline
-      clause, ADR-009 Rule 3's corollary, ADR-010 and `violation.ts`'s
+      clause, [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 3's corollary, [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and `violation.ts`'s
       slot-versus-reference paragraph each rule out a positional entry; which
       surviving form to use is [spike 0350](../spikes/0350-which-baseline-identity-survives-the-right-edits.md),
       where node shape is the only candidate tried that is 7/7.

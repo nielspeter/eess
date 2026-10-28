@@ -5,8 +5,8 @@
 - **State:** Draft — reproduced 2026-10-07 against this repo's build at `9d18f0e`. No red test yet.
 - **Severity:** Low — no verdict is wrong; the run is red either way. One cause produces two
   findings with two ids and two remedies, against the one-cause-one-finding rule this repo applies
-  elsewhere (plan 0074's dedupe; ADR-016's "one per instrument-failure rather than per rule").
-- **Origin:** self-found · enforcement review of bug 0400, 2026-10-07.
+  elsewhere (ts-archunit plan 0074's dedupe; [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s "one per instrument-failure rather than per rule").
+- **Origin:** self-found · enforcement review of [bug 0400](./fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md), 2026-10-07.
 - **Reported:** 2026-10-07
 
 ## Symptom
@@ -18,8 +18,8 @@ declaration has expired") and `emitter/expired-declaration` ("this verdict was d
 examined N unit(s) — the declaration has expired").
 
 Measured on two rules, an eess-md `links(c)…resolve().expectEmpty()` over one examined unit and a
-kernel `correspondence(…).should().beComplete().expectEmpty()` over two (it counts both sides, bug
-0400): `2 of 2 rules
+kernel `correspondence(…).should().beComplete().expectEmpty()` over two (it counts both sides, [bug
+0400](./fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md)): `2 of 2 rules
 failing · 4 violations`, one rule finding and one `emitter/expired-declaration` for each.
 
 ## Reproduction

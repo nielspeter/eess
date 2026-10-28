@@ -5,7 +5,7 @@
 - **State:** Draft — recorded 2026-10-19 from PR #253's method verify round (N1); read from the code,
   not reproduced with a red test.
 - **Severity:** Medium — a document filed later under an ignored folder glob is left out of every
-  rule over the corpus without a finding, the stale or universal exclusion ADR-018 says should be one.
+  rule over the corpus without a finding, the stale or universal exclusion [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) says should be one.
 - **Origin:** self-found · PR #253's review; the migration page to 0.15 recommends `ignore` as a remedy
 - **Reported:** 2026-10-19
 
@@ -13,8 +13,8 @@
 
 `corpus({ ignore })` compiles its globs with picomatch (`packages/md/src/corpus.ts:121`) and uses them
 only to filter what is loaded. Nothing reports an `ignore` glob that matches no file (stale) or one
-that matches every file under a root (universal), unlike a dead root (bug 0465) or a dead frozen glob
-(bug 0499). A record filed later under an ignored folder is skipped silently by every rule.
+that matches every file under a root (universal), unlike a dead root ([bug 0465](./fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md)) or a dead frozen glob
+([bug 0499](./fixed/0499-corpus-does-not-check-its-frozen-globs.md)). A record filed later under an ignored folder is skipped silently by every rule.
 
 ## Fix
 

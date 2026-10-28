@@ -5,12 +5,12 @@
 - **State:** Draft — one-line reproduction.
 - **Severity:** Medium. Filed Low, raised on review: this record argues the
   impossible ratio is _worse_ than printing no denominator, ties it to CLAUDE.md's
-  instruction that agents read these lines as evidence and to bug 0174 — and then
-  filed at Low, which contradicts its own argument. Bug 0199's fix also pushes a
+  instruction that agents read these lines as evidence and to [bug 0174](./0174-eess-ts-reports-a-clean-gate-with-no-denominator.md) — and then
+  filed at Low, which contradicts its own argument. [Bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s fix also pushes a
   second finding onto this same path, so the impossible `1 of 0` now prints beside
   a larger violation count than before.
 - **Deferred:** none
-- **Found:** 2026-08-21, while measuring bug 0198.
+- **Found:** 2026-08-21, while measuring [bug 0198](./fixed/0198-no-migration-path-from-ts-archunit.md).
 
 ## Symptom
 

@@ -9,7 +9,7 @@
 ## Symptom
 
 `check:release` is meant to fail a PR that changes a package without declaring a
-release for it (bug 0106). It reads **declarations from a full disk scan** —
+release for it ([bug 0106](./fixed/0106-no-gate-requires-a-changeset.md)). It reads **declarations from a full disk scan** —
 `scripts/check-release.mjs:168`, `readdirSync('.changeset')` — while only the
 **waivers** are scoped to the PR's diff.
 
@@ -40,7 +40,7 @@ the stronger meaning.
 
 ## The asymmetry is the tell
 
-The scoping fix that bug 0106's follow-up applied to **waivers** was not applied to
+The scoping fix that [bug 0106](./fixed/0106-no-gate-requires-a-changeset.md)'s follow-up applied to **waivers** was not applied to
 **declarations**. `scripts/release-gate.mjs`'s WAIVERS block scopes waivers to the
 diff; nothing does the same for declarations.
 

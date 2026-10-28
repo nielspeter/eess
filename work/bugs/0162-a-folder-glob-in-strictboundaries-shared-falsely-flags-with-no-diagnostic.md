@@ -7,7 +7,7 @@
 - **Severity:** Medium — false red, and silent. A legitimate import is reported
   as a boundary violation and nothing indicates the cause is the glob.
 - **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
-  (upstream bug 0023)
+  (ts-archunit bug 0023)
 - **Reported:** 2026-08-19
 
 ## Symptom
@@ -39,7 +39,7 @@ without normalising or validating its shape. Upstream added a
 `shared` glob that resolves to nothing visible; eess has no such rule id
 (`RULE_IDS`, `boundaries.ts:26-32`).
 
-Predates plan 0088's fold. See the [fold audit](../fold-audit-2026-08-19.md).
+Predates [plan 0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold. See the [fold audit](../fold-audit-2026-08-19.md).
 
 ## Fix
 

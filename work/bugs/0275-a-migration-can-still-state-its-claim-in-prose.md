@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — the residual bug 0273 closed around, named rather than
+- **State:** Draft — the residual [bug 0273](./fixed/0273-nothing-compiles-a-changesets-migration-snippet.md) closed around, named rather than
   absorbed.
 - **Severity:** Low-to-medium — the mechanism it needs may not be worth its cost,
   and that is the decision this record exists to force rather than assume.
@@ -44,12 +44,12 @@ changeset that also asserts in prose where a symbol is exported.
 ## Why this is hard, and might be answered with "no"
 
 Telling a migration from any other changeset prose means extracting a claim from
-English, which is exactly what bug 0273 called break class 2 and why that bug
+English, which is exactly what [bug 0273](./fixed/0273-nothing-compiles-a-changesets-migration-snippet.md) called break class 2 and why that bug
 answered with a convention rather than a mechanism. The candidate mechanism —
 "a `ts` fence calling an undeclared identifier must import it or carry
 `eess-docs-code-skip`" — is checkable, but it fires on shapes that are not
 migrations at all, and a mechanism that fires on the thing it protects teaches
-people to switch it off (ADR-009 rule 1).
+people to switch it off ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1).
 
 So the honest options are two, and picking one is the work:
 
@@ -58,7 +58,7 @@ So the honest options are two, and picking one is the work:
 2. Decide the convention stays review-held, and **ratify** that as the answer.
 
    Note what option 2 is NOT: writing the disclosure. `RELEASING.md` already says
-   the convention is held by review and not by the build, and bug 0273's ledger
+   the convention is held by review and not by the build, and [bug 0273](./fixed/0273-nothing-compiles-a-changesets-migration-snippet.md)'s ledger
    box already calls it Tier 5 — both landed in the PR that filed this record. A
    method review pointed out that an option asking for text which already exists
    cannot distinguish done from not-done. What is open is the DECISION, and
@@ -78,5 +78,5 @@ read it as a mechanism.
       row, since a demand-side rule that never fires is the defect it is for.
 - [ ] If option 2: the decision to decline the demand-side rule is recorded with
       its reason — not merely the disclosure, which already exists in
-      `RELEASING.md` and in bug 0273's ledger box and would make this box
+      `RELEASING.md` and in [bug 0273](./fixed/0273-nothing-compiles-a-changesets-migration-snippet.md)'s ledger box and would make this box
       un-failable.

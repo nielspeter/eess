@@ -81,7 +81,7 @@ Not reproduced: whether `terms()`/`vocabulary()` can be made to express the
 **Implements** side of the join (a bare number or a markdown-link form,
 optionally bulleted, feeding a `keyBy` join rather than a closed-vocabulary
 match), or the "last `## Review —`/`**Ruling:**` in the file wins" scoping
-plan 0142's Phase 2 rework settled on. Both are open questions this bug does
+[plan 0142](../plans/completed/0142-bind-proposals-to-plans.md)'s Phase 2 rework settled on. Both are open questions this bug does
 not answer.
 
 **The stronger evidence, found the same day.** The hand-rolled parser

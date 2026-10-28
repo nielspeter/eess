@@ -12,7 +12,7 @@
 
 `--format json` derives `kind: 'configuration'` from `bypassFilters`
 (`packages/core/src/format-json.ts:55`), whose documented meaning is "the rule enforces nothing, so
-editing the code cannot clear it". Plan 0454's unread box mark and ADR-021's undecided subject are
+editing the code cannot clear it". [Plan 0454](../plans/completed/0454-box-marks-are-the-callers.md)'s unread box mark and [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s undecided subject are
 unsuppressable for a different reason: they are about what the instrument could not read in a
 record, and the fix is in the record. Both are labelled `configuration`.
 

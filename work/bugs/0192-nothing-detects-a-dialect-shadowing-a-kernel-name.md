@@ -37,12 +37,12 @@ second, direct kernel install. That is a different question.
 Worse, the allowlist made the shadowing legal. `scripts/lib/family-re-exports.mjs`
 carries an explicit exemption: eess-ts deliberately does NOT re-export the
 kernel's `correspondence` / `CorrespondenceBuilder` / `matchSelections` /
-`applyFixes` (plan 0089's reasoned decision — they serve crossvalidate and md).
+`applyFixes` ([plan 0089](../plans/completed/0089-family-standalone-sufficiency.md)'s reasoned decision — they serve crossvalidate and md).
 That entry was written to mean **"eess-ts has no correspondence"**. It came to
 permit **"eess-ts has a DIFFERENT correspondence"**, and the gate cannot tell the
 two apart because it never asks what a dialect exports on its own account.
 
-## Why plan 0188 Phase 3 is not the home
+## Why [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md) Phase 3 is not the home
 
 Recorded because the first attempt to re-home this pointed there, and a deferral
 to a record that does not hold the case is worse than an open one.

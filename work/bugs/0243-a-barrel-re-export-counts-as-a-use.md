@@ -23,7 +23,7 @@ It misses a symbol whose **only** reference is a barrel re-export.
 `presetConstructsNothingViolation` was defined in
 `packages/core/src/preset-dispatch.ts` and referenced by exactly one other
 file — `packages/core/src/internal.ts`, which re-exported it. (Both were deleted
-2026-09-06 under plan 0235 Phase 0; the measurement below is as of filing.) The rule sees a
+2026-09-06 under [plan 0235](../plans/completed/0235-the-emitter-takes-a-receipt.md) Phase 0; the measurement below is as of filing.) The rule sees a
 reference and passes. Nothing calls it.
 
 That is bug [0190](./fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md)'s
@@ -48,7 +48,7 @@ The four with no caller anywhere: `ApplyResult`, `Describable`,
 The middle two buckets are the interesting ones and are **not** defects:
 
 - **8 used only inside core.** Live code; what is questionable is the
-  `/internal` export, not the symbol. ADR-011 clause 2 says `/internal` is
+  `/internal` export, not the symbol. [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) clause 2 says `/internal` is
   family plumbing for the dialects, so exporting something no dialect imports
   puts a symbol on a published surface for nobody.
 - **7 referenced only by tests.** Legitimate and deliberate — `presetConstructsNothingViolation`
@@ -63,9 +63,9 @@ package" is the wrong question for a published surface. That reasoning holds for
 the public root `index.ts`: strangers call it, so no in-repo reference proves
 nothing.
 
-It does **not** hold identically for `/internal`. ADR-011 clause 2 makes the
+It does **not** hold identically for `/internal`. [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) clause 2 makes the
 sibling dialects its consumers, and all five are in this repo. An adopter _can_
-reach it — the ADR-011 changeset tells them how, calling it "the honest cost of
+reach it — the [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) changeset tells them how, calling it "the honest cost of
 reaching plumbing" — so this is the boundary's own definition of dead rather
 than proof of no caller on earth. Removing one is a break the changeset names,
 which is the process that already exists.

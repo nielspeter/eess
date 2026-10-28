@@ -48,7 +48,7 @@ away: in a record whose whole subject is a status nothing checks, two unchecked
 numbers in the record itself are the same defect one level down, and that is the
 most useful thing this record has to say about itself.
 
-## What this mechanism would NOT have caught — bug 0238
+## What this mechanism would NOT have caught — [bug 0238](./fixed/0238-the-kernels-reason-free-waiver-promotion-is-untested.md)
 
 Found closing [0238](./fixed/0238-the-kernels-reason-free-waiver-promotion-is-untested.md)
 the day after this record was written, and it bounds the fix rather than
@@ -76,7 +76,7 @@ a closed-work check.
 ## Amendment 2026-09-12 — the gap is wider than the Status cell
 
 This record and [0197](./0197-nothing-binds-a-board-status-to-the-records-state.md)
-both scope the problem to the **Status** cell. On the branch that filed bugs 0282–0288, the same unbound-cell problem produced **three** wrong rows in cells neither record covers. The rows existed only in that branch's intermediate commits, so they are carried here by value:
+both scope the problem to the **Status** cell. On the branch that filed [bugs 0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)–0288, the same unbound-cell problem produced **three** wrong rows in cells neither record covers. The rows existed only in that branch's intermediate commits, so they are carried here by value:
 
 | row  | cell     | the row said                                         | the record said                                |
 | ---- | -------- | ---------------------------------------------------- | ---------------------------------------------- |
@@ -166,7 +166,7 @@ substitute for the mechanism this record asks for.
 
 **This repo already built it — for one lane out of three.** `check:corpus`
 resolves each `work/proposals/` row against its file and prints
-`board agrees with each file`, with ADR-010 vacuity guards at three levels: a
+`board agrees with each file`, with [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) vacuity guards at three levels: a
 missing board, an unreadable board, and zero rows are each their own finding
 (`scripts/check-corpus.mjs:423`). So the fix is not to invent a mechanism. It is
 to ask why the proposals lane got one and the other two did not.
@@ -223,7 +223,7 @@ saying so:
 ## Also measured, 2026-09-14 — the header is a hand-typed count too
 
 The board's header line read `Updated: 2026-08-19 · Open: 46 (44 Draft · 2 Parked) ·
-Fixed: 22`. Counted on disk the same day, before bugs 0295–0304 were filed: 95 open
+Fixed: 22`. Counted on disk the same day, before [bugs 0295](./fixed/0295-extend-and-implement-read-only-the-direct-clause.md)–0304 were filed: 95 open
 (92 Draft, 3 Parked) and 76 in `fixed/` — 26 days and 54 fixed records behind. And
 the 0281 row read `🔴 Draft` beside a record whose `State:` is `Parked`. Both were
 corrected by hand in the change that filed 0295–0304, which is the kind of

@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18; measured on main while reworking plan 0456. No red test yet.
+- **State:** Draft — recorded 2026-10-18; measured on main while reworking [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md). No red test yet.
 - **Severity:** Medium — a ratchet over a diagram that lost its content stays green.
-- **Origin:** self-found · plan 0456's rework, 2026-10-18.
+- **Origin:** self-found · [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md)'s rework, 2026-10-18.
 - **Reported:** 2026-10-18
 
 ## Symptom
@@ -17,12 +17,12 @@ eess-mermaid reports no empty source. Over a diagram holding only `classDiagram`
 | a positive rule over the same diagram                    | 1 finding, the generic "examined zero" |
 
 The cardinality exemption (`packages/core/src/terminal-builder.ts:318`) applies because nothing tells
-the kernel the source itself was empty. eess-ts reports an empty project as a source fact (ADR-013);
-eess-mermaid does not. This is not bug 0460: mermaid's selectors are class names, not paths.
+the kernel the source itself was empty. eess-ts reports an empty project as a source fact ([ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md));
+eess-mermaid does not. This is not [bug 0460](./fixed/0460-the-kernel-exempts-a-cardinality-rule-before-it-looks-for-a-dead-glob.md): mermaid's selectors are class names, not paths.
 
 ## Fix
 
-eess-mermaid reports an empty diagram as an empty source, as plan 0456 does for an empty eess-md
+eess-mermaid reports an empty diagram as an empty source, as [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md) does for an empty eess-md
 corpus, so the kernel's empty-source finding outranks the exemption.
 
 ## Verification

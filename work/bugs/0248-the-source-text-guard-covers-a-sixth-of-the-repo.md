@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured, scoped, and deliberately not fixed inside bug
-  0247's change; the widening is a decision with consequences.
+- **State:** Draft — measured, scoped, and deliberately not fixed inside [bug
+  0247](./fixed/0247-the-source-text-guard-checks-nul-but-not-utf8.md)'s change; the widening is a decision with consequences.
 - **Severity:** Medium — **not a false green about what it checks; an
   over-broad reading of what a green means.** The gate's summary names a file
   count, so it does not lie. But the property it protects — "grep sees every
@@ -64,7 +64,7 @@ for doing it. Three things make it a decision rather than a one-line change:
    different suggestion for that population or it sends a reader nowhere.
 3. **It changes what `check:integrity` is.** The gate leads the validate chain
    because it recognises corrupted INPUT before other gates misattribute it
-   (bug 0231). Extending it to the record corpus is defensible on exactly that
+   ([bug 0231](./fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)). Extending it to the record corpus is defensible on exactly that
    reasoning — a NUL in `work/` would red `check:corpus` and blame the corpus —
    but it is a scope decision, and this repo's habit is to make those explicitly.
 

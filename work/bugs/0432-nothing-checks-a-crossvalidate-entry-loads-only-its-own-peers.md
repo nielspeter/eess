@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-15 while fixing bug 0426. No red test yet.
+- **State:** Draft — recorded 2026-10-15 while fixing [bug 0426](./fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md). No red test yet.
 - **Severity:** Low — no false green: the failure is loud (an entry point that does not load). The
   defect is that it would reach an adopter first, because no check here can see it.
-- **Origin:** self-found · fixing bug 0426, 2026-10-15.
+- **Origin:** self-found · fixing [bug 0426](./fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md), 2026-10-15.
 - **Reported:** 2026-10-15
 
 ## Symptom
@@ -17,7 +17,7 @@ import `packages/crossvalidate/src/shared.ts` (`./md-ts` and `./files` do not). 
 another dialect added there makes those five need that dialect, and nothing in this repository goes
 red: the workspace has every dialect installed, so the tests, `check:integrity`'s phantom-dependency check and the build all pass.
 
-Measured while fixing bug 0426: its first draft put `import { tagIsLanguage } from
+Measured while fixing [bug 0426](./fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md): its first draft put `import { tagIsLanguage } from
 '@nielspeter/eess-md/internal'` in `shared.ts`. `npm run build` and the md and crossvalidate tests
 passed with it. Only tracing the built import graph by hand showed that `dist/mermaid-ts.js` and
 `dist/gherkin-ts.js` would then load eess-md. The fix put the import in a module of its own

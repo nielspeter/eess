@@ -1,4 +1,4 @@
-# Bug 0163: A configuration finding prints twice, defeating ADR-008's gated one-emitter clause
+# Bug 0163: A configuration finding prints twice, defeating [ADR-008](../../adr/008-caller-owns-reporting.md)'s gated one-emitter clause
 
 ## Status
 
@@ -7,7 +7,7 @@
   reported, twice, and the JSON count is inflated. It is filed at this severity
   because what it breaks is a **binding ADR clause marked `gated`**.
 - **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
-  (upstream bug 0029)
+  (ts-archunit bug 0029)
 - **Reported:** 2026-08-19
 
 ## Symptom
@@ -33,7 +33,7 @@ unconditionally before throwing, and the CLI then renders the aggregated set
 again. Upstream's fix introduced a `setCallerAggregatesReports` switch so the
 inner path stays silent when a caller will aggregate.
 
-Predates plan 0088's fold. See the [fold audit](../fold-audit-2026-08-19.md).
+Predates [plan 0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)'s fold. See the [fold audit](../fold-audit-2026-08-19.md).
 
 ### Restated 2026-08-21 — half of this is now fixed, on one of two copies
 
@@ -53,7 +53,7 @@ v.bypassFilters !== true) : stamped`.
 `executeWarn` still calls `reportViolations()` unconditionally — the behaviour
 this record was filed about, at the line it cites.
 
-This is a consequence of a state plan 0165 Phase 2 names: **27 ts-morph-tainted
+This is a consequence of a state [plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) Phase 2 names: **27 ts-morph-tainted
 modules remain duplicated** between `packages/core/src` and
 `packages/ts/src/core`, `execute-rule` among them. A fix applied to one copy
 silently leaves the other alone, and nothing in the corpus recorded that this
@@ -68,7 +68,7 @@ the ts copy, which honours the flag; `eess-md` ships no CLI at all, and
 stays open at Medium rather than closing.
 
 What has **not** changed is the second half of this bug, and it is the half the
-severity was argued from: ADR-008's Enforcement row still claims `gated` over a
+severity was argued from: [ADR-008](../../adr/008-caller-owns-reporting.md)'s Enforcement row still claims `gated` over a
 mechanism that does not cover this path. The row is now additionally misleading,
 because the path it fails to cover is one where two implementations disagree.
 
@@ -85,7 +85,7 @@ a real double render — an Enforcement-table row asserting more than its
 mechanism checks. That is the class this repo files bugs about (0116, 0128) and
 the class `check:corpus`/`check:crossval` exist to prevent.
 
-Fixing the behaviour is half the work; the other half is making ADR-008's row
+Fixing the behaviour is half the work; the other half is making [ADR-008](../../adr/008-caller-owns-reporting.md)'s row
 honest — either by widening the mechanism to cover this path, or by narrowing
 the clause to what it actually gates.
 
@@ -95,10 +95,10 @@ the clause to what it actually gates.
    eess-ts half of this is already done, so what remains is either porting the
    switch to `packages/core/src/execute-rule.ts` or — better, and the reason
    this is not simply "copy it across" — unifying the two `execute-rule` copies,
-   which is plan 0165's named remainder and blocked on an ADR-shaped decision.
+   which is [plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md)'s named remainder and blocked on an ADR-shaped decision.
    Porting the switch fixes the symptom while doubling the duplication that
    caused it.
-2. Update ADR-008's Enforcement row so its Mechanism column names something
+2. Update [ADR-008](../../adr/008-caller-owns-reporting.md)'s Enforcement row so its Mechanism column names something
    that would fail if this regressed. If no such mechanism is available, the
    row's Status is not `gated` and should say so.
 
@@ -110,7 +110,7 @@ the clause to what it actually gates.
       against the KERNEL path — through `eess-ts` it now passes, and a test
       written the obvious way would be green on arrival and prove nothing.
 - [ ] Control: the ordinary (non-throwing) path still reports exactly once.
-- [ ] ADR-008's Enforcement row either cites a mechanism that covers this path,
+- [ ] [ADR-008](../../adr/008-caller-owns-reporting.md)'s Enforcement row either cites a mechanism that covers this path,
       or its Status is corrected.
 - [ ] `npm run validate` green, `check:corpus` green on the amended ADR.
 

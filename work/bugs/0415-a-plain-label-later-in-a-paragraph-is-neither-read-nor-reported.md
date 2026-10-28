@@ -3,14 +3,14 @@
 ## Status
 
 - **State:** Draft — reproduced 2026-10-14 against eess-md 0.9.0's build on `main` at `f099539`.
-  Found by enforcement review of bug 0414. No red test yet, and the fix is not designed.
+  Found by enforcement review of [bug 0414](./0414-a-label-after-a-soft-break-is-reported-never-read.md). No red test yet, and the fix is not designed.
 - **Severity:** Medium — an honesty gap between a stated claim and its mechanism (`BUGS.md`'s Medium
   row). `docs/markdown.md:249` says a rule built with `areLabelled()` reports "the label, exact or
   near, where no block starts — later in a paragraph". For the plain `Label:` form that report never
-  happens, and the link goes unexamined with nothing said. It is not filed as High. Plan 0405
+  happens, and the link goes unexamined with nothing said. It is not filed as High. [Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)
   deliberately does not read a plain label outside a block's start, because prose often begins
   "related to:". What is wrong is the promise to report it, not the decision not to read it.
-- **Origin:** self-found · enforcement review of bug 0414, 2026-10-14.
+- **Origin:** self-found · enforcement review of [bug 0414](./0414-a-label-after-a-soft-break-is-reported-never-read.md), 2026-10-14.
 - **Reported:** 2026-10-14
 
 ## Symptom
@@ -61,7 +61,7 @@ corpus for false positives first:
 - **Name it.** `docs/markdown.md` would name the plain form later in a paragraph as a blind spot,
   beside the plain near miss, so the documented claim matches the mechanism.
 
-Bug 0414 keeps the plain form unread at this position whichever is chosen, so the two do not
+[Bug 0414](./0414-a-label-after-a-soft-break-is-reported-never-read.md) keeps the plain form unread at this position whichever is chosen, so the two do not
 conflict.
 
 ## Verification

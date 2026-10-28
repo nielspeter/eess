@@ -72,7 +72,7 @@ similarity 0.85):
 - **164 pairs → 48** (116 eliminated).
 - Every pair in the table above is eliminated.
 - What survives is dominated by the genuine kernel/dialect duplication that
-  plan 0165 created — `assertHomogeneous`, `isExcludedByComment`, `viewsFor`,
+  [plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) created — `assertHomogeneous`, `isExcludedByComment`, `viewsFor`,
   `validateOverrides`, `RuleBuilder.select` — the same function present in both
   `packages/core/src` and `packages/ts/src`. Those are real and worth acting on.
 
@@ -128,7 +128,7 @@ callOverlap = 0.250   ->  min() = 0.250, below the 0.85 default: NOT REPORTED
 
 Review measured 128 pairs lost in total, eleven of them cross-package — including
 `watchAndRerun` (`ts` ~ `mermaid`) at 98% structural, which differs in two tokens
-and is precisely the kernel-extraction target plan 0165 is chasing.
+and is precisely the kernel-extraction target [plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) is chasing.
 
 **The root cause is in `buildFingerprint`, not in the scoring.**
 `Fingerprint.calls` is documented as "**Normalized** call targets" and nothing
@@ -424,7 +424,7 @@ the most consolidatable of all — one repository in the corpus above has six
 `exists*` methods differing only in a table name and a where-clause set. So name
 identity is a RANKING signal, not a filter: dropping the different-name bucket
 would discard real same-class duplication, and dropping cross-file would have
-discarded bug 0227.
+discarded [bug 0227](./0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md).
 
 ### What the fix is, after all of this
 

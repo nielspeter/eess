@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-16 in plan 0413's PR, from its architect and method reviews.
+- **State:** Draft — recorded 2026-10-16 in [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s PR, from its architect and method reviews.
 - **Severity:** Low — no false green: the run is red, naming the block. But one author's large
   diagram withholds every block's verdict.
-- **Origin:** self-found · PR review of plan 0413, 2026-10-16.
+- **Origin:** self-found · PR review of [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md), 2026-10-16.
 - **Reported:** 2026-10-16
 
 ## Symptom

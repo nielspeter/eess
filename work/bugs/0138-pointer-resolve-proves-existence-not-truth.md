@@ -25,7 +25,7 @@ through four revisions in one review round, each wrong in a different way:
 
 1. `:297`, labelled "the `finishPreset` call" — wrong: `:297` was the
    `for (const doc of corpus.documents())` loop, not `finishPreset`.
-2. `:320`, attributed to "bug 0121 added the `proposals` lane + `findUncoveredLanes`
+2. `:320`, attributed to "[bug 0121](./fixed/0121-ledger-reads-two-of-four-lanes.md) added the `proposals` lane + `findUncoveredLanes`
    above it" — wrong on both counts: `:320` is `finishPreset` (the _other_ line,
    evidencing the weaker half of the claim), and `findUncoveredLanes` isn't in
    this file at all — it lives in `scripts/lib/lane-coverage.mjs`.
@@ -33,7 +33,7 @@ through four revisions in one review round, each wrong in a different way:
    above it" — wrong: PR #45 produced line 297 outright (182 insertions / 32
    deletions), it didn't shift into a pre-existing 297.
 4. `:309` (the loop, correctly identified this time), attributed to "PR #45's
-   bugs 0118/0119 … then PR #53's … guard added the same +12 lines above it
+   [bugs 0118](./fixed/0118-ledger-gate-skips-the-bug-lane.md)/0119 … then PR #53's … guard added the same +12 lines above it
    again" — still wrong: only PR #53 was a clean +12; PR #45 is what produced
    line 297 in the first place.
 

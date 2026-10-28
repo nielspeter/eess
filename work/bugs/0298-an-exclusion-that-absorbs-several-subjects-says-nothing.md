@@ -55,7 +55,7 @@ The control that pins it is `packages/ts/tests/core/excluding-matching.test.ts` 
 
 Two corrections to how this record first read that comment:
 
-- **It cites "plan 0104", and no such plan exists in this repo** — the only 0104 in
+- **It cites ts-archunit plan 0104 by its bare number, and no such plan exists in this repo** — the only 0104 in
   `work/` is a bug. The number is most likely carried over from ts-archunit, with the
   ADR numbers [0303](./0303-ts-archunit-adr-numbers-persist-in-eess-comments.md) records.
 - **This record does not deliver the in-practice measurement.** The adopter evidence
@@ -80,7 +80,7 @@ Not decided. Settled constraints first:
   [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md), which is
   unifying the two `applyFilters` copies — not as a patch to both.
 - **Emit through the receipt ([ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md))
-  or the run-boundary notice, not `writeStderr` inside the filter.** ADR-008 makes
+  or the run-boundary notice, not `writeStderr` inside the filter.** [ADR-008](../../adr/008-caller-owns-reporting.md) makes
   `reportViolations` the one emitter; the filter's existing stderr lines already
   emit during detection.
 - **Define the subject.** Outside cycle edges, `element` can be a node kind or a
@@ -91,7 +91,7 @@ Candidates, none measured:
 
 1. **Disclosure on the receipt** — per pattern, what it removed, reaching
    `--format json` and the terminal summary. Stderr is not in a diff and is the
-   channel ADR-009 Context point 1 says is not read. It does not reach the future
+   channel [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Context point 1 says is not read. It does not reach the future
    diff that adds a new absorbed class, and it prints on every green run for every
    broad exclusion the docs teach.
 2. **A configuration finding when a RegExp exclusion matches more than one distinct
@@ -99,8 +99,8 @@ Candidates, none measured:
    absorb it, so every existing broad pattern fails at once on upgrade — a marked break.
 3. **A declared expected match set** — the pattern names the subjects it is meant to
    absorb, and fails when that set changes. This is the only candidate that reaches
-   the future diff, and it has the expiry property ADR-010 §3 gives `.expectEmpty()`
-   and ADR-009 rule 3's corollary prefers.
+   the future diff, and it has the expiry property [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) §3 gives `.expectEmpty()`
+   and [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 3's corollary prefers.
 
 Independent of the ruling: the docs' examples can be anchored now.
 
@@ -117,7 +117,7 @@ Independent of the ruling: the docs' examples can be anchored now.
       level; a declared-match-set fix must bring its own too.
 - [ ] a ruling on what an exclusion must disclose, recorded once, with 0233's clause
       (2) and the CONTROL test above updated to match
-- [ ] the fix in the kernel, sequenced with plan 0188
+- [ ] the fix in the kernel, sequenced with [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)
 - [ ] the docs' exclusion examples anchored
 - [ ] `npm run validate` green.
 

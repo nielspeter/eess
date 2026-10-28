@@ -2,12 +2,12 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-19 during plan 0481's build; measured on macOS 27.0.1 with
+- **State:** Draft — recorded 2026-10-19 during [plan 0481](../plans/completed/0481-this-repository-dogfoods-notexist.md)'s build; measured on macOS 27.0.1 with
   Node v24.14.0, no red test yet. Record only.
 - **Severity:** Medium — the exit code survives, so no gate goes green, but the machine-readable
   stream an agent or CI step parses is invalid JSON once it passes 64 KiB, and the findings past the
-  cut are lost to that reader (ADR-009: the failure surface an agent reads is the JSON).
-- **Origin:** self-found · plan 0481's build (its `corpus/ledger/claimed-twice` non-vacuity row)
+  cut are lost to that reader ([ADR-009](../../adr/009-agent-first-failure-surfaces.md): the failure surface an agent reads is the JSON).
+- **Origin:** self-found · [plan 0481](../plans/completed/0481-this-repository-dogfoods-notexist.md)'s build (its `corpus/ledger/claimed-twice` non-vacuity row)
 - **Reported:** 2026-10-19
 
 ## Symptom

@@ -14,7 +14,7 @@
 (`scripts/check-bun-load.mjs`) that the `bun-load` job always runs and blocks. Neither reads the
 workflow's `on:` block (`.github/workflows/ci.yml:3`). A `paths-ignore:` or `branches-ignore:` added
 there would skip every job, the Bun guard included, on the changes it names, and both checks would
-stay green. ADR-020 rule 3 asks that "a static read of the CI workflow shows that the jobs always run".
+stay green. [ADR-020](../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md) rule 3 asks that "a static read of the CI workflow shows that the jobs always run".
 
 ## Fix
 

@@ -8,7 +8,7 @@
   identity that exists in one dialect and not the other for the same fact, which
   breaks the one consumer this project says it writes for: an agent parsing
   `--format json`.
-- **Origin:** self-found · architecture review of PR #119 (bug 0269)
+- **Origin:** self-found · architecture review of PR #119 ([bug 0269](./fixed/0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md))
 - **Reported:** 2026-09-07
 
 ## Symptom
@@ -67,7 +67,7 @@ Not decided, and the choice is real:
 
 Option 1 is the one that stops a third dialect inventing a third spelling.
 Option 2 is a patch-level change with no cross-package movement. Whichever
-lands, `cli/*` as an id namespace should be recorded in ADR-014's table rather
+lands, `cli/*` as an id namespace should be recorded in [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s table rather
 than left implicit.
 
 ## Verification

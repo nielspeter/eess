@@ -21,7 +21,7 @@
 (`packages/ts/src/helpers/baseline.ts:655-686`) both return known for a metric finding whose
 `measured` is `<=` the accepted value. The design is stated beside them, "an improvement stays
 known" (`packages/core/src/baseline.ts:256`, `packages/ts/src/helpers/baseline.ts:104-106`), so
-paying down debt does not turn the build red ([ts-archunit bug 0012](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0012-metric-findings-have-no-usable-ratchet.md)'s
+paying down debt does not turn the build red (ts-archunit bug 0012's
 reason). Neither copy reports the gap between the two numbers, and neither the CLI's `baseline`
 command nor a run rewrites the accepted value downward. Nothing tells the author the ceiling could
 be lowered, so it is not.

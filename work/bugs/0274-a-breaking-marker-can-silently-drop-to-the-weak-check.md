@@ -48,7 +48,7 @@ the cut is mangled into a package that does not exist:
 
 `release/break-names-dependents` then looks up `dependentsOf['@nielspeter/eess-m']`,
 finds nothing, and reports no missing dependents. That is a silent fail-open in
-the exact rule bug 0185 added — and it is worse than the weak-check fallback
+the exact rule [bug 0185](./fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md) added — and it is worse than the weak-check fallback
 above, because the gate believes it is running the strong form.
 
 **PR #122's own marker sits one owner from it.** Measured: the full marker is 109

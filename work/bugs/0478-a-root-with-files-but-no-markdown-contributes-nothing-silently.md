@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — recorded 2026-10-18 from PR #237's review (method, architect), the residual of
-  bugs 0465 and 0475.
+  [bugs 0465](./fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) and 0475.
 - **Severity:** Low — a silent pass on a rare shape: a Markdown root mistyped so that it matches only
   other files. Code-glob roots contribute nothing on purpose.
 - **Origin:** self-found · PR #237's review, 2026-10-18.
@@ -12,8 +12,8 @@
 ## Symptom
 
 `corpus({ roots: ['docs/**', 'adr/*.txt'] })` loads `docs/` and nothing from the second root, and
-nothing says so. Bug 0465 refuses a root that matches no file; this one matches files, so it is not
-refused. Bug 0475 made it declarable (`expectEmptyRoots`), but nothing prompts its author to declare
+nothing says so. [Bug 0465](./fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md) refuses a root that matches no file; this one matches files, so it is not
+refused. [Bug 0475](./fixed/0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md) made it declarable (`expectEmptyRoots`), but nothing prompts its author to declare
 it. Refusing it outright broke existing callers: measured on 2026-10-18, five tests in this
 repository's own eess-md suite list code globs as roots beside their documents (`src/**/*.ts` in
 `packages/md/tests/adr-citations-check-paths-not-titles.test.ts`, `pkg-*/**` in
@@ -24,7 +24,7 @@ measured.
 
 Not designed. One candidate: refuse a root that matches only non-Markdown files unless it is
 declared, with a migration line for callers that list code globs. Measure the three
-adopters' root lists first, as bug 0475's spike did.
+adopters' root lists first, as [bug 0475](./fixed/0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md)'s spike did.
 
 ## Verification
 

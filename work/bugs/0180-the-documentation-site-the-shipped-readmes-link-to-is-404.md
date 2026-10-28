@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — measured; fix is a deploy decision.
-- **Found:** 2026-08-20, adopter review of the bug 0179 fix.
+- **Found:** 2026-08-20, adopter review of the [bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md) fix.
 - **Severity:** the first three links an adopter clicks are dead, and the
   deprecated predecessor's site is live.
 
@@ -47,7 +47,7 @@ The README's own job is the first five minutes of an adopter's experience, and
 A reader who follows that advice finds the new project's docs 404 and the old
 project's docs working. That is the worst possible signal during a rename.
 
-## Not introduced by bug 0179's fix, but adjacent to it
+## Not introduced by [bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s fix, but adjacent to it
 
 The 0179 fix repaired two **relative** links in the same file and its changeset
 said "The published README's links work from the published package." That

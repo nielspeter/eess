@@ -34,7 +34,7 @@ these four.
 
 ## Root cause
 
-The census was written for bug 0036, whose subject was what a **declared** glob's `base` means. 0339
+The census was written for ts-archunit bug 0036, whose subject was what a **declared** glob's `base` means. 0339
 made the subject wider: what a glob is **matched against**. Declaration and matching are not the same
 population, and the scan was never moved.
 

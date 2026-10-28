@@ -49,7 +49,7 @@ appear only in signatures.
 
 ## Fix — undecided, and the choice matters
 
-The instance found on the ADR-011 branch is repaired by hand (eess-md re-exports the three
+The instance found on the [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) branch is repaired by hand (eess-md re-exports the three
 correspondence types; eess-mermaid gained the glob constructors). This record is about the
 **gate**, which would not catch the next one.
 
@@ -103,6 +103,6 @@ changed is that the acute cases are guarded and the record is no longer urgent.
       `check:family` can be red for its own reasons.
 - [ ] A control: a kernel type used only inside a dialect's implementation obliges nothing,
       so the widened rule does not drag plumbing back onto barrels — which is the exact
-      thing ADR-011 removed.
+      thing [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) removed.
 
 Deferred: none.

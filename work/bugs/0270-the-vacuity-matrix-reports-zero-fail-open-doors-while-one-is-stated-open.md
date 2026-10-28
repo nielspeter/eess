@@ -7,7 +7,7 @@
 - **Severity:** Medium — an instrument that answers the wrong question with a
   reassuring number. Not a false green in a _rule_; a false green in the gate
   whose entire job is auditing which published doors can pass without evidence.
-- **Origin:** self-found · devops review of PR #118 (plan 0263 Phase 2)
+- **Origin:** self-found · devops review of PR #118 ([plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 2)
 - **Reported:** 2026-09-07
 
 ## Symptom
@@ -22,8 +22,8 @@
 At the same commit, the repo ships **two** exported `collectViolations`
 functions — `packages/core/src/index.ts` and `packages/ts/src/index.ts` — which
 are documented, in their own docstrings and in `docs/core-concepts.md`, as
-bypassing the evidence gate. Plan 0263 Phase 2 states that residual deliberately
-rather than closing it, and ADR-014's ceiling row names both.
+bypassing the evidence gate. [Plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 2 states that residual deliberately
+rather than closing it, and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s ceiling row names both.
 
 So the changelog tells an adopter "four doors closed, one stated open" while the
 CI line an operator reads says no fail-open door exists.
@@ -43,13 +43,13 @@ register built for exactly this — named, dated, expiring debt — and it holds
 unrelated entry. The case it was designed for is not in it.
 
 `.:checkAll`'s entry has a second problem, and this branch caused it: `checkAll`
-became an emitter door with a gate in plan 0263 Phase 2, so "nothing you can
+became an emitter door with a gate in [plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 2, so "nothing you can
 call `.check()` on" is now the wrong reason for excluding it, even though the
 exclusion may still be right.
 
 ## Why it matters
 
-`docs/manifesto.md` and ADR-009 both rest on the claim that eess does not report
+`docs/manifesto.md` and [ADR-009](../../adr/009-agent-first-failure-surfaces.md) both rest on the claim that eess does not report
 a pass it cannot justify. `check:vacuity` is the instrument that audits that
 claim about eess's own surface. An audit whose scope is narrower than its summary
 line is the same shape as a rule that examined nothing and reported green — the
@@ -57,7 +57,7 @@ defect the matrix exists to find, in the matrix.
 
 ## A second instance, measured 2026-09-08
 
-`EMITTER_PROBES` has no falsifier of its own. A QA sabotage matrix on plan 0263
+`EMITTER_PROBES` has no falsifier of its own. A QA sabotage matrix on [plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md)
 Phase 3 deleted the sixth entry — the one covering `emitter/source-empty` — and
 **nothing reddened**: `check:vacuity` simply reported 22 exports instead of 23,
 `check:nonvacuity`, `check:corpus` and `check:crossval` all stayed green.
@@ -94,7 +94,7 @@ either move is made permanent.
       rather than silently shrinking the denominator.
 - [ ] `check:vacuity`'s summary line distinguishes "probed and non-vacuous" from
       "not probed".
-- [ ] `.:checkAll`'s exclusion reason is true of the code after plan 0263.
+- [ ] `.:checkAll`'s exclusion reason is true of the code after [plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md).
 
 Deferred: none.
 
