@@ -62,15 +62,23 @@ describe('acceptance: localized (German) ADR via adrEnforcement config', () => {
 
   it('needs its columns option: without it the localized table is not found', () => {
     // The red half: the German header is not one the default pattern reads, so dropping
-    // `columns` (or a default widened to read it) is seen here, not only by hand.
+    // `columns` (or a default widened to read it) is seen here, not only by hand. Line 5 is
+    // the header row: a section with no table at all gives the same message on line 1.
     const c = corpus({ roots: ['docs/adr/*.md'], cwd: deutschRoot })
-    let messages: string[] = []
+    let found: { ruleId: string | undefined; line: number; message: string }[] = []
     try {
       adrEnforcement(c, { section: /durchsetzung/i })
     } catch (e) {
       if (!(e instanceof ArchRuleError)) throw e
-      messages = e.violations.map((v) => v.message)
+      found = e.violations.map((v) => ({ ruleId: v.ruleId, line: v.line, message: v.message }))
     }
-    expect(messages).toEqual([expect.stringMatching(/no table with the required columns/)])
+    expect(found).toEqual([
+      {
+        ruleId: 'adr/enforcement-declared',
+        line: 5,
+        message:
+          'no table with the required columns (/tier/i, /mechanism/i, /status/i) in section "/durchsetzung/i"',
+      },
+    ])
   })
 })

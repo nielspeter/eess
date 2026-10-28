@@ -27,15 +27,19 @@ document report `ledger/unknown-state` would leave it green.
 The nearest real coverage is
 `packages/md/tests/rules/ledger-reads-the-callers-label.test.ts`'s
 `it('a call whose documents carry no state at all is one finding, with a remedy from the options')`,
-which reads a lane where **every** document is stateless (`ledger/no-readable-state`). Nothing
-reads one stateless document beside documents that carry a State.
+which reads a lane where **every** document is stateless (`ledger/no-readable-state`). The
+`ledger-status` and `ledger-plain` rows in the same file read documents with a `Status:` line
+and no `State:` line beside documents that carry a State, and pin the whole findings list, so a
+stray `ledger/unknown-state` there is already red. What nothing reads is a document with **no
+state-like line at all** (neither `State:` nor `Status:`, like `ledger-stateless/plans/m2.md`)
+beside documents that carry a State.
 
 ## Fix
 
-A fixture with no State line, read beside one that has a State, asserting no
+A fixture with no state-like line at all, read beside one that has a State, asserting no
 `ledger/unknown-state` for it; then a sabotage that makes a missing State report
 `ledger/unknown-state`, which must turn the row red.
 
 ## Verification
 
-- [ ] The row reads a document with no State line, and the sabotage turns it red.
+- [ ] The row reads a document with no state-like line at all, and the sabotage turns it red.

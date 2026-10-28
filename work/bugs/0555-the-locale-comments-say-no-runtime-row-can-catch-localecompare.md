@@ -21,17 +21,22 @@ Three comments state that a runtime row cannot catch an identity-bearing sort th
 - `packages/ts/tests/conditions/identity-does-not-move.test.ts:291`: "no runtime row can see a
   defect whose symptom depends on the machine running it".
 
-The comparators agree on an `en-US` machine for a **lowercase** ASCII pair. They disagree on a
-mixed-case pair in every locale, because codepoint order puts every capital before every
-lowercase letter. Measured, Node 24.22.0:
+The comparators agree on an `en-US` machine for a pair of **lowercase-letter** names (the
+testing re-check compared every name of one or two letters, 492,804 ordered pairs). They
+disagree on a mixed-case pair in every locale, because codepoint order puts every capital
+before every lowercase letter, and on a pair mixing `_` and a digit, because collation puts
+punctuation before digits and codepoint order puts `1` (0x31) before `_` (0x5F). Measured,
+Node 24.22.0:
 
 ```text
 ['Foo','bar'] by localeCompare, en-US / cs-CZ / de-DE / sv-SE / host:  bar,Foo
 ['Foo','bar'] by codepoint:                                            Foo,bar
+['foo_bar','foo1'] by localeCompare, en-US / cs-CZ / de-DE / host:      foo_bar,foo1
+['foo_bar','foo1'] by codepoint:                                        foo1,foo_bar
 ```
 
-So a row importing `Foo` and `bar` and asserting the discriminator `Foo,bar` goes red on CI with
-`localeCompare` reinstated. It would not catch a defect that only a locale shows (the Czech
+So a row importing `Foo` and `bar` and asserting the discriminator `Foo,bar` (or `foo_bar` and
+`foo1`, asserting `foo1,foo_bar`) goes red on CI with `localeCompare` reinstated. It would not catch a defect that only a locale shows (the Czech
 `ch`), which is what the scan is for; it would catch the mutant the comments say nothing can.
 
 ## Fix

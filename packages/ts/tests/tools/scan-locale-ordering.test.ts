@@ -10,12 +10,12 @@
  * debug.
  *
  * A behavioural row cannot see it. On an `en-US` machine `localeCompare` and codepoint order
- * agree for every lowercase ASCII pair, the kind a fixture's names are, so the row passes with the defect
- * present. **Measured**: a row asserting the discriminator for an import of two such names
- * passed **16/16 with `localeCompare` reinstated**. Running the whole suite under a locale
- * whose collation differs also passed — 3177/3177, on the earlier pair — because the fixtures that would
- * separate the two do not exist. A guard written for this defect, that cannot detect this
- * defect, is exactly what ADR-009 rule 5 is about.
+ * agree for every pair of lowercase-letter names, the kind a fixture's names are, so the row
+ * passes with the defect present. **Measured**: a row asserting the discriminator for an
+ * import of two such names passed **16/16 with `localeCompare` reinstated**. Running the
+ * whole suite under a locale whose collation differs also passed — 3177/3177, on the earlier
+ * pair — because the fixtures that would separate the two do not exist. A guard written for
+ * this defect, that cannot detect this defect, is exactly what ADR-009 rule 5 is about.
  *
  * The pair that separates them needs no unusual characters: Czech collates `ch` after `h`, so
  * `['hrad','chata']` sorts to `hrad,chata` under `cs-CZ` and `chata,hrad` by codepoint. A
