@@ -13,7 +13,7 @@ holds:
 1. `mermaid` needs a DOM for some diagram kinds, and the usual shim, `jsdom`, writes `window`,
    `document`, `DOMParser` and `Element` onto `globalThis`. Under vitest that reaches the adopter's
    other tests. Can the parse run where those globals cannot leak?
-2. A missing or broken environment must fail closed as one finding (ADR-009), not as one syntax
+2. A missing or broken environment must fail closed as one finding ([ADR-009](../../adr/009-agent-first-failure-surfaces.md)), not as one syntax
    finding per fence. Can a thrown syntax error be told apart from an environment failure?
 
 ## Method
@@ -70,9 +70,9 @@ The shape the review's product lens argued holds, and it needs no ADR:
 - **eess-md owns the loop.** It checks the code blocks of one language with a parser the caller
   passes. The parser answers one fence with a tagged result: valid, or a syntax error with its
   message and, where known, its line. Anything the parser throws is one instrument finding per run,
-  naming the environment, unsuppressable (ADR-009; ADR-016's shape for an instrument that cannot
+  naming the environment, unsuppressable ([ADR-009](../../adr/009-agent-first-failure-surfaces.md); [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s shape for an instrument that cannot
   answer). Because a parse is asynchronous, the parse runs as one asynchronous batch that builds the
-  facts, and a synchronous rule reads them: condition 1's answer, and the shape ADR-007 and ADR-013
+  facts, and a synchronous rule reads them: condition 1's answer, and the shape [ADR-007](../../adr/007-isolate-ast-engine-boundary.md) and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)
   already set.
 - **eess-mermaid ships the parser** as a function behind optional peers `mermaid` and `jsdom`,
   run in one `worker_threads` worker, so the DOM shim never reaches the caller's `globalThis`. It
@@ -102,28 +102,28 @@ This is decided by delegation from the measurements and can be overruled.
   - 0.99 s, the architect's re-run without the regex;
   - 0.78 s, the 2026-10-12 review on the repository's own fences.
 
-  Proposal 006's condition 5 records all three, and the budget is set from them.
+  [Proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s condition 5 records all three, and the budget is set from them.
 
 - **A fourth classifier.** `worker.mjs` below also classified an error as syntax when its message
   matched `/Parsing failed|Parse error|Lexer error|Expecting/`, which the Result section did not
   disclose. It was unnecessary. The architect re-ran without it. Enforcement measured 15 further
   broken kinds, plus the spike's own four, and every one fell into the three shapes. It was also fail-open in kind, since it could turn
-  one environment failure into a syntax finding per fence. Proposal 006's 2026-10-14 review rules
+  one environment failure into a syntax finding per fence. [Proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s 2026-10-14 review rules
   shape-only classification.
 - **Two cases the Decision missed,** both measured by enforcement:
   - a worker that exits without posting leaves the host unsettled (Node exits 13, naming nothing);
   - a parse that never returns hangs the gate.
 
-  Both are conditions in proposal 006's 2026-10-14 review.
+  Both are conditions in [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s 2026-10-14 review.
 
 - **`UnknownDiagramError` is not one break class.** An empty block, a directive or comment only, a
   misspelt kind and `zenuml` all throw it. The Decision's "invalid" bin was too coarse; the review
   gives it its own outcome, `unrecognised`.
 
-- **The Decision is superseded on two points.** Read proposal 006's 2026-10-14 review, conditions
+- **The Decision is superseded on two points.** Read [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s 2026-10-14 review, conditions
   2 and 4, instead of the first bullet:
   - **The port takes a batch, not one fence.** It carries the parser's name and version, which the
-    success line prints (ADR-007's batch-first boundary; a worker cold start costs about 400 ms).
+    success line prints ([ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s batch-first boundary; a worker cold start costs about 400 ms).
   - **A caller-passed parser can forge every verdict.** A stub that always answers `valid` makes
     every fence green under a real denominator. Identity and, in eess-mermaid, canaries catch what
     they can.

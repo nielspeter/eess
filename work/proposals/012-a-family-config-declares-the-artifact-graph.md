@@ -66,8 +66,8 @@ building something the family already has.
   green.
 - **The merge and the emitter exist.** `mergeCollectResults`, `collectResult`,
   `hasEvidence`, `reportViolations` and `finishPreset` are all published from the
-  kernel root today, verified by importing `@nielspeter/eess`. ADR-008 put
-  reporting behind one emitter and ADR-014 made it refuse a verdict without
+  kernel root today, verified by importing `@nielspeter/eess`. [ADR-008](../../adr/008-caller-owns-reporting.md) put
+  reporting behind one emitter and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) made it refuse a verdict without
   evidence — a runner is the caller those decisions were written for.
 - **No dialect config is family-shaped.** `eess-ts.config.ts` takes
   `{ rules, format, watchDirs }`, and `eess-mermaid`'s is the same shape. Both
@@ -129,7 +129,7 @@ runner would arrive as a new subpath rather than as a use of what is there.
   and the edge that is missing — red first, against a fixture with a features
   directory nobody bound.
 - The runner's verdict is refused when any dialect hands back no evidence, per
-  ADR-014, and its output carries a denominator **per dialect** rather than one
+  [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md), and its output carries a denominator **per dialect** rather than one
   summary number. A single exit code across five dialects is a good place to hide
   a vacuous gate.
 - Removing any one binding from the config reds the run — measured one at a time,
@@ -146,7 +146,7 @@ runner would arrive as a new subpath rather than as a use of what is there.
 3. **What does `files` mean in the graph?** `eess-crossvalidate` ships it beside
    six named pairs, and it is not obviously an edge between two artifact types.
 4. **Does this belong in an ADR before a plan?** A family config constrains all
-   five dialects and every future one. That is ADR-011/012/013 weight.
+   five dialects and every future one. That is [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)/012/013 weight.
 
 ## Out of scope
 
@@ -193,14 +193,14 @@ names the file, the file declares the graph. So the prior question the whole
 proposal rests on is **malformed as posed**, and the survey's sentence "Nothing
 here proposes building something the family already has" is false.
 
-**ADR-006 already ruled on the other half, and the proposal does not cite it.**
+**[ADR-006](../../adr/006-framework-rules-architecture.md) already ruled on the other half, and the proposal does not cite it.**
 "Rules are code, not config" is its decision line. Its rejected alternatives lead
 with JSON config; its consequences say there is no centralized config file, users
 write TypeScript instead, and "this is a feature, not a bug." The submission
-cites ADR-008, 011 and 014 and never 006 — the one ADR that rules on its central
+cites [ADR-008](../../adr/008-caller-owns-reporting.md), 011 and 014 and never 006 — the one ADR that rules on its central
 ask. Any rewrite must either be a TypeScript module exporting declarations, in
 which case it is a rule file and no decision is owed, or a data config, in which
-case it needs an amendment to ADR-006 that survives 006's own argument.
+case it needs an amendment to [ADR-006](../../adr/006-framework-rules-architecture.md) that survives 006's own argument.
 
 **Ask C is self-defeating as written, and unbuildable on half the graph.** A
 checker that reads the config can only see artifacts someone declared, so an
@@ -232,7 +232,7 @@ described. It now is.
 ran, here is what I examined, nothing was wrong": `reportViolations` returns early
 on an empty receipt (`packages/core/src/report.ts`), so the clean-run denominator
 is implemented in both dialect CLIs, in several other places, and again by hand in
-every adopter driver. That is why bug 0223's review found the well-tested CLI
+every adopter driver. That is why [bug 0223](../bugs/fixed/0223-type-module-rule-files-cannot-import-a-sibling.md)'s review found the well-tested CLI
 printing nothing under CI's chosen format — the capability has no single home.
 Measured in the one real consumer: a 67-line driver of which roughly 40 lines are
 scope printing and exit handling around one rule. A kernel receipt printer is
@@ -256,7 +256,7 @@ emptiness outside one.
 
 **Recommended next step.** Rewrite around the reporting gap, which is one
 shippable generic thing: a kernel primitive that reports a clean run with its
-denominator. Drop Ask A and Ask E — `spec.rules.ts` and ADR-006 answer them
+denominator. Drop Ask A and Ask E — `spec.rules.ts` and [ADR-006](../../adr/006-framework-rules-architecture.md) answer them
 between them. Re-file Ask C only after deciding discovered-versus-declared, and
 only with the three missing completeness primitives named as its scope. Ask D
 becomes "lift `checkAll`", which may be a bug rather than a proposal.
@@ -389,10 +389,10 @@ drivers go away" is yes; the answer to "does a config make them go away" is no.
 **And that adopter reached the architect's conclusion independently, from outside
 this repository.** They wrote their own ADR for it, whose decision reads: a check
 over the source or the corpus is written as an eess rule and reaches its verdict
-through a builder. That is C2's answer — ADR-006's "rules are code, not config" —
+through a builder. That is C2's answer — [ADR-006](../../adr/006-framework-rules-architecture.md)'s "rules are code, not config" —
 arrived at by someone with no stake in this repo's ADR history. It is the
 strongest evidence in this review, and the submission had none like it, because
-bug 0279 is exactly about this family having no channel for adopter signal.
+[bug 0279](../bugs/0279-the-barrel-criterion-has-no-memory-and-no-adopter-signal.md) is exactly about this family having no channel for adopter signal.
 
 **Two library gaps that project hit, worth carrying regardless of this
 proposal's fate.** Their plan records `findState()` as MEASURED absent from the

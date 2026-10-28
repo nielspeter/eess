@@ -26,7 +26,7 @@ eess's dialect model generalizes past the four artifact types it already
 speaks (`eess-md`, `eess-ts`, `eess-mermaid`, `eess-gherkin`). The pattern a
 dialect fits is: an artifact format that **declares what must hold**, parsed
 into first-class elements, checkable with the kernel's `RuleBuilder`
-(ADR-006), and optionally bindable to another dialect's elements via
+([ADR-006](../../adr/006-framework-rules-architecture.md)), and optionally bindable to another dialect's elements via
 `packages/crossvalidate`'s `correspondence()` when the two are supposed to
 agree.
 
@@ -137,7 +137,7 @@ matching resolver` at `:117`. Its elements are `SchemaElement`
   and no `erDiagram` outside test fixtures and plan prose. The catalog raises
   this for Protobuf alone, which implies the other seven have one. Belongs in
   _Not surveyed, not reviewed_ as a cross-cutting line.
-- **ADR miscited:** the fluent builder DSL is **ADR-003**, not ADR-006. ADR-006's
+- **ADR miscited:** the fluent builder DSL is **[ADR-003](../../adr/003-fluent-builder-dsl.md)**, not [ADR-006](../../adr/006-framework-rules-architecture.md). [ADR-006](../../adr/006-framework-rules-architecture.md)'s
   three-tier model (core primitives / `rules/*` sub-paths / separate packages) is
   the right citation for the placement question left open at the end.
 - Minor: `erEntities` aside, lines in the OpenAPI entry are ungrammatical

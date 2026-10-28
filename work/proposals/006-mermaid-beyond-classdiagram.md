@@ -77,7 +77,7 @@ Markdown-fence extraction of mermaid diagrams is built, shipped and dogfooded.
   > `suggestion:` and a JSDoc line, which is what all three reviewers found. Corrected
   > below to `:186`/`:120` and recorded rather than quietly fixed: a survey that cannot
   > cite its own evidence on the second attempt is a survey defect, and this lane already
-  > records the same shape for proposal 004. `check:corpus` stayed green through both
+  > records the same shape for [proposal 004](./promoted/004-corpus-content-explain.md). `check:corpus` stayed green through both
   > rounds — `:56`/`:57` first, then `:143`/`:93` — because the pointer rule proves a line
   > **exists**, not that it still says what the citing prose claims. Filed as
   > [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md). The survey originally cited `:56`/`:57`, which the fix
@@ -134,7 +134,7 @@ Ask B stands, but must be argued **per type**, not as one ask.
 
 ## The enforcement question — the part that decides Ask B
 
-Per ADR-009, a capability that cannot go red is worth less than no capability.
+Per [ADR-009](../../adr/009-agent-first-failure-surfaces.md), a capability that cannot go red is worth less than no capability.
 A grammar is cheap; a **break class** is the real cost. What corruption must
 produce a violation, for each requested type?
 
@@ -175,7 +175,7 @@ These are the author's to settle; the review should argue them, not resolve them
 4. **Which authority owns the set of modelled diagram kinds, and what fails when the parser
    set and a binding's selector disagree?** Today: nobody, and nothing. Five kind-lists live
    across two packages. This question was raised by the review rather than the submission,
-   and ~~[plan 0214] is the attempt to answer it — its registry design is where the answer will
+   and ~~[[plan 0214](../plans/completed/0214-extract-the-diagram-kind-predicate.md)] is the attempt to answer it — its registry design is where the answer will
    be argued.~~ **0214 no longer answers this.** Four drafts of a registry were each
    falsified (see that plan's "What four drafts got wrong"), and it now explicitly declines:
    _"this plan does not publish a kind registry."_ **OQ4 is therefore un-owned and stays
@@ -241,7 +241,7 @@ today", and its only worked example is a `graph TD` — a kind `FOREIGN_HEADER` 
 name. Either this is High priority or the manifesto owes a status correction. And it has
 **no acceptance criteria at all**: zero occurrences of "non-vacuity", "fixture",
 "examined", "tier" or "warn". `PROPOSALS.md` requires the break class _and how
-non-vacuity is kept_; this delivered the first and omitted the second — proposal 001's
+non-vacuity is kept_; this delivered the first and omitted the second — [proposal 001](./001-md-corpus-rule-coverage.md)'s
 recorded correction, committed again.
 
 **Two findings outrank the design question and leave for the bug lane.**
@@ -256,7 +256,7 @@ forward-reference to the highest-value, lowest-cost item in the area.
 
 **Ask A does not survive as one ask.** Fence extraction ships; A1 is a narrower docs gap
 than stated (`packages/mermaid/README.md` never mentions fences, and nothing under `docs/`
-mentions `md-mermaid`); A2 is now bug 0211's fix; and a third piece the proposal does not
+mentions `md-mermaid`); A2 is now [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md)'s fix; and a third piece the proposal does not
 contain — extracting `declaredKind()` into `eess-mermaid` — is the one that removes three
 of four duplicate copies of diagram-kind knowledge.
 
@@ -276,7 +276,7 @@ denominator and exits 0.
 
 **Dogfooding inverts the proposed order.** This repo's own corpus holds `classDiagram`,
 `erDiagram` and one `graph` — the kind rated Weak — and **zero** `sequenceDiagram` or
-`stateDiagram`. The lane has direct precedent for parking on that ground: plan 0096 put the
+`stateDiagram`. The lane has direct precedent for parking on that ground: [plan 0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md) put the
 ER binding out of scope indefinitely for want of an `erDiagram` here. So Ask B's two Strong
 rows would ship capabilities eess cannot run against itself, proved only by synthetic
 fixtures.
@@ -306,12 +306,12 @@ them. Rejected parts stay here with the reason, so the same ask does not return.
 | **B** — `flowchart` / `graph`                                                                      | **Held**               | blocked on OQ3. If a caller-declared mapping is the mechanism, this becomes shippable on the same shape as ER — and the ordering above inverts                                                                                                                                                                                                                                              |
 | **B** — `gantt`                                                                                    | **Rejected**           | no code counterpart. Schedules are not specs, dates drift by design, and no author would fix the finding. On the record so the ask does not return                                                                                                                                                                                                                                          |
 
-**Not this proposal's to sequence.** Bugs 0210 and 0211 are defects in shipped code, found
+**Not this proposal's to sequence.** [Bugs 0210](../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md) and 0211 are defects in shipped code, found
 while reviewing this design. They are named above because they gate two accepted parts, but
 they belong to the bug lane and close on their own terms.
 
 **Before any Ask B part leaves Held**, this record owes an `## Acceptance criteria` section
-in proposal 001's shape: one criterion per submode per type, each naming its fixture file and
+in [proposal 001](./001-md-corpus-rule-coverage.md)'s shape: one criterion per submode per type, each naming its fixture file and
 the substring the assertion keys on — comparison submode, parse-failure path, and selector.
 That is the half `PROPOSALS.md` requires and this submission omitted.
 
@@ -349,7 +349,7 @@ non-vacuity harness in its gates.
   (`packages/mermaid/src/parser/validate-diagram.ts:12`) as the mechanism. The Review found that `validateReferences` has no production caller, and it checks class diagrams
   only (it reads `ast.classes`), so this ask would also need a sequence parser and validator. This
   is the first consumer to ask OQ2's question, for a second diagram kind.
-- **Ask 2 is not in this record or in proposal 003.** Proposal 003's OpenAPI entry binds a spec to
+- **Ask 2 is not in this record or in [proposal 003](./003-future-dialect-candidates.md).** [Proposal 003](./003-future-dialect-candidates.md)'s OpenAPI entry binds a spec to
   route-handler code. This asks for a diagram bound to a spec, two documents and no code. Neither
   side has a dialect: no sequence parser, no OpenAPI reader.
 - **Ask 3 is OQ3's mechanism.** A caller-declared mapping from participant to path is what the
@@ -426,11 +426,11 @@ nothing._
 - **Break class (false red):** a valid fence of each kind the check claims to read passes; the
   plain-Node `DOMPurify` failure above is the row that pins it.
 - **Break class:** the parser cannot be loaded — not installed, or a version it cannot use — is a
-  finding, never a pass and never "zero fences" (ADR-009, ADR-016).
+  finding, never a pass and never "zero fences" ([ADR-009](../../adr/009-agent-first-failure-surfaces.md), [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)).
 - **Break class:** a corpus with no fences fails with the zero-examined finding unless the rule
-  declares it expects none (ADR-010).
+  declares it expects none ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)).
 - **Disclosure:** the parser's version is part of what the check reports, since a different
-  version can read a fence differently (ADR-016 rule 7).
+  version can read a fence differently ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 7).
 - **Non-vacuity:** a fixture row per break class, and one row through this repository's own gate if
   it adopts the check.
 
@@ -464,13 +464,13 @@ contracts, and the record leaves them open:
 
 1. **`mermaid.parse()` is asynchronous; every rule surface in the family is synchronous**
    (measured: it returns a `Promise`; `check()`, `violations()`, `finishPreset` and every preset are
-   synchronous). Either the family gains its first asynchronous rule surface — a change to ADR-014's
+   synchronous). Either the family gains its first asynchronous rule surface — a change to [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
    doors, which is an ADR — or an asynchronous step builds the facts (every fence parsed in one
-   batch) and a synchronous rule reads them, the shape ADR-007 and ADR-013 already set. The architect
+   batch) and a synchronous rule reads them, the shape [ADR-007](../../adr/007-isolate-ast-engine-boundary.md) and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) already set. The architect
    argued for the second; it is the author's to decide.
-2. **Nested fences are not read** (bug 0290, High, fail-open): a fence in a list item or blockquote
+2. **Nested fences are not read** ([bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md), High, fail-open): a fence in a list item or blockquote
    never reaches `MdDocument.codeBlocks`, so "every fence" is false on this repository's own corpus,
-   and the zero-examined guard cannot see it. Ask C is sequenced after bug 0290, or it discloses the
+   and the zero-examined guard cannot see it. Ask C is sequenced after [bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md), or it discloses the
    unread fences beside its count.
 3. **Two parsers would judge one `classDiagram` fence, and they disagree** (measured: of 11
    class-diagram probes, 8 disagree — `mermaid` accepts generics, `namespace`, `note`, `style`,
@@ -478,7 +478,7 @@ contracts, and the record leaves them open:
    this repository's own "unparseable" ER fixture is valid Mermaid). The record must state which
    verdict owns "this fence is valid". The one the evidence implies — Mermaid owns syntax; a fence it
    accepts and eess-mermaid cannot model is a gap in eess, not an error in the document — needs
-   md-mermaid's message to change, which is bug 0409.
+   md-mermaid's message to change, which is [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md).
 4. **Placement and the dependency** are unargued. Not the kernel. `eess-crossvalidate/md-mermaid`
    imports eess-ts, which a parse-only check does not need; eess-mermaid owning the fence loop is
    OQ1's "corpus dialect" branch, already ruled to need an ADR; product argued a smaller shape — eess-md
@@ -488,9 +488,9 @@ contracts, and the record leaves them open:
    `window`, `document`, `DOMParser`, `Element` to `globalThis`; under vitest that reaches the
    adopter's other tests).
 
-   _Update 2026-10-14, on condition 2:_ bug 0290 is fixed — `codeBlocks` holds code blocks at any depth — so that
+   _Update 2026-10-14, on condition 2:_ [bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md) is fixed — `codeBlocks` holds code blocks at any depth — so that
    condition is met. And "3 nested in a list" (in the Survey above) was never true: those three
-   were bug 0290's own reproduction, text inside an outer ` ````text ` fence. Measured
+   were [bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md)'s own reproduction, text inside an outer ` ````text ` fence. Measured
    with mdast over the 438 tracked `.md` files in `work/`, `adr/` and `docs/`: 4 `mermaid` fences
    at the top level, 0 nested.
 
@@ -501,7 +501,7 @@ contracts, and the record leaves them open:
   frontmatter, a one-line and a multi-line directive, a blank lead, and one kind on the Langium
   parser (its error carries the line only in its text), each asserting the exact Markdown line; if
   the line cannot be recovered, the finding says so. Reuse the preamble walk in `declaredKind`
-  (plan 0214), not a third copy.
+  ([plan 0214](../plans/completed/0214-extract-the-diagram-kind-predicate.md)), not a third copy.
 - _Mermaid present, DOM absent._ Under plain Node a labelled flowchart, a `classDiagram`, a
   `stateDiagram-v2` and a `mindmap` fail with `DOMPurify.addHook is not a function`; an unlabelled
   flowchart, a sequence and an ER diagram pass. An exception that is not a parse error is one
@@ -528,7 +528,7 @@ contracts, and the record leaves them open:
 - "So eess does not keep a second grammar per kind that can disagree with it" is false for
   `classDiagram` and `erDiagram`, which eess-mermaid already parses — see condition 3.
 - "The authority GitHub renders with" holds only per version; the criterion above replaces it.
-- ADR-016 governs instruments that run out; a missing peer is ADR-009's (fail closed), and version
+- [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) governs instruments that run out; a missing peer is [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s (fail closed), and version
   disclosure follows from the tier argument above, not from rule 7. Rule 7 fits the nested-fence
   disclosure in condition 2.
 - The empty-corpus criterion reads as a user opt-out the kernel deliberately does not offer
@@ -538,14 +538,14 @@ contracts, and the record leaves them open:
   `:41-42` and `:187-192`.
 
 **Found by this review, filed separately:** md-mermaid tells an author to "fix the diagram syntax"
-for legal Mermaid that eess-mermaid's grammar does not model — a wrong remedy in shipped code (ADR-009
-rule 2), recorded as bug 0409, on its own branch.
+for legal Mermaid that eess-mermaid's grammar does not model — a wrong remedy in shipped code ([ADR-009](../../adr/009-agent-first-failure-surfaces.md)
+rule 2), recorded as [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md), on its own branch.
 
 ### Disposition, Ask C
 
-| ask                                | disposition | owner                                                                                                                                                                                                                                                      |
-| ---------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **C** — every Mermaid fence parses | **Held**    | accepted in principle by all three lenses; held on the four conditions above — the asynchronous shape, bug 0290 or a disclosure, the rule for which parser owns `classDiagram` syntax (with bug 0409), and placement — and on the criteria the record owes |
+| ask                                | disposition | owner                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C** — every Mermaid fence parses | **Held**    | accepted in principle by all three lenses; held on the four conditions above — the asynchronous shape, [bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md) or a disclosure, the rule for which parser owns `classDiagram` syntax (with [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)), and placement — and on the criteria the record owes |
 
 ## Review — 2026-10-14
 
@@ -553,7 +553,7 @@ rule 2), recorded as bug 0409, on its own branch.
 
 Ask C only, re-reviewed by architect, product and enforcement on two pieces of new evidence:
 
-- bug 0290's fix, which will meet condition 2 once PR #204 merges;
+- [bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md)'s fix, which will meet condition 2 once PR #204 merges;
 - [spike 0411](../spikes/0411-can-the-caller-pass-mermaids-parser.md), which measures condition 4.
 
 Asks A1–A3 and B keep their dispositions. The 2026-10-12 criteria stand, and the conditions below add
@@ -566,8 +566,8 @@ review of this record followed, and its corrections are applied here.
 
 - _Exists:_
   - `MdDocument.codeBlocks`, at any depth once #204 merges;
-  - the preamble walk `declaredKind` (`packages/crossvalidate/src/md-mermaid.ts:47` when written), which plan
-    0214 moved to eess-mermaid as `diagramKind` (`packages/mermaid/src/parser/diagram-kind.ts:10`);
+  - the preamble walk `declaredKind` (`packages/crossvalidate/src/md-mermaid.ts:47` when written), which
+    [plan 0214](../plans/completed/0214-extract-the-diagram-kind-predicate.md) moved to eess-mermaid as `diagramKind` (`packages/mermaid/src/parser/diagram-kind.ts:10`);
   - the optional-peer precedent: eess-ts `graphql`, `packages/ts/package.json:112`;
   - `.expectEmpty()` (`packages/core/src/cardinality.ts:37`);
   - the bounded-instrument precedent (`packages/ts/src/core/disk-set.ts`);
@@ -594,14 +594,14 @@ review of this record followed, and its corrections are applied here.
 - _measured_: a reviewer or the spike ran it;
 - _ruled_: argued from the ADRs or from order, with nothing run.
 
-1. **Facts, then a synchronous rule** _(ruled: ADR-010, ADR-013)_.
+1. **Facts, then a synchronous rule** _(ruled: [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md), [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md))_.
    - An async call parses one language's blocks in one batch and returns a fact object.
    - The builder is constructed from that object, so the element set is the parsed set and
      predicates can only narrow it. The adopter's only extra token is one `await`.
    - No rule surface becomes async; a later plan that wants an async `check()` needs an ADR.
    - `examined` counts the blocks of the language the corpus holds. A block with no verdict is an
      instrument finding, never a pass.
-2. **The port takes a batch and names itself** _(ruled: ADR-007's batch-first boundary; measured
+2. **The port takes a batch and names itself** _(ruled: [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s batch-first boundary; measured
    input: about 400 ms per worker cold start, architect)_.
    - The port is `{ name, version, parse(texts) }`, and `parse` may return results or a promise of
      them, so a synchronous parser needs no ceremony.
@@ -609,7 +609,7 @@ review of this record followed, and its corrections are applied here.
    - The success line names the parser: "N mermaid blocks parse with mermaid 11.17.2", never
      "render".
    - The Mermaid parser reads its version from `mermaid`'s own `package.json`.
-3. **Three outcomes, classified by error shape** _(measured: spike 0411; 15 further kinds plus the
+3. **Three outcomes, classified by error shape** _(measured: [spike 0411](../spikes/0411-can-the-caller-pass-mermaids-parser.md); 15 further kinds plus the
    spike's own 4, enforcement)_.
    - The outcomes are `valid`; `invalid`, with message, line where known, and remedy; and
      `unrecognised`, with remedy.
@@ -630,7 +630,7 @@ review of this record followed, and its corrections are applied here.
      themselves.
 5. **The instrument fails once, loudly** _(measured: worker exit, Node exits 13 naming nothing, and a
    parse that hangs, enforcement; missing peer, `ERR_MODULE_NOT_FOUND`, enforcement; the rest ruled:
-   ADR-009, ADR-016)_.
+   [ADR-009](../../adr/009-agent-first-failure-surfaces.md), [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md))_.
    - Each of these is one unsuppressable finding per run, naming its cause, with a remedy that
      clears it:
      - a missing peer, with its install command;
@@ -644,7 +644,7 @@ review of this record followed, and its corrections are applied here.
      - 0.78 s, the 2026-10-12 review, this repository's blocks with fixtures.
    - The worker is terminated on every path.
    - "Once" needs a constant dedupe key when several rules read one failed fact object, which is
-     ADR-016 C3's trap. A script gate that does not go through eess-ts's `check-all` must call
+     [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) C3's trap. A script gate that does not go through eess-ts's `check-all` must call
      `dedupeConfigFindings` itself.
 6. **`unrecognised` is not the author's syntax error** _(measured: empty, directive-only,
    comment-only, misspelt and `zenuml` all throw `UnknownDiagramError`, enforcement and architect)_.
@@ -656,31 +656,31 @@ review of this record followed, and its corrections are applied here.
    architect)_.
    - The parser returns the line counted from the block body, recovered past frontmatter, directives
      and blank lines by the same preamble walk.
-   - So plan 0214's move comes first, or plan B takes it over; there is no third copy.
+   - So [plan 0214](../plans/completed/0214-extract-the-diagram-kind-predicate.md)'s move comes first, or plan B takes it over; there is no third copy.
    - eess-md adds the block's own line.
-8. **The worker is self-contained** _(ruled: ADR-015 teaches `.js` → `.ts` to the host resolver
+8. **The worker is self-contained** _(ruled: [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md) teaches `.js` → `.ts` to the host resolver
    only; host globals measured clean in a plain host, spike)_.
    - It imports only Node built-ins, `mermaid` and `jsdom`; no relative imports.
    - Its first test runs it under vitest, asserting the host's globals before and after, and once
      through the eess-ts CLI loader. If that test fails, the feature does not ship.
-9. **Empty, in order** _(ruled: ADR-010; `.expectEmpty()` is the sanctioned opt-out)_.
+9. **Empty, in order** _(ruled: [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md); `.expectEmpty()` is the sanctioned opt-out)_.
    - No Markdown file loaded outranks everything, `.expectEmpty()` included.
    - Any finding passes through.
    - No block of the language in loaded files is the zero-examined configuration finding, unless
      `.expectEmpty()` is declared.
 10. **The language tag** is matched exactly as `mermaid` _(ruled; superseded 2026-10-15 — see the note at the end)_. A near-miss tag is disclosed as
-    unread beside the count (ADR-016 rule 7). _(Note, 2026-10-15: bug 0423's fix made eess-crossvalidate's
+    unread beside the count ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 7). _(Note, 2026-10-15: [bug 0423](../bugs/fixed/0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md)'s fix made eess-crossvalidate's
     md-mermaid read the tag case-insensitively, so a fence tagged `Mermaid` is read there while eess-md's
     `parseCodeBlocks` reports it as unread. Neither is a false green, but the family has two rules for one
-    tag. Settled at plan 0413's freeze, 2026-10-15: case-insensitive, family-wide; eess-md's side is
+    tag. Settled at [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s freeze, 2026-10-15: case-insensitive, family-wide; eess-md's side is
     [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md).)_
 11. **Tier 1, static** _(measured, enforcement)_. The claim is "parses with mermaid X.Y.Z".
     `parse()` accepts three things that fail at render: a `gantt` task dated `nonsense`, a `journey`
     step with a non-numeric score, and an unclosed `mindmap` root.
 12. **Two checks may judge one `classDiagram` block, on purpose** _(ruled)_. Each names its own
-    parser. Bug 0409 is fixed before or with plan B. Otherwise md-mermaid tells an author to fix
+    parser. [Bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) is fixed before or with plan B. Otherwise md-mermaid tells an author to fix
     syntax that Mermaid accepts.
-13. **A block that is broken on purpose** _(ruled: ADR-018)_, such as an example in a README, is
+13. **A block that is broken on purpose** _(ruled: [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md))_, such as an example in a README, is
     kept out by glob or `.excluding()`. Never by a skip comment, which would be a second exclusion
     mechanism.
 
@@ -691,28 +691,28 @@ review of this record followed, and its corrections are applied here.
   identity defence), 5 (for any parser: budget, a block with no verdict, a thrown parse, dedupe),
   9, 10 and 13. It is tested with stub and in-test parsers, and is useful without Mermaid. Additive,
   eess-md `minor`. Plan A also writes condition 1's invariant where an author of an async surface
-  will find it: one sentence beside ADR-015's loader row.
+  will find it: one sentence beside [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md)'s loader row.
 - **Plan B, eess-mermaid:** the worker-isolated parser behind optional peers. It owns conditions 2
   (the version read), 3, 4 (the canaries), 5 (the worker's own causes: missing peer, exit, version
   range), 6, 7, 8, 11 and 12, plus the conformance test in crossvalidate and the dogfood row.
-  - It comes after bug 0409 and plan 0214, or takes 0214 over.
+  - It comes after [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) and [plan 0214](../plans/completed/0214-extract-the-diagram-kind-predicate.md), or takes 0214 over.
   - Additive, eess-mermaid `minor`; crossvalidate moves with 0409.
   - Its README shows the full install line and the cost: the `npm i mermaid@11 jsdom` tree is about
     180 MB on disk (`du`, spike install), of which `mermaid` is 84 MB and `jsdom` 9 MB.
 
 **Non-vacuity rows owed**, one per break class:
 
-| row                                                                                     | plan |
-| --------------------------------------------------------------------------------------- | ---- |
-| zero blocks without `.expectEmpty()`; no Markdown loaded                                | A    |
-| a parser with no identity                                                               | A    |
-| a parser that hangs (budget); a parser that throws; a batch that drops a block          | A    |
-| a near-miss language tag disclosed _(superseded 2026-10-15: bug 0426)_                  | A    |
-| a syntax error at the exact Markdown line, plus frontmatter, directive, blank-lead rows | B    |
-| the false red: a labelled flowchart passes in the worker                                | B    |
-| a missing peer; a worker that exits early; a version out of range                       | B    |
-| an always-valid stub fails on the canary                                                | B    |
-| empty, directive-only, misspelt and `zenuml`, each with its own remedy                  | B    |
+| row                                                                                                                                                             | plan |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| zero blocks without `.expectEmpty()`; no Markdown loaded                                                                                                        | A    |
+| a parser with no identity                                                                                                                                       | A    |
+| a parser that hangs (budget); a parser that throws; a batch that drops a block                                                                                  | A    |
+| a near-miss language tag disclosed _(superseded 2026-10-15: [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md))_ | A    |
+| a syntax error at the exact Markdown line, plus frontmatter, directive, blank-lead rows                                                                         | B    |
+| the false red: a labelled flowchart passes in the worker                                                                                                        | B    |
+| a missing peer; a worker that exits early; a version out of range                                                                                               | B    |
+| an always-valid stub fails on the canary                                                                                                                        | B    |
+| empty, directive-only, misspelt and `zenuml`, each with its own remedy                                                                                          | B    |
 
 **Dogfood row** (plan B):
 
@@ -735,7 +735,7 @@ review of this record followed, and its corrections are applied here.
   Condition 9 replaces both the criterion and that correction.
 - **"Needs no list of kinds".** That review's claim holds only because condition 6 gives a misspelt
   kind and a not-in-core kind one remedy. Telling them apart would need a list.
-- **Spike 0411.**
+- **[Spike 0411](../spikes/0411-can-the-caller-pass-mermaids-parser.md).**
   - Its harness carried a message-matching classifier that its prose did not disclose.
   - It presented 39 repeated blocks as a corpus count.
   - Its Decision described a forgeable per-block parser.
@@ -756,13 +756,13 @@ review of this record followed, and its corrections are applied here.
 
 ### Disposition, Ask C (2026-10-14)
 
-| ask                                | disposition  | owner                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **C** — every Mermaid fence parses | **Accepted** | [plan 0412](../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) (A, eess-md: the loop, the port and the evidence), then [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) (B, eess-mermaid: Mermaid's own parser in a worker), against conditions 1–13 above. Plan 0412 is Done (built 2026-10-14); plan 0413 is Done (built 2026-10-16); the dogfood gate, plan 0427, is Done (built 2026-10-16). Was `Held` until the plans were drafted after PR #204 merged |
+| ask                                | disposition  | owner                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C** — every Mermaid fence parses | **Accepted** | [plan 0412](../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) (A, eess-md: the loop, the port and the evidence), then [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) (B, eess-mermaid: Mermaid's own parser in a worker), against conditions 1–13 above. [Plan 0412](../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) is Done (built 2026-10-14); [plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md) is Done (built 2026-10-16); the dogfood gate, [plan 0427](../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md), is Done (built 2026-10-16). Was `Held` until the plans were drafted after PR #204 merged |
 
 ### Amendment to conditions 2, 4, 5 and 10 — 2026-10-14, from the plans' review
 
-Method and enforcement reviewed plans 0412 and 0413 against the conditions above. Each found the
+Method and enforcement reviewed [plans 0412](../plans/completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) and 0413 against the conditions above. Each found the
 same two defects, and both were in the conditions themselves, not only in the plans. The plans carry
 the corrected text. This amendment records what changed, so the conditions above are read with it.
 
@@ -793,10 +793,10 @@ the corrected text. This amendment records what changed, so the conditions above
 - **Condition 10.** What counts as a "near-miss" was not defined above. Plan A defines it as equal
   only when case-folded, and makes that its own decision. The zero-examined finding names a near-miss
   that caused it, so the author is sent to the spelling and not to `.expectEmpty()`.
-- **Plan A's ADR-015 sentence moved to the docs.** It would have added a binding clause with no
+- **Plan A's [ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md) sentence moved to the docs.** It would have added a binding clause with no
   mechanism to an Accepted ADR that is about module resolution.
 - **Correction, the install size.** "About 180 MB … (`du`, spike install)" is this review's own
-  measurement. Spike 0411 records no disk figure. Plan B re-measures it.
+  measurement. [Spike 0411](../spikes/0411-can-the-caller-pass-mermaids-parser.md) records no disk figure. Plan B re-measures it.
 - **Also added:**
   - a registry, so a hand-built fact object is refused;
   - validation of each verdict's line, message and remedy;
@@ -805,16 +805,16 @@ the corrected text. This amendment records what changed, so the conditions above
 
 ### Note, 2026-10-15: the tag rule, and plan B's dogfood row
 
-Plan 0413's freeze (PR #217) changed two things ruled above, on its own authority; either can be
+[Plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s freeze (PR #217) changed two things ruled above, on its own authority; either can be
 overruled.
 
 - **Condition 10's tag rule is now case-insensitive, family-wide.** eess-crossvalidate already read the
-  tag that way (bugs 0423, 0424); [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)
+  tag that way ([bugs 0423](../bugs/fixed/0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md), 0424); [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)
   brings `parseCodeBlocks` to the same rule and removes the near-miss disclosure. It was first
   recorded here and in that bug as a matching convention; after the architect review of the first freeze (PR #217) it is
   [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md).
 - **Plan B's dogfood row ("Dogfood is not optional" above) moved, unchanged, to
   [plan 0427](../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md)**, so the parser and the
-  gate are each one reviewable PR. Plan 0413's ledger carried it as a `deferred→plan 0427` box. It
+  gate are each one reviewable PR. [Plan 0413](../plans/completed/0413-eess-mermaid-ships-mermaids-own-parser.md)'s ledger carried it as a `deferred→` box naming [plan 0427](../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md). It
   was delivered on 2026-10-16, changed at the build (the scope is what git sees, and it has six
-  rows); plan 0427 records how.
+  rows); [plan 0427](../plans/completed/0427-this-repository-checks-its-mermaid-blocks-parse.md) records how.

@@ -16,7 +16,7 @@ declares, with `\s+`, so mentions across a soft break are counted.
 1. one join over the union of sources, its left key carrying the source read from where the link
    points, green on correct links to both of two overlapping sources;
 2. red on a crossed link, on a URL no source claims, and on a mention after a word in a link to
-   another record (`[see bug 0002](./0001-a.md)`, the review's one-word stamp);
+   another record (a `see`-then-mention link to another record, the review's one-word stamp);
 3. a fix derived from the same sources, which does not fire on a collision;
 4. a guard that makes an empty mention side red.
 
@@ -33,8 +33,8 @@ declares, with `\s+`, so mentions across a soft break are counted.
   at", `preserveRelations()` comparing the exact target, path or URL, for "points elsewhere". A
   `suggest` lists every source's record for the mention's kind and number.
 - **Which link mentions are judged.** Every mention in a link's text, except one in a **title link**:
-  a link whose text opens with its target record's own number (`[0327 — ADR-011 is written…](./0327-….md)`).
-  This replaces 019's "subject or quoted" rule, which left `[see bug 0002](./0001-a.md)` green.
+  a link whose text opens with its target record's own number (a link to [bug 0327](../bugs/0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md) whose text is that bug's own title, naming an ADR).
+  This replaces 019's "subject or quoted" rule, which left a `see`-then-mention link to another record green.
 - **The fix** is the same sources keyed without the source: a plain mention whose kind and number
   exactly one record in any source holds gets that record's target; two or more is a collision and
   gets none; none names nothing.
@@ -59,8 +59,8 @@ j repository's own URL: [bug 0001](https://github.com/nielspeter/eess/blob/main/
 
 **The fixture: all ten as required.** Green: a, b, f, j. Red, each with its own message: c
 (`relates to "…/0047-y.md" but its record counterpart does not`), d (`has no matching record`, the
-suggestion naming the local and the upstream bug 0046), e (`relates to "work/bugs/0002-b.md"…`), i
-(`no bug 0048 in any source`). Fix: h gets `work/bugs/0002-b.md`; g gets none, "local or upstream".
+suggestion naming 0046 in both the local and the upstream source), e (`relates to "work/bugs/0002-b.md"…`), i
+(the `… in any source` message, naming the mention no source holds). Fix: h gets `work/bugs/0002-b.md`; g gets none, "local or upstream".
 Seven milliseconds.
 
 **This repository, whole corpus:** 6,435 mentions; 1,207 judged links, 5 title links skipped.
@@ -123,7 +123,7 @@ eess-md's (019's review, architect M6, on eess-md fixing a convention).
 Kept, not edited away (PR #256's enforcement and method reviews):
 
 - **The title-link rule is a stampable escape.** It skips a link whose text opens with its target's
-  number, so `[0002 see bug 0001](../work/bugs/0002-b.md)` is green: fixture row e with the target's
+  number, so a crossed link whose text opens with the target's number is green: fixture row e with the target's
   number put in front, the remedy an agent reaches for when a crossed link is red. It checks the
   number only, not the kind. The "no false finding" in finding 5 was measured over 5 skipped links
   and says nothing about abuse. A rule that holds by construction exempts a link only when its text

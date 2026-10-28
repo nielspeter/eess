@@ -55,7 +55,7 @@ The fixture the prototype was checked against, one case per behaviour (records `
 13 split by emphasis: **bug** 0002
 ```
 
-plus a fenced `bug 0002`, and each record mentioning itself in its title and body. All eight red cases
+plus a mention inside a fence, and each record mentioning itself in its title and body. All eight red cases
 (02, 03, 04, 05, 07, 08, 10, 13) were red and nothing else was.
 
 ## 1. Where mentions sit
@@ -76,12 +76,12 @@ plus a fenced `bug 0002`, and each record mentioning itself in its title and bod
 Reference-style links do not occur in either corpus, so a mention inside one can be reported as not
 read ([plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s precedent) at no measured cost. The 8 raw-HTML mentions are all inside HTML
 comments, such as the enforcement-table marker at the foot of each ADR
-(`<!-- eess enforcement-table v1 (plan 0060; … -->`): text no reader sees, so not a reference a
+(`<!-- eess enforcement-table v1 … -->`, which names [plan 0060](../plans/completed/0060-full-coverage-dogfooding.md)): text no reader sees, so not a reference a
 reader could follow.
 
 **Inline code.** Of this repository's 123 mentions touching inline code (the 120 above and 3 split
-by emphasis), 23 are a bare mention (`` `ADR-009` ``), the form 018's review called a stamp. The
-other 100 quote literal text that contains one: a field example (`` `deferred→bug 0421` ``, 37), a
+by emphasis), 23 are a bare mention in backticks, the form 018's review called a stamp. The
+other 100 quote literal text that contains one: a field example (a `deferred→` box naming a bug, 37), a
 path or command (14), a test title (5), or other quoted prose (44). Reading inline code therefore
 costs about a hundred edits here, once; skipping it leaves a one-character escape.
 
@@ -99,7 +99,7 @@ mention names.
 | the target is another file                     | 5                | 2                |
 
 **All seven "another file" cases are false.** Each is a link whose text quotes a title that mentions
-a second record: `[0327 — ADR-011 is written about the kernel…](./0327-….md)` points at bug 0327,
+a second record: a link whose text is its target's own title, naming an ADR, points at [bug 0327](../bugs/0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md),
 correctly. **Not one link in either corpus points at the wrong record today.** A rule that judges
 every mention inside a link's text would be red seven times and right none.
 
@@ -113,7 +113,7 @@ Where a mention sits inside link text:
 
 So a link's **subject** is a mention that is its whole text or opens it, and the subject must name
 the link's target. A mention later in the text is quoted; the link it sits in must still point at
-_a_ record, which closes `[see bug 0338](./README.md)`. Measured with the prototype: 0 findings over
+_a_ record, which closes a link reading `see` plus a mention and pointing at a README. Measured with the prototype: 0 findings over
 this repository's 1,119 subject links (2.5 s for the whole corpus, walk included) and 0 over the
 adopter's 1,861; the quoted rule found 0 here and 2 in the adopter, both links to meeting notes that
 mention plans, which are records or not as that project's selection says.
@@ -128,8 +128,8 @@ already reaches around `correspondence()` to `matchSelections` to write its own 
 
 ## 3. The collision
 
-ts-archunit's records: ADR 001–010, bugs 0001–0080, plans 0000–0106, proposals 001–028. This
-repository: ADR 001–023, bugs from 0074, plans from 0051, proposals 001–018. Every ts-archunit ADR
+ts-archunit's records: ADR 001–010, bug numbers 0001–0080, plan numbers 0000–0106, proposal numbers 001–028. This
+repository: ADR 001–023, bugs from 0074, plans from 0051, proposal numbers 001–018. Every ts-archunit ADR
 and proposal number is also one here.
 
 Of this repository's mentions that name a local record whose key ts-archunit also holds (1,865,
@@ -141,14 +141,14 @@ self-mentions included):
 | linked     | 16 to ts-archunit, 4 local   | 16 local              | 162 local  |
 
 The text alone cannot say which project a plain one means; "ts-archunit nearby" is a hint for a
-reader, never a rule. 110 mentions name a number this repository holds under another kind ("bug
-0066", where 0066 is a plan here); 108 of them name a record ts-archunit holds under the kind
+reader, never a rule. 110 mentions name a number this repository holds under another kind (a "bug" numbered
+0066, where 0066 is a plan here); 108 of them name a record ts-archunit holds under the kind
 written, so a "wrong kind" message would send the author to the wrong fix unless it names the
 external candidate too.
 
 **The collision is not general.** The adopter writes its own bugs and plans with three digits (2,562
 and 1,855 mentions) and ADRs with four (447). Its eleven mentions of this repository's records all
-use four digits (`bug 0278`, `plan 0470`), and the twelfth four-digit match is a year (`BUG 2026`).
+use four digits (its mentions of [bug 0278](../bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md) and [plan 0470](../plans/completed/0470-a-lifted-predicate-carries-its-findings.md)), and the twelfth four-digit match is a year (`BUG` before `2026`).
 Keyed by number alone, declaring this repository as the adopter's external source collides on 1,057
 mentions; told apart by each source's own pattern, on none. The difference is a convention only the
 project knows, which is why the pattern must be the caller's.
@@ -206,7 +206,7 @@ Whether this repository migrates its 1,580 colliding mentions by hand, by a revi
 or by waiving the historical records; and whether frozen records are edited by the migration or
 selected out by the project's own rule. Both are this repository's rule file's, not eess-md's.
 
-## Corrections — 2026-10-21, from proposal 019's review
+## Corrections — 2026-10-21, from [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s review
 
 Kept, not edited away (see [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s
 "Review — 2026-10-21"):
@@ -221,7 +221,7 @@ Kept, not edited away (see [proposal 019](../proposals/019-md-a-mention-is-a-lin
   keys overlap, which the B2 check here hand-wrote, two joins cannot be combined (a correspondence
   is a terminal) and one join over both makes every collision ambiguous; that case was not
   prototyped.
-- **Decision 4's quoted rule** leaves `[see bug 0002](./0001-a.md)` green: a mention later in a link's
+- **Decision 4's quoted rule** leaves a `see`-then-mention link to another record green: a mention later in a link's
   text only needs the link to name some record.
 - **Two figures that do not reconcile, named** (PR #256's method review): the adopter's "number
   alone in a link" is 23 in section 1 and 22 in section 2, because section 1 counts mentions split

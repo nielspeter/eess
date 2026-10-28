@@ -83,7 +83,7 @@ rather than argued:
 
 1. **Report exhaustion, once per project.** ~~The precedent is `emptyProjectViolation` — the
    fault's identity is the walk, not any glob, so one finding rather than one per rule
-   (ADR-009 rule 4).~~ This is the half that fixes the defect, because the defect is silence.
+   ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 4).~~ This is the half that fixes the defect, because the defect is silence.
 
    **Correction, 2026-09-30 — the struck sentence is false.** `emptyProjectViolation` is one
    finding **per rule**: measured, three rules over an empty project give three findings, one
@@ -107,7 +107,7 @@ worth building now.
 
 ## A second number, and it is the sharper one
 
-The full walk reads 50,525 entries in **105.5ms** — **2.09 µs/entry**. Spike 0360, measuring
+The full walk reads 50,525 entries in **105.5ms** — **2.09 µs/entry**. [Spike 0360](./0360-what-the-disk-walk-actually-costs.md), measuring
 differently, got 1.55 µs/entry; the same order, independently derived, which is what makes
 either trustworthy.
 

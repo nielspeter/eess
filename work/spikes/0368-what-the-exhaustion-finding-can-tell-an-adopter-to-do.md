@@ -8,7 +8,7 @@ a report rather than a redesign.
 ## The question
 
 0367 concluded that exhaustion must be **reported**. It did not ask what the report should
-say, and that omission matters more than it looks, because ADR-009 rule 2 is binding:
+say, and that omission matters more than it looks, because [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2 is binding:
 
 > The remedy must be **real**. A message whose stated fix is impossible on the path that
 > produced it is worse than no message: the agent tries it, it fails, and the agent then does
@@ -97,14 +97,14 @@ There **is** an achievable remedy, and it is better than the one 0359 was headin
 
 **What this changes about 0359.** Its `## Fix` currently reads "report exhaustion + raise the
 budget". That is not wrong, but the ordering inverts the measured effect sizes, and it has no
-answer to the ADR-009 rule 2 question at all. The report must name consumers, and the prune list
+answer to the [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2 question at all. The report must name consumers, and the prune list
 is the lever — the budget is the fallback.
 
 ## Result 4 — the "one finding per project" precedent does not exist, and the mechanism that provides it is a different one
 
 **Correcting this spike and its predecessor.** [0367](./0367-must-the-disk-question-walk-the-whole-repo.md)
 ruled that exhaustion should be reported "once per project ... on the `emptyProjectViolation`
-pattern — one walk, one failure, one finding, rather than one per rule", and bug 0359's record
+pattern — one walk, one failure, one finding, rather than one per rule", and [bug 0359](../bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md)'s record
 says the same. **Measured, `emptyProjectViolation` is one finding PER RULE.** Three rules over an
 empty project:
 

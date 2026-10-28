@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phases 1 and 2 built 2026-10-27; lane 3 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1–3 built 2026-10-27/28; lane 4 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -248,6 +248,35 @@ fails the build` and `accepts a repository that extends the base through an inte
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
   reads 4,045 unlinked mentions against 4,418 at the base (96b0461e), both from its summary.
 
+**Lane 3 (Phase 3), built 2026-10-28**, at base d3945424, with `LANE` set to `work/spikes/**` and
+`work/proposals/**` (the commit leaves it empty):
+
+- The instrument found 38 anachronisms on 36 lines in 792 fixes, the Appendix's rows exactly (two
+  lines of [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md) hold two each; one exclusion
+  per line). Lane 2's carried ts-archunit plan 0075, at
+  [proposal 010](../proposals/010-ts-performance-at-scale.md)'s lines 67, 232 and 234, went into
+  `JUDGED_WRONG` before the dry run. The dry run gave 746 fixes and 109 refusals (the table's 111,
+  less two on excluded lines).
+- The judge (Fable; seed 20261028) read the 57 fixes in the ts-archunit range and 20 sampled: 77
+  right. `--apply` wrote the 746.
+- The rest was closed by hand with two agents beside the lane: a proposer (Fable) read each of the
+  148 items in context and proposed an exact edit, and a second judge, which had not seen the
+  proposer's reasoning, read the 29 riskiest of them (11 links in files naming ts-archunit with a
+  number in its range, and the 18 rewordings that call a number ts-archunit's): 29 right, each
+  ts-archunit number pinned by a code comment or a fold-audit row. 142 edits applied in 24 files:
+  80 links, 43 rewordings, 18 to the ts-archunit form, and one example moved into a fence; 15 items
+  were covered by another's edit. One rewording was applied by hand after the fix had linked the first
+  mention it quoted. One quoted code comment,
+  [proposal 002](../proposals/002-comment-embedded-links.md)'s "See …", is now described, not quoted.
+- The five ts-archunit GitHub links in
+  [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) and
+  [spike 0540](../spikes/0540-one-join-over-every-source.md) sit inside ` ```md ` fences of
+  quoted probe input, which no gate reads; they are left as recorded. Decision 1's count of 11, taken
+  by `git grep`, included them.
+- No wrong verdict, so nothing is carried. Closed: with no exclusion left, the dry run over the lane
+  reports no fix and no finding. The gate reads 3,142 unlinked mentions against 4,045 at the base;
+  the skipped count went from 53 to 73 with the lane's edits, and reads 74 with this record's own.
+
 ### Phase 9 — the gate holds zero, and checks the target
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
@@ -366,7 +395,7 @@ document. Every new number was reproduced at 4a43bcc4.
 - [x] Ready (2026-10-27)
 - [x] Phase 1 — the gate's narrowing, proven, and the rule file
 - [x] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
-- [ ] Phase 3 — `work/spikes/`, `work/proposals/` (carried from lane 2: ts-archunit plan 0075 in
+- [x] Phase 3 — `work/spikes/`, `work/proposals/` (carried from lane 2: ts-archunit plan 0075 in
       [proposal 010](../proposals/010-ts-performance-at-scale.md) at lines 67, 232 and 234; the file
       names no ts-archunit, so the judge's read set misses it; the ts-archunit GitHub links in
       [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) (lines 48, 49) and

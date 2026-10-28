@@ -59,11 +59,11 @@ it undercounts, since many records name a symptom rather than the input):
 
 ## What each group already does, and what is missing
 
-**A — already resolve-or-explain.** A dead glob is reported (ADR-010 floor, dead-glob findings,
+**A — already resolve-or-explain.** A dead glob is reported ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) floor, dead-glob findings,
 the disk walk, the route table). The 20 bugs are bugs in that machinery — and the machinery is
 expensive because of **absence rules**: `.notExist()` must be allowed to match nothing,
 because nothing is the point. Resolve-or-refuse cannot apply to them as stated, and the work
-since bug 0355 is how eess tells "nothing because the code is gone" from "nothing because the
+since [bug 0355](../bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md) is how eess tells "nothing because the code is gone" from "nothing because the
 glob is broken". **Removing globs** would remove the main way adopters say where a rule
 applies, break every rule file, and still leave the absence question. Not recommended.
 
@@ -71,7 +71,7 @@ applies, break every rule file, and still leave the absence question. Not recomm
 bugs are edge cases of resolution (0380–0382), not the absence of it.
 
 **D and G — patterns by nature.** A naming convention is meant to match an open set; the guard
-is the ADR-010 floor (a selection that matches nothing is reported). Nothing to resolve.
+is the [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) floor (a selection that matches nothing is reported). Nothing to resolve.
 
 **B — rarely a source of bugs** (one, open). Absence-shaped by nature (`notImportFrom`), like A.
 
@@ -80,15 +80,15 @@ have resolved it — 0295, 0296, 0376 and 0383 this week. Each fix has moved tow
 name to a declaration and following the relation from there. What is still missing is the
 refusal: a name that resolves to **no declaration** — a typo in a selector inside an `.and()`
 chain, a base class that does not exist — is not reported; only a fully empty selection is.
-Resolving needs a fallback for names the checker cannot see (an untyped dependency, bug 0373):
+Resolving needs a fallback for names the checker cannot see (an untyped dependency, [bug 0373](../bugs/0373-an-unresolved-base-ends-the-heritage-walk-silently.md)):
 there the honest answer is to disclose, not refuse.
 
 **E — the one group with no resolution at all.** An exclusion is never checked against
 anything that makes it fail:
 
-- names **nothing** (stale): a stderr warning, which ADR-009 says agents do not read;
-- names **everything** (`/.*/`): silent — bug 0233, the shape measured in production;
-- names **more than it says** (one pattern absorbing several subjects): silent — bug 0298.
+- names **nothing** (stale): a stderr warning, which [ADR-009](../../adr/009-agent-first-failure-surfaces.md) says agents do not read;
+- names **everything** (`/.*/`): silent — [bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md), the shape measured in production;
+- names **more than it says** (one pattern absorbing several subjects): silent — [bug 0298](../bugs/0298-an-exclusion-that-absorbs-several-subjects-says-nothing.md).
 
 Measured on this repo: **0** stale exclusions across `check:arch`, `spec`, `family`, `diagram`,
 `baseline` and `guardrails`; **0** universal patterns in any rule file, preset or doc
@@ -103,18 +103,18 @@ hold for absence rules (A, B) or conventions (D), which match nothing or an open
 It is missing exactly where the bugs say it is missing:
 
 1. **Exclusions (E): resolve against the rule's own violations.** A stale exclusion (matches
-   none) and a universal one (matches a probe it could not have been written for — spike 0385)
+   none) and a universal one (matches a probe it could not have been written for — [spike 0385](./0385-what-makes-an-exclusion-switch-a-rule-off.md))
    are configuration findings, not warnings or silence. A stale exclusion red after its finding
    is fixed is the ratchet closing: the manifesto's "ratchet it closed", enforced. Whether a
    pattern absorbing several subjects must say so stays with 0298.
 2. **Exact names (C): resolve, and refuse what resolves to nothing — disclose what cannot be
    seen.** A name that matches no declaration anywhere the checker can see is a finding; a name
-   behind an unresolvable boundary (an untyped dependency) is disclosed, per ADR-016's "a bound
+   behind an unresolvable boundary (an untyped dependency) is disclosed, per [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s "a bound
    limits knowledge, never the verdict". The relation-walking bugs (0373, 0375, 0377, 0383)
    are the same principle's backlog.
 3. **Path globs (A, B): keep them.** They already resolve or explain; absence rules are why the
    explanation is needed. Their bugs are fixed where they are, not by a new path.
-4. **Patterns that are the rule (D, G): out of scope**; the ADR-010 floor guards them.
+4. **Patterns that are the rule (D, G): out of scope**; the [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) floor guards them.
 
 **Not answered here, and needed before a build:** what (1) and (2) cost adopters — how often a
 real codebase carries stale exclusions, or names a symbol that resolves to nothing on purpose.
@@ -129,7 +129,7 @@ This repo's rule files say "nothing", but they are written by the people who wro
 
 ## Review — 2026-10-05: not ready to rule as drafted
 
-Architecture, product and enforcement review read this spike, spike 0385 and the draft ADR-018.
+Architecture, product and enforcement review read this spike, [spike 0385](./0385-what-makes-an-exclusion-switch-a-rule-off.md) and the draft [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md).
 All three: **do not accept as drafted.** What they found, verified where cheap:
 
 - **The universal probe is weaker than claimed.** It catches a pattern that matches arbitrary
@@ -138,32 +138,32 @@ All three: **do not accept as drafted.** What they found, verified where cheap:
   on a message template (`notImportFrom` words every finding "… which matches forbidden …", so
   `.excluding(/forbidden/)` switches it off), and a string equal to a common element
   (`.excluding('CatchClause')`, recorded in the 0.7 migration notes). The production case in
-  proposal 007 says "a catch-all", not which pattern — calling it universal was an inference.
+  [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md) says "a catch-all", not which pattern — calling it universal was an inference.
   Refusing `/.*/` teaches the next-shortest path.
 - **The stale half reverses a recorded decision.** The kernel's `isFaultPosition`
-  (`packages/core/src/glob-site.ts`) and proposal 006 hold that an exclusion matching nothing is
+  (`packages/core/src/glob-site.ts`) and [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md) hold that an exclusion matching nothing is
   remedy-optional and never a fault, and `silent()` exists for exclusion lists shared across
   workspaces (`docs/recipes.md`). An unsuppressable stale finding with `silent()` exempting
   nothing removes that public API and gives the shared-list recipe no achievable remedy. This
   repo has the shape too: `GENERATED` and `ENTRY_POINTS` are shared by two rules each.
-- **Rule 2 contradicts itself and ADR-016.** `call()`, `newExpr()` and `jsxElement()` are text
+- **Rule 2 contradicts itself and [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md).** `call()`, `newExpr()` and `jsxElement()` are text
   matchers (`packages/ts/src/helpers/matchers.ts`), mostly used in bans — `notContain(call('eval'))`
   — where matching nothing is the goal, the same absence case rule 3 exempts for globs. Position
   and combinator decide whether "matches nothing" is a fault (`or(dead, live)` is a working
   rule), which the kernel's glob-site tree already encodes. "Disclosed, not refused" contradicts
-  ADR-016 clause 1, which bug 0373 names as its standard. And none of the group-C bugs is a case
-  a refusal would have caught: they are relation-walking bugs ADR-017 already decided.
+  [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) clause 1, which [bug 0373](../bugs/0373-an-unresolved-base-ends-the-heritage-walk-silently.md) names as its standard. And none of the group-C bugs is a case
+  a refusal would have caught: they are relation-walking bugs [ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md) already decided.
 - **Group C mixed populations.** Its "8 High of 12" combines symbol references (`extend`,
   `implement`) with text matchers that belong beside group G, so the headline does not stand.
 
-**What survives:** spike 0385's lens — universal, scoped and named exclusions differ by whether
+**What survives:** [spike 0385](./0385-what-makes-an-exclusion-switch-a-rule-off.md)'s lens — universal, scoped and named exclusions differ by whether
 the rule can still fail — and the decision to keep path globs. **What is open is deeper than
 drafted:** no static test separates a switched-off rule from a scoped one in general, because
 `.excluding()` matches free text against element, file _and_ message. The real choice for
 exclusions is between keeping free-text patterns and detecting the obvious catch-alls (with
 gaps), and giving exclusions a structured form that resolves (an exact element or file, checked
 against the rule's violations, with scoping done by resolved `.that()` selectors instead).
-That is the maintainer's to decide; ADR-018 is rewritten after it.
+That is the maintainer's to decide; [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) is rewritten after it.
 
 The full reviews: architecture, product and enforcement, in the session's scratchpad.
 
@@ -199,7 +199,7 @@ Leaving out the three deliberate `/.*/` test fixtures, **80 of the other 83** pa
 The kernel's `not()` and `.satisfy()` work in every dialect; `resideInFolder` exists in eess-ts
 and eess-md and composes with `not()`. eess-mermaid and eess-gherkin have no folders — their
 subjects are diagram nodes and scenarios — so they scope by name, which they already support.
-Moving scope into `.that()` also fixes ADR-010's denominator: the selection shrinks, so
+Moving scope into `.that()` also fixes [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s denominator: the selection shrinks, so
 `examined` counts what the rule actually checks, instead of a pre-exclusion count.
 
 ### 3. Is a violation's `element` something a person can name?
@@ -237,7 +237,7 @@ Tools that faced this converged on the same pieces:
 The research supports the choice. Concretely: _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
 
 1. **Scope moves to `.that()`.** A folder or a naming convention is a selection, resolved like
-   any selector (dead-glob and ADR-010 floor included), and the denominator becomes honest.
+   any selector (dead-glob and [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) floor included), and the denominator becomes honest.
 2. **`.excluding()` takes exact targets** — a file path resolved against the project, or an
    element name — and a target that names nothing real is a finding (this would have caught 0387) _(wrong — 0387 over-matches; superseded below)_. That is resolve-or-refuse, applied where the target set is knowable.
 3. **A regex is an explicit escape carrying a reason**, reported with the finding it waives
@@ -263,7 +263,7 @@ Sources: [eslint-comments no-unlimited-disable](https://eslint-community.github.
 An independent reviewer tried to break the research above. It did, and the
 claims above stand corrected by this section rather than being rewritten:
 
-- **Bug 0387 was backwards.** The probe behind it used `notExist()`, whose `element` is
+- **[Bug 0387](../bugs/0387-a-basename-exclusion-waives-every-file-with-that-name.md) was backwards.** The probe behind it used `notExist()`, whose `element` is
   `'SourceFile'`. The condition the docs pair with `'index.ts'`, `noDeadModules`, reports the
   **basename**, so the documented exclusion matches — and over-matches: it also waives every
   other `index.ts` (measured: an unnamed `src/feature/index.ts` disappears). Fail-open, not
@@ -276,11 +276,11 @@ claims above stand corrected by this section rather than being rewritten:
   with `pathNot` as an alternative. ArchUnit was misquoted and miscast: its guide recommends
   narrowing the `that(..)` clause first, ships `FreezingArchRule` — record existing violations,
   shrink the store as they are fixed — and fails an empty `should` by default
-  (`failOnEmptyShould`), the ADR-010 floor. The ESLint rules cited are a community plugin, not
+  (`failOnEmptyShould`), the [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) floor. The ESLint rules cited are a community plugin, not
   ESLint core.
 - **"Exact targets" do not close 0233.** A real name can still switch a rule off: a **kind**
   (`'CatchClause'`, `'<button>'`), a **container** (a function's name waives every current and
-  future `eval` in it — bugs 0159/0338's identity problem), a **shared name** (`TerminalBuilder`
+  future `eval` in it — [bugs 0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md)/0338's identity problem), a **shared name** (`TerminalBuilder`
   exists in core and ts; this repo's `max-methods` exclusion waives both), or the **only
   target** of a single-target rule (`tsconfig().excluding('strict')` cannot fail — 0233's own
   symptom). A narrow `.that()` scope that selects 1 of 1000 passes the floor, and
@@ -314,7 +314,7 @@ that faced this for longest converged on the second for known violations — Arc
 `FreezingArchRule`, dependency-cruiser's `ignore-known` — and on narrowing the selection for
 scope. eess already has the violation-identity mechanism: the baseline. That reframes the choice:
 
-- **scope** belongs in `.that()`, resolved and counted (the ADR-010 floor, which would need a
+- **scope** belongs in `.that()`, resolved and counted (the [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) floor, which would need a
   "selected far less than the project" signal to catch a narrow scope);
 - **known violations** belong in the baseline, waived by identity and ratcheted closed;
 - `.excluding()` may then have no job left that one of those does not do better — or a small
@@ -322,8 +322,8 @@ scope. eess already has the violation-identity mechanism: the baseline. That ref
 
 **What closes 0233 is therefore not answered here:** exact names, single-target rules and narrow `.that()` scopes all reproduce it, so it needs either a violation-identity waiver or a signal beyond the zero-examined floor.
 
-That depends on violation identity being trustworthy, which is exactly what bugs 0159 and 0338
-say it is not yet — and bug 0388 (a baseline entry forgives the same finding in any file)
+That depends on violation identity being trustworthy, which is exactly what [bugs 0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md) and 0338
+say it is not yet — and [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md) (a baseline entry forgives the same finding in any file)
 widened on 2026-10-05.
 [Plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) builds 0338's
 identity and 0388. It does not settle everything: 0159's collisions 1 and 2 and 0338's

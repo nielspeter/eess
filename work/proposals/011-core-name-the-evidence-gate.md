@@ -2,12 +2,12 @@
 
 **State:** Draft — **what this proposal produces is a decision, not a change**: ask A cannot be evaluated until root-vs-`/internal` is settled (open question 1), so accepting it schedules that decision rather than an implementation. Surveyed against the repo source at the head of `plan-0263-phase-2`; every call site below was enumerated with `grep -rn "report: 'return'" packages/*/src scripts` rather than recalled. No red test written yet; nothing here is a defect, so there may never be one.
 **Priority:** Medium — no false green today. It is a surface-honesty question about a seam that four packages and eight scripts already depend on, which is exactly the kind that gets more expensive to move.
-**Origin:** self-found — raised by the architect lens reviewing PR #118 (plan 0263 Phase 2), which declined the `verdictOf` primitive it had itself proposed in the previous round and named this as the complaint that survives.
+**Origin:** self-found — raised by the architect lens reviewing PR #118 ([plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 2), which declined the `verdictOf` primitive it had itself proposed in the previous round and named this as the complaint that survives.
 **Affects:** `packages/core/src/report.ts` (`withEvidenceGate`, `finishPreset`), `packages/core/src/index.ts` (the root surface), `packages/ts/src/cli/commands/check.ts`, `packages/ts/src/cli/commands/baseline.ts`, `packages/ts/src/core/check-all.ts`, `packages/ts/src/presets/shared.ts`, `packages/core/src/preset-dispatch.ts`, and the three dogfood scripts that use the compound this proposal is about — `scripts/check-corpus.mjs`, `scripts/check-ledger.mjs`, `scripts/check-release.mjs`. (An earlier draft said "eight dogfood scripts", a number no reading of the grep produces: six files directly under `scripts/` contain the string, twelve including `scripts/nonvacuity/`, three contain the compound. It was recalled, in the line claiming derivation — the habit [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md) is about, caught by a method review.)
 
 ## Problem
 
-ADR-014 requires every emitter to refuse a verdict it has no evidence for. The
+[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) requires every emitter to refuse a verdict it has no evidence for. The
 mechanism is one kernel function, `withEvidenceGate`
 (`packages/core/src/report.ts:100`). It is **private** — not exported from the
 root, not from `@nielspeter/eess/internal`.
@@ -27,26 +27,26 @@ finishing a preset. Each is asking one question — _is this receipt evidence of
 anything?_ — through a function whose name answers a different one, in a mode
 chosen to turn off its documented behaviour.
 
-**This is not a bug and nothing is silently green.** ADR-008 is satisfied at
+**This is not a bug and nothing is silently green.** [ADR-008](../../adr/008-caller-owns-reporting.md) is satisfied at
 every site: the caller owns emission, the gate runs before the delivery mode,
 and there is no double render. The complaint is that the intent is unreadable
-at the call site, and that the seam ADR-014 makes load-bearing is reachable
+at the call site, and that the seam [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) makes load-bearing is reachable
 only as a side effect of another function's options object.
 
 ## Existing code survey
 
-| Ask                                               | Finding                                                                                                                                                                                                                                                                                                                      |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A gate primitive on the kernel root               | **Genuinely new as a surface.** The function exists and is tested through its callers; only the export is missing.                                                                                                                                                                                                           |
-| `verdictOf(builders)`, proposed in review round 1 | **Withdrawn by its own author**, and the reason is worth keeping: `verdictOf` is the _merge_ shape, and the merge cannot attribute. PR #118 removed a run-wide merge from the CLI precisely because the finding then named no rule file (bug 0026's seam). A primitive shaped like the thing just deleted is not the answer. |
-| `mergeCollectResults`                             | **Already public**, already the kernel's one merge (ADR-014 §7). It answers bundling, not gating.                                                                                                                                                                                                                            |
-| `collectResult`                                   | **Already public** — the constructor side of the same contract. The gate is its reader, and only one of the two is named.                                                                                                                                                                                                    |
+| Ask                                               | Finding                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A gate primitive on the kernel root               | **Genuinely new as a surface.** The function exists and is tested through its callers; only the export is missing.                                                                                                                                                                                                                       |
+| `verdictOf(builders)`, proposed in review round 1 | **Withdrawn by its own author**, and the reason is worth keeping: `verdictOf` is the _merge_ shape, and the merge cannot attribute. PR #118 removed a run-wide merge from the CLI precisely because the finding then named no rule file (ts-archunit bug 0026's seam). A primitive shaped like the thing just deleted is not the answer. |
+| `mergeCollectResults`                             | **Already public**, already the kernel's one merge ([ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §7). It answers bundling, not gating.                                                                                                                                                                     |
+| `collectResult`                                   | **Already public** — the constructor side of the same contract. The gate is its reader, and only one of the two is named.                                                                                                                                                                                                                |
 
 ## Asks
 
 **A. Export the gate under its own name.** Root or `/internal` is the open
-question; ADR-011 governs that line and this proposal does not settle it. The
-call sites become a statement of intent rather than a mode flag, and ADR-014's
+question; [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) governs that line and this proposal does not settle it. The
+call sites become a statement of intent rather than a mode flag, and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
 mechanism becomes citable by name.
 
 **B. Decide what `finishPreset(x, { report: 'return' })` then means.** If the
@@ -105,12 +105,12 @@ only names it — so the criteria are about the seam not going quietly inert.
 
 These are the author's to settle, and this proposal deliberately does not.
 
-1. **Root or `/internal`?** ADR-011 says the kernel root is public API and
+1. **Root or `/internal`?** [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) says the kernel root is public API and
    family plumbing lives behind `/internal`. The gate is arguably both: adopters
    writing rule files never call it, but the dogfood scripts are not family
    plumbing either.
 2. **Does naming it invite hand-assembly?** A public gate is also a public way
-   to ask "would this pass?" without running anything. Proposal 009's whole
+   to ask "would this pass?" without running anything. [Proposal 009](./009-core-a-verdict-cannot-be-assembled-by-hand.md)'s whole
    subject is that hand-assembled verdicts are the failure mode.
 3. **Is C in scope for A, or its own break?** Tightening `collectViolations`
    moves a break to adopters' compilers without closing the runtime hole for JS
@@ -120,6 +120,6 @@ These are the author's to settle, and this proposal deliberately does not.
 
 - The bundling rule itself (_a door that can attribute gates each member and
   never bundles; a door that cannot, merges_). That is a binding decision about
-  where the merge applies, and it belongs in ADR-014 §7, which is where PR #118
+  where the merge applies, and it belongs in [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §7, which is where PR #118
   writes it — not here.
 - Anything about `doctor`, which is [bug 0268](../bugs/0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md).

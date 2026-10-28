@@ -8,13 +8,13 @@ for a decision, not in code, and the Phase 2 build plan is not written until it 
 _2026-10-20: the Phase 2 build plan is written,
 [plan 0532](../plans/0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), as a Draft
 whose `accepted` and C13 parts are left open for this spike; it does not go Ready until this spike
-has decided (plan 0346, "Notes, 2026-10-20")._
+has decided ([plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md), "Notes, 2026-10-20")._
 
 ## The question
 
-Spike 0394 chose per-file grouping (EP2) and kept the deferred-warning collision guard
+[Spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md) chose per-file grouping (EP2) and kept the deferred-warning collision guard
 (`hasIdentityCollision`, census C13) blind to files, because an `accepted` entry carries no file: a
-guard keyed per file let a copy in a new file arrive already accepted (spike 0394, Review). Its first
+guard keyed per file let a copy in a new file arrive already accepted ([spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md), Review). Its first
 decision 4 then made entries with no file stop matching, which removes that premise. Enforcement
 review found three consequences, reasoned from the code and not measured:
 
@@ -24,9 +24,9 @@ review found three consequences, reasoned from the code and not measured:
   guard deleted.
 - **A file-blind guard gives a false cause.** Under EP2, `a::X` and `b::X` are no longer suffixed,
   but the guard still treats them as one collision, and its advice says the repair assigns a
-  positional suffix, which it no longer does (ADR-009 rule 2).
+  positional suffix, which it no longer does ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2).
 - **The advice for a file-less entry is unsafe.** A "file-qualified replacement" built from where the
-  subject matches now accepts `b` without review on the bug 0388 shape.
+  subject matches now accepts `b` without review on the [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md) shape.
 
 ## What to measure
 
@@ -37,23 +37,23 @@ Under EP2, with the guard keyed blind to files and keyed per file:
 2. The same with file-less entries matching, and with them not matching (the first decision 4).
 3. Which collisions a file-qualified list cannot tell apart, and so which keying the guard needs.
 4. What advice a file-less entry can give that does not accept an unreviewed finding.
-5. One spelling for a file-qualified entry, aligned with bug 0389's `<root:NAME>/path` portable form.
+5. One spelling for a file-qualified entry, aligned with [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s `<root:NAME>/path` portable form.
 
-Each answer is compared against `main` the way spike 0394's review did: no shape may be green where
+Each answer is compared against `main` the way [spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md)'s review did: no shape may be green where
 `main` is red, and every escalation must state its true cause.
 Each option is also costed for adopters: `accepted` lives in rule source, so `--migrate` cannot
 rewrite it, and an option that breaks existing lists needs a recipe for editing them by hand.
 
 ## Who decides
 
-The coordinating agent, under the delegation recorded in spike 0394's Decision, unless an option
+The coordinating agent, under the delegation recorded in [spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision, unless an option
 accepts a risk on adopters' behalf; that goes to the maintainer. Two outcomes go back to the
 maintainer by rule:
 
-- no C13 keying is both no greener than `main` and free of false causes under EP2: spike 0394's
+- no C13 keying is both no greener than `main` and free of false causes under EP2: [spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md)'s
   decision 1 is reopened;
-- any measurement here contradicts EP2: the question returns to spike 0394.
+- any measurement here contradicts EP2: the question returns to [spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md).
 
 ## Out of scope
 
-Everything spike 0394 decided: per-file grouping, the no-root rule, the integration branch.
+Everything [spike 0394](./0394-the-phase-2-design-for-a-file-aware-baseline.md) decided: per-file grouping, the no-root rule, the integration branch.

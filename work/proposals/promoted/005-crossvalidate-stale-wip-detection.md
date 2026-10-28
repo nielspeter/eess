@@ -231,7 +231,7 @@ the evidence suggests it'd be).
 
 Not plan-ready, second time. The Rewrite's placement argument was
 factually wrong, and its non-vacuity plan silently regressed to the exact
-fixture tier bug 0127 — closed hours earlier in this same session — fixed
+fixture tier [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) — closed hours earlier in this same session — fixed
 away from. Requested and run at reduced scope (architect + enforcement
 only; product's round-1 concerns were the most resolved by the spike
 evidence). Everything from here through the end of the old _Rewrite_ section
@@ -275,7 +275,7 @@ packages/crossvalidate/src/*.ts` returns 0 for `gherkin-ts.ts`,
   `correspondence()`, and the direct path doesn't need a join at all — a
   `Set.has()` check does the job `citedScenarioKeys()` already sets up.
 - **The non-vacuity plan modeled the fixture on `bad-gherkin-ts.mjs` — the
-  exact tier bug 0127 converted `corpus/links`/`corpus/pointers` away from,
+  exact tier [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) converted `corpus/links`/`corpus/pointers` away from,
   in the PR that closed hours before this review.** `bad-gherkin-ts.mjs` is
   named in [0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
   as a fixture that proves its own rebuilt condition fires, never that the
@@ -385,7 +385,7 @@ NUL-byte-defeated grep got wrong, and a corrected justification still called
 for a different name); no `suggestion`/citation-site on the violation (three
 independent findings across the three reviewers); and the `scenariosCovered`
 call this proposal must edit having zero non-vacuity coverage of its own —
-folded into this plan's scope rather than deferred to bug 0112, per two
+folded into this plan's scope rather than deferred to [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md), per two
 reviewers' independent conclusion that the edit is what makes that gap
 load-bearing.
 
@@ -446,7 +446,7 @@ independently by two reviewers, from different angles:**
   need to see it.
 - The cited precedent (`crossval`/`crossval/gherkin-ts`/`crossval/md-ts`) is
   the tier this repo's own harness docstring names as "one tier weaker" —
-  the exact class bug 0127 converted `corpus/links`/`corpus/pointers` away
+  the exact class [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) converted `corpus/links`/`corpus/pointers` away
   from. The strong-tier precedent already exists in this repo
   (`bad-release-e2e.mjs`) and was not the one cited.
 - Wired as specified, the production gate's own denominator (`exempt
@@ -457,7 +457,7 @@ scenarios evaluated`) would be **structurally zero forever**: the real
   unasserted count does not close this — round 1 already rejected "a stats
   function a caller must remember to eyeball" as the answer, for the same
   reason.
-- `mustSay` keyed on the rendered rule sentence is bug 0110's pre-fix shape,
+- `mustSay` keyed on the rendered rule sentence is [bug 0110](../../bugs/fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s pre-fix shape,
   re-derived one bug later — this repo's own `check-baseline.mjs` solved the
   identical "no `--format json`" problem by adding the flag, not by keying
   on prose.
@@ -594,7 +594,7 @@ throwaway git repository via `EESS_RELEASE_BASE`) rather than the `crossval/*`
 rows' weaker tier:
 
 1. **Add `--format json` to `scripts/check-crossval.mjs`**, matching
-   `check-corpus.mjs`/`check-baseline.mjs` (bug 0110's precedent: `gateBaseline`
+   `check-corpus.mjs`/`check-baseline.mjs` ([bug 0110](../../bugs/fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s precedent: `gateBaseline`
    dropped its prose-matching `mustSay` the moment the script gained the flag).
    `finishPreset` already threads `format` through `reportViolations` — no
    restructuring, one `{ format }` argument at each preset call the script
@@ -625,7 +625,7 @@ rows' weaker tier:
    `.spec.ts` whose `it()` title cites it; run `node scripts/check-crossval.mjs
 --format json` with the override set; assert `firedOn(r,
 'crossval/scenario-exemption-stale', …)` **and** a bare-terminal run's exit
-   code, the two-run pattern bug 0127 established. A second scenario (no
+   code, the two-run pattern [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) established. A second scenario (no
    citing test) proves the negative: the same gate must NOT fire when the
    exemption is genuinely still in force.
 4. **The production denominator is fixed by committing one real, honestly
@@ -695,13 +695,13 @@ rows' weaker tier:
   undocumented — the gap the proposal's own Origin fell into) alongside the
   new export, not just the new export alone.
 - `packages/crossvalidate/specs/scenario-binding.feature` — one new,
-  genuinely-unbuilt `@wip` scenario (plan 0079's Tier-2 gap).
+  genuinely-unbuilt `@wip` scenario ([plan 0079](../../plans/0079-tier-2-3-mechanization.md)'s Tier-2 gap).
 - `scripts/check-crossval.mjs` — `--format json`; `EESS_CROSSVAL_GHERKIN_ROOT`
   override; the new `include` on `scenariosCovered`'s call plus its corrected
   denominator print; the new `scenarioExemptionsCurrent` gate call.
 - `scripts/nonvacuity/bad-crossval-gherkin-e2e.mjs` (new) plus
   `scripts/nonvacuity/bad-gherkin-ts.mjs`-adjacent fixture for
-  `scenariosCovered` (closes one of bug 0112's three rows).
+  `scenariosCovered` (closes one of [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)'s three rows).
 - `scripts/check-nonvacuity.mjs` — new gate rows, `GATE_FOR` entries, header
   docblock update (all four registration sites, per this round's own
   correction).
@@ -861,7 +861,7 @@ in `exclusion-comments.ts` remains a separate, larger, not-needed-here idea
 if this family ever wants per-violation Gherkin suppression for other
 reasons.
 
-### Non-vacuity (revised — driven by the production script, not the tier bug 0127 just retired)
+### Non-vacuity (revised — driven by the production script, not the tier [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) just retired)
 
 The first pass modeled its fixture on `bad-gherkin-ts.mjs` — a rebuild-tier
 fixture that proves its own condition fires over a hand-built corpus, never
@@ -880,7 +880,7 @@ Corrected:
   `scripts/check-crossval.mjs` actually scans, and runs `node
 scripts/check-crossval.mjs` itself — not a private re-invocation of
   `staleScenarioExemptions`. `check-crossval.mjs` has no `--format json`
-  (unlike `check-corpus.mjs`, which bug 0127's fix could lean on), so the
+  (unlike `check-corpus.mjs`, which [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s fix could lean on), so the
   fixture asserts on **exit code plus printed output** — the `gateNode`
   pattern already used for `crossval`/`crossval/gherkin-ts`/`crossval/md-ts`
   in `scripts/check-nonvacuity.mjs`, not the `--format json`
@@ -1023,8 +1023,8 @@ structural argument — `gherkin-ts.ts` is the only crossvalidate module not
 routing through `correspondence()`; this fixes that, and the primitive
 generalizes to `md`/`ts`/`mermaid` for free, now spike-validated as cheap),
 **and ship the capability itself as a new export** in `gherkin-ts`
-(architect's ADR-006/`finishPreset`/`ruleId` argument still holds — a new
-rule needs its own rationale and remedy, matching plan 0080's own precedent).
+(architect's [ADR-006](../../../adr/006-framework-rules-architecture.md)/`finishPreset`/`ruleId` argument still holds — a new
+rule needs its own rationale and remedy, matching [plan 0080](../../plans/completed/0080-gherkin-ts-crossvalidation.md)'s own precedent).
 The new export builds its `Selection`s from data `gherkin-ts.ts` already
 computes internally (`itTitles()`, `resolveFeature()`), which is where
 product's "don't scan twice" concern actually gets satisfied — at the

@@ -1,4 +1,4 @@
-# Spike 0002: Fold delta — ts-archunit → eess (plan 0088 Phase 1)
+# Spike 0002: Fold delta — ts-archunit → eess ([plan 0088](../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 1)
 
 Measured 2026-08-14 against `ts-archunit` commit `b4084c9` (`package.json`
 version **0.61.0**) at `/Users/nps/Documents/Projects/NielsPeter/ts-archunit`.
@@ -81,7 +81,7 @@ Phase 4's real engine-fold effort concentrates.
 `rule-builder-like` `selection-memo` `shallow-clone` `stderr` `type-guards`
 `unsuppressable`
 
-This is the honest-gate machinery ADR-009/010 describe, built after the fork
+This is the honest-gate machinery [ADR-009](../../adr/009-agent-first-failure-surfaces.md) and [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) describe, built after the fork
 — confirms the plan's Problem section: "the doctrine is missing" is a file-level
 fact, not just a prose claim.
 
@@ -97,7 +97,7 @@ spike, re-derivable from the method above); heaviest single-file deltas:
 ## Bucket C — already-in-eess / superseded
 
 Not separately re-derived this pass — `check-all.ts` (superseded by
-`finishPreset`, per the plan and prior plan 0081) is the one the plan names by
+`finishPreset`, per the plan and prior [plan 0081](../plans/0081-port-checkall.md)) is the one the plan names by
 example; confirmed present in ts-archunit's never-received list above (it never
 needed porting, by design).
 
@@ -145,7 +145,7 @@ plus `cache-registry.ts`, `descendant-cache.ts`, `element-cache.ts`,
 This is the concrete list Phase 4's "must classify which kernel-bound files
 actually import ts-morph, and re-express them behind an engine-neutral seam"
 requirement operates over. It is not a small tail: **more than a third** of
-the kernel-bound candidate set needs the `ArchProject`-seam treatment (ADR-007
+the kernel-bound candidate set needs the `ArchProject`-seam treatment ([ADR-007](../../adr/007-isolate-ast-engine-boundary.md)
 Rule 1 shape) before it can land in `packages/core`, which must stay
 ts-morph-free (verified this pass: `packages/core/package.json` still declares
 no `dependencies`).

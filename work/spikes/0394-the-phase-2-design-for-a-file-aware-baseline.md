@@ -10,7 +10,7 @@ back for a decision, not in code. The decision was delegated and is recorded und
 
 The maintainer decided on 2026-10-06 that the baseline matcher checks the file each entry records
 ([bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md),
-[spike 0390](./0390-a-or-e-where-the-file-enters-a-findings-identity.md)). Plan 0346 left five
+[spike 0390](./0390-a-or-e-where-the-file-enters-a-findings-identity.md)). [Plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) left five
 questions open, and this spike answers them:
 
 1. **Grouping.** Leave `disambiguateIdentities`' grouping as it is (E0), or group per file (E+).
@@ -61,12 +61,12 @@ the kernel:
 
 **Above the baseline, keyed by subject:**
 
-| #   | consumer                                                       | note                                                              |
-| --- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
-| C16 | a deferred warning's `accepted` list (bug 0389's `isAccepted`) | raw or portable subject; a subject without a path carries no file |
-| C17 | `check-all`, the CLI `check`, both `execute-rule` paths        | call `filterNew`; inherit C1                                      |
-| C18 | the CLI `baseline` command                                     | prints C7                                                         |
-| C19 | plan 0346's Phase 3 migration join                             | not built; joins on what C1 defines                               |
+| #   | consumer                                                                                                                                          | note                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| C16 | a deferred warning's `accepted` list ([bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s `isAccepted`) | raw or portable subject; a subject without a path carries no file |
+| C17 | `check-all`, the CLI `check`, both `execute-rule` paths                                                                                           | call `filterNew`; inherit C1                                      |
+| C18 | the CLI `baseline` command                                                                                                                        | prints C7                                                         |
+| C19 | [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 3 migration join                                             | not built; joins on what C1 defines                               |
 
 Three facts this list makes plain:
 
@@ -76,9 +76,9 @@ Three facts this list makes plain:
   file lets copies in new files arrive already accepted (Review, below). Also missed at first: the
   suffix reservation inside `disambiguateIdentities` (C12a), and the public `Baseline.size` (C8a),
   which undercounts once two entries can share a hash.
-- **An `accepted` list has bug 0388's hole too.** A subject without a path (`element::message`)
+- **An `accepted` list has [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s hole too.** A subject without a path (`element::message`)
   carries no file, so an entry for it forgives the same finding in another file, raw or portable.
-  Bug 0389 did not change that; it is the same class as 0388 and belongs to this phase.
+  [Bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) did not change that; it is the same class as 0388 and belongs to this phase.
 - **Sibling dialects never disambiguate** (C15), so for them two findings with one subject in one
   file already share an entry. That is [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)'s.
 
@@ -136,7 +136,7 @@ enforcement review re-ran both with the same result.
 
 R13's note text comes from Appendix D (the harness logs only its first 50 characters). **On the
 0388 case that note is wrong twice:** its first listed cause is "you upgraded", which is false here
-(ADR-009 rule 2), and its remedy is to regenerate, which forgives `b` without review. An agent
+([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2), and its remedy is to regenerate, which forgives `b` without review. An agent
 following its `Fix:` line undoes the check, so the note must change in the same build. R14 shows
 `warn` for a list that holds the subject; an unaccepted subject escalates to `error`
 (`packages/ts/src/core/terminal-builder.ts:437-439`), but no control row was run.
@@ -170,7 +170,7 @@ here with that source, and the probes are not appended.
 - **`rediscover` is not strictly fail-closed.** With the author's root at `r`, the baseline at
   `r/pkg/b.json`, and `r/pkg` later given its own `.git`, EP2 does two things at once: it reports the
   unchanged finding at its recorded path and forgives a new one at `pkg/src/a/x.ts`. `main` forgives
-  the new one too (bug 0388) and does not false-red the unchanged one. A kernel-written baseline read from a subdirectory records `../src/a.ts` and false-reds
+  the new one too ([bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)) and does not false-red the unchanged one. A kernel-written baseline read from a subdirectory records `../src/a.ts` and false-reds
   unchanged code (1 finding under EP2, 0 on `main`). R11 put the baseline at the repository root,
   the one place both path conventions agree.
 - **The attribution prototype gives a false cause** on two of five harder shapes (a clean new file at
@@ -226,7 +226,7 @@ metric identities carry the path.
    re-keyed: C3, C5, C7, C10, C12, C12a. Reasoned, not measured: C4, C6, C8a. C14 still reports a
    subject in its old form under EP2 (enforcement review), and now sees fewer collisions, because
    collisions across files no longer occur.
-3. **A baseline with no recorded root:** `off` keeps bug 0388 open for those baselines, `none`
+3. **A baseline with no recorded root:** `off` keeps [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md) open for those baselines, `none`
    reports even unchanged code, and `rediscover` is exact when the root agrees and, when it does
    not, can both false-red and forgive (Review). Not measured: a v1 file, and `options.root` under
    E0.
@@ -239,18 +239,18 @@ metric identities carry the path.
 
 Three more things the Phase 2 build must carry:
 
-- **An `accepted` list keeps bug 0388's hole** (R14), under every variant. New lists can close it with a
+- **An `accepted` list keeps [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s hole** (R14), under every variant. New lists can close it with a
   file-qualified advice form. A raw entry with no file cannot be checked against a file at all.
 - **The `ArchViolation.identity` contract changes.** It says an identity is "unique per finding
   within a rule" (`packages/core/src/violation.ts:79-80`). Under EP2 it is unique per rule and file:
   `X#1` can appear in both `a.ts` and `b.ts`. Sibling dialects (C15) never add suffixes, so for them
   the per-rule form already implies the per-file one; the field can carry one meaning.
-- **Per-file grouping moves the entries today's code suffixed across files**, so it ships with plan
-  0346's Phase 3 migration. Without the migration EP2 fails closed (none greener in the 2,916 cases
+- **Per-file grouping moves the entries today's code suffixed across files**, so it ships with
+  [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 3 migration. Without the migration EP2 fails closed (none greener in the 2,916 cases
   where `main` wrote the baseline, by review's count; the false reds on upgrade are reasoned from
   the moved entries), but those false reds arrive with
   R13's note telling the adopter to regenerate, which forgives without review. That contradicted
-  plan 0346's split as written on 2026-10-06, which shipped the Phase 2 build before the
+  [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s split as written on 2026-10-06, which shipped the Phase 2 build before the
   migration; decision 3 supersedes it.
 
 ## Decision
@@ -267,9 +267,9 @@ conversation, and they answered "ok". The bullets below summarise that account a
 
 - **Who has one.** Every baseline eess-ts writes records its root
   (`packages/ts/src/helpers/baseline.ts:441`). A rootless file is a v1 file from ts-archunit
-  before its bug 0010 fix, a kernel-written file read by eess-ts, or one written by hand.
+  before ts-archunit's bug 0010 fix, a kernel-written file read by eess-ts, or one written by hand.
 - **The release already asks the same of everyone.** Phase 1 bumps `HASH_VERSION`, and `check`
-  against an older baseline reports one finding saying to run `--migrate` (plan 0346, Phase 3).
+  against an older baseline reports one finding saying to run `--migrate` ([plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md), Phase 3).
   Decision 2 puts rootless files on that same path; it adds no new kind of upgrade cost.
 - **What is left** is `--migrate` guessing a root. It prints the root it assumed and reports
   entries that do not resolve under it, so a wrong guess gives more red, not less.
@@ -277,7 +277,7 @@ conversation, and they answered "ok". The bullets below summarise that account a
 **Corrections, found by method review on 2026-10-07 after the acceptance** and reported to the
 maintainer:
 
-- **The phase.** The `HASH_VERSION` bump is in Phase 3, not Phase 1 (plan 0346, Phase 3). The two
+- **The phase.** The `HASH_VERSION` bump is in Phase 3, not Phase 1 ([plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md), Phase 3). The two
   ship together as one record, so the point stands.
 - **`--migrate` is not built.** Printing the assumed root and reporting unresolved entries are
   requirements of decision 2 ("must"), not existing behaviour.
@@ -293,15 +293,15 @@ maintainer:
    census item except C13 keyed by `(hash, file)`. **How the collision guard (C13) is keyed is not
    decided here**; it depends on decision 4. EP2 is the only variant that is exact on both edit
    rows. In review's comparisons it never forgave a finding `main` reported, except in two
-   hand-built metric shapes, where it was the more correct of the two. If spike 0395 finds no C13
+   hand-built metric shapes, where it was the more correct of the two. If [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) finds no C13
    keying that is both no greener than `main` and free of false causes under EP2, this decision
    goes back to the maintainer.
 2. **An eess-ts baseline with no recorded root matches nothing.**
    - **The finding.** The run reports one finding per baseline, not one per entry. It is an
      `error`, it cannot be suppressed, and filters do not drop it: no regenerate records it, and
-     neither `.excluding()` nor `--changed` drops it (ADR-016: one finding per instrument
+     neither `.excluding()` nor `--changed` drops it ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md): one finding per instrument
      failure). It names the baseline and says to run `--migrate`.
-   - **Why `none`.** `off` keeps bug 0388 open. `rediscover` can false-red and, like `main`,
+   - **Why `none`.** `off` keeps [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md) open. `rediscover` can false-red and, like `main`,
      forgive (Review). `none` cannot forgive.
    - **Scope: eess-ts's baseline format only.** The kernel's baseline (C9) records no root, and its
      file check does not need one, because it will compare `file` relative to the baseline's own
@@ -359,13 +359,13 @@ maintainer:
      file-less entry left matching, the C13 pin named in the first version (the swap test) builds
      its list from file-less subjects, so it stays green with C13 deleted. A file-blind C13 would
      also escalate `a::X` and `b::X` with advice about positional suffixes, which no longer exist
-     under EP2: a false cause (ADR-009 rule 2).
+     under EP2: a false cause ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2).
    - **The advice was unsafe as well.** It printed a "file-qualified replacement" built from where
      the subject matches now. On the 0388 shape, that accepts `b` without review, which is the
      remedy R13 is rejected for.
-   - **What spike 0395 measures:** under EP2, in both C13 keyings, file-qualified lists, with and
+   - **What [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) measures:** under EP2, in both C13 keyings, file-qualified lists, with and
      without decision 4, on EP's Critical shapes. It also settles one spelling for a
-     file-qualified entry, aligned with bug 0389's `<root:NAME>/path` portable form.
+     file-qualified entry, aligned with [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s `<root:NAME>/path` portable form.
 
 **One behaviour for the 0388 case.** A finding whose hash an entry holds for another file is not a
 match: the file check says so, and the "matched nothing" count (C6) does not count it. The
@@ -380,27 +380,27 @@ CI shows only that they pass. Census items C2, C8 and C11 have no row of their o
 is read only through C5 and C6, C8 (loading) through every row, and C11 (kernel
 `generateBaseline`) through R1's kernel half.
 
-| mechanism                             | the test that must go red                                                                                                                                                                                                                                                                                         |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the file check (C1, C9)               | R1's six cross-file cases, in both baselines                                                                                                                                                                                                                                                                      |
-| the per-file reservation (C12a)       | `it('a generated suffix never lands on a subject a producer already emits')`, rewritten to three colliding findings in one file; `taken.add` deleted                                                                                                                                                              |
-| per-file grouping (C12)               | R3 and R4: `b` stays forgiven when `a` is fixed, and only the new finding is reported                                                                                                                                                                                                                             |
-| per-file ceilings (C3, C10)           | R5's shape, with the map reverted to hash keys                                                                                                                                                                                                                                                                    |
-| the stale-measurement diagnosis (C4)  | `a`'s own change of unit is reported stale, and `b`, which shares its hash, is not                                                                                                                                                                                                                                |
-| the description-change diagnosis (C5) | the same subject in two files, one renamed: only that one is diagnosed                                                                                                                                                                                                                                            |
-| the "matched nothing" note (C6)       | R13's shape: that note does not fire; with every entry stale and no hash hit anywhere, it does                                                                                                                                                                                                                    |
-| the regenerate summary (C7)           | R7: `+1`, not `+0`                                                                                                                                                                                                                                                                                                |
-| `Baseline.size` (C8a)                 | two entries sharing a hash count as two                                                                                                                                                                                                                                                                           |
-| C14's subject                         | a same-file collision is reported with the subject it is grouped on                                                                                                                                                                                                                                               |
-| the no-root rule                      | a rootless baseline, unchanged code, at least two entries: no entry matches, and exactly one `error` names `--migrate`; it survives `.excluding()` and `--changed`, `generateBaseline` does not record it, and two rootless baselines give two                                                                    |
-| the note on the 0388 case             | R13's shape: a note is present, names the recorded file and the current one, and neither lists "you upgraded" nor advises regenerating                                                                                                                                                                            |
-| the attribution                       | on the three plain shapes an attribution is present; review's two false-cause shapes now give the true cause; each finding gets exactly one cause; under `--changed` or `.excluding()` a file that was not examined is called that, not "fixed"; each attribution's remedy, applied, clears the finding (ADR-009) |
-| C13, once spike 0395 decides          | named by spike 0395                                                                                                                                                                                                                                                                                               |
+| mechanism                                                                                                    | the test that must go red                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| the file check (C1, C9)                                                                                      | R1's six cross-file cases, in both baselines                                                                                                                                                                                                                                                                                                                       |
+| the per-file reservation (C12a)                                                                              | `it('a generated suffix never lands on a subject a producer already emits')`, rewritten to three colliding findings in one file; `taken.add` deleted                                                                                                                                                                                                               |
+| per-file grouping (C12)                                                                                      | R3 and R4: `b` stays forgiven when `a` is fixed, and only the new finding is reported                                                                                                                                                                                                                                                                              |
+| per-file ceilings (C3, C10)                                                                                  | R5's shape, with the map reverted to hash keys                                                                                                                                                                                                                                                                                                                     |
+| the stale-measurement diagnosis (C4)                                                                         | `a`'s own change of unit is reported stale, and `b`, which shares its hash, is not                                                                                                                                                                                                                                                                                 |
+| the description-change diagnosis (C5)                                                                        | the same subject in two files, one renamed: only that one is diagnosed                                                                                                                                                                                                                                                                                             |
+| the "matched nothing" note (C6)                                                                              | R13's shape: that note does not fire; with every entry stale and no hash hit anywhere, it does                                                                                                                                                                                                                                                                     |
+| the regenerate summary (C7)                                                                                  | R7: `+1`, not `+0`                                                                                                                                                                                                                                                                                                                                                 |
+| `Baseline.size` (C8a)                                                                                        | two entries sharing a hash count as two                                                                                                                                                                                                                                                                                                                            |
+| C14's subject                                                                                                | a same-file collision is reported with the subject it is grouped on                                                                                                                                                                                                                                                                                                |
+| the no-root rule                                                                                             | a rootless baseline, unchanged code, at least two entries: no entry matches, and exactly one `error` names `--migrate`; it survives `.excluding()` and `--changed`, `generateBaseline` does not record it, and two rootless baselines give two                                                                                                                     |
+| the note on the 0388 case                                                                                    | R13's shape: a note is present, names the recorded file and the current one, and neither lists "you upgraded" nor advises regenerating                                                                                                                                                                                                                             |
+| the attribution                                                                                              | on the three plain shapes an attribution is present; review's two false-cause shapes now give the true cause; each finding gets exactly one cause; under `--changed` or `.excluding()` a file that was not examined is called that, not "fixed"; each attribution's remedy, applied, clears the finding ([ADR-009](../../adr/009-agent-first-failure-surfaces.md)) |
+| C13, once [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) decides | named by [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md)                                                                                                                                                                                                                                                                |
 
 The build also rewrites three docstrings that EP2 makes false:
 
 - **`hasIdentityCollision`** (`packages/ts/src/core/terminal-builder.ts:92`). It says the guard uses
-  the grouping key `disambiguateIdentities()` groups on. Its new text waits for spike 0395.
+  the grouping key `disambiguateIdentities()` groups on. Its new text waits for [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md).
 - **`disambiguateIdentities`'s "theorem"** that no existing baseline entry moves
   (`packages/core/src/violation.ts:280-284`). Under EP2, entries that today's code suffixed across
   files move.
@@ -413,24 +413,24 @@ already use `/`, and a file written on Windows then matches on any machine. The 
 measured by the build.
 
 **What breaks, and in which package.** On `0.x` a break is a `minor`, marked `**Breaking**`. A
-break in a package others depend on names those packages (bugs 0184, 0185). The changesets' text
-is not frozen until spike 0395 rules.
+break in a package others depend on names those packages ([bugs 0184](../bugs/fixed/0184-nothing-checks-that-a-breaking-changeset-bumps-minor.md), 0185). The changesets' text
+is not frozen until [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) rules.
 
-| package               | breaks                                                                                                                                                                                                                                                         | names                                                                                                                                                                                   |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@nielspeter/eess`    | the kernel baseline stops forgiving a finding in another file; `disambiguateIdentities` groups per file; `identity` may repeat across files for one rule, which a reader keying on `rule + identity` sees; `Baseline.size` counts entries, not distinct hashes | `eess-ts`, `eess-mermaid`, `eess-md`, `eess-gherkin` and `eess-crossvalidate`, each with "unchanged unless you pass a baseline to `check`, or use the kernel's `withBaseline` directly" |
-| `@nielspeter/eess-ts` | cross-file forgiveness stops; entries suffixed across files move (`--migrate` carries them); a rootless baseline matches nothing; `Baseline.size` as above; and whatever spike 0395 decides for `accepted`                                                     | —                                                                                                                                                                                       |
+| package               | breaks                                                                                                                                                                                                                                                                                     | names                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@nielspeter/eess`    | the kernel baseline stops forgiving a finding in another file; `disambiguateIdentities` groups per file; `identity` may repeat across files for one rule, which a reader keying on `rule + identity` sees; `Baseline.size` counts entries, not distinct hashes                             | `eess-ts`, `eess-mermaid`, `eess-md`, `eess-gherkin` and `eess-crossvalidate`, each with "unchanged unless you pass a baseline to `check`, or use the kernel's `withBaseline` directly" |
+| `@nielspeter/eess-ts` | cross-file forgiveness stops; entries suffixed across files move (`--migrate` carries them); a rootless baseline matches nothing; `Baseline.size` as above; and whatever [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) decides for `accepted` | —                                                                                                                                                                                       |
 
 With the release train's other breaking changesets, the release reaches `RELEASING.md`'s threshold
 of three breaking changesets. It therefore carries a migration page covering `--migrate`, rootless
-baselines and `accepted`, which belongs to the migration's record. If spike 0395 keeps file-less
+baselines and `accepted`, which belongs to the migration's record. If [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) keeps file-less
 entries from matching, the page also needs a recipe for editing rule source, since `accepted`
 lives there and `--migrate` cannot reach it. No README documents `accepted`
 today; only the `asSeverity` TSDoc does (`packages/ts/src/core/terminal-builder.ts:447`). The
 build updates that TSDoc with the spelling 0395 settles, and the migration page adds the README
 section.
 
-Not measured: sibling dialects beyond the kernel matcher (they never disambiguate, plan 0188), a real
+Not measured: sibling dialects beyond the kernel matcher (they never disambiguate, [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)), a real
 `git worktree`, Windows paths, and the kernel baseline's cwd dependence and root rediscovery (both
 owed by the build, above). Time box: one working day, kept (2026-10-06); the review revisions on
 2026-10-07 added no measurement.
