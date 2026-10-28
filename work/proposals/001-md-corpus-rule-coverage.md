@@ -150,8 +150,10 @@ context, as [003](./003-future-dialect-candidates.md) and
 [004](./promoted/004-corpus-content-explain.md) both do.
 
 **What the violation must say.** Both sides, both lines — per this section's own
-two-sided rule. `work/plans/completed/0089-family-standalone-sufficiency.md:176 excludes "proposal 001" as future surface, but
-001's Ruling is "Ship as-is"` sends the author to reconcile the clause. A
+two-sided rule. A message naming the plan's line (written when it was
+[plan 0089](../plans/completed/0089-family-standalone-sufficiency.md)'s line 176) and the proposal's ruling,
+`plan NNNN:176 excludes "proposal 001" as future surface, but 001's Ruling is "Ship as-is"`, sends
+the author to reconcile the clause. A
 one-sided `"proposal 001" has no matching ruling` would send them to add a
 ruling that already exists.
 

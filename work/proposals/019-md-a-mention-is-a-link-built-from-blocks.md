@@ -206,7 +206,7 @@ that adoption's plan.
 **B (the example's tests)**
 
 - A mention linked to another record's file (`./0002-b.md` for 0001) is red, naming both records; one
-  linked to a file no record owns is red as naming nothing; a `plan` mention whose number is a
+  whose number no record holds (0009) is red as naming nothing; a `plan` mention whose number is a
   bug's is red, and the example's `suggest` names the bug.
 - A title link whose text quotes a second mention is green; `see` plus a mention, linked to the
   README, is red.

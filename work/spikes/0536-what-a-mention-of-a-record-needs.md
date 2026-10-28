@@ -128,7 +128,7 @@ already reaches around `correspondence()` to `matchSelections` to write its own 
 
 ## 3. The collision
 
-ts-archunit's records: ADR 001–010, bug numbers 0001–0080, plan numbers 0000–0106, proposal numbers 001–028. This
+ts-archunit's records: ADR 001–010, ts-archunit bugs 0001–0080, ts-archunit plans 0000–0106, ts-archunit proposals 001–028. This
 repository: ADR 001–023, bugs from 0074, plans from 0051, proposal numbers 001–018. Every ts-archunit ADR
 and proposal number is also one here.
 
