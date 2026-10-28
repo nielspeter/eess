@@ -608,7 +608,12 @@ valuesOrPattern)` makes "a fixed bug has a Verification section" one rule; `poin
 > being [plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md)'s check moved onto the declaration rather than a second mechanism beside it. A
 > namespace a corpus cites but does not hold (another project's numbers) is declared as foreign and
 > not resolved.
->
+
+_Note, 2026-10-28:_ in ask D above, the submission's three example identifiers "written as text"
+(a bug, an ADR and a proposal, each by its number) are described rather than quoted, by
+[plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4: written plainly they are mentions the record-mention gate requires to be
+links, and linked they would contradict the sentence they illustrate.
+
 > **E. A type's lifecycle is declared, and placement follows it.** `states` names the state field
 > (any label, a list of aliases, or the heading form), its vocabulary, which states are terminal, and
 > which folder each state lives in, including a folder that is kept but bound to one state.

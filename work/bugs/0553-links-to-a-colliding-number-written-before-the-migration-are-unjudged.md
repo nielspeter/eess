@@ -6,7 +6,8 @@
   [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4; measured,
   not read.
 - **Severity:** Medium — a wrong link is green under every gate, and [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lanes found the
-  class real: 5 wrong links in 1,125 read (lanes 2 to 4's judges and their retro reads).
+  class real: 5 wrong among the 693 such links its lanes 2 to 4 wrote, all of which a judge has
+  now read.
 - **Origin:** self-found, 2026-10-28. Recorded rather than read in [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md), whose lanes judge the
   links they write, not the ones the corpus already held.
 - **Reported:** 2026-10-28
