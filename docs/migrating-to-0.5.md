@@ -115,7 +115,7 @@ import type { CorrespondenceOptions, RelationSpec, KeyBy } from '@nielspeter/ees
 `correspondence` is the public surface of `eess-md` and `eess-crossvalidate`, and
 the three types are the parameters of `correspondence()` and
 `preserveRelations()`. `reportViolations` and `finishPreset` are named seams in
-ADR-008. `globNode` and `globAnyOf` are what a user-written `definePredicate`
+[ADR-008](../adr/008-caller-owns-reporting.md). `globNode` and `globAnyOf` are what a user-written `definePredicate`
 needs to declare its globs.
 
 The type imports are on their own line above for a reason: they are the ones an

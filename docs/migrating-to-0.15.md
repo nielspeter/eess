@@ -81,7 +81,7 @@ open found real partly-done boxes in closed records ("6 of 9 done") that had pas
 rewrite the box as `[ ]` or `[x]`; rewrite a `[ x ]` or an empty box; and escape (`\[`) or
 code-span a bracket that is not a box.
 
-**A mark for a box nobody should judge, such as `[?]`, is `'unjudged'`** (bug 0525). Declaring it
+**A mark for a box nobody should judge, such as `[?]`, is `'unjudged'`** ([bug 0525](../work/bugs/fixed/0525-a-box-mark-can-be-declared-only-open-or-done.md)). Declaring it
 `'open'` asks for a disposition on every such box (in one corpus with 1,680 `[?]` boxes, that gave
 3,344 findings), and declaring it `'done'` claims work that was never done. An unjudged box is
 neither: `areOpen()` and `areChecked()` do not select it, `honestyAtClose` neither asks it for a
@@ -131,21 +131,21 @@ a table's `section`, `links().areInSection()`) and in eess-crossvalidate (`adrCi
 
 ## What can go red on update
 
-| package              | what is now checked                                                                                                | why it passed before                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `eess-md`            | a `frozen` glob that marks none of the loaded documents is refused; one that can never match is refused with a fix | it emptied `areFrozen()`, so an absence rule passed (bug 0499)    |
-| `eess-md`            | a root that loads no file is refused, when another root loads                                                      | it was dropped without a word (bug 0465)                          |
-| `eess-md`            | a corpus that loaded no document is an empty source, which `.expectEmpty()` cannot declare away                    | an absence rule over it passed (plan 0456)                        |
-| `eess-md`            | `honestyAtClose` reports a record whose state sits under another label, and a call with no readable state at all   | such records were skipped (bug 0444)                              |
-| `eess-md`            | `honestyAtClose` reads a state written as a heading, `## Status: Done`, and a label after `1.`                     | the record went unread (bug 0476, plan 0468)                      |
-| `eess-md`            | an undeclared box mark or a malformed box is a finding                                                             | `- [~]` was an ordinary list item (plan 0454, bug 0445)           |
-| `eess-md`            | a box's `text` is all of its content, so a `deferred→` on its second line meets `Deferred: none`                   | only the first paragraph was read (bug 0507)                      |
-| `eess-md`            | `links().areInSection()` reads the sections every other reader reads                                               | a heading inside a list item scoped the links after it (bug 0502) |
-| `eess-md`            | a `g`/`y` section matcher reads every document                                                                     | `lastIndex` skipped every other document (bug 0506)               |
-| `eess-ts`            | `.expectNonEmpty()` on a `.notExist()` rule                                                                        | it set a flag nothing read (bugs 0467, 0466)                      |
-| `eess-gherkin`       | `haveUniqueTitles` reports every scenario of a duplicate group, each naming the others                             | only the second and later were reported (plan 0459)               |
-| `eess-crossvalidate` | `adrCitationsResolve` checks every ADR's citations when `section` carries `g` or `y`                               | every other ADR's table was skipped (bug 0506)                    |
-| all presets          | a `report` mode other than `'throw'`, `'return'` or `'warn'` throws                                                | it printed and passed; TypeScript already rejected it (bug 0508)  |
+| package              | what is now checked                                                                                                | why it passed before                                                                                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eess-md`            | a `frozen` glob that marks none of the loaded documents is refused; one that can never match is refused with a fix | it emptied `areFrozen()`, so an absence rule passed ([bug 0499](../work/bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md))                                                                                                                 |
+| `eess-md`            | a root that loads no file is refused, when another root loads                                                      | it was dropped without a word ([bug 0465](../work/bugs/fixed/0465-a-corpus-root-that-matches-no-file-is-dropped-silently.md))                                                                                                                       |
+| `eess-md`            | a corpus that loaded no document is an empty source, which `.expectEmpty()` cannot declare away                    | an absence rule over it passed ([plan 0456](../work/plans/completed/0456-kernel-notexist-and-dead-glob.md))                                                                                                                                         |
+| `eess-md`            | `honestyAtClose` reports a record whose state sits under another label, and a call with no readable state at all   | such records were skipped ([bug 0444](../work/bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md))                                                                                                                               |
+| `eess-md`            | `honestyAtClose` reads a state written as a heading, `## Status: Done`, and a label after `1.`                     | the record went unread ([bug 0476](../work/bugs/fixed/0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md), [plan 0468](../work/plans/completed/0468-fields-read-a-labelled-value-in-the-callers-forms.md)) |
+| `eess-md`            | an undeclared box mark or a malformed box is a finding                                                             | `- [~]` was an ordinary list item ([plan 0454](../work/plans/completed/0454-box-marks-are-the-callers.md), [bug 0445](../work/bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md))                                              |
+| `eess-md`            | a box's `text` is all of its content, so a `deferred→` on its second line meets `Deferred: none`                   | only the first paragraph was read ([bug 0507](../work/bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md))                                                                                                                                 |
+| `eess-md`            | `links().areInSection()` reads the sections every other reader reads                                               | a heading inside a list item scoped the links after it ([bug 0502](../work/bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md))                                                                                               |
+| `eess-md`            | a `g`/`y` section matcher reads every document                                                                     | `lastIndex` skipped every other document ([bug 0506](../work/bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md))                                                                                                        |
+| `eess-ts`            | `.expectNonEmpty()` on a `.notExist()` rule                                                                        | it set a flag nothing read ([bugs 0467](../work/bugs/fixed/0467-eess-ts-expectnonempty-does-nothing.md), 0466)                                                                                                                                      |
+| `eess-gherkin`       | `haveUniqueTitles` reports every scenario of a duplicate group, each naming the others                             | only the second and later were reported ([plan 0459](../work/plans/completed/0459-kernel-beuniqueby-and-gherkins-unique-titles.md))                                                                                                                 |
+| `eess-crossvalidate` | `adrCitationsResolve` checks every ADR's citations when `section` carries `g` or `y`                               | every other ADR's table was skipped ([bug 0506](../work/bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md))                                                                                                             |
+| all presets          | a `report` mode other than `'throw'`, `'return'` or `'warn'` throws                                                | it printed and passed; TypeScript already rejected it ([bug 0508](../work/bugs/fixed/0508-an-unknown-report-mode-prints-and-passes.md))                                                                                                             |
 
 The sections below are what the trial upgrade had to do about the first five rows.
 
@@ -415,13 +415,13 @@ import {
 } from '@nielspeter/eess-md'
 ```
 
-**How a twin is named (ADR-023).** Where a word is both a method and a free predicate, the method
+**How a twin is named ([ADR-023](../adr/023-a-predicate-and-a-condition-that-share-a-word.md)).** Where a word is both a method and a free predicate, the method
 keeps the plain word and the free predicate takes the `predicate` prefix: `docs().haveSection()` and
 `predicateHaveSection()`, `docs().haveField()` and `predicateHaveField()`,
 `taskItems().haveTextMatching()` and `predicateHaveTextMatching()`. All three predicates are new in
 this release.
 
-For dialect authors, the kernel adds `Predicate.undecided` (ADR-021): a predicate may declare it
+For dialect authors, the kernel adds `Predicate.undecided` ([ADR-021](../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)): a predicate may declare it
 cannot judge a subject, and each cause is one unsuppressable finding wherever the verdict depends on
 it. New on `@nielspeter/eess/internal`: `uniqueByCondition`, `notExistCondition`,
 `cardinalitySelectorFault()`, `globTextFault`, `repoRelativeCorrection`, `membership`, `partition`,

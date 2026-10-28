@@ -241,10 +241,10 @@ Requires a reason -- undocumented exclusions are flagged as warnings.
 **Where a directive is read at all.** Only in files the kernel can lex: JavaScript and TypeScript
 (including Vue and Svelte) and Markdown. In any other file, such as `.feature`, `.yml`, `.mmd` or
 `.py`, no directive is read, so a finding there cannot be waived and stays red. An `eess-exclude`
-written in such a file is ignored without a message today; that gap is bug 0421.
+written in such a file is ignored without a message today; that gap is [bug 0421](../work/bugs/0421-a-waiver-in-a-file-the-kernel-cannot-lex-is-ignored-in-silence.md).
 
 **A directive that cannot apply says so.** Two ways one goes inert, both of them
-previously silent (bug 0255):
+previously silent ([bug 0255](../work/bugs/fixed/0255-an-exclusion-comment-that-cannot-apply-is-inert.md)):
 
 - **No rule id on the chain.** A comment matches by rule id, so a chain without
   `.rule({ id })` has nothing to match. eess prints the file and the directive

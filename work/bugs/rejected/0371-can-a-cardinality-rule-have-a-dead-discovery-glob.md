@@ -20,7 +20,7 @@
 `cardinalitySelectorMissedDisk` returns `deadSitesIn(...).selector` and **discards
 `.discovery`**; `deadSelectorFindings` returns empty for a cardinality rule outright. So a
 cardinality rule whose **discovery** glob is dead appears to report in neither path — which
-would be the same silence bug 0355 closed for selector globs, surviving one position over.
+would be the same silence [bug 0355](../fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md) closed for selector globs, surviving one position over.
 
 ## What is measured — and the correction that got it there
 
@@ -72,7 +72,7 @@ impossible:
    empty set.
 2. **A dead discovery glob is reported by `check`** — one unsuppressable finding,
    `matching("**/no-such-area/**") resolved no slices` — and `doctor` agrees, so the two tools do
-   not disagree about a broken rule (bug 0357's invariant).
+   not disagree about a broken rule ([bug 0357](../fixed/0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md)'s invariant).
 
 Only the pair is the safety property, which is why both are asserted: if a future builder gains
 the `assertsCardinality()` override while still stamping a discovery glob, (1) reds; if `check`

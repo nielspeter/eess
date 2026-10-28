@@ -81,7 +81,7 @@ kernel's `finishPreset` has no such flag and neither does the kernel's own
 `executeCheck`, which still emits unconditionally — recorded as knowingly divergent
 and owned by [plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.md).
 
-### Amendment 2026-09-03 — the emitters take evidence (ADR-014)
+### Amendment 2026-09-03 — the emitters take evidence ([ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md))
 
 [ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md), accepted
 2026-09-03, supersedes four statements above at the two emitters:
@@ -94,9 +94,9 @@ and owned by [plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.
   configuration finding it produced itself, under `warn` and under a bare call,
   because that finding is unsuppressable and those doors hand nothing back.
 - _"`throwIfViolations` is retained … for compatibility"_ — removed. An alias
-  that still takes a bare array is the hole ADR-014 closes, under another name.
+  that still takes a bare array is the hole [ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md) closes, under another name.
 - _"Existing call sites are unaffected … the option is additive"_ (Consequences)
-  — true of this ADR's own change, and not of ADR-014's: every emitter call
+  — true of this ADR's own change, and not of [ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md)'s: every emitter call
   changes, and the changeset names every dependent.
 
 The principle is untouched: a check detects, the caller decides how and whether
@@ -126,7 +126,7 @@ form: `check:crossval` (the AST title resolver) scans only the eess-ts project,
 while those tests live in `@nielspeter/eess` (`packages/core`). `check:corpus`
 verifies the files exist, and the cases run in `npm test` (the gate). Widening
 `check:crossval` to resolve citations across every package is a separate
-follow-on (plan 0070 Out of scope).
+follow-on ([plan 0070](../work/plans/completed/0070-caller-owns-reporting.md) Out of scope).
 
 **One row is different and deliberately uses the `it(…)` form** — "Default
 preset behavior unchanged". Its clause is about the **dialect's** preset surface,
@@ -149,5 +149,5 @@ the file exists.
 | Suppress exactly what rides the throw — `executeWarn`                                 | 2    | `packages/ts/tests/cli/warn-terminal-emit-is-counted.test.ts` · `it('is counted as emitted, so the unfiltered-output notice fires')` — its positive anchor requires the advisory subset to reach stderr, so over-suppressing reds it. **This clause was previously cited against a test in another file, (`packages/ts/tests/cli/rule-file-truncation.test.ts`), whose fixture leaks through the kernel preset path and never exercises `executeWarn` — measured margin 0, a `gated` row over a mechanism blind to the site its own cell named** | gated  |
 | Suppress exactly what rides the throw — `executeCheck`, `deliver()`                   | 2    | Vacuous as stated for these two: their throws carry EVERYTHING, so "findings that ride no throw" is empty by construction and a fixture written to that spec would match zero elements. The proposition with content here is _nothing is written twice_ — `packages/ts/tests/cli/preset-double-print.test.ts` · `it('reports each finding once, not twice')`                                                                                                                                                                                     | gated  |
 | Caller owns format — presets can emit JSON                                            | 2    | `packages/core/tests/report.test.ts` — the `format: json` case (writes JSON to stdout)                                                                                                                                                                                                                                                                                                                                                                                                                                                           | gated  |
-| Violations returned to the caller carry the rule's own metadata                       | 2    | `packages/core/tests/execute-rule.test.ts` — the "stamps ruleId, because, suggestion and docs" case, and the "stamps every violation, not just the first" case (bug 0122)                                                                                                                                                                                                                                                                                                                                                                        | gated  |
-| A condition's per-element value is never replaced by the rule's                       | 2    | `packages/core/tests/execute-rule.test.ts` — the "never overwrites a value the condition computed" case (inverting the guard passed the whole suite before this, bug 0122)                                                                                                                                                                                                                                                                                                                                                                       | gated  |
+| Violations returned to the caller carry the rule's own metadata                       | 2    | `packages/core/tests/execute-rule.test.ts` — the "stamps ruleId, because, suggestion and docs" case, and the "stamps every violation, not just the first" case ([bug 0122](../work/bugs/fixed/0122-violations-path-drops-because.md))                                                                                                                                                                                                                                                                                                            | gated  |
+| A condition's per-element value is never replaced by the rule's                       | 2    | `packages/core/tests/execute-rule.test.ts` — the "never overwrites a value the condition computed" case (inverting the guard passed the whole suite before this, [bug 0122](../work/bugs/fixed/0122-violations-path-drops-because.md))                                                                                                                                                                                                                                                                                                           | gated  |

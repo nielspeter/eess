@@ -4,10 +4,10 @@
 
 Accepted (2026-08-14). Implements plan
 [0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md). Ported from
-`ts-archunit` [ADR-008](https://github.com/nielspeter/ts-archunit/blob/main/adr/008-agent-first-failure-surfaces.md)
+`ts-archunit` ADR-008
 (accepted there 2026-07-29) — the doctrine eess's own fork of that engine
 predates. This is the "missing twin" `ts-archunit` ADR-010 names and eess never
-wrote: eess ADR-008 is a different decision ("caller owns reporting"), so the
+wrote: eess [ADR-008](./008-caller-owns-reporting.md) is a different decision ("caller owns reporting"), so the
 ported doctrine lands here, at ADR-009, not at a collided number.
 
 **Extended by:** [ADR-016](./016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) · [ADR-021](./021-a-predicate-that-cannot-judge-a-subject-says-so.md)
@@ -18,7 +18,7 @@ eess's stated purpose is the same as the engine it forked: catch architectural
 drift on the PR that introduces it, for a primary consumer that is an AI coding
 agent — `explain --format agent`, `.rule({ imperative })`, and the
 `agentGuardrails` preset all exist for that reader (ported from `ts-archunit` in
-plan 0071). That consumer behaves differently from a human in two ways that
+[plan 0071](../work/plans/completed/0071-ts-archunit-parity.md)). That consumer behaves differently from a human in two ways that
 dictate how a check must be built:
 
 1. **An agent does not read warnings. It reacts to failures.** A warning in a
@@ -41,9 +41,9 @@ suite reports a number, CI reports success, and the number is a lie: the
 coverage is not thin, it is **absent**, and nothing says so.
 
 **Why this lands now, and why it is inherited rather than independently
-derived here.** Plan 0051 split `eess`'s dialect-independent kernel out of
+derived here.** [Plan 0051](../work/plans/completed/0051-consolidation-eess-monorepo.md) split `eess`'s dialect-independent kernel out of
 `ts-archunit`'s engine at ~0.17 semantics — correct as a direction — and then
-the fork froze while the ancestor surged to 0.61 (measured, plan 0088 Phase 1:
+the fork froze while the ancestor surged to 0.61 (measured, [plan 0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 1:
 11,594 diff-lines across 118 shared files, 37 modules never received). This
 doctrine is the single most valuable thing the ancestor became in that gap:
 `ts-archunit` earned rules 1–6 below the hard way, across two separate bodies
@@ -68,7 +68,7 @@ being able to RECOGNISE these shapes in your own work, and a one-line summary
 cannot do that. Porting the rules without the diagnosis is what left eess holding
 six rules and no way to notice it was breaking them.
 
-**First body — one plan's review (upstream plan 0063, 2026-07-17).** A
+**First body — one plan's review (ts-archunit plan 0063, 2026-07-17).** A
 hand-maintained artifact failed at one narrow job — knowing which API is
 deprecated — **eight times**, most of them inside the fixes for the previous one:
 
@@ -99,8 +99,8 @@ the fix for the row above it:
 Twelve rows, eight of them introduced by a fix. That regress — check → message →
 detectors → oracle — is what rule 6 exists to bound.
 
-**Second body — different code, different reviewers, same shapes** (upstream
-plans 0069–0070, bugs 0011–0024, 2026-07-25 → 07-29), and this time the false
+**Second body — different code, different reviewers, same shapes** (ts-archunit
+plans 0069–0070, ts-archunit bugs 0011–0024, 2026-07-25 → 07-29), and this time the false
 greens were measured rather than argued:
 
 | Instance                                                                       | Outcome                                                                                                                                                                 |
@@ -119,7 +119,7 @@ greens were measured rather than argued:
 That last row is why rule 5 carries its enumeration corollary.
 
 Source:
-[ts-archunit ADR-008](https://github.com/nielspeter/ts-archunit/blob/main/adr/008-agent-first-failure-surfaces.md).
+ts-archunit ADR-008.
 
 ## Decision
 
@@ -150,7 +150,7 @@ in release N, fail in release N+1," and it does not work for the same reason
 rule 1 exists: the release that only warns is the release nobody reads. If a
 migration needs a measuring instrument, the honest version is an explicitly
 invoked diagnostic (`eess-ts diagnose`, once ported — see Phase 4's
-migration-rule note in plan 0088) that the consumer runs on the release before
+migration-rule note in [plan 0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md)) that the consumer runs on the release before
 the flip, not a warning hoped to be read.
 
 Corollary — and the distinction matters: **an artifact that can ship while no
@@ -232,7 +232,7 @@ competing implementation of the same kind. If the only independence available
 is a second engine, the honest answer is to **say so** (see Consequences).
 
 Corollaries — the sabotage-matrix discipline (ported alongside the rule, per
-plan 0088 Phase 2; a rule 5 that lives only in prose is not enforced):
+[plan 0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 2; a rule 5 that lives only in prose is not enforced):
 
 - **Enumerate revert rows from the diff, not from memory.** "What would this
   test do if the thing it guards were completely broken?" presupposes a
@@ -328,7 +328,7 @@ judgment, not AST shape.
 
 ## Alternatives Considered
 
-### Leave it as prose in plan 0088
+### Leave it as prose in [plan 0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md)
 
 Rejected. A completed plan moves to `work/plans/completed/`, so a binding
 project-wide rule would be buried where nobody greps — the exact failure this
@@ -354,9 +354,9 @@ transferable part.
 
 ## Enforcement
 
-| Clause                                                                         | Tier                                                                     | Mechanism                                                                                                                                    | Status                                         |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| Every published check-constructor is provably non-vacuous (the vacuity matrix) | 2 (behavioral — the harness _executes_ constructors, not a static claim) | vacuity matrix over `package.json` exports → `dist` → namespace-object exports, built in plan 0088 Phase 4a; `check:nonvacuity` row per gate | `pending` (flips `gated` when Phase 4a lands)  |
-| Remedies are stated and verified to remediate                                  | 2                                                                        | a committed violating fixture per remedy (apply the fix, assert the finding clears)                                                          | `pending` (plan 0088 Phase 5)                  |
-| Review rule 5 (independence) in place                                          | 5                                                                        | reviewer question, review-enforced                                                                                                           | `manual`                                       |
-| Retire the fork (this plan)                                                    | 5                                                                        | `ts-archunit` npm deprecated → `@nielspeter/eess-ts`, mechanically asserted                                                                  | `pending` (flips `gated` on plan 0100's close) |
+| Clause                                                                         | Tier                                                                     | Mechanism                                                                                                                                                                                                  | Status                                                                                                      |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Every published check-constructor is provably non-vacuous (the vacuity matrix) | 2 (behavioral — the harness _executes_ constructors, not a static claim) | vacuity matrix over `package.json` exports → `dist` → namespace-object exports, built in [plan 0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 4a; `check:nonvacuity` row per gate | `pending` (flips `gated` when Phase 4a lands)                                                               |
+| Remedies are stated and verified to remediate                                  | 2                                                                        | a committed violating fixture per remedy (apply the fix, assert the finding clears)                                                                                                                        | `pending` ([plan 0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 5)                 |
+| Review rule 5 (independence) in place                                          | 5                                                                        | reviewer question, review-enforced                                                                                                                                                                         | `manual`                                                                                                    |
+| Retire the fork (this plan)                                                    | 5                                                                        | `ts-archunit` npm deprecated → `@nielspeter/eess-ts`, mechanically asserted                                                                                                                                | `pending` (flips `gated` on [plan 0100](../work/plans/0100-publish-the-fold-retire-ts-archunit.md)'s close) |

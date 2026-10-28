@@ -46,7 +46,7 @@ Feature: x
 With `scenarios(set).should().haveUniqueTitles().rule({ id: 'unique-titles' })`, before 0.13 those
 doc strings waived the duplicate-title finding between them, because the kernel read the `.feature`
 file as if it were JavaScript. From 0.13 the finding reports. Gherkin's own `# eess-exclude` comment
-was never read and still is not. ADR-012 records why: a kernel that cannot prove a span is a comment
+was never read and still is not. [ADR-012](../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) records why: a kernel that cannot prove a span is a comment
 does not treat it as one.
 
 **What to do with a waiver you had in such a file:**
@@ -64,12 +64,12 @@ and a comment does not silence their findings either.
 
 ## What can go red on update
 
-| package              | what is now checked                                                                                       | why it passed before                                |
-| -------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| every dialect        | a finding in a non-code, non-Markdown file that a `//` or `<!-- -->` waiver used to suppress              | the file was read as JavaScript (bug 0419)          |
-| `eess-md`            | a code block nested in a list item or a blockquote is in `MdDocument.codeBlocks`                          | only top-level blocks were listed (bug 0290)        |
-| `eess-crossvalidate` | a Mermaid diagram tagged `Mermaid`, in any letter case, in `embeddedDiagramsMatchCode` and `tableErAgree` | the tag was compared exactly (bugs 0423 and 0424)   |
-| `eess-crossvalidate` | an `erDiagram` behind a `%%{init}%%` directive or `---` frontmatter, in `tableErAgree`                    | the selector read the fence's first line (bug 0210) |
+| package              | what is now checked                                                                                       | why it passed before                                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| every dialect        | a finding in a non-code, non-Markdown file that a `//` or `<!-- -->` waiver used to suppress              | the file was read as JavaScript ([bug 0419](../work/bugs/fixed/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md)) |
+| `eess-md`            | a code block nested in a list item or a blockquote is in `MdDocument.codeBlocks`                          | only top-level blocks were listed ([bug 0290](../work/bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md))           |
+| `eess-crossvalidate` | a Mermaid diagram tagged `Mermaid`, in any letter case, in `embeddedDiagramsMatchCode` and `tableErAgree` | the tag was compared exactly ([bugs 0423](../work/bugs/fixed/0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md) and 0424)   |
+| `eess-crossvalidate` | an `erDiagram` behind a `%%{init}%%` directive or `---` frontmatter, in `tableErAgree`                    | the selector read the fence's first line ([bug 0210](../work/bugs/fixed/0210-er-fence-selector-is-an-allowlist.md))                 |
 
 Two of those come with a known gap. `eess-mermaid`'s ER parser does not yet accept `---` frontmatter
 or a multi-line `%%{init}%%` block, so such a diagram is now reported as not parsing, instead of being
@@ -81,7 +81,7 @@ A fence `eess-mermaid`'s grammar cannot read used to be reported as the author's
 fix that led to deleting the fence. `embeddedDiagramsMatchCode` and `tableErAgree` now say the fence
 "does not parse with eess-mermaid's class-diagram grammar" (or "ER grammar"), that it is either a
 syntax error or valid Mermaid `eess-mermaid` does not model yet, and that eess cannot tell which
-without Mermaid's own parser (bug 0409). Its fix line:
+without Mermaid's own parser ([bug 0409](../work/bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)). Its fix line:
 
 - check the fence in the Mermaid Live Editor;
 - fix it if Mermaid reports a parse error;
@@ -111,6 +111,6 @@ The rule ids are unchanged. If a test asserts on these findings, match `ruleId`
 - **`@nielspeter/eess-md`** — `parseCodeBlocks` and `codeBlocks`; nested code blocks in
   `MdDocument.codeBlocks`. Markdown waivers are unaffected.
 - **`@nielspeter/eess-mermaid`** — `diagramKind`; no waiver is read in a `.mmd` file.
-- **`@nielspeter/eess-gherkin`** — no waiver is read in a `.feature` file, which closes bug 0419.
+- **`@nielspeter/eess-gherkin`** — no waiver is read in a `.feature` file, which closes [bug 0419](../work/bugs/fixed/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).
 - **`@nielspeter/eess-crossvalidate`** — the selection fixes and message changes above, and the
   `eess-mermaid` 0.7.0 requirement.

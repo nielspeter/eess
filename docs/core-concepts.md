@@ -338,9 +338,9 @@ generateBaseline(violations, 'arch-baseline.json')
 ::: warning This route bypasses the evidence gate
 `collectViolations` is typed to accept a bare array and documented as not
 throwing, so this pair will happily write a baseline from builders that examined
-nothing — the verdict ADR-014 exists to refuse. `eess-ts baseline` gates per rule
+nothing — the verdict [ADR-014](../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) exists to refuse. `eess-ts baseline` gates per rule
 file and refuses instead. Closing the helper is a public-API decision, not a
-wiring one; it is tracked as proposal 011 ask C.
+wiring one; it is tracked as [proposal 011](../work/proposals/011-core-name-the-evidence-gate.md) ask C.
 :::
 
 ## Diff-Aware Mode

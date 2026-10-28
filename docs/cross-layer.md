@@ -16,7 +16,7 @@ The `crossLayer()` entry point checks consistency between layers of your applica
 > - **`correspondence({ left, right })`** — from `@nielspeter/eess` directly, for
 >   binding two `Selection`s from _any_ loaders, not just globs within one
 >   project. It is a **kernel-level** primitive and stays a direct kernel import,
->   deliberately excluded from eess-ts's re-export surface (plan 0089).
+>   deliberately excluded from eess-ts's re-export surface ([plan 0089](../work/plans/completed/0089-family-standalone-sufficiency.md)).
 >
 > The eess-ts primitive was called `correspondence` until PR #72, which is how one
 > word came to name two incompatible APIs in one family — `eess-md` re-exports the

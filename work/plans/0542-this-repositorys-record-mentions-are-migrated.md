@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phase 1 built 2026-10-27; the lanes next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1 and 2 built 2026-10-27; lane 3 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -68,7 +68,10 @@ runs it, and then switches the gate to hold zero and to check that a link names 
 
 The fix over every document but the seven, eess's records only, Decision 2's pattern, `foreign`
 matching `ts-archunit` or `upstream`: **3,899 fixes** in 418 files and **519 refusals**. Phase 0's anachronism instrument re-run over the
-3,899 (40.4 s, 1,559 git calls): **145** mentions first written before their record existed, on
+3,899 (40.4 s, 1,559 git calls): **145** mentions first written before their record's file, at its
+current path, first appeared (corrected 2026-10-27 at lane 2: "before their record existed" overstated
+it; a record closed by a delete and an add reads as born when it closed, so the count flags more than
+the true anachronisms), on
 140 distinct lines, listed in the Appendix; 34 other fixable mentions share those lines. Of the
 fixes, **761** link one of the first ten ADRs, whose numbers are ts-archunit's too; **159** of them
 sit in a file that names ts-archunit. Wider: **294** fixes sit in a file that names ts-archunit and
@@ -189,7 +192,12 @@ Each lane is its own PR, in this order:
    whose number ts-archunit also used** (294 over all lanes), and a seeded sample of 20 of the
    lane's other fixes, the seed recorded in the PR; the judge is an agent on a different model from
    the one running the lane. A wrong fix is left out by element before applying, its cause recorded
-   in this plan, and the judge then reads every fix in the lane with the same target;
+   in this plan, and the judge then reads every fix in the lane with the same target. The same
+   target's mentions in every later lane's files that do not name ts-archunit (which their read
+   set misses) are searched for (`git grep`) and listed against those lanes' ledger lines; and
+   every link to a ts-archunit GitHub URL in the lane's globs
+   (`git grep 'github.com/nielspeter/ts-archunit'`) is listed, to be written as plain text in
+   Decision 2's form in step 4 (lane 2's review found four the steps had not met);
 3. `--fix --apply`, before any hand edit, so no excluded line has moved;
 4. the lane's refusals, anachronisms and the other mentions on their lines closed by hand, as the
    Measured section says; the exclusions it closed removed from the rule file;
@@ -198,6 +206,47 @@ Each lane is its own PR, in this order:
    matches nothing is a dead-glob finding, not clean).
 
 **Files:** the lane's documents, `mention-fix.rules.ts`.
+
+**Lane 2 (Phase 2), built 2026-10-27**, at base 96b0461e, with `LANE` set to `adr/**`, `docs/**`,
+`work/*.md` and `work/bugs/rejected/**` (the commit leaves it empty, as between lanes):
+
+- The instrument found 16 anachronisms in 326 fixes, the Appendix's 16 exactly. The dry run gave
+  310 fixes and 46 refusals; the plan's 47th refusal, ts-archunit plan 0057 on `docs/calls.md:150`,
+  sat on an excluded line, which hides every mention on it.
+- The judge (Fable; seed 20261027) read the 30 fixes in the ts-archunit range and 20 sampled: 49
+  right, 1 wrong. `adr/002-ts-morph-ast-engine.md:221` names ts-archunit plan 0075, its element-cache
+  plan, not eess's. It was left out by element, through a new `JUDGED_WRONG` list in the rule file,
+  and no other fix in the lane targets [plan 0075](./0075-manifesto-reconciliation.md). The
+  exclusion took the line's two right [proposal 010](../proposals/010-ts-performance-at-scale.md) fixes with it; they were linked by hand.
+- `--apply` wrote 307 links (310 less the line's three); one more, an anachronism read as right,
+  was applied after.
+- **The anachronisms.** 15 of the 16 name the record they would link to, and were linked (14 by
+  hand, one by the fix); `docs/calls.md:150` is ts-archunit's numbering and was reworded. The
+  stated cause was wrong at first, corrected 2026-10-27 by the lane's review: 13 of the 15 were
+  written after their record existed. The instrument dates a record by `git log --follow` on its
+  current path, and a record closed as a delete and an add, not a rename, reads as born the day it
+  closed. Two are true anachronisms that still name their record: `docs/manifesto.md:459`'s
+  [plan 0073](./0073-violation-telemetry-rule-staleness.md), two hours before the plan, and `adr/023`'s [plan 0496](./completed/0496-sections-as-elements.md), written in the PR after the one that
+  filed it. In lane 2 the error flagged more, never fewer, so no wrong link came of it; but the Measured
+  section's 145 counts it (corrected there), and the lanes whose targets sit in `fixed/` and
+  `completed/` (4, 5, 7, 8) will meet more of it.
+- By hand, 55 edits in 17 files: 41 links, 11 rewordings to the ts-archunit form (the
+  skipped count, 39 at the base, reads 54 at the head: these 11, and 4 in this plan's own record
+  of the lanes),
+  and 3 incidental examples reworded. Besides those: `docs/markdown.md`'s example forms moved into
+  a fenced block, as that page itself advises, and one more example reworded there; and the four
+  links to ts-archunit's GitHub URLs in this lane (`adr/009` and `adr/010`, two each) written as
+  plain text in the ts-archunit form, as Decision 1 says.
+- Two ADR Enforcement rows cite a test title holding a record number, which can be neither linked
+  nor fenced. The maintainer chose (2026-10-27) to rename the titles: `an undocumented exclusion
+fails the build` and `accepts a repository that extends the base through an intermediate class`
+  drop their numbers, each kept in a comment beside its test (`'@nielspeter/eess-ts': none`). [Bug 0295](../bugs/fixed/0295-extend-and-implement-read-only-the-direct-clause.md)'s
+  record, in lane 5's folder, quotes the second title and was updated with it. Lane 5 holds
+  one more title citation, in
+  [bug 0325](../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md); only a bug
+  record cites it, so it is lane 5's to settle.
+- Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
+  reads 4,045 unlinked mentions against 4,418 at the base (96b0461e), both from its summary.
 
 ### Phase 9 — the gate holds zero, and checks the target
 
@@ -316,9 +365,17 @@ document. Every new number was reproduced at 4a43bcc4.
 
 - [x] Ready (2026-10-27)
 - [x] Phase 1 — the gate's narrowing, proven, and the rule file
-- [ ] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
-- [ ] Phase 3 — `work/spikes/`, `work/proposals/`
-- [ ] Phase 4 — `work/bugs/` (live)
+- [x] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
+- [ ] Phase 3 — `work/spikes/`, `work/proposals/` (carried from lane 2: ts-archunit plan 0075 in
+      [proposal 010](../proposals/010-ts-performance-at-scale.md) at lines 67, 232 and 234; the file
+      names no ts-archunit, so the judge's read set misses it; the ts-archunit GitHub links in
+      [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) (lines 48, 49) and
+      [spike 0540](../spikes/0540-one-join-over-every-source.md) (lines 47, 48, 54))
+- [ ] Phase 4 — `work/bugs/` (live) (carried from lane 2, for the judge:
+      [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s
+      mention of a plan numbered 0075 at line 69, read as ts-archunit's; the ts-archunit GitHub
+      links in [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md) (line 22)
+      and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24))
 - [ ] Phase 5 — `work/bugs/fixed/`
 - [ ] Phase 6 — `work/plans/` (live)
 - [ ] Phase 7 — `work/plans/completed/` 0001–0449
@@ -327,7 +384,9 @@ document. Every new number was reproduced at 4a43bcc4.
 
 ## Appendix — the 145 anachronisms, at 4a43bcc4
 
-Each a mention first written before the record it would link to existed, with both dates. The
+Each a mention first written before the record it would link to first appeared at its current
+path, with both dates (corrected 2026-10-27 at lane 2: see the Measured section; many are not true
+anachronisms). The
 reference each lane's own re-run is compared with: the lane's `.excluding()` list comes from that
 re-run at the lane's base, since a line here moves as its file changes. Fenced, so no gate reads it.
 

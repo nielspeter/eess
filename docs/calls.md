@@ -147,7 +147,7 @@ calls(p)
 
 **Long literals.** The `element` field always preserves the literal verbatim (exclusion patterns need stable keys). The rendered violation `message` elides the middle of literals longer than 80 characters with `…` so CI output stays scannable.
 
-See proposal 011 / plan 0057 for the full design and edge-case behavior.
+The full design and edge-case behaviour were worked out before the fold, in ts-archunit proposal 011 and ts-archunit plan 0057.
 
 ## Call Conditions
 
@@ -155,9 +155,9 @@ Conditions define the assertions enforced on calls that pass the predicate filte
 
 ### `haveCallbackContaining(matcher)`
 
-At least one callback argument must contain the matched expression. Searches every callback the call passes — an arrow function or function expression given as an argument, one held by a function-valued property or method shorthand of an options object (`{ handler: () => … }`, to three levels), and either behind parentheses, `as`, `<T>`, `satisfies` or `!`. A concise arrow's body is tested itself too, so `() => authenticate(req)` contains `call('authenticate')`, and a block body is searched inside its braces. `within()` reads exactly the same callbacks — one definition, since bug 0324.
+At least one callback argument must contain the matched expression. Searches every callback the call passes — an arrow function or function expression given as an argument, one held by a function-valued property or method shorthand of an options object (`{ handler: () => … }`, to three levels), and either behind parentheses, `as`, `<T>`, `satisfies` or `!`. A concise arrow's body is tested itself too, so `() => authenticate(req)` contains `call('authenticate')`, and a block body is searched inside its braces. `within()` reads exactly the same callbacks — one definition, since [bug 0324](../work/bugs/fixed/0324-the-callback-conditions-read-a-direct-callback-only.md).
 
-**Four shapes it does not read**, every one a silent pass (bug 0331): a callback a NAME refers to (`use(handler)`), which needs the type checker; one in an array or other collection, including the `app.get('/x', [authenticate, handler])` idiom; one held by a getter (`{ get handler() { … } }`); and one nested deeper than three object literals. `within()` reads the same nothing. Use `haveArgumentContaining` for those — it searches an argument whole.
+**Four shapes it does not read**, every one a silent pass ([bug 0331](../work/bugs/0331-the-callback-definition-reads-an-object-literal-and-nothing-else.md)): a callback a NAME refers to (`use(handler)`), which needs the type checker; one in an array or other collection, including the `app.get('/x', [authenticate, handler])` idiom; one held by a getter (`{ get handler() { … } }`); and one nested deeper than three object literals. `within()` reads the same nothing. Use `haveArgumentContaining` for those — it searches an argument whole.
 
 ```typescript
 calls(p)

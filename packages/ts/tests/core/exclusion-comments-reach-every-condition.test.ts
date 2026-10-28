@@ -297,7 +297,9 @@ describe('an exclusion comment reaches every condition family (bug 0041)', () =>
     expect(commentSuppressionNotice()).toBeUndefined()
   })
 
-  it('an undocumented exclusion fails the build (bug 0039)', () => {
+  // ts-archunit bug 0039. The title carries no record number, so the ADR row that cites it is not a
+  // plain mention (plan 0542).
+  it('an undocumented exclusion fails the build', () => {
     const violations = modules(project)
       .that()
       .resideInFile('**/undocumented.ts')

@@ -4,11 +4,11 @@
 
 **Proposed** (July 2026)
 
-Amends the Notes section of [ADR-002](./002-ts-morph-ast-engine.md), which flagged: _"If TS7 breaks ts-morph compatibility, this ADR should be revisited."_ This ADR is that revisit. ADR-002 stands — ts-morph remains our engine **today**. This ADR governs how the rest of the codebase is allowed to _touch_ it.
+Amends the Notes section of [ADR-002](./002-ts-morph-ast-engine.md), which flagged: _"If TS7 breaks ts-morph compatibility, this ADR should be revisited."_ This ADR is that revisit. [ADR-002](./002-ts-morph-ast-engine.md) stands — ts-morph remains our engine **today**. This ADR governs how the rest of the codebase is allowed to _touch_ it.
 
 ## Context
 
-ADR-002 chose ts-morph as our sole AST and type-checking engine. That decision is sound today. But research in mid-2026 surfaced a concrete, dependency-level risk that ADR-002 could not have priced in:
+[ADR-002](./002-ts-morph-ast-engine.md) chose ts-morph as our sole AST and type-checking engine. That decision is sound today. But research in mid-2026 surfaced a concrete, dependency-level risk that [ADR-002](./002-ts-morph-ast-engine.md) could not have priced in:
 
 1. **The engine underneath ts-morph is being replaced.** Microsoft's native TypeScript compiler ("Corsa" / TypeScript 7, Go-based, ~10x faster) reached RC in June 2026. It **does not support the existing (Strada) compiler API** that ts-morph is built on. The stable programmatic API is deferred to TypeScript 7.1.
 
@@ -94,7 +94,7 @@ This is both a correctness guarantee and a first-class example for our docs.
 
 ### Positive
 
-- **Migration becomes a contained swap, not a rewrite.** When a viable engine appears (Corsa-native wrapper, a Wasm build, a batched service, or ts-morph itself adapting), we implement one new class behind `Engine`. The DSL, predicates, conditions, ADR-003, and users' rule files are untouched.
+- **Migration becomes a contained swap, not a rewrite.** When a viable engine appears (Corsa-native wrapper, a Wasm build, a batched service, or ts-morph itself adapting), we implement one new class behind `Engine`. The DSL, predicates, conditions, [ADR-003](./003-fluent-builder-dsl.md), and users' rule files are untouched.
 - **Insurance against a maintainer-acknowledged risk.** We stop being one dependency-deprecation away from a full rewrite.
 - **The batch-first shape is portable by construction.** Designed against the exact pattern (out-of-process, pay-per-crossing) that TS 7 introduces — so we align with the surviving-tools camp (typescript-eslint, Volar) rather than the at-risk camp.
 - **Dogfooding.** The boundary is enforced by ts-archunit's own rules — proof the tool works, and a canonical `notDependOn` example.
@@ -113,7 +113,7 @@ This is both a correctness guarantee and a first-class example for our docs.
 
 Let ts-morph types flow through the whole codebase, as today.
 
-**Rejected because:** it leaves every module coupled to a dependency whose maintainer publicly doubts its post-TS-7 survival. If that risk materializes, migration is a rewrite of predicates, conditions, builders, and helpers simultaneously — the exact situation ADR-002's Notes told us to avoid.
+**Rejected because:** it leaves every module coupled to a dependency whose maintainer publicly doubts its post-TS-7 survival. If that risk materializes, migration is a rewrite of predicates, conditions, builders, and helpers simultaneously — the exact situation [ADR-002](./002-ts-morph-ast-engine.md)'s Notes told us to avoid.
 
 ### Alternative 2: Rewrite the engine natively in Go now
 
@@ -135,10 +135,10 @@ Introduce the boundary (Rule 1) but let it expose live lazy node handles that ca
 
 ## Notes
 
-- **This does not deprecate ts-morph.** Per ADR-002, ts-morph is our engine today and `TsMorphEngine` is the only implementation. This ADR governs coupling, not engine choice.
+- **This does not deprecate ts-morph.** Per [ADR-002](./002-ts-morph-ast-engine.md), ts-morph is our engine today and `TsMorphEngine` is the only implementation. This ADR governs coupling, not engine choice.
 - **Signals that should trigger implementing a second engine** (watch, in order): (a) the TypeScript **7.1** public API ships; (b) ts-morph — or anyone — announces a Corsa-backed build; (c) a Wasm build of the Go compiler appears (preserves in-process speed _and_ browser support); (d) `@typescript-eslint/project-service` or Volar factor out a reusable batched compiler-access layer we could sit on.
 - **Scope of first implementation:** define `Engine` from the operations the current predicates/conditions already use — do not speculatively add methods. Grow the interface as rules need it.
-- **Relationship to ADR-006:** framework rule packages consume ts-archunit's public API, not the engine, so they are unaffected by an engine swap — another reason the boundary belongs here, in core.
+- **Relationship to [ADR-006](./006-framework-rules-architecture.md):** framework rule packages consume ts-archunit's public API, not the engine, so they are unaffected by an engine swap — another reason the boundary belongs here, in core.
 - Research backing this ADR (July 2026): [ts-morph#1621](https://github.com/dsherret/ts-morph/issues/1621), [typescript-go#455](https://github.com/microsoft/typescript-go/discussions/455), [typescript-go#481](https://github.com/microsoft/typescript-go/discussions/481), [typescript-eslint Project Service](https://typescript-eslint.io/blog/project-service/).
 
 ## Enforcement
