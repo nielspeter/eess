@@ -101,9 +101,10 @@ holds.** Three of four lanes need it, and the bug lane hid it because
 capability in this proposal.
 
 Section vocabulary shows the same drift the field builder would catch:
-`Root cause` ×21 vs `Rod-årsag` ×8, `Fix` ×38 vs `Rettelse` ×11, plus
-`Konsekvens` ×16 — a section 16 records need that the published template does
-not define.
+`Root cause` ×21 vs the same section under a second-language name ×8, `Fix` ×38 vs
+its second-language name ×11, plus a consequences section ×16 — a section 16 records
+need that the published template does not define. (The corpus's own section names
+were replaced with descriptions on 2026-10-28; the counts are unchanged.)
 
 ### This repo, measured 2026-08-13 — rule 13's shape, dogfooded
 
@@ -586,8 +587,8 @@ should be memoised per document alongside the existing pointer extraction.
   eess family exists to replace.
 - **A preset per convention** (`corpusHygiene()`), skipping the builders.
   Faster to ship, but presets bake in one corpus's vocabulary. The reference corpus
-  is Danish, four-lane, and uses `Rod-årsag` and `Rettelse`; a preset built for
-  it would not fit the next corpus. Builders first, presets on top.
+  is bilingual, four-lane, and names its root-cause and fix sections in its own
+  language; a preset built for it would not fit the next corpus. Builders first, presets on top.
 - **Frontmatter instead of header fields.** Would make the header extractor
   unnecessary — YAML parses for free. Rejected as a **requirement**: the corpus
   deliberately uses neutral-token-plus-local-prose (`**State:** Done — shipped
