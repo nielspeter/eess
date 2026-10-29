@@ -19,7 +19,7 @@
 
 [Plan 0539](./0539-a-mention-of-a-record-is-a-link.md) gives a project the rule; this repository cannot turn it on red, and its two existing
 ratchets are unsafe for it. The kernel baseline's identity has no file and a set holds one copy of
-each hash, so one baselined `bug 0338` forgives it in every file, any number of times
+each hash, so one baselined mention forgives the same text in every file, any number of times
 ([bug 0388](../../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md), plans
 [0532](../0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) and
 [0533](../0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)); and a metric
@@ -57,7 +57,7 @@ mentions(c, { pattern: RECORD_MENTION })
 (`scripts/lib/proposal-ruling.mjs:288`). It answers which record a document belongs to: a numbered
 file, or a file inside a numbered record directory (`work/spikes/0001-eess-over-ts-archunit/`'s two
 files are `spike:1`), so a record naming itself is not a mention. Kinds are compared lower-cased, so
-`ADR-009` in [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) is its own.
+an `ADR`-kind mention of [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) inside it is its own.
 
 **A file's census key.** Unlinked mentions are counted per file key and mention text (normalised:
 lower-case, runs of whitespace as one space). A file whose own name is `<number>-<slug>.md`, in a
@@ -89,7 +89,7 @@ options can throw at a base that predates them (a frozen glob dropped once its f
 added since). **Any failure to read or count the base** (a root that cannot be read, a corpus that
 throws, a base that examines zero mentions) is one unsuppressable configuration finding naming the
 base and the cause, never thousands of "raised" findings with the wrong remedy ([ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rules 1 and 4,
-ADR-009 rule 2). Then:
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2). Then:
 
 1. **Raised.** A census key holding more of a text than it held at the base is red, naming the text
    and every line it sits on unlinked in the file. A key or a text absent at the base held 0, so a

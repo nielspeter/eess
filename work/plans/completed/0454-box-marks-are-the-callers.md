@@ -3,19 +3,19 @@
 ## Status
 
 - **State:** Done — built 2026-10-18 in PR #240 from the reviewed Draft, without a separate
-  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458 and 0456. "Build
+  `/plan-ready` step: the build PR's review stands in for it, as for [plans 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) and 0456. "Build
   notes" says where the build departed from the text. Written 2026-10-17 at the maintainer's request ("plans in one pr"), as the
   plan that owns [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block
   17, which the maintainer accepted on 2026-10-16. Reviewed 2026-10-17 (architect · product ·
   enforcement · method · testing) and reworked 2026-10-18; see "Review response" below.
-- **Implements:** proposal 017
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Fixes:** [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)
-- **Priority:** Medium, bug 0445's severity: a closed record whose boxes are all `[~]` passes the
+- **Priority:** Medium, [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)'s severity: a closed record whose boxes are all `[~]` passes the
   closing check, and this repository carried four such boxes when this was written (2026-10-17).
 - **Effort:** Medium — one model function, one builder, one preset option, two repository scripts,
   fixtures. eess-md only, no kernel change; a minor with a flagged break.
 - **Created:** 2026-10-17
-- **Builds after:** plan 0458 (the examples gate) and plan 0456 (`taskItems().notExist()`, which
+- **Builds after:** [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) (the examples gate) and [plan 0456](./0456-kernel-notexist-and-dead-glob.md) (`taskItems().notExist()`, which
   this plan's example uses). Build order: 0458 → 0456 → **0454** → 0457 → 0455 → 0459.
 
 ## Problem
@@ -31,9 +31,9 @@ Measured in this repository: four list items carry a non-GFM mark outside fenced
 all in closed records, and `check:ledger` reads none of them:
 `work/bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md:160`, `:167` and `:201`, and
 `work/bugs/fixed/0256-the-spike-lane-is-run-but-never-declared.md:130`. (Measured with
-`git grep -nE '^ *[-*+] \[[^] xX]\] ' -- '*.md'`: five lines, the fifth inside a fence in bug 0226.
+`git grep -nE '^ *[-*+] \[[^] xX]\] ' -- '*.md'`: five lines, the fifth inside a fence in [bug 0226](../../bugs/0226-nonvacuity-tier-table-is-unenforced-and-drifted.md).
 That grep misses ordered lists; Phase 1 re-measures on the parsed tree, which is the number that
-counts.) Adopters report more, as reported in proposal 017's consumer feedback, not measured here:
+counts.) Adopters report more, as reported in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s consumer feedback, not measured here:
 adopter 3 carries 1,699 `[?]`, 10 `[~]` and 7 `[→]`; adopter 1 one `[~]` in an open record.
 
 A near-GFM spelling is invisible the same way. Measured with this repository's mdast/GFM stack by
@@ -42,7 +42,7 @@ the box are all plain list items (`checked: null`). An author who wrote any of t
 
 ## Design
 
-Proposal 017's decision 5, made concrete. Each point says where it narrows or extends the decision.
+[Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s decision 5, made concrete. Each point says where it narrows or extends the decision.
 
 **A mark is read on the parsed tree.** A list item (bulleted or ordered) outside a blockquote whose
 first child is a paragraph, whose paragraph's first inline is a `text` node (not a link, not a link
@@ -83,10 +83,10 @@ work/plans/x.md:12 — md/malformed-box
 ```
 
 **The caller declares each extra mark, open or done.** No mark beyond GFM's has a default
-(proposal 017's principle).
+([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s principle).
 
-**Correction (2026-10-19, bug 0525):** "open or done" misread proposal 017's decision 5 ("blocking a
-close or not"): a mark that blocks no close need not be done. Bug 0525 adds a third declaration,
+**Correction (2026-10-19, [bug 0525](../../bugs/fixed/0525-a-box-mark-can-be-declared-only-open-or-done.md)):** "open or done" misread [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s decision 5 ("blocking a
+close or not"): a mark that blocks no close need not be done. [Bug 0525](../../bugs/fixed/0525-a-box-mark-can-be-declared-only-open-or-done.md) adds a third declaration,
 `'unjudged'`; see [bug 0525](../../bugs/fixed/0525-a-box-mark-can-be-declared-only-open-or-done.md).
 
 ```ts
@@ -99,7 +99,7 @@ export interface TaskItemOptions {
 ```
 
 A declaration is validated when the builder or preset is constructed and refused with an
-`ArchConfigError` (ADR-009, refuse and say so) when a key is not one grapheme, is a space, `x` or
+`ArchConfigError` ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md), refuse and say so) when a key is not one grapheme, is a space, `x` or
 `X`, or when a value is neither `'open'` nor `'done'`. Each refusal names the key.
 
 **Where marks are declared: at each call site, decided.** The product review weighed a corpus-level
@@ -199,7 +199,7 @@ r2 m7). Under a `notExist()` rule the cardinality exemption applies and only the
 finding remains.
 
 **One finding per (document, mark), not per box.** An undeclared mark is one missing declaration, so
-adopter 3's 1,699 `[?]` would otherwise be 1,699 findings for one line of configuration (ADR-016's
+adopter 3's 1,699 `[?]` would otherwise be 1,699 findings for one line of configuration ([ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s
 "one per cause"). `md/undeclared-box-mark` is reported once per document per mark, at the first
 box's line, with the count and every line in the message. `md/malformed-box` stays per box: each is
 its own edit.
@@ -239,7 +239,7 @@ All in one pull request.
 
 ### Phase 1 — the model
 
-- Red first, committed before the fix: bug 0445's three-item record (below) through
+- Red first, committed before the fix: [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)'s three-item record (below) through
   `honestyAtClose`, asserting the exact finding set, failing on main.
 - `readBoxMark(listItem, source, marks)` in `packages/md/src/model/task-items.ts`: the tree
   definition above (backslash read from `source`), returning `{ mark, state, text } | null`.
@@ -273,25 +273,25 @@ All in one pull request.
 
 - Non-vacuity rows, changeset, `packages/md/README.md` (the task-item section gains `marks`, with one
   shared constant passed to both `taskItems()` and `honestyAtClose({ marks })`).
-- An example under plan 0458's gate, `examples/md/box-marks.test.ts`: "in a closed folder, a
+- An example under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate, `examples/md/box-marks.test.ts`: "in a closed folder, a
   declared `[~]` counts as open". Built from public blocks only, with `marks = { '~': 'open', '→': 'done' }`:
 
-  > **Correction 2026-10-19:** an adopter confirmed `[→]` means "moved to another record", which is neither open nor verified done; since 2026-10-19 (PR #254) the example declares `'→': 'unjudged'`, using the `'unjudged'` state bug 0525 added.
+  > **Correction 2026-10-19:** an adopter confirmed `[→]` means "moved to another record", which is neither open nor verified done; since 2026-10-19 (PR #254) the example declares `'→': 'unjudged'`, using the `'unjudged'` state [bug 0525](../../bugs/fixed/0525-a-box-mark-can-be-declared-only-open-or-done.md) added.
 
   ```ts
   const c = corpus({ cwd: fixtureFolder, roots: ['**/*.md'] })
   taskItems(c, { marks }).that().areOpen().should().notExist().check()
   ```
 
-  `notExist()` is plan 0456's. It needs no document predicate, so it does not wait for
-  plan 0457. Fixtures, in plan 0458's shape: `examples/md/fixtures/box-marks/clean/` (every box `[x]`
+  `notExist()` is [plan 0456](./0456-kernel-notexist-and-dead-glob.md)'s. It needs no document predicate, so it does not wait for
+  [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md). Fixtures, in [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s shape: `examples/md/fixtures/box-marks/clean/` (every box `[x]`
   or a declared-done `[→]`) and `violating-declared-open/` (one `[~]`). The clean test asserts the
-  green and proves its population through a wider selection, as plan 0458's contract requires of a
+  green and proves its population through a wider selection, as [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s contract requires of a
   cardinality example: the same builder without `.areOpen()`,
   `.select({ label, identify })` (`packages/core/src/rule-builder.ts:195`), is non-empty, since
   `examined` is zero by construction under `notExist()`. The `[→]` in `clean/` is declared done (see the 2026-10-19 correction above), so
   it is a read box, not an undeclared mark. Test titles start with their folder's name and a colon,
-  as plan 0458 requires: at least one `clean: …` and one `violating-declared-open: …`.
+  as [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) requires: at least one `clean: …` and one `violating-declared-open: …`.
 
 ## Files changed
 
@@ -315,7 +315,7 @@ All in one pull request.
 
 ## Test inventory
 
-Proposal 017's acceptance rows for block 17, each a test through the public entry points
+[Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s acceptance rows for block 17, each a test through the public entry points
 (`taskItems()` and `honestyAtClose()`), never a hand-built stand-in, each asserting finding ids and
 lines, not counts:
 
@@ -327,23 +327,29 @@ lines, not counts:
   `taskItems(c, { marks: { '~': 'open' } }).that().areOpen().select({ label, identify })` contains
   exactly `0249…:160`, `:167`, `:201` and `0256…:130` among its `[~]` boxes.
 
-From bug 0445's Verification and the design:
+From [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)'s Verification and the design:
 
-- **Red first:** bug 0445's three-item record (`[~]`, `[?]`, `[ ]` in a `completed/` record with
+- **Red first:** [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)'s three-item record (`[~]`, `[?]`, `[ ]` in a `completed/` record with
   `State: Done`) through `honestyAtClose`. Today: exactly `{(ledger/silent-open-box, L3)}`. After:
   exactly `{(md/undeclared-box-mark, L1), (md/undeclared-box-mark, L2), (ledger/silent-open-box,
 L3)}`.
 - **Not also a silent open box:** the same record with `[~]` and `[?]` undisposed yields no
   `ledger/silent-open-box` at L1 or L2 (the unread box gets one finding with one remedy).
-- **Bug 0445's headline: a done record whose boxes are all non-GFM.** A `completed/` record holding
+- **[Bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)'s headline: a done record whose boxes are all non-GFM.** A `completed/` record holding
   only `- [~] a` (line L1), through `honestyAtClose` and through
   `taskItems(c).that().areOpen().should().notExist()`. Both examine zero read boxes, so both take the
   kernel's declared-empty branch (`packages/core/src/terminal-builder.ts:279`); each asserts exactly
   `{(md/undeclared-box-mark, L1)}` by `.check()` throwing, so emission is covered, not only the
   receipt.
 - **An undeclared box carrying a deferral:** a done record holding an undeclared
-  `- [?] deferred→bug 0001` and a `Deferred: none` summary yields exactly
+
+  ```
+  - [?] deferred→bug 0001
+  ```
+
+  and a `Deferred: none` summary yields exactly
   `{(md/undeclared-box-mark, L)}`, and no deferred-none contradiction (the decision in Phase 3).
+
 - **A positive rule whose every selected box is unread:** both the kernel's "examined zero units"
   and `md/undeclared-box-mark` are reported, and the latter's message names the boxes as the cause.
 - **A rule cannot select an unread state:** the type-level test above, `@ts-expect-error` on
@@ -371,7 +377,7 @@ L3)}`.
   `md/undeclared-box-mark`.
 - **Dedupe:** two rules over one corpus, their violations passed to `dedupeConfigFindings` (from
   `@nielspeter/eess/internal`, which eess-md already depends on), give one finding per cause.
-  The appended wording is bug 0461's to pin, not this plan's.
+  The appended wording is [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s to pin, not this plan's.
 - `collectTaskItems` alone yields an undeclared box with `checked: false`, and `checked` equals
   `state === 'done'` for every element.
 - Each refusal of `validateMarks` throws `ArchConfigError` naming the key.
@@ -440,11 +446,11 @@ Migration line: "declare each mark once, as a shared `marks` constant passed to 
 `MdTaskItemRef` or `MdTaskItem` you construct; where you counted `!checked` from `collectTaskItems`, filter on
 `state`."
 
-The changeset also names plan 0456's eess-md break (an empty corpus is an empty source), and 0456's
+The changeset also names [plan 0456](./0456-kernel-notexist-and-dead-glob.md)'s eess-md break (an empty corpus is an empty source), and 0456's
 names this one: two eess-md breaks may ship in one release or two, and an adopter reading either
 changelog finds the other.
 
-Dependants (bug 0185): measured, eess-crossvalidate lists eess-md as a peer dependency and no
+Dependants ([bug 0185](../../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)): measured, eess-crossvalidate lists eess-md as a peer dependency and no
 package lists it in `dependencies`; eess-crossvalidate uses no task-item API (grep of
 `packages/crossvalidate/src`, nothing). `check:release`'s `release/break-names-dependents` decides
 which packages the changeset must name; if it asks for eess-crossvalidate, it is named.
@@ -471,7 +477,7 @@ which packages the changeset must name; if it asks for eess-crossvalidate, it is
   runs `collectViolations`, so an undeclared box is absent from it without a finding. A documented
   limit, beside the blockquote one.
 - **The dedupe note's wording**: [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
-- **`honestyAtClose`'s fixed `State:` label** (bug 0444) and its rebuild from public blocks (017's
+- **`honestyAtClose`'s fixed `State:` label** ([bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md)) and its rebuild from public blocks (017's
   decision 1).
 - **Counting declared marks in `ledgerStats`.** It counts documents, not boxes.
 
@@ -480,12 +486,12 @@ which packages the changeset must name; if it asks for eess-crossvalidate, it is
 Each Critical and Important finding of the 2026-10-17 reviews, and what changed:
 
 - **Testing C1, product I3, enforcement I11, method A2 — the example could not be built.** It now uses
-  `corpus()` roots and `taskItems().notExist()` from plan 0456, which builds first; no document
+  `corpus()` roots and `taskItems().notExist()` from [plan 0456](./0456-kernel-notexist-and-dead-glob.md), which builds first; no document
   predicate is needed.
 - **Architect I1, product I2 — corpus-wide findings broke locality; declaration scope mismatched.**
   Findings are scoped to boxes the rule's predicates reach (round two: under either reading). Declaration stays per call site,
   decided and reasoned in Design.
-- **Architect I2, product I4, method A1 — the dedupe note.** No kernel change; recorded as bug 0461.
+- **Architect I2, product I4, method A1 — the dedupe note.** No kernel change; recorded as [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
   Effort and Release say eess-md only, and that is now true.
 - **Product I1 — declared letters refused.** A declared letter or digit is a mark; undeclared ones are
   not, a documented blind spot.
@@ -520,12 +526,12 @@ Each finding of the round-two reviews about this plan, and what changed:
 - **Enforcement I7, testing I1 — the `areOpen` sabotage fired nothing.** Retargeted to
   `hasDeferredDisposedBox` (`ledger.ts:521`), the one reader that goes round the builder, with the
   decided outcome (an undeclared box is not a deferral) and its row.
-- **Testing I3 — bug 0445's headline shape had no row.** The all-`[~]` done record, through
+- **Testing I3 — [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md)'s headline shape had no row.** The all-`[~]` done record, through
   `honestyAtClose` and through `notExist()`, on the declared-empty branch, asserted through `.check()`.
 - **Testing I4 — `finished-not-closed` had no row.** Two fixtures, both directions.
 - **Product I1 — `collectTaskItems` returns more elements.** A release bullet and a migration clause.
 - **Enforcement I5, testing C1 — the clean test cannot assert `examined > 0` under `notExist()`.**
-  The example follows plan 0458's cardinality form: its population is proven through the same
+  The example follows [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s cardinality form: its population is proven through the same
   builder without `.areOpen()`. Fixture folders are `clean/` and `violating-declared-open/`.
 - **Minors:** `matchingElements` instead of `p.test` (architect m2); the all-unread positive rule
   pinned with a cause in the message (architect m7); "either reading" replaces the state-predicate
@@ -546,7 +552,7 @@ Each finding of the round-two reviews about this plan, and what changed:
 - **Architect m-new-5, method N6 — `.select()` with no argument.** Written as
   `.select({ label, identify })` in both places.
 - **Enforcement m-b, testing m2 — title prefixes.** `clean: …` and `violating-declared-open: …`, as
-  plan 0458 says.
+  [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) says.
 - **Testing m3 — one lane cannot both declare and not declare `[→]`.** Two subfolders, two lanes.
 - **Product (0456 m4, partly) — the mirror line.** The changeset names 0456's empty-corpus break.
 - **Narrowed:** none.
@@ -614,7 +620,7 @@ Where the build departed from the text above, each overrulable:
 - [x] Phase 3 — `honestyAtClose`'s `marks`; `check:ledger` declaring `[~]`; `finished-not-closed`
       threaded (the library through its harness; `check:ledger`'s own threading is wired but not
       measured, since no lane here declares a done mark yet)
-- [x] Phase 4 — non-vacuity rows, changeset, README, the example under plan 0458's gate (the
+- [x] Phase 4 — non-vacuity rows, changeset, README, the example under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate (the
       load-bearing check proves 4 of 4 judgements across 3 examples, 6 s)
 - [x] Every acceptance row above green through the public entry points; every sabotage row red
       (the matrix below, run at d9eb9856 by a script in the build worktree: rows 1–13, 13b and
@@ -632,7 +638,7 @@ Where the build departed from the text above, each overrulable:
       malformed-box fixture for `finished-not-closed`, comments and records) was re-checked by the
       steps it touches: the md suite, the `bad-finished-not-closed` harness, sabotage rows 1–4 and
       16, `check:ledger`, `check:corpus`, `lint` and `format:check`)
-- [x] Close: bug 0445 → `fixed/`, this plan → `completed/`, boards
+- [x] Close: [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md) → `fixed/`, this plan → `completed/`, boards
 
 Deferred: none
 

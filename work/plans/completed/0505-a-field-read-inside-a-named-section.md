@@ -3,10 +3,10 @@
 ## Status
 
 - **State:** Done — built on maintainer order 2026-10-19 (`680dcf0`), in the pull request that
-  builds plans 0496 and 0503 (see "Build notes"). Written 2026-10-19 in PR #247, from
+  builds [plans 0496](./0496-sections-as-elements.md) and 0503 (see "Build notes"). Written 2026-10-19 in PR #247, from
   [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s consumer follow-up
   (adopter 3's 51 records) and PR #247's method review (I2: the need had no home).
-- **Implements:** proposal 017
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** Medium — adopter 3's one concrete need from the section work: 51 of its records hold
   `- **State:**` under a `## Status` heading with no colon, and `haveField` reports each as "no
   field" today. Its place in this release batch is the coordinator's call (2026-10-19), made from
@@ -19,11 +19,11 @@
 
 ## Problem
 
-Plan 0468's `region: 'header'` (`packages/md/src/model/fields.ts:50`) reads a field only before the
+[Plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s `region: 'header'` (`packages/md/src/model/fields.ts:50`) reads a field only before the
 first section. A record whose field lives **in** a section, such as `- **State:** open` under
 `## Status`, has no way to say so: read over the whole document, a later `- **Status:** open` in a
-feedback register is a conflict; read in the header, the field is absent. Plan 0469 deferred "any
-region other than the header (a named section, for example)" to block 11, which plan 0496 builds.
+feedback register is a conflict; read in the header, the field is absent. [Plan 0469](./0469-havefield-a-document-has-a-value.md) deferred "any
+region other than the header (a named section, for example)" to block 11, which [plan 0496](./0496-sections-as-elements.md) builds.
 
 ## Design
 
@@ -35,11 +35,11 @@ docs(c)
 ```
 
 - **`region: 'header' | { section: string | RegExp; depth?: number }`.** The section is matched as
-  `haveSection` matches it (plan 0496's matcher, `g`/`y` stripped). The field is read in the body of
+  `haveSection` matches it ([plan 0496](./0496-sections-as-elements.md)'s matcher, `g`/`y` stripped). The field is read in the body of
   every matching section: from the line after its heading to its `endLine`, subsections included.
 - **The same three places** as the header region, so one region bounds them all: `fieldLines`
   (`packages/md/src/model/fields.ts:168-178`) cuts the lines, the resolver reads only those
-  occurrences, and the unnamed-form scan is bounded the same way (plan 0469's adopter-3 lesson: 67
+  occurrences, and the unnamed-form scan is bounded the same way ([plan 0469](./0469-havefield-a-document-has-a-value.md)'s adopter-3 lesson: 67
   per-phase status lines would each be a finding otherwise).
 - **Two matching sections** are two places the field may be: their occurrences go to the resolver as
   they are, so two structured values are a conflict at both lines, as anywhere.
@@ -47,19 +47,19 @@ docs(c)
   - **no such section:** `work/bugs/0001.md: no section "Status" to read State from (region)`, its
     own cause, never "no field"; with `depth`, a section of the name at another depth is named;
   - **outside the region:** a structured occurrence of the label outside every matching section is
-    reported as plan 0469's "outside the header" is, worded for the section;
-  - a heading of the name inside a container: the region records its section name in plan 0496's
+    reported as [plan 0469](./0469-havefield-a-document-has-a-value.md)'s "outside the header" is, worded for the section;
+  - a heading of the name inside a container: the region records its section name in [plan 0496](./0496-sections-as-elements.md)'s
     section-name registry, so 0496's scan names it, in the documents the rule can see.
-- **Bug 0471** (the header read past a label-shaped heading) is the header region's; a section region
+- **[Bug 0471](../../bugs/0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md)** (the header read past a label-shaped heading) is the header region's; a section region
   ends where the section ends, so it does not have that limit.
 
 ## Dogfood
 
-`check:corpus`'s `corpus/state-present` (plan 0469) reads the whole record. Measured 2026-10-19 with
+`check:corpus`'s `corpus/state-present` ([plan 0469](./0469-havefield-a-document-has-a-value.md)) reads the whole record. Measured 2026-10-19 with
 eess-md's own `fields()` over the live plans and bugs (`work/plans/*.md`, `work/bugs/*.md`, the
 boards excluded), on PR #247's tree after `aec17fc`: 227 records, every one with each of its
 bold `State` values inside `## Status`, none outside, none without one (PR #247's method review
-counted 226 at `aec17fc`, before bug 0507 was filed). The command:
+counted 226 at `aec17fc`, before [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md) was filed). The command:
 
 ```sh
 node --input-type=module -e "
@@ -121,7 +121,7 @@ reds).
 ## Out of scope
 
 - A region by label (a field inside a labelled block): no adopter has asked.
-- The header region's bug 0471.
+- The header region's [bug 0471](../../bugs/0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md).
 
 ## Build notes — 2026-10-19
 
@@ -136,7 +136,7 @@ overruled:
   own message; as a selector (`predicateHaveField`) such a document is not selected, rather than
   undecided. A section name that matches no heading anywhere is caught the way a misspelt label is,
   by the guard rule and by the section-name scan's near miss.
-- **The section name is recorded for plan 0496's scan** on the `haveField` predicate and condition
+- **The section name is recorded for [plan 0496](./0496-sections-as-elements.md)'s scan** on the `haveField` predicate and condition
   objects, and on `fields()` through a builder hook (`ownSectionDeclarations`), so a `## Status`
   inside a list item is named. When the condition's own "no section" finding already names that
   heading, the scan does not repeat it.
@@ -174,6 +174,6 @@ State under `## Symptom` gives exactly `State at line 9 is outside the "Status" 
 - [x] Sabotage rows, each red on its named test; 5.4 s
 - [ ] `check:corpus`, `check:nonvacuity`, `check:examples`, `check:release` and `npm run validate`
       green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
-- [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
+- [x] Close: this plan → `completed/`; ROADMAP and [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s row
 
 Deferred: none

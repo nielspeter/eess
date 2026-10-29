@@ -2,19 +2,19 @@
 
 ## Status
 
-- **State:** Done — built 2026-10-19. Written 2026-10-17 from proposal 017's maintainer acceptance
+- **State:** Done — built 2026-10-19. Written 2026-10-17 from [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s maintainer acceptance
   (block 7); revised 2026-10-18 after PR #235's review (architect · product · enforcement · method ·
   testing).
-- **Implements:** proposal 017
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** Medium — two of the three adopters asked for it (017, "Consumer feedback"), and the
   third wants it in tests only; this repository's own md tests build their corpora in temporary
   directories or fixture trees today.
 - **Effort:** Small — one constructor, one internal registry that `pointers()` already needs, a
   parity test over the existing fixture trees.
 - **Created:** 2026-10-17
-- **Builds after:** plan 0457, in the order the maintainer set on 2026-10-18 (0458 → 0456 → 0454 →
+- **Builds after:** [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md), in the order the maintainer set on 2026-10-18 (0458 → 0456 → 0454 →
   0457 → 0455 → 0459). It needs nothing from 0456, 0454 or 0457: its example uses only
-  `links().should().resolve()`, which the eess-md root exports today. It needs plan 0458's examples
+  `links().should().resolve()`, which the eess-md root exports today. It needs [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s examples
   gate.
 
 ## Problem
@@ -104,7 +104,7 @@ is not there. There is no mixing of an in-memory Markdown side with a code side 
 make one corpus resolve against two sources, and `corpus()` already answers "resolve against disk".
 A caller who wants their real code uses `corpus()`.
 
-**What cannot behave as on disk is refused, never silently different** (ADR-009, ADR-010):
+**What cannot behave as on disk is refused, never silently different** ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md), [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)):
 
 | input                                                                                   | why                                                                                                                               | result                                                                                             |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -116,35 +116,35 @@ A caller who wants their real code uses `corpus()`.
 
 **The waiver refusal reads exactly what the kernel would.** `refuseWaivers` calls
 `parseExclusionComments(doc.text, doc.file)` with no options, the same call `core/src/execute-rule.ts:151`
-makes on a violating file, so the lexer is the same by construction (ADR-012). It refuses when that
+makes on a violating file, so the lexer is the same by construction ([ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)). It refuses when that
 call returns any exclusion or any warning: an exclusion would apply on disk, and a malformed or
 undocumented directive is reported on disk, so in memory either would differ. A fenced example that
 merely documents `eess-exclude`, which the kernel's parse does not read as a directive, is accepted.
 The long-term owner of waivers in memory is a source-text capability the kernel takes from its
-caller, the same shape as ADR-012's borrowed lexer; it is not an md workaround, and it is out of scope.
+caller, the same shape as [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s borrowed lexer; it is not an md workaround, and it is out of scope.
 
 `root` defaults to `join(sep, '__eess_text_corpus__')`, which documents carry in `file` as on disk.
 The caller may set it so messages read like their repository, as long as it does not exist.
 
 **Empty is not refused; it is an empty source.** `corpusFromText({})` yields no documents, as
-`corpus()` does over an empty tree. Plan 0456, built before this one, makes an empty corpus an empty
+`corpus()` does over an empty tree. [Plan 0456](./0456-kernel-notexist-and-dead-glob.md), built before this one, makes an empty corpus an empty
 source on every md builder (`sourceEmpty()`), so a rule over it gets the kernel's empty-source
 configuration finding (`zeroLoadedSourceViolation`, `packages/core/src/vacuity-findings.ts:100`),
-which outranks `.expectEmpty()` (ADR-010 §3), exactly as `corpus()` over an empty tree does. The
+which outranks `.expectEmpty()` ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3), exactly as `corpus()` over an empty tree does. The
 docs section says so for test authors: a rule meant to pass on "no matching documents" needs at
 least one document in the map, so the source is not empty and the selection is.
 
 **Tier.** This is test infrastructure, not a check: it adds no way to fail a build. Its own claim,
 "resolves as on disk", is held by the parity test below, which is Tier 2.
 
-**The examples gate (017 decision 3)** is plan 0458's, built first. This plan adds one example under
+**The examples gate (017 decision 3)** is [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s, built first. This plan adds one example under
 it: `examples/md/corpus-from-text.test.ts`, "every link resolves", stated as
 `links(c).should().resolve()` from the eess-md root only, with its documents kept as files under
 `examples/md/fixtures/corpus-from-text/clean/` and `…/violating-broken-link/` (a link to a missing
-file; one `violating-<judgement>/` folder per judgement, plan 0458's naming, and the example states
+file; one `violating-<judgement>/` folder per judgement, [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s naming, and the example states
 one judgement) and read into `corpusFromText`. The test file has one test titled `clean: …` and one titled
-`violating-broken-link: …`: each title starts with its fixture folder's name and a colon, as plan
-0458's pairing check requires. It adds fixture folders, not a non-vacuity row: plan 0458's one row discovers every
+`violating-broken-link: …`: each title starts with its fixture folder's name and a colon, as
+[plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s pairing check requires. It adds fixture folders, not a non-vacuity row: [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s one row discovers every
 example under `examples/md/` and swaps each `violating-<judgement>/` folder.
 
 ## Phases
@@ -228,7 +228,7 @@ export function corpusFromText(
 ```
 
 The `?? ''` is unreachable: `read` is only called for paths taken from the map's own keys. Under
-`noUncheckedIndexedAccess` it is the typed way to say so (ADR-005: no `as`). It is also fail-closed
+`noUncheckedIndexedAccess` it is the typed way to say so ([ADR-005](../../../adr/005-no-any-no-type-assertions.md): no `as`). It is also fail-closed
 if that ever stops holding: an empty text gives a pointer into it a `stale` finding, never a pass. The keys are sorted so
 the document order does not depend on how the caller built the map; `corpus()`'s order is the
 filesystem's (`walkFiles` does not sort, `packages/core/src/file-walk.ts:28`), which is why the
@@ -240,7 +240,7 @@ parity test compares sets, not arrays.
 - `docs/markdown.md` gains a "A corpus from text, for tests" section after the `corpus()` options
   (`docs/markdown.md:55`), so `check:surface` counts the export as documented and
   `check:docs-code` compiles its fence.
-- The example under plan 0458's gate, as described in Design.
+- The example under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate, as described in Design.
 
 ## Files changed
 
@@ -270,7 +270,7 @@ parity test compares sets, not arrays.
   - `links(c).should().resolve()`;
   - `pointers(c).that().areLive().should().resolve()`;
   - `pointers(c).that().areFrozen().select(…)` and `taskItems(c).select(…)`, compared as element
-    sets (`relPath`, `line`, and for boxes `checked`, `text`, and plan 0454's `mark` and `state`,
+    sets (`relPath`, `line`, and for boxes `checked`, `text`, and [plan 0454](./0454-box-marks-are-the-callers.md)'s `mark` and `state`,
     since 0454's reading of an escaped mark reads raw source through the very `read` this plan
     swaps), not as a rule receipt. Each `.select()` comparison has its own guard: a non-empty element
     set on at least one tree, on both sides;
@@ -302,7 +302,7 @@ parity test compares sets, not arrays.
 - **`roots` default:** a map with `a.md` and `src/b.ts` loads one document. `roots: ['docs/**']` over
   a map without `docs/` loads none, and `links(c).should().resolve()`'s receipt equals the receipt of
   the same rule over `corpus({ cwd, roots: ['docs/**'] })` on an empty temporary directory, compared
-  in the same test. Both are empty sources after plan 0456, and the row asserts that finding by name
+  in the same test. Both are empty sources after [plan 0456](./0456-kernel-notexist-and-dead-glob.md), and the row asserts that finding by name
   (`zeroLoadedSourceViolation`'s rule id), so it pins the empty source and not only the agreement.
 - **The existing suite unchanged** (Phase 1 is a refactor): `npm test --workspace packages/md` and
   `packages/crossvalidate`.
@@ -323,16 +323,16 @@ parity test compares sets, not arrays.
   8. the per-rule guard deleted, and one rule changed to `taskItems(c)` with no condition → the guard's
      own test reds when restored (it is the assertion that would have caught the vacuous rule).
 - **Non-vacuity:** block 7 adds no gate, so it adds no `check:nonvacuity` row. Its non-vacuity is the
-  per-rule guard and the sabotage matrix. Its example adds a fixture pair under plan 0458's gate,
+  per-rule guard and the sabotage matrix. Its example adds a fixture pair under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate,
   whose one discovering row covers it.
 
 ## Out of scope
 
 - A text corpus that reads part of its files from disk (Design: one source).
-- Reading waivers from memory. That is a kernel capability (ADR-012's shape: source text the kernel
+- Reading waivers from memory. That is a kernel capability ([ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s shape: source text the kernel
   takes from its caller), refused here instead:
   [bug 0520](../../bugs/0520-waivers-in-a-text-corpus-are-refused.md).
-- Git tracking (bug 0446). A text corpus has no untracked files; whatever bug 0446 decides for
+- Git tracking ([bug 0446](../../bugs/0446-a-link-to-an-untracked-file-resolves.md)). A text corpus has no untracked files; whatever [bug 0446](../../bugs/0446-a-link-to-an-untracked-file-resolves.md) decides for
   `corpus()` either passes through `assembleCorpus` or is disk-only, and that bug says which.
 - `DEFAULT_FROZEN` (017's second Review, decision 2): this plan shares it and does not change it.
 - Any gherkin or mermaid equivalent.
@@ -353,10 +353,10 @@ removes `DEFAULT_FROZEN`, both constructors change in that one release.
 - **Testing I3 (`external-root` loaded at the wrong root):** loaded from `repo/` with its own `roots`
   and `externalRoots`, as its own test does.
 - **Method X2 (three build orders):** the order is the maintainer's 2026-10-18 order, stated once.
-- **Method X3 (non-vacuity contract):** the example adds a fixture pair under plan 0458's one
+- **Method X3 (non-vacuity contract):** the example adds a fixture pair under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s one
   discovering row.
 - **Minors, grouped:** counts re-measured as call sites (method); the already-done "disposition row"
-  box removed (method); one registry instead of two `WeakMap`s, the `a`/`a/b.md` refusal and ADR-012
+  box removed (method); one registry instead of two `WeakMap`s, the `a`/`a/b.md` refusal and [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)
   as the owner of in-memory waivers (architect); the `DEFAULT_FROZEN` consequence, the waiver refusal
   pinned to the kernel's own parse, `parseFeature` cited accurately and an Open questions section
   (product); `stale` asserted by identity, the `roots` default compared against `corpus()` on an empty
@@ -365,8 +365,8 @@ removes `DEFAULT_FROZEN`, both constructors change in that one release.
 
 ### Round two
 
-- **The empty corpus (architect, product 1, enforcement m16):** stated as an empty source after plan
-  0456, with the finding named, the docs note for test authors, and the `roots`-default row asserting
+- **The empty corpus (architect, product 1, enforcement m16):** stated as an empty source after
+  [plan 0456](./0456-kernel-notexist-and-dead-glob.md), with the finding named, the docs note for test authors, and the `roots`-default row asserting
   the finding by name.
 - **Sabotage row 3 has no patch site (testing M4):** retargeted to `corpusFromText` dropping
   `options.ignore`, which exists and reds `resolve-link` and `corpus`.
@@ -380,7 +380,7 @@ removes `DEFAULT_FROZEN`, both constructors change in that one release.
 ### Round three
 
 - **Test titles (enforcement m-b, testing m2; coordinator decision 1):** the violating test is titled
-  `violating-broken-link: …`, its folder's name and a colon, as plan 0458's contract spells it.
+  `violating-broken-link: …`, its folder's name and a colon, as [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s contract spells it.
 - **Narrowed, not fixed:** none. The other round-three rows about 0455 are marked resolved.
 
 ## Build notes — 2026-10-19
@@ -392,20 +392,20 @@ overrulable:
 
 - **The registry is its own module, `packages/md/src/model/corpus-internals.ts`,** not
   `resolve-link.ts`. Importing `readCorpusFile` from `resolve-link.ts` put `pointer-resolve.ts` under
-  plan 0404's rule that a module importing the link resolver must not import `node:path`, and
+  [plan 0404](./0404-md-one-link-resolver-names-each-case.md)'s rule that a module importing the link resolver must not import `node:path`, and
   `pointer-resolve.ts` needs `node:path` for its external roots. The registry is about the corpus,
   not about links, so it moved; `resolve-link.ts` reads the matchers through `corpusInternals()`.
   The design is unchanged: one `WeakMap`, set once in `assembleCorpus`, holding `inRoots`, `ignored`
   and `read`. `CorpusInternals` is not exported (`check:arch`'s unused-exports rule).
 - **`parseExclusionComments` is re-exported from the eess-md root:** `corpus.ts` now imports it from
   the kernel, and `check:family` requires every kernel symbol a dialect's sources import to be
-  re-exported (plan 0089).
-- **`expectEmptyRoots` (bug 0475) passes through:** it landed after this plan was written, and
+  re-exported ([plan 0089](./0089-family-standalone-sufficiency.md)).
+- **`expectEmptyRoots` ([bug 0475](../../bugs/fixed/0475-a-corpus-root-cannot-be-declared-empty-and-a-non-markdown-root-is-silent.md)) passes through:** it landed after this plan was written, and
   `assembleCorpus` holds the dead-root and declared-empty checks it feeds, so `TextCorpusOptions`
   carries it with `corpus()`'s meaning. The dead-root refusal applies to both constructors.
-- **`expectEmptyFrozen` (bug 0499) passes through too, the coordinator's decision (2026-10-19, PR
-  #251):** combining this branch with bug 0499's, `TextCorpusOptions` carries `expectEmptyFrozen`,
-  and both constructors share bug 0499's frozen-glob judgement through `assembleCorpus`. So a text
+- **`expectEmptyFrozen` ([bug 0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md)) passes through too, the coordinator's decision (2026-10-19, PR
+  #251):** combining this branch with [bug 0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md)'s, `TextCorpusOptions` carries `expectEmptyFrozen`,
+  and both constructors share [bug 0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md)'s frozen-glob judgement through `assembleCorpus`. So a text
   corpus whose explicit `frozen` marks none of its documents is refused unless the glob is declared
   in `expectEmptyFrozen`, as `corpus()` refuses it; the omitted default is not judged, on either
   constructor. Held by the row "an explicit frozen glob that marks nothing is refused, and accepted
@@ -433,7 +433,7 @@ overrulable:
   exist only on `corpus` (1), boxes on `ledger` (21), `declared-block` (1) and `frontmatter` (4),
   frozen documents on `corpus`, `linked-back` and `ledger`. No fixture document had to be added.
 - **`honestyAtClose` is typed `ArchViolation[]`,** so the test reads its `examined` with an `in`
-  check rather than a cast (ADR-005).
+  check rather than a cast ([ADR-005](../../../adr/005-no-any-no-type-assertions.md)).
 - **The docs section sits after "What did the corpus actually load?"** (`docs/markdown.md:55` moved
   since the plan was written), and names `TextCorpusOptions` so `check:surface` counts it.
 - **Red first:** the new test file run against the base commit (9675402, a throwaway worktree)
@@ -515,7 +515,7 @@ The edits are in the session's `scratchpad/matrix0455b.py`.
       row, `roots` default rows
 - [x] Sabotage matrix run, each of the eight rows red on its named test (table above, 14 s)
 - [x] Docs, README line, changeset; `check:surface`, `check:docs-code` green
-- [x] Example and its fixture pair under plan 0458's gate (9 of 9 judgements load-bearing, 13 s)
+- [x] Example and its fixture pair under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate (9 of 9 judgements load-bearing, 13 s)
 - [x] `npm run validate`: red at the close commit 1135be2 (exit 1 after 47 s, `check:vacuity`:
       `corpusFromText` neither probed nor listed as a non-constructor; fixed by listing it as an input
       loader beside `corpus()`); after the rebase onto main, exit 0 in 18 min 21 s at 9def163. This

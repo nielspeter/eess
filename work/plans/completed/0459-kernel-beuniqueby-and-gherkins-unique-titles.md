@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Done — built 2026-10-19 from the reviewed Draft, as plans 0456 and 0486 were; split
+- **State:** Done — built 2026-10-19 from the reviewed Draft, as [plans 0456](./0456-kernel-notexist-and-dead-glob.md) and 0486 were; split
   from [plan 0456](./0456-kernel-notexist-and-dead-glob.md) after PR #235's review (method, B2: one
   plan held two independent kernel conditions, a break in a third package and a dogfood rule).
-- **Implements:** proposal 017
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** Medium. Two of the three adopters want block 13 (017, "Consumer feedback"), and
   this repository adopts it for record numbers (017, second Review's conditions).
 - **Effort:** Medium. One kernel condition, one eess-md builder method, one eess-gherkin condition
@@ -37,8 +37,8 @@ This repository's record numbers are checked today by `check:numbers`
 
 ### Kernel: `uniqueByCondition`, behind `/internal`
 
-Placed by the same rule as plan 0456's `notExistCondition`: it is a factory a dialect writes, and
-an adopter writes `docs(c).…should().beUniqueBy(…)`. So it is family plumbing (ADR-011), exported
+Placed by the same rule as [plan 0456](./0456-kernel-notexist-and-dead-glob.md)'s `notExistCondition`: it is a factory a dialect writes, and
+an adopter writes `docs(c).…should().beUniqueBy(…)`. So it is family plumbing ([ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md)), exported
 from `packages/core/src/internal.ts`, and it takes the dialect's own violation constructor so a
 code frame survives.
 
@@ -132,7 +132,7 @@ beUniqueBy(key: (d: MdDocument) => string, what: string): this {
 ```
 
 `what` rather than `label`: in eess-md "label" already means a field's label (`**Label:**`,
-`links().areLabelled(label)`), and one word should mean one thing (product, minor; ADR-017).
+`links().areLabelled(label)`), and one word should mean one thing (product, minor; [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)).
 Only `docs()` gains it; a value-level `beUniqueBy` waits for block 1's field elements.
 
 ### eess-gherkin: `haveUniqueTitles` rebuilt
@@ -200,7 +200,7 @@ records
   `git ls-files` on main: 409 numbered record files and 1 directory-form record, no number
   claimed twice, so the rule lands green.
 - The key cannot throw: the predicate guarantees a match, and the key falls back to `''`
-  (architect M8). A hand-built predicate is fine here: `scripts/` is not under plan 0458's gate.
+  (architect M8). A hand-built predicate is fine here: `scripts/` is not under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate.
 - The rule is not filtered by `isProbeArtifact` (`scripts/check-corpus.mjs:517`), or its
   non-vacuity probe would be invisible to it.
 - `check:numbers` stays. It is the kit's script; this is the dialect's own statement of the same
@@ -220,7 +220,7 @@ All in one pull request.
 
 - `DocsRuleBuilder.beUniqueBy(key, what)`.
 - `packages/md/README.md`: a uniqueness example, compiled by `check:docs-code`.
-- The example under plan 0458's gate, `examples/md/unique-slugs.test.ts`: "no two pages under
+- The example under [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate, `examples/md/unique-slugs.test.ts`: "no two pages under
   `guides/` share a slug". Fixture folders `clean/` and `violating-shared-slug/`, one per judgement
   the example states, under 0458's contract; test titles start with the folder's name and a colon
   (`clean: …`, `violating-shared-slug: …`), as 0458 lines 101 and 300 say. `beUniqueBy` is not a
@@ -239,20 +239,20 @@ All in one pull request.
 
 ## Files changed
 
-| file                                          | change                                        |
-| --------------------------------------------- | --------------------------------------------- |
-| `packages/core/src/unique-by.ts`              | new                                           |
-| `packages/core/src/internal.ts`               | export `uniqueByCondition`, `UniqueByOptions` |
-| `packages/core/tests/unique-by.test.ts`       | new                                           |
-| `packages/md/src/builders/docs.ts`            | `beUniqueBy()`                                |
-| `packages/md/tests/docs-unique-by.test.ts`    | new                                           |
-| `packages/md/README.md`                       | one example                                   |
-| `examples/md/unique-slugs.test.ts` + fixtures | new (plan 0458's gate)                        |
-| `packages/gherkin/src/builder.ts`             | `haveUniqueTitles` on `uniqueByCondition`     |
-| `packages/gherkin/tests/*.test.ts`            | new count, message and rows                   |
-| `scripts/check-corpus.mjs`                    | `corpus/record-number-unique`, count line     |
-| `scripts/check-nonvacuity.mjs`                | `gateCorpusProbeDir`; two rows                |
-| `.changeset/*.md`                             | kernel minor, md minor, gherkin minor (break) |
+| file                                          | change                                                                                         |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `packages/core/src/unique-by.ts`              | new                                                                                            |
+| `packages/core/src/internal.ts`               | export `uniqueByCondition`, `UniqueByOptions`                                                  |
+| `packages/core/tests/unique-by.test.ts`       | new                                                                                            |
+| `packages/md/src/builders/docs.ts`            | `beUniqueBy()`                                                                                 |
+| `packages/md/tests/docs-unique-by.test.ts`    | new                                                                                            |
+| `packages/md/README.md`                       | one example                                                                                    |
+| `examples/md/unique-slugs.test.ts` + fixtures | new ([plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate) |
+| `packages/gherkin/src/builder.ts`             | `haveUniqueTitles` on `uniqueByCondition`                                                      |
+| `packages/gherkin/tests/*.test.ts`            | new count, message and rows                                                                    |
+| `scripts/check-corpus.mjs`                    | `corpus/record-number-unique`, count line                                                      |
+| `scripts/check-nonvacuity.mjs`                | `gateCorpusProbeDir`; two rows                                                                 |
+| `.changeset/*.md`                             | kernel minor, md minor, gherkin minor (break)                                                  |
 
 ## Test inventory
 
@@ -331,7 +331,7 @@ two m15; testing, round two M9).
 
 ## Review response — 2026-10-18
 
-These findings were made against plan 0456 before the split; they apply here.
+These findings were made against [plan 0456](./0456-kernel-notexist-and-dead-glob.md) before the split; they apply here.
 
 - **method B2** (0456 too big): split into this plan.
 - **method B3** (gherkin break settled in a Draft): put to the maintainer, accepted 2026-10-18.
@@ -381,7 +381,7 @@ These findings were made against plan 0456 before the split; they apply here.
 ### Round five
 
 - **method R5-5 / coordinator decision 5** (a stale line saying the board row was someone else's):
-  deleted; the board's `Blocked on` for this plan reads "plans 0456, 0458".
+  deleted; the board's `Blocked on` for this plan reads "[plans 0456](./0456-kernel-notexist-and-dead-glob.md), 0458".
 
 ## Build notes — 2026-10-19
 
@@ -389,7 +389,7 @@ Built as written, at commit 76ca7ba (pre-rebase) on `main` 9675402. What differs
 decided from the ADRs and overrulable:
 
 - **eess-gherkin re-exports the `ConditionContext` type.** `scenarioViolation` names it, and
-  `check:family` (plan 0089) requires a dialect to re-export every kernel symbol its own source
+  `check:family` ([plan 0089](./0089-family-standalone-sufficiency.md)) requires a dialect to re-export every kernel symbol its own source
   imports; the first run red on exactly that. Additive, and named in gherkin's changeset.
 - **gherkin's `load.test.ts` denominator is 8 feature files, not 6.** The per-file-key test needs two
   fixtures, `same-title-a.feature` and `same-title-b.feature`; that test counts every fixture under
@@ -410,7 +410,7 @@ number claimed twice`, not "N values across N documents": one document yields on
   `gateCorpusProbe` asserts exit 1 only, as its precedent `gateCorpusWorkPointer` does.
 - **Each row takes a list of fragments** and asserts `firedOn` for every one: the probe and the real
   record it collides with.
-- **The freeze test asserts `Object.isFrozen`**, as plan 0456's `notExist` test does, rather than
+- **The freeze test asserts `Object.isFrozen`**, as [plan 0456](./0456-kernel-notexist-and-dead-glob.md)'s `notExist` test does, rather than
   assigning to `evaluate`; no sabotage row claims it.
 - **Both READMEs**: eess-md gains the section the plan names; eess-gherkin gains one sentence under
   its example saying every member is reported and what the element is, since its example is where an
@@ -468,7 +468,7 @@ Deferred: none
 ## Addendum — 2026-10-19: block 13 at value level
 
 The batch's product review (I3) found that this plan delivered block 13 for keys derived from the
-document (a slug, a number in the file name) but not proposal 017's ask itself: "no two documents
+document (a slug, a number in the file name) but not [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s ask itself: "no two documents
 carry the same value under this label". This plan's Out of scope deferred that form to block 1's
 field elements, and block 1 has shipped (`fields()`). The coordinator decided the ask on 2026-10-19,
 and it was built at e24c9b55 (pre-rebase) on `release/batch-builds` d1ed1fe (pre-rebase):
@@ -488,7 +488,7 @@ and it was built at e24c9b55 (pre-rebase) on `release/batch-builds` d1ed1fe (pre
 has no value this rule can read in '✅'`) and stays out of the grouping. Decided here.
 - An example, `examples/md/unique-ids.test.ts` (`clean/`, `violating-shared-id/`), keys on Id through
   a leading-zero normaliser. `docs/markdown.md` gains "Unique values: `beUniqueBy`" beside
-  `agreeWithFolder`, covering the document-keyed and value-keyed forms (product M1). Proposal 017's
+  `agreeWithFolder`, covering the document-keyed and value-keyed forms (product M1). [Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s
   block-13 row records delivery at value level. Changeset: eess-md minor.
 
 **Red first.** `packages/md/tests/builders/fields-unique-by.test.ts` failed 6 of 6 on d1ed1fe (pre-rebase)

@@ -3,8 +3,8 @@
 ## Status
 
 - **State:** Done — built 2026-10-18 in its own pull request, under the build order the maintainer
-  set; the two deferrals below go to proposal 017, where their blocks are held. It was built from the reviewed Draft (six review rounds in PR #235) without a separate `/plan-ready` step; its build PR's review stood in for it.
-- **Implements:** proposal 017
+  set; the two deferrals below go to [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), where their blocks are held. It was built from the reviewed Draft (six review rounds in PR #235) without a separate `/plan-ready` step; its build PR's review stood in for it.
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** Medium. It builds first. The build order, decided by the maintainer on 2026-10-18,
   is 0458 → 0456 → 0454 → 0457 → 0455 → 0459. Each block plan adds its example under this gate,
   so none of them has to create the gate during its own build.
@@ -23,7 +23,7 @@
 
 ## Problem
 
-Proposal 017's principle is that eess-md fixes no document's shape: a plan, a bug or a wiki page is
+[Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s principle is that eess-md fixes no document's shape: a plan, a bug or a wiki page is
 something a caller builds out of the blocks. Its second Review, decision 3, says how that claim is
 held:
 
@@ -70,18 +70,18 @@ exclusions. The rest of `examples/` is untouched. Two reasons for a folder rathe
 
 ### The contract an example meets
 
-Plans 0456, 0454, 0457, 0455 and 0459 follow it.
+[Plans 0456](./0456-kernel-notexist-and-dead-glob.md), 0454, 0457, 0455 and 0459 follow it.
 
 - **The file.** `examples/md/<name>.test.ts` states one judgement or a few related ones. It is built
   from `@nielspeter/eess-md`'s root and the fixture helper, and nothing else (rule 1).
 - **The fixtures: one folder per judgement.** `examples/md/fixtures/<name>/clean/`, plus one
   `examples/md/fixtures/<name>/violating-<judgement>/` per judgement the example states (for example
-  `violating-unclaimed/` and `violating-double/` for plan 0456's two block-6 judgements). Each folder
+  `violating-unclaimed/` and `violating-double/` for [plan 0456](./0456-kernel-notexist-and-dead-glob.md)'s two block-6 judgements). Each folder
   is non-empty. `<judgement>` is kebab-case. Every folder is read through the shared helper
   `examples/md/fixture.ts`:
   - `fixture(name, kind)` returns the folder's path;
   - `fixtureFiles(name, kind)` returns its files as `{ relPath: text }`, for an example on a text
-    corpus (plan 0455's `corpusFromText`).
+    corpus ([plan 0455](./0455-a-corpus-built-from-text.md)'s `corpusFromText`).
 
   `kind` is `'clean'` or `` `violating-${string}` ``. So an example on a text corpus keeps its
   documents as files in the same folders, and every example is swapped the same way.
@@ -96,7 +96,7 @@ Plans 0456, 0454, 0457, 0455 and 0459 follow it.
       selected one step wider: the same builder without the rule's narrowing predicate (or scope),
       read through `.select({ label, identify })` (`core/src/rule-builder.ts:195`), is non-empty. That shows
       the clean fixture holds the elements the narrowing must exclude, so the green is not an empty
-      fixture's. For example, plan 0454's clean fixture holds closed records whose boxes are all
+      fixture's. For example, [plan 0454](./0454-box-marks-are-the-callers.md)'s clean fixture holds closed records whose boxes are all
       done, and `taskItems(c).select(…)` is non-empty.
   - Each `violating-<judgement>: …` test reads `fixture(name, 'violating-<judgement>')`. It asserts
     the finding's identity: its `file` is the violating document, its message is exact, and it is
@@ -110,7 +110,7 @@ Plans 0456, 0454, 0457, 0455 and 0459 follow it.
     - `ruleId`;
     - `bypassFilters: true`.
 
-    The example's test title names the judgement as this kind. Plan 0457's
+    The example's test title names the judgement as this kind. [Plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s
     `violating-scope-matches-nothing:` is the first.
 
     The whole message is what tells this judgement apart, and a prefix would not do. Every kernel
@@ -119,9 +119,9 @@ Plans 0456, 0454, 0457, 0455 and 0459 follow it.
     `message`" (`:27`). `deadGlobViolation`'s message begins with the same words, "this rule
     examined zero units —" (`:74`). A violating fixture that merely breaks the load (a misnamed
     folder, or `roots` matching nothing) gives `zeroLoadedSourceViolation` (`:100`), whose
-    message differs, so the exact-message assertion fails on it. That holds from plan 0456 on,
+    message differs, so the exact-message assertion fails on it. That holds from [plan 0456](./0456-kernel-notexist-and-dead-glob.md) on,
     when md's corpus builders report an empty source; until then only `codeBlocks()` does. The
-    sabotage row that pins it is plan 0457's, the first example to use the exception, which
+    sabotage row that pins it is [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s, the first example to use the exception, which
     builds after 0456.
 
   - The swap row matches tests to folders by these title prefixes. A `violating-<judgement>/` folder
@@ -133,7 +133,7 @@ Plans 0456, 0454, 0457, 0455 and 0459 follow it.
 - **Exports.** A block plan exports any predicate, combinator or condition its own example needs, in
   that same plan. Nothing an example needs may arrive in a later plan.
 - **Missing blocks.** An example that cannot be written from public blocks records a missing block
-  (proposal 017's completeness rule). Widening the gate is not the answer.
+  ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s completeness rule). Widening the gate is not the answer.
 - **Presets are not blocks.** The `rules/*` presets (`@nielspeter/eess-md/rules/ledger`,
   `/rules/adr`) are not blocks, and rule 1 refuses them on purpose. Decision 3's closing proof is
   `honestyAtClose` rebuilt from the root, so an example built on the preset would prove nothing
@@ -339,7 +339,7 @@ than claiming it. The known evasions are:
 ### No rule can be green on an empty folder
 
 All four arch rules (rule 1's two halves, rules 2 and 3) select modules under `examples/md/`. With no module there, they examine nothing,
-which is ADR-010's finding; none of them is cardinality-shaped. `examples/md/fixture.ts` is itself
+which is [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)'s finding; none of them is cardinality-shaped. `examples/md/fixture.ts` is itself
 a module in the folder, so with every example removed the rules still examine one module.
 (Measured at build, 2026-10-18: rule 1's first half excludes the helper, so with no example it
 examines zero modules and reds. It fails closed, more strictly than this paragraph first said.) The
@@ -407,7 +407,7 @@ repository, pass the fixture's path yourself, and a copied example needs no help
 ### `check:examples` runs the folder
 
 `examples/tsconfig.json` adds `md/**/*.test.ts` and `md/**/*.ts` to `include`, and
-`examples/vitest.config.ts` adds `md/**/*.test.ts`. Bug 0222's open scope question for the five
+`examples/vitest.config.ts` adds `md/**/*.test.ts`. [Bug 0222](../../bugs/0222-examples-typecheck-covers-nine-of-sixteen-files.md)'s open scope question for the five
 unrun templates is untouched.
 
 ### Non-vacuity: four rows
@@ -442,7 +442,7 @@ unrun templates is untouched.
        The cardinality form's population assertion passes under this swap, because the violating
        fixture holds elements too. The zero-violations assertion is what fails.
 
-  5. Read the outcome per test title from the JSON report, never from the exit code (bug 0109). A
+  5. Read the outcome per test title from the JSON report, never from the exit code ([bug 0109](../../bugs/fixed/0109-nonvacuity-fixtures-read-a-crash-as-a-pass.md)). A
      syntax error, a thrown corpus load or a missing path fails the row with what happened, not as
      a pass. vitest strips types and does not type-check, so a type error is caught by
      `check:examples`' `tsc` step, not by this row.
@@ -545,17 +545,17 @@ the whole harness.
 ## Out of scope
 
 - **`honestyAtClose` rebuilt from public blocks**, decision 3's closing proof. It needs blocks 1, 2
-  and 5 and the ADR extending ADR-006 (017, second Review decision 1), none of which is plannable
-  yet (017, "Not yet"). Deferred to proposal 017, where those blocks are held. Because the proof is
+  and 5 and the ADR extending [ADR-006](../../../adr/006-framework-rules-architecture.md) (017, second Review decision 1), none of which is plannable
+  yet (017, "Not yet"). Deferred to [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), where those blocks are held. Because the proof is
   split off, 017's row for the gate is `Accepted, reshaped`.
 - **The outward-binding example** of 017's completeness criterion (a value naming code joined to
   eess-ts). It widens rule 1 to sibling dialect roots when it is planned; rule 3 already makes that
-  safe. Deferred to proposal 017, block 10.
+  safe. Deferred to [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), block 10.
 - **The `rules/*` presets' rebuild, and the arch rule that they import only the md root**
   (decision 1): that ADR's work.
-- **The five unrun template examples and `custom-rules.test.ts`**: bug 0222's scope. This plan adds
+- **The five unrun template examples and `custom-rules.test.ts`**: [bug 0222](../../bugs/0222-examples-typecheck-covers-nine-of-sixteen-files.md)'s scope. This plan adds
   a folder beside them and changes none.
-- **Each block's own example**: plans 0456, 0454, 0457, 0455 and 0459 add theirs under this
+- **Each block's own example**: [plans 0456](./0456-kernel-notexist-and-dead-glob.md), 0454, 0457, 0455 and 0459 add theirs under this
   contract.
 
 ## Review response — 2026-10-18
@@ -571,7 +571,7 @@ Each Critical and Important finding from PR #235's reviews, and what changed.
   The maintainer's 2026-10-18 order is stated.
 
 - **Product I1** (the outward-binding example is blocked). Rule 1's widening is stated, rule 3
-  makes it safe, and it is deferred to proposal 017, block 10.
+  makes it safe, and it is deferred to [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), block 10.
 - **Product I2** (`rules/*` excluded). This is now a stated decision, with its reason.
 - **Enforcement I12, Testing I3, Architect M2, Product M** (the matcher is defeated by quoted or
   computed keys and getters). Names are read from the name node; accessors, assignment after
@@ -587,7 +587,7 @@ Each Critical and Important finding from PR #235's reviews, and what changed.
   helper swaps by environment variable, and no file is touched.
 - **Testing I4** (relative import into package source). A sabotage row is added.
 - **Method C1, P1** (an `Accepted` row whose closing proof is deferred). The row becomes
-  `Accepted, reshaped`, recorded in proposal 017.
+  `Accepted, reshaped`, recorded in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md).
 - **Minors, grouped:**
   - the helper's Node glob is fixed (Testing M1; measured in round four);
   - the seed asserts the finding's identity (Testing M2);
@@ -655,7 +655,7 @@ From PR #235's fifth-round reviews (`review-235-*-r5.md`).
   test asserts the whole zero-examined message, plus `ruleId` and `bypassFilters: true`. The
   reason is read from the source: every configuration finding shares one constructor and differs
   only in its message, and `deadGlobViolation` shares the prefix. A sabotage row makes a violating
-  fixture load nothing, and the exception test must red on it (moved to plan 0457 in round six).
+  fixture load nothing, and the exception test must red on it (moved to [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) in round six).
 - **Method R5-5.** The lines naming who recorded or briefed a change are reworded, and round four's
   note on deleted lines is deleted.
 - **Enforcement and method r5** re-measured the Node-glob table on main's build; it reproduces.
@@ -664,7 +664,7 @@ From PR #235's fifth-round reviews (`review-235-*-r5.md`).
 
 From PR #235's sixth-round reviews (`review-235-*-r6.md`).
 
-- **The "fixture that loads nothing" sabotage row moves to plan 0457.** Until plan 0456 ships, md's
+- **The "fixture that loads nothing" sabotage row moves to [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md).** Until [plan 0456](./0456-kernel-notexist-and-dead-glob.md) ships, md's
   corpus builders do not report an empty source (only `codeBlocks()` does), so the row could not
   red where this plan builds first. The sentence that claims the two findings differ now says from
   when, and points to the row's new home.
@@ -675,8 +675,8 @@ The build's review (architect, enforcement, testing, method, product) found the 
 plan claimed, and the build answered:
 
 - **An example could judge without a block** (a regex over `fixtureFiles` text, `vi.importActual`,
-  `process.getBuiltinModule`, a banned name as a string key). `fixtureFiles` is not shipped; plan
-  0455 adds it with its first caller. A fifth rule entry, `eess/examples-md-uses-a-block`, requires
+  `process.getBuiltinModule`, a banned name as a string key). `fixtureFiles` is not shipped;
+  [plan 0455](./0455-a-corpus-built-from-text.md) adds it with its first caller. A fifth rule entry, `eess/examples-md-uses-a-block`, requires
   every example to import a value from eess-md, a type-only import not counting. Rule 3 also bans
   `importActual`, `importMock`, `getBuiltinModule`, `binding` and `dlopen`, and a banned name spelled as a string. Rule 2 matches `??=`, `||=` and `&&=`.
 - **Still not caught, held by review:** a verdict computed outside a builder, by reading elements
@@ -694,12 +694,12 @@ plan claimed, and the build answered:
 - [x] Phase 2: rule 1 (two halves), rules 2 and 3, green on the seed example; plus `eess/examples-md-uses-a-block` from the build's review
 - [x] Phase 3: the non-vacuity rows, each committed. The arch rows fire on every spelling: rule 1 on 6 of 6 plus a red and a quiet case on the helper; uses-a-block on 2 of 2; rule 2 on 17 of 17; rule 3 on 13 of 13. A `docs()`/`corpus()` probe stays quiet under all of them. The load-bearing row has four committed rows of its own: a test reading another judgement's folder (the forward swap), a `clean:` test that cannot fail (the reverse swap), a folder with no test, and an example below the top level.
 - [x] done-otherwise: of the Test inventory's load-bearing cases, the weakened assertion and the empty folder were measured by hand (2026-10-18), and a syntax error by the testing review. "No `violating-*/` folder", "no `clean:` test", a test with no folder, a title that is not kebab-case, a duplicate title, and a swapped run reporting different titles are code branches with no committed row (the testing review measured that removing any of them leaves every row green).
-- [ ] deferred→plan 0456 — the inventory's `notExist()` case (a clean fixture with no elements) needs `notExist()` on an md builder, which plan 0456 adds; its test inventory now carries the row
+- [ ] deferred→[plan 0456](./0456-kernel-notexist-and-dead-glob.md) — the inventory's `notExist()` case (a clean fixture with no elements) needs `notExist()` on an md builder, which [plan 0456](./0456-kernel-notexist-and-dead-glob.md) adds; its test inventory now carries the row
 - [x] Phase 4: docs section, README link, `examples/README.md`, changeset
 - [x] Cost measured, 2026-10-18: `check:arch` 28 rules in 7.79 s on main, 33 rules in 8.19 s after; `check:examples` 1.96 s on main, 1.70 s after; the load-bearing row 1.4 s for its one judgement, growing with each judgement added.
-- [ ] `deferred→proposal 017` `honestyAtClose` rebuilt from public blocks, decision 3's closing
+- [ ] deferred→[proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) `honestyAtClose` rebuilt from public blocks, decision 3's closing
       proof (needs blocks 1, 2 and 5, and the ADR in the second Review's decision 1; no plan yet)
-- [ ] `deferred→proposal 017` the outward-binding example and rule 1's widening to sibling dialect
+- [ ] deferred→[proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) the outward-binding example and rule 1's widening to sibling dialect
       roots (block 10; no plan yet)
 
-Deferred: proposal 017, plan 0456
+Deferred: [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), [plan 0456](./0456-kernel-notexist-and-dead-glob.md)

@@ -4,11 +4,11 @@
 
 - **State:** Done — built 2026-10-18 from [spike 0485](../../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md),
   whose decision is [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md),
-  revised after PR #243's review of the prototype's second revision. ADR-021's seven rows are
+  revised after PR #243's review of the prototype's second revision. [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s seven rows are
   `gated`.
-- **Implements:** proposal 017
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** Medium. Block 12's example, "documents whose Status is done hold no open box", needs
-  it, through plan 0457's `inDocuments`. All three adopters want a version of that rule.
+  it, through [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)'s `inDocuments`. All three adopters want a version of that rule.
 - **Effort:** Medium. The prototype's second revision touched 13 source files and 3 test files; the
   build adds the review's answers, the tests, the gate rows and the changesets.
 - **Created:** 2026-10-18
@@ -18,9 +18,9 @@
 
 ## Problem
 
-Spike 0485 measured the doors through which a subject a predicate cannot judge is dropped without a
+[Spike 0485](../../spikes/0485-what-a-predicate-that-cannot-judge-does-to-a-rule.md) measured the doors through which a subject a predicate cannot judge is dropped without a
 word: the kernel's and eess-ts's combinators, `.select()`, eess-ts's builders, a hand wrapper around
-`test`, and eess-md's `inScope` and `fields()` scans. ADR-021 decides the fix: an optional
+`test`, and eess-md's `inScope` and `fields()` scans. [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) decides the fix: an optional
 `Predicate.undecided`, strong Kleene membership from one truth table, one unsuppressable finding per
 cause within a rule, and every application of a rule's predicates either reporting or refusing.
 This plan builds it.
@@ -62,7 +62,7 @@ export function refuseUndecided(u: readonly Undecided[], door: string): void
 
 ### Every application of a rule's predicates
 
-Every call site that applies a rule's predicates either partitions and reports, or refuses (ADR-021
+Every call site that applies a rule's predicates either partitions and reports, or refuses ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
 clause 6). The sites, from `grep -rn "matchingElements(" packages/*/src`:
 
 | site                                                                                                    | hands findings back? | does                                                           |
@@ -76,7 +76,7 @@ clause 6). The sites, from `grep -rn "matchingElements(" packages/*/src`:
 
 ### Phase 1: the kernel
 
-- `Undecided` and the member, documented with the producer's contract (ADR-021 clause 6).
+- `Undecided` and the member, documented with the producer's contract ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 6).
 - `undecided.ts`. `partition` keeps the two-valued path when no predicate declares the member.
   `kleene` remembers its last element, so a nested combinator is evaluated once per level rather
   than 2^depth times (PR #243's review measured 8 to 424 leaf calls from depth 1 to 6 without it).
@@ -96,23 +96,23 @@ clause 6). The sites, from `grep -rn "matchingElements(" packages/*/src`:
 - `packages/ts/src/core/combinators.ts`: the predicate branch of `not`/`and`/`or` forwards the member
   through `negatedTest` and `kleene`.
 - eess-ts's builders refuse through `matchingElements`. Honouring the member in eess-ts's own
-  `collectViolations` is dropped on purpose until an eess-ts predicate declares it (ADR-021's
+  `collectViolations` is dropped on purpose until an eess-ts predicate declares it ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s
   Consequences).
 
 ### Phase 3: eess-md
 
 - `haveFieldPredicate` declares `undecided` when the value cannot be read, and only then: a value
-  that resolved is decided (ADR-021 clause 4). Its `test` refuses an undecided document. The verdict
+  that resolved is decided ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 4). Its `test` refuses an undecided document. The verdict
   is memoized per document in a `WeakMap` closed over by the predicate instance. Measure the spike's
   cost case again after the memo.
 - Export `haveField` as a free predicate from the root, and re-export `Undecided` (`check:family`).
-- Delete `DocsRuleBuilder`'s identity-keyed override (plan 0469).
+- Delete `DocsRuleBuilder`'s identity-keyed override ([plan 0469](./0469-havefield-a-document-has-a-value.md)).
 - `inScope` and `unnamedFormFindings` read `membership`: an undecided candidate is reached, and its
   causes are reported once, deduplicated against the rule's own result.
-- Plan 0469's tests change where ADR-021 changes the behaviour: three `.select()` calls over an
+- [Plan 0469](./0469-havefield-a-document-has-a-value.md)'s tests change where [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) changes the behaviour: three `.select()` calls over an
   undecided document (a conflict, an empty value, a register read without the header region) now
-  refuse. A value that resolved beside disagreeing prose stays selected (ADR-021 clause 4), as it
-  was in plan 0469. Each changed assertion says why.
+  refuse. A value that resolved beside disagreeing prose stays selected ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 4), as it
+  was in [plan 0469](./0469-havefield-a-document-has-a-value.md). Each changed assertion says why.
 - Fold the change into the pending `md-have-field` changeset (`haveField` is unreleased).
 
 ### Phase 4: dogfood, the gates, the release notes
@@ -131,7 +131,7 @@ clause 6). The sites, from `grep -rn "matchingElements(" packages/*/src`:
 - **Changesets:** the kernel minor (a root member and type, additive), eess-ts minor (a new
   refusal), eess-md folded into its pending changeset, and the dependents the kernel's changeset
   must name.
-- ADR-021's rows move from `pending` to `gated` as each test lands.
+- [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s rows move from `pending` to `gated` as each test lands.
 
 ## Test inventory
 
@@ -191,13 +191,13 @@ Sabotage rows, each red on the test it guards:
 
 ## Out of scope
 
-- **`inDocuments` (plan 0457).** It forwards the member; plan 0457 records what it owes.
-- **Carrying findings through `Selection`.** Dropped on purpose; ADR-021 clause 6 says when it
+- **`inDocuments` ([plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md)).** It forwards the member; [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) records what it owes.
+- **Carrying findings through `Selection`.** Dropped on purpose; [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 6 says when it
   reopens.
 - **eess-ts honouring the member in its own `collectViolations`.** Dropped on purpose; the floor is
   the refusal.
 - **A kernel constructor that builds `test` and `undecided` from one three-valued function**, so a
-  third party cannot write a `test` that does not refuse. It would close ADR-021's last door. Dropped
+  third party cannot write a `test` that does not refuse. It would close [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s last door. Dropped
   on purpose until a third-party producer exists.
 - **Two rules with the same description and no id** would share `dedupeConfigFindings`' key
   (`file`, `ruleId ?? rule`, `element`) and collapse under its "N rules" note. Rules with ids keep
@@ -207,7 +207,7 @@ Sabotage rows, each red on the test it guards:
   ([bug 0487](../../bugs/0487-an-exclusion-refused-by-an-unsuppressable-finding-is-called-stale.md)),
   and `kind: 'configuration'` on a finding whose fix is in a record
   ([bug 0488](../../bugs/0488-a-finding-about-a-records-content-is-labelled-configuration.md)).
-- **Bugs 0482, 0483, 0484**, recorded from plan 0469.
+- **[Bugs 0482](../../bugs/0482-the-havefield-tests-cannot-see-an-extra-finding.md), 0483, 0484**, recorded from [plan 0469](./0469-havefield-a-document-has-a-value.md).
 
 ## Build notes
 
@@ -233,8 +233,8 @@ Where the build departed from the text above, each overrulable:
 - **De-duplication is only against unsuppressable findings,** so a suppressible finding with the
   same text cannot stand in for the cause; `fields()` drops its own unread-label finding when a cause
   says the same thing.
-- **Plan 0469's selector no longer reports disagreeing prose beside a resolved value:** that value
-  is decided (ADR-021 clause 4), and the condition form reports the prose. Plan 0469's test is
+- **[Plan 0469](./0469-havefield-a-document-has-a-value.md)'s selector no longer reports disagreeing prose beside a resolved value:** that value
+  is decided ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 4), and the condition form reports the prose. [Plan 0469](./0469-havefield-a-document-has-a-value.md)'s test is
   renamed to say so.
 - **The dogfood rule** is `corpus/closed-records-sit-in-done-folders` over both lanes, written as
   `or()` of `and()`s. It keeps its own receipt (the first cut borrowed `state-present`'s count,
@@ -262,7 +262,7 @@ Where the build departed from the text above, each overrulable:
 - [x] Phase 1: the kernel
 - [x] Phase 2: eess-ts
 - [x] Phase 3: eess-md (the cost case re-measured after the memo: see Build notes)
-- [x] Phase 4: dogfood, non-vacuity, vacuity matrix, changesets, ADR-021 rows
+- [x] Phase 4: dogfood, non-vacuity, vacuity matrix, changesets, [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rows
 - [x] Sabotage rows red on their named tests; durations reported (23 rows below)
 - [ ] validation-owed: `npm run validate` green; duration reported (it runs after this record is
       written, at the PR's head; its result is recorded on the PR, and CI is the gate)
