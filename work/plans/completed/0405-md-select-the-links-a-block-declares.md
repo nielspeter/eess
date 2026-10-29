@@ -4,9 +4,9 @@
 
 - **State:** Done — built 2026-10-09 and reviewed in four rounds; the design and counts in force are
   the second round's design as amended by the third and final rounds (see "Final review round").
-  Frozen Ready 2026-10-07 from proposal 013's decision 2; the freeze history is in the proposal's
+  Frozen Ready 2026-10-07 from [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s decision 2; the freeze history is in the proposal's
   review.
-- **Priority:** Medium — the selector plan 0406 is built on. Selecting by physical line, the
+- **Priority:** Medium — the selector [plan 0406](./0406-md-a-declared-link-is-answered.md) is built on. Selecting by physical line, the
   measured workaround, fails open on a wrapped label and on a label followed by a list.
 - **Effort:** Medium — the link walk gains block ownership and a section path; two predicates; a
   near-miss scan in the builder.
@@ -48,7 +48,7 @@ links such a block owns. The line-based workaround misses the second line of a w
   of the label text. It accepts `**Label:**`, `**Label**:`, `__Label__:` and `Label:`, optionally
   after a list marker, and **requires the colon** (the ledger records why). The ledger keeps compiling
   it case-insensitively, so its behaviour is unchanged; `areLabelled` matches it **case-sensitively**.
-  This corrects proposal 013's decision 2, which said the bold wrapper is required: the shared
+  This corrects [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s decision 2, which said the bold wrapper is required: the shared
   grammar accepts the plain `Label:` form the ledger already accepts.
 - **Section path** reuses the heading stack `buildDocument` already keeps for tables
   (`packages/md/src/model/document.ts`), and matches with `haveSection()`'s `matchName`
@@ -65,7 +65,7 @@ links(c).that().areInSection('See also') // links under a heading "See also"
   `areLabelled` and `areInSection` record their declaration on the builder (a field re-cloned by
   `LinkRuleBuilder.copy()` after `super.copy()`), and `LinkRuleBuilder` overrides
   `collectViolations()`. No `RuleBuilder` subclass in the family overrides it today, so this is the
-  first; the build's review checks the bug 0155 and zero-examined paths through it. The override
+  first; the build's review checks the [bug 0155](../../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md) and zero-examined paths through it. The override
   calls `super.collectViolations()`, skips the scan when no declaration was recorded, and otherwise
   scans the corpus's documents (the corpus, not the rule's selection; documented) for:
   - **a near-miss, for the wrapped label forms only** (`**Label:**`, `**Label**:`, `__Label__:`): a
@@ -75,7 +75,7 @@ links(c).that().areInSection('See also') // links under a heading "See also"
     because prose beginning "related to:" is common;
   - **a wrapped-label block that declares nothing readable:** one holding only reference-style
     links ("declares only reference-style links, which eess-md does not read"), or no link at all
-    ("declares no record"), as two findings with two messages (ADR-016 rule 7).
+    ("declares no record"), as two findings with two messages ([ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 7).
     Each is a finding on that block's line, naming the expected spelling or the form. The result is
     `collectResult([...base, ...findings], { examined: base.examined, sourceEmpty: base.sourceEmpty,
 deadGlob: base.deadGlob })`, keeping the base evidence unchanged, **not** `mergeCollectResults`,
@@ -88,7 +88,7 @@ deadGlob: base.deadGlob })`, keeping the base evidence unchanged, **not** `merge
   they cannot be composed through `satisfy()`/`not()`/`or()` without the declaration. The
   documentation says the `.select()` path has no near-miss check.
 - **`MdLinkRef` gains optional fields only** (`block?`, `sectionPath?`), and `resolveLink` takes
-  plan 0404's narrower `LinkToResolve`, so the change stays additive.
+  [plan 0404](./0404-md-one-link-resolver-names-each-case.md)'s narrower `LinkToResolve`, so the change stays additive.
 
 ## Phases
 
@@ -120,7 +120,8 @@ Every finding row runs through `links(c)…rule().check()`, never `.select()`.
 - **Label forms:** each of the four forms is selected; `**Related To:**` and `**Related  to:**` are
   not selected and are near-misses; plain `related to: [x](x.md)` is neither selected nor a
   near-miss, and plain `Related to: [x](x.md)` is selected; a paragraph
-  `Related to bug 0253, see [x](x.md)` (no colon) is neither selected nor a near-miss.
+  `Related to that bug, see [x](x.md)` (no colon; the fixture's line, `forms.md:17`, names the bug
+  by its number) is neither selected nor a near-miss.
 - **Block ownership:** a wrapped label's second-line link is selected; a label followed by a list
   selects the list and its nested sub-list; a labelled list item selects its nested sub-list; a list
   after an intervening paragraph is not selected; `**Related to:** [a](a.md)` followed by a list
@@ -135,12 +136,12 @@ Every finding row runs through `links(c)…rule().check()`, never `.select()`.
   reported.
 - **Ledger unchanged:** the ledger's existing tests pass on the shared grammar.
 
-**Sabotage rows** (ADR-009 rule 5), run in an isolated `git worktree` with its own `node_modules`,
+**Sabotage rows** ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5), run in an isolated `git worktree` with its own `node_modules`,
 from a green baseline, each verdict read from the exit code:
 
 - ownership by physical line: the wrapped-label row goes red;
 - the label paragraph no longer owning the following list: the list row goes red;
-- the colon made optional: the "Related to bug 0253" selection row goes red;
+- the colon made optional: the selection row for the colon-less "Related to" line goes red;
 - the near-miss scan removed from the override: the `**Related To:**` row goes red;
 - the section near-miss removed: the `## See Also` row goes red;
 - the section stack not reset at a following heading: the "a following `##` heading ends it" row
@@ -157,11 +158,11 @@ the fixture's file and its message, not only the rule id.
 
 ## Out of scope
 
-- Front matter: eess-md has no front-matter model (proposal 013, open question 1).
+- Front matter: eess-md has no front-matter model ([proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md), open question 1).
 - Reference-style links as selectable links; this plan only reports a declaration made of them.
-- The answer check: plan 0406.
+- The answer check: [plan 0406](./0406-md-a-declared-link-is-answered.md).
 - A `RegExp` argument to `areLabelled` (`areInSection` and `terms({ label })` take one): additive
-  later, not needed by plan 0406 (product review, final round).
+  later, not needed by [plan 0406](./0406-md-a-declared-link-is-answered.md) (product review, final round).
 
 ## Success
 
@@ -177,7 +178,7 @@ the fixture's file and its message, not only the rule id.
 - [x] Phase 2 — `areLabelled`, `areInSection`, the override and its findings, docs
 - [x] Phase 3 — the non-vacuity rows
 - [x] the nine sabotage rows go red
-- [x] proposal 013 records the plain-`Label:` correction in a dated note (done when this plan was
+- [x] [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md) records the plain-`Label:` correction in a dated note (done when this plan was
       written)
 - [x] `npm run validate` green
 
@@ -196,7 +197,7 @@ the fixture's file and its message, not only the rule id.
   2; the override raising `examined` 1; `mergeCollectResults` 2 (the green control and the
   every-misspelt row).
 - **The non-vacuity rows are fixture tier, and are claimed under `check:corpus` with that said.**
-  No production rule declares a block until plan 0406's dogfood, so the three rows prove the builder
+  No production rule declares a block until [plan 0406](./0406-md-a-declared-link-is-answered.md)'s dogfood, so the three rows prove the builder
   `check:corpus` is written in, not a rule `check:corpus` runs. Each was sabotaged on its own (its
   finding removed from `declarationFindings`): only that row went to exit 0; the other two stayed 1.
 - **The three findings share the rule's id**, so each row's token is a line the fixture prints only
@@ -235,15 +236,22 @@ this PR, since it is the plan's own capability:
   fork test pins the behaviour instead.
 - **Tests added** for every measured shape, the plain-form empty label (the inventory row the build
   first missed — method I1), exact finding sets per fixture, a fork, a repeated declaration, and a
-  rule with no condition (bug 0155: the missing-condition finding stays beside the declaration
+  rule with no condition ([bug 0155](../../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md): the missing-condition finding stays beside the declaration
   findings).
 
 **Decisions taken, not deferred:**
 
 - **The empty-declaration finding stays** (product I2 asked to drop it). A wrapped label with text and
-  no link, `**Related to:** bug 0253`, is a declared relation that no link-based rule can check —
+  no link,
+
+  ```
+  **Related to:** bug 0253
+  ```
+
+  is a declared relation that no link-based rule can check —
   the silent escape this plan is about. A template writing `**Related to:** none` gets the finding,
   and the docs say to leave the label out.
+
 - **The names stay `areLabelled`/`areInSection`** (product I1, M5). In eess-md, "label" already names
   the `**X:**` line the ledger reads, and the docs define the term; `resideIn…` names where a
   document lives, not where a link sits under a heading.
@@ -271,24 +279,24 @@ removed, the empty finding removed); only that row went to exit 0.
 - A reference to an undefined definition (`[a][missing]`) is plain text to mdast, so its block reads
   as naming no record — the remedy still points at the right fix.
 - `declarationFindings` walks each document a second time (architect M4); a cost, not a defect.
-- This is the family's first `collectViolations()` override outside the kernel. If plan 0406 or a
+- This is the family's first `collectViolations()` override outside the kernel. If [plan 0406](./0406-md-a-declared-link-is-answered.md) or a
   second dialect needs another, a kernel hook is the shape to extract (architect M6).
 - No non-vacuity row pins the selector itself against over-selection (enforcement M4), nor against
-  under-selection (testing, final round): deferred→plan 0406, which now carries it as a dated
+  under-selection (testing, final round): deferred→[plan 0406](./0406-md-a-declared-link-is-answered.md), which now carries it as a dated
   Phase 3 item and a ledger box.
 
 ## Second review round — 2026-10-09
 
 Architect and enforcement re-reviewed the fix and both measured a **Critical** the first round
 introduced: "a block that opens with a label owns itself" was decided by the loose plain grammar, so
-an annotated item under a correct declaration — `- bug 0402: [b](b.md)`,
+an annotated item under a correct declaration — `- the bug: [b](b.md)`,
 `- [c](c.md): why it matters`, an item holding a URL — claimed itself and left the declaration. It
 was neither selected nor reported, and the rule stayed green on a broken declared link. A plain
 `Notes:` paragraph inside a labelled item took the list after it, and the "stands alone" message
 fired on a label whose list was directly under it. In acaf41c those items joined their owner, so
 this was a regression, and the attempt stopped there: the ownership design was put to both lenses on
 paper before any more code. Their break attempts added two shapes — a different wrapped label
-inside a declaration (`- **plan 0406:** [e](e.md)`) taking its links out silently, and a changed
+inside a declaration (`- **the plan:** [e](e.md)`) taking its links out silently, and a changed
 bullet starting a list outside the label — plus a label in a table cell, a heading or mid-line,
 never scanned.
 
@@ -373,7 +381,7 @@ Product, method and testing, who had seen only the first build, reviewed the who
   misspelt-corpus test is an exact set. A heading inside a list item, which misdescribes the cause
   as "stands alone", is recorded as residual.
 - **Method:** the Design, Build notes and State line now carry their supersession; the
-  over-/under-selection residual has a real home in plan 0406; stale comments were fixed.
+  over-/under-selection residual has a real home in [plan 0406](./0406-md-a-declared-link-is-answered.md); stale comments were fixed.
 
 **Sabotage, the whole matrix re-run on this final tree** (`declared-block.test.ts` plus the ledger's
 rule tests, 94 tests; each row restored before the next; 211 green after). 28 rows, every one red:

@@ -6,7 +6,7 @@
 
 ## Problem
 
-Plan 0061 shipped the first spec↔code bindings (`spec.rules.ts`) and proved the
+[Plan 0061](./0061-spec-code-hard-feedback-poc.md) shipped the first spec↔code bindings (`spec.rules.ts`) and proved the
 thesis. Writing those two bindings surfaced two recurring frictions that every
 future table↔code binding would pay — and that a later declarative schema layer
 would inherit if left unfixed. This plan removes exactly those two, and nothing
@@ -167,7 +167,7 @@ const adrFilesSelection = files({
 })
 ```
 
-**Home rationale:** not the kernel (it is deliberately fs-free — ADR-002 /
+**Home rationale:** not the kernel (it is deliberately fs-free — [ADR-002](../../../adr/002-ts-morph-ast-engine.md) /
 engine boundary). `eess-md` is markdown-specific; a generic `files()` there is a
 layering smell. `eess-crossvalidate` is where file-based right-hand sides are
 authored and already depends on the kernel + picomatch, so it hosts `files()` as
@@ -249,7 +249,7 @@ Notes:
   `no-unused-exports` flagged `files.ts` as an undeclared subpath export and
   required it in the `ENTRY_POINTS` map (`arch.internal.rules.ts`) — a-priori
   entry-point declaration, not a sanction. The exclusion list _is_ the exports
-  map by design (plan 0060), so a new export must be declared there.
+  map by design ([plan 0060](./0060-full-coverage-dogfooding.md)), so a new export must be declared there.
 - **The workspace-packages side stayed hand-built**, exactly as scoped: it needs
   each package's `version` for the Status rule, so its identity is content, not
   path — the N=1 content-parsing case `files()` deliberately does not cover.

@@ -6,7 +6,7 @@
 - **Priority:** P1 once 0051 lands — **promoted ahead of 0059** (see "Why this jumps the queue")
 - **Effort:** ~1 week
 - **Created:** 2026-07-03
-- **Depends on:** Plan 0051 (kernel extraction — `@nielspeter/eess` must exist as an installable package). Conceptually depends on the EESS manifesto (`docs/manifesto.md`).
+- **Depends on:** [Plan 0051](./0051-consolidation-eess-monorepo.md) (kernel extraction — `@nielspeter/eess` must exist as an installable package). Conceptually depends on the EESS manifesto (`docs/manifesto.md`).
 
 ## Review outcome (2026-07-03 — architect + product)
 
@@ -56,7 +56,7 @@ That validation layer has now been **hand-built twice**:
 
 ~1,000 lines of validator logic, copy-pasted between repos, already
 drifting. A third adopting repo copies again. This is **exactly the
-typed-mermaide failure mode** that motivated plan 0051 — a dialect
+typed-mermaide failure mode** that motivated [plan 0051](./0051-consolidation-eess-monorepo.md) — a dialect
 re-implementing the kernel because no shared package exists — except
 here it is the whole dialect being vendored per repo.
 
@@ -69,7 +69,7 @@ scripts by hand.
 
 ## Why this jumps the queue (ahead of 0059)
 
-Plan 0051's original work order was 0059 (cross-validation) before
+[Plan 0051](./0051-consolidation-eess-monorepo.md)'s original work order was 0059 (cross-validation) before
 0058 (Markdown dialect). Reversed, because the evidence points the
 other way:
 
@@ -87,7 +87,7 @@ other way:
 
 New order: **0051 → 0058 → 0059 → workflow dialect (future plan, unnumbered until scheduled)**.
 
-> Numbering note: plan 0051 originally forward-referenced these as
+> Numbering note: [plan 0051](./0051-consolidation-eess-monorepo.md) originally forward-referenced these as
 > 0052/0053/0054, but 0055–0057 were allocated in the meantime — plan
 > numbers are monotonic and never backfilled, so the MD dialect is
 > 0058 and cross-validation is 0059.
@@ -199,7 +199,7 @@ records live in `delivered/`, `wont-do/`, `fixed/`, etc. add those in config.
 
 **`haveSection` is one phase-dispatched method, not two exports.** Like the
 existing dual-use methods in `eess-ts` (`resideInFolder`, `notImportFrom`,
-`haveNameMatching` — see plan 0041's `_phase` tracking), a single
+`haveNameMatching` — see ts-archunit plan 0041's `_phase` tracking), a single
 `haveSection(name)` on the `docs` builder acts as a **predicate** after
 `.that()` ("docs that have section X") and as a **condition** after
 `.should()` ("docs must have section X"). It is not two identically-named
@@ -231,7 +231,7 @@ none of that. The preset is opt-in and clearly labeled as such:
 It composes the generic primitives into the gate-on-declaration contract
 (every matched ADR has the section, the table, valid tiers per row,
 resolvable citations), emits rule ids under the `adr/` namespace so
-`overrides` work per-rule (mirroring `recommended()`, plan 0049), and ships
+`overrides` work per-rule (mirroring `recommended()`, ts-archunit plan 0049), and ships
 from a sub-path (`@nielspeter/eess-md/rules/adr`) so the base dialect never
 pulls it in.
 
@@ -361,7 +361,7 @@ adrEnforcement(c, {
 - **Fixers/codemods.** `graph-fix-stale-links.ts` mutates files; this
   dialect validates only. A repair CLI is a possible later plan.
 - **AST-grounded cross-validation.** Citation checks here are
-  text-level. Semantic MD↔TS (and MD↔Mermaid) binding is plan 0059,
+  text-level. Semantic MD↔TS (and MD↔Mermaid) binding is [plan 0059](./0059-cross-validation-eess-crossvalidate.md),
   which builds on this dialect's pointer/citation elements.
 - **Embedded Mermaid block composition.** The corpus model exposes
   fenced blocks with language tags as data; handing `mermaid` blocks

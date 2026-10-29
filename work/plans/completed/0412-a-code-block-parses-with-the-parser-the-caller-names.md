@@ -3,13 +3,13 @@
 ## Status
 
 - **State:** Done — built 2026-10-14 to 2026-10-15 in one PR, over four review rounds, and closed in
-  the same PR. All three phases are built. One ledger item is deferred to bug 0420. Frozen to Ready
-  on 2026-10-14. Written against the 2026-10-14 review of proposal 006's Ask C, which split the ask
+  the same PR. All three phases are built. One ledger item is deferred to [bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md). Frozen to Ready
+  on 2026-10-14. Written against the 2026-10-14 review of [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s Ask C, which split the ask
   into this plan (A, eess-md) and [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)
   (B, eess-mermaid), in that order.
-- **Implements:** proposal 006 — Ask C, the half that is useful without Mermaid. The conditions
+- **Implements:** [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md) — Ask C, the half that is useful without Mermaid. The conditions
   cited by number below are that review's.
-- **Priority:** Medium — a new capability with one consumer waiting on it (proposal 006's consumer
+- **Priority:** Medium — a new capability with one consumer waiting on it ([proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s consumer
   evidence, 2026-10-12). As of 2026-10-14 that consumer has an open bug of its own that waits on
   plans 0412 and 0413; the maintainer scheduled this plan next. Nothing is green today that should be red; a corpus simply has no way to
   say "every block parses".
@@ -28,14 +28,14 @@ itself, and the hand-written loop is exactly where a check goes green on nothing
 fails to load, a parser that throws on block 3, a corpus that holds no blocks of that language.
 
 eess-md cannot own the parsers. The one with a consumer, Mermaid's, needs a DOM and a worker
-(spike 0411), and owning a grammar per language would put a second authority beside the real one.
+([spike 0411](../../spikes/0411-can-the-caller-pass-mermaids-parser.md)), and owning a grammar per language would put a second authority beside the real one.
 So eess-md owns the **loop** and the **evidence**, and the caller names the parser.
 
 ## Design
 
 ### The conditions, by value (as of 2026-10-14)
 
-The review conditions this plan answers, from proposal 006's `## Review — 2026-10-14` and its
+The review conditions this plan answers, from [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s `## Review — 2026-10-14` and its
 amendment the same day. They are recorded here so the build depends on this file, not on that one.
 
 | #   | condition, as amended                                                                                                                                                                                                           | answered in        |
@@ -51,13 +51,13 @@ amendment the same day. They are recorded here so the build depends on this file
 _Two rows narrow the condition as written, noted after review (2026-10-15):_
 
 - _Row 2 leaves out condition 2's success line ("N mermaid blocks parse with mermaid 11.17.2"). The
-  line belongs to plan 0413's gate, which prints it. This plan supplies `summary()` for it._
+  line belongs to [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)'s gate, which prints it. This plan supplies `summary()` for it._
 - _Row 5 says "per run"; this plan emits one finding per rule and relies on the dedupe key to make it
   one per run. That holds for one failure, and not for two different failures of one parser
   ([bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md))._
 
 Conditions 3, 6, 7, 8, 11 and 12 (the outcome shapes, `unrecognised` wording for Mermaid, the
-Markdown line through frontmatter, the worker, the tier claim and bug 0409) belong to plan 0413.
+Markdown line through frontmatter, the worker, the tier claim and [bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)) belong to [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md).
 
 ### The port (conditions 2 and 4, as amended)
 
@@ -97,7 +97,7 @@ export interface CodeBlockParser {
 ```
 
 - The result type is `CodeBlockVerdict`, not `ParseResult`, which the kernel already exports.
-- `parse` takes the whole batch (ADR-007's batch-first boundary), so a worker-backed parser pays its
+- `parse` takes the whole batch ([ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)'s batch-first boundary), so a worker-backed parser pays its
   cold start once, not per block.
 - **The parser declares canaries, and eess-md runs them.** They are prepended to the batch, and their
   verdicts are checked before any block's is read. A canary answered with the wrong outcome is an
@@ -105,7 +105,7 @@ export interface CodeBlockParser {
   must now forge both an identity and canaries that it answers correctly. That is the residual the
   docs state, and it is the residual condition 4 meant.
 - **A parser rejects with a structured failure when it knows why.** eess-md reads two fields by
-  shape: `remedy: string` and `blockIndex: number | null`. It does not check the class, so plan 0413
+  shape: `remedy: string` and `blockIndex: number | null`. It does not check the class, so [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)
   needs no import of eess-md. eess-md uses `remedy` as the finding's `Fix:` line and maps
   `blockIndex` back to the block's file and line. A rejection without those fields gets eess-md's
   generic wording.
@@ -133,9 +133,9 @@ codeBlocks(parsed).should().parse().check()
   parsed. It can never select a block no parser saw.
 - **No rule surface becomes async.** The builder's doc comment and `docs/markdown.md` say why:
   facts first, then a synchronous builder.
-  - The review placed this sentence beside ADR-015's loader row. That would add a binding clause to an
-    Accepted ADR with no mechanism behind it, and ADR-015 is about module resolution. So this plan
-    keeps it in the docs. The dated amendment in proposal 006 records the change.
+  - The review placed this sentence beside [ADR-015](../../../adr/015-the-kernel-extends-resolution-never-execution.md)'s loader row. That would add a binding clause to an
+    Accepted ADR with no mechanism behind it, and [ADR-015](../../../adr/015-the-kernel-extends-resolution-never-execution.md) is about module resolution. So this plan
+    keeps it in the docs. The dated amendment in [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md) records the change.
 
 ### What can go wrong, and what each reports (conditions 5 and 9)
 
@@ -162,7 +162,7 @@ Neither depends on what a rule selects, so neither can be lost to an empty selec
 | `invalid`                                       | a finding at the block's Markdown line plus the verdict's line, with its remedy                         |
 | `unrecognised`                                  | a finding with the parser's remedy, never worded as the author's syntax error                           |
 
-- **A block with no verdict is never a pass** (ADR-010).
+- **A block with no verdict is never a pass** ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
 - **The instrument finding's shape is pinned.** It carries:
   - `rule` and `ruleId` = `'eess-md: code-block parser'`;
   - `element` = `'<name>@<version>'`;
@@ -175,9 +175,8 @@ Neither depends on what a rule selects, so neither can be lost to an empty selec
   parsed, so it never meets the kernel's zero-examined early return.
 
 - **Several rules over one failed fact object** collapse to one report through
-  `dedupeConfigFindings`, whose key is `file`, `ruleId` and `element` (ADR-016 C3). eess-ts's
-  `check-all` already calls it. A script gate must call it itself, and the docs say so, because plan
-  0413's dogfood gate is such a script.
+  `dedupeConfigFindings`, whose key is `file`, `ruleId` and `element` ([ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) C3). eess-ts's
+  `check-all` already calls it. A script gate must call it itself, and the docs say so, because [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)'s dogfood gate is such a script.
   - Two `parseCodeBlocks` calls with one parser over two corpora would also collapse. No consumer has
     two, so this is stated in the docs rather than keyed apart.
 - **The budget is a start-up allowance plus a per-block allowance.** The caller overrides either
@@ -197,13 +196,13 @@ Neither depends on what a rule selects, so neither can be lost to an empty selec
   the 0.99 s run included a cold start.)_ A budget is a hang detector, not a performance gate. A false red on a
   slow CI runner costs more than a long wait on a real hang, so the margin is wide. 39 blocks get
   about 20 s. A test pins both defaults. When the budget runs out, eess-md aborts the `signal` it
-  passed. Stopping is the parser's job, and plan 0413's worker terminates on it.
+  passed. Stopping is the parser's job, and [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)'s worker terminates on it.
   - **A synchronous parser cannot be interrupted.** Its overrun is detected after it returns, as the
     same finding. One that never returns is unbounded, and the docs say so.
 
 - **The fact object exposes a summary**: blocks parsed, parser name and version. A script gate prints
   it as "N mermaid blocks parse with mermaid 11.17.2", never "render". `check()` prints nothing on
-  success, so the line belongs to the gate that prints it, which is plan 0413's.
+  success, so the line belongs to the gate that prints it, which is [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)'s.
 
 ### Selection (conditions 10 and 13)
 
@@ -211,12 +210,12 @@ Neither depends on what a rule selects, so neither can be lost to an empty selec
 - **Near-miss** is this plan's decision, not the review's. It means a tag equal to the language
   only when case-folded, such as `Mermaid`. No alias list is kept: any wider "near" would be a list of
   spellings to maintain, with no consumer for one.
-- A near-miss is disclosed on a green run as unread (ADR-016 rule 7). When it is the reason nothing
+- A near-miss is disclosed on a green run as unread ([ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 7). When it is the reason nothing
   was examined, the zero-examined finding names it, through the kernel's `deadGlobDiagnosis()` hook
   (`packages/core/src/rule-builder.ts`). The author is then sent to the spelling, not to
   `.expectEmpty()`.
 - A block that is broken on purpose is kept out by the corpus glob or `.excluding()`. There is no
-  skip comment, because that would be a second exclusion mechanism (ADR-018).
+  skip comment, because that would be a second exclusion mechanism ([ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)).
 
 ## Phases
 
@@ -289,7 +288,7 @@ One PR, built red-first in this order.
 ## Non-vacuity rows (plan A's share of the review's table)
 
 These are fixture-tier rows: they drive the builder over fixtures, not a `check:*` script. The
-harness lists them in that tier (bug 0127).
+harness lists them in that tier ([bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)).
 
 | row                                                                       | breaks                                 |
 | ------------------------------------------------------------------------- | -------------------------------------- |
@@ -306,11 +305,11 @@ row's red into a green, and the gate catches it.
 
 ## Out of scope
 
-- **Any real parser.** Mermaid's is plan 0413. No JSON or YAML parser ships, because none has a
+- **Any real parser.** Mermaid's is [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md). No JSON or YAML parser ships, because none has a
   consumer.
 - **Which canaries Mermaid needs, and the worker's own failures** (missing peer, exit, version):
-  plan 0413. This plan gives them a channel.
-- **This repository's dogfood gate and its success line**: plan 0413, which has the parser to run
+  [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md). This plan gives them a channel.
+- **This repository's dogfood gate and its success line**: [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md), which has the parser to run
   them with.
 - `scripts/check-docs-code.mjs`. It type-checks TypeScript fences across files, which a per-block
   parse cannot express. It is not a consumer and is not migrated.
@@ -319,7 +318,7 @@ row's red into a green, and the gate catches it.
 ## Success
 
 - The two-line example runs against a stub parser in eess-md's own tests, and against a real parser
-  in plan 0413's.
+  in [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)'s.
 - Every row of the failure table has a test that drives the public entry points. Each non-vacuity
   row reds when its mechanism is removed.
 - `npm run validate` is green, and `check:nonvacuity` prints its count.
@@ -341,10 +340,10 @@ row's red into a green, and the gate catches it.
 - **`parse`'s declared return type** is `readonly unknown[] | PromiseLike<readonly unknown[]>`, not
   `readonly CodeBlockVerdict[] | Promise<…>`. eess-md checks every verdict's shape anyway. With the
   narrower element type, the malformed-verdict tests could not be written without an `as`
-  (ADR-005). `PromiseLike` matches what the code awaits, any thenable. The doc comment says to
+  ([ADR-005](../../../adr/005-no-any-no-type-assertions.md)). `PromiseLike` matches what the code awaits, any thenable. The doc comment says to
   return `CodeBlockVerdict`s.
 - **The docs do not tell a script gate to call `dedupeConfigFindings`.** It is exported only from
-  `@nielspeter/eess/internal`, which ADR-011 makes family plumbing. They say that `eess-ts check`
+  `@nielspeter/eess/internal`, which [ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md) makes family plumbing. They say that `eess-ts check`
   collapses the instrument, and that a script collecting findings itself sees one per rule.
 - **The budget's caller-facing option** is `budget: { startUpMs, perBlockMs }`, as frozen.
 
@@ -466,8 +465,8 @@ two items without a home.
   Fixed in round 4.
 
 **Review 3, three lenses on round 3: none critical.** Enforcement found no fail-open path, confirmed
-the `Array` subclass path closed, and confirmed bug 0420's reproduction. Testing approved after two
-fixes. Method found bug 0420's board row with two of its six cells, and this plan's State line stale.
+the `Array` subclass path closed, and confirmed [bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md)'s reproduction. Testing approved after two
+fixes. Method found [bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md)'s board row with two of its six cells, and this plan's State line stale.
 
 **Round 4: 53 tests.**
 
@@ -493,7 +492,7 @@ fixes. Method found bug 0420's board row with two of its six cells, and this pla
   `bypassFilters` off for the other. Both fire once restored, and all sixteen fire on the rebuilt
   package.
 - **Records:**
-  - bug 0420's board row has its six cells, and its reproduction runs as pasted;
+  - [bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md)'s board row has its six cells, and its reproduction runs as pasted;
   - the State line, the budget premise and condition row 13 are corrected;
   - the changeset names the rule id;
   - the docs say the parser's `CodeBlockVerdict` annotation is its only compile-time check.
@@ -519,7 +518,7 @@ fixes. Method found bug 0420's board row with two of its six cells, and this pla
   parser, and it is keyed to collapse across rules. Naming each rule would keep one rule's name and
   drop the rest's.
 - **A near-miss beside read blocks gets no finding**, only `summary()` (product). A `warn` finding
-  would not be read by the consumer this family writes for (ADR-009). A failing finding would turn
+  would not be read by the consumer this family writes for ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md)). A failing finding would turn
   every corpus with one `Mermaid` tag red over something the author may mean. The docs state where
   it is disclosed.
 - **A budget of 0 is accepted** (architect). It fails closed.
@@ -529,7 +528,6 @@ fixes. Method found bug 0420's board row with two of its six cells, and this pla
 **Deferred:**
 
 - [ ] Kernel messages that misdescribe a failed parse: an exclusion called stale, and two failures
-      collapsed as "one edit" `deferred→bug 0420`
-      ([bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md)).
+      collapsed as "one edit" deferred→[bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md).
 
-Deferred: bug 0420
+Deferred: [bug 0420](../../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md)

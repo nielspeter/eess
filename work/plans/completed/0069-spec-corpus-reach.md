@@ -114,7 +114,7 @@ Two separable deliverables, split so the generic part stays generic:
 2. **Binding (parameterized):** an md-table ↔ er-entity correspondence in
    `eess-crossvalidate` where the **consumer supplies** the section pattern,
    the column→attribute mapping, and the keyBy (the split-`keyBy` model from
-   plan 0062). The measured corpus's `Properties` / `Property|Type|Required`
+   [plan 0062](./0062-correspondence-ergonomic-bricks.md)). The measured corpus's `Properties` / `Property|Type|Required`
    shape appears **only in that consumer's rules file**, never in the preset.
 
 ```ts

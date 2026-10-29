@@ -13,11 +13,11 @@
 ## Problem
 
 `PROPOSALS.md`'s template requires, per capability, the **break class** — the specific
-corruption that must produce a violation — and how non-vacuity is kept. Proposal 006 shipped
+corruption that must produce a violation — and how non-vacuity is kept. [Proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md) shipped
 without the section entirely, and its own review recorded that as a defect it committed.
 Nothing checked it.
 
-Separately: a `Docs-only` ruling names a remedy and creates **no owner**. Proposal 004 was
+Separately: a `Docs-only` ruling names a remedy and creates **no owner**. [Proposal 004](../../proposals/promoted/004-corpus-content-explain.md) was
 ruled `Docs-only` on 2026-08-13; ten days later none of the documentation existed, with every
 gate green and the proposal's header reading as settled.
 
@@ -25,7 +25,7 @@ gate green and the proposal's header reading as settled.
 
 **1. A live proposal states its acceptance criteria.** A level-2 `## Acceptance criteria`
 heading, read from `MdSection.depth` directly rather than through `haveSection`, which
-matches on name alone — proposal 005 carries four `### Acceptance criteria (…)` headings
+matches on name alone — [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md) carries four `### Acceptance criteria (…)` headings
 inside superseded appendices, and only the parenthetical saves a name-only rule from them.
 
 Two exclusions, both principled:
@@ -34,7 +34,7 @@ Two exclusions, both principled:
   content means rewriting the archive;
 - **`Rewrite needed` / `Reject`** — the same set promotion already refuses. The review has
   already found the document deficient; demanding a section from a document the review
-  rejected adds nothing, because **the ruling is the finding**. Proposal 003 is exactly this:
+  rejected adds nothing, because **the ruling is the finding**. [Proposal 003](../../proposals/003-future-dialect-candidates.md) is exactly this:
   its review says no entry states a break class, which _is_ this gap, and the rewrite is
   where it gets fixed.
 
@@ -63,14 +63,14 @@ none of it was busywork:
   one; the section sets the bar and the ruling stands.
 
 **A guard died with the exclusions, and that is the right outcome.** The rule carried an
-ADR-010 zero-guard — "0 subjects while proposals exist". With the exclusions gone
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) zero-guard — "0 subjects while proposals exist". With the exclusions gone
 `criteriaSubjects` _is_ `liveDocs.filter(isProposalDoc)`, so that condition is unreachable by
 construction. A guard that cannot fire is worth less than no guard, so it and its fixture
 were deleted rather than left as decoration. The denominator carries the evidence instead:
 the summary prints `6 criteria-checked`, and a zero there means a broken selector.
 
 **2. A `Docs-only` ruling names an owner** that declares `**Implements:** proposal NNN` —
-a plan **or a bug**, since 004's owner is bug 0219.
+a plan **or a bug**, since 004's owner is [bug 0219](../../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md).
 
 ## What this deliberately is not
 
@@ -137,7 +137,7 @@ digit-bearing id: it reds.
 
 - [x] Rule 1 red first: **006 was the only violation** on first run, which is the record its
       own review names. Writing the section clears it; no other proposal moved.
-- [x] Rule 2 reds: stripping bug 0219's `**Implements:** proposal 004` leaves 004's
+- [x] Rule 2 reds: stripping [bug 0219](../../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md)'s `**Implements:**` [proposal 004](../../proposals/promoted/004-corpus-content-explain.md) line leaves 004's
       `Docs-only` ruling ownerless and fires `docs-only-ruling-names-no-owner`.
 - [x] Both exclusions verified against the corpus rather than reasoned about: 003 is exempt
       by ruling, 004 and 005 by folder, and the summary prints how many were checked.
@@ -149,7 +149,7 @@ digit-bearing id: it reds.
 
 - **`Split and sequence` creates no obligation either**, by the same argument that motivates
   rule 2. It is prose today (`split before planning`), and a rule keying on prose is the
-  false-positive machine bug 0110 warns about. Left open deliberately, and named in
+  false-positive machine [bug 0110](../../bugs/fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) warns about. Left open deliberately, and named in
   `PROPOSALS.md`'s _Known gaps_ rather than folded in here.
 - **Whether the section's _contents_ hold up.** Rule 1 proves a heading exists; an empty
   section satisfies it, and its `because` says so outright. Reading what is under the heading

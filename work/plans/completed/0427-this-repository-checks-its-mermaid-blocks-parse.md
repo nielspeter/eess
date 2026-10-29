@@ -3,42 +3,42 @@
 ## Status
 
 - **State:** Done — built 2026-10-16 as `check:mermaid-parses`, from Draft: this plan was never
-  marked Ready. Its design was reviewed inside plan 0413's freeze reviews (PR #219), where it was
+  marked Ready. Its design was reviewed inside [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)'s freeze reviews (PR #219), where it was
   0413's "Dogfood row"; the departures from it are under "Decided at the build". Split out of
   [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) at its freeze, 2026-10-15.
-- **Implements:** proposal 006 — Ask C's dogfood consumer.
-- **Priority:** Medium, the same as plan 0413 and never lower — the dogfood half of Ask C, and the
+- **Implements:** [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md) — Ask C's dogfood consumer.
+- **Priority:** Medium, the same as [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) and never lower — the dogfood half of Ask C, and the
   only production-tier proof of the parser. The parser ships without it, so it is no longer the
   parser's merge condition.
 - **Effort:** Small — one script gate and one non-vacuity row, as planned (built with six rows, see
   below); no new dependency.
 - **Created:** 2026-10-15
-- **Depends on:** plan 0413 (`mermaidParser()`).
+- **Depends on:** [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) (`mermaidParser()`).
 
 ## Problem
 
-Plan 0413 ships `mermaidParser()`. This repository has Mermaid blocks in `work/`, `adr/` and `docs/`
+[Plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) ships `mermaidParser()`. This repository has Mermaid blocks in `work/`, `adr/` and `docs/`
 and no gate that they parse. It was split out of 0413 so each is one reviewable PR. The 179 MB install
-(spike 0425) is already paid by 0413's tests, which make `mermaid` and `jsdom` eess-mermaid dev
+([spike 0425](../../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)) is already paid by 0413's tests, which make `mermaid` and `jsdom` eess-mermaid dev
 dependencies.
 
 ## Design
 
 - **Scope:** every tracked `*.md` file (`**/*.md`, without `node_modules`), so a diagram added to a
   README, `kit/`, a skill or `work/*.md` is checked without anyone remembering to list it. An
-  allowlist would be bug 0210's selector class. The gate prints its own count; this plan pins none,
-  since bug 0426's case-folding changes it.
+  allowlist would be [bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md)'s selector class. The gate prints its own count; this plan pins none,
+  since [bug 0426](../../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)'s case-folding changes it.
 - **Exclusions, by glob (condition 13)**, each the tree of fixtures that are broken on purpose,
   measured 2026-10-15 over tracked Markdown: `packages/crossvalidate/tests/fixtures/**` (30 files with
   a Mermaid fence), `packages/md/tests/fixtures/**` (6) and `scripts/nonvacuity/**` (14). The build
-  re-measures them; an exclusion that matches no block is dropped (ADR-018). The fences in
+  re-measures them; an exclusion that matches no block is dropped ([ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)). The fences in
   `work/bugs/fixed/` sit inside four-backtick fences, so they are not blocks and need no exclusion.
   Nothing is excluded by comment.
 - **Where:** a script gate, `check:mermaid-parses`, in the `validate` chain beside `check:corpus`. It
-  is a script, not an eess-ts rule file, so it calls `dedupeConfigFindings` itself (plan 0412), and it
+  is a script, not an eess-ts rule file, so it calls `dedupeConfigFindings` itself ([plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)), and it
   prints the success line from the fact object's summary. CLAUDE.md's gate-output table gains its row.
 - **The break:** a dangling `Route -->` added to `docs/manifesto.md`'s `graph` block reds it.
-- **Cost:** the install is already in the workspace from plan 0413. The validate chain's added time is
+- **Cost:** the install is already in the workspace from [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md). The validate chain's added time is
   measured and recorded here before merge.
 
 ## Files Changed
@@ -59,7 +59,7 @@ dependencies.
 
 ## Out of scope
 
-- The parser itself — plan 0413.
+- The parser itself — [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md).
 
 ## Decided at the build (2026-10-16)
 
@@ -78,12 +78,12 @@ Each is overrulable.
   said "an exclusion that matches no block is dropped". As first built, the gate counted blocks;
   the enforcement review measured that 60 of the 77 excluded blocks are valid, so an exclusion
   whose broken fixtures were all fixed would have stayed green. The gate now parses the excluded
-  blocks too and calls an exclusion stale when no block under it fails. This follows ADR-018's
-  rule 1, but ADR-018 is Proposed, so it is the direction, not a binding ruling. The kernel's
+  blocks too and calls an exclusion stale when no block under it fails. This follows [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)'s
+  rule 1, but [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) is Proposed, so it is the direction, not a binding ruling. The kernel's
   `.excluding()` was not used: it only warns on an unused pattern.
 - **`check()` reports, so there is no `dedupeConfigFindings` call.** The gate runs one rule, so
-  there is nothing to dedupe, and `check()` already owns the reporting (ADR-008) and refuses a run
-  that examined no block (ADR-014). The gate's own findings (stale exclusion, unsafe path, a path
+  there is nothing to dedupe, and `check()` already owns the reporting ([ADR-008](../../../adr/008-caller-owns-reporting.md)) and refuses a run
+  that examined no block ([ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)). The gate's own findings (stale exclusion, unsafe path, a path
   that did not load, git unavailable, excluded blocks unparseable) go to the same places: stderr,
   and stdout under `--format json`. The success line embeds `parsed.summary()`.
 - **Six non-vacuity rows, not one**, one per check (`GATE_FOR`'s doctrine):
@@ -105,8 +105,7 @@ Each is overrulable.
 - **No changeset.** done-otherwise: nothing under `packages/` changed, so `check:release` asks for
   none.
 - **What it checks today:** 4 Mermaid blocks in the 530 documents outside the exclusions
-  (`docs/architecture.md`, `docs/eess-walkthrough-calculator.md`, `docs/manifesto.md`, proposal
-  010). The fences in `work/bugs/fixed/` sit inside four-backtick fences. Not pinned; the gate
+  (`docs/architecture.md`, `docs/eess-walkthrough-calculator.md`, `docs/manifesto.md`, [proposal 010](../../proposals/010-ts-performance-at-scale.md)). The fences in `work/bugs/fixed/` sit inside four-backtick fences. Not pinned; the gate
   prints it.
 - **Residual:** when every block is excluded, the kernel's refusal speaks of "an empty project, an
   unreadable tsconfig, or a glob resolving to nothing", which is the kernel's wording for every
@@ -119,7 +118,7 @@ Each is overrulable.
   0.5 s. The rebuilt gate loads each file once (the kept and the excluded files as two corpora)
   and starts the worker twice.
 - The six non-vacuity rows: 12 s together, run standalone.
-- The whole `validate`: 632 s on the first build's tree, against 612 s on plan 0413's. A different
+- The whole `validate`: 632 s on the first build's tree, against 612 s on [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)'s. A different
   tree, so an indication, not a measurement of this plan alone.
 
 ## Progress ledger

@@ -65,9 +65,9 @@ establishes is itself a binding decision worth recording (Phase 1).
 
 ## Implementation phases
 
-### Phase 1 — ADR-008 + one format-aware reporter (kernel)
+### Phase 1 — [ADR-008](../../../adr/008-caller-owns-reporting.md) + one format-aware reporter (kernel)
 
-Author **ADR-008: Detection is separate from reporting; the caller owns
+Author **[ADR-008](../../../adr/008-caller-owns-reporting.md): Detection is separate from reporting; the caller owns
 emission.** Then collapse the two paths onto a single reporter that both
 `executeCheck` and the preset path delegate to:
 
@@ -130,14 +130,14 @@ proven by piping one script to `--format json`.
 
 - **Fix-hints on parse errors** (the review's #2 — "did you mean `}o--o{`").
   Real, but the infra already exists (`ArchViolation.suggestion`, the `ArchFix`
-  autofix model from plan 0066); wiring it onto the Langium/format parse-error
+  autofix model from [plan 0066](./0066-eess-deterministic-autofix.md)); wiring it onto the Langium/format parse-error
   path is a focused **follow-on plan**, not this one.
 - **Registry publish / distribution** — a consequence of the go-public
   decision, not a reporting-boundary concern.
 - **Changing the violation _format_ itself** — this plan moves _where_ emission
   happens, not what a violation looks like.
 - **Widening `check:crossval` to resolve ADR `it('…')` citations across every
-  package** — it scans only the eess-ts project today, so ADR-008 (a kernel
+  package** — it scans only the eess-ts project today, so [ADR-008](../../../adr/008-caller-owns-reporting.md) (a kernel
   concern) cites its `packages/core` tests by file + prose case name instead.
   A focused follow-on.
 
@@ -151,11 +151,11 @@ proven by piping one script to `--format json`.
 - A caller can get violations without a throw and without printing —
   `{ report: 'return' }` (or the frozen equivalent) retires `collect()` /
   `.slice(0, 0)`.
-- ADR-008 records the convention; `npm run validate` stays green throughout.
+- [ADR-008](../../../adr/008-caller-owns-reporting.md) records the convention; `npm run validate` stays green throughout.
 
 ## Progress ledger
 
-- [x] Phase 1 — kernel `reportViolations` + `finishPreset`; `throwIfViolations`/`executeCheck` rewired onto them; ADR-008; 8 core tests (CLI unchanged by design)
+- [x] Phase 1 — kernel `reportViolations` + `finishPreset`; `throwIfViolations`/`executeCheck` rewired onto them; [ADR-008](../../../adr/008-caller-owns-reporting.md); 8 core tests (CLI unchanged by design)
 - [x] Phase 2 — 8 presets migrated (md adr/ledger, crossvalidate ×3, ts ×3): options extend PresetReportOptions via PresetBaseOptions, return finishPreset; non-breaking; preset-level report:return test
 - [x] Phase 3 — check-corpus/check-ledger own reporting via `report: return` (double-print killed); `--format json` emits preset violations (proven: injected ADR break → 1 JSON violation, exit 1)
 

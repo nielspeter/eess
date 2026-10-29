@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Done — merged 2026-07-24 (PR #22). Built the `adr-enforce` workflow
-  (author/verifier separation enforced structurally), dogfooded twice on ADR-007's
+  (author/verifier separation enforced structurally), dogfooded twice on [ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)'s
   confinement clause (FAITHFUL, non-vacuous, gates green), and applied a branch
   code-review (#1–#3). **Deferred: none; 1 validation-owed** — the fix/re-validate
   path is code-verified but never fired live (author faithful first-pass both runs).
@@ -138,12 +138,12 @@ dimension) is deliberately out of MVP; it is iteration over this, not new machin
       ratification (Tier 5, never auto-gated). The separation is structural (separate
       agent = separate context) on a different model — the enforced form. Syntax
       verified (compiles as an async workflow body).
-- [x] **Phase 3 dogfooded (2026-07-23).** Ran `adr-enforce` on ADR-007's Tier-1
+- [x] **Phase 3 dogfooded (2026-07-23).** Ran `adr-enforce` on [ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)'s Tier-1
       confinement clause. Two agents — author (opus), validator (sonnet, _separate
       context_) — 51 tool uses, ~9 min, 153k tokens. The author wrote
       [`adr007.rules.ts`](../../../adr007.rules.ts) (modules outside
       `packages/ts/src/core/engine/` must `notImportFrom` ts-morph) + updated the
-      ADR-007 Enforcement row, honestly `pending` and deliberately un-gated so
+      [ADR-007](../../../adr/007-isolate-ast-engine-boundary.md) Enforcement row, honestly `pending` and deliberately un-gated so
       `check:arch` stays green. The validator returned **FAITHFUL** (round 0) with a
       real escape-hatch analysis (dynamic `import()` / `@ts-morph/common` slip past
       `notImportFrom`, but no such usage exists today). Verified independently: the

@@ -6,7 +6,7 @@
   [bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md). Frozen to Ready the same day,
   after re-checking its premises against `main` at `16a5aec9` and moving its pointers to the lines
   the code has now. One verification row held only in part: the frontmatter case, recorded below.
-- **Implements:** proposal 006
+- **Implements:** [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)
 - **Priority:** Medium — closes a live fail-open defect.
 - **Effort:** Small. One function moves; one call site changes what it tests.
 - **Created:** 2026-08-22
@@ -43,7 +43,7 @@ the raw body instead of to the **declared kind**.
    | `sequenceDiagram`               | ✗              | ✗              |
    | untagged/bare fence             | ✗              | ✗              |
 
-   That closes bug 0210 outright. Nothing else changes.
+   That closes [bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md) outright. Nothing else changes.
 
 3. **`md-mermaid` imports the moved function** instead of declaring it. Its behaviour is
    unchanged — it already calls `declaredKind()`.
@@ -63,7 +63,7 @@ falsified that, twice over:
   corpus, measured 2026-08-22** — would reach `parseErDiagram`.
 
 The allowlist/denylist asymmetry does not transfer, because the two selectors ask different
-questions: _"is this an `erDiagram`?"_ versus _"is this **not** something else?"_ Bug 0210's
+questions: _"is this an `erDiagram`?"_ versus _"is this **not** something else?"_ [Bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md)'s
 own Fix said so first — "reuse `declaredKind()` rather than re-derive it" — and four drafts
 escalated past it.
 
@@ -77,7 +77,7 @@ attempt has to clear:
    goes stale — untouched.
 2. **`denylist = MERMAID_KINDS − consumed`.** Puts `classDiagram-v2` in the denylist, turning
    a loud finding into `skipped += 1`, and inverts the ER binding.
-3. **ADR-011 — three categories, only a sibling's kinds deniable.** Retracted before merge:
+3. **An ADR draft that took the number 011 — three categories, only a sibling's kinds deniable.** Retracted before merge:
    its generalisation was false (`eess-gherkin` already models `Scenario Outline | Scenario |
 Example` with a deliberately unmodelled `Background:` at `packages/gherkin/src/load.ts:41-42`,
    and its two bindings restate nothing); it contradicted a committed fixture
@@ -117,7 +117,7 @@ it have each been wrong somewhere else, so it is recorded rather than half-built
 - **The regexes keep working on the token.** `FOREIGN_HEADER`, `KNOWN_UNMODELLED` and `ER_HEADER` are
   anchored at the start with `\b`, so a token matches exactly where its line did. A test pins it for
   every kind `FOREIGN_HEADER` names.
-- **Plan 0413 extends this function** (an emptiness reason, skipped offsets). This plan ships the
+- **[Plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) extends this function** (an emptiness reason, skipped offsets). This plan ships the
   token only, so 0413's additions are 0413's to test.
 
 ## Files Changed
@@ -137,7 +137,7 @@ it have each been wrong somewhere else, so it is recorded rather than half-built
 
 ## Verification
 
-**This plan ships bug 0210's fix; 0210 closes `done-otherwise → 0214`** — and 0210 itself is
+**This plan ships [bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md)'s fix; 0210 closes `done-otherwise → 0214`** — and 0210 itself is
 updated in the same PR, so the coupling is not one-directional.
 
 - [x] Red first: a themed `erDiagram` fixture is not selected today. Two tests in
@@ -149,7 +149,7 @@ updated in the same PR, so the coupling is not one-directional.
       `bad-multiline-init-extra-attribute.md`), so it is
       reported as not parsing instead of being compared. The grammar gap and the message blaming the
       author are recorded in [bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md),
-      the next item in proposal 006's Ask C.
+      the next item in [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s Ask C.
 - [x] A non-ER fence is still skipped, **and the document is not skipped with it.**
 - [x] An untagged (`lang === null`) non-ER fence is still not selected.
 - [x] A break class in `scripts/nonvacuity/`, registered in the gates array and claimed by
@@ -162,7 +162,7 @@ updated in the same PR, so the coupling is not one-directional.
 - [x] `diagramKind()` tests (`packages/mermaid/tests/parser/diagram-kind.test.ts`, 12): each prefix
       shape, an empty fence, comments only, an unclosed init, and the header regexes reading the
       token exactly as they read the line.
-- [x] The sabotage: restoring the raw-body test in `md-mermaid-er` turns both bug 0210 tests red.
+- [x] The sabotage: restoring the raw-body test in `md-mermaid-er` turns both [bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md) tests red.
 
 Deferred: none
 

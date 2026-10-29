@@ -4,7 +4,7 @@
 
 - **State:** Done — buildable scope complete; all offline/code work done and validated on branch `eess-consolidation` (2026-07-03, ~18 commits ahead of main; **not merged, nothing published**). The only remainder is the external cutover, which the user has gated behind: _all EESS plans (0051 + 0058 + 0059) complete and confirmed as a full ts-archunit replacement_. See "Execution status" below.
 - **Priority:** P1 — gates 0058/0059 work on the MD dialect, cross-validation, workflows
-- **Updated:** 2026-07-03 — work order reordered: MD dialect promoted ahead of cross-validation, based on field evidence from an external repo and another internal repo (see plan 0058, "Why this jumps the queue"). Follow-on plans renumbered: the 0052/0053/0054 forward references written here originally were never allocated as files, and 0055–0057 were taken in the meantime — MD dialect is now **0058**, cross-validation **0059**, workflow dialect unnumbered until scheduled. All four open questions decided (workspace tool, versioning, repo name, unscoped npm name) — plan is decision-complete. See "Decisions & open questions".
+- **Updated:** 2026-07-03 — work order reordered: MD dialect promoted ahead of cross-validation, based on field evidence from an external repo and another internal repo (see [plan 0058](./0058-markdown-dialect-eess-md.md), "Why this jumps the queue"). Follow-on plans renumbered: the 0052/0053/0054 forward references written here originally were never allocated as files, and 0055–0057 were taken in the meantime — MD dialect is now **0058**, cross-validation **0059**, workflow dialect unnumbered until scheduled. All four open questions decided (workspace tool, versioning, repo name, unscoped npm name) — plan is decision-complete. See "Decisions & open questions".
 - **Effort:** 1–2 weeks for the structural move; cross-validation is a follow-on plan (0059)
 - **Created:** 2026-05-09
 - **Depends on:** Nothing technically; conceptually depends on the EESS manifesto (`docs/manifesto.md`) and the calculator walkthrough (`docs/eess-walkthrough-calculator.md`).
@@ -25,7 +25,7 @@ Tests: **1910 eess-ts + 91 mermaid, all passing.**
 | **2 — Move typed-mermaide in**               | ✅ done (code) | `eess-mermaid` consumes the shared kernel; 19 dup kernel files dropped (drift minimal — eess is a superset). ⏸ archiving the typed-mermaide GitHub repo is external — deferred.                                                                                                                                                         |
 | **3 — Publishing pipeline**                  | ◑ tooling done | changesets configured (independent versioning, public access). ⏸ authoring the release changeset, the `eess-ts` version decision (kept 0.12.0), converting the tag-based `publish.yml`, and the actual publish all need `npm login` — deferred.                                                                                         |
 | **4 — Docs + repo metadata**                 | ◑ docs done    | Family root README, per-package READMEs, LICENSEs, CHANGELOG entry, CLI rebrand. ⏸ GitHub repo rename `ts-archunit`→`eess` + optional docs site are external — deferred.                                                                                                                                                                |
-| **5 — Internal artifact updates**            | ◑ mostly done  | Calculator walkthrough + plans 0049/0050 imports → `@nielspeter/eess-ts`. `examples/*` and `docs/*.md` left on the old name (still resolve via the alias) — low priority.                                                                                                                                                               |
+| **5 — Internal artifact updates**            | ◑ mostly done  | Calculator walkthrough + ts-archunit plans 0049/0050 imports → `@nielspeter/eess-ts`. `examples/*` and `docs/*.md` left on the old name (still resolve via the alias) — low priority.                                                                                                                                                   |
 
 **Done beyond the original plan (hardening):**
 
@@ -91,12 +91,12 @@ Tagline: **"Specifications you can run."** Long form: "Executable Enforceable Sp
 
 ## Non-goals
 
-- **Markdown dialect.** Plan 0058. Ships as `@nielspeter/eess-md`. First dialect after consolidation — two production repos already hand-rolled it and the copies are drifting.
-- **Cross-validation primitive.** Plan 0059. Ships as `@nielspeter/eess-crossvalidate` once the kernel and the MD dialect exist.
+- **Markdown dialect.** [Plan 0058](./0058-markdown-dialect-eess-md.md). Ships as `@nielspeter/eess-md`. First dialect after consolidation — two production repos already hand-rolled it and the copies are drifting.
+- **Cross-validation primitive.** [Plan 0059](./0059-cross-validation-eess-crossvalidate.md). Ships as `@nielspeter/eess-crossvalidate` once the kernel and the MD dialect exist.
 - **Workflow dialect.** Future plan (numbered when scheduled). Lower priority; only if user demand emerges.
 - **Full rebrand of `@nielspeter/ts-archunit` to `@nielspeter/eess-ts`.** A soft alias keeps the old name working; the new name is added. Hard rename is a 1.0 concern.
 - ~~**Renaming the GitHub repository.**~~ No longer a non-goal: decided 2026-07-03 — the repo **is renamed to `eess`** during Phase 4 (see "Decisions & open questions"). GitHub auto-redirects, so the cost originally avoided here turns out to be negligible.
-- **`recommended()` preset (plan 0049) and `init` CLI (plan 0050).** Independent of consolidation; can ship before, after, or alongside.
+- **`recommended()` preset (ts-archunit plan 0049) and `init` CLI (ts-archunit plan 0050).** Independent of consolidation; can ship before, after, or alongside.
 
 ## Package layout
 
@@ -247,13 +247,13 @@ Update imports to the new package names as part of the consolidation PR. No exte
 
 18. Update calculator walkthrough imports to use `@nielspeter/eess-ts` and `@nielspeter/eess-mermaid` (the new canonical names) — model the recommended adoption pattern.
 19. Update the manifesto's example code blocks to match the new package layout.
-20. Update plans 0049 and 0050 to reference the new package names where they currently say `@nielspeter/ts-archunit`.
+20. Update ts-archunit plans 0049 and 0050 to reference the new package names where they currently say `@nielspeter/ts-archunit`.
 
 ## Decisions & open questions
 
 ### Decided (2026-07-03)
 
-1. **Workspace tool: npm workspaces.** Consistent with ADR-001 — no new toolchain
+1. **Workspace tool: npm workspaces.** Consistent with [ADR-001](../../../adr/001-toolchain-node-vitest-eslint-prettier.md) — no new toolchain
    for contributors or CI; every existing command and the release process stay npm.
    Four packages with a trivial dependency graph (three dialects → one kernel) get
    nothing from pnpm's scale advantages. npm's two real weaknesses are mitigated as
@@ -303,8 +303,8 @@ _All open questions resolved. Plan 0051 is decision-complete and ready to schedu
 
 ## Out of scope (recap)
 
-- Cross-validation primitive (plan 0059).
-- Markdown dialect (plan 0058).
+- Cross-validation primitive ([plan 0059](./0059-cross-validation-eess-crossvalidate.md)).
+- Markdown dialect ([plan 0058](./0058-markdown-dialect-eess-md.md)).
 - Workflow dialect (future plan, only if demanded).
 - Hard rename / removal of `@nielspeter/ts-archunit` (1.0 concern, possibly never).
 - Repo-rename of `typed-mermaide` (just archive).

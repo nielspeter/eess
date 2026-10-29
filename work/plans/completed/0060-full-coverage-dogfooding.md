@@ -6,7 +6,7 @@
 - **Priority:** P1 — the strongest pre-publish confidence signal there is. The user has gated the external cutover (publish, GitHub rename, claim `eess`) on the family being "confirmed as a replacement for ts-archunit." A repo that fully enforces its own specs with its own tools _is_ that confirmation.
 - **Effort:** ~2–3 weeks, honestly stated. Includes: a Phase 0 audit whose violation inventory sizes the rest; fixing (not baselining) whatever the eess-ts rules surface; completing the architecture diagram until diagram↔code agrees within its declared charter; two real eess-md features; migrating all **seven** ADRs; and possibly refactoring the crossvalidate presets to return builders (owned explicitly in Phase 2 if chosen). If Phase 0's inventory is larger than this estimate absorbs, that is reported and re-planned — not absorbed by weakening a check.
 - **Created:** 2026-07-04
-- **Depends on:** Plans 0051/0058/0059 (built, green on `eess-consolidation`), commit `5a159c1` (eess-ts CLI loads `.ts` rule files via jiti). **Explicitly does NOT depend on plan 0049** (recommended preset, still draft) — see Phase 4; this plan's experience feeds 0049, not the reverse.
+- **Depends on:** [Plans 0051](./0051-consolidation-eess-monorepo.md)/0058/0059 (built, green on `eess-consolidation`), commit `5a159c1` (eess-ts CLI loads `.ts` rule files via jiti). **Explicitly does NOT depend on ts-archunit plan 0049** (recommended preset, still draft) — see Phase 4; this plan's experience feeds 0049, not the reverse.
 
 ## As-built record (2026-07-04)
 
@@ -35,7 +35,7 @@ across 6 packages**, nothing merged to main, nothing published.
   2. **Inline exclusion comments were inert** for most conditions (violations lacked `ruleId`; the matcher requires it) — kernel `applyFilters` now stamps it; a 7-test end-to-end regression suite added (the bug survived because only unit tests existed). This was the highest-value find.
   3. CLI couldn't load `.ts` rule files (`5a159c1`) — the pre-plan hack incident, fixed with jiti.
 - **Two generic features shipped** (lego-bricks, no SSG named): static-site link resolution, and the exclusion mechanism now speaking markdown via the same kernel pipeline. Plus a non-English column alternative removed from the defaults (`b0e6091`).
-- **ADR statuses (25 clauses, 7 ADRs):** 14 `gated` · 1 `pending` (ADR-007 confinement — the declared honest gap, its own future plan) · 6 `manual`/tier-5. `manual` count is 6, `pending` 1.
+- **ADR statuses (25 clauses, 7 ADRs):** 14 `gated` · 1 `pending` ([ADR-007](../../../adr/007-isolate-ast-engine-boundary.md) confinement — the declared honest gap, its own future plan) · 6 `manual`/tier-5. `manual` count is 6, `pending` 1.
 - **Both user decisions honored:** absolute no-baseline (decision 1); six-value ADR status vocabulary documented in CLAUDE.md (decision 2).
 
 ### Corrections to the record
@@ -59,7 +59,7 @@ across 6 packages**, nothing merged to main, nothing published.
 | No inventory before committing to "fix everything"                                                                                                                                           | New Phase 0: report-only audit run; wrong-by-design rules pre-classified                                                                   |
 | Phase order contradicted the strategic note (0% dialects scheduled last)                                                                                                                     | Reordered: 0 → mermaid → crossvalidate → ADR migration → eess-ts internal → eess-md features → consolidate                                 |
 | "VitePress mode" names one SSG                                                                                                                                                               | Generic `resolve({ tryExtensions, tryIndex })` instead                                                                                     |
-| Six-vs-seven ADR drift; ADR-007's confinement rule currently violated by the code                                                                                                            | Seven ADRs throughout; the 007 gap is pre-declared as expected honest output, not a surprise                                               |
+| Six-vs-seven ADR drift; [ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)'s confinement rule currently violated by the code                                                         | Seven ADRs throughout; the 007 gap is pre-declared as expected honest output, not a surprise                                               |
 | Root `arch.rules.ts` would become a god-file; alias package unaccounted                                                                                                                      | Per-package rule files; root keeps cross-package only; alias excluded with written reason                                                  |
 
 ## Problem
@@ -180,7 +180,7 @@ When the diagram↔code check first fails (it will — the diagram is new), the 
 The manifesto's centerpiece applied to us. Migrate **all seven ADRs** (001–007) to the enforceable format and turn `adrEnforcement` on.
 
 - The format is **mostly already fixed by the tool** (`packages/md/src/rules/adr.ts`): `## Enforcement` section, table columns matched by `/tier/i`, `/mechanism/i`, `/status/i`, tiers 1–5, citations as backticked paths + `it('…')` titles. The only genuinely open convention is the **status column's allowed values** (the preset doesn't validate them) → decided: the six-value vocabulary in Decisions. Version-label the format in the migration commit so a future change has a known blast radius (7 ADRs + preset defaults).
-- **Pre-declared honest outcome:** ADR-007 (engine isolation) is Proposed and its confinement rule is _currently violated_ (ts-morph imported directly across eess-ts, e.g. `packages/ts/src/rules/hygiene.ts:1`). The migrated table declares that clause honestly (status `pending` per the decided vocabulary) rather than claiming a green it doesn't have — that IS the tool working, not a plan failure. Closing the 007 gap is its own future plan, not smuggled in here.
+- **Pre-declared honest outcome:** [ADR-007](../../../adr/007-isolate-ast-engine-boundary.md) (engine isolation) is Proposed and its confinement rule is _currently violated_ (ts-morph imported directly across eess-ts, e.g. `packages/ts/src/rules/hygiene.ts:1`). The migrated table declares that clause honestly (status `pending` per the decided vocabulary) rather than claiming a green it doesn't have — that IS the tool working, not a plan failure. Closing the 007 gap is its own future plan, not smuggled in here.
 - Wire via an extension of the existing corpus script (same void-preset constraint as Phase 2): `adrEnforcement(corpus({ roots: ['adr/**'] }), { dir: 'adr/**' })` added to `scripts/check-corpus.mjs`.
 - Update `CLAUDE.md`'s ADR guidance — the authoring convention changes for all future ADRs (this file was missing from the draft's file lists).
 
@@ -188,7 +188,7 @@ The manifesto's centerpiece applied to us. Migrate **all seven ADRs** (001–007
 
 ### Phase 4 — eess-ts: real internal architecture rules (~2–3 days, sized by Phase 0)
 
-Grow the eess-ts dogfood from package boundaries to internal architecture — using **only shipped API** (every sample below verified against source) and the concrete rule families, **not** the nonexistent "recommended preset" (plan 0049 is draft; this phase's results — which rules survived contact with a real 1910-test codebase, which were wrong-by-design — become 0049's design input).
+Grow the eess-ts dogfood from package boundaries to internal architecture — using **only shipped API** (every sample below verified against source) and the concrete rule families, **not** the nonexistent "recommended preset" (ts-archunit plan 0049 is draft; this phase's results — which rules survived contact with a real 1910-test codebase, which were wrong-by-design — become 0049's design input).
 
 - **Layout:** the root `arch.rules.ts` keeps **cross-package** invariants only (current 5 rules). Intra-package rules live in per-package rule files (`packages/ts/arch.rules.ts`, `packages/core/arch.rules.ts`, …), all run by the same CLI — avoiding a five-package god-file. `check:arch` runs them all.
 - **Internal layering** — corrected chains (the draft's `doNotResideInFolder` doesn't exist; the kernel's documented pattern is `satisfy(not(...))`, and `resideInFolder` is single-glob with picomatch braces):
@@ -260,8 +260,8 @@ modules(p)
 Genuinely separate work — **not** dodges:
 
 - **The external cutover** (publish, rename, claim `eess`) — user-gated, unaffected.
-- **Closing the ADR-007 confinement gap** (ts-morph isolation inside eess-ts). Phase 3 makes the gap _visible and honestly labeled_; the refactor to close it is its own plan.
-- **Plan 0049 (recommended preset)** — consumes this plan's findings; not built here.
+- **Closing the [ADR-007](../../../adr/007-isolate-ast-engine-boundary.md) confinement gap** (ts-morph isolation inside eess-ts). Phase 3 makes the gap _visible and honestly labeled_; the refactor to close it is its own plan.
+- **ts-archunit's plan 0049 (recommended preset)** — consumes this plan's findings; not built here.
 - **Rewriting `check:integrity`** in a dialect — JSON isn't a language any dialect models; the hand script is the right tool.
 - **New dialects** — separate future plans.
 
@@ -273,12 +273,12 @@ Not carved out: "enabling every rule" is still not optional-by-default. Every sh
 2. **ADR status vocabulary: the richer set.** The status column uses six values, documented in `CLAUDE.md` during Phase 3:
    - `gated` — mechanism runs in CI; failing blocks.
    - `warn` — mechanism runs in CI; reports without blocking.
-   - `pending` — decided, mechanism known, not yet green/wired (ADR-007's confinement clause starts here).
+   - `pending` — decided, mechanism known, not yet green/wired ([ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)'s confinement clause starts here).
    - `manual` — enforced by human review; no mechanism is possible.
    - `n/a` — clause is context/rationale; nothing to enforce (distinct from `manual`: no human gate either).
    - `deprecated` — clause no longer in force (superseded rows kept for history).
 
-   Note the coherence with decision 1: `pending` in an ADR table is the tool _honestly describing_ a gap in the code (ADR-007); it is not an escape state for the arch gate, which under decision 1 must be fixed to green. If the preset later grows an `allowedStatuses` option to validate values, this vocabulary is what we pass — generic option, project-specific values.
+   Note the coherence with decision 1: `pending` in an ADR table is the tool _honestly describing_ a gap in the code ([ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)); it is not an escape state for the arch gate, which under decision 1 must be fixed to green. If the preset later grows an `allowedStatuses` option to validate values, this vocabulary is what we pass — generic option, project-specific values.
 
 ## Strategic note
 

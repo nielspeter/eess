@@ -3,15 +3,15 @@
 ## Status
 
 - **State:** Done — built 2026-10-07 in the PR that closes it; every ledger box below is done.
-  Deferred: none. Previously Ready (frozen 2026-10-07 from proposal 013's decision 7).
+  Deferred: none. Previously Ready (frozen 2026-10-07 from [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s decision 7).
 - **Priority:** Medium — no false green today. A custom link rule has to re-implement resolution
-  and gets it wrong (proposal 013's survey), and plan 0406 cannot give one finding per cause
+  and gets it wrong ([proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s survey), and [plan 0406](./0406-md-a-declared-link-is-answered.md) cannot give one finding per cause
   without it.
 - **Effort:** Small — one function extracted from code that exists, two cached indexes, one export,
   one caller moved, one structural rule.
 - **Created:** 2026-10-07
 - **Builds:** [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s Ask C; its
-  disposition row names this plan. This plan does not declare `**Implements:**`; plan 0406, which
+  disposition row names this plan. This plan does not declare `**Implements:**`; [plan 0406](./0406-md-a-declared-link-is-answered.md), which
   ships the last ask, does.
 - **First of three:** this plan, then [plan 0405](./0405-md-select-the-links-a-block-declares.md),
   then [plan 0406](./0406-md-a-declared-link-is-answered.md).
@@ -76,7 +76,7 @@ export function resolveLink(
   (today rebuilt per condition) and a map from path to loaded document (`Corpus` has none).
 - **`linkResolves` calls `resolveLink`** and keeps its verdicts exactly: `document` and
   `not-in-corpus` resolve; `directory` resolves only when `resolveDirectories` is on, and otherwise
-  keeps bug 0137's hint; `missing` is the broken-link finding with its move fix; `self` and
+  keeps [bug 0137](../../bugs/fixed/0137-directory-link-violation-does-not-say-why.md)'s hint; `missing` is the broken-link finding with its move fix; `self` and
   `external` are skipped.
 - **Exported from `@nielspeter/eess-md`'s root,** with `LinkToResolve` and `LinkTarget`. Additive.
 
@@ -108,7 +108,7 @@ resolver cannot pass by accident.
 - **`linkResolves` is unchanged:** `packages/md/tests/links.test.ts` passes untouched, and a test
   drives `links(c).that().areInternal().should().resolve().check()` over the new fixture.
 
-**Sabotage rows** (ADR-009 rule 5; published API, rule 6's deepest level), run in an isolated
+**Sabotage rows** ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5; published API, rule 6's deepest level), run in an isolated
 `git worktree` with its own `node_modules`, from a green baseline, each verdict read from the exit
 code:
 
@@ -117,8 +117,8 @@ code:
 - `outside-roots` and `document` swapped: their rows go red;
 - **a second resolver reintroduced:** caught structurally, not by behaviour (a copy gives the same
   answers). `arch.rules.ts` gains a rule over the files that resolve links:
-  `modules(p).that().resideInFile(<conditions/resolve.ts, and plan 0406's linked-back.ts and
-live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').should().notImportFrom('node:path')`.
+  `modules(p).that().resideInFile(<conditions/resolve.ts, and linked-back.ts and
+live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').should().notImportFrom('node:path')` (the two files not yet there are [plan 0406](./0406-md-a-declared-link-is-answered.md)'s).
   `importFrom` is a predicate only, so a file that stops importing `resolveLink` drops out of the
   selection, and a selection emptied that way fails with the zero-examined finding. The row deletes
   the import and inlines the old code, and `check:arch` goes red. `notImportFrom` matches a builtin
@@ -177,7 +177,7 @@ live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').sh
   `model/resolve-link.ts` and bans all four spellings (each measured: exactly one finding on the
   patched file). Its comment and `because` say it is a Tier-1 check on the conditions' imports,
   and name what it cannot see: a module that re-implements resolution without importing
-  `resolve-link.ts` is never selected, the case proposal 013's survey found.
+  `resolve-link.ts` is never selected, the case [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s survey found.
 - **A non-vacuity row for it** (`arch/md-one-link-resolver` in `scripts/check-nonvacuity.mjs`): a
   bare `'path'` import is prepended to `conditions/resolve.ts` and the rule must fire on that file.
   The plan did not ask for one; review found the import ban rested on one manual measurement.

@@ -13,7 +13,7 @@
     it. A `bad-gherkin-ts.mjs` nonvacuity probe proves the gate bites. Nothing on
     the board is deferred anymore.
 - **Priority:** P2 — closes the one gap the Gherkin dialect left open: a use
-  case (`.feature`) can be cited by a _story_ (md↔gherkin, plan 0069 Phase 2)
+  case (`.feature`) can be cited by a _story_ (md↔gherkin, [plan 0069](./0069-spec-corpus-reach.md) Phase 2)
   but not bound to the _test_ that proves it. This is the code↔spec half that
   [plan 0069](./0069-spec-corpus-reach.md) explicitly deferred
   ("this one is spec↔spec only", `0069` Out of scope).
@@ -74,7 +74,7 @@ string so a single flat scan of `it` calls resolves it — the eess-ts public
 parent-aware call model (an eess-ts enhancement, out of scope here). The
 single-title convention is the closable slice.
 
-**Constraint (ADR-007).** The citation source is read through eess-ts's public
+**Constraint ([ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)).** The citation source is read through eess-ts's public
 `calls(project)` API — **no ts-morph in crossvalidate** — exactly as
 `adrCitationsResolve` does. So this also sees ``it(`template title`)`` the way
 md↔ts does.
@@ -87,7 +87,7 @@ New module `packages/crossvalidate/src/gherkin-ts.ts`, export `./gherkin-ts`.
 Left = test citations (the AST), right = scenarios (the feature set) — the mirror
 image of `scenarioCitationsResolve`, whose left was the markdown corpus. Same
 three failure modes, same suffix resolution, same `finishPreset` reporting
-(ADR-008 caller-owns-reporting).
+([ADR-008](../../../adr/008-caller-owns-reporting.md) caller-owns-reporting).
 
 ```ts
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
@@ -270,7 +270,7 @@ the resolver shipped and proven by fixtures.
   single-`it()`-title convention is the closable slice; the richer form is a
   later eess-ts enhancement.
 - **A Cucumber-style runtime binding** — eess is a static validation framework,
-  not a step runner (the boundary plan 0067 drew).
+  not a step runner (the boundary [plan 0067](./0067-harness-informed-roadmap.md) drew).
 - **Live dogfood wiring** — see Phase 3; parked on the ROADMAP until a real
   product feature exists.
 

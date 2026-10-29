@@ -54,7 +54,7 @@ Caveat (documented): `check:fast` runs the installed/built CLI against current
 source; it does not rebuild the engine, so if you change the engine itself, run a
 full `validate`. In a consuming repo the CLI is installed, so this is moot.
 
-## Phase 2 — Coverage grades over time (re-homed → plan 0073)
+## Phase 2 — Coverage grades over time (re-homed → [plan 0073](../0073-violation-telemetry-rule-staleness.md))
 
 OpenAI grade _each domain/layer_ in a `QUALITY_SCORE.md` and their background tasks
 _"update quality grades."_ eess has `work/dogfood-coverage.md` — but as a snapshot,
@@ -62,7 +62,7 @@ not a graded, tracked-over-time view. This is the temporal version of eess's cor
 move ("make the unenforced surface queryable"): a per-tier / per-package coverage
 grade, emitted by a gate and trended, so the enforced surface is visibly growing or
 rotting. Sits naturally on `check:spec` (coverage = direction already exists from
-plan 0061). **Effort: ~1 session.**
+[plan 0061](./0061-spec-code-hard-feedback-poc.md)). **Effort: ~1 session.**
 
 **Re-homed** into [plan 0073](../0073-violation-telemetry-rule-staleness.md),
 which measures rule _decay_ from the
@@ -70,20 +70,20 @@ same telemetry this measures _growth_ from — one mechanism, two questions
 ("which rules no longer earn their place" / "is the enforced surface growing or
 rotting"). Two plans over one data source would have been written twice.
 
-## Phase 3 — Broaden deterministic autofix (re-homed → plan 0076)
+## Phase 3 — Broaden deterministic autofix (re-homed → [plan 0076](../0076-broader-deterministic-autofix.md))
 
 Both shops lean on autofix (Stripe _auto-applies_ test autofixes). eess's `--fix`
-(plan 0066) is link/pointer-only. Extend the `ArchFix` model to more rule classes
+([plan 0066](./0066-eess-deterministic-autofix.md)) is link/pointer-only. Extend the `ArchFix` model to more rule classes
 where the repair is provably unique (e.g. a missing `.because`, a sanctioned
 `eess-exclude` with reason, an import moved to satisfy a layer). **Effort: ~2
-sessions.** Continues plan 0066's fix-side-of-the-tier-model direction.
+sessions.** Continues [plan 0066](./0066-eess-deterministic-autofix.md)'s fix-side-of-the-tier-model direction.
 
 **Re-homed** as [plan 0076](../0076-broader-deterministic-autofix.md) (Draft,
 P2, unblocked) — where its scoping step promptly found that two of the repair
 candidates named here are _not_ provably unique, so they are recorded as rejects
 rather than inherited unexamined.
 
-## Phase 4 — author → validate → fix loop (re-homed → plan 0077)
+## Phase 4 — author → validate → fix loop (re-homed → [plan 0077](./0077-author-validate-fix-loop.md))
 
 OpenAI's _"Ralph Wiggum Loop"_ of agent reviewers until satisfied; Stripe's bounded
 _two rounds_. eess ships the `eess-adr-author` and `eess-adr-validate` skills that
@@ -92,7 +92,7 @@ green-or-escalate, with a bounded round count. Formalize it as a skill/workflow.
 **Effort: ~1 session.**
 
 **Re-homed** as [plan 0077](./0077-author-validate-fix-loop.md) (Draft, P2, unblocked), and **smaller than
-written**: plan 0068 shipped the working-method kit, so the lane discipline
+written**: [plan 0068](./0068-working-method-kit.md) shipped the working-method kit, so the lane discipline
 (`/plan-*`, `/bug`, `/close`) now exists — what is still missing is only the
 bounded re-validate round. Two constraints from
 [the external-signals research](../../research-external-signals-2026-07.md) bind it:
@@ -100,7 +100,7 @@ the loop may _propose_ rule changes but adoption stays a human act (§4, the
 anti-Goodhart guard, = Tier 5), and the verifier must be separated from the
 author — fresh context, ideally a different model (§2).
 
-## Phase 5 — Tier 2/3 mechanization (frontier; re-homed → plan 0079)
+## Phase 5 — Tier 2/3 mechanization (frontier; re-homed → [plan 0079](../0079-tier-2-3-mechanization.md))
 
 The honest gap. eess mechanizes **Tier 1** (eess-ts) plus the md/crossval binding;
 the manifesto _describes_ Tiers 2–5 but eess provides no mechanism for them — it
@@ -127,20 +127,20 @@ dropped:
 - [x] **Phase 1** — `check:fast` (`package.json`) + agent-actionable gate output
       documented in `CLAUDE.md`. Shipped with the plan, 2026-07-08.
 - [ ] **Phase 2** — coverage grades over time ·
-      `deferred→plan 0073`, merged with its
+      deferred→[plan 0073](../0073-violation-telemetry-rule-staleness.md), merged with its
       decay half: one telemetry mechanism, not two.
 - [ ] **Phase 3** — broader deterministic autofix ·
-      `deferred→plan 0076` (P2, unblocked),
+      deferred→[plan 0076](../0076-broader-deterministic-autofix.md) (P2, unblocked),
       unchanged in scope.
 - [ ] **Phase 4** — author → validate → fix loop ·
-      `deferred→plan 0077` (P2, unblocked),
+      deferred→[plan 0077](./0077-author-validate-fix-loop.md) (P2, unblocked),
       narrowed: the kit (0068) already shipped the lane discipline; only the
       bounded re-validate round remains.
 - [ ] **Phase 5** — Tier 2/3 mechanization ·
-      `deferred→plan 0079`, kept as a frontier; it earns a
+      deferred→[plan 0079](../0079-tier-2-3-mechanization.md), kept as a frontier; it earns a
       plan when a mechanism (or a demanding adopter) exists.
 
-**Deferred: plans 0073, 0076, 0077, 0079 — each a real Draft on the board, not a
+**Deferred: [plans 0073](../0073-violation-telemetry-rule-staleness.md), 0076, 0077, 0079 — each a real Draft on the board, not a
 reserved number.** Nothing dropped.
 
 ### Why this closed at Phase 1
@@ -148,7 +148,7 @@ reserved number.** Nothing dropped.
 This plan was the repo's only item that could not be closed: a `State:` line of
 free prose ("Phase 1 done; Phases 2–5 proposed") that no terminal token fit, so
 `check:ledger` correctly never looked at it. Meanwhile the work it had actually
-delivered was complete on day one, and plans 0068–0072 shipped past it while it
+delivered was complete on day one, and [plans 0068](./0068-working-method-kit.md)–0072 shipped past it while it
 kept reading as active.
 
 The lesson is a working-method one, and it is now a guard in the `/plan` skill:

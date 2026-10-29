@@ -2,11 +2,11 @@
 
 ## Status
 
-- **State:** Done — implemented 2026-07-03/04 on branch `eess-consolidation` (not merged/published). **All phases done:** kernel engine — `Selection<T>`, `RuleBuilder.select()`, `correspondence()` (TerminalBuilder; keyBy/matchBy, beComplete({direction}) + duplicate detection, preserveRelations), on the shared `matchSelections()` matching engine (12 kernel tests); `@nielspeter/eess-crossvalidate` package with `mermaid-ts` `diagramMatchesCode()` (walkthrough stage 6/7 parity), `md-ts` `adrCitationsResolve()` (AST-grounded, ADR-007-clean), and `md-mermaid` `embeddedDiagramsMatchCode()` (embedded ```mermaid blocks validated like .mmd, violations at the md file); `crossLayer`delegates to the shared engine +`@deprecated`; preset-dispatch hoisted to kernel; walkthrough updated to the real API. 8 crossvalidate tests. **Full suite 2045 green across 6 packages.** Remaining is only the external cutover (shared with 0051: publish, rename, etc.), gated by the user. **Matching-engine unification DONE** (commit `06a6ca8`): the review's core anti-duplication concern is resolved — `matchSelections()`is now the single matching engine in the kernel, and BOTH`correspondence()`and`crossLayer.computePairs`delegate to it (no second pair-matching implementation).`crossLayer`keeps its API +`LayerPair`output identical, so all 1910 eess-ts tests pass unchanged; it stays`@deprecated`pointing at`correspondence()`. Judged unnecessary: physically moving `PairCondition`to the kernel — it is a deprecated crossLayer-specific condition over`LayerPair`, not a generic engine type; the generic pieces (`Pair<L,R>`, `matchSelections`) now live in the kernel. **REMAINING (lower-value, deferred):** (a) embedded-Mermaid-in-Markdown block cross-checks (Phase 6); (b) walkthrough/manifesto doc updates (Phase 7). The "Review outcome" section records the design.
+- **State:** Done — implemented 2026-07-03/04 on branch `eess-consolidation` (not merged/published). **All phases done:** kernel engine — `Selection<T>`, `RuleBuilder.select()`, `correspondence()` (TerminalBuilder; keyBy/matchBy, beComplete({direction}) + duplicate detection, preserveRelations), on the shared `matchSelections()` matching engine (12 kernel tests); `@nielspeter/eess-crossvalidate` package with `mermaid-ts` `diagramMatchesCode()` (walkthrough stage 6/7 parity), `md-ts` `adrCitationsResolve()` (AST-grounded, [ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)-clean), and `md-mermaid` `embeddedDiagramsMatchCode()` (embedded ```mermaid blocks validated like .mmd, violations at the md file); `crossLayer`delegates to the shared engine +`@deprecated`; preset-dispatch hoisted to kernel; walkthrough updated to the real API. 8 crossvalidate tests. **Full suite 2045 green across 6 packages.** Remaining is only the external cutover (shared with 0051: publish, rename, etc.), gated by the user. **Matching-engine unification DONE** (commit `06a6ca8`): the review's core anti-duplication concern is resolved — `matchSelections()`is now the single matching engine in the kernel, and BOTH`correspondence()`and`crossLayer.computePairs`delegate to it (no second pair-matching implementation).`crossLayer`keeps its API +`LayerPair`output identical, so all 1910 eess-ts tests pass unchanged; it stays`@deprecated`pointing at`correspondence()`. Judged unnecessary: physically moving `PairCondition`to the kernel — it is a deprecated crossLayer-specific condition over`LayerPair`, not a generic engine type; the generic pieces (`Pair<L,R>`, `matchSelections`) now live in the kernel. **REMAINING (lower-value, deferred):** (a) embedded-Mermaid-in-Markdown block cross-checks (Phase 6); (b) walkthrough/manifesto doc updates (Phase 7). The "Review outcome" section records the design.
 - **Priority:** P1 once 0058 lands (third in the work order: 0051 → 0058 → **0059** → workflow dialect, future plan)
 - **Effort:** ~1.5 weeks
 - **Created:** 2026-07-03
-- **Depends on:** Plan 0051 (kernel + sibling dialect packages), plan 0058 (corpus model: fenced blocks with language tags, pointer/citation elements). Conceptually implements the manifesto's core claim: _"Spec and code are validated against each other. Neither is privileged in isolation."_
+- **Depends on:** [Plan 0051](./0051-consolidation-eess-monorepo.md) (kernel + sibling dialect packages), [plan 0058](./0058-markdown-dialect-eess-md.md) (corpus model: fenced blocks with language tags, pointer/citation elements). Conceptually implements the manifesto's core claim: _"Spec and code are validated against each other. Neither is privileged in isolation."_
 
 ## Review outcome (2026-07-03 — architect + product)
 
@@ -14,7 +14,7 @@
 reviewers independently caught the same Critical issue: the plan's premise that
 cross-validation is "the missing primitive" is **factually wrong**. A generic,
 two-sided, generic-over-`<A,B>` pair-correspondence engine **already ships in
-`eess-ts`** (plan 0022, Done) and the plan never mentions it:
+`eess-ts`** (ts-archunit plan 0022, Done) and the plan never mentions it:
 
 | 0059 proposes                       | Already exists (eess-ts)                                                     | Location                                                   |
 | ----------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -52,12 +52,12 @@ arguably what `crossLayer` should have been built on.
    and keep only the **dialect-coupled presets** (`mermaid-ts`, `md-ts`) in the
    `crossvalidate` package. Or justify explicitly why `correspondence()` isn't
    kernel-resident when `Selection` is.
-3. **Fix the fluent grammar (ADR-003).** `.and()` is the predicate-AND no-op in the
+3. **Fix the fluent grammar ([ADR-003](../../../adr/003-fluent-builder-dsl.md)).** `.and()` is the predicate-AND no-op in the
    kernel (`rule-builder.ts:49-51`); condition-AND is `.andShould()`
    (`rule-builder.ts:68-70`). And this builder operates over two selections, so —
    like `PairFinalBuilder` — it is a **`TerminalBuilder` subclass, not a
    `RuleBuilder<T>`**; correct the "ordinary kernel RuleBuilder" claim.
-4. **ADR-007 engine boundary.** State that the presets consume only dialect
+4. **[ADR-007](../../../adr/007-isolate-ast-engine-boundary.md) engine boundary.** State that the presets consume only dialect
    **public element APIs**, never `ts-morph`, and that kernel `Selection<T>` stays
    engine-neutral (`T` opaque, `T[]` + label + neutral source metadata only).
 5. **Scope claims honestly.** `not/and/or` combinators operate on
@@ -86,7 +86,7 @@ dialect can express alone.
 
 **Cross-validation is not new to the family — it exists, but only within
 one loader.** `eess-ts` already ships a two-sided pair-correspondence
-engine (plan 0022, Done): `crossLayer(p).layer(…).layer(…).mapping(fn)
+engine (ts-archunit plan 0022, Done): `crossLayer(p).layer(…).layer(…).mapping(fn)
 .forEachPair().should(…)`, with `haveMatchingCounterpart`,
 `haveConsistentExports`, `satisfyPairCondition`, the generic
 `PairCondition<A, B>` / `LayerPair<A, B>` types, and a
@@ -102,7 +102,7 @@ That is the real gap. Two other narrow workarounds skirt it:
 
 - **typed-mermaide's `fromDiagram()` bridge** — one-directional
   (diagram → folder-based code rules), lossy (classes flattened to
-  folders). Plan 0051 already calls it "a workaround for the artificial
+  folders). [Plan 0051](./0051-consolidation-eess-monorepo.md) already calls it "a workaround for the artificial
   split."
 - **the external repo's text-level citation check** (shipped in 0058's
   `adrEnforcement`) — a cited `it('…')` matched by regex, not AST, so it
@@ -145,7 +145,7 @@ smell. Keeping the engine in the kernel is also what lets `eess-ts`'s
 This plan **must not** add a second pair-matching engine. The existing
 one is refactored onto `correspondence()`:
 
-| Existing (`eess-ts`, plan 0022)                                     | Becomes                                                                                                |
+| Existing (`eess-ts`, ts-archunit plan 0022)                         | Becomes                                                                                                |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `crossLayer(p).layer(g).layer(g).mapping(fn).forEachPair()`         | sugar that builds two glob `Selection`s + calls `correspondence()`                                     |
 | `haveMatchingCounterpart(layers)`                                   | `correspondence().should().beComplete({ direction })`                                                  |
@@ -278,7 +278,7 @@ _existing and skipped_ — the ratchet becomes checkable. Designed as a
 drop-in replacement: `adrEnforcement(c, { verifyCitations: 'text' })`
 users flip to the preset when they add `eess-ts`.
 
-**ADR-007 boundary (binding).** The presets consume only each dialect's
+**[ADR-007](../../../adr/007-isolate-ast-engine-boundary.md) boundary (binding).** The presets consume only each dialect's
 **public element API** — never `ts-morph` directly. `ts-morph` stays
 inside the `eess-ts` engine adapter; `@nielspeter/eess-crossvalidate` and
 the kernel `Selection<T>` never import it. Any AST access the `md-ts`
@@ -359,7 +359,7 @@ deprecated), existing `packages/ts/tests/**/cross-layer*` (unchanged, must pass)
 
 12. `adrCitationsResolve()`: corpus citation elements (from 0058)
     resolved against `eess-ts` call-expression elements via `eess-ts`'s
-    public API (ADR-007 — no ts-morph here); `it.skip` awareness for
+    public API ([ADR-007](../../../adr/007-isolate-ast-engine-boundary.md) — no ts-morph here); `it.skip` awareness for
     `pending` clauses.
 13. Parity + superiority tests vs the text-level check: everything the
     regex caught, plus template-literal titles and same-string-moved

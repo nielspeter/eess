@@ -1,4 +1,4 @@
-# Plan 0142: bind accepted proposals to plans — the check bug 0141 diagnosed
+# Plan 0142: bind accepted proposals to plans — the check [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md) diagnosed
 
 ## Status
 
@@ -14,7 +14,7 @@
   working out first — a mechanical patch to the bug's regex is not enough.
   Not an ADR-level decision: nothing here binds the eess tool's own
   architecture, only this repo's `work/proposals/` lane convention (the same
-  footing as bugs 0118/0119/0121 fixing `check:ledger`'s state vocabulary
+  footing as [bugs 0118](../../bugs/fixed/0118-ledger-gate-skips-the-bug-lane.md)/0119/0121 fixing `check:ledger`'s state vocabulary
   without minting one).
 - **Priority:** Medium — mirrors [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)'s
   own severity call and the same reasoning: zero proposals have ever been
@@ -33,7 +33,7 @@ proposal becomes a Draft plan on the roadmap."_ Nothing checks that this
 happens — verified in [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md):
 `check:corpus` gates `work/proposals/**` for link resolution only, and
 `check:ledger`'s proposals lane deliberately opts out of terminal-state
-checking (bug 0121). The absence is invisible by construction, the same shape
+checking ([bug 0121](../../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md)). The absence is invisible by construction, the same shape
 [bug 0138](../../bugs/0138-pointer-resolve-proves-existence-not-truth.md) names
 for `path:line` pointers: a gate that proves a reference resolves is not a
 gate that proves a required reference exists.
@@ -54,7 +54,7 @@ not just one regex bug:
    three real plan→proposal citations in this repo
    (`work/plans/0089-family-standalone-sufficiency.md:176`,
    `work/plans/0101-sibling-gates-go-fail-closed.md:117` — both excluding
-   proposal 001 from scope; `work/plans/0090-adopt-ts-archunit-work-corpus.md:237`
+   [proposal 001](../../proposals/001-md-corpus-rule-coverage.md) from scope; `work/plans/0090-adopt-ts-archunit-work-corpus.md:237`
    — citing 002 only as a dependency to re-check) would all satisfy a substring
    `plan.text.includes(...)` check. A textual co-occurrence is not the relation
    being asserted; it needs a declared, directed back-reference.
@@ -117,7 +117,7 @@ truncate a regex against.
   from the board's own recorded value (there is no other source of truth for
   what 001's ruling was) rather than leave a fifth divergence unresolved.
 - **One parser, not two.** `check:ledger`'s proposals lane
-  (`scripts/check-ledger.mjs`, bug 0121) already scans this same lane with its
+  (`scripts/check-ledger.mjs`, [bug 0121](../../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md)) already scans this same lane with its
   own vocabulary matcher for `State:`. Phase 2's Ruling matcher should reuse
   that matcher's shape/location rather than becoming a second, independently
   drifting regex over the same file set (architect review, finding I6).
@@ -139,7 +139,7 @@ proposal.
 
 - **The back-reference convention: the plan's own `**Implements:**` header
   line.** `text.includes()` is out (problem statement, point 2). The plan
-  header carries a declared line — `**Implements:** proposal 002` — the same
+  header carries a declared line — `**Implements:**` [proposal 002](../../proposals/002-comment-embedded-links.md) — the same
   shape `ROADMAP.md`'s `Blocked on` column already uses for a different
   relation. Chosen over a `→ plan NNNN` line on the proposal (0141 notes this
   has literally never existed) or a two-way requirement, because plans, not
@@ -209,7 +209,7 @@ check is wired to the production script, not a standalone rule.
   all) — a second, adjacent unmechanized derivation in the same file the
   architect review flagged as an easy adjacent win. Worth its own plan, not
   bundled into this one's ledger.
-- **Fixing bug 0141's Fix section in place.** This plan supersedes it; 0141
+- **Fixing [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)'s Fix section in place.** This plan supersedes it; 0141
   closes by reference to this plan rather than by its own Fix section being
   built as originally written.
 - **[Proposal 001](../../proposals/001-md-corpus-rule-coverage.md)'s related but
@@ -255,14 +255,14 @@ the same branch before merge:
 3. **No non-vacuity coverage for the "green" half of the join** — two
    reviewers independently gutted `declaredImplements()`/loosened
    `IMPLEMENTS_RE` to a prose-matching pattern (reproducing the exact
-   0089/0101 false-positive shape bug 0141 exists to prevent) and every
+   0089/0101 false-positive shape [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md) exists to prevent) and every
    fixture stayed green, because both committed probes were unmatched-left
    probes. Fixed: a new `gateCorpusProposalImplementsDiscriminates` probe
    pair asserts both directions in one run — a prose-only citation stays
    red, a real declared citation goes green — verified to catch the actual
    mutation both reviewers used.
 4. **A near-miss `## Review` heading (hyphen instead of em dash, missing
-   entirely — proposal 001's own original shape — or `###`) made an accepted
+   entirely — [proposal 001](../../proposals/001-md-corpus-rule-coverage.md)'s own original shape — or `###`) made an accepted
    Ruling silently invisible.** Fixed: dropped heading-scoping entirely; the
    operative Ruling is now the last `**Ruling: <verdict>**` line anywhere in
    the document, verified safe against all five real proposals including
@@ -297,7 +297,7 @@ reproduced it live. Fixed: both regexes now share one`LABEL_PREFIX`.
    deleted their violation logic by mutation and `check:nonvacuity` stayed
    green, because `gateCoverage()` asserts per-script, not per-rule-id.
    Fixed: two more `gateCorpusProbe` rows.
-3. **Bug 0143's severity claim was corrected in place** (not silently) —
+3. **[Bug 0143](../../bugs/0143-proposal-ruling-parser-duplicates-terms-vocabulary.md)'s severity claim was corrected in place** (not silently) —
    its premise that the hand-rolled parser was "correct today" was false
    when written; the defect in (1) is now cited as the bug's own strongest
    evidence.
@@ -332,7 +332,7 @@ record, not reproduced here per this file's own brevity convention.
 
 - [x] Phase 1 — `Ruling` is a literal, bounded field; skill + docs + five
       real files aligned; casing and `001`'s missing line decided. Found and
-      recorded in scope: proposal 001's own adjacent, distinct break class.
+      recorded in scope: [proposal 001](../../proposals/001-md-corpus-rule-coverage.md)'s own adjacent, distinct break class.
 - [x] Phase 2 — `check:corpus` gates proposal→plan linkage; back-reference
       convention decided and documented; non-vacuity probe wired and proven.
       Sabotage-tested in an isolated worktree in all four directions (accepted + uncited → red; `**Implements:**` added → green; prose-only mention,

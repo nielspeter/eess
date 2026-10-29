@@ -3,12 +3,12 @@
 ## Status
 
 - **State:** Done — 2026-08-16. Both phases complete: Phase 1 (all four
-  sibling gates fail-closed, bug 0131 closed after three review rounds) and
-  Phase 2 (two review-surfaced defects filed as bugs 0151/0152). Ledger
+  sibling gates fail-closed, [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md) closed after three review rounds) and
+  Phase 2 (two review-surfaced defects filed as [bugs 0151](../../bugs/0151-honesty-at-close-options-undiscoverable-past-source.md)/0152). Ledger
   reconciled — no open box in the progress ledger below, nothing deferred out
   of this plan itself. Closing in the same PR that carries the work (#68), per
   house discipline. Frozen to Ready 2026-08-16 before the build, on the
-  precondition that plan 0088 merged to `main` 2026-08-16 (PR #67), so the
+  precondition that [plan 0088](./0088-fold-ts-archunit-into-eess.md) merged to `main` 2026-08-16 (PR #67), so the
   folded kernel seam was genuinely
   live, not just landed on a branch. Freeze verification: confirmed directly
   that `check:corpus`'s own rule constructors (`docs()`, `links()`,
@@ -97,11 +97,11 @@ inherit the fold by construction — confirmed the same way. This is exactly
 [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s
 finding, filed 2026-08-12. Without resolving it, "all four sibling gates
 fail-closed" would not be an achievable bar — `check:ledger` was structurally
-exempt, not passing. Bug 0131 named the two honest resolutions (express
+exempt, not passing. [Bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md) named the two honest resolutions (express
 `honestyAtClose` through the DSL if the State-region analysis fits as a
 predicate/condition pipeline; or record the departure explicitly with a
 compensating non-vacuity fixture if it doesn't). This phase made that
-decision and implemented it — bug 0131 closes with this phase's PR, named
+decision and implemented it — [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md) closes with this phase's PR, named
 here rather than deferred a second time. See "Done, 2026-08-16" below for the
 resolution.
 
@@ -114,9 +114,9 @@ no reconciliation — their rule constructors already `extends
 RuleBuilder<T, Corpus>` (confirmed at freeze) and were already green with zero
 baselines and zero `.excluding()` calls; the fold reaches them by construction.
 `check:ledger`'s `honestyAtClose` (`packages/md/src/rules/ledger.ts`) was the
-one real gap, resolved by fix (1) from bug 0131: expressed through the
+one real gap, resolved by fix (1) from [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md): expressed through the
 `docs()`/`taskItems()` builder DSL rather than raw corpus iteration, closing
-bug 0131. Spiked first against a synthetic fixture before touching the real
+[bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md). Spiked first against a synthetic fixture before touching the real
 file, per house discipline — the DSL approach was proven byte-identical to the
 old hand-rolled output before being adopted.
 
@@ -263,7 +263,7 @@ round-1 `check:ledger` fix left a discoverability gap
 `expectEmptyHeaders` and `honestyAtClose`'s calling convention are
 undocumented past source) and a recurrence gap
 ([0152](../../bugs/0152-no-guardrail-against-hand-rolled-presets-recurring.md) —
-nothing stops a future dialect preset from repeating bug 0131's exact
+nothing stops a future dialect preset from repeating [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s exact
 pattern). Neither is a corpus finding this phase's charter asks for, but both
 are genuine, separately-closable defects the honesty-at-close work itself
 produced, filed rather than folded into this plan's own close — the same

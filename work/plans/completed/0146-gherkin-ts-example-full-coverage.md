@@ -33,7 +33,7 @@
 
 ## Problem
 
-Plan 0091 ([`work/plans/completed/0091-cross-dialect-examples-checked.md`](./0091-cross-dialect-examples-checked.md))
+[Plan 0091](./0091-cross-dialect-examples-checked.md) ([`work/plans/completed/0091-cross-dialect-examples-checked.md`](./0091-cross-dialect-examples-checked.md))
 built one executing example per README-documented `@nielspeter/eess-crossvalidate`
 binding, including Gherkin↔TS. But `packages/crossvalidate/README.md`'s
 "Gherkin ↔ TypeScript" section documents **three** exports, not one:
@@ -53,7 +53,7 @@ to keep 0091 at its frozen "Small" scope. This plan is that named follow-up.
 
 The gap matters because `scenariosCovered` and `scenarioExemptionsCurrent` are
 not minor variants — `scenarioExemptionsCurrent` is the newest surface in the
-whole package (proposal 005 / plan 0145, the first proposal this repo ever
+whole package ([proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md) / [plan 0145](./0145-crossvalidate-stale-wip-detection.md), the first proposal this repo ever
 accepted and built) and the pair is the one place in the README where two
 functions are explicitly coupled ("the two options must never be able to
 silently disagree about the same tag" — `packages/crossvalidate/src/gherkin-ts.ts`,
@@ -227,7 +227,7 @@ scenario`), not 2 — asserted by count **and** `element`, proving `include`
 - **The other two undemonstrated bindings** (`md↔mermaid`, `md↔mermaid-er`,
   `files`) — 0091's own Out of Scope, unaffected by this plan.
 - **`check:crossval` / the repo's own dogfood gate** — already exercises both
-  functions on real repo artifacts (plan 0145); this plan is the adopter-facing
+  functions on real repo artifacts ([plan 0145](./0145-crossvalidate-stale-wip-detection.md)); this plan is the adopter-facing
   `examples/` demonstration only, a separate lane from 0091's own start.
 
 ## Success / close

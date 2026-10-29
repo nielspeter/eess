@@ -9,7 +9,7 @@
   the corpus). Deferred: none — the two disclosed follow-ups (missing
   `suggestion`/`docs` field on both new presets' violations; no
   `EESS_CROSSVAL_*_ROOT`-style e2e tier for these two gates) are named in Out
-  of Scope below, alongside existing bugs 0097/0098, not new open items this
+  of Scope below, alongside existing [bugs 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098, not new open items this
   plan owes a home. Created 2026-08-12; reworked 2026-08-12
   after a six-persona review found the first pass manufactured proof that could
   not go green (a repo-root citation that wouldn't resolve, a two-line citation
@@ -37,15 +37,15 @@
 - **Freeze check (2026-08-14).** Re-verified every load-bearing assumption
   against current code, since `check-crossval.mjs`, `md-gherkin.ts`, and
   `check-nonvacuity.mjs` all changed materially after this plan was drafted
-  (proposal 005 / plan 0145, merged 2026-08-14). Nothing dangled:
+  ([proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md) / [plan 0145](./0145-crossvalidate-stale-wip-detection.md), merged 2026-08-14). Nothing dangled:
   `docs/crossvalidate.md:79` still carries the unfixed repo-root, no-title form
   Phase 1 targets; `docs/architecture.md` still does not exist (Phase 2's plant
   is still needed); `scenarioCitationsResolve`/`scenarioCitationStats`
   (`md-gherkin.ts`) and `embeddedDiagramsMatchCode` (`md-mermaid.ts`) are
-  unchanged; bugs 0097/0098 are still Draft, so `scenarioCitationStats` still has
+  unchanged; [bugs 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098 are still Draft, so `scenarioCitationStats` still has
   no `titled` field and the Phase 1 floor's stated limit still holds exactly as
   written. Phase 3's fixture tier (`gateNode`, matching `bad-gherkin-ts.mjs`) is
-  still the live convention for this class of gate — plan 0145 elevated only
+  still the live convention for this class of gate — [plan 0145](./0145-crossvalidate-stale-wip-detection.md) elevated only
   `scenarioExemptionsCurrent`/`scenariosCovered` to the stronger
   `EESS_CROSSVAL_GHERKIN_ROOT` e2e tier, and left the sibling
   `crossval/gherkin-ts` and `crossval/md-ts` rows on the same weaker tier this
@@ -87,7 +87,7 @@
   just the two new fixtures in isolation) surfaced one real defect the three
   prior review rounds never caught, because none of them ran it: reusing
   `scenarioSpecs` for the `md↔gherkin` gate, as Phase 1 originally specified,
-  broke plan 0145's `bad-crossval-gherkin-e2e.mjs` fixture by silently
+  broke [plan 0145](./0145-crossvalidate-stale-wip-detection.md)'s `bad-crossval-gherkin-e2e.mjs` fixture by silently
   widening what `EESS_CROSSVAL_GHERKIN_ROOT` affects. Fixed inline in Phase 1
   (a gate-local `FeatureSet` unaffected by the override) and reverified —
   `npm run validate` is green, 33 nonvacuity fixtures fire (was 31). Stopped
@@ -241,7 +241,7 @@ exactly the green-but-empty gate this plan exists to prevent
 `s.citations === 0` is the honest floor available today: `citations` _is_ a
 corpus-side scan count. It is a weak floor — `docs/crossvalidate.md` already
 carries a file-level citation, so it does not prove the _title_-resolution path
-ran. No exported field can prove that yet; bug 0098 adds `titled` for exactly
+ran. No exported field can prove that yet; [bug 0098](../../bugs/0098-scenario-stats-report-set-size-as-scan-count.md) adds `titled` for exactly
 this, and when it lands the floor tightens to `s.titled === 0`. Adding it here
 is out of scope (this plan ships no new public surface), so the proof that the
 gate can go red comes from the sabotage fixture in **Phase 3** — which is the
@@ -333,7 +333,7 @@ the rule that fired.
 
 **Tier choice, stated honestly.** Both fixtures use `gateNode` + a rebuilt-rule
 project (the `bad-gherkin-ts.mjs`/`bad-crossval.mjs` tier), not the stronger
-production-script-driven e2e tier plan 0145 just built for the gherkin-ts trio
+production-script-driven e2e tier [plan 0145](./0145-crossvalidate-stale-wip-detection.md) just built for the gherkin-ts trio
 (`EESS_CROSSVAL_GHERKIN_ROOT`, running the real `check-crossval.mjs` twice
 against a throwaway corpus). That tier isn't available to these two gates
 today: there is no `EESS_CROSSVAL_*_ROOT`-style override for the `docs/`-corpus
@@ -533,13 +533,13 @@ gains two rows and stays green.
   ghost-class violation sends an author only a raw diff-shaped message, no
   `Fix:` line. Worth a follow-up bug rather than blocking this plan, since
   fixing it is a `packages/crossvalidate/src` change and this plan ships no new
-  public surface — alongside bugs 0097/0098, already linked above, against the
+  public surface — alongside [bugs 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098, already linked above, against the
   same package.
 - **The `files` entry point** — a selection factory, not a dialect-pair binding;
   not a dogfood target.
-- **The adopter-facing examples** — that is plan 0091.
-- **Per-dialect sufficiency** — plan 0089. **Sibling gates going fail-closed** —
-  plan 0101. This plan mounts bindings; neither of those changes what a gate
+- **The adopter-facing examples** — that is [plan 0091](./0091-cross-dialect-examples-checked.md).
+- **Per-dialect sufficiency** — [plan 0089](./0089-family-standalone-sufficiency.md). **Sibling gates going fail-closed** —
+  [plan 0101](./0101-sibling-gates-go-fail-closed.md). This plan mounts bindings; neither of those changes what a gate
   mounts.
 - **Extending the crossvalidate package itself** — this plan only _consumes_ its
   existing bindings on the repo's own artifacts; no new public surface.

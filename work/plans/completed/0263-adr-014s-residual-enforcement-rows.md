@@ -1,8 +1,8 @@
-# Plan 0263: ADR-014's residual enforcement rows
+# Plan 0263: [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s residual enforcement rows
 
 ## Status
 
-- **State:** Done — all five phases shipped; ADR-014 ends with **no `pending` rows** (see Success). **Phase 1 shipped 2026-09-07 on its second attempt**; the
+- **State:** Done — all five phases shipped; [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) ends with **no `pending` rows** (see Success). **Phase 1 shipped 2026-09-07 on its second attempt**; the
   first was opened as PR #116, reviewed by five lenses, and **closed unmerged**
   because the measurements said the design was wrong rather than incomplete (see
   Phase 1's record). **Phase 2 shipped 2026-09-07** (PR #118, three review
@@ -16,7 +16,7 @@
   real guard never run — and merged back after a method review. The residual that
   survives measurement is
   [bug 0272](../../bugs/0272-the-kernel-roots-unwatched-residual.md). Frozen 2026-09-06. **The freeze found two things, one a
-  false premise this plan inherited from ADR-014's own table and repeated
+  false premise this plan inherited from [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s own table and repeated
   without measuring** — written the day before, by me, which is the mistake this
   ADR is about, made about the ADR:
   1. **Phase 4's premise was wrong.** `cardinality.ts` is not the sole `WeakSet`
@@ -61,7 +61,7 @@
 
 ## Problem
 
-Plan 0235 shipped ADR-014's contract and moved nine of the table's sixteen rows
+[Plan 0235](./0235-the-emitter-takes-a-receipt.md) shipped [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s contract and moved nine of the table's sixteen rows
 to `gated`. Six stayed `pending`; one of those (`a terminal's verdict flows
 through unchanged`) was measured and gated at 0235's close, leaving **five**.
 
@@ -73,15 +73,15 @@ honest consequence is that nothing would notice their regression:
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `throwIfViolations` is not exported                                        | **Done, Phase 5.** Gone from all three barrels                                       | **This cell said "the kernel root half is caught by nothing — measured" and that was the false negative of the close.** `packages/ts/tests/standalone-surface.test.ts` reds on exactly that re-add; three instruments were run, none of them that suite. The residual is narrow and is [bug 0272](../../bugs/0272-the-kernel-roots-unwatched-residual.md) |
 | A rule file exporting an evidence-free builder reds the CLI and `checkAll` | It does — `checkAll` routes through the kernel merge and the CLI through the emitter | a future refactor that hands the CLI a bare array again, which is exactly the shape 0206 had                                                                                                                                                                                                                                                              |
-| The finding names its cause, and the remedy remediates                     | Each of the four causes has its own id and message                                   | a message edited into uselessness, or a remedy that does not clear the finding it is printed beside (ADR-009 rule 2)                                                                                                                                                                                                                                      |
-| No new kernel registry is added                                            | **TWO** `WeakSet` registries exist, not one — see Phase 4's freeze correction        | ANOTHER registry added under `packages/core/src`, which is the device ADR-014 §2 chose the required field over                                                                                                                                                                                                                                            |
+| The finding names its cause, and the remedy remediates                     | Each of the four causes has its own id and message                                   | a message edited into uselessness, or a remedy that does not clear the finding it is printed beside ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2)                                                                                                                                                                                  |
+| No new kernel registry is added                                            | **TWO** `WeakSet` registries exist, not one — see Phase 4's freeze correction        | ANOTHER registry added under `packages/core/src`, which is the device [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §2 chose the required field over                                                                                                                                                                      |
 | Every hand-assembled check in this repo supplies evidence                  | `check:corpus` proves it end to end (`emitter/one-dead-check`)                       | the same dead-check fail-open in `check:ledger` or `check:release`, neither of which has a break-the-loop fixture                                                                                                                                                                                                                                         |
 
 The middle three share a shape worth naming: **the clause is enforced by a
 mechanism that exists for another reason** (the type system, the suite), which is
 why they were not urgent, and **not by anything that fails on their specific
 regression**, which is why they are not `gated`. Calling that `gated` would be
-the over-claim ADR-014's own table is supposed to make impossible.
+the over-claim [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s own table is supposed to make impossible.
 
 ## Phase 1 — evidence in the two gates, then the two fixtures (`check:nonvacuity`)
 
@@ -95,7 +95,7 @@ the over-claim ADR-014's own table is supposed to make impossible.
 > `check-ledger.mjs` and `check-release.mjs` reach the evidence gate the way
 > `check-corpus.mjs` does. They do not: measured, `check-corpus.mjs` carried 17
 > `collectResult`/`mergeCollectResults` references and the other two carried
-> **zero**. Both hand-printed on the default path — the path ADR-014's row
+> **zero**. Both hand-printed on the default path — the path [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s row
 > explicitly names — so there was no finding for a fixture to key on. Driven both
 > ways before anything was written: zeroing the ledger's finished-not-closed
 > denominator left `findings ✓ every done-item reconciled` at exit 0, and
@@ -156,8 +156,7 @@ the over-claim ADR-014's own table is supposed to make impossible.
    merged receipt built from its rules' own evidence.
 3. **`check-corpus.mjs`** — its summary counted emitter findings out of the
    total, so it printed `0 violation(s)` beside a red exit. The first attempt
-   fixed that line in the two copies it created and left the original: plan
-   0188's headline hazard, inside the change that made the third copy.
+   fixed that line in the two copies it created and left the original: [plan 0188](../0188-unify-the-duplicated-engine-modules.md)'s headline hazard, inside the change that made the third copy.
 
 Then the fixtures. Both plant the corruption in the **production** script, drive
 **both** exits, and assert the finding by id via `firedOn`:
@@ -191,7 +190,7 @@ builder passes through `checkAll` silently today. That is why the row is
 fixture:
 
 > **Corrected at build, 2026-09-07: the phase named one door and the row names
-> two.** ADR-014's clause is _"reds the CLI **and** `checkAll`"_, and this phase
+> two.** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s clause is _"reds the CLI **and** `checkAll`"_, and this phase
 > described only `checkAll`'s `flatMap`, with item 2 assuming `eess-ts check`
 > already reddened so a fixture could simply assert it. Measured before anything
 > was written — the probe rule file `export default [{ violations: () => [] }]`:
@@ -210,20 +209,18 @@ fixture:
 
 1. Route `checkAll`'s aggregation through `mergeCollectResults` so the receipt
    survives, and its delivery through the gate — **and `runCheck`'s, for the
-   same reason**. The severity split at the bottom (`ridesTheThrow`) and bug
-   0203's suppression contract must both survive the change — they are why this
+   same reason**. The severity split at the bottom (`ridesTheThrow`) and [bug 0203](../../bugs/fixed/0203-a-preset-at-module-scope-prints-its-findings-twice.md)'s suppression contract must both survive the change — they are why this
    was not done inside 0235.
 2. A non-vacuity fixture whose rule file exports a builder whose `violations()`
    returns a bare `[]`, asserted to red `eess-ts check` by rule id.
-3. A test that `checkAll` over the same throws — the regression guard for bug
-   0206's shape at a different door.
+3. A test that `checkAll` over the same throws — the regression guard for [bug 0206](../../bugs/fixed/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md)'s shape at a different door.
 
 ## Phase 3 — the remedy-remediates fixtures
 
 Four fixtures, one per cause (`no-receipt`, `sourceEmpty`, zero-examined,
 expired declaration). Each asserts twice: the finding fires on the corrupt
 input, **and** applying the remedy the message names clears it. That second
-assertion is ADR-009 rule 2's behavioural corollary and is the half nobody
+assertion is [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's behavioural corollary and is the half nobody
 writes — a message can name a remedy that does not work, and only this shape
 catches it.
 
@@ -231,7 +228,7 @@ catches it.
 
 **Corrected at the freeze, 2026-09-06, and this is the phase's whole lesson.**
 This plan said "no module under `packages/core/src` other than `cardinality.ts`
-constructs a `WeakSet`", inherited verbatim from ADR-014's row, which said
+constructs a `WeakSet`", inherited verbatim from [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s row, which said
 `cardinality.ts` was "the sole home". Measured, it is not:
 
 | file                                        | registry                | audience                             |
@@ -244,10 +241,10 @@ share it"_ — so the fact was documented in the code the whole time and wrong i
 the ADR. **The rule as originally written would have reddened on legitimate
 existing kernel code on its first run**, and the author would have weakened it or
 exempted it: a mechanism that fires on the thing it protects teaches people to
-switch it off (ADR-009 rule 1).
+switch it off ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1).
 
 So: one rule in `arch.internal.rules.ts` asserting that no module under
-`packages/core/src` **other than those two** constructs a `WeakSet`. ADR-010 §2's
+`packages/core/src` **other than those two** constructs a `WeakSet`. [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §2's
 clause is "nothing may add a fourth"; this rule is what makes it enforceable
 rather than prose.
 
@@ -262,7 +259,7 @@ Tier 1, and it must declare a non-zero denominator or the row is not `gated` —
 ## Phase 5 — `throwIfViolations` leaves the public surface
 
 > **Floor repaired 2026-09-09, before anyone builds it — a method review found
-> the freeze had missed a hazard plan 0235 recorded at its own close.**
+> the freeze had missed a hazard [plan 0235](./0235-the-emitter-takes-a-receipt.md) recorded at its own close.**
 > `scripts/check-nonvacuity.mjs` injects
 > `import { throwIfViolations } from '@nielspeter/eess'` as the violating payload
 > for the family re-export probe. Deleting the export disarms a live probe:
@@ -272,9 +269,9 @@ Tier 1, and it must declare a non-zero denominator or the row is not `gated` —
 > `docs/api-reference.md`, `docs/presets.md`. The phase is still one coherent PR
 > and should not be split; it just needed its floor to be true.
 
-The only breaking change here. It is exported from two packages' roots; ADR-014
+The only breaking change here. It is exported from two packages' roots; [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
 says it should not be. Removing it needs a changeset marking the break and naming
-every dependent package (bug 0185's rule), and `check:surface` will want the root
+every dependent package ([bug 0185](../../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)'s rule), and `check:surface` will want the root
 export census re-derived.
 
 Sequenced last deliberately: it is the only row whose fix an adopter can feel,
@@ -421,13 +418,13 @@ and the other four are pure gain.
 
 ## Out of scope
 
-- **ADR-014's two stated residuals** — an adopter who sums by hand, and one who
+- **[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s two stated residuals** — an adopter who sums by hand, and one who
   never calls an emitter. Those are
   [plan 0237](./0237-eess-runtime-use-only-in-rule-files.md)'s, and the ADR marks
   them `n/a` rather than `pending` for the reason it states: only a human reading
   the loop can judge a wrong `examined`.
 - **[Bug 0262](../../bugs/0262-an-adr-cannot-cite-a-kernel-test.md)** — the reason
-  ADR-014's kernel rows cite file paths rather than `it('…')` titles. It is a
+  [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s kernel rows cite file paths rather than `it('…')` titles. It is a
   gate-scope defect, not a row, and upgrading the citations is listed in its own
   verification ledger.
 
@@ -436,7 +433,7 @@ and the other four are pure gain.
 - Five rows move from `pending` to `gated`, and each one's mechanism has been
   **run red** before it is called gated.
 
-  **Met, on the second measurement.** ADR-014 ends this plan with **no `pending`
+  **Met, on the second measurement.** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) ends this plan with **no `pending`
   rows**. Each mechanism was run red before its row was called gated.
 
   The fifth row nearly did not get there, and the near miss is the plan's closing
@@ -801,7 +798,7 @@ and the other four are pure gain.
       at `minor` too: `check:release` red on `patch` first, and it was right —
       changesets propagates an inherited bump as a patch whatever the config
       says, so a patch is the release an adopter's caret range takes without
-      asking (bug 0185's rule, working).
+      asking ([bug 0185](../../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)'s rule, working).
 
       **The clause is `gated`, held jointly by two guards — and getting to that
       sentence took a false negative and a method review.** Phase 5's purpose was
