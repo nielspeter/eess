@@ -2055,6 +2055,16 @@ function exactMentionFindings(r, expected) {
 const probeRecord = (body, state = 'Draft') =>
   `# Probe\n\n## Status\n\n- **State:** ${state} — a non-vacuity probe\n\n${body}\n`
 
+/**
+ * A probe record titled as its lane titles a record, by the number in its file name, so
+ * `corpus/record-number-in-title` (plan 0556) judges it green and the gate stays green but for the
+ * finding a row plants. A probe with no number in its name keeps its title.
+ */
+const titledProbe = (rel, text) => {
+  const n = /(?:^|\/)(\d{4})-[^/]*\.md$/.exec(rel)?.[1]
+  return n === undefined ? text : text.replace(/^# Probe\n/, `# Bug ${n}: a non-vacuity probe\n`)
+}
+
 /** True for a path inside one of the two probe folders, which `withMentionProbes` removes. */
 const isMentionProbe = (rel) => {
   const norm = posix.normalize(rel)
@@ -2068,7 +2078,7 @@ function withMentionProbes(files, fn) {
       // Only a probe folder is removed afterwards, so nothing else may be written.
       if (!isMentionProbe(rel)) throw new Error(`a mention probe outside the probe folders: ${rel}`)
       mkdirSync(dirname(join(repoRoot, rel)), { recursive: true })
-      writeFileSync(join(repoRoot, rel), text)
+      writeFileSync(join(repoRoot, rel), titledProbe(rel, text))
     }
     return fn()
   } finally {
@@ -2100,7 +2110,11 @@ function mentionRedThenGreen({ files, expected, remedied, extra }) {
         if (!isMentionProbe(rel))
           throw new Error(`a mention probe outside the probe folders: ${rel}`)
         if (text === null) rmSync(join(repoRoot, rel), { force: true })
-        else writeFileSync(join(repoRoot, rel), typeof text === 'function' ? text(json) : text)
+        else
+          writeFileSync(
+            join(repoRoot, rel),
+            titledProbe(rel, typeof text === 'function' ? text(json) : text),
+          )
       }
       greenJson = runCorpusScript(['--format', 'json'])
       greenTerminal = runCorpusScript([])
@@ -2302,7 +2316,7 @@ function gateRecordMentionCommitted(done) {
     mkdirSync(dirname(join(clone, probe)), { recursive: true })
     writeFileSync(
       join(clone, probe),
-      probeRecord('It names ADR-016 in prose.', done ? 'Fixed' : 'Draft'),
+      titledProbe(probe, probeRecord('It names ADR-016 in prose.', done ? 'Fixed' : 'Draft')),
     )
     git('add', '-f', '--', probe)
     git('commit', '-q', '-m', 'a committed mention')
@@ -2532,6 +2546,47 @@ function gateRecordMentionTargetEmpty() {
   return {
     ok: r.code === 1 && exact,
     detail: `the join's left side emptied → json exit ${r.code}; exactly the empty-side finding: ${exact}`,
+  }
+}
+
+// --- Gate: corpus/record-number-in-title (plan 0556) ---
+// The production `scripts/check-corpus.mjs` with one probe record under `work/bugs/`, a lane the rule
+// reads: a title naming another number (P4), and a file name holding no number (P1, so a misnamed
+// record is a finding, not dropped from the selection). Each asserts the finding by id, file and
+// message on both exits; the probe folder is removed whatever happens.
+const TITLE_PROBE_DIR = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_title__')
+const TITLE_PROBE_REL = 'work/bugs/__nonvacuity_probe_title__'
+// Outside every title lane: a numbered record there is `corpus/record-number-in-title-lanes`' finding.
+const LANE_PROBE_DIR = join(repoRoot, 'work', '__nonvacuity_probe_title_lane__')
+const LANE_PROBE_REL = 'work/__nonvacuity_probe_title_lane__'
+
+function gateRecordNumberInTitle(
+  name,
+  text,
+  message,
+  { dir = TITLE_PROBE_DIR, relDir = TITLE_PROBE_REL, id = 'corpus/record-number-in-title' } = {},
+) {
+  const rel = `${relDir}/${name}`
+  try {
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(repoRoot, rel), text)
+    const json = runCorpusScript(['--format', 'json'])
+    const terminal = runCorpusScript([])
+    const fired =
+      firedOn(json, id, rel) &&
+      violationsOf(json).some(
+        (v) =>
+          v?.ruleId === id &&
+          String(v.file ?? '').includes(rel) &&
+          String(v.message ?? '').includes(message),
+      )
+    const says = terminal.stderr.includes(message)
+    return {
+      ok: json.code === 1 && terminal.code === 1 && fired && says,
+      detail: `${name} → json exit ${json.code}, terminal exit ${terminal.code}; the finding by id, file and message: ${fired}; printed: ${says}`,
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
   }
 }
 
@@ -5489,6 +5544,35 @@ const gates = [
   ['corpus/record-mention/target-elsewhere', gateRecordMentionTargetElsewhere],
   ['corpus/record-mention/waiver-target', () => gateRecordMentionWaiver('target')],
   ['corpus/record-mention/key-shared', gateRecordMentionKeyShared],
+  // Plan 0556: appended, so no other fixture changes shard.
+  [
+    'corpus/record-number-in-title/differs',
+    () =>
+      gateRecordNumberInTitle(
+        '0996-probe.md',
+        '# Bug 0995: a probe titled with another number\n',
+        'the path says 0996 and the title says 0995',
+      ),
+  ],
+  [
+    'corpus/record-number-in-title/path',
+    () =>
+      gateRecordNumberInTitle(
+        'probe-without-a-number.md',
+        '# Bug 0994: a probe whose file name holds no number\n',
+        'probe-without-a-number.md holds no value the path pattern reads',
+      ),
+  ],
+  [
+    'corpus/record-number-in-title/lanes',
+    () =>
+      gateRecordNumberInTitle(
+        '0993-probe.md',
+        '# Bug 0993: a probe in a folder no title lane selects\n',
+        'should not exist',
+        { dir: LANE_PROBE_DIR, relDir: LANE_PROBE_REL, id: 'corpus/record-number-in-title-lanes' },
+      ),
+  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5606,6 +5690,9 @@ const GATE_FOR = {
     'corpus/record-mention/target-elsewhere',
     'corpus/record-mention/waiver-target',
     'corpus/record-mention/key-shared',
+    'corpus/record-number-in-title/differs',
+    'corpus/record-number-in-title/path',
+    'corpus/record-number-in-title/lanes',
     'corpus/state-present',
     'corpus/state-present-conflict',
     'corpus/state-present-outside-status',

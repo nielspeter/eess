@@ -87,6 +87,7 @@ import type {
   FieldRegion,
   HaveFieldOptions,
   AgreeWithFolderOptions,
+  AgreeWithPathOptions,
   FolderGroup,
   Direction as MdDirection,
   HaveSectionOptions,
@@ -191,6 +192,7 @@ type MdSurface = {
   fieldRegion: FieldRegion
   haveFieldOptions: HaveFieldOptions
   agreeWithFolderOptions: AgreeWithFolderOptions
+  agreeWithPathOptions: AgreeWithPathOptions
   folderGroup: FolderGroup
   direction: MdDirection
   haveSectionOptions: HaveSectionOptions

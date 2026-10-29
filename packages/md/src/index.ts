@@ -152,6 +152,8 @@ export type { HaveFieldOptions } from './builders/have-field.js'
 // Plan 0495: `docs().should().agreeWithFolder()`, a value agrees with its folder. `Direction` is the
 // kernel's, re-exported so a caller names it from this package alone (plan 0089).
 export type { AgreeWithFolderOptions, FolderGroup } from './conditions/agree-with-folder.js'
+// Plan 0556: `docs().should().agreeWithPath()`, a value agrees with the document's own path.
+export type { AgreeWithPathOptions } from './conditions/agree-with-path.js'
 export type { Direction } from '@nielspeter/eess'
 // ADR-021: the predicate form, for `satisfy()`, the combinators and a lift onto other elements.
 export { predicateHaveField } from './builders/have-field.js'

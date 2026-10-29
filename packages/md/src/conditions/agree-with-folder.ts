@@ -13,6 +13,7 @@ import type { MdDocument } from '../model/document.js'
 import { fieldVerdict } from '../model/field-verdict.js'
 import type { FieldOccurrence, FieldOptions } from '../model/fields.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
+import { declarationViolation, type Agreement } from './agreement.js'
 
 /** One group: the values that belong in its folders (plan 0495). */
 export interface FolderGroup {
@@ -151,17 +152,6 @@ function deadGlob(corpus: Corpus, group: Group, glob: string): string | undefine
   return ''
 }
 
-/** A declaration finding: about the rule, not a document, so no suppression reaches it. */
-function declarationViolation(
-  element: string,
-  message: string,
-  context: ConditionContext,
-  file = '',
-  line = 0,
-): ArchViolation {
-  return { ...mdViolation({ element, file, line, message, context }), bypassFilters: true }
-}
-
 /**
  * F7 and F8, once per rule, over the corpus rather than the selection (plan 0495, D2): a caller may
  * narrow with `.that()` and still declare every group.
@@ -215,7 +205,7 @@ function prepare(corpus: Corpus, o: AgreeWithFolderOptions): Prepared {
  * (`declarationFindings`, reported even over an empty selection) and, after the run, whether this
  * agreement judged anything (`judgedNone`).
  */
-export class FolderAgreement {
+export class FolderAgreement implements Agreement {
   readonly condition: Condition<MdDocument>
   private prepared: Prepared | undefined
   private last: LastRun | undefined
@@ -234,6 +224,11 @@ export class FolderAgreement {
   start(): void {
     this.prepared = prepare(this.corpus, this.options)
     this.last = undefined
+  }
+
+  /** The declaration's findings and, when it judged none, that one (the `Agreement` contract). */
+  findings(context: ConditionContext): ArchViolation[] {
+    return [...this.declarationFindings(context), ...this.judgedNone(context)]
   }
 
   /** F7 and F8, for this run. */

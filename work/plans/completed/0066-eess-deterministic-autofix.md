@@ -1,4 +1,4 @@
-# 0066 — Deterministic autofix: the fix-side of the tier model
+# Plan 0066: Deterministic autofix: the fix-side of the tier model
 
 **State:** Done — implemented 2026-07-06
 **Priority:** Medium
