@@ -16,10 +16,10 @@
   in "Retire ts-archunit" (work in **another repository**) and "Version, release,
   and the adopter migration story" (an act that completes at `npm publish`, not at
   merge). Neither can land in 0088's PR, so 0088 could not close — the failure
-  mode plan 0067 is the standing evidence for. This plan owns exactly the part
+  mode [plan 0067](./completed/0067-harness-informed-roadmap.md) is the standing evidence for. This plan owns exactly the part
   that happens **after** the folding PRs merge.
 - **Priority:** High — it is what makes the fold's central claim true. Until the
-  fork is deprecated, "the fork is retired" is an assertion; eess ADR-009's
+  fork is deprecated, "the fork is retired" is an assertion; eess [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s
   enforcement row cannot flip to `gated` while `@nielspeter/ts-archunit` still
   resolves as a live package.
 - **Effort:** Small — no engine work. One coordinated version bump, one publish,
@@ -171,14 +171,14 @@ The claim is only honest if something checks it. In the closing PR:
   here rather than in 0088 by necessity — it can only pass after Phase 2's
   registry act, so authoring it in 0088 would leave that plan's `validate` red
   through no fault of its own.
-- Flip **eess ADR-009**'s enforcement row for the retirement clause from
+- Flip **eess [ADR-009](../../adr/009-agent-first-failure-surfaces.md)**'s enforcement row for the retirement clause from
   `pending` to `gated`, citing that test — the fork is provably gone.
 - Correct any remaining "eess is ahead of ts-archunit" phrasing that survived the
-  fold (0088 corrects plan 0081's claim; this catches anything the publish made
+  fold (0088 corrects [plan 0081](./0081-port-checkall.md)'s claim; this catches anything the publish made
   newly stale).
 
 **Definition of done:** `npm run validate` green with the retirement test live and
-ADR-009's row `gated`.
+[ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s row `gated`.
 
 ## Files changed
 
@@ -221,7 +221,7 @@ ADR-009's row `gated`.
   consumer can resolve two kernel versions.
 - `@nielspeter/ts-archunit` deprecated on npm; its repository archived and still
   readable as 0090's provenance source.
-- The retirement claim is **mechanically checked**, and eess ADR-009's row says
+- The retirement claim is **mechanically checked**, and eess [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s row says
   `gated` because of that check — not because someone asserted it.
 - The plan closes with the Phase 3 PR. Nothing waits on a later observation.
 
@@ -252,7 +252,7 @@ permanent:
   break in the release. Each changelog now opens by naming the version the reader is
   actually coming from.
 - **This phase's own README check was half-done.** It carries "the published README
-  documents every shipped subpath" from bug 0106; `md-gherkin` had been fixed and
+  documents every shipped subpath" from [bug 0106](../bugs/fixed/0106-no-gate-requires-a-changeset.md); `md-gherkin` had been fixed and
   `md-mermaid`, `files` and `md-mermaid-er` had not. Since `README.md` ships in the
   tarball, the alternative was cutting `0.4.1`.
 
@@ -273,4 +273,4 @@ artifact.
       [bug 0106](../bugs/fixed/0106-no-gate-requires-a-changeset.md): the subpath
       had merged with no changeset and existed in no published version.
 - [ ] Phase 2 — deprecate `@nielspeter/ts-archunit`, archive the repo
-- [ ] Phase 3 — retirement test live, ADR-009 row flipped to `gated`
+- [ ] Phase 3 — retirement test live, [ADR-009](../../adr/009-agent-first-failure-surfaces.md) row flipped to `gated`

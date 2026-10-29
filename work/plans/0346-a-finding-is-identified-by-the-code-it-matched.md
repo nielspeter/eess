@@ -7,15 +7,14 @@
   build), [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
   (Phases 1 and 3: the shape identity and the migration) and
   [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md) (Phase 4: the ADR),
-  after bug 0389 (fixed) and spikes 0394 (decided) and 0395 (not yet run). Every open box below names
+  after [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) (fixed) and [spikes 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md) (decided) and 0395 (not yet run). Every open box below names
   its owner, except its last box: the integration branch `release/0346-phase2` merged to `main`,
-  which this plan owns. It closes when its last child does and that merge has happened, in plan
-  0534's PR (coordinator, 2026-10-20; see "The split", Notes 2026-10-20, for how that differs from
+  which this plan owns. It closes when its last child does and that merge has happened, in [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md)'s PR (coordinator, 2026-10-20; see "The split", Notes 2026-10-20, for how that differs from
   this plan's own text).
   The history: Phase 2's direction is taken (**E**: the matcher checks the file,
   2026-10-06, after [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md));
   its design is recorded in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision (by delegation, 2026-10-06/07; decision 2's
-  risk accepted by the maintainer 2026-10-07), and its `accepted` part moved to spike 0395. _(Until
+  risk accepted by the maintainer 2026-10-07), and its `accepted` part moved to [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md). _(Until
   2026-10-20: "What remains is the split into six records; this plan then closes as their parent".
   The split is done; the close rule is in the Notes.)_ Phase 1's ruling is settled
   and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
@@ -28,8 +27,8 @@
   0388 was found the same day, so the plan no longer claims that.)
 - **Effort:** Large — not one PR. Phase 1 changes eess-ts's match identity and needs a
   migration; Phase 2 adds a file check to both baselines' matchers, with its grouping and
-  the consumers it re-keys laid out by the Phase 2 spike (spike 0394, decided 2026-10-07, with its
-  `accepted` part in spike 0395); an ADR is written. **It is split into plans of about one PR each** — see
+  the consumers it re-keys laid out by the Phase 2 spike ([spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md), decided 2026-10-07, with its
+  `accepted` part in [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md)); an ADR is written. **It is split into plans of about one PR each** — see
   "The split" below. The cost to adopters is unmeasured.
 - **Created:** 2026-09-28
 - **Receives:** [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md),
@@ -74,7 +73,7 @@ reviewed" has one correct answer.
 
 ### This is the vacuity problem, one organ over
 
-The non-vacuity work — ADR-010, `examined`, the vacuity findings,
+The non-vacuity work — [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md), `examined`, the vacuity findings,
 `check:nonvacuity`'s planted violations, the sabotage matrices — exists because
 **a green test that tested nothing is a lie**. A rule that examined 0 subjects
 used to report a pass, and the answer was that a pass must be _constructed from
@@ -88,11 +87,11 @@ different piece of code.
 
 So the machinery already exists and the gap is that it stops at the filter:
 
-|                           | a rule                                | a baseline                                     |
-| ------------------------- | ------------------------------------- | ---------------------------------------------- |
-| what must be evidenced    | it examined something                 | it forgave the thing it was written to forgive |
-| what carries the evidence | `{ violations, examined }` (ADR-010)  | nothing                                        |
-| what proves it can fail   | `check:nonvacuity` plants a violation | nothing                                        |
+|                           | a rule                                                                                       | a baseline                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| what must be evidenced    | it examined something                                                                        | it forgave the thing it was written to forgive |
+| what carries the evidence | `{ violations, examined }` ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)) | nothing                                        |
+| what proves it can fail   | `check:nonvacuity` plants a violation                                                        | nothing                                        |
 
 **Both rows on the right are this plan's work.** Phase 1 makes the identity strong
 enough for the second column to mean anything; the fixture in `## Success` is the
@@ -183,7 +182,7 @@ baseline to a ts-morph upgrade, and hashing does not fix that. But:
   digests the whole identity before anything reaches the baseline file, so the
   cause was never readable at the moment it bites. Detection had to come from
   elsewhere regardless.
-- **A stable kind→string map is the wrong answer**, and for an ADR-009 Rule 5
+- **A stable kind→string map is the wrong answer**, and for an [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 5
   reason: it is an enumeration derived from what is in front of you. Every kind not
   in the map needs a fallback, the only fallback is the raw kind name, and that
   reintroduces the coupling for exactly the new and renamed kinds the map exists to
@@ -259,7 +258,7 @@ optional.
 inversion matters: the first version would have hurt adopters to fix nothing.**
 
 It read: these findings have no matched node, so Phase 1 cannot reach them,
-therefore `baseline` should refuse them under ADR-009 Rule 3. Both halves are
+therefore `baseline` should refuse them under [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 3. Both halves are
 wrong.
 
 **"No matched node" is not "no identity available."** An absence finding is about a
@@ -282,7 +281,7 @@ Setting `identity` to `module-absence::${sf.getFilePath()}::${matcher.descriptio
 was this section's whole fix. **Superseded below:** the same fault is in the kernel's
 fallback, so a per-producer identity treats one instance of it.
 
-**The precedent is this defect, already fixed once this way.** Bug 0063 was a
+**The precedent is this defect, already fixed once this way.** ts-archunit bug 0063 was a
 dependency identity colliding across files sharing a basename, and it was closed by
 putting the path into the identity — not by refusing. Its pin is
 `packages/ts/tests/conditions/dependency-identity-collision.test.ts` ·
@@ -292,11 +291,11 @@ putting the path into the identity — not by refusing. Its pin is
 finding gets a hard failure they cannot baseline. The predictable response is to
 turn the rule off — the whole rule goes dark, which is strictly worse than one
 positional entry. The first draft also never named the "sanctioned alternative" its
-own ADR-009 Rule 3 citation promises, and under Rule 2 that remedy must be real and
+own [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 3 citation promises, and under Rule 2 that remedy must be real and
 behaviourally proven to clear the finding, which cannot be written for an
 alternative that does not exist.
 
-**On refusal in general.** ADR-009 Rule 3's shape still holds for a producer that
+**On refusal in general.** [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 3's shape still holds for a producer that
 genuinely cannot identify a finding — but this plan will not build a mechanism for
 a population it cannot name. If such a population is found while building, it earns
 its own record.
@@ -324,7 +323,7 @@ In short:
 - Twelve conditions were measured forgiving the same finding in a different file. They
   include `classes().should().extend()` and `functions().should().beExported()`,
   which repeat on a shared declaration name rather than a basename.
-- A list of producers is the ADR-009 Rule 5 enumeration this plan rejects for kind
+- A list of producers is the [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 5 enumeration this plan rejects for kind
   names (above): it is built from what was in front of the reviewer, and the next
   producer reopens it. The first version of the list also left out
   `moduleUseInsteadOf`'s absence half, in a file it already named.
@@ -337,7 +336,7 @@ findings from this repo, A moves 315 of 315 identity-less entries; the E variant
 records**, in both the kernel and eess-ts baselines, for a finding whose `file` is not empty.
 
 **The rest of Phase 2's design is open, on purpose.** Three review rounds each found another
-path where the variant then specified forgives something today's code reports (spike 0390,
+path where the variant then specified forgives something today's code reports ([spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md),
 "Edits, and E+" and "Where this leaves the decision"). On 2026-10-06 the maintainer chose to
 record what is proven here and settle the rest in a time-boxed spike at the start of the Phase 2
 plan, rather than in this record. The same day, method review applied the working rule that a
@@ -349,9 +348,9 @@ is now its own record (see "The split").
 - Checking the file closes the 12 cases.
 - **`accepted` lists need the file.** A list of subjects records no file, so it forgives a
   fixed-and-replaced finding in another file (measured under today's code, E and E0). Comparing
-  `file::subject` closes it, measured under E+ **with absolute paths** — that is bug 0389's
-  defect, not its fix. Bug 0389 landed the root-scrubbed subject on 2026-10-06; the scrubbed `file::subject` form Phase 2 needs is still unmeasured. Whether existing `accepted` strings without a file stop matching was reopened on
-  2026-10-07 and moved to spike 0395.
+  `file::subject` closes it, measured under E+ **with absolute paths** — that is [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md)'s
+  defect, not its fix. [Bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) landed the root-scrubbed subject on 2026-10-06; the scrubbed `file::subject` form Phase 2 needs is still unmeasured. Whether existing `accepted` strings without a file stop matching was reopened on
+  2026-10-07 and moved to [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md).
 - **Under per-file grouping, an entry with no recorded `file` must not match** a finding that
   has one: letting it through was measured greener than today there. Under E0, letting it
   through behaves as today, and failing closed also reports the unchanged finding; which rule
@@ -371,8 +370,8 @@ is now its own record (see "The split").
 - **A renamed file is reported again** under every E variant, measured for findings without an
   identity (question 5 covers the rest). Today a rename is silently still accepted.
 
-**Open when written — the Phase 2 spike laid these out; spike 0394's Decision answers them
-(2026-10-07), except `accepted`, which spike 0395 owns:**
+**Open when written — the Phase 2 spike laid these out; [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision answers them
+(2026-10-07), except `accepted`, which [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) owns:**
 
 1. **Grouping.** Leaving it unchanged (E0) only adds a condition, so it cannot be greener than
    today, but it falsely reports a reviewed finding when a duplicate across files is edited
@@ -410,12 +409,12 @@ per-file grouping removes. They are Tier-2 suite rows; the replacement case belo
 **Preconditions (recorded while A and E were both open; updated 2026-10-06 where marked):**
 
 - [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md),
-  fixed 2026-10-06 as spike 0392's C5: `accepted` matches a raw subject or a portable form that
+  fixed 2026-10-06 as [spike 0392](../spikes/0392-what-makes-an-accepted-entry-portable.md)'s C5: `accepted` matches a raw subject or a portable form that
   names the repository (`<root:NAME>/path`, whole path tokens). It is an input to the
-  Phase 2 spike, not its answer: spike 0392 measured it for `accepted` only, and the spike decides
-  the key. The substring scrub `portableSubjectOf` keeps for the hashes is bug 0391's. For builders that name no project, `accepted` still compares raw subjects.
+  Phase 2 spike, not its answer: [spike 0392](../spikes/0392-what-makes-an-accepted-entry-portable.md) measured it for `accepted` only, and the spike decides
+  the key. The substring scrub `portableSubjectOf` keeps for the hashes is [bug 0391](../bugs/0391-the-identity-scrub-replaces-the-root-inside-a-path.md)'s. For builders that name no project, `accepted` still compares raw subjects.
 - The grouping key equals the hash key only if every copy uses one definition. Kernel
-  `hashViolation` used to inline its own fallback; since bug 0389 both hashes go through
+  `hashViolation` used to inline its own fallback; since [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) both hashes go through
   `portableSubjectOf` (`packages/core/src/baseline.ts:129`). Still open:
   `packages/ts/src/core/terminal-builder.ts:97` re-spells `groupKeyOf`, and moves to the shared
   function.
@@ -450,12 +449,12 @@ asserts zero `identityCollisions()` for its rule, with Phase 1's three condition
 (including its comment at `:11`), `packages/ts/src/helpers/baseline.ts` (including its
 comment at `:86`; both document a "rule + file" identity the hash does not implement),
 `packages/ts/src/core/terminal-builder.ts` (`accepted`, and the re-spelled group key at
-`:94`). The kernel is public API (ADR-011), so the changeset names every dialect that
-depends on it (bug 0185).
+`:94`). The kernel is public API ([ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)), so the changeset names every dialect that
+depends on it ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
 
 ## Phase 3 — the migration must not become the lie
 
-_(Corrected 2026-10-20 by plan 0533's Release: every `identifyMatches` identity moves, named scopes
+_(Corrected 2026-10-20 by [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)'s Release: every `identifyMatches` identity moves, named scopes
 included, not only unnamed matches.)_ **Every existing entry for an unnamed match changes identity.** The naive
 instruction — "regenerate your baseline" — makes the upgrade itself the deception
 this plan exists to remove: an adopter regenerates, every finding is re-forgiven,
@@ -468,7 +467,7 @@ hash and its recorded file**, which is what "matched" means once Phase 2 ships, 
 the new-scheme one. Nothing new is forgiven, because every new entry is derived from an
 entry that already matched. A join on the hash alone would bring 0388 back: the entry
 written for `a` would be carried onto `b`. What the migration does with a baseline that records
-no root follows Phase 2's no-root rule (spike 0394's decision 2, accepted
+no root follows Phase 2's no-root rule ([spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s decision 2, accepted
 2026-10-07); it must not be a hash-only join, which
 would carry exactly this inheritance forward. Break class: the 0388
 fixture, then `--migrate`, then `b` is still reported.
@@ -509,7 +508,7 @@ identities, and E changes no kernel hash, so the kernel baseline (which has no v
 **One door cannot be shut, and the release notes name it:** deleting the file and
 generating afresh is indistinguishable from first use, and it re-forgives everything.
 
-**Its shape is prescribed, not chosen.** ADR-009 Rule 1's migration corollary
+**Its shape is prescribed, not chosen.** [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 1's migration corollary
 rules out the obvious design: _"The obvious way to ship a gate that will fail
 existing code is 'warn in release N, fail in release N+1,' and it does not work for
 the same reason rule 1 exists: the release that only warns is the release nobody
@@ -542,7 +541,7 @@ says so in a count and a sentence. The report reads: _"N carried; K moved files 
 reported as new; J were positional and are named; the remaining L cannot be shown
 either way"_.
 
-That is ADR-009 Rule 2 — every failure carries its own sanctioned remedy — and a
+That is [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 2 — every failure carries its own sanctioned remedy — and a
 remedy an adopter can act on beats one they can only worry about. (Review cited a
 clause "identities, never a bare total" for this; it does not exist in `adr/` or
 `docs/`, so the justification here is Rule 2 and the argument above, not that
@@ -554,7 +553,7 @@ distinguish one that was correctly forgiven from one that had already inherited 
 different finding. It freezes the current
 state, wrong entries included. The only way to be sure is to read them — and the
 command must say so rather than implying the migration made the baseline correct.
-That is ADR-009 Rule 2: every failure carries its own sanctioned remedy, and a
+That is [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 2: every failure carries its own sanctioned remedy, and a
 remedy that overstates what it achieved is not one.
 
 **Files:** a `baseline --migrate` path in eess-ts (under E the kernel baseline has no
@@ -569,15 +568,15 @@ a binding rule the next change must follow does not belong in a bug record that 
 about to be frozen. **A new ADR — a finding is identified by the code it matched.**
 It takes the next free ADR number when this phase is written. On 2026-10-05 that
 would be 019, but the number is not written anywhere else in this plan, because it
-went stale once already: an earlier draft said ADR-016, which is now Bounded
-Instruments.
+went stale once already: an earlier draft gave it the number 016, which
+[ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md), Bounded Instruments, now holds.
 
 **It is last, not first, and an earlier draft had it first.** Method review named
 the cost: an ADR written before its mechanisms exist lands every row of its
 Enforcement table at `pending` by construction — and this repo has already paid
 that bill once. `work/plans/completed/0263-adr-014s-residual-enforcement-rows.md`
-is a five-phase plan across four PRs whose entire job was clearing ADR-014's
-`pending` rows, closing on "ADR-014 ends with **no `pending` rows**". Writing
+is a five-phase plan across four PRs whose entire job was clearing [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
+`pending` rows, closing on "[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) ends with **no `pending` rows**". Writing
 the ADR after Phases 1–3 means each row cites a mechanism that exists and lands
 `gated`.
 
@@ -613,7 +612,7 @@ table if it lists them.
 
 Six records under five numbers (item 2 is two spikes), about one PR each, grouped by what each one closes:
 
-1. **Bug 0389 — `accepted` compares a portable subject.** A live defect on its own, and the
+1. **[Bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) — `accepted` compares a portable subject.** A live defect on its own, and the
    precondition for 3's `accepted` change.
 2. **The Phase 2 spike**, its own record ([spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)), time-boxed to one working day. It answers the five open
    questions above: first a census, from the code, of every consumer keyed by hash alone; then E0
@@ -624,12 +623,12 @@ Six records under five numbers (item 2 is two spikes), about one PR each, groupe
    [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md),
    time-boxed to half a day, which the build plan waits for.
 3. **The Phase 2 build**, a plan written from the spike's decision: the file check in both
-   baselines, `accepted` as spike 0395 decides, the missing-file rule, and a diagnosis that
-   names the file, in one change. Closes bug 0388 and 0159's collision 3. It merges **before 4**, because 4's migration joins on what it defines as a match, and both
+   baselines, `accepted` as [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) decides, the missing-file rule, and a diagnosis that
+   names the file, in one change. Closes [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md) and 0159's collision 3. It merges **before 4**, because 4's migration joins on what it defines as a match, and both
    merge to an integration branch that reaches `main` once, because per-file grouping moves entries
-   only the migration carries over (spike 0394's decision 3). Its own advice names `--migrate`,
+   only the migration carries over ([spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s decision 3). Its own advice names `--migrate`,
    which 4 adds, so its ledger records that as `deferred→` 4.
-4. **Phases 1 and 3 — the shape identity and its migration** (bug 0338's identity, `--migrate`,
+4. **Phases 1 and 3 — the shape identity and its migration** ([bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md)'s identity, `--migrate`,
    the `HASH_VERSION` bump, the refusal to regenerate over an older version; its ledger also
    re-checks the no-root remedy once regenerating over an older version is refused). Together because
    Phase 1 is what moves entries, and shipping it without the migration would leave regenerating
@@ -644,56 +643,55 @@ the split. It does not become one of the six.
 ### Notes, 2026-10-20: the split as written, against today's code
 
 Written when the split was made. `main` at `a9f96f4` (v0.15.0). The baseline and identity code
-the split rests on barely moved since spike 0394 read it at `b1335f5`: of `violation.ts`, both
+the split rests on barely moved since [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md) read it at `b1335f5`: of `violation.ts`, both
 `baseline.ts` files, `baseline-diagnostics.ts`, `match-identity.ts` and `identity-root.ts`, none
 changed; `terminal-builder.ts` gained a docstring and one context member, and the kernel's
-`execute-rule.ts` one field (`undecided`, ADR-021). The census holds. `ci.yml` still runs every
+`execute-rule.ts` one field (`undecided`, [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). The census holds. `ci.yml` still runs every
 pull request whatever its base, and `publish.yml` still publishes any `v*` tag, so decision 3's
 integration branch holds as designed. Two places did not fit, and each took the smallest change:
 
-1. **Item 3 cannot be finished yet.** Spike 0395 has not run, and it says "the Phase 2 build plan is
-   not written until it has". Plan 0532 is written anyway, as a Draft whose `accepted` and C13 parts
-   (its Phase 5) are explicitly open, and whose first ledger box is that spike 0395 decides before
-   Ready. **Change:** spike 0395's "not written" reads as "not Ready". The rest of plan 0532 is
-   decided in spike 0394, but **its per-file grouping is conditional on spike 0395's first
+1. **Item 3 cannot be finished yet.** [Spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) has not run, and it says "the Phase 2 build plan is
+   not written until it has". [Plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) is written anyway, as a Draft whose `accepted` and C13 parts
+   (its Phase 5) are explicitly open, and whose first ledger box is that [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) decides before
+   Ready. **Change:** [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md)'s "not written" reads as "not Ready". The rest of [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) is
+   decided in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md), but **its per-file grouping is conditional on [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md)'s first
    outcome**: if 0395 finds no C13 keying that is both no greener than `main` and free of false
-   causes, spike 0394's decision 1 returns to the maintainer, and plan 0532's Phases 2, 4 and 6, most
-   of its tests, and plan 0533's cross-file migration rows change with it (spike 0395, "Who
+   causes, [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s decision 1 returns to the maintainer, and [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)'s Phases 2, 4 and 6, most
+   of its tests, and [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)'s cross-file migration rows change with it ([spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md), "Who
    decides"; corrected at the review of PR #255).
 2. **Item 5 is an ADR that must be written last**, so it cannot exist now without every row
    `pending`, which Phase 4 rules out. **Change:** item 5 is held by a plan,
    [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md), which carries the
-   clauses and their named mechanisms and writes the ADR once plans 0532 and 0533 have merged. So the
-   six records are bug 0389, spikes 0394 and 0395, and plans 0532, 0533 and 0534, and the ADR is plan
-   0534's output, not a record of its own.
+   clauses and their named mechanisms and writes the ADR once [plans 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) and 0533 have merged. So the
+   six records are [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md), [spikes 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md) and 0395, and [plans 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), 0533 and 0534, and the ADR is [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md)'s output, not a record of its own.
 
 **When this plan closes.** "How this plan closes" above says it moves to `completed/` once all six
 records exist. On 2026-10-20 the coordinator set the stricter rule: it closes when its children do.
 That is followed here, in this order:
 
-1. Plans 0532 and 0533 each merge into `release/0346-phase2`, ticking the boxes for what they built.
-2. The PR that merges `release/0346-phase2` to `main` moves plans 0532 and 0533 to `completed/`,
-   closes bug 0388 and 0159's collision 3, and ticks bug 0338's boxes, so nothing reads fixed while
+1. [Plans 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) and 0533 each merge into `release/0346-phase2`, ticking the boxes for what they built.
+2. The PR that merges `release/0346-phase2` to `main` moves [plans 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) and 0533 to `completed/`,
+   closes [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md) and 0159's collision 3, and ticks [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md)'s boxes, so nothing reads fixed while
    `main` still forgives. This plan's last box ("merged to `main`") is ticked there.
-3. Plan 0534 builds after that merge, and its PR moves this plan to `completed/` and strikes its
+3. [Plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md) builds after that merge, and its PR moves this plan to `completed/` and strikes its
    ROADMAP row.
 
 **The bugs it does not own, placed 2026-10-20:**
 
 - [bug 0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md): collision 3 is
-  owned by plan 0532, which flips its KNOWN-GAP test; collisions 1 and 2 stay in 0159, because their
+  owned by [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), which flips its KNOWN-GAP test; collisions 1 and 2 stay in 0159, because their
   members sit in one file and are indistinguishable by content, so the file check cannot separate
   them, and their producers (`dependency.ts`, duplicate bodies) do not call `identifyMatches`.
 - [bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md): stays its own
-  bug, homed with Proposed ADR-018, whose rule 1 makes it "an application of rule 1 (the universal
+  bug, homed with Proposed [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md), whose rule 1 makes it "an application of rule 1 (the universal
   half)" and whose C1 row names it. It is about what an exclusion suppresses, not about what
   identifies a finding.
 - [bug 0387](../bugs/0387-a-basename-exclusion-waives-every-file-with-that-name.md): stays its own
-  bug, with spike 0386. Phase 2 keeps `element` as it is on purpose, so no child changes what an
+  bug, with [spike 0386](../spikes/0386-strings-that-name-code.md). Phase 2 keeps `element` as it is on purpose, so no child changes what an
   exclusion matches.
 - [bug 0391](../bugs/0391-the-identity-scrub-replaces-the-root-inside-a-path.md): stays its own
-  bug, because its fix is undecided and is a different derivation (the root scrub). Plan 0532's file
-  check separates its headline pair, reasoned and not measured, and plan 0533's Out of scope records
+  bug, because its fix is undecided and is a different derivation (the root scrub). [Plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)'s file
+  check separates its headline pair, reasoned and not measured, and [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)'s Out of scope records
   that a decided fix can share its `HASH_VERSION` bump.
 
 ## Out of scope
@@ -715,7 +713,7 @@ That is followed here, in this order:
   The decision is held in Proposed
   [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)
   and [bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md).
-  This plan is upstream of that decision and does not make it. Spike 0386 links back
+  This plan is upstream of that decision and does not make it. [Spike 0386](../spikes/0386-strings-that-name-code.md) links back
   to this plan.
 
 ## Success
@@ -735,12 +733,12 @@ That is followed here, in this order:
   it flips.
 - An adopter's existing baseline migrates without forgiving anything new, and the
   command says what it cannot promise.
-- Every finding added here **fails** (the no-root finding included: spike 0394's decision 2 makes it an
-  `error` that cannot be suppressed, accepted 2026-10-07), and by ADR-009 Rule 1's discriminator rather
+- Every finding added here **fails** (the no-root finding included: [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s decision 2 makes it an
+  `error` that cannot be suppressed, accepted 2026-10-07), and by [ADR-009](../../adr/009-agent-first-failure-surfaces.md) Rule 1's discriminator rather
   than by blanket rule: each one has a single correct answer, so none of them is a
   finding the reader is expected to judge. (An earlier draft of this plan said
   "nothing added here warns" as an absolute, which contradicts Rule 1's own
-  carve-out and ADR-003's first-class `.warn()`.)
+  carve-out and [ADR-003](../../adr/003-fluent-builder-dsl.md)'s first-class `.warn()`.)
 - **The baseline gets a non-vacuity fixture, the way every gate has one.** It must be
   the **replacement** case, not just a new finding. A finding with its own message is
   reported today and would still be reported with the identity work deleted, which
@@ -750,86 +748,84 @@ That is followed here, in this order:
   the first for the baseline **filter** (the existing baseline rows probe the floor and
   the emitter door), so `check:nonvacuity` runs it. Delete the
   identity work and the fixture reds. A baseline that cannot be shown to still
-  fail is exactly the green-that-tests-nothing this repo spent ADR-010 and
+  fail is exactly the green-that-tests-nothing this repo spent [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and
   `check:nonvacuity` removing — and it is the one filter that never got the
   treatment.
 
 ## Progress ledger
 
 - [x] Phase 2 — the maintainer's decision recorded here before any Phase 2 code: **E**,
-      2026-10-06, measured in spike 0390. Phase 4's ADR carries it
-- [ ] Phase 4 — the ADR, authored via `adr-enforce.mjs` so author ≠ validator — deferred→ plan 0534
+      2026-10-06, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md). Phase 4's ADR carries it
+- [ ] Phase 4 — the ADR, authored via `adr-enforce.mjs` so author ≠ validator — deferred→ [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md)
 - [ ] Phase 4 — **no `pending` rows** when it closes, which is why it is last
-      (plan 0263 is the precedent for what a `pending` row costs later) — deferred→ plan 0534
+      ([plan 0263](./completed/0263-adr-014s-residual-enforcement-rows.md) is the precedent for what a `pending` row costs later) — deferred→ [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md)
 - [ ] Phase 1 — shape composed **into** the identity, pinned by the seven-edit
-      table AND by the cross-declaration case review measured — deferred→ plan 0533
+      table AND by the cross-declaration case review measured — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
 - [ ] Phase 3 — the migration joins on the old-scheme hash and the recorded file, never on
-      the line — deferred→ plan 0533
-- [ ] Phase 3 — the report names the ambiguous buckets, not a blanket disclaimer — deferred→ plan 0533
+      the line — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
+- [ ] Phase 3 — the report names the ambiguous buckets, not a blanket disclaimer — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
 - [ ] Phase 1 — the ts-morph version recorded beside `hashVersion`, and
-      `unmatchedBaselineFinding` able to name it as a cause once something moved — deferred→ plan 0533
+      `unmatchedBaselineFinding` able to name it as a cause once something moved — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
 - [ ] Phase 1 — retire or re-measure `match-identity.ts`'s _"Measured over 596
       matched nodes in a real 808-file project, this is 1:1"_, and rewrite its
       opening line, which claims an identity "that is not a coordinate" for a
-      population where it is one. Whoever builds this reads that file. — deferred→ plan 0533
+      population where it is one. Whoever builds this reads that file. — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
 - [x] Phase 2 — the spike: a census of every consumer keyed by hash alone, E0 against
       per-file grouping across it, and the no-root options laid out for the maintainer
-      (done 2026-10-07: spike 0394; its `accepted` part moved to spike 0395)
-- [x] Phase 2 — the maintainer accepts or overrules spike 0394's decision 2 (a rootless eess-ts
+      (done 2026-10-07: [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md); its `accepted` part moved to [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md))
+- [x] Phase 2 — the maintainer accepts or overrules [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s decision 2 (a rootless eess-ts
       baseline turns all-red on upgrade) before the Phase 2 build plan is Ready (accepted
       2026-10-07)
-- [ ] Phase 2 — the matcher checks the recorded file in both baselines, `accepted` as spike
-      0395 decides, missing data fails closed; guarded by the cross-run structural
-      property test — deferred→ plan 0532
+- [ ] Phase 2 — the matcher checks the recorded file in both baselines, `accepted` as [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md) decides, missing data fails closed; guarded by the cross-run structural
+      property test — deferred→ [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)
 - [ ] Phase 2 — the diagnosis names the file: no description-change finding on a hash
-      match in another file, and a remedy per cause, never a blanket regenerate — deferred→ plan 0532
+      match in another file, and a remedy per cause, never a blanket regenerate — deferred→ [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)
 - [ ] Phase 2 — if grouping is per file, the `taken.add` guard and the bug-0065 pins
-      re-homed to same-file fixtures — deferred→ plan 0532
+      re-homed to same-file fixtures — deferred→ [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)
 - [x] Phase 2 — the identity-bearing and metric rename rows measured before the Phase 2 build
-      plan is Ready — done-otherwise: spike 0394's R12 measured them reported under its harness,
-      2026-10-06; plan 0532's Test inventory ports R12 into the suite
-- [x] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
+      plan is Ready — done-otherwise: [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s R12 measured them reported under its harness,
+      2026-10-06; [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)'s Test inventory ports R12 into the suite
+- [x] Phase 2 — [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md) fixed first: one `portableSubjectOf`, used by every hash and
       by `accepted` (fixed 2026-10-06, the first record of the split)
-- [ ] Phase 2 — both "rule + file" comments say what the matcher covers — deferred→ plan 0532
+- [ ] Phase 2 — both "rule + file" comments say what the matcher covers — deferred→ [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)
 - [ ] Phase 3 — the refusal and `--migrate` are eess-ts's; the kernel baseline gets the
-      file check only, unless the grouping decision moves kernel hashes — deferred→ plan 0533 (plan
-      0532 measures whether the kernel's `rediscover` shape forgives; if it does, plan 0532 records
+      file check only, unless the grouping decision moves kernel hashes — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) ([plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) measures whether the kernel's `rediscover` shape forgives; if it does, [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) records
       it, stops, and returns the case to the maintainer, and does not build a kernel variant)
 - [x] the plan split into the six records in "The split", and every open box here disposed
-      `deferred→` its owner (2026-10-20: plans 0532, 0533 and 0534; see "Notes, 2026-10-20")
-- [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it — deferred→ plan 0533
+      `deferred→` its owner (2026-10-20: [plans 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), 0533 and 0534; see "Notes, 2026-10-20")
+- [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
 - [ ] 0388 closed in the PR that ships Phase 2, with the no-root rule's residual named
       in it; 0159's collision 3 recorded as fixed
       and its KNOWN-GAP test flipped, not deleted; 0159's pointer at this plan narrowed to that
-      collision — deferred→ plan 0532
+      collision — deferred→ [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)
 - [ ] 0338's own boxes for what this plan built ticked in the same PR — the record
-      stays open for `PropertyAssignment` — deferred→ plan 0533
+      stays open for `PropertyAssignment` — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
 - [ ] Phase 3 — `HASH_VERSION` bumped, and regeneration over an older baseline refused
-      without `--migrate` or a named override — deferred→ plan 0533
-- [ ] Phase 3 — the migration, and what it cannot promise — deferred→ plan 0533
+      without `--migrate` or a named override — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
+- [ ] Phase 3 — the migration, and what it cannot promise — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)
 - [ ] a `check:nonvacuity` row for the baseline filter itself — the replacement case,
-      not a new finding — deferred→ plan 0532 (the cross-file case) and plan 0533 (the same-file
+      not a new finding — deferred→ [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) (the cross-file case) and [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) (the same-file
       case and the refusal)
 - [ ] `validation-owed` — the cost measured: how many entries move, on a real
       adopter baseline. **This plan cannot discharge this box.** Measured: this
       repository keeps no baseline at all (`check:baseline` runs the floor live at
       0 violations), so the input is a third party's tree. Named here rather than
       left to look tickable — and it must not gate the freeze, because nothing
-      this plan does can produce it. — deferred→ plan 0533, where it stays `validation-owed`
+      this plan does can produce it. — deferred→ [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md), where it stays `validation-owed`
 - [x] the `.excluding()` / `eess-exclude` question gets a record, or a recorded
-      reason it dissolves — homed 2026-10-05 in spike 0386 and Proposed ADR-018
+      reason it dissolves — homed 2026-10-05 in [spike 0386](../spikes/0386-strings-that-name-code.md) and Proposed [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)
 - [ ] a changeset — breaking: Phase 1 moves every unnamed-match entry (corrected 2026-10-20: every
-      `identifyMatches` identity, per plan 0533's Release); Phase 2 adds
+      `identifyMatches` identity, per [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md)'s Release); Phase 2 adds
       reports for entries matched across files, and `accepted` strings change form — deferred→
-      plan 0532 (kernel and eess-ts) and plan 0533 (eess-ts)
+      [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md) (kernel and eess-ts) and [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) (eess-ts)
 - [ ] `npm run validate` green — deferred→ each child, at its own PR's head
-- [ ] `release/0346-phase2` merged to `main`, in one reviewed PR carrying both changesets; plans 0532
-      and 0533, bug 0388, 0159's collision 3 and 0338's boxes closed in that PR (owned here)
+- [ ] `release/0346-phase2` merged to `main`, in one reviewed PR carrying both changesets; [plans 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md)
+      and 0533, [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md), 0159's collision 3 and 0338's boxes closed in that PR (owned here)
 
-Deferred: the three Out-of-scope items, each with a home — two on bug 0338's
-`PropertyAssignment` box, one on spike 0386 and Proposed ADR-018. One box is
+Deferred: the three Out-of-scope items, each with a home — two on [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md)'s
+`PropertyAssignment` box, one on [spike 0386](../spikes/0386-strings-that-name-code.md) and Proposed [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md). One box is
 `validation-owed` and says so — the migration's cost can only be measured on an
 adopter's baseline, and this repository has none. Since the split (2026-10-20): 22 open
-boxes, 21 deferred and 1 owned here. Of the 21, by the first owner each names: 11 → plan 0533 (one of them the
-`validation-owed` box), 7 → plan 0532, 2 → plan 0534, 1 → each child. The one owned here is the
+boxes, 21 deferred and 1 owned here. Of the 21, by the first owner each names: 11 → [plan 0533](./0533-a-match-is-identified-by-its-shape-and-old-baselines-migrate.md) (one of them the
+`validation-owed` box), 7 → [plan 0532](./0532-a-baseline-entry-matches-only-the-file-it-was-written-for.md), 2 → [plan 0534](./0534-the-adr-a-finding-is-identified-by-the-code-it-matched.md), 1 → each child. The one owned here is the
 integration branch's merge to `main`.

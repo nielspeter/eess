@@ -26,8 +26,8 @@ message; not seen here) that it checks this by hand with `taskItems()`, scoped t
 3. **This repository's corpus, measured 2026-10-15** (PR #220's method review): of 37 completed
    plans, none has an acceptance-criteria section (2 headings match `acceptance`, neither a criteria
    list); 6 open boxes remain across them (four `deferred→plan` in 0067, one `validation-owed` in
-   0077, one `deferred→bug 0420` in 0412); 293 bugs have a "Verification" heading. A default keyed on
-   an "Acceptance criteria" heading would match nothing here, which is ADR-010's vacuity case.
+   0077, one `deferred→bug` in 0412 (to [bug 0420](../bugs/0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md))); 293 bugs have a "Verification" heading. A default keyed on
+   an "Acceptance criteria" heading would match nothing here, which is [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s vacuity case.
 4. **A split criterion.** The method's rule 5 records a split as `deferred→<the new plan>` on the
    first plan's box, and says the criterion has left that plan's scope. A gate must tell that box
    from a deferred criterion: by a split marker, or by the new plan declaring what it took.

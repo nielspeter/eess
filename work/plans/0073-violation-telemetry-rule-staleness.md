@@ -99,7 +99,7 @@ non-vacuity failure; this is the softer, temporal cousin.
 
 **Phase 3 — the growth signal.** Per-tier / per-package coverage grades, trended,
 computed **from `check:spec`'s coverage data** (the coverage = direction from
-plan 0061) and reported as a **trend, not a new blocking gate**. The enforced
+[plan 0061](./completed/0061-spec-code-hard-feedback-poc.md)) and reported as a **trend, not a new blocking gate**. The enforced
 surface becomes visibly growing or rotting rather than a snapshot.
 
 **Phase 4 — the analysis pass.** Dominating-pattern analysis over the corpus →
@@ -134,7 +134,7 @@ Settled (independent of the corpus source):
   `work/telemetry/`-style path); never committed (large + derived), never leaves
   the machine without explicit opt-in.
 - **Growth-grade home** — computed **from `check:spec`'s coverage data** (the
-  coverage = direction, plan 0061), reported as a **trend, not a separate blocking
+  coverage = direction, [plan 0061](./completed/0061-spec-code-hard-feedback-poc.md)), reported as a **trend, not a separate blocking
   gate** — consistent with the signal-is-advisory stance.
 
 Re-opened by the 2026-07-23 finding (these are the blocker):

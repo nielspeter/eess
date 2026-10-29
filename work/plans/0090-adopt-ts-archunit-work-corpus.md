@@ -4,7 +4,7 @@
 
 - **State:** Draft — created 2026-08-10. Part of the ts-archunit retirement
   family: [0088](./completed/0088-fold-ts-archunit-into-eess.md) is the fold (engine +
-  ADR-008/009), [0089](./completed/0089-family-standalone-sufficiency.md) is per-dialect
+  ts-archunit's ADR-008/009), [0089](./completed/0089-family-standalone-sufficiency.md) is per-dialect
   standalone sufficiency, [0101](./completed/0101-sibling-gates-go-fail-closed.md) takes the
   sibling gates fail-closed, [0100](./0100-publish-the-fold-retire-ts-archunit.md)
   publishes and retires — and this is the **work-corpus migration**: the plans,
@@ -13,7 +13,7 @@
   open-work adoption is written against the engine that 0088 makes eess's. It does
   **not** wait on 0100's archival — an archived repo is still readable (0100
   Phase 2 states this from the other side).
-- **Implements:** proposal 002 — this plan is where 002's widened primitive was
+- **Implements:** [proposal 002](../proposals/002-comment-embedded-links.md) — this plan is where 002's widened primitive was
   deferred to, and 002's own header has said so since 2026-08-12. Until 2026-08-23 that
   deferral existed only as prose on both sides (this plan cites the proposal; the
   proposal cites this plan), which is exactly the shape
@@ -48,7 +48,7 @@ what it is _now_:
   otherwise judge them.
 - **Open work** — 15 open plans (14 engine-relevant + `ai-era-product-direction.md`),
   9 open bugs, 11 proposals. These describe _the engine that 0088 is folding in_.
-  They are **live decisions**, not history: plan 0100 ("a preset that constructs
+  They are **live decisions**, not history: ts-archunit plan 0100 ("a preset that constructs
   nothing"), 0090 ("a warn that expires"), 0102 ("a detector that cannot fire says
   so") name real defects in the engine eess now owns. They must be **re-homed** —
   adopted as eess work or explicitly deferred-with-a-home — not frozen beside the

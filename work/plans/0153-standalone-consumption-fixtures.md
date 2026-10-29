@@ -38,8 +38,7 @@
 
 Each sibling dialect promises to be a complete tool on its own: a user
 installing only `@nielspeter/eess-md` — or `-mermaid`, `-gherkin`,
-`-crossvalidate` — gets everything they need with no second install. Plan
-0089 Phase 1 proved the _re-export surface_ is complete (`check:family`), but
+`-crossvalidate` — gets everything they need with no second install. [Plan 0089](./completed/0089-family-standalone-sufficiency.md) Phase 1 proved the _re-export surface_ is complete (`check:family`), but
 completeness of what's exported is not the same claim as "a fresh install
 with nothing else on disk actually works." Nothing in this repo runs a
 dialect package from its published `dist/`, in isolation, and exercises its

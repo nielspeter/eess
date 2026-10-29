@@ -1,12 +1,11 @@
-# Plan 0150: Close plan 0088's disclosed-but-unfiled review findings
+# Plan 0150: Close [plan 0088](./completed/0088-fold-ts-archunit-into-eess.md)'s disclosed-but-unfiled review findings
 
 ## Status
 
 - **State:** Ready — frozen 2026-08-16. **Freeze verification found three of
   the four remaining findings were already resolved, incidentally, by 0088's
   own later phases** — the same pattern this plan's own Problem section
-  already names for `diagnose()` (resolved incidentally by unrelated plan
-  0147, "untracked back to this finding until now"). Verified directly
+  already names for `diagnose()` (resolved incidentally by unrelated [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md), "untracked back to this finding until now"). Verified directly
   against the current code, not assumed from the plan's own prose:
   - **Finding 2 (`CorrespondenceBuilder.assertsCardinality()` class-wide)
     — already fixed.** `packages/core/src/correspondence.ts:155-158`
@@ -14,7 +13,7 @@
     original citation was stale, corrected here) scopes it per-check exactly
     as asked: `this._checks.length === 0 ? false : this._checks.every(check
 => checkAssertsCardinality(check))`. The docstring above it (lines
-    141-153) cites ADR-010 directly and states the identical rationale this
+    141-153) cites [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) directly and states the identical rationale this
     plan's own Phase 1 gave. Built by 0088 Phase 6, per
     `packages/core/tests/contract/extension-surface.test.ts`'s own docstring
     (below) dating that phase.
@@ -27,9 +26,9 @@ this.unmetExpectNonEmptyViolation()]` — a real, distinct assertion, not
   - **Finding 4 (`.because()`/`.excluding()` no direct kernel test coverage)
     — already fixed.** `packages/core/tests/contract/extension-surface.test.ts`
     (new since this plan's own citation of "no `rule-builder.test.ts`" —
-    confirmed that file now exists, built as "plan 0088 Phase 6") directly
+    confirmed that file now exists, built as "[plan 0088](./completed/0088-fold-ts-archunit-into-eess.md) Phase 6") directly
     exercises the base `TerminalBuilder`/`RuleBuilder` extension surface
-    against a fictional "stranger dialect," including the exact "bug 0016"
+    against a fictional "stranger dialect," including the exact ts-archunit bug 0016
     copy-on-write independence test this plan's own Phase 3 asked for
     verbatim: `'copy() independence: a held selection is not mutated by
 .because()'` and `'named-selection reuse across two branches does not
@@ -37,7 +36,7 @@ leak conditions (RuleBuilder side)'` (both titles dropped ts-archunit bug
     0016's number in [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5).
   - **Finding 1 (`orphanExclusions()`) — still genuinely open, confirmed
     twice over.** Zero hits anywhere in `packages/*/src` (unchanged since
-    this plan was drafted). Independently confirmed by unrelated plan 0147's
+    this plan was drafted). Independently confirmed by unrelated [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md)'s
     own text: explicitly surveyed and **deliberately deferred a second time**
     ("`orphan-exclusions.ts` itself, which was already deferred pending
     `diagnose.ts` existing — it can be revisited now that this does, but
@@ -85,23 +84,23 @@ leak conditions (RuleBuilder side)'` (both titles dropped ts-archunit bug
   of audit (a rule with an `.excluding()` entry that no longer matches
   anything real).
 - **Effort:** Small — one item, survey-then-decide (port / port-adapted /
-  reject-as-superseded), matching plan 0147's own discipline throughout.
+  reject-as-superseded), matching [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md)'s own discipline throughout.
 - **Created:** 2026-08-16
 
 ## Problem
 
-Plan 0088's Phase 4 ledger entry ("Multi-agent review (2026-08-15)") recorded
+[Plan 0088](./completed/0088-fold-ts-archunit-into-eess.md)'s Phase 4 ledger entry ("Multi-agent review (2026-08-15)") recorded
 five things the review found that were **not** fixed in that pass, explicitly
 distinguished from the two real regressions the same review found and fixed
 immediately. Four of the five still have no home:
 
 1. **`diagnose()`/`orphanExclusions()` — partially resolved since, not tracked
-   as such.** Plan 0088's Success Definition said standalone sufficiency was
+   as such.** [Plan 0088](./completed/0088-fold-ts-archunit-into-eess.md)'s Success Definition said standalone sufficiency was
    "partially met" because ts-archunit's own `diagnose()` CLI subcommand and
    `orphanExclusions()` audit mechanism were never ported — a deliberate
    scope decision (native evidence gate over mechanical port), disclosed, but
    left "deferred → not yet filed as its own eess bug/plan." **Since then,
-   unrelated plan 0147 built and shipped a `diagnose()` core function
+   unrelated [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) built and shipped a `diagnose()` core function
    (`packages/ts/src/core/diagnose.ts`) and a `doctor` CLI subcommand
    (`packages/ts/src/cli/commands/doctor.ts`, wired into `cli/index.ts`).**
    That closes the `diagnose()` half of the gap, incidentally, untracked back
@@ -118,18 +117,18 @@ immediately. Four of the five still have no home:
 3. **`.expectNonEmpty()` is a behavioral no-op.** `_expectEmpty === false` is
    set on the builder but never read anywhere distinct from `undefined`. A
    caller who chains `.expectNonEmpty()` expecting it to assert something gets
-   silent nothing, which is precisely the failure class ADR-010 exists to
-   make unrepresentable, now living in ADR-010's own reference implementation.
+   silent nothing, which is precisely the failure class [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) exists to
+   make unrepresentable, now living in [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s own reference implementation.
 4. **`.because()`/`.excluding()` have no direct test coverage in
    `packages/core/tests/`** — only indirect coverage via dialect-level tests.
    The 2026-08-15 testing review confirmed this by reverting each to
-   mutate-in-place (the pre-fold "bug 0016" shape) and finding the full suite
+   mutate-in-place (the pre-fold ts-archunit bug 0016 shape) and finding the full suite
    still passed.
 
 **Findings 2, 3, and 4 above were confirmed resolved during this plan's own
 freeze** — see Status for the citations. Only finding 1's remainder
 (`orphanExclusions()`) is this plan's actual remaining work; the numbered
-list above stays as the historical record of everything plan 0088's review
+list above stays as the historical record of everything [plan 0088](./completed/0088-fold-ts-archunit-into-eess.md)'s review
 originally disclosed, not as a live task list.
 
 ## Implementation phases
@@ -143,7 +142,7 @@ would touch every cross-reference for no benefit over keeping the original
 scheme's own numbering.)
 
 Port or natively rebuild ts-archunit's `orphanExclusions()` audit mechanism —
-survey ts-archunit's own implementation first (same discipline plan 0147 used
+survey ts-archunit's own implementation first (same discipline [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) used
 throughout: read the live source before deciding port-verbatim vs.
 port-adapted vs. reject-as-superseded), and record the ruling here rather
 than assuming a port is the right shape.
@@ -155,23 +154,23 @@ validate` alone cannot evidence this phase.
 
 ## Out of scope
 
-- Anything else plan 0088's own review found and already fixed in that same
+- Anything else [plan 0088](./completed/0088-fold-ts-archunit-into-eess.md)'s own review found and already fixed in that same
   pass (the two real regressions, the `bypassFilters` filter-survival fix,
   the `sourceEmpty` precedence wiring) — already closed, not reopened here.
 - **Findings 2, 3, 4** (`CorrespondenceBuilder`'s cardinality exemption,
   `.expectNonEmpty()`, `.because()`/`.excluding()` direct kernel coverage) —
   confirmed already resolved by 0088 Phase 6 at this plan's own freeze; not
   this plan's work, not reopened here. See Status for citations.
-- **Fixing bug 0154 itself.** This plan consumes that fix; it does not own
+- **Fixing [bug 0154](../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md) itself.** This plan consumes that fix; it does not own
   it. The kernel parser's literal/comment blanking carries its own design
-  question (the kernel cannot depend on ts-morph per ADR-002) and belongs in
+  question (the kernel cannot depend on ts-morph per [ADR-002](../../adr/002-ts-morph-ast-engine.md)) and belongs in
   that record, not here.
 - New capabilities beyond closing `orphanExclusions()`.
 
 ## Test inventory
 
 Phase 4 lands with its own red-test-first regression, matching this
-session's own discipline throughout plan 0147/0148. Additionally required,
+session's own discipline throughout [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md)/0148. Additionally required,
 per the 2026-08-18 attempt:
 
 - a **dogfood** row running the audit over this repo's own source, asserting
@@ -205,7 +204,7 @@ acceptance.
 - [x] Phase 3 — `.because()`/`.excluding()` direct kernel coverage —
       done-otherwise: already resolved by 0088 Phase 6, confirmed at freeze.
 - [ ] Phase 4 — `orphanExclusions()`. Attempted 2026-08-18, backed out
-      unbuilt; blocked on bug 0154.
+      unbuilt; blocked on [bug 0154](../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md).
       Note 2026-10-07: `orphanExclusions()` has since shipped (#72,
       2026-08-21) without the foreign-project guard, and the crash this plan
       recorded is back: `doctor spec.rules.ts` crashes again, so this plan's

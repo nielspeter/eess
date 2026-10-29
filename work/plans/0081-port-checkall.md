@@ -70,7 +70,7 @@ The port is small because eess's kernel already ships every part:
   `diff-aware.ts`. eess **does** have baseline/diff (the dogfood declines to use
   them, per [0060](./completed/0060-full-coverage-dogfooding.md), but the kernel
   supports them for consumers).
-- `finishPreset(violations, options)` — the ADR-008 report / throw / return /
+- `finishPreset(violations, options)` — the [ADR-008](../../adr/008-caller-owns-reporting.md) report / throw / return /
   warn terminal ([plan 0070](./completed/0070-caller-owns-reporting.md)).
 - `ArchRuleError`.
 
@@ -107,7 +107,7 @@ export function checkAll(
 ```
 
 Reusing `finishPreset` means `checkAll` inherits `--format json`,
-`report: 'return'`, and `report: 'warn'` for free (ADR-008) — and `report:
+`report: 'return'`, and `report: 'warn'` for free ([ADR-008](../../adr/008-caller-owns-reporting.md)) — and `report:
 'return'` makes it testable without catching throws.
 
 ### Design decision — severity
@@ -150,7 +150,7 @@ predecessor it has otherwise moved past.
   `ArchRuleError` whose violations include **both** rules', proving it does not
   stop at the first (the whole point).
 - **Return mode** — `checkAll(rules, { report: 'return' })` hands back the
-  aggregated array without throwing and without writing to stderr (ADR-008).
+  aggregated array without throwing and without writing to stderr ([ADR-008](../../adr/008-caller-owns-reporting.md)).
 - **Green** — an array of all-passing rules returns `[]` and does not throw.
 - **Baseline/diff** — a `baseline.filterNew` that removes a known violation drops
   it from the aggregate (light fixture).
@@ -171,7 +171,7 @@ predecessor it has otherwise moved past.
   `ArchRuleError` listing **both** — where `.check()` per rule would have stopped
   at `ruleA`. Proven by a red/green fixture test in the kernel.
 - eess reaches parity with ts-archunit `0.16.0`'s `checkAll` terminal, adapted to
-  eess's `finishPreset` reporting (ADR-008) rather than porting the older
+  eess's `finishPreset` reporting ([ADR-008](../../adr/008-caller-owns-reporting.md)) rather than porting the older
   `writeReport` path.
 
 ## Progress ledger

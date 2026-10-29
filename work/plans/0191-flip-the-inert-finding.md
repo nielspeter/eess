@@ -21,7 +21,7 @@ const INERT_FINDING_EMIT = false
 
 A detector whose stated purpose is "green must mean something" currently
 previews the inert case through `diagnose()` without failing `check()`. That is
-correct and deliberate — ADR-009's diagnostic-first migration makes the N release
+correct and deliberate — [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s diagnostic-first migration makes the N release
 the notice period. The docstring is unusually good about it: the flag is a bare
 non-exported module `const` on purpose, "not an env var, constructor option, or
 per-project override", because the unsuppressable design depends on there being
@@ -42,9 +42,15 @@ it.
 Upstream did this correctly and eess did not inherit it.
 
 `ts-archunit/plans/completed/0102-a-detector-that-cannot-fire-says-so.md` — the
-plan that built the mechanism — states in its own header that the flip is _"out
-of this plan's own scope by design — tracked separately in plan 0105, per this
-plan's own Release section"_, and quotes the requirement it was following:
+plan that built the mechanism — states in its own header, in these words, that
+the flip is out of its scope (the plan it names is ts-archunit's plan 0105):
+
+```text
+out of this plan's own scope by design — tracked separately in plan 0105, per this
+plan's own Release section
+```
+
+It then quotes the requirement it was following:
 
 > _"Before N ships, file the N+1 flip as its own tracked plan … so the flip is a
 > scheduled deliverable with an owner and a landing point — not a property of
@@ -63,7 +69,7 @@ This record is eess's 0105.
 
 Not a number of releases. Upstream's reasoning, which applies unchanged:
 
-- **Plan 0102's mechanism must have shipped as an installable release** — with
+- **ts-archunit plan 0102's mechanism must have shipped as an installable release** — with
   the preview path live — before the flip. The notice period is a command someone
   runs, not a warning nobody reads.
 - eess has **not published since `eess-ts@0.2.1` / `eess@0.2.2`**; the repo
@@ -87,7 +93,7 @@ the flag is).
 
 ## Out of scope
 
-- **Whether the finding is right.** That was plan 0102's question and it is
+- **Whether the finding is right.** That was ts-archunit plan 0102's question and it is
   settled; this plan only schedules the flip.
 - **The other four dialects.** `inconsistentSiblings` is eess-ts's; nothing here
   generalises.

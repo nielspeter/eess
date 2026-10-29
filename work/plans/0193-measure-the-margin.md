@@ -17,7 +17,7 @@
 
 **Margin** is how far a primitive is from being unfalsifiable: mutate it so it
 stops discriminating, and count what notices. Margin 0 means nothing notices —
-a check that cannot fail, ADR-009's object.
+a check that cannot fail, [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s object.
 
 Nothing computes it. Six primitives were found at margin 0 by hand
 ([0186](../bugs/fixed/0186-two-security-rules-cannot-fail.md),
@@ -41,7 +41,7 @@ plan is about.
 `src/presets/`" while its own distribution table summed to 181.
 `packages/ts/tests/tools/scan-enforceable-primitives.ts` already derives this
 mechanically and exists _because_ the count was previously reported as 166, 185,
-187, 231 and 150 — "a recollection with a method attached". ADR-009's own context
+187, 231 and 150 — "a recollection with a method attached". [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s own context
 table carries the row `A hand-typed measurement in a plan | Already wrong`. This
 plan produced the sixth number, by the method named as the cause of the first
 five.
@@ -54,7 +54,7 @@ margin 1 → 5 with no new evidence.
 
 **The gate could not fire on its own break class.** Phase 2 triggered on changed
 primitive _sources_; the Success clause's sabotage was "gut a primitive's only
-test". Gutting a test changes no source. Bug 0187 — a motivating bug — had no
+test". Gutting a test changes no source. [Bug 0187](../bugs/fixed/0187-four-visibility-and-async-predicates-cannot-fail.md) — a motivating bug — had no
 source-side defect at all.
 
 **The mutation operator was never defined, and the acceptance values encoded an
@@ -106,7 +106,7 @@ consumers, or margin forks the count a seventh time.
 `margin = |distinct test files that fail|`, computed as an **identity diff**, not
 a count: record the failing `fullName` set on a clean run over the covering set
 (must be empty), run mutated, report `mutated \ baseline`. Cardinality is what
-produced this repo's own off-by-one; identities are what ADR-009 rule 4 asks for.
+produced this repo's own off-by-one; identities are what [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 4 asks for.
 
 File granularity is immune to `it.each` inflation — but **not** to the symmetric
 cheat: splitting one test file into five yields margin 5 with no new evidence.
@@ -137,7 +137,7 @@ Two consequences, both of which Phase 1's acceptance clause got wrong:
   are column 1. Acceptance is stated in column 3, the gated metric's own unit.
 - **In file units all six repaired primitives sit at 1**, the minimum non-zero
   value — every covering test for them lives in a single file. That is fine for
-  ADR-009's binary question (`0` vs `≥1`) and this gate only asks the binary
+  [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s binary question (`0` vs `≥1`) and this gate only asks the binary
   question. But it must be said out loud: **for this repo's coverage shape the
   file metric is effectively `0 | ≥1`**, not a gradient.
 
@@ -148,11 +148,11 @@ first — it is the only case that tests the metric rather than the plumbing.
 
 ### The mutation operator, per kind — pinned in the script
 
-| kind            | operator                                     | why not the alternative                                                                                                                                                                        |
-| --------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Condition`     | preserve `description`, `evaluate: () => []` | replacing the description also breaks identity assertions, which are a real but _different_ guard. Report both numbers where they differ.                                                      |
-| `Predicate`     | preserve `description`, `test: () => true`   | `test: () => false` selects nothing, trips ADR-010's zero-examined floor, and reddens every rule using it — measuring the **evidence gate**, not the predicate. Uniformly inflated, fail-open. |
-| `PairCondition` | preserve `description`, `evaluate: () => []` | same shape as `Condition`; stated because it is a third type.                                                                                                                                  |
+| kind            | operator                                     | why not the alternative                                                                                                                                                                                                                                |
+| --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Condition`     | preserve `description`, `evaluate: () => []` | replacing the description also breaks identity assertions, which are a real but _different_ guard. Report both numbers where they differ.                                                                                                              |
+| `Predicate`     | preserve `description`, `test: () => true`   | `test: () => false` selects nothing, trips [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s zero-examined floor, and reddens every rule using it — measuring the **evidence gate**, not the predicate. Uniformly inflated, fail-open. |
+| `PairCondition` | preserve `description`, `evaluate: () => []` | same shape as `Condition`; stated because it is a third type.                                                                                                                                                                                          |
 
 **Every row states the `description` disposition, and that is not cosmetic.** The
 first version of this table left it unstated on the `Predicate` row while
@@ -168,7 +168,7 @@ but different guard) and it is recorded here as a decision, not assumed.
 
 `(primitives whose source changed) ∪ (primitives whose covering set contains a
 changed test file)`. The second half is the inverse of the index Phase 1 already
-builds, and it is the half that would have caught bug 0187.
+builds, and it is the half that would have caught [bug 0187](../bugs/fixed/0187-four-visibility-and-async-predicates-cannot-fail.md).
 
 ### The covering set has four channels, and the completeness claim is dropped
 
@@ -206,17 +206,17 @@ thing exists: no phase, no file, no schedule, and `.github/workflows/` holds onl
 `ci.yml` and `publish.yml`. Deferring to a mechanism that does not exist is the
 wrong-home defect this corpus keeps catching, and it mattered most precisely
 here: the plan's own cost table says the tail case is a wholesale fold like the
-one that INTRODUCED bugs 0186/0187, so the cap would have deferred almost
+one that INTRODUCED [bugs 0186](../bugs/fixed/0186-two-security-rules-cannot-fail.md)/0187, so the cap would have deferred almost
 everything on the one commit where it counted. Until a sweep is actually filed,
 the capped remainder is unchecked and the gate says so by name on every run.
 
 ## Implementation phases
 
-### Phase 0 (FIRST) — the ADR-009 amendment, which owns the definitions
+### Phase 0 (FIRST) — the [ADR-009](../../adr/009-agent-first-failure-surfaces.md) amendment, which owns the definitions
 
 **Re-ordered from last to first, and the reason is binding, not stylistic.**
 
-ADR-009 records _"We deliberately do **not** dogfood these six rules"_, carries
+[ADR-009](../../adr/009-agent-first-failure-surfaces.md) records _"We deliberately do **not** dogfood these six rules"_, carries
 rule 5 (independence) as `manual`, and lists under Alternatives Considered that
 this is _"worth revisiting if a mechanical subset emerges"_. Margin **is** that
 subset — rule 5's reviewer question (`adr/009-agent-first-failure-surfaces.md:290-293`:
@@ -230,7 +230,7 @@ diff, the per-kind operator table, `unmeasurable` fails, and the cap policy — 
 the plan itself measures that the operator choice alone moves `noJsonParse`
 between 2 and 1. A `check:margin` citation from the ADR's Enforcement table means
 only what the operator table says, and **this plan closes to
-`work/plans/completed/`**. ADR-009 rejects exactly that, verbatim, in its own
+`work/plans/completed/`**. [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rejects exactly that, verbatim, in its own
 Alternatives Considered:
 
 > Rejected. A completed plan moves to `work/plans/completed/`, so a binding
@@ -286,7 +286,7 @@ much as the number is:
   only red state — to 1 and silently clears it. Two mechanisms, both required:
   re-run the failing set unmutated and keep only failures that clear, **and**
   require each counted failure's file to be in that primitive's covering set.
-- **hold the tree exclusively.** ADR-009 states both halves and the first version
+- **hold the tree exclusively.** [ADR-009](../../adr/009-agent-first-failure-surfaces.md) states both halves and the first version
   of this plan ported one: _"Assert a green baseline before the first patch, **and
   hold the tree exclusively** (an isolated git worktree, or nobody else running)"_
   (`adr/009-agent-first-failure-surfaces.md:249-255`). This is a guard the script
@@ -329,7 +329,7 @@ gate and a test — `packages/ts/tests/standalone-surface.test.ts:10` imports
   not mention at all — so say explicitly that both move with the derivation and
   that margin's scope inherits them, and raise the floor to something that
   actually binds.
-- **It leaves ADR-005's perimeter.** `eslint.config.ts:26-34` scopes
+- **It leaves [ADR-005](../../adr/005-no-any-no-type-assertions.md)'s perimeter.** `eslint.config.ts:26-34` scopes
   `no-explicit-any` and friends to `packages/*/src/**` and `packages/*/tests/**`.
   Moving a 332-line ts-morph derivation to `scripts/**.mjs` moves it out of that
   block, and the precedent's cost is visible: `scripts/lib/kernel-surface.d.mts`
@@ -404,14 +404,14 @@ package root, not a hardcoded `packages/ts`).
   trigger fix above also shrinks it — a zero-only gate catches every 1→0 slide at
   no extra cost, so the ratchet is only needed for drops that never reach zero.
 - **A real mutation score.** One operator per kind is not a mutation score. It
-  answers "can this fail at all", which is ADR-009's question, and is not more.
-- **Plan 0188 Phase 3** (anti-re-fork) and
+  answers "can this fail at all", which is [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s question, and is not more.
+- **[Plan 0188](./0188-unify-the-duplicated-engine-modules.md) Phase 3** (anti-re-fork) and
   [bug 0192](../bugs/0192-nothing-detects-a-dialect-shadowing-a-kernel-name.md)
   (name shadowing) — three distinct gates, none subsuming another.
 - **The other four dialects.** Measured on eess-ts only; the covering sets may
   not narrow at all elsewhere.
 - **Adopter-facing use.** Margin measures eess's tests against eess's primitives.
-  An adopter's analogue is ADR-010's evidence gate and `eess-ts doctor`. No
+  An adopter's analogue is [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s evidence gate and `eess-ts doctor`. No
   `margin` command is planned, and `docs/dogfooding.md` should scope any row it
   gains to eess-ts.
 
@@ -428,7 +428,7 @@ package root, not a hardcoded `packages/ts`).
 
 ## Progress ledger
 
-- [ ] Phase 0 — ADR-009 amended FIRST: the metric definition and operator table
+- [ ] Phase 0 — [ADR-009](../../adr/009-agent-first-failure-surfaces.md) amended FIRST: the metric definition and operator table
       land in the ADR, and rule 5's row is split (Tier 2 `gated` over eess-ts
       primitives + Tier 5 `manual` elsewhere), or the refusal is recorded there
 - [ ] Phase 1 — `scripts/margin.mjs` + census port + guards, anchors reproduced

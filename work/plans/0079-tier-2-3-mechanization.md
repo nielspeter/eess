@@ -71,7 +71,7 @@ citation-resolution, and it needs no new theory.
 - Claiming a tier is mechanized when only a citation is resolved. The current
   behaviour is honest and documented; whatever replaces it must be too.
 - Running the system under test. eess is a validation framework, not a harness
-  runner (the boundary plan 0067 drew, and it holds).
+  runner (the boundary [plan 0067](./completed/0067-harness-informed-roadmap.md) drew, and it holds).
 
 ## Success definition
 
