@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phases 1–5 built 2026-10-27/28; lane 6 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1–6 built 2026-10-27/29; lane 7 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -417,6 +417,35 @@ fails the build` and `accepts a repository that extends the base through an inte
   reads 1,720 unlinked mentions against 2,335 at the base (its summary is kept with the lane's
   evidence).
 
+**Lane 6 (Phase 6), built 2026-10-29**, at base 8685289f, with `LANE` set to `work/plans/*.md`
+(the live plans and the board; the commit leaves it empty), under steps 2 and 4 as lane 4 left them:
+
+- The instrument found 13 anachronisms on 12 lines in 480 fixes, the Appendix's rows exactly. The
+  dry run gave 451 fixes and 63 refusals. The 12 lines hold 29 fixes, counted from a dry run
+  without the exclusions (the instrument's "hides" notes sum to 17 against the 16 others counted, since
+  the board's line 70 at the base holds two anachronisms and its note counts the second among the others),
+  so 480 less 29. The refusals are the table's 66 less the two test-title quotes lane 5 renamed in
+  [plan 0150](./0150-close-0088s-disclosed-review-findings.md), less one on an excluded line. The GitHub-link grep printed one line, this plan's own
+  step 2, in inline code; no test title in the lane holds a record number.
+- Judge 1 (Fable; seed 20261029) read the 79 fixes in ts-archunit's range and 20 sampled: 99
+  right, so no fix was left out and no same-target search was owed. `--apply` wrote 451 links
+  across 21 files.
+- By hand: a proposer (Fable) proposed 88 edits for the 75 items (the 13 more are other mentions on
+  excluded lines). 85 were applied in 15 files: 73 links, 9 rewordings to the ts-archunit form, 2
+  other rewordings and 1 fence; 3 were covered by another's edit. The builder changed one: [plan 0346](./0346-a-finding-is-identified-by-the-code-it-matched.md)'s
+  sentence on an earlier draft's ADR number, proposed as a link, now says the draft gave its ADR the number 016, which [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md), Bounded Instruments, holds; a link on the draft's number would name an ADR the draft never meant. That line is the lane's one true anachronism; the other 11 are
+  over-flags, ten written the day their record was filed and one, the board's row for [plan 0346](./0346-a-finding-is-identified-by-the-code-it-matched.md),
+  dated by an older row's text. The carried mentions in [plan 0150](./0150-close-0088s-disclosed-review-findings.md) are
+  ts-archunit bug 0016, as the tests they cite say, and are written in that form. The lane's share of Decision 2's 15 `upstream` mentions is one, on the board's line 106 at the base, now in the ts-archunit form.
+- Judge 2 (Fable), given no reasons, read 34: every rewording and the fence, and the 22 hand links
+  with a number in ts-archunit's range: 34 right.
+- The board's row for this plan still said its judges read the freeze's 294 fixes, a read set
+  step 2 widened at lane 4; it now says every fix to a number ts-archunit also used.
+- Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
+  reads 1,176 unlinked mentions against 1,720 at the base, and 181 skipped after ts-archunit against
+  170, one of them in this record (`check:corpus`, 2026-10-29). The docs link test passes over
+  the lane.
+
 ### Phase 9 — the gate holds zero, and checks the target
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
@@ -549,8 +578,9 @@ document. Every new number was reproduced at 4a43bcc4.
       and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24); ts-archunit plan 0075 confirmed by judge 1 and reworded, the
       GitHub links written as plain text)
 - [x] Phase 5 — `work/bugs/fixed/`
-- [ ] Phase 6 — `work/plans/` (live) (carried from lane 5: [plan 0150](./0150-close-0088s-disclosed-review-findings.md)'s prose mentions
-      of ts-archunit's bug 0016, its two test-title quotes already updated)
+- [x] Phase 6 — `work/plans/` (live) (carried from lane 5: [plan 0150](./0150-close-0088s-disclosed-review-findings.md)'s prose mentions
+      of ts-archunit's bug 0016, its two test-title quotes already updated; reworded to the
+      ts-archunit form)
 - [ ] Phase 7 — `work/plans/completed/` 0001–0449
 - [ ] Phase 8 — `work/plans/completed/` 0450 and above
 - [ ] Phase 9 — the gate holds zero and checks the target

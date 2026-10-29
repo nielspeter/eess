@@ -31,7 +31,7 @@ arrives, and Phase 3 closes as a "reasoned refusal" written in ten minutes.
 `check:ledger` cannot tell that from a real one —
 [`docs/working-method.md`](../../docs/working-method.md) says so outright
 (_"whether a disposition is truthful stays with the reviewer"_). The precedent is
-on the board: plan 0089's Phase 2 was never attempted and was split to 0153,
+on the board: [plan 0089](./completed/0089-family-standalone-sufficiency.md)'s Phase 2 was never attempted and was split to 0153,
 because building it _"with less rigor than Phase 1 just required would have been
 the wrong tradeoff"_.
 
@@ -60,7 +60,7 @@ The repo has two worked examples of the answer being _no_ until someone noticed:
   fixture fires them.
 - The same file's preset probes were given `report: 'throw'` explicitly _because_
   the bare call scored `fail-open`. The gate was right; the probe was changed
-  until it stopped asking, and plan 0165 booked the silencing as the fix.
+  until it stopped asking, and [plan 0165](./completed/0165-integrate-the-copied-ts-archunit-engine.md) booked the silencing as the fix.
 
 A margin ratchet is the same shape with a bigger surface: 181 numbers, each of
 which can be lowered by one line, in a file whose whole purpose is to be edited

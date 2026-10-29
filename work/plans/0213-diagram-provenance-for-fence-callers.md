@@ -6,12 +6,12 @@
   and reshaped by it. Review found `diagram()`'s path-vs-source dispatch is unsound, so
   the entry point has to be split for correctness anyway; this plan is what that split
   should hand the caller, not a separate overload bolted onto the sniff.
-- **Implements:** proposal 006
+- **Implements:** [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)
 - **Priority:** Medium — every current and future fence consumer hand-rolls the same
   workaround, and the workaround is lossy (below).
 - **Effort:** Small — two packages. This plan **adds and consumes** the `provenance`
   parameter (`eess-mermaid`) and rewires the caller (`eess-crossvalidate`). Adding an
-  optional parameter is **additive**: a minor, not a break — the break is bug 0211's split,
+  optional parameter is **additive**: a minor, not a break — the break is [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md)'s split,
   declared by its changeset. This plan needs **its own** changeset naming both packages;
   `check:release` is diff-scoped, so "declare nothing because another record declared the
   break" would red its own PR. An earlier draft said exactly that.
@@ -38,12 +38,12 @@ Two costs:
    per-class line the AST already has. So a diagram with twenty drifted classes points
    twenty findings at one line.
 
-Under ADR-009 that is an attribution failure in the dialect's own front door: a finding an
+Under [ADR-009](../../adr/009-agent-first-failure-surfaces.md) that is an attribution failure in the dialect's own front door: a finding an
 agent cannot act on.
 
 ## Approach
 
-Bug 0211 splits `diagram()` because content sniffing is unsound, leaving a source parser
+[Bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md) splits `diagram()` because content sniffing is unsound, leaving a source parser
 that takes `(text)`. This plan adds provenance to it **and consumes it in the same
 delivery** — an accepted-and-ignored parameter is worse than none:
 
@@ -64,7 +64,7 @@ document the datum precisely.
 
 - [ ] A violation from a fence reports the markdown file and the **class's own** line,
       not the fence opening line.
-- [ ] Mutating the provenance to a constant reds a fixture. Bug 0209's matrix already has
+- [ ] Mutating the provenance to a constant reds a fixture. [Bug 0209](../bugs/fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)'s matrix already has
       the half of this shape that works (`parse-error line → 1` reds 1 test).
 - [ ] The standalone-`.mmd` path still reports `filePath` unchanged.
 - [ ] `md-mermaid`'s `identify` workaround is removed, and its findings get _better_
@@ -85,4 +85,4 @@ document the datum precisely.
 - **The sniffing defect itself** — [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md).
   This plan consumes its fix; it does not duplicate it. Sequence 0211 first.
 - Whether `diagram()` keeps its name once it is one loader among several. Raised by review
-  as a fifth open question on proposal 006; not settled here.
+  as a fifth open question on [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md); not settled here.

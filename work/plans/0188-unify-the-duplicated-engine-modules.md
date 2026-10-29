@@ -5,8 +5,8 @@
 - **State:** Draft — **both decisions are now made**, as
   [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (the lexer)
   and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the
-  project). ADR-012 is also BUILT: the exclusion-comment parsers are unified and
-  `eess-ts`'s copy is 426 lines shorter. What remains of this plan is ADR-013's
+  project). [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) is also BUILT: the exclusion-comment parsers are unified and
+  `eess-ts`'s copy is 426 lines shorter. What remains of this plan is [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s
   build — the two builders — and the CLI/helper slice already landed.
 - **Priority:** **High** — raised 2026-08-21. This read "Medium — nothing is
   broken today", and that was falsified within the same PR: `packages/core`'s
@@ -49,7 +49,7 @@ points at something real.
 The ts copy is a **diagnosis superset**, not a different contract: 17 methods
 the kernel's lacks (`narrowingHint`, `examinedUnitNoun`, `zeroSubjectsAdvice`,
 `ownsDiscoveryDiagnosis`, `assertionAdvice`, `asSeverity`, …). Both enforce
-ADR-010's floor. md and mermaid adopters get a generic zero-examined message
+[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)'s floor. md and mermaid adopters get a generic zero-examined message
 where eess-ts names the narrowing and the unit noun — a weaker **diagnostic**,
 not a weaker gate. That is the honest size of the gap and the reason this is
 Medium rather than High.
@@ -60,18 +60,18 @@ Medium rather than High.
 and the third is the freshest, which is the argument this section most needed:
 the hazard is not historical, it fired again nine days ago.
 
-**Bug 0156, the kernel half.** `fork()` cleared conditions in `packages/core`
+**[Bug 0156](../bugs/fixed/0156-should-twice-silently-drops-the-first-assertion.md), the kernel half.** `fork()` cleared conditions in `packages/core`
 long after `packages/ts` stopped doing so. Three dialects and three of this
 repo's own gates ran on it. Porting the one-line fix changed no test result
 anywhere, so the suite could not tell either; the guard that closes it was
 written in the same PR that found it.
 
-**Bug 0163**, the original case: `setCallerAggregatesReports` arrived with the engine
+**[Bug 0163](../bugs/0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)**, the original case: `setCallerAggregatesReports` arrived with the engine
 copy and is wired end to end on the eess-ts path, while the kernel's
 `executeWarn` still reports unconditionally — the exact line that bug cites. It
 went half-fixed and no record said so until 2026-08-21.
 
-**Bug 0227**, 2026-08-31, the newest. PR #88 fixed bug 0158 in
+**[Bug 0227](../bugs/0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md)**, 2026-08-31, the newest. PR #88 fixed [bug 0158](../bugs/fixed/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md) in
 `packages/core/src/exclusion-comments.ts` — a reason-free `eess-exclude-start`
 now reports against the `-start`. `packages/ts/src/core/exclusion-comments.ts`
 never got it, so the dialect adopters install is **silent** on a bare `-start`
@@ -81,7 +81,7 @@ wrongly, so no gate could notice; the divergence was found by running
 
 That case also carries a warning for this plan's own method. Comparing the two
 copies by TEXT gives a wrong answer: grepping for bug numbers and fix keywords
-says eess-ts is missing bug 0154's string-literal protection too. It is not —
+says eess-ts is missing [bug 0154](../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)'s string-literal protection too. It is not —
 eess-ts uses ts-morph's real lexer where the kernel had to hand-roll masking to
 stay ts-morph-free. Same protection, different mechanism, zero shared
 vocabulary. Any audit of what has and has not travelled between these copies has
@@ -124,7 +124,7 @@ reason-free waiver does, and an `already open` warning only `eess-ts` had. All
 three are recorded in that ADR rather than absorbed.
 
 The original text: The copied version blanks
-string literals with a real ts-morph tokenizer (bug 0154's fix); the kernel's
+string literals with a real ts-morph tokenizer ([bug 0154](../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)'s fix); the kernel's
 does a regex scan. The other four dialects have no TS AST, so the kernel needs an
 injection point rather than a choice between the two.
 
@@ -154,7 +154,7 @@ gate must red.
 
 ## Out of scope
 
-- **ADR-008's preset default**, 0165's third deferral. Was filed separately as
+- **[ADR-008](../../adr/008-caller-owns-reporting.md)'s preset default**, 0165's third deferral. Was filed separately as
   [bug 0189](../bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
   and is now **fixed** — the engine enforces again by default and the ADR row
   cites a mechanism that fails. Kept in this list as a pointer rather than
@@ -218,7 +218,7 @@ the **CLI**, duplicated mermaid↔ts rather than core↔ts:
  99%  walk                     crossvalidate ~ md
 ```
 
-`watchAndRerun` is the pair bug 0169's correction names as a literal copy-paste
+`watchAndRerun` is the pair [bug 0169](../bugs/0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md)'s correction names as a literal copy-paste
 differing in two tokens. None of these has a decision blocking it — they are not
 waiting on this plan's two ADRs, which are about the kernel gaining a project
 abstraction and a pluggable tokenizer. **A CLI-and-helpers slice could ship
@@ -229,7 +229,7 @@ before either decision is made.**
 The count used to be quoted as **270** by-design-similar rule-wrapper bodies, in
 `check-baseline.mjs`'s written rationale for not running the preset at all. Both
 halves were wrong: it is 84, and they are largely true duplicates rather than
-by-design similarity (bug 0169's correction of 2026-08-31 read the bodies —
+by-design similarity ([bug 0169](../bugs/0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md)'s correction of 2026-08-31 read the bodies —
 `check` ~ `warn` differs in one call target, the metrics conditions differ in a
 measure and a message). The rationale was self-sealing: it was the reason not to
 run the preset, so nothing tested it.
@@ -239,7 +239,7 @@ run the preset, so nothing tested it.
 The debt is no longer argued, it is **printed on every `validate` run** with this
 plan named as its owner. That is the difference between a deferral and an
 exemption — and this plan's own thesis is that a deferral nothing measures is how
-`fork()`, `setCallerAggregatesReports` and bug 0227 each survived.
+`fork()`, `setCallerAggregatesReports` and [bug 0227](../bugs/0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md) each survived.
 
 Deciding not to fold this plan into the PR that produced the measurement was
 deliberate: its two prerequisites are ADR-shaped, and this plan already says

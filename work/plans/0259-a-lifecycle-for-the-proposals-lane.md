@@ -64,7 +64,7 @@ the plan could be frozen rather than referred back.
    and it is **already documented** — `PROPOSALS.md` `## Vocabulary` carries the
    three-row table with meanings and folders, plus the rule that review does not
    change State. `Held` is **not** a state: it is a per-ask disposition, with its
-   own `## Disposition — per ask, inside a Ruling` section, and proposal 009
+   own `## Disposition — per ask, inside a Ruling` section, and [proposal 009](../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)
    demonstrates the distinction by carrying held asks while not itself being held.
 2. **Where does a ruled-but-not-dispatched proposal live?** In place. Already
    documented in the same section: _"A proposal ruled `Rewrite needed` is still

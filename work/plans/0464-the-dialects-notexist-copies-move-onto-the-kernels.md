@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Draft — filed 2026-10-18 as the home of plan 0456's deferral; rewritten the same day
+- **State:** Draft — filed 2026-10-18 as the home of [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md)'s deferral; rewritten the same day
   after PR #235's third review round (method N3, architect minors, coordinator's decision 8).
 - **Scope:** de-duplication only: no proposal ask and no bug depend on it.
-  Bug 0462 (a marked condition stays mutable) is fixed for every copy by plan 0456's freeze at
+  [Bug 0462](../bugs/fixed/0462-a-notexist-whose-evaluate-is-replaced-keeps-its-exemption.md) (a marked condition stays mutable) is fixed for every copy by [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md)'s freeze at
   marking, so nothing here changes what a gate reports.
 - **Priority:** Low.
 - **Effort:** Small. Five call sites and their characterisation tests, in two packages.
@@ -17,8 +17,8 @@
 ## Problem
 
 The family carries five implementations of one condition, each built by hand on
-`marksAssertsCardinality`. Proposal 017's decision 4 is why it belongs in the kernel: "mermaid and
-six ts builders each carry a copy, and md would be the next". After plan 0456, md is built on the
+`marksAssertsCardinality`. [Proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s decision 4 is why it belongs in the kernel: "mermaid and
+six ts builders each carry a copy, and md would be the next". After [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md), md is built on the
 kernel's `notExistCondition` and these five are not.
 
 Each copy builds its finding differently. Measured 2026-10-18 on main:
@@ -89,7 +89,7 @@ export function notExist(): Condition<ArchFunction> {
 The other three follow the same shape with their existing constructors. The public names do not
 change: eess-ts's root `notExist()` and eess-mermaid's builder method stay as they are. Nothing is
 renamed or re-exported, and `notExistCondition` is not reachable from either dialect's root
-(ADR-011 §2).
+([ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) §2).
 
 This plan does not make the five shapes the same: `function.ts` and `call.ts` still carry no
 `ruleId`, `suggestion`, `docs` or code frame. Whether they should is a behaviour change, out of
@@ -186,12 +186,12 @@ tests prove.
 - **method N3 / testing m8** (the byte-identity proof rests on tests that do not assert the text,
   and the sabotage row swaps in a default that does not exist): Phase 1 writes whole-finding tests
   on main first, mermaid's first included; four sabotage rows, each against a named test.
-- **architect N-2 / coordinator decision 4** (`calls()` names by context): plan 0456's `name` takes
+- **architect N-2 / coordinator decision 4** (`calls()` names by context): [plan 0456](./completed/0456-kernel-notexist-and-dead-glob.md)'s `name` takes
   `ctx`; a `calls()` row with `identifyByArgument` set.
 - **method N3** (`function.ts` has no code frame): measured per copy, in the table above; three
   copies attach one, two do not.
-- **architect m-new-3 / method N8** ("ADR-006's one owner"): ADR-006 says nothing of an owner;
-  the reason cited is proposal 017's decision 4.
+- **architect m-new-3 / method N8** ("[ADR-006](../../adr/006-framework-rules-architecture.md)'s one owner"): [ADR-006](../../adr/006-framework-rules-architecture.md) says nothing of an owner;
+  the reason cited is [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s decision 4.
 - **architect m-new-4** (no `Implements` line): the Status says it implements nothing.
 
 ### Round four
