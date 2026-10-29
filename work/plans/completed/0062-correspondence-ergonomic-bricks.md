@@ -1,4 +1,4 @@
-# 0062 — Two correspondence bricks: split keys + `files()`
+# Plan 0062: Two correspondence bricks: split keys + `files()`
 
 **State:** Done — implemented 2026-07-06
 **Priority:** Medium

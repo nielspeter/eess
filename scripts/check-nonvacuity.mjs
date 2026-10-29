@@ -2535,6 +2535,39 @@ function gateRecordMentionTargetEmpty() {
   }
 }
 
+// --- Gate: corpus/record-number-in-title (plan 0556) ---
+// The production `scripts/check-corpus.mjs` with one probe record under `work/bugs/`, a lane the rule
+// reads: a title naming another number (P4), and a file name holding no number (P1, so a misnamed
+// record is a finding, not dropped from the selection). Each asserts the finding by id, file and
+// message on both exits; the probe folder is removed whatever happens.
+const TITLE_PROBE_DIR = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_title__')
+const TITLE_PROBE_REL = 'work/bugs/__nonvacuity_probe_title__'
+
+function gateRecordNumberInTitle(name, text, message) {
+  const rel = `${TITLE_PROBE_REL}/${name}`
+  try {
+    mkdirSync(TITLE_PROBE_DIR, { recursive: true })
+    writeFileSync(join(repoRoot, rel), text)
+    const json = runCorpusScript(['--format', 'json'])
+    const terminal = runCorpusScript([])
+    const fired =
+      firedOn(json, 'corpus/record-number-in-title', rel) &&
+      violationsOf(json).some(
+        (v) =>
+          v?.ruleId === 'corpus/record-number-in-title' &&
+          String(v.file ?? '').includes(rel) &&
+          String(v.message ?? '').includes(message),
+      )
+    const says = terminal.stderr.includes(message)
+    return {
+      ok: json.code === 1 && terminal.code === 1 && fired && says,
+      detail: `${name} → json exit ${json.code}, terminal exit ${terminal.code}; the finding by id, file and message: ${fired}; printed: ${says}`,
+    }
+  } finally {
+    rmSync(TITLE_PROBE_DIR, { recursive: true, force: true })
+  }
+}
+
 // --- Plan 0542, Phase 1: the gate's two narrowings, each shown to narrow only what it names ---
 
 const PROBE_997 = `${MENTION_PROBE_REL}/0997-probe.md`
@@ -5489,6 +5522,25 @@ const gates = [
   ['corpus/record-mention/target-elsewhere', gateRecordMentionTargetElsewhere],
   ['corpus/record-mention/waiver-target', () => gateRecordMentionWaiver('target')],
   ['corpus/record-mention/key-shared', gateRecordMentionKeyShared],
+  // Plan 0556: appended, so no other fixture changes shard.
+  [
+    'corpus/record-number-in-title/differs',
+    () =>
+      gateRecordNumberInTitle(
+        '0996-probe.md',
+        '# Bug 0995: a probe titled with another number\n',
+        'the path says 0996 and the title says 0995',
+      ),
+  ],
+  [
+    'corpus/record-number-in-title/path',
+    () =>
+      gateRecordNumberInTitle(
+        'probe-without-a-number.md',
+        '# Bug 0994: a probe whose file name holds no number\n',
+        'probe-without-a-number.md holds no value the path pattern reads',
+      ),
+  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5606,6 +5658,8 @@ const GATE_FOR = {
     'corpus/record-mention/target-elsewhere',
     'corpus/record-mention/waiver-target',
     'corpus/record-mention/key-shared',
+    'corpus/record-number-in-title/differs',
+    'corpus/record-number-in-title/path',
     'corpus/state-present',
     'corpus/state-present-conflict',
     'corpus/state-present-outside-status',

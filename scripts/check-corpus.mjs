@@ -437,6 +437,65 @@ const recordNumbers = docs(c)
   })
   .violations()
 
+// Plan 0556, dogfooding `agreeWithPath` (proposal 017, block 16): each record's number agrees in its
+// file name and in its title, one rule per lane, compared as exact strings. Selected by lane folder
+// less its board, so a misnamed record is a finding (its path holds no number), never dropped. A
+// numbered folder's files are read by the folder's number. Two forms of one record each are read on
+// purpose: bug 0144's number followed by a parenthesis (the bugs pattern's word boundary), and spike
+// 0001's `CONCLUSION.md` titled with a dash, which is pinned as left out of the mention rule and so
+// not retitled. Not filtered by `isProbeArtifact`, or its non-vacuity probes would be invisible to it.
+const recordPathPattern = (digits) =>
+  new RegExp(String.raw`(?:^|\/)(?<value>\d{${String(digits)}})-[^/]*(?:\/[^/]+)?\.md$`)
+const NUMBER_IN_TITLE_LANES = [
+  { lane: 'adr', folder: 'adr/**', board: undefined, digits: 3, title: /^ADR-(?<value>\d{3}):/ },
+  {
+    lane: 'bugs',
+    folder: 'work/bugs/**',
+    board: 'work/bugs/BUGS.md',
+    digits: 4,
+    title: /^Bug (?<value>\d{4})\b/,
+  },
+  {
+    lane: 'plans',
+    folder: 'work/plans/**',
+    board: 'work/plans/ROADMAP.md',
+    digits: 4,
+    title: /^Plan (?<value>\d{4}):/,
+  },
+  {
+    lane: 'spikes',
+    folder: 'work/spikes/**',
+    board: undefined,
+    digits: 4,
+    title: /^Spike (?<value>\d{4})(?::| —)/,
+  },
+  {
+    lane: 'proposals',
+    folder: 'work/proposals/**',
+    board: 'work/proposals/PROPOSALS.md',
+    digits: 3,
+    title: /^Proposal (?<value>\d{3})\b/,
+  },
+]
+const numberInTitle = NUMBER_IN_TITLE_LANES.map((l) => {
+  const lane = docs(c).that().resideInFolder(l.folder)
+  const selected = l.board === undefined ? lane : lane.and().satisfy(not(resideInFile(l.board)))
+  return {
+    lane: l.lane,
+    result: selected
+      .should()
+      .agreeWithPath({ path: recordPathPattern(l.digits), title: l.title })
+      .rule({
+        id: 'corpus/record-number-in-title',
+        because:
+          'a record names its number twice, in its file name and in its title, and the two drift',
+        suggestion: "rename the file or correct the title, so both carry the record's number",
+      })
+      .violations(),
+  }
+})
+const numberInTitleFindings = numberInTitle.flatMap((r) => [...r.result])
+
 // Plan 0495, dogfooding `agreeWithFolder` (proposal 017, block 5): a lane's done folders hold only
 // its done values, folder → value, one rule per lane. The selection is the done folders, so a closed
 // record in a live folder stays `corpus/closed-records-sit-in-done-folders`' and neither rule reports
@@ -1570,6 +1629,8 @@ const receipt = mergeCollectResults([
   closedLive,
   // Its own receipt: one value per numbered record (ADR-010).
   recordNumbers,
+  // Plan 0556: one member per lane, each its own selection.
+  ...numberInTitle.map((r) => collectResult([...r.result], { examined: r.result.examined })),
   ...doneFolderResults,
 ])
 
@@ -1635,6 +1696,14 @@ line(
     recordNumbers.length === 0
       ? '✓ no number claimed twice'
       : `✗ ${recordNumbers.length} finding(s)`
+  }`,
+)
+line(
+  'titles',
+  `${numberInTitle.map((r) => `${String(r.result.examined)} ${r.lane}`).join(' · ')} record(s) · ${
+    numberInTitleFindings.length === 0
+      ? "✓ each record's number agrees in its file name and its title"
+      : `✗ ${numberInTitleFindings.length} finding(s)`
   }`,
 )
 line(
@@ -1713,6 +1782,7 @@ const problems = [
   ...statePresent,
   ...closedLive,
   ...recordNumbers,
+  ...numberInTitleFindings,
   ...doneFolderViolations,
   ...stateViolations,
   ...broken,

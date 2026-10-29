@@ -2,28 +2,28 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-29 after review and re-check (architect · enforcement · product),
-  with no open question. Written the same day from [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 16, at the maintainer's
+- **State:** Done — built 2026-10-29 (PR #279) → completed/; frozen the same day after review and
+  re-check (architect · enforcement · product), with no open question. Written the same day from [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 16, at the maintainer's
   order to build it before the next release ("build block 16 first", 2026-10-29). Reviewed the same
   day and revised: "Review — 2026-10-29" lists what changed.
-- **Implements:** [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** High — the next release waits on it. Block 16 was held "for the next release", adopter
-  1 its only asker ([proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md), "Consumer feedback" and "The maintainer's acceptance —
+  1 its only asker ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), "Consumer feedback" and "The maintainer's acceptance —
   2026-10-19").
-- **Effort:** Medium. One condition on `docs()`, on the model [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md) built for block 5 and as its
+- **Effort:** Medium. One condition on `docs()`, on the model [plan 0495](./0495-a-value-agrees-with-its-folder.md) built for block 5 and as its
   batch review rebuilt it: its findings, an example, and this repository's numbered records as its
   first user.
 - **Created:** 2026-10-29
-- **Builds after:** [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md) (block 5, whose shape and evidence rule this follows), built.
-- **Decided by:** [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (no default shape: the patterns are the caller's),
-  [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (a document whose value cannot be read is reported, never dropped),
-  [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) (the denominator is what the verdict rests on).
+- **Builds after:** [plan 0495](./0495-a-value-agrees-with-its-folder.md) (block 5, whose shape and evidence rule this follows), built.
+- **Decided by:** [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (no default shape: the patterns are the caller's),
+  [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (a document whose value cannot be read is reported, never dropped),
+  [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) (the denominator is what the verdict rests on).
 
 ## Problem
 
 A record says its number twice, in its filename and in its title (a plan's file named for its
 number, and an H1 that names the plan by the same number), and the two drift: a file renamed and its
-title not, a title copied from a sibling and its number not changed. [Proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) names it block
+title not, a title copied from a sibling and its number not changed. [Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) names it block
 16, "a value agrees with the document's own path (a number in the filename and in the H1)", and
 adopter 1 asked for it. Nothing in the family relates a document's path to its content:
 
@@ -52,8 +52,8 @@ plan being a record).
 | 529     | 526   | 0        | 0     | 3                       |
 
 The title forms, per lane: ADRs `ADR-NNN:` (24); bugs `Bug NNNN:` (371) and one
-[bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)'s, its number followed by a parenthesis; plans `Plan NNNN:` (86) and the three closed plans titled
-`0061 — …`, `0062 — …` and `0066 — …`; spikes `Spike NNNN:` (25) and [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
+[bug 0144](../../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)'s, its number followed by a parenthesis; plans `Plan NNNN:` (86) and the three closed plans titled
+`0061 — …`, `0062 — …` and `0066 — …`; spikes `Spike NNNN:` (25) and [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s
 `CONCLUSION.md`, titled `Spike NNNN — conclusion`; proposals `Proposal NNN —` (21). So one anchored pattern
 per lane reads every title once the three plans name themselves as their lane does, and exact strings
 agree on every record: no `normalize` is needed, and `corpus/record-number-unique` keeps `066` and
@@ -100,7 +100,7 @@ read `undefined` from the second branch (measured, Node 24.22.0, by the architec
 with no `value` group is refused when `agreeWithPath` is called, naming the option, so the rule fails
 at its declaration; `agreeWithFolder` refuses when it runs, and the two differ on purpose, since
 counting a pattern's groups needs no corpus. Each pattern is read through `stateless()`
-(`packages/md/src/model/name-match.ts:11`), [bug 0506](../bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md)'s owner, so a caller's `g` or `y` flag
+(`packages/md/src/model/name-match.ts:11`), [bug 0506](../../bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md)'s owner, so a caller's `g` or `y` flag
 shares no `lastIndex`. The match is the leftmost; an unanchored title pattern over a title naming
 another record first reads that one, so the docs and every example anchor theirs.
 
@@ -126,7 +126,7 @@ finding:** a side that reads nothing means no document was judged, so P5 fires a
 and that side's P1 or P3 per document is withheld (block 5's F7 reasoning: a pattern that reads
 nothing is one mistake, not a finding per record). P2 is never folded in: a document with no title is
 the document's fault, not the pattern's, so the title side's count is the documents that have one.
-**`examined` is the kernel's,** the documents selected, as [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s batch review rebuilt it
+**`examined` is the kernel's,** the documents selected, as [plan 0495](./0495-a-value-agrees-with-its-folder.md)'s batch review rebuilt it
 ("Decision D1, rebuilt", and `packages/md/src/builders/docs.ts:150`): a count of documents judged hid
 three greens there (`.expectEmpty()` over a broken pattern, a broken agreement beside another
 condition, and beside a second agreement). "Judged" feeds only P5, which carries `bypassFilters`, so
@@ -134,7 +134,7 @@ neither `.excluding()` nor another condition's count can hide it, and it is comp
 never over the union of a builder's agreements. The path side is a `RegExp`, not a key function as
 `beUniqueBy` and `SelfMentionKeys.document` take, so that P1 and P5 can name the pattern. The
 condition is not dual-use; a selector form ("documents whose path agrees") can be added later the way
-`haveField` dispatches between predicate and condition, with no prefixed twin ([ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)). It is
+`haveField` dispatches between predicate and condition, with no prefixed twin ([ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)). It is
 Tier 1.
 
 **One agreement hook.** `DocsRuleBuilder` holds its agreements as `FolderAgreement[]`
@@ -157,10 +157,10 @@ conditions, and a join to another document's path is `correspondence()`'s.
    title pattern (the lane's word and the number, a word boundary after it) and no `normalize`,
    selected by lane folder with the three boards (`work/plans/ROADMAP.md`, `work/bugs/BUGS.md`,
    `work/proposals/PROPOSALS.md`) left out by exact path, so that a misnamed record is P1, not dropped.
-   The path pattern reads a numbered folder's files by the folder's number ([spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
+   The path pattern reads a numbered folder's files by the folder's number ([spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s
    `README.md` and `CONCLUSION.md`). The three closed plans titled `NNNN — …` are retitled as their
-   lane titles them. Two forms stay, each one record, and the lane's pattern reads them: [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)'s
-   number followed by a parenthesis, which the word boundary reads; and [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
+   lane titles them. Two forms stay, each one record, and the lane's pattern reads them: [bug 0144](../../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)'s
+   number followed by a parenthesis, which the word boundary reads; and [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s
    `CONCLUSION.md`, whose `—` the spikes pattern reads beside `:` (`^Spike (?<value>\d{4})(?::| —)`),
    since that file is pinned as left out of the mention rule and is not edited. The summary line
    prints each lane's selected and judged counts, so a lane rule removed from the script is seen. Its
@@ -168,9 +168,9 @@ conditions, and a join to another document's path is `correspondence()`'s.
    holds no number (P1), each by id, file and message. The rule's added `check:corpus` time is measured
    at build and recorded in the Progress ledger, since every nonvacuity row re-runs the gate.
 3. **Example, docs, release.** An example under `examples/md/` with a clean and a violating fixture
-   per judgement it states ([plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate), an alternation pattern among them; the eess-md README
+   per judgement it states ([plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate), an alternation pattern among them; the eess-md README
    (one line on folder against path); `docs/markdown.md`; `examples/public-surface.test.ts`; [proposal
-   017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s disposition row for block 16; a changeset.
+   017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s disposition row for block 16; a changeset.
 
 ## Files changed
 
@@ -234,22 +234,22 @@ changes no public type.
   and the obvious general case, frontmatter, the field resolver does not read. The options take a
   `field` source later without a break.
 - **A value agreeing with another document's path** (a link's target, a board row's file): a join,
-  `correspondence()`'s, as [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s target check is.
+  `correspondence()`'s, as [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s target check is.
 - **The slug half of a filename** agreeing with the title's words: no adopter asked; the patterns can
   read it once one does.
 - **A selector form:** not asked for; see Design.
 - **The agreement evidence rule in an ADR.** That an agreement's `examined` is the selection and
-  "judged none" its own unsuppressable finding now has two users and lives only in [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s
-  build notes, where this plan's first draft missed it. Recorded as [plan 0557](./0557-the-agreement-evidence-rule-joins-adr-010.md).
+  "judged none" its own unsuppressable finding now has two users and lives only in [plan 0495](./0495-a-value-agrees-with-its-folder.md)'s
+  build notes, where this plan's first draft missed it. Recorded as [plan 0557](../0557-the-agreement-evidence-rule-joins-adr-010.md).
 - **A kernel channel for "judged".** Three conditions hand-roll a zero-judged finding (two in md, one
-  in eess-ts); recorded in [plan 0557](./0557-the-agreement-evidence-rule-joins-adr-010.md) beside the rule it would carry.
+  in eess-ts); recorded in [plan 0557](../0557-the-agreement-evidence-rule-joins-adr-010.md) beside the rule it would carry.
 
 ## Review — 2026-10-29
 
 Architect, enforcement and product, on the first draft at 3f50c272. What changed:
 
 - **`examined` (critical, architect and enforcement).** The first draft counted documents judged,
-  which is [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s first D1, deleted after its review measured three fake greens. Now the
+  which is [plan 0495](./0495-a-value-agrees-with-its-folder.md)'s first D1, deleted after its review measured three fake greens. Now the
   kernel's count stands and "judged" feeds only P6; the evidence rows are 0495's.
 - **The value (architect, enforcement).** "The first capture group" read `undefined` from an
   alternation's second branch, and an empty capture on both sides agreed. Now the named group
@@ -263,7 +263,7 @@ Architect, enforcement and product, on the first draft at 3f50c272. What changed
 - **The one-versus-N shape (architect, enforcement).** P5 in place of a finding per document when a
   pattern reads nothing; P6 per cause; suppressibility stated per finding.
 - **Recorded, not built here:** the evidence rule's home and a kernel "judged" channel, as
-  [plan 0557](./0557-the-agreement-evidence-rule-joins-adr-010.md).
+  [plan 0557](../0557-the-agreement-evidence-rule-joins-adr-010.md).
 
 **Re-check, the same day** (architect and enforcement, on b9e62e40; the ids above are the first
 revision's): no blocking finding. P5 (a side
@@ -273,10 +273,43 @@ only it can turn red, the evidence rows built on that selection, and block 5's t
 rows. Also: P2's messages as `titleFault` gives them; the fork row; the dogfood's boards left out by
 exact path, its two one-record forms stated, per-lane counts printed, its added time measured.
 
+## Build notes
+
+Built 2026-10-29 on `feat/0556-agree-with-path`, as frozen, except where noted:
+
+- **The summary counts the selection per lane, not the judged documents.** Phase 2 said the summary
+  line prints each lane's "selected and judged counts"; the judged count is the agreement's own and
+  not exposed to the script. The line prints each lane's selected count (`23 adr · 372 bugs · 90 plans
+· 26 spikes · 21 proposals`), which is what shows a lane rule removed; a lane that judges none is its
+  own finding (P5) whatever the count.
+- **The dogfood:** 532 records over the five lanes, green. `check:corpus` takes 7.4 s, against 7.3 s
+  before the rule (two runs each), so about 0.1 to 0.2 s per run, paid again by each `check:nonvacuity`
+  row that runs the gate. The three plans titled `NNNN — …` now title themselves `Plan NNNN: …`.
+- **The sabotage matrix,** run in place on the source with each file restored from a copy and compared
+  after (no stash): all red, each on the test its break class names. (1) P4 dropped: the P4 rows. (2)
+  `normalize` on one side: the normalize rows. (3) a withheld document counted as agreeing: the P5
+  rows. (4) P1 dropped and (6) P3 dropped: their rows and the both-sides row. (5) P3 as `titleFault`
+  with the title pattern: the P3 row. (7) an empty capture read as a value: survived at first, since
+  the row reached the empty capture without `normalize` and the second guard (a normalized value that
+  is empty) caught it; with `String(Number(v))` an empty capture becomes `0` and would agree with a
+  title's `0`, so a row with that `normalize` was added, and (7) and (7b, the second guard removed)
+  each red one row. (8) a side's per-document findings kept beside P5: the one-finding rows. (9) P5
+  dropped and (10) P5 suppressible: the P5 and mixed rows (and block 5's own rows for (10)). (11)
+  `examined` overridden: the evidence rows. (12) P5 from a builder's first agreement only, and (13) P5
+  only when every condition is an agreement: the second-agreement and `beUniqueBy` rows, in both
+  conditions' tests. (14) the `value` refusal removed, (15) frozen documents skipped, (16) the caller's
+  `g` flag kept, (17) the first capture group read: one row each.
+- **Rows:** 24 in `packages/md/tests/conditions/agree-with-path.test.ts`, block 5's 34 still green
+  after its move onto the `Agreement` interface; the example's four; the two `check:nonvacuity`
+  rows, each red by id, file and message.
+
 ## Progress ledger
 
 - [x] Reviewed (architect · enforcement · product), 2026-10-29
 - [x] Ready (2026-10-29)
-- [ ] Phase 1 — the hook and the condition
-- [ ] Phase 2 — dogfood
-- [ ] Phase 3 — example, docs, release
+- [x] Phase 1 — the hook and the condition
+- [x] Phase 2 — dogfood (532 records, about 0.1 to 0.2 s per `check:corpus` run)
+- [x] Phase 3 — example, docs, release
+- [x] Sabotage matrix, all red (Build notes)
+
+Deferred: none. The agreement evidence rule's home and a kernel "judged" channel are [plan 0557](../0557-the-agreement-evidence-rule-joins-adr-010.md)'s, recorded at review; the labelled-field source is held in Out of scope, no adopter having asked.

@@ -1652,6 +1652,57 @@ shows three shapes, each reading its value with `region: 'header'` so a status f
 record is not read. This repository's `check:corpus` holds each lane's done folders to its done
 values this way (`corpus/done-folders-hold-done-values-*`).
 
+### A value agrees with the document's own path: `agreeWithPath`
+
+`docs(c).should().agreeWithPath({ path, title, normalize? })` says that a value read out of a
+document's own path and the same value read out of its title agree: a decision record named
+`0003-use-a-message-queue.md` is titled `3. Use a message queue`, not `4. …`. Folder agreement
+(`agreeWithFolder`) asks which glob holds a file; path agreement reads a value out of the path itself.
+Both patterns are yours: there is no default.
+
+```typescript
+import { corpus, docs } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['docs/decisions/**'] })
+
+docs(c)
+  .should()
+  .agreeWithPath({
+    path: /(?:^|\/)(?<value>\d{4})-[^/]*\.md$/, // the number in the file name
+    title: /^(?:(?<value>\d+)\. |ADR-(?<value>\d+): )/, // the number in either title form
+    normalize: (v) => String(Number(v)), // the file pads the number, the title does not
+  })
+  .rule({ id: 'decisions/number-agrees' })
+  .check()
+```
+
+**The value is the pattern's named group `value`,** as `mentions()` reads its pattern's named groups.
+An alternation names `value` in each branch, and the branch that matched gives it. A pattern without
+a `value` group is refused when `agreeWithPath` is called, naming the option. The title is read as
+`haveTitle()` reads it: the document's first heading, at depth 1. The match is the leftmost, so anchor
+a title pattern, or it may read another record the title names first. A caller's `g` or `y` flag is
+dropped, so no `lastIndex` carries from one document to the next.
+
+**A value that is not there is never a value:** a pattern that does not match, a `value` group that
+took no part in the match, an empty capture, and a value `normalize` makes empty each read as no value,
+so two sides that read nothing never agree. `normalize` applies to both sides and defaults to none
+(exact strings); a `normalize` that throws stops the rule.
+
+**The findings,** each at the document's line (the title's; line 1 for the path):
+
+- `notes/x.md holds no value the path pattern reads (/…/): name the file as the pattern expects, or widen the pattern`
+- `no title: the document has no heading`, and `haveTitle()`'s other causes, word for word.
+- `its title "Use a message queue" holds no value the title pattern reads (/…/)`
+- `the path says 0003 and the title says 4 (after normalize): correct the one that is wrong, by renaming the file or editing the title`
+
+A document whose path and title both fail reports both. **One mistake, one finding:** when the
+selection holds documents and none was judged (both values read), the agreement reports it once, at
+the first selected document, naming each cause (a pattern that read none of the paths or titles, no
+document with a title, or both sides reading but never on the same document), and a side that read
+nothing reports no finding per document beside it. That finding is the rule's, not a document's, so
+no `.excluding()`, comment or baseline removes it. The rule's `examined` is the documents selected, as
+every rule's is, so a rule declared `.expectEmpty()` that selected documents expires.
+
 ### Unique values: `beUniqueBy`
 
 `beUniqueBy(key, what)` says that no two selected elements share `key`'s value. Every member of a

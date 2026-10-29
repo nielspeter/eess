@@ -619,6 +619,18 @@ value no group names (declare those values in a `'rest'` group).
 [The Markdown dialect's docs](../../docs/markdown.md#a-value-agrees-with-its-folder-agreewithfolder)
 have the direction table and every finding.
 
+`docs(c).should().agreeWithPath({ path, title, normalize? })` says a value read out of a document's own
+path and the same value read out of its title agree, such as a record's number in its file name and in
+its H1: folder agreement asks which glob holds the file, path agreement reads a value out of it. Each
+pattern's named group `value` is the value (a pattern without one is refused at the call), so an
+alternation reads either form of a title. A value that is not there, or is empty, is never a value:
+two sides that read nothing do not agree. A document whose path, title or title's value cannot be read
+is reported, never skipped; a pattern that reads nothing across the selection is one finding, not one
+per document, and no suppression removes it. Values are compared as exact strings unless `normalize`
+is given, which applies to both.
+[The Markdown dialect's docs](../../docs/markdown.md#a-value-agrees-with-the-documents-own-path-agreewithpath)
+have every finding.
+
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match

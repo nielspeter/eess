@@ -1,4 +1,4 @@
-# 0061 — Spec↔code hard feedback: the EESS PoC
+# Plan 0061: Spec↔code hard feedback: the EESS PoC
 
 **State:** Done — implemented (Phases 0–4, 2026-07-06); PoC PASSED; Phase 5 deferred
 **Priority:** High

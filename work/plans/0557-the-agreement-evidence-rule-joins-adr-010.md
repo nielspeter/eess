@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-29 by [plan 0556](./0556-a-value-agrees-with-the-documents-own-path.md)'s review (enforcement I5, architect M5), not
+- **State:** Draft — recorded 2026-10-29 by [plan 0556](./completed/0556-a-value-agrees-with-the-documents-own-path.md)'s review (enforcement I5, architect M5), not
   scheduled. Not a release blocker.
 - **Priority:** Low — the rule holds in both conditions that follow it; what is missing is its home.
 - **Effort:** Small for the ADR amendment; the kernel channel is a decision first.
@@ -18,7 +18,7 @@ selection is the condition's own finding, unsuppressable. The first design, `exa
 documents judged, hid three greens: `.expectEmpty()` over a rule that judged none, a broken
 agreement beside another condition, and beside a second agreement.
 
-That rule now has two users and lives only in [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s build notes. [Plan 0556](./0556-a-value-agrees-with-the-documents-own-path.md)'s first draft
+That rule now has two users and lives only in [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s build notes. [Plan 0556](./completed/0556-a-value-agrees-with-the-documents-own-path.md)'s first draft
 re-specified the deleted design, and two reviews caught it; the next condition of this kind would be
 written from the same place.
 

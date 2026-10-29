@@ -22,6 +22,8 @@ import {
   type HaveTableOptions,
 } from '../conditions/structure.js'
 import { FolderAgreement, type AgreeWithFolderOptions } from '../conditions/agree-with-folder.js'
+import { PathAgreement, type AgreeWithPathOptions } from '../conditions/agree-with-path.js'
+import type { Agreement } from '../conditions/agreement.js'
 
 /**
  * Rule builder over the corpus's markdown documents.
@@ -33,8 +35,11 @@ import { FolderAgreement, type AgreeWithFolderOptions } from '../conditions/agre
  */
 export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   protected readonly noun = 'documents'
-  /** The `agreeWithFolder` conditions, kept for their declaration findings and evidence (plan 0495). */
-  private _agreements: FolderAgreement[] = []
+  /**
+   * The `agreeWithFolder` and `agreeWithPath` conditions, kept for their own findings and evidence
+   * (plans 0495 and 0556).
+   */
+  private _agreements: Agreement[] = []
 
   protected getElements(): MdDocument[] {
     return this.project.documents()
@@ -141,27 +146,40 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
    * documents and judged none is its own finding.
    */
   agreeWithFolder(options: AgreeWithFolderOptions): this {
-    const agreement = new FolderAgreement(this.project, options)
+    return this.addAgreement(new FolderAgreement(this.project, options))
+  }
+
+  /**
+   * Plan 0556 (proposal 017, block 16): a value read out of each document's own path and the same
+   * value read out of its title agree, such as a record's number in its file name and in its H1. Each
+   * pattern's named group `value` is the value (a pattern without one is refused here); a value that
+   * is not there, or is empty, is never a value, so two sides that read nothing do not agree. A
+   * document whose path, title, or title's value cannot be read is its own finding; a pattern that
+   * reads nothing across the selection is one finding, not one per document. Compared as exact
+   * strings unless `normalize` is given, which applies to both.
+   */
+  agreeWithPath(options: AgreeWithPathOptions): this {
+    return this.addAgreement(new PathAgreement(options))
+  }
+
+  private addAgreement(agreement: Agreement): this {
     const next = this.addCondition(agreement.condition)
     next._agreements = [...next._agreements, agreement]
     return next
   }
 
   /**
-   * The kernel's verdict and evidence, unchanged, plus each `agreeWithFolder`'s own findings:
-   * its declaration's (refused or reported even over an empty selection) and, when it selected
-   * documents and judged none, that one. The kernel's `examined` stands, so a declared emptiness
-   * expires as the kernel decides.
+   * The kernel's verdict and evidence, unchanged, plus each agreement's own findings (an
+   * `agreeWithFolder`'s declaration findings are reported even over an empty selection) and, for
+   * each that selected documents and judged none, that one, computed per agreement. The kernel's
+   * `examined` stands, so a declared emptiness expires as the kernel decides.
    */
   protected override collectViolations(): CollectResult {
     if (this._agreements.length === 0) return super.collectViolations()
     for (const a of this._agreements) a.start()
     const base = super.collectViolations()
     const context = this.buildConditionContext()
-    const own = this._agreements.flatMap((a) => [
-      ...a.declarationFindings(context),
-      ...a.judgedNone(context),
-    ])
+    const own = this._agreements.flatMap((a) => a.findings(context))
     return own.length === 0 ? base : collectResult([...base, ...own], base)
   }
 }
