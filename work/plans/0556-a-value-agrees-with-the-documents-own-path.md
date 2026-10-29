@@ -3,53 +3,60 @@
 ## Status
 
 - **State:** Draft — written 2026-10-29 from [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 16, at the maintainer's
-  order to build it before the next release ("build block 16 first", 2026-10-29). Awaiting review.
+  order to build it before the next release ("build block 16 first", 2026-10-29). Reviewed the same
+  day (architect · enforcement · product) and revised: "Review — 2026-10-29" lists what changed.
 - **Implements:** [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** High — the next release waits on it. Block 16 was held "for the next release", adopter
   1 its only asker ([proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md), "Consumer feedback" and "The maintainer's acceptance —
   2026-10-19").
-- **Effort:** Medium. One condition on `docs()`, on the model [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md) built for block 5: its
-  findings, an example, and this repository's numbered records as its first user.
+- **Effort:** Medium. One condition on `docs()`, on the model [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md) built for block 5 and as its
+  batch review rebuilt it: its findings, an example, and this repository's numbered records as its
+  first user.
 - **Created:** 2026-10-29
-- **Builds after:** [plan 0469](./completed/0469-havefield-a-document-has-a-value.md) (the field resolver) and
-  [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md) (block 5, whose shape this mirrors), both built.
+- **Builds after:** [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md) (block 5, whose shape and evidence rule this follows), built.
 - **Decided by:** [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (no default shape: the patterns are the caller's),
   [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (a document whose value cannot be read is reported, never dropped),
   [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) (the denominator is what the verdict rests on).
 
 ## Problem
 
-A record says its number twice, in its filename and in its title (a plan's file named for its number, and an H1
-that names the plan by the same number), and the two drift: a file renamed and its title not, a title copied from a
-sibling and its number not changed. [Proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) names it block 16, "a value agrees with the
-document's own path (a number in the filename and in the H1)", and adopter 1 asked for it. Nothing
-in eess-md relates a document's path to its content:
+A record says its number twice, in its filename and in its title (a plan's file named for its
+number, and an H1 that names the plan by the same number), and the two drift: a file renamed and its
+title not, a title copied from a sibling and its number not changed. [Proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md) names it block
+16, "a value agrees with the document's own path (a number in the filename and in the H1)", and
+adopter 1 asked for it. Nothing in the family relates a document's path to its content:
 
 - `haveTitle(pattern)` (`packages/md/src/conditions/structure.ts:89`) judges a title's shape, not
   what it says against the path.
-- `haveField` judges a value against a vocabulary, and `agreeWithFolder`
-  (`packages/md/src/conditions/agree-with-folder.ts:212`) a value against the folder groups it
-  belongs in; neither reads a value out of the path itself.
+- `agreeWithFolder` (`packages/md/src/conditions/agree-with-folder.ts:212`) relates a value to the
+  folder groups it belongs in: which glob holds the file, not a value read out of the path.
 - `beUniqueBy` (block 13) keeps a value to one document, not to its own file.
+- `areSelfMentions` (`packages/md/src/predicates/mentions.ts:20`) takes a document's own key from the
+  caller, to leave a record's mention of itself out of the mention rule; it judges nothing, so a
+  title whose number is not the file's is simply another mention.
 - `satisfy()` with a hand-written condition can compare the two, as `honestyAtClose` once compared
-  `State:` by hand. That is what each adopter writes today, and it has the gaps block 5 had: a title
-  or field that cannot be read is skipped or reported as a mismatch, the message cannot say which
-  side read what, and a rule that read nothing passes.
+  `State:` by hand. That is what adopters write today, and it has the gaps block 5 had: a title that
+  cannot be read is skipped or reported as a mismatch, the message cannot say which side read what,
+  and a rule that read nothing passes.
 
 ## Measured
 
 Run from the repository root at fda86985, over `git ls-files work adr`: every numbered record file
-(a file whose name starts with a number) and every `README.md` of a numbered folder, its number read
-from its name, its H1 read outside fences, a number after `ADR-` or after `Plan`, `Bug`, `Spike`,
-`Proposal` or `Case` in it.
+(a file whose name starts with a number) and every file in a numbered folder, its number read from
+the name, its H1 read outside fences. Re-derived by the enforcement review at 3f50c272 (530 then, this
+plan being a record).
 
 | records | agree | disagree | no H1 | H1 holds no such number |
 | ------- | ----- | -------- | ----- | ----------------------- |
 | 529     | 526   | 0        | 0     | 3                       |
 
-The three are closed plans that write the title `0061 — …`, `0062 — …` and `0066 — …`, each its own
-number in another form. So this repository's rule passes once its title pattern reads both forms, and
-those three are the reason the pattern is the caller's ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)).
+The title forms, per lane: ADRs `ADR-NNN:` (24); bugs `Bug NNNN:` (371) and one
+[bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)'s, its number followed by a parenthesis; plans `Plan NNNN:` (86) and the three closed plans titled
+`0061 — …`, `0062 — …` and `0066 — …`; spikes `Spike NNNN:` (25) and [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
+`CONCLUSION.md`, titled `Spike NNNN — conclusion`; proposals `Proposal NNN —` (21). So one anchored pattern
+per lane reads every title once the three plans name themselves as their lane does, and exact strings
+agree on every record: no `normalize` is needed, and `corpus/record-number-unique` keeps `066` and
+`0066` apart on purpose.
 
 ## Design
 
@@ -58,137 +65,192 @@ those three are the reason the pattern is the caller's ([ADR-022](../../adr/022-
 ```typescript
 import { corpus, docs } from '@nielspeter/eess-md'
 
-const c = corpus({ roots: ['work/**'] })
+const c = corpus({ roots: ['notes/**'] })
 
 docs(c)
   .that()
-  .resideInFolder('work/plans/**')
+  .resideInFolder('notes/**')
+  .and()
+  .haveNameMatching(/^\d{4}-/)
   .should()
   .agreeWithPath({
-    path: /\/(\d{4})-[^/]*\.md$/, // the record's number, from its path
-    value: { title: /^Plan (\d{4}):/ }, // the same number, from its title
-    normalize: (v) => String(Number(v)), // 0542 and 542 are one number
+    path: /(?:^|\/)(?<value>\d{4})-[^/]*\.md$/, // the note's number, from its file name
+    title: /^Note (?<value>\d{4}):/, // the same number, from its title
   })
-  .rule({ id: 'plans/number-in-title' })
+  .rule({ id: 'notes/number-in-title' })
 ```
 
 ```typescript
-/** Where the document's side of the agreement is read (plan 0556). */
-export type PathValueSource =
-  /** The title as `haveTitle()` reads it; `title`'s first capture group is the value. */
-  | { readonly title: RegExp }
-  /**
-   * A labelled value, read as `fields()` reads it and resolved as `haveField` resolves it; with
-   * `pattern`, its first capture group is the value, else the whole value.
-   */
-  | { readonly field: Omit<FieldOptions, 'split'>; readonly pattern?: RegExp }
-
 export interface AgreeWithPathOptions {
-  /** Matched against the document's path relative to the corpus's `cwd`; its first capture group is the path's value. */
+  /** Matched against the document's path relative to the corpus's `cwd`; its `value` group is the path's value. */
   readonly path: RegExp
-  readonly value: PathValueSource
+  /** Matched against the title as `haveTitle()` reads it; its `value` group is the title's value. */
+  readonly title: RegExp
   /** Applied to both values before they are compared. Default: none (exact strings). */
   readonly normalize?: (value: string) => string
 }
 ```
 
-**Why both sources.** Block 16 names the H1, and a number in a title is the case in hand (adopter 1,
-and this repository). A value under a label (`**Number:** 0542`, a slug field) is the same judgement
-over [plan 0469](./completed/0469-havefield-a-document-has-a-value.md)'s resolver, which block 5 already reads through, so the field form is the
-resolver's call and no new reading. One source per rule: a rule that wants both writes two.
+**The value is the named group `value`.** md's other caller pattern, `mentions()`, gives its named
+groups the meaning (`packages/md/src/model/mentions.ts:14`), so this does too. A pattern with more
+than one form is an alternation, and Node 24 allows the same group name in each branch, so
+`/^(?:Plan (?<value>\d{4}):|(?<value>\d{4}) —)/` reads either form; a first-capture-group rule would
+read `undefined` from the second branch (measured, Node 24.22.0, by the architect review). A pattern
+with no `value` group is refused when `agreeWithPath` is called, naming the option, so the rule fails
+at its declaration; `agreeWithFolder` refuses when it runs, and the two differ on purpose, since
+counting a pattern's groups needs no corpus. Each pattern is read through `stateless()`
+(`packages/md/src/model/name-match.ts:11`), [bug 0506](../bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md)'s owner, so a caller's `g` or `y` flag
+shares no `lastIndex`. The match is the leftmost; an unanchored title pattern over a title naming
+another record first reads that one, so the docs and every example anchor theirs.
 
-**Patterns.** Each `RegExp` is read through a private copy with `g` and `y` dropped, as
-`areInTitleLinks` copies its prefixes ([bug 0506](../bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md)), and must carry a capture group: one without is a
-configuration error the rule throws when it is built, naming the option. The first capture group is
-the value; a named group is not given a meaning.
+**A value that is not there is never a value.** A pattern that does not match, a `value` group that
+did not take part in the match, an empty capture, and a value that `normalize` turns empty are each
+"holds no value" on its side, never a value: two empty sides do not agree. `normalize` that throws
+propagates, as `agreeWithFolder`'s does. The docs' `Number` example says what it gives up (a value
+that is not a number becomes `NaN`, so the example also refuses a non-digit capture by its pattern).
 
-**Findings,** each attributed to the document and its line (the title's, the field's, or line 1 for
-the path):
+**Findings,** each attributed to the document and its line (the title's, or line 1 for the path):
 
-| id   | when                                                | message (shape)                                                                                                    |
-| ---- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| P1   | `path` does not match the document's path           | its path holds no value the path pattern reads; narrow the selection, or widen the pattern                         |
-| P2   | the title is absent, or `title` does not match it   | it has no title, or its title holds no value the title pattern reads                                               |
-| P3   | the field is absent or unreadable                   | the resolver's own message, verbatim, as block 5 reports it                                                        |
-| P4   | `pattern` does not match the field's resolved value | its `<label>` value holds no value the pattern reads                                                               |
-| P5   | both read, and they differ after `normalize`        | the path says `0542` and the title says `0543`: correct the one that is wrong (rename the file, or edit the title) |
-| none | a non-empty selection judged no document            | its own finding, unsuppressable, naming the cause, as `agreeWithFolder`'s `judgedNone` does                        |
+| id  | when                                       | message (shape)                                                                                                                                            | suppressible |
+| --- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| P1  | the path holds no value                    | `<path>` holds no value the path pattern reads (`<pattern>`): name the file as the pattern expects, or widen the pattern                                   | yes          |
+| P2  | there is no title                          | `titleFault`'s own message, verbatim (`packages/md/src/model/sections.ts:231`): no heading, the first heading at the wrong depth, an H1 inside a container | yes          |
+| P3  | the title holds no value                   | its title `"<title>"` holds no value the title pattern reads (`<pattern>`)                                                                                 | yes          |
+| P4  | both read, and they differ                 | the path says `0542` and the title says `0543` (after `normalize`, when given): correct the one that is wrong, by renaming the file or editing the title   | yes          |
+| P5  | one side read nothing across the selection | one finding for that side, naming the pattern and the count (`the title pattern read none of 529 selected titles`), in place of a P1 or P3 per document    | no           |
+| P6  | a non-empty selection judged no document   | its own finding, naming the cause and the counts per side, as `agreeWithFolder`'s `judgedNone` does                                                        | no           |
 
-A document withheld by P1 to P4 is not counted as agreeing. `examined` is the documents judged
-(both values read), so a rule whose patterns read nothing is the zero-judged finding, not a pass
-([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)); the resolver's side causes for a field (prose that disagrees, a label in a form the rule
-does not read) are reported as block 5 reports them. The condition is not dual-use: as a selector it
-would be "documents whose path agrees", which no adopter asked for.
+A document whose path and title both fail reports both, one pass for its author. P5 is block 5's F7
+reasoning: a pattern that reads nothing is one mistake, not a finding per record. **`examined` is the
+kernel's,** the documents selected, as [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s batch review rebuilt it ("Decision D1, rebuilt",
+and `packages/md/src/builders/docs.ts:150`): a count of documents judged hid three greens there
+(`.expectEmpty()` over a broken pattern, a broken agreement beside another condition, and beside a
+second agreement). "Judged" feeds only P6, which carries `bypassFilters`, so neither `.excluding()`
+nor another condition's count can hide it. The condition is not dual-use; a selector form ("documents
+whose path agrees") can be added later the way `haveField` dispatches between predicate and condition,
+with no prefixed twin ([ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)).
 
-**Not a kernel block.** The value sources are md's (titles and labelled fields); eess-ts names files
-by its own conditions.
+**One agreement hook.** `DocsRuleBuilder` holds its agreements as `FolderAgreement[]`
+(`packages/md/src/builders/docs.ts:37`) and calls `start`, `declarationFindings` and `judgedNone`
+on each. A small internal `Agreement` interface (`condition`, `start()`, `findings(context)`) is
+named, `FolderAgreement` implements it and `PathAgreement` beside it, `declarationViolation` moves
+beside the interface, and the builder keeps one list. Forks share an agreement instance, since
+`copy()` is shallow (`packages/core/src/rule-builder.ts:302`): this is safe because `start()` resets
+the instance's run state and a run is synchronous, and a test row holds it.
+
+**Not a kernel block.** The value is md's reading of a title. eess-ts names files by its own
+conditions, and a join to another document's path is `correspondence()`'s.
 
 ## Phases
 
-1. **The condition.** `agreeWithPath` on `docs()`, the two sources, the pattern copies and the
-   configuration refusals, P1 to P5 and the zero-judged finding, `examined` as judged documents.
-2. **Dogfood.** A `check:corpus` rule over this repository's numbered records (the 529 above), its
-   title pattern reading both forms, and its `check:nonvacuity` row: a probe whose title names another
-   number, red with P5 by id, file and message.
-3. **Example, docs, release.** An example under `examples/md/` with a clean and a violating fixture per
-   judgement it states ([plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate), a title example and a field example among them; the eess-md
-   README; `docs/markdown.md`; `examples/public-surface.test.ts`; [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s disposition row for
-   block 16; a changeset.
+1. **The hook and the condition.** The `Agreement` interface over `FolderAgreement`; `agreeWithPath`
+   on `docs()`, the pattern refusals, the value rules, P1 to P6, the kernel's `examined`.
+2. **Dogfood.** `corpus/record-number-in-title` in `scripts/check-corpus.mjs`, one rule per lane
+   (`adr/`, `work/bugs/`, `work/plans/`, `work/spikes/`, `work/proposals/`), each with its own anchored
+   title pattern and no `normalize`, selected by lane folder less its index files (`ROADMAP.md`,
+   `BUGS.md`, `PROPOSALS.md`, and `README.md` at a lane's root) so that a misnamed record is P1, not
+   dropped. The path pattern reads a numbered folder's files by the folder's number ([spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
+   `README.md` and `CONCLUSION.md`). The three closed plans titled `NNNN — …` are retitled as their
+   lane titles them. Its `check:nonvacuity` rows: a probe whose title names another number (P4), and
+   a probe whose file name holds no number (P1), each by id, file and message.
+3. **Example, docs, release.** An example under `examples/md/` with a clean and a violating fixture
+   per judgement it states ([plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate), an alternation pattern among them; the eess-md README
+   (one line on folder against path); `docs/markdown.md`; `examples/public-surface.test.ts`; [proposal
+   017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s disposition row for block 16; a changeset.
 
 ## Files changed
 
+- `packages/md/src/conditions/agreement.ts` (new: the `Agreement` interface and `declarationViolation`)
+- `packages/md/src/conditions/agree-with-folder.ts` (implements it)
 - `packages/md/src/conditions/agree-with-path.ts` (new)
 - `packages/md/src/builders/docs.ts`
-- `packages/md/src/index.ts` (`AgreeWithPathOptions`, `PathValueSource`)
+- `packages/md/src/index.ts` (`AgreeWithPathOptions`)
 - `packages/md/tests/conditions/agree-with-path.test.ts` (new)
 - `examples/md/a-record-number-agrees-with-its-file.test.ts` (new) and its fixtures
 - `examples/public-surface.test.ts`
 - `scripts/check-corpus.mjs`, `scripts/check-nonvacuity.mjs`
+- the three closed plans' titles
 - `packages/md/README.md`, `docs/markdown.md`
 - `work/proposals/017-md-blocks-to-check-a-documents-shape.md` (block 16's row)
 - `.changeset/md-agree-with-path.md`
 
 ## Test inventory
 
-| finding       | rows                                                                                                                         |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| P5 disagree   | a title naming another number: red, both values in the message; the same with `normalize` making `0542` and `542` one: green |
-| P1 no path    | a selected document whose name holds no number: red, naming the path and the pattern                                         |
-| P2 no title   | no H1; an H1 the pattern does not read (`0061 — …` against `^Plan (\d{4}):`): one finding each, not counted as agreeing      |
-| P3 field      | the field absent, given twice, in a form the rule does not read: the resolver's messages verbatim                            |
-| P4 pattern    | a field whose value the pattern does not read: red                                                                           |
-| zero judged   | a title pattern that reads no selected title: the zero-judged finding, not a pass                                            |
-| configuration | a pattern with no capture group, in each option: throws, naming it; a `g`/`y` flag: no shared `lastIndex` (two runs agree)   |
-| frozen        | a frozen document is judged                                                                                                  |
-| evidence      | `examined` counts judged documents, not selected ones                                                                        |
+| finding        | rows                                                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P4 differ      | a title naming another number: red, both raw values in the message; with `normalize` making `0542` and `542` one: green, and the message says "after normalize" when they still differ |
+| P1 path        | a selected document whose name holds no number: red, naming the path and the pattern                                                                                                   |
+| P2 title       | no heading; a first heading at depth 2; an H1 inside a blockquote: `titleFault`'s three messages verbatim                                                                              |
+| P3 title value | a title the pattern does not read: red, quoting the title and the pattern                                                                                                              |
+| both           | a document failing on both sides: P1 and P3, both reported                                                                                                                             |
+| empty          | `(?<value>\d*)` matching empty on both sides: P1 and P3, never agreement; a `normalize` returning `''`: withheld as no value                                                           |
+| alternation    | a title pattern with `value` in its second branch, over each form: agrees; the same on the path side for a numbered folder's file                                                      |
+| leftmost       | an unanchored title pattern over a title naming another record first: P4, and the anchored pattern: green                                                                              |
+| P5             | a title pattern that reads no selected title: one P5 naming the pattern and the count, no P3 per document; the same for the path                                                       |
+| P6             | a selection judged none, per cause (path, title, both): the message names the cause and counts; it survives `.excluding(/.*/)`; `bypassFilters` is set                                 |
+| evidence       | a misspelt title pattern beside `beUniqueBy`: red, `examined` is the selection; the same with `.expectEmpty()`: red; the same beside a second agreement: red                           |
+| forks          | two forks of one chain, one selecting nothing, run alternately: each its own P6                                                                                                        |
+| configuration  | no `value` group, in each option: throws at the call, naming it; a `g`/`y` flag: two runs agree                                                                                        |
+| frozen         | a frozen document is judged                                                                                                                                                            |
 
 **Sabotage matrix,** each row red on the test its break class names, run in a worktree and recorded
-in the Progress ledger: (1) P5 dropped; (2) `normalize` applied to one side only; (3) a withheld
-document counted as agreeing; (4) P1 dropped; (5) P2 dropped; (6) P3 read by first occurrence rather
-than the resolver; (7) the zero-judged finding dropped; (8) `examined` counting selected documents;
-(9) the capture-group refusal removed; (10) frozen documents skipped; (11) the caller's `g` flag kept.
+in the Progress ledger: (1) P4 dropped; (2) `normalize` applied to one side only; (3) a withheld
+document counted as agreeing; (4) P1 dropped; (5) P2 reported as P3; (6) P3 dropped; (7) an empty
+capture read as a value (red on the both-empty row); (8) P5 replaced by a finding per document; (9) P6
+dropped; (10) P6 made suppressible, `bypassFilters` dropped (red on the `.excluding(/.*/)` row); (11)
+`examined` overridden to the documents judged (red on the `.expectEmpty()` row); (12) the `value`-group
+refusal removed; (13) frozen documents skipped; (14) the caller's `g` flag kept; (15) the first capture
+group read in place of `value` (red on the alternation row).
 
-**`check:nonvacuity`:** one row per new rule id `check-corpus.mjs` emits (the rule-id audit reads
-them), as Phase 2 says.
+**`check:nonvacuity`:** the two Phase 2 rows; the rule-id audit reads the new id from
+`scripts/check-corpus.mjs`.
 
 ## Release
 
-`@nielspeter/eess-md` minor, additive: one method and two types.
+`@nielspeter/eess-md` minor, additive: one method and one type. The internal `Agreement` interface
+changes no public type.
 
 ## Out of scope
 
-- **A value agreeing with another document's path** (a link's target, a board row's file): that is a
-  join, `correspondence()`'s, as [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s target check is.
-- **The slug half of a filename** agreeing with the title's words: no adopter asked; the `path`
-  pattern can read it once one does, as a field or title pattern can.
-- **A selector form:** not asked for.
-- **This repository's `corpus/record-number-unique`:** it keeps a number to one record; this keeps a
-  record to its own number.
+- **A labelled field as the document's side** (`**Number:** 0542`, a slug field): no adopter asked,
+  and the obvious general case, frontmatter, the field resolver does not read. The options take a
+  `field` source later without a break.
+- **A value agreeing with another document's path** (a link's target, a board row's file): a join,
+  `correspondence()`'s, as [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s target check is.
+- **The slug half of a filename** agreeing with the title's words: no adopter asked; the patterns can
+  read it once one does.
+- **A selector form:** not asked for; see Design.
+- **The agreement evidence rule in an ADR.** That an agreement's `examined` is the selection and
+  "judged none" its own unsuppressable finding now has two users and lives only in [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s
+  build notes, where this plan's first draft missed it. Recorded as [plan 0557](./0557-the-agreement-evidence-rule-joins-adr-010.md).
+- **A kernel channel for "judged".** Three conditions hand-roll a zero-judged finding (two in md, one
+  in eess-ts); recorded in [plan 0557](./0557-the-agreement-evidence-rule-joins-adr-010.md) beside the rule it would carry.
+
+## Review — 2026-10-29
+
+Architect, enforcement and product, on the first draft at 3f50c272. What changed:
+
+- **`examined` (critical, architect and enforcement).** The first draft counted documents judged,
+  which is [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s first D1, deleted after its review measured three fake greens. Now the
+  kernel's count stands and "judged" feeds only P6; the evidence rows are 0495's.
+- **The value (architect, enforcement).** "The first capture group" read `undefined` from an
+  alternation's second branch, and an empty capture on both sides agreed. Now the named group
+  `value`, as `mentions()` reads its groups, and a value that is not there is never a value.
+- **Scope (product, architect).** The field source had no asker and could not read frontmatter;
+  dropped, and the options flattened to `{ path, title, normalize? }`.
+- **Reuse (architect).** P2 is `titleFault`'s messages; `stateless()` copies the patterns; one
+  `Agreement` interface instead of a second hook.
+- **The dogfood (enforcement).** Selected by lane folder less its indexes, so P1 is live; exact strings
+  with no `normalize`; the three `NNNN — …` plans retitled rather than every lane's pattern widened.
+- **The one-versus-N shape (architect, enforcement).** P5 in place of a finding per document when a
+  pattern reads nothing; P6 per cause; suppressibility stated per finding.
+- **Recorded, not built here:** the evidence rule's home and a kernel "judged" channel, as
+  [plan 0557](./0557-the-agreement-evidence-rule-joins-adr-010.md).
 
 ## Progress ledger
 
-- [ ] Reviewed (architect · enforcement · product)
+- [x] Reviewed (architect · enforcement · product), 2026-10-29
 - [ ] Ready
-- [ ] Phase 1 — the condition
+- [ ] Phase 1 — the hook and the condition
 - [ ] Phase 2 — dogfood
 - [ ] Phase 3 — example, docs, release
