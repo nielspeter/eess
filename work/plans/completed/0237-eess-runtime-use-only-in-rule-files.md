@@ -11,10 +11,10 @@
   a fourth escape, a false dogfood claim, and numbers that went stale inside the
   branch that measured them. All fixed or filed; the record carries each one,
   including a docs "fix" I made on a review finding that was itself wrong.
-  **Deferred: bug 0264.**
-  Previously read: Ready — frozen 2026-09-06, the day plan 0235 merged. The belt to
+  **Deferred: [bug 0264](../../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md).**
+  Previously read: Ready — frozen 2026-09-06, the day [plan 0235](./0235-the-emitter-takes-a-receipt.md) merged. The belt to
   0235's braces: independent of it and independently closable, and now the only
-  live mechanism aimed at the two residuals ADR-014 states it cannot reach.
+  live mechanism aimed at the two residuals [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) states it cannot reach.
   **The freeze found five things and fixed them rather than flipping over
   them — and MISSED A SIXTH, which is recorded here because the freeze's own
   count was one of the numbers it got wrong.** A method review found it: the
@@ -26,7 +26,7 @@
   and checked; this one was neither, and it surfaced at build, forcing an entire
   new rule id the frozen scope did not carry.
 
-  Worth stating beside it: plan 0263's freeze **did** catch the analogous
+  Worth stating beside it: [plan 0263](./0263-adr-014s-residual-enforcement-rows.md)'s freeze **did** catch the analogous
   mistake — a table claim inherited without measuring — before any build. The
   discipline works when it is actually applied to a mechanical claim; here it
   was applied to four citations and not to the fifth thing the plan leaned on.
@@ -35,13 +35,13 @@
   that was already done:
   1. The `dispatchRule`-in-`eess-md` fact is re-recorded **by value** (the three
      call expressions and the import member). Its line citation had staled in
-     both this plan AND proposal 009's Ask C row, because 0235 rewrote the
+     both this plan AND [proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s Ask C row, because 0235 rewrote the
      surrounding lines — the same class that refused 0235's own first freeze.
   2. Phase 2 asked the build to derive `check-guardrails.mjs`'s hard-coded
      `5 rules`. **It already derives it.** Left in as a recorded correction so
      an implementer is not sent to fix a fixed thing.
-  3. "`throwIfViolations` stays on the list until plan 0235 deletes the symbol"
-     — 0235 shipped without deleting it; that moved to plan 0263 Phase 5.
+  3. "`throwIfViolations` stays on the list until [plan 0235](./0235-the-emitter-takes-a-receipt.md) deletes the symbol"
+     — 0235 shipped without deleting it; that moved to [plan 0263](./0263-adr-014s-residual-enforcement-rows.md) Phase 5.
   4. The runtime-import census is re-derived and dated, with the command that
      produces it: 55/141 and 10/24 had drifted from 53 and 9. The conclusion is
      unchanged and slightly stronger.
@@ -70,14 +70,14 @@
   preset's `push` helper, three id lists kept in step, an adopter-shaped
   fixture project, and a docs pass.
 - **Created:** 2026-09-03
-- **Builds:** proposal 009's Ask C, **reshaped** by the two narrowings its
+- **Builds:** [proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s Ask C, **reshaped** by the two narrowings its
   disposition row required before it could leave `Held`; that row now names
-  this plan. No `**Implements:**` line, for the reason plan 0235 gives: 009's
+  this plan. No `**Implements:**` line, for the reason [plan 0235](./0235-the-emitter-takes-a-receipt.md) gives: 009's
   ruling is `Split and sequence`, and this plan builds one ask of it.
 
 ## Problem
 
-ADR-014 makes an evidence-free verdict unrepresentable at every seam eess owns.
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) makes an evidence-free verdict unrepresentable at every seam eess owns.
 It names, honestly, what it does not reach: a caller who never calls an emitter
 — formats and exits on its own — and a caller who sums receipts by hand instead
 of through the kernel's merge. Both were measured in the field, in code an AI
@@ -128,7 +128,7 @@ shipped; the exclusion predicate is the one new line.
 `noVerdictOutsideRules?: boolean` on `AgentGuardrailsOptions`, with a companion
 `ruleFiles?: string[]` naming where else eess may be used as a value. It
 **extends** the default `['**/*.rules.ts', '**/*.test.ts', '**/*.spec.ts']` —
-proposal 009's own list; an earlier draft dropped `*.spec.ts` with no reason —
+[proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s own list; an earlier draft dropped `*.spec.ts` with no reason —
 rather than replacing it, so an adopter naming `scripts/**` does not red every
 rule file. Named `ruleFiles` because "verdict" appears in no eess doc and the
 rule id already says `outside-rules`; the existing option vocabulary is `src`,
@@ -183,7 +183,7 @@ if (options.noVerdictOutsideRules) {
 with "write the check as a rule in a `*.rules.ts` file". The same hand-written
 loop moved into a rules file is inside the exemption and green — an agent
 following that Fix line would un-detect the problem, not remediate it, which is
-ADR-009 rule 2's prohibition. The suggestion leads with the construction that
+[ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's prohibition. The suggestion leads with the construction that
 actually reaches the evidence floor, and names the file move only as where a
 legitimate emitter call belongs.
 
@@ -196,8 +196,8 @@ legitimate emitter call belongs.
    `dispatchRule(validTiers, 'adr/valid-tiers', …)` and
    `dispatchRule(citations, 'adr/citations-resolve', …)`, and the runtime import is
    the `dispatchRule,` member of that file's first `import { … } from
-'@nielspeter/eess'`. This plan cited `:140-153` and proposal 009's Ask C row
-   cites `:131-141`; plan 0235 rewrote the surrounding lines and both are now off.
+'@nielspeter/eess'`. This plan cited `:140-153` and [proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s Ask C row
+   cites `:131-141`; [plan 0235](./0235-the-emitter-takes-a-receipt.md) rewrote the surrounding lines and both are now off.
    Grep the symbol, not the line.
    Stated honestly, though, the regex is not what spares a preset module: that
    module imports `dispatchRule` at runtime, so the
@@ -210,13 +210,13 @@ legitimate emitter call belongs.
 2. The exemption is a **declared glob list**, not a hard-coded pair. This repo
    ships five gate scripts under `scripts/` that call the emitters legitimately,
    and every adopter with a CI gate has the same shape. `ruleFiles` names
-   them. It is a list, which ADR-009 rule 3's corollary is right to be wary of —
+   them. It is a list, which [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 3's corollary is right to be wary of —
    a marker an agent can stamp to go green is worse than none. Two things make
    this one honest, and one thing keeps it from rotting. It lives in the
    preset's options, so stamping it is a visible line in the config diff,
    exactly like `overrides` — a Tier 5 defence, review-enforced, and named as
    such rather than dressed as a mechanism. A file named in it is still under
-   ADR-014 the moment it calls an emitter; the list decides where a verdict may
+   [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) the moment it calls an emitter; the list decides where a verdict may
    be written, not whether it needs evidence. And an entry that matches **zero
    files** is a configuration finding, not a silence — the way `overrideFindings`
    (`packages/ts/src/presets/agent-guardrails.ts:98`) already reports an unknown
@@ -230,9 +230,12 @@ legitimate emitter call belongs.
 return false`, and `not(...)` flips polarity. `terminal-builder.ts` states
      the reasoning: _"`not(dead)` over-selects rather than under-selecting, so it
      cannot be dead."_
-   - Exclusion sites are never faults at all: _"a condition glob matching nothing
-     is indistinguishable from an armed tripwire that has not fired, and plan
-     0072 got that wrong twice before it stayed written down."_
+   - Exclusion sites are never faults at all:
+
+     ```
+     a condition glob matching nothing is indistinguishable from an armed tripwire
+     that has not fired, and plan 0072 got that wrong twice before it stayed written down.
+     ```
 
    Both are correct, and neither should be weakened for this rule. **Decided:
    an explicit check instead**, `preset/agent/rule-files-matches-nothing`, which
@@ -249,7 +252,7 @@ return false`, and `not(...)` flips polarity. `terminal-builder.ts` states
    nothing reds the files it names rather than going quiet), so this is a
    legibility fix, not a hole — and that distinction is stated here so the row
    does not over-claim. A list that can go stale silently
-   is proposal 009's own requirement (its lines 239-241), and the first draft of
+   is [proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s own requirement (its lines 239-241), and the first draft of
    this plan had dropped it.
 
 **The anchor.** `(^|\.)` on the callee, so `import * as eess` followed by
@@ -258,7 +261,7 @@ version failing exactly there. A renamed import — `finishPreset as done` —
 escapes the call leg and is caught by the import leg, so the two conditions
 cover each other's blind spot once the subpath globs are right.
 `throwIfViolations` stays on the list. **Corrected at the freeze:** this read
-"until plan 0235 deletes the symbol", and 0235 shipped on 2026-09-06 without
+"until [plan 0235](./0235-the-emitter-takes-a-receipt.md) deletes the symbol", and 0235 shipped on 2026-09-06 without
 deleting it — it is still exported from `packages/core/src/index.ts` and
 `packages/ts/src/index.ts`, and removing it is now
 [plan 0263](./0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
@@ -278,7 +281,7 @@ it is the reason this plan is the belt and 0235 is the braces.
 rule lives in `eess-ts`, because only the TypeScript dialect has an AST engine
 to see imports and calls; an adopter of `eess-md` or `eess-gherkin` alone has no
 static-analysis surface in the family, and for them the kernel-side contract in
-ADR-014 is the whole protection. And the rule sees only modules inside the
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) is the whole protection. And the rule sees only modules inside the
 adopter's TypeScript project: a `.mjs` gate outside every `tsconfig` — the
 exact shape this repo ships five of — is examined by nothing here, and an
 adopter whose hand-rolled gate lives there gets an honest green from this rule
@@ -286,7 +289,7 @@ while the field shape is unreached. `docs/presets.md` says both.
 
 **And in this repository it cannot fire at all, which Phase 3 says plainly.**
 The dialects' own source _is_ eess. **Re-derived at the freeze, 2026-09-06,
-after plan 0235 changed 97 files** — the first two numbers had already drifted,
+after [plan 0235](./0235-the-emitter-takes-a-receipt.md) changed 97 files** — the first two numbers had already drifted,
 which is why the derivation is recorded here and not only its result:
 
 ```
@@ -327,7 +330,7 @@ this repo is a fixture project shaped like an adopter's, driven both ways.
 Fixtures under `packages/ts/tests/presets/`, each asserting the rule id:
 
 Each condition is isolated by a fixture that only it can red, so sabotaging
-either one leaves a fixture the wrong colour — ADR-009 rule 5, not a pair of
+either one leaves a fixture the wrong colour — [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5, not a pair of
 fixtures that both conditions trip:
 
 - a `src/**` module with a **runtime** import of `@nielspeter/eess-md` and **no**
@@ -381,7 +384,7 @@ Two more things the build must not leave as they are. The type-import leg
 records `none-matched` edge coverage on every healthy run
 (`packages/ts/src/conditions/dependency.ts:566-571`), and that disclosure reads
 as "the glob may be a typo" — for this rule zero matching imports is the goal,
-so under ADR-009 rule 2 the stated cause is wrong; give it a reason variant, or
+so under [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2 the stated cause is wrong; give it a reason variant, or
 say it in the docs. **One item this phase used to carry is already done, found at the freeze.** The
 plan asked the build to derive `scripts/check-guardrails.mjs`'s hard-coded
 `5 rules` summary. It already is:
@@ -430,11 +433,11 @@ letting a `check:guardrails` tick imply it.
   This rule does not make an evidence-free verdict unrepresentable; the emitter
   does.
 - **Seeing inside a rule file** — a hand-summed receipt, or a rule file that
-  never calls an emitter. Open-ended search; stays ADR-014's stated ceiling.
+  never calls an emitter. Open-ended search; stays [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s stated ceiling.
 - **Ask D** — documenting that the dead-selector finding already ships on the
   builder path. Still `Held` on 009 for a docs owner; a `none` changeset.
 - **An equivalent for adopters without `eess-ts`.** There is no AST engine to
-  build it on; the family's answer for them is ADR-014's kernel contract.
+  build it on; the family's answer for them is [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s kernel contract.
 - **A `.mjs` gate outside every `tsconfig`.** Invisible to this dialect by
   construction; only the adopter's own fixture sees it.
 
@@ -524,7 +527,7 @@ letting a `check:guardrails` tick imply it.
       site in the dialect that stamps a `GlobSite` (`identity.ts:83`, `:114`,
       `:157`). Measured on the fixture project with `ruleFiles: ['gates/**']`:
       the rule **exempted** `gates/check-corpus.ts` (the unanchored glob matches
-      via the tsconfig-root-relative fallback, plan 0067 C) while the finding
+      via the tsconfig-root-relative fallback, ts-archunit plan 0067 C) while the finding
       said that same string "matches no file in this project, so it exempts
       nothing". Two derivations disagreeing about one glob — the failure this
       project spends most of its guards on — under a comment claiming they

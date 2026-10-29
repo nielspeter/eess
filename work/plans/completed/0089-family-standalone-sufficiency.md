@@ -22,8 +22,7 @@
   has no `index.ts` at all (confirmed: 8 flat files, 7 matching its
   `package.json` exports map, `it-title.ts` internal-only), so the rule as
   originally written would have silently examined zero crossvalidate files,
-  the exact "glob matches zero" failure class this session's own bug
-  0131/plan 0101 arc spent three review rounds hunting elsewhere. Corrected to
+  the exact "glob matches zero" failure class this session's own [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)/[plan 0101](./0101-sibling-gates-go-fail-closed.md) arc spent three review rounds hunting elsewhere. Corrected to
   an `or(...)` over both subject shapes, with a matching two-shape
   non-vacuity requirement added to Phase 1. (2) Phase 2 cited 0088 as having
   already "built the same fixture" for eess-ts — false: 0088's own Test
@@ -36,7 +35,7 @@
   Both premises verified stale via direct repo inspection, not assumed
   correct from the plan's own prose. No other open question or dangling
   reference found in the text. Created 2026-08-10 as the deliberate split from
-  plan 0088.
+  [plan 0088](./0088-fold-ts-archunit-into-eess.md).
   **Split again 2026-08-12:** this plan carried four phases, of which two required
   0088 Phase 4's folded kernel seam. The plan named that honestly ("the dependency
   is Phase-3-scoped, not plan-wide") but naming it does not make it closable —
@@ -194,7 +193,7 @@ fixture in `scripts/check-nonvacuity.mjs` — a temp sibling-import probe for ru
 **two** temp probes, not one: an `index.ts`-shaped package that drops a kernel
 re-export, and a crossvalidate-shaped flat-file package that does the same —
 proving both subject shapes rule 2's `or(...)` actually reaches, not just the
-first one found. (This session's own bug 0131/plan 0101 arc found this exact
+first one found. (This session's own [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)/[plan 0101](./0101-sibling-gates-go-fail-closed.md) arc found this exact
 class of gap repeatedly: a check proven against one shape of subject silently
 never examining a second, differently-shaped one — worth not repeating here.)
 Each probe is asserted to make `check:family` exit non-zero naming the
@@ -209,7 +208,7 @@ purity), 0 failing. Getting there surfaced two real, previously-unknown
 implementation bugs, both fixed before landing (not worked around):
 
 1. **Unanchored globs matched zero files on every rule**, the first time it
-   ran — `workspace()`'s per-package project roots (plan 0148) mean a
+   ran — `workspace()`'s per-package project roots ([plan 0148](./0148-workspace-multi-root-awareness.md)) mean a
    project-relative glob needs the leading `**/` `arch.rules.ts`'s own
    `only()`/`inPkg()` helpers already use. Fixed by adopting the same
    helpers here.
@@ -286,7 +285,7 @@ from '@nielspeter/eess'` — reproduced live: neither compiled against
    imports (`packageSourceFiles`, vs. just the entry file) left both
    existing fixtures green, and a real regression (deleting a re-export for
    a symbol used only elsewhere in the package) went fully undetected — the
-   same defect class this session's own bug 0131 arc spent three rounds
+   same defect class this session's own [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md) arc spent three rounds
    closing, now found here too. Fixed: a third non-vacuity fixture
    (`family re-export (aggregation)`) injects into a NON-entry file
    (`packages/md/src/model/document.ts`) and asserts the violation still
@@ -413,7 +412,7 @@ case without them.
 change in count, not a net addition), `check:family` runs its own 8-case
 unit suite as part of every invocation.
 
-### Phase 2 — split to plan 0153, not built here
+### Phase 2 — split to [plan 0153](../0153-standalone-consumption-fixtures.md), not built here
 
 Was: a fixture that installs **only** the dialect package (dist, as a
 foreign consumer would) and runs its primary path, per dialect — the full
@@ -444,7 +443,7 @@ Progress ledger.
 
 ## Out of scope
 
-- **The fold itself** (engine rejoining, ADR-008/009 port) — plan
+- **The fold itself** (engine rejoining, ts-archunit's ADR-008/009 port) — plan
   [0088](./0088-fold-ts-archunit-into-eess.md). This plan does **not** depend on
   it; both can proceed in either order.
 - **Reconciling the sibling dogfood gates to fail-closed** —

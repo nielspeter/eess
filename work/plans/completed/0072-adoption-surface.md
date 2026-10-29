@@ -6,7 +6,7 @@
   `npm run validate` green end-to-end, every recipe executed against the
   published npm package before being documented, the 5-minute claim timed at
   2s warm-cache. Floor frozen 2026-07-19 via PR #8.
-  **Deferred: /bug `0074-init-esm-type-module`** (the one finding — see
+  **Deferred: /bug [`0074-init-esm-type-module`](../../bugs/fixed/0074-init-esm-type-module.md)** (the one finding — see
   ledger; filed immediately after this merge).
 - **Priority:** P1 — the market-signals research concluded the scarce resource
   is adoption attention, not capability; the window where "we already built
@@ -149,7 +149,7 @@ plans and would otherwise rot unhomed:
 
 ## Out of scope
 
-- **Violation telemetry / staleness engine** — plan 0073 (number reserved on
+- **Violation telemetry / staleness engine** — [plan 0073](../0073-violation-telemetry-rule-staleness.md) (number reserved on
   the board as an idea row; research-doc candidates #1+#2); this plan ships
   only the stated _stance_.
 - **Renaming** — evaluated and declined 2026-07-19; `eess` stays.
@@ -180,7 +180,7 @@ plans and would otherwise rot unhomed:
       acronym as an origin note; "Constraints, not a map" after the Core Thesis;
       "Rules age — enforcement is not monotone" after the status section
       (retirement = `deprecated` status transition, Tier-5 human act; mechanism
-      → plan 0073).
+      → [plan 0073](../0073-violation-telemetry-rule-staleness.md)).
 - [x] Phase 3 — agent-loop recipes — done 2026-07-19; `docs/agent-integration.md`
       with CI action, Claude Code hook, AGENTS.md sentinel script. All three
       executed first against the **published** npm package in a scratch project:
@@ -200,7 +200,7 @@ plans and would otherwise rot unhomed:
       close commit (PR #9); ROADMAP row 13 → Done, link repointed to
       `completed/`.
 
-**Finding — deferred→/bug `0074-init-esm-type-module`:** executing the wedge
+**Finding — deferred→/bug [`0074-init-esm-type-module`](../../bugs/fixed/0074-init-esm-type-module.md):** executing the wedge
 against a fresh `npm init -y` project exposed that `eess-ts init` scaffolds an
 ESM-syntax `eess-ts.config.ts` without ensuring `"type": "module"` — the setup
 crashes on first `check` in a CJS-default project (works in this repo only
@@ -210,5 +210,5 @@ because the root is already ESM). Recipes/quickstart document the
 per this plan, deferred to the named bug, filed as the immediate next act
 after this PR merges.
 
-**Deferred: /bug `0074-init-esm-type-module`.** Nothing else — every phase box
+**Deferred: /bug [`0074-init-esm-type-module`](../../bugs/fixed/0074-init-esm-type-module.md).** Nothing else — every phase box
 above is done as written.

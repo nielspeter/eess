@@ -9,14 +9,14 @@
   after a mid-body comment and four decisions left to the builder. Every finding of that review is
   answered under "Decided at the re-freeze", which names where. The dogfood gate is
   [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md). Written 2026-10-14 against
-  the 2026-10-14 review of proposal 006's Ask C, as plan B of that review's split;
+  the 2026-10-14 review of [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s Ask C, as plan B of that review's split;
   [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md) (A, eess-md)
   defines the port this plan's parser fills.
-- **Implements:** proposal 006 — Ask C, "every Mermaid fence parses, by Mermaid's own parser". The
+- **Implements:** [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md) — Ask C, "every Mermaid fence parses, by Mermaid's own parser". The
   conditions cited by number below are that review's.
-- **Priority:** Medium — the consumer's ask itself; plan 0412 alone gives them a loop with no parser.
+- **Priority:** Medium — the consumer's ask itself; [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md) alone gives them a loop with no parser.
 - **Effort:** Medium — one PR. A worker, its classifier, canaries, the line map and its canary, and
-  a conformance test; no kernel change. The dogfood gate is plan 0427's. Additive, eess-mermaid `minor`.
+  a conformance test; no kernel change. The dogfood gate is [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md)'s. Additive, eess-mermaid `minor`.
   crossvalidate gains tests only, declared `none` in the changeset.
 - **Created:** 2026-10-14
 - **Depends on**, in order:
@@ -35,14 +35,14 @@
 
 ## Problem
 
-After plan 0412, a corpus can say "every ` ```mermaid ` block parses" and name a parser, but eess
+After [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md), a corpus can say "every ` ```mermaid ` block parses" and name a parser, but eess
 ships none for Mermaid. The only authority that agrees with what GitHub renders is the `mermaid`
-package itself, and it does not run in plain Node: spike 0411 parsed 3 of 11 fences there, and a
+package itself, and it does not run in plain Node: [spike 0411](../../spikes/0411-can-the-caller-pass-mermaids-parser.md) parsed 3 of 11 fences there, and a
 labelled flowchart, a class, a state and a mindmap block — valid or not — all failed with a
 `DOMPurify` `TypeError`. Loaded in-process with a DOM shim, it would install globals into the
 adopter's test host.
 
-Spike 0411 measured the way through: `mermaid` and `jsdom` inside a `worker_threads` worker leave
+[Spike 0411](../../spikes/0411-can-the-caller-pass-mermaids-parser.md) measured the way through: `mermaid` and `jsdom` inside a `worker_threads` worker leave
 the host's globals clean. Three timings exist for 39 blocks, start-up included: 588 ms, 0.99 s and
 0.78 s (the review's condition 5 says which population each measured).
 
@@ -58,11 +58,11 @@ const parsed = await parseCodeBlocks(corpus, { language: 'mermaid', parser: merm
 codeBlocks(parsed).should().parse().check()
 ```
 
-- `mermaidParser()` returns an object of plan 0412's port shape:
+- `mermaidParser()` returns an object of [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s port shape:
   `{ name, version, canaries, parse(texts, { signal, budgetMs }) }`. eess-mermaid matches the port
   **by shape** and does not import eess-md. Every test that needs both — the conformance test and
   the Markdown-line rows — lives in eess-crossvalidate, which already depends on both.
-- It rejects with plan 0412's structured failure (`remedy`, `blockIndex`), so each cause below
+- It rejects with [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s structured failure (`remedy`, `blockIndex`), so each cause below
   reaches the finding with its own `Fix:` line and the block as a file and line.
 - **No static import of `mermaid` or `jsdom`.** Both are optional peers (`peerDependenciesMeta`,
   the precedent is eess-ts's `graphql`, `packages/ts/package.json:112`); only the worker imports
@@ -71,19 +71,19 @@ codeBlocks(parsed).should().parse().check()
   construction the host takes the directories Node would search from the worker file's location,
   `createRequire(workerUrl).resolve.paths('mermaid')`, and reads the first `<dir>/mermaid/package.json`
   that exists. No `exports` condition is involved, so an import-only map reads too (measured by PR
-  #219's architect review against spike 0428's stub, the real 11.17.2, and no `mermaid`;
+  #219's architect review against [spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md)'s stub, the real 11.17.2, and no `mermaid`;
   `createRequire(…).resolve('mermaid')`, the re-freeze's first wording, fails on the stub). Three
   results:
   - found, with a `version` string → that version;
   - none found → `'not installed'` (the missing-peer finding below);
   - found, but not JSON or without a `version` → `'unreadable'`, and `parse` rejects naming that
-    file. An installed `mermaid` is never reported as missing (ADR-009 rule 2).
+    file. An installed `mermaid` is never reported as missing ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2).
 - **The worker reports the version it loaded**, read by walking up from
-  `import.meta.resolve('mermaid')` to the first `package.json` named `mermaid` (spike 0428 Q6). That
+  `import.meta.resolve('mermaid')` to the first `package.json` named `mermaid` ([spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md) Q6). That
   is the module the worker imports, so it follows any resolve hook. If it differs from `version`,
   `parse` rejects naming both: the identity on the success line would not be the parser that judged.
 - **The worker is self-contained**: it imports only Node built-ins, `mermaid` and `jsdom`, with no
-  relative import. It is authored as a plain `.mjs` file, so no loader has to transform it — ADR-015
+  relative import. It is authored as a plain `.mjs` file, so no loader has to transform it — [ADR-015](../../../adr/015-the-kernel-extends-resolution-never-execution.md)
   teaches the host resolver `.js` → `.ts` and nothing reaches a worker's own resolution. `tsc` does
   not emit it, so the build copies it from `src/` to `dist/` with `fs.cpSync` (not `cp`), beside
   `mermaid-parser.js`; both resolve it as `new URL('./mermaid-worker.mjs', import.meta.url)`, which
@@ -93,7 +93,7 @@ codeBlocks(parsed).should().parse().check()
   loader. If that test cannot be made green, the feature does not ship, and the plan returns for a
   decision.
 - **The worker posts facts; the host decides.** An error loses `hash` and `result` crossing
-  `postMessage` (spike 0428 Q3), so the worker reads each error where it was thrown and posts only
+  `postMessage` ([spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md) Q3), so the worker reads each error where it was thrown and posts only
   plain data. The messages, `{ type, … }`:
   - `{ type: 'loaded', version }` once, after `mermaid` and `jsdom` load;
   - `{ type: 'load-error', code, missing, message }` when they do not, where `missing` is the package
@@ -108,13 +108,13 @@ hashLine, langiumLines, message }`.
   arrays (their lines are `lexerErrors[i].line` and `parserErrors[i].token.startLine`);
   `unknown-diagram` one whose `name` is `'UnknownDiagramError'`; `non-result` a resolved value that is
   not an object (`suppressErrors`'s `false`). The worker is the interop boundary: the host narrows
-  every message with type guards, never `as` (ADR-005). The classification, the preamble and the line
+  every message with type guards, never `as` ([ADR-005](../../../adr/005-no-any-no-type-assertions.md)). The classification, the preamble and the line
   map are the host's, so nothing in the worker copies the preamble walk.
 
 - The README names which parser is which: `parseClassDiagram` is eess's own grammar, used to bind a
   diagram to code; `mermaidParser()` is Mermaid's, used to say a block parses. It shows the install
   line, `npm i -D mermaid@11 jsdom`, and its cost: 179 MB on disk, of which `mermaid` is 83 MB and
-  `jsdom` 8.3 MB (spike 0425, `du` of a fresh install).
+  `jsdom` 8.3 MB ([spike 0425](../../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md), `du` of a fresh install).
 
 ### Three outcomes, by error shape and preamble (conditions 3 and 6)
 
@@ -136,18 +136,17 @@ fact for it.
 
 - **Mermaid's `ok` always wins, and the table is total** (PR #219's reviews). The preamble rows
   apply only to a failure, so the walk can never report a block Mermaid accepts as the author's error
-  (bug 0409's class). A pair the table does not list is the instrument, never the author. No row
+  ([bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)'s class). A pair the table does not list is the instrument, never the author. No row
   reads Mermaid's message.
 - **A failure with no line** — a jison error with neither `hash.loc` nor `hash.line`, a Langium error
   with no numeric line, a Mermaid line the map has no entry for — is `invalid` with `line: null`,
   never the instrument.
 
 - **Unclosed frontmatter is decided from the text, per block** (enforcement I1). Mermaid throws a
-  plain `Error` for it, and for closed frontmatter with nothing after it (spike 0428 Q5); without the
+  plain `Error` for it, and for closed frontmatter with nothing after it ([spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md) Q5); without the
   preamble read first, one author typo would reach "anything else" and un-judge the whole run.
-- **"Anything else" stays the instrument**, because plan 0412's port has no per-block instrument
-  verdict and an unknown throw means the parser cannot be trusted for the batch. Of the blocks spike
-  0428 parsed (its `probe4`–`probe6`: comments, directives, frontmatter, CRLF, lexical, six kinds with
+- **"Anything else" stays the instrument**, because [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s port has no per-block instrument
+  verdict and an unknown throw means the parser cannot be trusted for the batch. Of the blocks [spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md) parsed (its `probe4`–`probe6`: comments, directives, frontmatter, CRLF, lexical, six kinds with
   trailing comments), only the two frontmatter shapes, now read from the text, reached it. Its remedy
   has no clearing test: it cannot know which of its two causes applies.
   The finding names the block in flight, so the author can tell their block from a broken install.
@@ -158,13 +157,13 @@ fact for it.
   replaces the first freeze's public sibling export and its five names (architect M1): no adopter
   needs the reason, and an internal name can be changed without a break. `diagramKind(text)` stays as
   it is, a `string`, and becomes `diagramPreamble(text).kind`; its existing tests stay unchanged,
-  including `''` for unclosed frontmatter, since md-mermaid-er's selection reads it (bug 0210).
+  including `''` for unclosed frontmatter, since md-mermaid-er's selection reads it ([bug 0210](../../bugs/fixed/0210-er-fence-selector-is-an-allowlist.md)).
   Frontmatter is "unclosed" when the text's first line is `---` and the line map's own frontmatter
   regex, Mermaid's, does not match, so the walk and Mermaid cannot disagree about it. The walk's
   directive tracking has its own defect, a directive closed mid-line read as open, recorded as
   [bug 0429](../../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md), fixed before or
   with this build; with Mermaid's `ok` winning above, it cannot blame an author here.
-  _Note, 2026-10-15 (PR #223's review):_ bug 0429 is fixed before this build, so the walk now reads
+  _Note, 2026-10-15 (PR #223's review):_ [bug 0429](../../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md) is fixed before this build, so the walk now reads
   `%%{init}%% %% note` ahead of a kind as declared, like Mermaid. The test inventory's ok-wins block
   and the "Mermaid's `ok` no longer wins" sabotage row below were chosen because the walk misread it;
   they no longer exercise ok-wins and need a block where the walk and Mermaid still disagree. The
@@ -176,7 +175,7 @@ fact for it.
 
 Mermaid counts an error's line on the text it has preprocessed, not on the block: it drops
 frontmatter with the blank lines after it, collapses a multi-line directive, and removes every
-whole-line `%%` comment anywhere, with the blank lines before it (spike 0428 Q1). So:
+whole-line `%%` comment anywhere, with the blank lines before it ([spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md) Q1). So:
 
 - **Mermaid's line, by shape:** jison with `hash.loc` → `hash.loc.first_line`; jison without
   `hash.loc` (lexical) → `hash.line + 1`; Langium → the smallest of `lexerErrors[i].line` and
@@ -208,34 +207,34 @@ whole-line `%%` comment anywhere, with the blank lines before it (spike 0428 Q1)
   comment; it reported line N". _(The re-freeze first wrote "a line before the mapped line"; PR #219's
   reviews measured that it never fires, because the undercount puts the mapped line on the comment
   line itself, and on the kind line a trailing comment undercounts by two.)_ Two kinds were measured
-  to undercount (spike 0428 Q2). This is conservative, not exact: it withholds the line in the four
+  to undercount ([spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md) Q2). This is conservative, not exact: it withholds the line in the four
   kinds measured to count right, it withholds it for a `%%` inside a label, and it claims the mapped
   line in kinds never measured without trailing comments. The README states that residual.
-- The verdict's `line` is counted from the block's first body line, as plan 0412's port requires;
+- The verdict's `line` is counted from the block's first body line, as [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s port requires;
   eess-md adds the block's own line.
 
 ### A forged verdict, and an instrument that fails (conditions 4 and 5)
 
 - **Canaries.** `mermaidParser().canaries` declares one known-broken block per error shape: a jison
   syntax error (`invalid`), a Langium syntax error (`invalid`) and an unknown kind (`unrecognised`).
-  eess-md runs them (plan 0412), so the check applies to any object passed as the parser. What it
+  eess-md runs them ([plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)), so the check applies to any object passed as the parser. What it
   catches here, specifically, is a `mermaid` that stopped throwing — a new major, a changed error
   shape, `suppressErrors`. Two residuals go in the README: an always-`valid` stub must forge both the
-  identity and correct canary answers (plan 0412 owns that test), and the canaries cover one kind per
+  identity and correct canary answers ([plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md) owns that test), and the canaries cover one kind per
   shape, so a regression confined to another kind passes them (enforcement M3).
-- **The worker's own failures**, each one instrument finding naming its cause, through plan 0412's
+- **The worker's own failures**, each one instrument finding naming its cause, through [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s
   structured failure and pinned instrument shape, each with a remedy that clears it:
 
-  | cause                                        | remedy                                                                                                                                                                  | clearing test                                    |
-  | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-  | `mermaid` or `jsdom` not installed           | `npm i -D mermaid@11 jsdom`                                                                                                                                             | the same worker copy with the packages linked in |
-  | another package missing (`missing` names it) | "`<pkg>`, a dependency of mermaid or jsdom, is missing; reinstall them"                                                                                                 | as above                                         |
-  | `mermaid`'s `package.json` unreadable        | names the file; "reinstall `mermaid`"                                                                                                                                   | a stub with a valid `package.json`               |
-  | loaded ≠ declared                            | names both versions; "reinstall `mermaid`, and check for a loader hook that redirects it"                                                                               | the same run without the hook                    |
-  | version outside `11.x`                       | "eess-mermaid reads mermaid 11; install `mermaid@11`"                                                                                                                   | a stub at `11.0.0`                               |
-  | the worker exits without a result            | names the block in flight; "leave that document out of the corpus by its `ignore` glob, and report the block to eess"                                                   | the same corpus with that document ignored       |
-  | a parse past plan 0412's budget              | names the block in flight and the budget; "raise `budget.perBlockMs`, or leave that document out"; before any `progress`, names start-up and "raise `budget.startUpMs`" | the same run with a larger budget                |
-  | the line canary disagrees                    | as above                                                                                                                                                                | the real `mermaid` 11.17.2                       |
+  | cause                                                                                             | remedy                                                                                                                                                                  | clearing test                                    |
+  | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+  | `mermaid` or `jsdom` not installed                                                                | `npm i -D mermaid@11 jsdom`                                                                                                                                             | the same worker copy with the packages linked in |
+  | another package missing (`missing` names it)                                                      | "`<pkg>`, a dependency of mermaid or jsdom, is missing; reinstall them"                                                                                                 | as above                                         |
+  | `mermaid`'s `package.json` unreadable                                                             | names the file; "reinstall `mermaid`"                                                                                                                                   | a stub with a valid `package.json`               |
+  | loaded ≠ declared                                                                                 | names both versions; "reinstall `mermaid`, and check for a loader hook that redirects it"                                                                               | the same run without the hook                    |
+  | version outside `11.x`                                                                            | "eess-mermaid reads mermaid 11; install `mermaid@11`"                                                                                                                   | a stub at `11.0.0`                               |
+  | the worker exits without a result                                                                 | names the block in flight; "leave that document out of the corpus by its `ignore` glob, and report the block to eess"                                                   | the same corpus with that document ignored       |
+  | a parse past [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s budget | names the block in flight and the budget; "raise `budget.perBlockMs`, or leave that document out"; before any `progress`, names start-up and "raise `budget.startUpMs`" | the same run with a larger budget                |
+  | the line canary disagrees                                                                         | as above                                                                                                                                                                | the real `mermaid` 11.17.2                       |
 
   If `Cannot find package '…'` does not match the load error, `missing` is empty and the remedy is the
   install line with Node's message quoted.
@@ -253,7 +252,7 @@ whole-line `%%` comment anywhere, with the blank lines before it (spike 0428 Q1)
 ### Two checks on one block (condition 12)
 
 A `classDiagram` block may be judged twice, on purpose: by md-mermaid (eess's grammar, for binding)
-and by this check (Mermaid's, for syntax). Each finding names its parser. After bug 0409 a block
+and by this check (Mermaid's, for syntax). Each finding names its parser. After [bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) a block
 Mermaid accepts is never reported by md-mermaid as the author's syntax error.
 
 ### Tier (condition 11)
@@ -272,8 +271,7 @@ One PR, red-first.
 2. **Preamble, classification and lines.** `diagramPreamble`, the outcome table, the line map with
    its fixtures, the trailing-comment rule, the line canary.
 3. **Canaries, abort, version range.** The in-flight index and the terminate-on-every-path test.
-4. **Conformance and docs.** In eess-crossvalidate: the test that `mermaidParser()` satisfies plan
-   0412's port, by type and by one run, and the Markdown-line rows through plan 0412's builder. The
+4. **Conformance and docs.** In eess-crossvalidate: the test that `mermaidParser()` satisfies [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s port, by type and by one run, and the Markdown-line rows through [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s builder. The
    package's `exports` resolve to `dist/`, so these run the built, copied worker — the published
    shape — and need the build first. README and docs.
 
@@ -288,14 +286,14 @@ Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) 
 - `packages/mermaid/package.json` — optional peers; `mermaid@11` and `jsdom` as dev dependencies for
   the tests; `files` keeps the worker.
 - `packages/mermaid/package.json` build script — copies the worker into `dist/`.
-- beside the moved `diagramKind()` (plan 0214's home): `diagramPreamble` and the line map, both
+- beside the moved `diagramKind()` ([plan 0214](./0214-extract-the-diagram-kind-predicate.md)'s home): `diagramPreamble` and the line map, both
   internal; `diagramKind` keeps its signature.
 - `eslint.config.ts` — a block for `packages/*/src/**/*.mjs` without type-checked rules.
 - `packages/mermaid/src/mermaid-js/create-mermaid-parser.ts` — internal; `mermaidParser()` is
   `createMermaidParser({ workerUrl: <the worker beside it> })`. Tests pass a worker copied into a
   scratch directory whose `node_modules` holds a stub `mermaid`, nothing, or links to the real
   packages. Not exported from the package root, and the package's `exports` map has no deep path, so
-  no rule file can name a module to run (ADR-015). The non-vacuity fixtures reach it by repository
+  no rule file can name a module to run ([ADR-015](../../../adr/015-the-kernel-extends-resolution-never-execution.md)). The non-vacuity fixtures reach it by repository
   path, `packages/mermaid/dist/mermaid-js/create-mermaid-parser.js`; `exports` stays `.` only, and no
   root export is added "for tests".
 - `packages/mermaid/tests/mermaid-parser.test.ts` and fixtures — new; the parser alone, no eess-md.
@@ -308,7 +306,7 @@ Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) 
 ## Test inventory
 
 - host globals unchanged after a parse, under vitest and under the CLI loader;
-- one valid block of each kind spike 0411 measured — the labelled flowchart, class, state and
+- one valid block of each kind [spike 0411](../../spikes/0411-can-the-caller-pass-mermaids-parser.md) measured — the labelled flowchart, class, state and
   mindmap that fail in plain Node among them — is `valid`;
 - each row of the outcome table, one block each, including unclosed frontmatter, closed frontmatter
   with nothing after it, and Mermaid's `ok` winning over the walk (`%%{init}%% %% note` ahead of a
@@ -316,7 +314,7 @@ Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) 
 - a failure with no line is `invalid` with `line: null`, for each of the three shapes;
 - `diagramKind`'s existing tests, unchanged;
 - the line rows, the verdict line right in eess-mermaid's tests and on the exact Markdown line through
-  plan 0412's builder in crossvalidate's: spike 0428's 17 mapped blocks (mid-body comments, a bare
+  [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)'s builder in crossvalidate's: [spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md)'s 17 mapped blocks (mid-body comments, a bare
   `%%`, directives before and mid-body, frontmatter with blank lines, CRLF, lexical, Langium) and the
   trailing-comment blocks — on a body line, on two lines, on the kind line, and in `erDiagram` —
   each `line: null` with Mermaid's line quoted;
@@ -335,22 +333,22 @@ Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) 
 
 ## Non-vacuity rows (plan B's share of the review's table)
 
-All are fixture-tier (bug 0127): each spawns a worker, about 0.5–0.9 s, and the build PR records the
-rows' added time on `check:nonvacuity`. The production-tier row is plan 0427's.
+All are fixture-tier ([bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)): each spawns a worker, about 0.5–0.9 s, and the build PR records the
+rows' added time on `check:nonvacuity`. The production-tier row is [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md)'s.
 
-| row                                                                                                                                                              | breaks      | matches on                                                                                       |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------ |
-| a syntax error after mid-body comments lands on its exact Markdown line                                                                                          | condition 7 | the file and line                                                                                |
-| the line map with one behaviour removed: the line canary reds, one row per behaviour the canary holds                                                            | condition 7 | "line map, written for mermaid 11.17.2, disagrees"                                               |
-| the trailing-comment rule removed: the spike's trailing-comment block claims a line                                                                              | condition 7 | "unreliable in a block with a trailing `%%` comment"                                             |
-| Mermaid's `ok` no longer wins: `%%{init}%% %% note` ahead of a kind is reported                                                                                  | condition 6 | the block's file and line                                                                        |
-| a corruption that drops the worker's DOM shim: the labelled flowchart is no longer `valid`                                                                       | condition 8 | the block's file and line                                                                        |
-| a missing peer; another package missing; a worker that exits early; a version out of range; an unreadable `package.json`; loaded ≠ declared under a resolve hook | condition 5 | each cause's own text                                                                            |
-| a `mermaid` stub that stops throwing, at an in-range version: fails on the canaries                                                                              | condition 4 | the canary cause text, so a range or missing-peer cause cannot red it instead (bug 0110's class) |
-| a non-parse throw is the instrument, never `invalid`                                                                                                             | condition 5 | the instrument cause text                                                                        |
-| a resolved non-result is the instrument                                                                                                                          | condition 5 | "resolved without a result"                                                                      |
-| a hang names the block in flight and the process exits                                                                                                           | condition 5 | the block's index, and exit                                                                      |
-| empty, no kind after a preamble, unclosed frontmatter, misspelt and `zenuml`, each with its own remedy                                                           | condition 6 | each remedy's text                                                                               |
+| row                                                                                                                                                              | breaks      | matches on                                                                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a syntax error after mid-body comments lands on its exact Markdown line                                                                                          | condition 7 | the file and line                                                                                                                                                            |
+| the line map with one behaviour removed: the line canary reds, one row per behaviour the canary holds                                                            | condition 7 | "line map, written for mermaid 11.17.2, disagrees"                                                                                                                           |
+| the trailing-comment rule removed: the spike's trailing-comment block claims a line                                                                              | condition 7 | "unreliable in a block with a trailing `%%` comment"                                                                                                                         |
+| Mermaid's `ok` no longer wins: `%%{init}%% %% note` ahead of a kind is reported                                                                                  | condition 6 | the block's file and line                                                                                                                                                    |
+| a corruption that drops the worker's DOM shim: the labelled flowchart is no longer `valid`                                                                       | condition 8 | the block's file and line                                                                                                                                                    |
+| a missing peer; another package missing; a worker that exits early; a version out of range; an unreadable `package.json`; loaded ≠ declared under a resolve hook | condition 5 | each cause's own text                                                                                                                                                        |
+| a `mermaid` stub that stops throwing, at an in-range version: fails on the canaries                                                                              | condition 4 | the canary cause text, so a range or missing-peer cause cannot red it instead ([bug 0110](../../bugs/fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s class) |
+| a non-parse throw is the instrument, never `invalid`                                                                                                             | condition 5 | the instrument cause text                                                                                                                                                    |
+| a resolved non-result is the instrument                                                                                                                          | condition 5 | "resolved without a result"                                                                                                                                                  |
+| a hang names the block in flight and the process exits                                                                                                           | condition 5 | the block's index, and exit                                                                                                                                                  |
+| empty, no kind after a preamble, unclosed frontmatter, misspelt and `zenuml`, each with its own remedy                                                           | condition 6 | each remedy's text                                                                                                                                                           |
 
 The false-red row is encoded in the harness's polarity: its fixture is the sabotaged worker, and the
 row passes when the gate goes red on the valid block.
@@ -359,10 +357,10 @@ row passes when the gate goes red on the valid block.
 
 Each is overrulable.
 
-- **One rule for the tag: any letter case.** md-mermaid reads `Mermaid` since bug 0423; `parseCodeBlocks`
+- **One rule for the tag: any letter case.** md-mermaid reads `Mermaid` since [bug 0423](../../bugs/fixed/0423-a-capitalised-mermaid-fence-is-skipped-in-silence.md); `parseCodeBlocks`
   matched exactly. eess-md's side is [bug 0426](../../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
   fixed before this plan. The architect review asked for an ADR, since the rule reverses a ruled
-  condition, removes public API and claims the family; it is written before bug 0426, outside this plan.
+  condition, removes public API and claims the family; it is written before [bug 0426](../../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md), outside this plan.
 - **A missing peer is a finding, never a throw at construction.** `mermaidParser()` never throws: its
   `version` is `'not installed'` or `'unreadable'` and its `parse` rejects with the remedy above.
 - **The dogfood gate is its own plan,** [0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md).
@@ -375,37 +373,37 @@ The first freeze's fourth decision, a public `diagramPreamble` with five reasons
 
 Each is overrulable. Where each review finding is answered:
 
-| finding                                                                                                | answered in                                                                                  |
-| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| architect C1 — comments anywhere; the offset is wrong                                                  | "The Markdown line": the line map and its canary                                             |
-| architect I1 — Langium lines are in `result`                                                           | "The Markdown line": the smallest of the structured lines                                    |
-| architect I2, enforcement I2 — the worker/host split                                                   | "The worker posts facts; the host decides"                                                   |
-| architect I3, enforcement I4 — seams and the loaded version                                            | Files Changed (`createMermaidParser`); the version bullets; the canary row matches its cause |
-| architect I4 — the tag rule as an ADR                                                                  | the first decision above; outside this plan                                                  |
-| architect M1, enforcement I1 — the reason names; unclosed frontmatter                                  | the outcome table; `diagramPreamble` internal                                                |
-| architect M2 — the version via `./*`                                                                   | the version bullets                                                                          |
-| architect M3 — lint and copy of the `.mjs`                                                             | the worker bullet; Files Changed                                                             |
-| architect M4 — the conformance test runs the built worker                                              | Phase 4                                                                                      |
-| architect M5, enforcement M1 — zero blocks, missing peer                                               | the last instrument bullet                                                                   |
-| architect M6 — no ADR for the isolation yet                                                            | recorded; nothing owed                                                                       |
-| enforcement I3 — three missing non-vacuity rows                                                        | Non-vacuity rows                                                                             |
-| enforcement I5 — remedies that clear                                                                   | the instrument table's clearing column                                                       |
-| enforcement M2 — the false-red row's polarity                                                          | Non-vacuity rows                                                                             |
-| enforcement M3 — one canary kind per shape                                                             | the canaries bullet                                                                          |
-| enforcement M4 — a transitive `ERR_MODULE_NOT_FOUND`                                                   | the instrument table                                                                         |
-| enforcement M5 — prerelease ranges                                                                     | the version range bullet                                                                     |
-| enforcement M6 — the rows' cost                                                                        | Non-vacuity rows                                                                             |
-| PR #219 architect C1, enforcement C1 — the trailing rule never fired                                   | "A block with a trailing comment claims no line"; a non-vacuity row                          |
-| PR #219 architect I1 — the version read needs a `require` condition                                    | the version bullets: `resolve.paths` and the file                                            |
-| PR #219 architect I2, enforcement I4 — the walk overrules `ok`; the table is not total; a message read | the outcome table; bug 0429                                                                  |
-| PR #219 architect I3 — how fixtures reach the seam                                                     | Files Changed                                                                                |
-| PR #219 enforcement I1 — the line canary shadows the canaries; indexes                                 | the line canary's three outcomes; private texts                                              |
-| PR #219 enforcement I2 — mismatch and unreadable have no red fixture                                   | Test inventory; non-vacuity rows                                                             |
-| PR #219 enforcement I3 — the line canary over-claims                                                   | the line canary: its blocks and its stated limit                                             |
-| PR #219 architect M1–M6, enforcement M2–M6                                                             | the instrument table and its notes; the outcome table's notes; Test inventory                |
-| PR #219 enforcement M1 — the success line with no parser                                               | not changed: the line is eess-md's (`code-block-parse.ts:390`); the README says so           |
-| PR #219 enforcement I5 — plan 0427's scope and exclusions                                              | plan 0427, fixed in the same PR                                                              |
-| enforcement M7 and the 0427 residual                                                                   | plan 0427, fixed in the same PR                                                              |
+| finding                                                                                                                | answered in                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| architect C1 — comments anywhere; the offset is wrong                                                                  | "The Markdown line": the line map and its canary                                                              |
+| architect I1 — Langium lines are in `result`                                                                           | "The Markdown line": the smallest of the structured lines                                                     |
+| architect I2, enforcement I2 — the worker/host split                                                                   | "The worker posts facts; the host decides"                                                                    |
+| architect I3, enforcement I4 — seams and the loaded version                                                            | Files Changed (`createMermaidParser`); the version bullets; the canary row matches its cause                  |
+| architect I4 — the tag rule as an ADR                                                                                  | the first decision above; outside this plan                                                                   |
+| architect M1, enforcement I1 — the reason names; unclosed frontmatter                                                  | the outcome table; `diagramPreamble` internal                                                                 |
+| architect M2 — the version via `./*`                                                                                   | the version bullets                                                                                           |
+| architect M3 — lint and copy of the `.mjs`                                                                             | the worker bullet; Files Changed                                                                              |
+| architect M4 — the conformance test runs the built worker                                                              | Phase 4                                                                                                       |
+| architect M5, enforcement M1 — zero blocks, missing peer                                                               | the last instrument bullet                                                                                    |
+| architect M6 — no ADR for the isolation yet                                                                            | recorded; nothing owed                                                                                        |
+| enforcement I3 — three missing non-vacuity rows                                                                        | Non-vacuity rows                                                                                              |
+| enforcement I5 — remedies that clear                                                                                   | the instrument table's clearing column                                                                        |
+| enforcement M2 — the false-red row's polarity                                                                          | Non-vacuity rows                                                                                              |
+| enforcement M3 — one canary kind per shape                                                                             | the canaries bullet                                                                                           |
+| enforcement M4 — a transitive `ERR_MODULE_NOT_FOUND`                                                                   | the instrument table                                                                                          |
+| enforcement M5 — prerelease ranges                                                                                     | the version range bullet                                                                                      |
+| enforcement M6 — the rows' cost                                                                                        | Non-vacuity rows                                                                                              |
+| PR #219 architect C1, enforcement C1 — the trailing rule never fired                                                   | "A block with a trailing comment claims no line"; a non-vacuity row                                           |
+| PR #219 architect I1 — the version read needs a `require` condition                                                    | the version bullets: `resolve.paths` and the file                                                             |
+| PR #219 architect I2, enforcement I4 — the walk overrules `ok`; the table is not total; a message read                 | the outcome table; [bug 0429](../../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md) |
+| PR #219 architect I3 — how fixtures reach the seam                                                                     | Files Changed                                                                                                 |
+| PR #219 enforcement I1 — the line canary shadows the canaries; indexes                                                 | the line canary's three outcomes; private texts                                                               |
+| PR #219 enforcement I2 — mismatch and unreadable have no red fixture                                                   | Test inventory; non-vacuity rows                                                                              |
+| PR #219 enforcement I3 — the line canary over-claims                                                                   | the line canary: its blocks and its stated limit                                                              |
+| PR #219 architect M1–M6, enforcement M2–M6                                                                             | the instrument table and its notes; the outcome table's notes; Test inventory                                 |
+| PR #219 enforcement M1 — the success line with no parser                                                               | not changed: the line is eess-md's (`code-block-parse.ts:390`); the README says so                            |
+| PR #219 enforcement I5 — [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md)'s scope and exclusions | [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md), fixed in the same PR                  |
+| enforcement M7 and the 0427 residual                                                                                   | [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md), fixed in the same PR                  |
 
 ## Decided at the build (2026-10-16)
 
@@ -419,11 +417,11 @@ Each is overrulable. Where the build departs from the text above, the text above
   `---` error for it), and so is a `---` reached after a leading comment
   (`%% c\n---\nflowchart TD`), whose first line is not `---`. The remedy names the closing line, the
   newline and the diagram. Closed frontmatter, a newline and nothing after it is
-  `no-kind-after-preamble`, as Mermaid throws `UnknownDiagramError` for it (spike 0428 Q5).
+  `no-kind-after-preamble`, as Mermaid throws `UnknownDiagramError` for it ([spike 0428](../../spikes/0428-where-mermaid-puts-an-errors-line.md) Q5).
 - **A syntax error Mermaid places outranks the preamble.** A jison or Langium error means Mermaid
   found a diagram to parse, so the block is `invalid` at the mapped line whatever the walk read. The
   preamble reasons decide only an `UnknownDiagramError` or another throw. Before this, a lone-`\r`
-  block with a syntax error got "declares no diagram" (PR review, enforcement I3; bug 0434).
+  block with a syntax error got "declares no diagram" (PR review, enforcement I3; [bug 0434](../../bugs/0434-diagramkind-reads-a-lone-cr-as-no-line-end.md)).
 - **YAML Mermaid cannot read is the author's.** The worker posts a seventh shape, `yaml`, for an
   error whose `name` is `YAMLException` (js-yaml's), with its `mark.line` and `mark.buffer`, the YAML
   it was given. It was "a throw that is not a syntax error", the instrument, which withheld every
@@ -463,11 +461,11 @@ Each is overrulable. Where the build departs from the text above, the text above
   refused.
 - **"Any other pair" has no branch.** The preamble reasons and the worker's shapes are closed unions
   and the classifier switches over both, so every pair has a row; a dead branch was not written.
-- **The ok-wins block is `%% c\rflowchart TD\r  A --> B`.** Since bug 0429 the walk and Mermaid agree
+- **The ok-wins block is `%% c\rflowchart TD\r  A --> B`.** Since [bug 0429](../../bugs/fixed/0429-diagramkind-reads-a-directive-closed-mid-line-as-open.md) the walk and Mermaid agree
   on `%%{init}%% %% note`. They still disagree about a lone `\r`, which Mermaid reads as a line end
   and the walk does not: recorded as [bug 0434](../../bugs/0434-diagramkind-reads-a-lone-cr-as-no-line-end.md),
   whose fix will need another block. Its non-vacuity row's sabotage moves the `ok` check below the
-  preamble switch (bug 0409's regression, not a deletion), and matches "the parser's answer for text
+  preamble switch ([bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)'s regression, not a deletion), and matches "the parser's answer for text
   4 has an empty message": an accepted block's fact carries no message, so eess-md refuses the
   verdict and names it by its index.
 - **"Frontmatter's trailing blanks" is not a behaviour the canary can see.** Mermaid's final
@@ -524,9 +522,9 @@ Each is overrulable. Where the build departs from the text above, the text above
 
 ## Out of scope
 
-- **The loop, the port and the evidence** — plan 0412.
-- **Moving the preamble walk** — plan 0214; this plan extends it after it moves.
-- **md-mermaid's wrong attribution** — bug 0409, a prerequisite.
+- **The loop, the port and the evidence** — [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md).
+- **Moving the preamble walk** — [plan 0214](./0214-extract-the-diagram-kind-predicate.md); this plan extends it after it moves.
+- **md-mermaid's wrong attribution** — [bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md), a prerequisite.
 - **Render checks** (Tier 2): a headless browser, which `parse()` deliberately is not.
 - **A list of Mermaid kinds** — condition 6 keeps one remedy, so none is needed (OQ4).
 - **Parsers for other languages** — none has a consumer.
@@ -545,7 +543,7 @@ Each is overrulable. Where the build departs from the text above, the text above
 - [x] Phase 3 — canaries, budget, version range, terminate on every path
 - [x] Phase 4 — conformance test, docs
 - [x] changeset: eess-mermaid `minor`
-- [ ] the dogfood gate (proposal 006's "Dogfood is not optional") — deferred→plan 0427 at the
+- [ ] the dogfood gate ([proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s "Dogfood is not optional") — deferred→[plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) at the
       freeze, so the parser and the gate are each one reviewable PR
 
-Deferred: plan 0427
+Deferred: [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md)

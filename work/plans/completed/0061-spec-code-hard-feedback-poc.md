@@ -316,14 +316,14 @@ Consolidate the gates so an amnesiac agent rediscovers ONE command per
 session, not five bespoke outputs:
 
 - **Named architectural decision required first** (review finding): the
-  crossvalidate/md presets are void-and-throwing (ADR-006: presets are
+  crossvalidate/md presets are void-and-throwing ([ADR-006](../../../adr/006-framework-rules-architecture.md): presets are
   functions), but the CLI loader accepts only `.check()`-able builders — the
   repo's own `check-crossval.mjs` documents this collision. Options to decide
   between: (a) presets gain builder-returning variants; (b) a kernel
   `asRule(fn)` adapter that wraps a void preset as a builder **honoring
   `CheckOptions`** (formatting lives in `executeCheck` — a naive
   `{check: () => preset()}` shim would break `--format json`/baseline/diff).
-  This may warrant an ADR-006 amendment; if the decision needs its own plan,
+  This may warrant an [ADR-006](../../../adr/006-framework-rules-architecture.md) amendment; if the decision needs its own plan,
   Phase 5 stops here and says so.
 - Migrate `check:corpus` / `check:crossval` internals to rules files run by
   `eess-ts check`; `mermaid.rules.ts` (already a CLI rules file) moves under
@@ -499,7 +499,7 @@ human what it means — is exactly kill criterion 3 not tripping.
   `types()` selects whole type declarations only. Rather than reach into
   ts-morph from a rules file, it is dropped and recorded — its own future plan.
 - **Phase 5 (consolidation) deferred, not executed.** It is the explicitly
-  cuttable phase; the review's condition (a named ADR-006 decision on the
+  cuttable phase; the review's condition (a named [ADR-006](../../../adr/006-framework-rules-architecture.md) decision on the
   void-preset/loader-contract collision before migrating the `.mjs` gates) is
   real design work that deserves its own plan, and Phase 4 (the verdict) is
   complete without it. The repo keeps its per-gate scripts; `check:spec` runs

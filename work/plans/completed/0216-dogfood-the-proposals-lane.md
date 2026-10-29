@@ -5,7 +5,7 @@
 - **State:** Done — closed 2026-08-23, after being reopened the same day. Every phase is
   verified against the built gates rather than asserted, **every rule id it ships carries a
   live fixture** (15 of 15, audited from the harness's own output rather than its source),
-  and no open box remains. `Deferred: plan 0218` — the acceptance-criteria rule and the
+  and no open box remains. Deferred: [plan 0218](./0218-gate-proposal-acceptance-criteria.md) — the acceptance-criteria rule and the
   ruling-names-an-owner rule, both split out because they turn on decisions reserved for the
   author.
 - **Priority:** Medium — it closes a gap between what `PROPOSALS.md` states and what
@@ -21,7 +21,7 @@
 ## Problem
 
 `work/proposals/` is partly gated: `check:corpus` resolves its links and pointers, enforces
-the accepted-Ruling → plan linkage (bug 0141 / plan 0142), and reports malformed
+the accepted-Ruling → plan linkage ([bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md) / [plan 0142](./0142-bind-proposals-to-plans.md)), and reports malformed
 `**Ruling:**` / `**Implements:**` lines; `check:ledger` reads each proposal's `State`.
 
 Two things the lane states are checked by nothing.
@@ -123,7 +123,7 @@ pointers in closed records go uncaught elsewhere; this lane starts without that 
 ## Phase 2 — promote 005
 
 `work/proposals/005-crossvalidate-stale-wip-detection.md` → `work/proposals/promoted/`,
-its header token `Draft` → `Promoted`, naming plan 0145.
+its header token `Draft` → `Promoted`, naming [plan 0145](./0145-crossvalidate-stale-wip-detection.md).
 
 Four inbound links break and are repaired in the same commit —
 `work/plans/completed/0142-…:191`, `work/plans/completed/0145-…:32`,
@@ -192,7 +192,7 @@ was not** — see the reopening note at the end.
       (`proposal-missing-from-board`), a row naming no real proposal
       (`proposal-board-row-unresolved`), a row with no leading number, and two files
       claiming one number (`proposal-number-duplicated`).
-- [x] Three ADR-010 guards, one per way this rule can examine nothing: board document
+- [x] Three [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) guards, one per way this rule can examine nothing: board document
       missing (`proposal-board-missing`), board table unreadable
       (`proposal-board-unreadable`), and every row unmatched
       (`proposal-board-examined-nothing`). The summary's affirmative clause is gated on
@@ -200,11 +200,11 @@ was not** — see the reopening note at the end.
 - [x] The three `Promoted` obligation rules red as specified: promoting while naming no
       owner, promoting on a `Rewrite needed`/`Reject` ruling, and promoting with a `Held`
       disposition row. Verified against real records — promoting 006 fires
-      `has-held-asks` and **not** `names-no-owner`, because plans 0212/0213/0214 do declare
-      `**Implements:** proposal 006`.
+      `has-held-asks` and **not** `names-no-owner`, because [plans 0212](../0212-eess-mermaid-fence-discoverability.md)/0213/0214 do declare
+      `**Implements:**` [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md).
 - [x] Ten committed fixtures, one per rule id — the harness goes **43 → 53**. Review
       measured the first pass shipping three rule ids behind one fixture, with both
-      ADR-010 guards neuterable to `if (false)` while the harness stayed green.
+      [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) guards neuterable to `if (false)` while the harness stayed green.
 - [x] `check:ledger` reports `proposals 6 scanned · 6 with a readable State · 1 done
 (ledger-checked)`; the "(no terminal state — box-disposition check never runs on this
       lane)" parenthetical is gone. Both placement directions red one
@@ -215,7 +215,7 @@ was not** — see the reopening note at the end.
       `998-nonvacuity-probe-board.md`, the only probe in the harness the ignore rule missed
       (`**/__nonvacuity_probe*` is a basename prefix); under SIGKILL it survived inside a
       tracked corpus root.
-- [x] **All three ADR-010 guards are fixtured**, `corpus/proposal-board-missing` included.
+- [x] **All three [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) guards are fixtured**, `corpus/proposal-board-missing` included.
       An earlier version of this section left that one out as `dropped-on-purpose`, arguing
       that removing a tracked file was "a strictly larger blast radius than the
       rewrite-and-restore every other fixture uses". **That reasoning did not survive being
@@ -240,7 +240,7 @@ found, all reproduced before acting:
    linkage keys on the Ruling and `ACCEPTED_RULINGS` is only `Ship as-is` / `Ship with
 changes`. The plan asserted "no second rule is owed" and put that in `PROPOSALS.md` as
    spec. It was owed.
-3. **The two ADR-010 guards had no fixture** and could be deleted silently.
+3. **The two [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) guards had no fixture** and could be deleted silently.
 4. **Promoting with live `Held` asks was green** — `honestyAtClose` reads task boxes, and a
    disposition table is a table.
 

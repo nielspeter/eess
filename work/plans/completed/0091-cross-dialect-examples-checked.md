@@ -4,7 +4,7 @@
 
 - **State:** Done — built and merged 2026-08-14. Frozen 2026-08-12 after a
   six-persona review and a targeted re-review of the non-vacuity section;
-  re-verified 2026-08-14 after plan 0096 landed (a floor drift check found
+  re-verified 2026-08-14 after [plan 0096](./0096-dogfood-missing-crossvalidate-bindings.md) landed (a floor drift check found
   `md-ts`'s stats export had already shipped independently and two
   `check-crossval.mjs` line citations had shifted — both corrected in place, no
   re-review needed since neither changed scope or approach). Born from a dogfood
@@ -76,10 +76,10 @@ promise**:
    `type-safety`). Grep across it for `crossvalidate`: no hits. The README's four
    snippets have no living counterpart in-repo.
 2. **`check:crossval` mounts 5 of the 7 bridges** — `mermaid-ts`, `md-ts`,
-   `gherkin-ts`, and (as of plan 0096) `md↔gherkin` and `md↔mermaid`. It never runs
+   `gherkin-ts`, and (as of [plan 0096](./0096-dogfood-missing-crossvalidate-bindings.md)) `md↔gherkin` and `md↔mermaid`. It never runs
    `md↔mermaid-er` (out of scope indefinitely — no `erDiagram` in this corpus).
    Corrected by a 2026-08-14 freeze-time drift check: this item originally read
-   "mounts 3 of the 7 bridges... never runs `md↔gherkin`, `md↔mermaid`"; plan 0096
+   "mounts 3 of the 7 bridges... never runs `md↔gherkin`, `md↔mermaid`"; [plan 0096](./0096-dogfood-missing-crossvalidate-bindings.md)
    closed that gap on the gate side in the interim. It doesn't change this plan's
    scope — the gate and the adopter-facing `examples/` below are deliberately
    separate (see Out of Scope) — but the motivating claim needed correcting.
@@ -118,8 +118,8 @@ nor does any of it run.
   this plan's scope.
 - **No new ADR.** The design decisions here are placement and execution, not
   architecture. Two existing ADRs already govern how examples must be written:
-  **ADR-007** (isolate the AST engine behind the public API — no ts-morph in the
-  examples) and **ADR-008** (caller owns reporting — the examples assert via the
+  **[ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)** (isolate the AST engine behind the public API — no ts-morph in the
+  examples) and **[ADR-008](../../../adr/008-caller-owns-reporting.md)** (caller owns reporting — the examples assert via the
   thrown `ArchRuleError`, never by reaching into reporters). The plan links these
   rather than burying a decision in prose.
 
@@ -228,12 +228,12 @@ needs, each mirroring its package test:
   `it('…')` title; a bad twin citing a title that doesn't exist in the test AST.
   Mirrors `packages/crossvalidate/tests/md-ts.test.ts`. The `project()` tsconfig must include the test
   file (the ADR-gate lesson, `scripts/check-crossval.mjs:74-76` — corrected from
-  `:54–62` by a 2026-08-14 drift check; plan 0096 grew this file and the original
+  `:54–62` by a 2026-08-14 drift check; [plan 0096](./0096-dogfood-missing-crossvalidate-bindings.md) grew this file and the original
   citation had shifted onto an unrelated line). `adrCitationsResolve` ends in
   `.beComplete({ direction: 'left-to-right' })`, so a fixture whose citation row
   was deleted is _green-on-empty_, not red, unless the example also asserts a
   count. **`adrCitationStats` already exists** on `packages/crossvalidate/src/md-ts.ts`
-  for exactly that (added by bug 0104, the same day this plan was frozen — not new
+  for exactly that (added by [bug 0104](../../bugs/fixed/0104-it-title-capture-stops-at-any-quote.md), the same day this plan was frozen — not new
   work here; an earlier draft claimed it as new public surface this plan adds,
   which the same drift check found stale and corrected). The example imports it
   and asserts its count, same shape as `md-gherkin`'s `scenarioCitationStats` and
@@ -256,7 +256,7 @@ needs, each mirroring its package test:
   fixture's own `src` so the `drift.mmd` red actually mounts — if `scope` matched
   nothing on the TS side, that red would silently go green.
 
-All example files use **only the public APIs** (ADR-007): imports from
+All example files use **only the public APIs** ([ADR-007](../../../adr/007-isolate-ast-engine-boundary.md)): imports from
 `@nielspeter/eess-crossvalidate/*`, `@nielspeter/eess-md`, `@nielspeter/eess-gherkin`,
 `@nielspeter/eess-ts`, `@nielspeter/eess` — never ts-morph, never internals. Every
 `project()`/`corpus()`/fixture path is **absolute via `import.meta.url`** (the
@@ -264,7 +264,7 @@ pattern above, from the package tests) — never cwd-relative, which the audit s
 breaking at runtime.
 
 **No published-surface consequence.** `adrCitationStats` on
-`packages/crossvalidate/src/md-ts.ts` already exists (bug 0104, shipped the same
+`packages/crossvalidate/src/md-ts.ts` already exists ([bug 0104](../../bugs/fixed/0104-it-title-capture-stops-at-any-quote.md), shipped the same
 day this plan was frozen) — this plan does not add it, only consumes it. Everything
 this plan actually touches (root devDeps, `examples/`, `check:examples`,
 `WORKSPACE_PKGS`) is monorepo-internal and ships nothing, so this plan carries
@@ -356,7 +356,7 @@ actually exists and actually fails on empty:
 - **md↔gherkin** — `scenarioCitationStats(...).citations > 0` (exists in `packages/crossvalidate/src/md-gherkin.ts`).
 - **gherkin↔ts** — `scenarioTestStats(...).citations > 0` (exists in `packages/crossvalidate/src/gherkin-ts.ts`).
 - **md↔ts** — `adrCitationStats(...)`, **already exported** by
-  `packages/crossvalidate/src/md-ts.ts` (bug 0104 — not new work here; a prior
+  `packages/crossvalidate/src/md-ts.ts` ([bug 0104](../../bugs/fixed/0104-it-title-capture-stops-at-any-quote.md) — not new work here; a prior
   draft claimed this as new public surface the plan adds, corrected by a
   2026-08-14 freeze-time drift check once the export was found to already exist).
   Among the three citation-count bindings (md↔gherkin, gherkin↔ts, md↔ts), md-ts
@@ -402,7 +402,7 @@ previously-open gaps. That framing is stated so the plan isn't overclaimed at cl
   the template) with its own effort. That is a separate, follow-on item. This plan
   pins the fold to `cross-dialect.*.test.ts` so they stay typecheck-only (their
   current, documented behavior) rather than silently failing.
-- **Doc-fence typechecking or doc CI** — plan 0082 already owns that lane.
+- **Doc-fence typechecking or doc CI** — [plan 0082](./0082-doc-code-fence-typecheck.md) already owns that lane.
 
 ## Success / close
 

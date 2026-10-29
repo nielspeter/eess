@@ -6,9 +6,9 @@
   landed: `scenarioExemptionsCurrent` + `citedScenarioSites` shipped, 31
   non-vacuity fixtures (both new rows mutation-verified), the production
   gate's own denominator honestly non-zero. Created the same day as a Draft
-  following proposal 005's acceptance (`Ship as-is`, third review round —
+  following [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)'s acceptance (`Ship as-is`, third review round —
   architect · product · enforcement, all three full).
-- **Implements:** proposal 005
+- **Implements:** [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)
 - **Priority:** Medium — extends the reach of an already-shipped primitive
   (`scenariosCovered`'s `include` option); does not close a correctness gap
   in what eess currently _claims_ to check, since `scenariosCovered` never
@@ -93,13 +93,13 @@ Per `Rewrite v3 → Non-vacuity` exactly:
      file, since it needs the identical throwaway-corpus machinery the other
      two already build.
      Each scenario asserts via `--format json`'s `firedOn`, plus a bare-
-     terminal exit-code run (bug 0127's two-run discipline).
+     terminal exit-code run ([bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s two-run discipline).
 - `scripts/check-nonvacuity.mjs`: new `PROBE_*` sweep entries if any
   ephemeral probes are needed beyond the throwaway-directory shell already
   used by `bad-release-e2e.mjs`; new `GATES` rows; `GATE_FOR['check:crossval']`
   gains the new row names; the harness header docblock's gate→input→rule
   table gains a row (per this round's own finding that the table already
-  silently omitted plan 0142's five rows — fix this omission too while
+  silently omitted [plan 0142](./0142-bind-proposals-to-plans.md)'s five rows — fix this omission too while
   editing the same table, since it is the same honesty gap, found again).
 
 **Definition of done:** `npm run check:nonvacuity` proves every new rule id
@@ -119,7 +119,7 @@ is not evidence, re-derive it).
   "a mechanism; none exists"). Genuinely unbuilt, not a scenario this change
   itself will make stale.
 - `packages/crossvalidate/README.md`: document `scenariosCovered` (currently
-  undocumented — the discoverability gap proposal 005's own Origin fell
+  undocumented — the discoverability gap [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)'s own Origin fell
   into) alongside `scenarioExemptionsCurrent`.
 - One changeset: `@nielspeter/eess-crossvalidate`, minor.
 
@@ -157,7 +157,7 @@ state (the committed `@wip` scenario present and uncited, satisfying
 - `scripts/check-crossval.mjs` — `--format json`, env override, new gate
   call, `include` + corrected denominator on the existing one.
 - `scripts/nonvacuity/bad-crossval-gherkin-e2e.mjs` (new), plus one more
-  fixture for `scenariosCovered` (closing one row of bug 0112).
+  fixture for `scenariosCovered` (closing one row of [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)).
 - `scripts/check-nonvacuity.mjs` — new rows, `GATE_FOR` entries, header
   docblock update.
 - `.changeset/` — one new changeset, minor, `@nielspeter/eess-crossvalidate`.
@@ -165,12 +165,12 @@ state (the committed `@wip` scenario present and uncited, satisfying
 ## Out of scope
 
 - **Whether a `@wip` scenario should survive to its owning plan's close** —
-  proposal 005's own explicitly-deferred open question. A different trigger
+  [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)'s own explicitly-deferred open question. A different trigger
   on a different lifecycle; its own proposal if anyone wants it built.
-- **The other two rows of bug 0112** (`diagramMatchesCode` code→diagram
+- **The other two rows of [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)** (`diagramMatchesCode` code→diagram
   direction, `haveUniqueTitles()`) — this plan closes the one row
   (`scenariosCovered`) its own `include` edit makes load-bearing; the other
-  two stay with bug 0112.
+  two stay with [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md).
 - **The kernel-routed `beDisjoint()` design** — considered and rejected
   across two prior review rounds (real pair-duplication defect, not a
   20-line primitive as first claimed). Not revisited here; if a second
@@ -183,9 +183,9 @@ state (the committed `@wip` scenario present and uncited, satisfying
   consumer of a strong-tier (`bad-release-e2e.mjs`-shaped) non-vacuity
   fixture outside the release gate itself.
 - `check:corpus`'s proposal→plan linkage gate goes green against a real
-  accepted proposal and a real declaring plan — proposal 005 no longer
+  accepted proposal and a real declaring plan — [proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md) no longer
   contributes to a permanently-`0-accepted` denominator.
-- `scenariosCovered` gains its own fixture, closing one of bug 0112's three
+- `scenariosCovered` gains its own fixture, closing one of [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)'s three
   named rows.
 - `npm run validate` green end-to-end.
 
@@ -195,7 +195,7 @@ state (the committed `@wip` scenario present and uncited, satisfying
       77/77 crossvalidate suite green, `tsc --noEmit` clean)
 - [x] Phase 2 — non-vacuity, strong tier, mutation-verified (31 fixtures
       total, both new rows confirmed to catch their target mutation; also
-      fixed the harness header's pre-existing omission of plan 0142's rows,
+      fixed the harness header's pre-existing omission of [plan 0142](./0142-bind-proposals-to-plans.md)'s rows,
       found again while editing the same table)
 - [x] Phase 3 — dogfood wiring, docs, changeset; `check:corpus` shows a real
       accepted+implemented pair (`1 accepted`, ✓), `check:crossval` shows a

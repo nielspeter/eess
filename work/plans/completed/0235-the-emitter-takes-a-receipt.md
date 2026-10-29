@@ -2,27 +2,27 @@
 
 ## Status
 
-- **State:** Done — all five phases shipped in PR #108, closing bugs 0190, 0206
-  and 0261 in the same PR. ADR-014 went from 0 to 10 of 16 rows `gated`; the five
+- **State:** Done — all five phases shipped in PR #108, closing [bugs 0190](../../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md), 0206
+  and 0261 in the same PR. [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) went from 0 to 10 of 16 rows `gated`; the five
   that did not are `deferred→` [plan 0263](./0263-adr-014s-residual-enforcement-rows.md),
   which owns them by name in the ADR's own table.
   Previously read: Ready — frozen 2026-09-05. The freeze was refused once on
   2026-09-03, when six review lenses reached "do not build as written"
   independently; _Decisions, taken_ below answers what that review opened, and
-  ADR-014 was amended the same day with every change Phase 0 owed it.
+  [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) was amended the same day with every change Phase 0 owed it.
   **The 2026-09-05 freeze refused a second time, and this is what it caught:**
   the migration census was pinned to ~40 `file:line` citations, and 8 of 15
   sampled had staled within two days — `check-corpus.mjs` grew 232 lines and
   `check-nonvacuity.mjs` 497 in that window, and `check:corpus` stayed green over
   every one of them, because the pointer gate proves a line exists, not that it
-  still says what was claimed (bug 0253's class). The census, and every
+  still says what was claimed ([bug 0253](../../bugs/0253-frozen-drift-is-not-reported-only-unexamined.md)'s class). The census, and every
   load-bearing citation behind D1, D2b and D7, is now recorded **by value** —
   keyed to an exported symbol or a greppable expression, not a line. Phases and
   decisions are unchanged; only the way the plan names things moved. [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
   (Accepted 2026-09-03) is not in question; this document was the sketch of its
   build and it under-scoped the work.
 - **Priority:** High — the ROADMAP's own definition: closes a gap between what
-  eess claims and what it checks. ADR-010 says an evidence-free pass is
+  eess claims and what it checks. [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) says an evidence-free pass is
   unrepresentable; at the emitter it is one line, measured in the field as
   three inert gates in a week, written by an agent told to use eess properly.
 - **Effort:** **High** — raised from Medium by the review, and the raise is not
@@ -30,7 +30,7 @@
   census that counted the wrong population. Migration size is a cost to pay, not
   a reason to shrink the contract.
 - **Created:** 2026-09-03 · **Reviewed:** 2026-09-03
-- **Builds:** ADR-014. Proposal 009's Ask A, **reshaped**; its disposition row
+- **Builds:** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). [Proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s Ask A, **reshaped**; its disposition row
   names this plan. No `**Implements:**` line, deliberately: 009's ruling is
   `Split and sequence`, which `ACCEPTED_RULINGS` does not admit, so no plan is
   owed against it and a declaration would claim it builds the whole proposal.
@@ -48,17 +48,17 @@ consumer who imports eess's types, eess's printer and eess's corpus loader — a
 no `RuleBuilder` — can hand either emitter an empty array from a loop that
 examined nothing, and eess prints green.
 
-ADR-014 records the decision: **evidence is required at every seam where a
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) records the decision: **evidence is required at every seam where a
 verdict leaves eess.** The emitters take the evidence shape every terminal
 already produces — `CollectResult`'s `{ violations, examined }`
 (`packages/core/src/terminal-builder.ts:39`) — and a value with no evidence, or
 evidence of zero without a declaration, is a configuration finding. The device
 is a **required field, not a registry**: the measured failure was an honest
 mistake, not forgery, and against that target _unomittable_ is the whole
-requirement. It also keeps ADR-010 §2's cap on kernel registries untouched.
+requirement. It also keeps [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §2's cap on kernel registries untouched.
 
 This plan is the work. It is deliberately not the guardrail preset rule
-(proposal 009's Ask C) — that is an opt-in lint an adopter may never enable, and
+([proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)'s Ask C) — that is an opt-in lint an adopter may never enable, and
 it ships separately. This is the contract.
 
 ## Review outcome (2026-09-03 — architect · product · enforcement · customer · devops · testing)
@@ -84,10 +84,10 @@ Two consequences that resolve arguments this plan was having with itself:
 
 - **A required field stays required.** Where the review found that making it
   required breaks adopters' hand-rolled rule files, that is the correct outcome.
-  Optional is the omittable field ADR-014 §2 rejects, and an optional evidence
+  Optional is the omittable field [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §2 rejects, and an optional evidence
   field is a permanent licence to lie.
 - **A false positive is not the mirror of a false green, but it is not free
-  either.** It matters here only through ADR-009 rule 1: a finding an adopter
+  either.** It matters here only through [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1: a finding an adopter
   cannot legitimately answer trains them to disable the gate, and a disabled gate
   is a green that means nothing. That, not the annoyance, is why D4 and D5 are
   decided rather than dropped.
@@ -127,10 +127,10 @@ examined, or a mechanism that claims coverage it does not have.
    `tsconfig.build.json` files, each with `"include": ["src"]` and no `allowJs`;
    there is no root `tsconfig.json`; `lint` covers `packages/*/src` and
    `packages/*/tests` only; `typecheck` is per-workspace and `scripts/` is not
-   one. A rule over `scripts/**` matches zero modules and passes, while ADR-014's
+   one. A rule over `scripts/**` matches zero modules and passes, while [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
    row moves from `pending` to `gated`. **A false green inside the enforcement
    table of the ADR about false greens.** → **D3**
-4. **Nothing proves any migrated number means anything** (testing). ADR-014 §2
+4. **Nothing proves any migrated number means anything** (testing). [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §2
    delegates that guard in its own words: "only a fixture that breaks the loop
    and expects red proves the count means anything." Phase 1 shipped one fixture,
    against the kernel emitter, not against any site's number, and the ledger said
@@ -140,7 +140,7 @@ examined, or a mechanism that claims coverage it does not have.
    cardinality-exempt rule hands up an empty list with zero examined
    (`evidencedViolations()` in `packages/core/src/terminal-builder.ts`), byte-identical to a vacuous
    one. Choose "don't fire" and `presetConstructsNothingViolation` is
-   unreachable exactly as bug 0190 found it, one seam further along, while this
+   unreachable exactly as [bug 0190](../../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md) found it, one seam further along, while this
    plan claims 0190 closes. A finding that cannot fire is coverage that is not
    there. → **D4**
 6. **Phase 1's own assertions cannot be written**, so its fixtures could pass
@@ -150,12 +150,12 @@ examined, or a mechanism that claims coverage it does not have.
    in Phase 0 by keying on the finding that has one. The new
    non-vacuity row cannot be registered either: `gateCoverage()` fails closed on
    any row no `check:*` claims (`gateCoverage()` in `scripts/check-nonvacuity.mjs`). And the
-   bare-array test needs an ADR-005-legal JS-interop boundary the plan never
+   bare-array test needs an [ADR-005](../../../adr/005-no-any-no-type-assertions.md)-legal JS-interop boundary the plan never
    declares.
 7. **Deleting `throwIfViolations` disarms a live probe, silently** (three
    lenses). `scripts/check-nonvacuity.mjs` injects it (grep `throwIfViolations`) as the violating
    payload for the family re-export probe, and that fixture's own comment records
-   the identical accident when ADR-011 moved its predecessor: it "turned this
+   the identical accident when [ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md) moved its predecessor: it "turned this
    fixture's violating input into a legal one and the probe green-for-nothing".
    The rule reads import specifiers, not the kernel's export set, so the probe
    would likely keep firing on a symbol that no longer exists — green for
@@ -215,7 +215,7 @@ rediscover them.
     which exists only in eess-ts. `eess-md` and `eess-crossvalidate` call
     `finishPreset` directly (`packages/md/src/rules/adr.ts:156`,
     `packages/md/src/rules/ledger.ts:580`), so a preset user would be told to fix
-    a selection they do not hold. ADR-009 rule 2's prohibition, and the message is
+    a selection they do not hold. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's prohibition, and the message is
     what an agent acts on. → **D6**
 15. **The return-consumer census was never taken** (testing) — the population
     that produces finding 1 and finding 8. → **Phase 4**
@@ -223,19 +223,19 @@ rediscover them.
     `packages/ts/src/cli/commands/check.ts:186` and `:304` aggregate
     `builder.violations()` and exit on the result. Not a lie — each `violations()`
     is terminal-gated, so a vacuous rule arrives as a finding — but the
-    denominator is dropped, which is bug 0174's open half. Noted under D1.
+    denominator is dropped, which is [bug 0174](../../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)'s open half. Noted under D1.
 
 **Corrections to this plan's own measurement**, recorded rather than edited away
 so the next reader knows the table was wrong once:
 
-| the plan said                                            | the source says                                                                                                |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| the builder "has `examinedUnits()` in every family"      | only `packages/ts`; four packages have none                                                                    |
-| `executeCheck` / `executeWarn` thread `examined` through | `executeWarn` calls no emitter; it writes through `writeStderr` directly. Only kernel `executeCheck` qualifies |
-| both `eess-md` presets sum `dispatchRule` receipts       | `ledger.ts:580` never calls `dispatchRule`; its number had no stated source                                    |
-| five gate scripts, one emitter call each                 | seven emitter calls: `check-baseline.mjs:69` and `:75`, `check-guardrails.mjs:68` and `:99`, three others once |
-| "Every site is one line"                                 | `check-guardrails.mjs` reads its result at `:69`, `:73`, `:96`, `:97`, `:99`; `check-baseline.mjs` at three    |
-| ADR-008 gains an amendment section (Phase 4)             | already landed in commit `371eba1` with the acceptance                                                         |
+| the plan said                                                                             | the source says                                                                                                |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| the builder "has `examinedUnits()` in every family"                                       | only `packages/ts`; four packages have none                                                                    |
+| `executeCheck` / `executeWarn` thread `examined` through                                  | `executeWarn` calls no emitter; it writes through `writeStderr` directly. Only kernel `executeCheck` qualifies |
+| both `eess-md` presets sum `dispatchRule` receipts                                        | `ledger.ts:580` never calls `dispatchRule`; its number had no stated source                                    |
+| five gate scripts, one emitter call each                                                  | seven emitter calls: `check-baseline.mjs:69` and `:75`, `check-guardrails.mjs:68` and `:99`, three others once |
+| "Every site is one line"                                                                  | `check-guardrails.mjs` reads its result at `:69`, `:73`, `:96`, `:97`, `:99`; `check-baseline.mjs` at three    |
+| [ADR-008](../../../adr/008-caller-owns-reporting.md) gains an amendment section (Phase 4) | already landed in commit `371eba1` with the acceptance                                                         |
 
 Stale pointers, all of which `check:corpus` passes because it resolves that a
 line exists, not that it says what was claimed: `adr.ts:148` is
@@ -243,7 +243,7 @@ line exists, not that it says what was claimed: `adr.ts:148` is
 `packages/ts/src/presets/shared.ts:445-448`, not 441-444; `packages/ts/src/presets/shared.ts:427`
 is `deliver()`'s flatMap, its declaration is `:419`.
 
-**One correction was owed outside this plan, and is made.** ADR-014's
+**One correction was owed outside this plan, and is made.** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
 Enforcement row claimed `check:family` "sees the removal" of `throwIfViolations`.
 That gate ships one rule, about re-export **completeness**; a removed symbol
 simply stops being owed, and `tsc` is what catches the dangling re-export. The
@@ -270,8 +270,8 @@ second member anyone could omit. (`packages/mermaid/src/cli/load-rules.ts:5`
 declares a `RuleBuilderLike` of its own, but with `check` and `describeRule`,
 not `violations` — nothing there moves.) An adopter's hand-rolled rule file stops
 compiling, and that is correct: a rule file that cannot say what it examined is
-the shape ADR-014 exists to stop, and a compile error is the right way to learn
-it. **This is a kernel public-API change and belongs in ADR-014.**
+the shape [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) exists to stop, and a compile error is the right way to learn
+it. **This is a kernel public-API change and belongs in [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md).**
 
 One consumer still drops the number, and the sentence "no bypass" is too strong
 by exactly this much: the `eess-ts` CLI aggregates `builder.violations()` and
@@ -289,7 +289,7 @@ it passed in. The three scripts that reach an emitter only under `--format json`
 (`check-corpus.mjs:764`, `check-ledger.mjs:166`, `check-release.mjs:377`) get
 their default paths routed through it, because a contract that binds only the
 machine-readable path is a contract that does not bind CI. This is a fourth
-ADR-008 statement superseded and ADR-014 must say so.
+[ADR-008](../../../adr/008-caller-owns-reporting.md) statement superseded and [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) must say so.
 
 **Sub-decision, because it is the difference between loud and silent.** The
 receipt must not let a JavaScript consumer read `.length` as `undefined` and exit
@@ -304,8 +304,8 @@ caller must act on, so a printed unsuppressable finding above a zero exit is the
 lie by another name. The emitter escalates a `bypassFilters` finding to a throw
 in those modes, exactly as `executeWarn` already does
 (`packages/core/src/execute-rule.ts`, its `throw new ArchRuleError(escalated, …)`), and as the finding's own text
-promises. This amends ADR-008's "never throws" to "never throws on violations;
-throws on a configuration finding it produced itself", and ADR-014 §5 and §6,
+promises. This amends [ADR-008](../../../adr/008-caller-owns-reporting.md)'s "never throws" to "never throws on violations;
+throws on a configuration finding it produced itself", and [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §5 and §6,
 which currently codify the printed line.
 
 **D3 — no row goes `gated` over a scope that selects nothing.** The dogfood rule
@@ -320,14 +320,14 @@ allowed but is not what makes the clause enforced.
 
 **D4 — it fires, and the declaration reaches the emitter so it does not have to
 guess.** "Don't fire" makes `presetConstructsNothingViolation` unreachable
-exactly as bug 0190 found it, one seam further along, while this plan claims
+exactly as [bug 0190](../../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md) found it, one seam further along, while this plan claims
 0190 closes. That is the lie. So the receipt carries the declaration beside
 `sourceEmpty` — the terminal already knows, at
 `evidencedViolations()` in `packages/core/src/terminal-builder.ts`, and currently discards it. With
 the fact on the receipt the emitter distinguishes "examined nothing and said so"
 from "examined nothing", and neither lies nor false-positives. This is the same
-move ADR-013 made: give the seam the fact, not the machinery to infer it. The
-field is `declaredEmpty?: true` on the receipt, and it carries ADR-010 §3's
+move [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md) made: give the seam the fact, not the machinery to infer it. The
+field is `declaredEmpty?: true` on the receipt, and it carries [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3's
 expiry with it: a receipt declared empty that arrives with `examined > 0` is
 the expired-declaration finding, the emitter's mirror of what the terminal
 already produces for its own rules (`deadGlobViolation` in
@@ -350,14 +350,14 @@ And `deliver()` cannot infer the fact: it takes `(builders, options)`
 preset's `attempted` list. "Empty builders means declared" is sound today only
 because all five presets guard with `assertDiscovered` or `assertEnabled` first,
 an invariant held by callers that a sixth preset would break silently. So the
-fact is **passed** to `deliver()` — ADR-013's shape — and the five call sites
+fact is **passed** to `deliver()` — [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s shape — and the five call sites
 join the census. `deliver()` is not exported, so its half of D5 reaches exactly
 this repo's five presets; the `dispatchRule` half is what reaches every dialect
 and every adopter's preset. No exemption list, no new option, and the adopter keeps the legitimate
 answer they have today. A finding whose only escape is switching the gate off
 ends in a gate nobody runs, which is a green that certifies nothing.
 
-**REVERSED 2026-09-05 by ADR-014 §3's amendment. The heading above is the
+**REVERSED 2026-09-05 by [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3's amendment. The heading above is the
 position as first argued; what shipped is its opposite, and this note is left
 here because a decision section that reads as current while the code does the
 reverse is the drift this plan exists to catch.**
@@ -365,7 +365,7 @@ reverse is the drift this plan exists to catch.**
 An all-off preset is **not** a declaration. It is a configuration finding.
 `overrides: { id: 'off' }` is byte-identical whether the author meant "I have
 scoped this out" or "I turned this off to stop a finding", so a declaration
-minted from it is one nothing can ever contradict — and ADR-010 §3 admits a
+minted from it is one nothing can ever contradict — and [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3 admits a
 declaration ONLY because it "fails the day it stops being true". By D5's own
 second half — pass the fact, never infer it — eess is not positioned to read that
 intent, which is why the amendment lands against the first half and leaves the
@@ -379,7 +379,7 @@ denominator to be suspicious about, deliberately not `declaredEmpty`. One
 disabled rule therefore cannot red a preset whose others examined plenty
 (measured: `adrEnforcement` with `adr/valid-tiers` off), and a preset where
 EVERY member is `notRun` still sums to zero examined with nobody declaring, so
-the emitter reports it. That is bug 0261, and it is now a test.
+the emitter reports it. That is [bug 0261](../../bugs/fixed/0261-an-all-off-preset-returns-neither-a-finding-nor-a-declaration.md), and it is now a test.
 
 The legitimate quiet D5 wanted still exists, but the caller has to **write** it:
 `expectEmpty` on `PresetReportOptions`, which expires the day the subject appears.
@@ -396,10 +396,10 @@ examined. Each gets its own remedy, and the kernel's generic one must be
 answerable by any hand-assembler, because `eess-md` and `eess-crossvalidate`
 reach `finishPreset` with no `deliver()` in between
 (`packages/md/src/rules/adr.ts:156`, `packages/md/src/rules/ledger.ts:580`).
-`deliver()` adds the preset-specific remedy where it applies. ADR-009 rule 2, and
+`deliver()` adds the preset-specific remedy where it applies. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2, and
 the message is what an agent acts on.
 
-**D7 — one receipt per assertion, and the merge is fail-closed.** ADR-010 §1
+**D7 — one receipt per assertion, and the merge is fail-closed.** [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §1
 counts evidence at the examining seam, and a script that runs nine checks has
 nine seams. A single receipt whose `examined` is their sum is honest about the
 whole and blind to any one member — the measured failure shape. So every
@@ -430,7 +430,7 @@ gains nothing, so there is no collision with eess-ts's
 
 **The kernel's finding is dead and the dialect's is alive.**
 `presetConstructsNothingViolation` (`packages/core/src/preset-dispatch.ts`,
-deleted in Phase 0) had no call site and no `ruleId` — bug 0190's whole subject. `assertEnabled`
+deleted in Phase 0) had no call site and no `ruleId` — [bug 0190](../../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md)'s whole subject. `assertEnabled`
 (`packages/ts/src/presets/shared.ts:299`) is the finding that actually fires for
 a preset that constructed nothing, with an id, and it is wired into two presets
 of five. Phase 0 decides between them.
@@ -455,7 +455,7 @@ undocumented-exclusion push (`packages/core/src/execute-rule.ts`, its
 literal **inside `applyFilters`** — pipeline output, evidenced by the terminal
 that called it.
 
-**The dialect has a path that never reaches the emitter.** Bug 0206:
+**The dialect has a path that never reaches the emitter.** [Bug 0206](../../bugs/fixed/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md):
 `deliver()` throws `ArchRuleError` itself when `callerAggregates()`
 (`packages/ts/src/presets/shared.ts:445-448`), bypassing `finishPreset`. Note
 0206's own record: it and [bug 0205](../../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md)
@@ -474,7 +474,7 @@ result is a migration site, and the table above lists none of them.
 | gate-script return reads                                 | many  | enumerated under Phase 4, not counted; including the fail-open at `check-corpus.mjs:150`                                                                                                                                     |
 | documentation teaching the array return                  | 4     | `docs/presets.md` and `packages/ts/README.md` (both the `report: 'return'` row of the delivery table); `docs/markdown.md`'s `ArchViolation[]` sentence and its `pass report: 'return' to get the array instead` code comment |
 
-**This side has no guard, and it fails green.** ADR-014's runtime guard covers
+**This side has no guard, and it fails green.** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s runtime guard covers
 the **input**. On the output, `if (violations.length > 0)` becomes
 `undefined > 0`, permanently false, silently — in this repo's own `.mjs` gates
 and in any JavaScript adopter's. That is not the acceptable kind of breakage. A
@@ -489,7 +489,7 @@ carrying `examined`, so `.length` keeps working rather than reading `undefined`.
 `scripts/check-nonvacuity.mjs`'s family re-export probe (grep `throwIfViolations`), which injects
 `import { throwIfViolations } from '@nielspeter/eess'` as the violating payload
 for the family re-export probe. That fixture's own comment records the identical
-accident once already, when ADR-011 moved its predecessor behind `/internal`
+accident once already, when [ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md) moved its predecessor behind `/internal`
 "which turned this fixture's violating input into a legal one and the probe
 green-for-nothing". Worse this time: the rule reads import specifiers, not the
 kernel's export set, so the probe would likely keep firing on a symbol that no
@@ -499,15 +499,15 @@ longer exists. Repoint the payload in the same commit.
 
 ### Phase 0 — the ADR amendments (done), and settle which finding fires for a preset
 
-**Done 2026-09-03.** ADR-014 was amended by its maintainer the same afternoon:
+**Done 2026-09-03.** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) was amended by its maintainer the same afternoon:
 §1 (the receipt is an array carrying its evidence; `violations()` returns it),
 §3 (the declaration rides the receipt), §5 (the finding throws under `warn` and
-a bare `reportViolations`), §6 (four ADR-008 statements superseded) and a new
+a bare `reportViolations`), §6 (four [ADR-008](../../../adr/008-caller-owns-reporting.md) statements superseded) and a new
 §7 (bundled verdicts merge fail-closed), with an amendment record naming the
-silent green behind each. ADR-008's amendment section and the CLAUDE.md index
+silent green behind each. [ADR-008](../../../adr/008-caller-owns-reporting.md)'s amendment section and the CLAUDE.md index
 row moved with it. The plan no longer contradicts the law it builds.
 
-**Bug 0190 closes as "gone", not "producible".** `presetConstructsNothingViolation`
+**[Bug 0190](../../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md) closes as "gone", not "producible".** `presetConstructsNothingViolation`
 (`packages/core/src/preset-dispatch.ts`, deleted in Phase 0) took `(presetName, optionsHint)`,
 which D6 forbids the kernel emitter from ever naming, so the kernel cannot be its
 producer. The dialect already has the producer: `assertEnabled`
@@ -578,7 +578,7 @@ the ruling. D5 is not reversed.
 
 **What is real and survives, measured against the shipped source:**
 `recommended(p, { report: 'return', overrides: { …all four rule ids: 'off' } })`
-returns `[]` — no violation, and no declaration either. Under ADR-014 §3 it
+returns `[]` — no violation, and no declaration either. Under [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3 it
 should carry `declaredEmpty`; it carries nothing. That is a silent green under
 either ruling, and it is filed as its own bug rather than absorbed here.
 
@@ -598,10 +598,10 @@ can see that _every_ contributing member was off). Per-rule marking, whole-recei
 ruling — which is D7's territory, and is why "zero members is zero examined"
 needed pinning by a test.
 
-**Bug 0206's direction is picked: the receipt rides the throw.** `deliver()`'s
+**[Bug 0206](../../bugs/fixed/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md)'s direction is picked: the receipt rides the throw.** `deliver()`'s
 aggregating branch keeps throwing without emitting, and the `ArchRuleError` it
 throws carries the receipt with the finding already in it. The alternative,
-teaching the kernel finisher a run-level aggregation mode, is plan 0188's scope,
+teaching the kernel finisher a run-level aggregation mode, is [plan 0188](../0188-unify-the-duplicated-engine-modules.md)'s scope,
 and a plan that must close in one PR does not reach into another plan's.
 
 ### Phase 1 — red first
@@ -618,7 +618,7 @@ Unchanged in intent; three prerequisites from the review:
   orphaned from every `check:*`, and neither goes into `INSTRUMENTS`, which is
   the harness's own self-measurement and is excluded from the count by design.
 - The bare-array test uses `// @ts-expect-error`, not a cast behind an
-  `eslint-disable`: ADR-005-legal, and self-sabotaging — loosen the emitter's
+  `eslint-disable`: [ADR-005](../../../adr/005-no-any-no-type-assertions.md)-legal, and self-sabotaging — loosen the emitter's
   type and `tsc` reds on the unused directive.
 - A test pins the merge's precedence: declared only if every zero-contributing
   member declared, `sourceEmpty` if any member is, a bare member is the
@@ -634,11 +634,11 @@ finding comes out carrying **that same finding**, asserted by identity, not
 and named in the text written under `warn`; and, under a run-level aggregating
 caller, a preset summing to zero throws carrying the finding with nothing
 emitted. Plus the remedy-remediates fixtures, which the review called the
-strongest item here and the only part satisfying ADR-009 rule 2's behavioural
+strongest item here and the only part satisfying [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's behavioural
 corollary.
 
 **Rewrite `packages/core/tests/report.test.ts`, not two tests in it.** `:32-38`
-asserts `reportViolations([])` emits nothing — the exact line ADR-014 names;
+asserts `reportViolations([])` emits nothing — the exact line [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) names;
 `:64-68` asserts `finishPreset([])` returns `[]`; `:48-62` and `:70-74` pass bare
 arrays and assert `toHaveLength(n)`, which become `n + 1` the moment the finding
 is appended. The helper at `:6-13` builds violations with no `ruleId`, so every
@@ -684,12 +684,12 @@ As D1, D2, D4, D5 and D6 decide it. The parts the review left standing:
   memoized;
 - **`formatViolationsJson` carries `examined` by hand**, one line, because
   `JSON.stringify` drops an array's own properties. Otherwise `--format json`
-  forecloses bug 0174's machine-readable half;
+  forecloses [bug 0174](../../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)'s machine-readable half;
 - the finding is produced **before** delivery is chosen, so it is in the
   returned value, rides the throw, and is written under `warn`;
 - a value already carrying a finding passes through untouched;
 - **no new `WeakSet`** — `packages/core/src/cardinality.ts` stays the sole home
-  of the registries ADR-010 §2 caps.
+  of the registries [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §2 caps.
 
 **BUILD FINDING, 2026-09-06 — the contract reaches four `eess-crossvalidate`
 presets that have no way to carry a declaration, and three tests now red.**
@@ -705,31 +705,31 @@ Measured after Phase 2's retype. Three tests fail, all one shape:
 Each examines zero units and used to pass in silence. Each now fires
 `emitter/pass-without-evidence`, **and the finding is correct**: a rule that
 examined nothing and reports success is indistinguishable from the same rule
-with a mis-configured glob, which is the whole of ADR-010.
+with a mis-configured glob, which is the whole of [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md).
 
 **But the caller has no way to say "this corpus legitimately has none".** These
-are presets, and ADR-010 §3's second bullet is precisely about this:
+are presets, and [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3's second bullet is precisely about this:
 
 > **Presets must thread the declaration.** A preset user does not hold the
 > builder; if a preset option cannot carry the user's empty-declaration to the
 > mint, their only reachable remedy is disabling the option — deleting coverage
-> permanently (ADR-009 rule 1's trained-suppression dynamic, reproduced by this
+> permanently ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 1's trained-suppression dynamic, reproduced by this
 > ADR's own gate if unaddressed).
 
 `eess-ts`'s presets thread it (`expectEmpty`). The four `eess-crossvalidate`
 presets do not. So the contract currently reaches them with a finding and no
-remedy — the exact dynamic ADR-010 names, produced by this plan's own gate.
+remedy — the exact dynamic [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) names, produced by this plan's own gate.
 
 **Three options, and this is a scope decision rather than a build discovery:**
 
 1. **Thread `expectEmpty` through the crossvalidate presets** — faithful to
-   ADR-010 §3, and the honest fix. It is new option surface on four presets and
+   [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3, and the honest fix. It is new option surface on four presets and
    is not in any phase of this plan.
 2. **Ship the finding as-is** and let adopters of those four presets red until
    option 1 lands. Defensible only if 1 follows immediately; otherwise it is a
    gate people switch off.
 3. **Exempt crossvalidate's presets from the gate.** Rejected on sight: an
-   exemption list is what ADR-014 §2 refuses ("a required field, not a
+   exemption list is what [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §2 refuses ("a required field, not a
    registry"), and these are exactly the presets whose corpora most often
    legitimately lack an artifact.
 
@@ -748,7 +748,7 @@ the kernel's shared `PresetReportOptions` as `expectEmpty?: boolean`
 options interface already extends — so `tableErAgree`, `embeddedDiagramsMatchCode`,
 `scenarioTestsResolve`, `scenariosCovered` and `scenarioExemptionsCurrent` all
 gained the remedy without a bespoke option each, and so does any adopter preset
-that takes `PresetReportOptions`. That is ADR-010 §3's "presets must thread the
+that takes `PresetReportOptions`. That is [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3's "presets must thread the
 declaration" satisfied once, at the seam every preset already passes through,
 instead of five times.
 
@@ -765,7 +765,7 @@ none.
 In the table's order, kernel first. Corrected from the reviewed draft:
 `executeWarn` is **not** a site. The two preset-wrapping scripts are **two**
 calls each. `honestyAtClose` sums its own iterated counts, not `dispatchRule`
-receipts. And bug 0206's branch gets **one** decided fix, sequenced against bug 0205.
+receipts. And [bug 0206](../../bugs/fixed/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md)'s branch gets **one** decided fix, sequenced against [bug 0205](../../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md).
 
 Three sites the first census did not hold:
 
@@ -773,7 +773,7 @@ Three sites the first census did not hold:
   `packages/ts/src/core/terminal-builder.ts`, not the kernel's: it declares its
   own `CollectResult` (`:42`) and its own `_expectEmpty` (`:148`). D4's
   declaration goes on both terminals' receipts, or the flagship dialect's
-  presets arrive undeclared. Plan 0188 unifies the two later; this plan does not
+  presets arrive undeclared. [Plan 0188](../0188-unify-the-duplicated-engine-modules.md) unifies the two later; this plan does not
   wait for it.
 - **`check:release` legitimately examines zero on a quiet `main`.** Its `noDiff`
   branch (`scripts/check-release.mjs:386`) is a clean tree at the base; right
@@ -787,8 +787,7 @@ Three sites the first census did not hold:
   (`packages/ts/src/helpers/baseline-generator.ts:20`) and
   `packages/crossvalidate/src/md-mermaid.ts:153` all `flatMap` over
   `violations()` and would drop every receipt's evidence on the floor. Each
-  goes through the merge instead, so the denominator survives to wherever bug
-  0174 decides to print it — and, per D7, so that a bare member reds. This is
+  goes through the merge instead, so the denominator survives to wherever [bug 0174](../../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md) decides to print it — and, per D7, so that a bare member reds. This is
   the site for pile-one finding 11, with its own non-vacuity fixture: a rule
   file exporting `{ violations: () => [] }` must red `eess-ts check`.
 - **Four more structural `violations()` shapes are retyped to the receipt**, or
@@ -811,7 +810,7 @@ is now `const FROZEN = [`; `check-ledger.mjs:167` was the `process.exit` and is
 now `const repoRoot = process.cwd()`. `check-corpus.mjs` grew 232 lines and
 `check-nonvacuity.mjs` 497 in that window. `check:corpus` stayed green over all
 of it, because the pointer gate proves a line **exists**, not that it still says
-what was claimed (bug 0253's class).
+what was claimed ([bug 0253](../../bugs/0253-frozen-drift-is-not-reported-only-unexamined.md)'s class).
 
 A line number is a pointer, and the freeze's rule is _record by value_. So each
 site below is named by the expression an implementer greps for. Line numbers are
@@ -873,7 +872,7 @@ D1 has its own consumer population, and it is larger: `.violations()` is called
 at roughly 690 sites across 90 test files, 38 in `packages/*/src`, and a handful
 in scripts and rule files. Most keep working under the array-carrying-evidence
 shape, which is the point of that shape. The ones that aggregate are listed
-under Phase 3; the rest are enumerated from the diff, per ADR-009 rule 5's
+under Phase 3; the rest are enumerated from the diff, per [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5's
 first corollary, not from memory.
 
 ### Phase 5 — the gates
@@ -887,7 +886,7 @@ which is exactly why that fail-open had nothing to
 catch it; the new row runs the production script with a `continue` planted in
 one check's loop and asserts the emitter's rule id. Then the `WeakSet` rule; the
 vacuity-matrix comment; the rule row written for the scope it truly covers, per
-D3; ADR-014's rows moved to `gated` with exact `it('…')` citations; and the
+D3; [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s rows moved to `gated` with exact `it('…')` citations; and the
 `docs/api-reference.md` rows — the two
 stale ones removed, and **new rows for the receipt, both emitters, the
 constructor and the merge**, which have none today, so an adopter is not asked
@@ -903,10 +902,10 @@ names a **live** root symbol `eess-md` does not re-export (`reportViolations`
 qualifies), with a clean-direction assertion that the payload resolves in the
 kernel, because the rule reads specifiers (`scripts/lib/family-re-exports.mjs:84-100`)
 and would fire on a dead name forever. And after Phase 5, the sabotage matrix
-is enumerated **from the diff** in an isolated worktree, per ADR-009 rule 5's
+is enumerated **from the diff** in an isolated worktree, per [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 5's
 corollaries — not from this document's list of what it thinks it changed.
 
-ADR-008's amendment is **already done** (commit `371eba1`) and is not work here.
+[ADR-008](../../../adr/008-caller-owns-reporting.md)'s amendment is **already done** (commit `371eba1`) and is not work here.
 
 ## Out of scope — each with its home
 
@@ -918,7 +917,7 @@ ADR-008's amendment is **already done** (commit `371eba1`) and is not work here.
   Same failure class, different seam.
 - **The two crossvalidate presets that return `void`** —
   [bug 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md).
-- **Detecting a wrong `examined`.** ADR-014's stated ceiling, including its
+- **Detecting a wrong `examined`.** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s stated ceiling, including its
   honest half: a count taken before the loop's own `continue` is the same
   mistake one line earlier, and the required field cannot tell it from the right
   number. **This plan must stop selling itself as closing the measured
@@ -959,7 +958,7 @@ are the plan. Everything under them is bookkeeping.
 
   **Corrected 2026-09-06, and the correction is the point.** This criterion read
   "a preset whose rules were all disabled, and one that is legitimately empty,
-  stay green (D4 and D5's opposite direction)". It was written before ADR-014 §3
+  stay green (D4 and D5's opposite direction)". It was written before [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3
   was amended on 2026-09-05, and the amendment reverses its first half: an
   all-off preset is a **configuration finding**, because `overrides: { id: 'off' }`
   is an instruction eess would have to read intent into, and a declaration
@@ -973,7 +972,7 @@ are the plan. Everything under them is bookkeeping.
 
 - **No mechanism is marked `gated` that examines nothing.** Specifically: the
   dogfood rule's declared scope must select a non-zero number of modules, or the
-  row is not `gated`. ADR-014's Enforcement table is the last place a false green
+  row is not `gated`. [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s Enforcement table is the last place a false green
   may live.
 - **The removed alias's probe still discriminates.** Repoint the alias probe in
   `scripts/check-nonvacuity.mjs` (grep the removed alias's name) and prove the
@@ -983,12 +982,12 @@ Then the bookkeeping: every emitter call and every return consumer migrated,
 each number the count its own assertions ran over and never what it loaded; a
 terminal's own finding arriving once and present under every delivery mode; all
 six references to the alias gone; no `WeakSet` added, with a rule saying so;
-ADR-014 with no `pending` row; and `npm run validate` green from a run that
-**reached the last step**, because bug 0126 records that a truncated chain looks
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) with no `pending` row; and `npm run validate` green from a run that
+**reached the last step**, because [bug 0126](../../bugs/0126-validate-cannot-say-it-stopped-short.md) records that a truncated chain looks
 identical to a complete one.
 
 **What this plan does not claim.** It does not close the measured field failure.
-ADR-014's ceiling says why: a count taken before the loop's own `continue` is
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s ceiling says why: a count taken before the loop's own `continue` is
 the same mistake one line earlier, and the required field cannot tell it from
 the right number. What ships is the unrepresentable-by-construction half plus
 the honestly-counted-zero case. Selling more than that would be the same lie in
@@ -998,13 +997,13 @@ Two more residuals, named so they are not mistaken for coverage. **An adopter wh
 sums by hand** instead of calling the kernel merge rebuilds the summed receipt
 D7 removes from this repo, and the emitter sees their nine checks as one. **An
 adopter who never calls an emitter** — formats and exits on their own array — is
-ADR-014's stated ceiling, and D2b reaches them only if they call
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s stated ceiling, and D2b reaches them only if they call
 `reportViolations` at all. Both are the guardrail rule's to catch (009's Ask C),
 which is why that rule is a companion and not a footnote.
 
 ## Progress ledger
 
-- [x] Phase 0 — ADR amendments done 2026-09-03, and ADR-014 §3 amended again
+- [x] Phase 0 — ADR amendments done 2026-09-03, and [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3 amended again
       2026-09-05 (a declaration is made, never inferred). Kernel constructor
       `presetConstructsNothingViolation` **deleted** with its `/internal` export —
       measured first: its only occurrence in the workspace was its own definition.
@@ -1019,8 +1018,8 @@ which is why that rule is a companion and not a footnote.
       stable ids — `emitter/no-receipt` (no evidence field at all, a shape
       defect) and `emitter/pass-without-evidence` (zero examined, zero
       violations, no declaration) — the kernel's first hardcoded rule ids, and
-      the reason bug 0190's finding could never be asserted on. Two, not one,
-      because ADR-014 §4 gives them different remedies and one id would let
+      the reason [bug 0190](../../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md)'s finding could never be asserted on. Two, not one,
+      because [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §4 gives them different remedies and one id would let
       either fixture be satisfied by the other.
       `packages/core/tests/emitter-refuses-without-evidence.test.ts` — 16 tests,
       every assertion keyed on rule id, never on a count. Measured red before the
@@ -1039,7 +1038,7 @@ which is why that rule is a companion and not a footnote.
       one fail-closed merge, `violations()` returns it, both emitters take and
       return it, and the gate runs before the delivery mode is read. **All six
       packages typecheck clean.** `eess-ts`'s forked `CollectResult` is unified
-      with the kernel's rather than left as a second shape (plan 0188's
+      with the kernel's rather than left as a second shape ([plan 0188](../0188-unify-the-duplicated-engine-modules.md)'s
       duplication; D4 required it). Measured: the plan feared ~690 `.violations()`
       call sites and the retype produced **15 type errors family-wide**, because
       the receipt is still an array — which is exactly why D1 chose that shape
@@ -1073,7 +1072,7 @@ which is why that rule is a companion and not a footnote.
       `EMITTER_PROBES` under `check:vacuity`, one per emitter id including the
       expiry. The vacuity matrix's own denominator corrected to count them
       (21 = 11 + 6 + 4) and its comment about the deleted constructor rewritten.
-      ADR-014: **10 of 16 rows `gated`** — re-counted at close, after a mixed
+      [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md): **10 of 16 rows `gated`** — re-counted at close, after a mixed
       row was split in two and `a terminal's verdict flows through unchanged` was
       measured rather than asserted (46 assertion lines removed, 41 of them
       `toEqual([])` → `toHaveLength(0)`; the other five are this ADR's own
@@ -1091,8 +1090,8 @@ which is why that rule is a companion and not a footnote.
       0206's state line is corrected from "latent" — the test written to close it
       found the drift live.
 
-Deferred: [plan 0263](./0263-adr-014s-residual-enforcement-rows.md) — ADR-014's
-five remaining `pending` rows, `deferred→plan 0263`, created at this close and on
+Deferred: [plan 0263](./0263-adr-014s-residual-enforcement-rows.md) — [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
+five remaining `pending` rows, deferred→[plan 0263](./0263-adr-014s-residual-enforcement-rows.md), created at this close and on
 the board.
 
 **This line read `Deferred: none` up to the close, with a warning attached to

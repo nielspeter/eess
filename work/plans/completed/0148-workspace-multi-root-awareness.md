@@ -36,8 +36,8 @@ files_ from the rest (`addSourceFilesFromTsConfig`, `project.ts:143`) — that
 call adds files, not options. So `sourceFile.getProject().getCompilerOptions()`
 answers for the tie-break winner's tsconfig, whatever package a given file is
 actually in. This is confirmed live in eess's current code, not inherited from
-ts-archunit's history: the exact shape ts-archunit's own bug 0058 ("a workspace
-applies one package's compiler flag to all") fixed in its local history is
+ts-archunit's history: the exact shape ts-archunit's bug 0058 ("a workspace
+applies one package's compiler flag to all") fixed in its own local history is
 present in eess's `workspace()` today, unfixed.
 
 Two concrete consequences, both already measured in ts-archunit before its fix
@@ -46,7 +46,7 @@ shipped:
 1. **A per-package compiler flag silently applies to the wrong package.** Two
    fixtures differing only in `verbatimModuleSyntax`: the flag-`true` package's
    real import cycle vanished when loaded through `workspace()` (module-edges.ts's
-   `usesVerbatimModuleSyntax()` — landed in plan 0147 Phase 3, Batch 10 — reads
+   `usesVerbatimModuleSyntax()` — landed in [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 3, Batch 10 — reads
    `sourceFile.getProject().getCompilerOptions()` directly, which is exactly the
    value this bug corrupts for every package but the tie-break winner), and
    forcing the opposite sort order gave the flag-`false` package a **phantom**
@@ -57,16 +57,15 @@ shipped:
    alphabetically-first tsconfig's directory in a multi-root workspace, with no
    error — the glob compiles, picomatch runs, and every other package's files
    are simply invisible to it. This is a live, present-day sibling of the same
-   "unanchored glob only matches at the project root, silently" class plan
-   0147's `glob-diagnosis.ts` (Phase 4, Batch 1) already detects and reports for
+   "unanchored glob only matches at the project root, silently" class [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md)'s `glob-diagnosis.ts` (Phase 4, Batch 1) already detects and reports for
    the single-root case — but the multi-root case has no root to normalize
    against at all today, because eess has no concept of "which root does this
    file belong to."
 
 Every deferral of `per-root-compiler-options.ts`/`project-relative.ts` across
-plan 0147 (module-edges.ts's `usesVerbatimModuleSyntax`, dependency.ts's
+[plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) (module-edges.ts's `usesVerbatimModuleSyntax`, dependency.ts's
 `edgeCandidates`, predicates/module.ts's `importCandidatePaths`, `slice.ts`'s
-`resolveByDefinition`, `models/slice.ts` bugs 0033/0035) is a symptom of this
+`resolveByDefinition`, `models/slice.ts` ts-archunit bugs 0033/0035) is a symptom of this
 one root cause: eess has no way to answer "which package does this file belong
 to, and what compiler options apply to it" once `workspace()` has more than one
 package. That part — the compiler-options bug (consequence 1 above) — really is
@@ -89,7 +88,7 @@ this section otherwise describes.
 ### Phase 1 — Port the root-registry algebra
 
 Port ts-archunit's `project-relative.ts` (220 lines) minus the two pure
-functions plan 0147 already extracted (`isAnchored`/`isProjectRelative`,
+functions [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) already extracted (`isAnchored`/`isProjectRelative`,
 landed in `packages/core/src/project-relative.ts` and
 `packages/ts/src/core/glob-diagnosis.ts` — Phase 4, Batch 2). What remains is
 genuinely ts-morph-typed and belongs in `packages/ts/src/core/`:
@@ -114,7 +113,7 @@ genuinely ts-morph-typed and belongs in `packages/ts/src/core/`:
 - `relativeToRoot(sourceFile, absolutePath, fallbackTsConfigPath?)` — never
   `path.relative` (which emits `../../..` and encodes the root's depth,
   machine-dependent — the same mistake `path-universe.ts` already documents
-  avoiding, per plan 0147 Phase 4 Batch 1).
+  avoiding, per [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 4 Batch 1).
 
 ### Phase 2 — Fix `workspace()`'s per-root compiler options
 
@@ -128,7 +127,7 @@ to:
 2. Record each root's own `verbatimModuleSyntax` (and any other compiler
    option this module tracks) instead of only the primary config's.
 3. Update `module-edges.ts`'s `usesVerbatimModuleSyntax(sourceFile)` — deferred
-   in plan 0147 Phase 3 Batch 10 with exactly this note ("no
+   in [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 3 Batch 10 with exactly this note ("no
    `per-root-compiler-options.ts`/`project-relative.ts` dependency — that
    workspace-multi-root awareness is deferred") — to consult the per-root
    value instead of `sourceFile.getProject().getCompilerOptions()` directly.
@@ -141,35 +140,31 @@ eess has the same defect today.
 
 ### Phase 3 — Project-relative globs in a workspace
 
-Wire `rootOf`/`relativeToRoot` into every site plan 0147 named and deferred:
+Wire `rootOf`/`relativeToRoot` into every site [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) named and deferred:
 
 - `module-edges.ts`'s `candidatesFor()` call sites (`dependency.ts`'s
   `edgeCandidates`, `predicates/module.ts`'s `importCandidatePaths`) — thread
-  the real `projectRoot` parameter (currently always `undefined`, per plan
-  0147 Phase 3 Batch 10) using `rootOf(sourceFile)`.
-- `models/slice.ts`'s `resolveByDefinition()` — bugs 0033/0035-class,
-  project-relative slice-definition globs (plan 0147 Phase 3 Batch 12 deferred
+  the real `projectRoot` parameter (currently always `undefined`, per [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 3 Batch 10) using `rootOf(sourceFile)`.
+- `models/slice.ts`'s `resolveByDefinition()` — ts-archunit bugs 0033/0035-class,
+  project-relative slice-definition globs ([plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 3 Batch 12 deferred
   this specifically, pending this plan).
 - `predicates/identity.ts`'s `resideInFolder`/`resideInFile` and
   `predicates/module.ts`'s `havePathMatching` — these already stamp
-  `base: relative ? 'normalized' : 'absolute'` via `isProjectRelative()` (plan
-  0147 Phase 4 Batch 2), but the actual MATCH against the normalized relative
+  `base: relative ? 'normalized' : 'absolute'` via `isProjectRelative()` ([plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 4 Batch 2), but the actual MATCH against the normalized relative
   path isn't wired yet; only the glob's own dead-glob diagnosis consults
   `isProjectRelative()` today.
 
 ## Out of scope
 
-- Anything plan 0147 already completed. This plan is additive on top of it.
+- Anything [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) already completed. This plan is additive on top of it.
 - New engine features ts-archunit has gained since this plan's own measurement
-  date (2026-08-16) — a moving upstream doesn't reopen it, matching plan
-  0147's own exclusion.
+  date (2026-08-16) — a moving upstream doesn't reopen it, matching [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md)'s own exclusion.
 - `owns-empty-discovery.ts` and the five deferred `diagnose()` finding kinds
-  from plan 0147 Phase 4 — unrelated to workspace-root awareness.
+  from [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 4 — unrelated to workspace-root awareness.
 
 ## Test inventory
 
-Every ported function carries its own ported/adapted test file, matching plan
-0147's own discipline — not a "port code, backfill tests later" plan. The two
+Every ported function carries its own ported/adapted test file, matching [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md)'s own discipline — not a "port code, backfill tests later" plan. The two
 red-test-first regressions named in Phase 2 and Phase 3 reproduce eess's own
 present-day defects before fixing them (per-package `verbatimModuleSyntax`
 loss in `workspace()`; a project-relative glob silently scoped to the
@@ -182,7 +177,7 @@ of every phase.
   every package in it — verified by the red-test-first regression in Phase 2.
 - A project-relative glob (`resideInFolder('src/domain/**')`) matches every
   package's own `src/domain`, not only the tie-break winner's.
-- Every site plan 0147 deferred with "needs `project-relative.ts`" is
+- Every site [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) deferred with "needs `project-relative.ts`" is
   reconciled: `module-edges.ts`'s `usesVerbatimModuleSyntax`, `dependency.ts`'s
   `edgeCandidates`, `predicates/module.ts`'s `importCandidatePaths`,
   `models/slice.ts`'s `resolveByDefinition`.
@@ -195,7 +190,7 @@ of every phase.
       `rootFromTsConfigPath`, `rootOf`, `relativeToRoot` — re-exports the
       kernel's `isAnchored`/`isProjectRelative` rather than redefining them).
       Wired into the public surface for real (`packages/ts/src/index.ts`),
-      not exclude-comment-suppressed — matching plan 0147 Phase 4 Batch 1's
+      not exclude-comment-suppressed — matching [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 4 Batch 1's
       own explicit precedent against using `eess-exclude` for "no consumer
       yet" ("a different, less honest use of the mechanism" than its real
       purpose, declaration-emit necessity). Test coverage:
@@ -229,10 +224,10 @@ of every phase.
       refactor, out of scope here), `predicates/identity.ts`'s
       `resideInFile`/`resideInFolder` (relative-fallback match added to
       their `test` functions, additive to the existing `globs:` metadata
-      stamping from plan 0147 Phase 4), `models/slice.ts`'s
+      stamping from [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) Phase 4), `models/slice.ts`'s
       `resolveByDefinition` (per-file `relativeToRoot` fallback, matching
       ts-archunit's bug-0033 fix). Ported `workspace-has-no-single-root.test.ts`
-      (`tests/core/workspace-has-no-single-root.test.ts`, 10 tests) — bug
+      (`tests/core/workspace-has-no-single-root.test.ts`, 10 tests) — ts-archunit bug
       0035's own regression suite, exercising `resolveByDefinition` and
       `resideInFolder` together against a real 2-package + 1-nested-package
       workspace; all pass. Adapted from ts-archunit's `.subjects()` builder
@@ -252,7 +247,7 @@ of every phase.
       answer — for a file inside a real `workspace()` that wasn't under any
       registered package root (a shared root-level file, a broad
       `include`/`references`). Now returns `undefined` once roots are
-      registered and none contains the file, per ADR-009. Red-test-first:
+      registered and none contains the file, per [ADR-009](../../../adr/009-agent-first-failure-surfaces.md). Red-test-first:
       a new `project-relative.test.ts` case builds a real `workspace()`,
       adds an out-of-root source file, confirmed it resolved to `alpha`'s
       root pre-fix, `undefined` post-fix; sabotage-reverted and
