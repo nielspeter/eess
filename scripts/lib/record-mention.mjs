@@ -3,8 +3,9 @@
  * 0542's lanes fixed the corpus with it, so the gate and the fix read a mention the same way.
  *
  *  - `RECORD_MENTION`: a bug, plan, spike, proposal or ADR named by number (plan 0541), except a
- *    number written right after `ts-archunit` or `ts-archunit's`, which is that project's own
- *    numbering and never linked (Decision 2). The lookbehind is on every alternative.
+ *    number written right after `ts-archunit` or `ts-archunit's` that is inside the range
+ *    ts-archunit's own numbering reached (`KINDS`), which is that project's record and never linked
+ *    (Decision 2; the range since Phase 9). The skip is on every alternative.
  *  - `LEFT_OUT`: the seven done fold-era records, which describe ts-archunit in its own numbering
  *    and are not edited again (Decision 3): eight files, since spike 0001 holds two. Each is pinned
  *    by its text's hash, so an edit is red rather than exempt.
@@ -18,9 +19,6 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { areSelfMentions, inDocuments, mentions, not, or, resideInFile } from '@nielspeter/eess-md'
 import { LANE_KINDS, recordKey, recordKeyOfPath } from './record-key.mjs'
-
-/** The corpus roots the gate, the fix and the anachronism instrument read. */
-export const CORPUS_ROOTS = ['work/**', 'adr/**', 'docs/**']
 
 /** What a number written after it is ts-archunit's: the project's name, or its possessive. */
 const TS_ARCHUNIT_BEFORE = String.raw`ts-archunit(?:'s)?\s+`

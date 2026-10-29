@@ -1974,6 +1974,12 @@ function gateCorpusRecordNumberDirForm() {
 // Since plan 0542, Phase 9, every unlinked mention is red whatever any base holds, and the rule
 // says the remedy by cause. Each row asserts the exact set of this rule's findings, so a missing and
 // an extra finding both fail it. `check:integrity` names a leftover probe directory by its prefix.
+//
+// The rows need `check:corpus` green without their probes: an unlinked mention elsewhere in the tree
+// breaks the red halves' exact sets, and any other red keeps a green half at exit 1. `validate` runs
+// `check:corpus` first and CI checks out clean, so this bites only a standalone local run on a dirty
+// tree; run `npm run check:corpus` first. Probe targets are ADRs, whose paths do not change when a
+// record closes: ADR-016 is past ts-archunit's range, ADR-009 inside it.
 const MENTION_PROBE_DIR = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_mention__')
 const MENTION_PROBE_DONE_DIR = join(
   repoRoot,
@@ -1989,6 +1995,7 @@ const RECORD_MENTION_IDS = [
   'corpus/record-mention-target',
   'corpus/record-mention-waiver',
   'corpus/record-mention-left-out',
+  'corpus/record-mention-key-shared',
   'md/unread-mention',
 ]
 
@@ -2048,10 +2055,16 @@ function exactMentionFindings(r, expected) {
 const probeRecord = (body, state = 'Draft') =>
   `# Probe\n\n## Status\n\n- **State:** ${state} — a non-vacuity probe\n\n${body}\n`
 
+/** True for a path inside one of the two probe folders, which `withMentionProbes` removes. */
+const isMentionProbe = (rel) =>
+  rel.startsWith(`${MENTION_PROBE_REL}/`) || rel.startsWith(`${MENTION_PROBE_DONE_REL}/`)
+
 /** Write `files` (repository-relative path → text), run `fn`, and remove the probe folders. */
 function withMentionProbes(files, fn) {
   try {
     for (const [rel, text] of Object.entries(files)) {
+      // Only a probe folder is removed afterwards, so nothing else may be written.
+      if (!isMentionProbe(rel)) throw new Error(`a mention probe outside the probe folders: ${rel}`)
       mkdirSync(dirname(join(repoRoot, rel)), { recursive: true })
       writeFileSync(join(repoRoot, rel), text)
     }
@@ -2065,8 +2078,8 @@ function withMentionProbes(files, fn) {
 /**
  * Red on both exits with exactly `expected`, each printed by the terminal path CI runs; then, with
  * `remedied` written in, green on both: exit 0 and none of the rule's findings. `remedied` maps a
- * path to its text, or to a function of the red run's JSON that writes the text, so a row can
- * write in the very link the finding suggested.
+ * path to its text, to a function of the red run's JSON that writes the text, so a row can write in
+ * the very link the finding suggested, or to `null`, which removes the file.
  */
 function mentionRedThenGreen({ files, expected, remedied, extra }) {
   return withMentionProbes(files, () => {
@@ -2081,8 +2094,12 @@ function mentionRedThenGreen({ files, expected, remedied, extra }) {
     let greenJson
     let greenTerminal
     if (remedied !== undefined) {
-      for (const [rel, text] of Object.entries(remedied))
-        writeFileSync(join(repoRoot, rel), typeof text === 'function' ? text(json) : text)
+      for (const [rel, text] of Object.entries(remedied)) {
+        if (!isMentionProbe(rel))
+          throw new Error(`a mention probe outside the probe folders: ${rel}`)
+        if (text === null) rmSync(join(repoRoot, rel), { force: true })
+        else writeFileSync(join(repoRoot, rel), typeof text === 'function' ? text(json) : text)
+      }
       greenJson = runCorpusScript(['--format', 'json'])
       greenTerminal = runCorpusScript([])
     }
@@ -2106,42 +2123,67 @@ function mentionRedThenGreen({ files, expected, remedied, extra }) {
 
 const PROBE_998 = `${MENTION_PROBE_REL}/0998-probe.md`
 const PROBE_998_DONE = `${MENTION_PROBE_DONE_REL}/0998-probe.md`
-const BUG_0338 = '0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md'
+const MENTION_ADR_016 = 'adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md'
+const MENTION_ADR_017 = 'adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md'
+/** ADR-016's link from a live probe, and from a done one, as the remedy should write it. */
+const ADR_016_LIVE = `[ADR-016](../../../${MENTION_ADR_016})`
+const ADR_016_DONE = `[ADR-016](../../../../${MENTION_ADR_016})`
 
-/** The link a finding's remedy names, read off the parsed finding, never the rendered stream. */
-const suggestedLink = (json, file) => {
+/**
+ * The link a finding's remedy names, read off the parsed finding, never the rendered stream: the
+ * finding of this rule on `file` at `line`, or the first on `file`.
+ */
+const suggestedLink = (json, file, line) => {
   const v = violationsOf(json).find(
-    (x) => RECORD_MENTION_IDS.includes(x?.ruleId) && String(x.file ?? '').includes(file),
+    (x) =>
+      RECORD_MENTION_IDS.includes(x?.ruleId) &&
+      String(x.file ?? '').includes(file) &&
+      (line === undefined || x.line === line),
   )
   return /link it: (\[[^\]]+\]\([^)]+\))/i.exec(String(v?.suggestion ?? ''))?.[1]
 }
 
 /**
- * A plain mention of a record past ts-archunit's range is red, and its remedy names the link; that
- * link, written in as the finding gave it, is green (plan 0542, Phase 9: the remedy's branch for
- * a record past the range).
+ * A mention of a record past ts-archunit's range, in prose and in a code span: each red, each remedy
+ * saying it is eess's record and naming the link, the code span's saying to leave the span; both
+ * links, written in as the findings gave them, are green (plan 0542, Phase 9: the remedy's branch for
+ * a record past the range, and for inline code).
  */
 function gateRecordMentionPlain() {
+  // The probe record's body starts on line 7.
+  const body = (prose, code) => `It names ${prose} in prose.\n\nAnd ${code} in code.`
   return mentionRedThenGreen({
-    files: { [PROBE_998]: probeRecord('It names bug 0338 in prose.') },
+    files: { [PROBE_998]: probeRecord(body('ADR-016', '`ADR-016`')) },
     expected: [
       [
         'corpus/record-mention-is-a-link',
         PROBE_998,
-        '"bug 0338" is not a link',
-        `Link it: [bug 0338](../${BUG_0338})`,
+        '"ADR-016" is not a link',
+        `Link it: ${ADR_016_LIVE}. ts-archunit's numbering never reached this number, so it is eess's record`,
+      ],
+      [
+        'corpus/record-mention-is-a-link',
+        PROBE_998,
+        '"ADR-016" is in inline code, not a link',
+        `Take it out of the code span and link it: ${ADR_016_LIVE}`,
       ],
     ],
     remedied: {
       [PROBE_998]: (json) =>
-        probeRecord(`It names ${suggestedLink(json, PROBE_998) ?? 'nothing suggested'} in prose.`),
+        probeRecord(
+          body(
+            suggestedLink(json, PROBE_998, 7) ?? 'nothing suggested',
+            suggestedLink(json, PROBE_998, 9) ?? 'nothing suggested',
+          ),
+        ),
     },
   })
 }
 
 /**
  * A number naming no eess record, inside ts-archunit's range: the remedy says to write it in the
- * ts-archunit form, and that form written in is green, the mention counted as skipped.
+ * ts-archunit form, and that form written in is green. Past the range, the remedy says to correct it.
+ * (That the written form is counted as skipped is `ts-archunit-skipped`'s to show.)
  */
 function gateRecordMentionRemedyNoRecord() {
   return mentionRedThenGreen({
@@ -2186,20 +2228,34 @@ function gateRecordMentionRemedyInRange() {
   })
 }
 
-/** The rule reads a done folder: a closed record's mention is red, and its link green. */
+/**
+ * The rule reads a done folder: a closed record's mention is red, its remedy's link is relative to
+ * the done folder, and that link written in is green.
+ */
 function gateRecordMentionDoneFolder() {
   return mentionRedThenGreen({
-    files: { [PROBE_998_DONE]: probeRecord('It names bug 0338 in prose.', 'Fixed') },
-    expected: [['corpus/record-mention-is-a-link', PROBE_998_DONE, '"bug 0338" is not a link']],
+    files: { [PROBE_998_DONE]: probeRecord('It names ADR-016 in prose.', 'Fixed') },
+    expected: [
+      [
+        'corpus/record-mention-is-a-link',
+        PROBE_998_DONE,
+        '"ADR-016" is not a link',
+        `Link it: ${ADR_016_DONE}`,
+      ],
+    ],
     remedied: {
-      [PROBE_998_DONE]: probeRecord(`It names [bug 0338](../../${BUG_0338}).`, 'Fixed'),
+      [PROBE_998_DONE]: (json) =>
+        probeRecord(
+          `It names ${suggestedLink(json, PROBE_998_DONE) ?? 'nothing suggested'} in prose.`,
+          'Fixed',
+        ),
     },
   })
 }
 
 function gateRecordMentionUnread() {
   return mentionRedThenGreen({
-    files: { [PROBE_998]: probeRecord('<div>\nbug 0338\n</div>') },
+    files: { [PROBE_998]: probeRecord('<div>\nADR-016\n</div>') },
     expected: [['md/unread-mention', PROBE_998, 'raw HTML block']],
   })
 }
@@ -2209,23 +2265,27 @@ const WAIVER_FORMS = {
   block:
     '<!-- eess-exclude-start corpus/record-mention-is-a-link: probe -->\n\nText.\n\n<!-- eess-exclude-end -->',
   html: '<!-- eess-exclude corpus/record-mention-is-a-link: probe -->',
+  target: '<!-- eess-exclude corpus/record-mention-target: probe -->',
 }
 // The block form sits in a done folder: the ban reads every document, frozen ones included, since a
-// waiver in a closed record would hide that file's mentions as well as a live one's.
+// waiver in a closed record would hide that file's mentions as well as a live one's. The target form
+// waives the join, which takes no waiver either.
 function gateRecordMentionWaiver(form) {
   const probe = form === 'block' ? PROBE_998_DONE : PROBE_998
+  const id = form === 'target' ? 'corpus/record-mention-target' : 'corpus/record-mention-is-a-link'
   return mentionRedThenGreen({
     files: { [probe]: probeRecord(WAIVER_FORMS[form], form === 'block' ? 'Fixed' : 'Draft') },
-    expected: [['corpus/record-mention-waiver', probe, 'takes no waiver here']],
+    expected: [['corpus/record-mention-waiver', probe, `waives ${id}, which takes no waiver here`]],
   })
 }
 
 /**
- * The switch itself, which a new probe cannot show: a mention already committed, so that any base
- * would hold it, is still red. A shared clone (no ref or worktree added to this repository),
- * `origin` removed, `main` at this checkout's `HEAD` plus a commit adding the probe, so the probe is
- * in `HEAD`, its parent's tree differs only by it, and nothing is uncommitted. `done` puts it in a
- * done folder, which the rule reads too.
+ * The switch itself, which a new probe cannot show: a mention every base would hold is still red. A
+ * shared clone (no ref or worktree added to this repository), `origin` removed, `main` at this
+ * checkout's `HEAD`, then a commit adding the probe and an empty commit after it, so `HEAD`, its
+ * first parent and every merge base hold the mention and nothing is uncommitted. The base-era
+ * judgement (a key may not hold more than its base) would count 1 against 1 here and pass, which
+ * reds this row. `done` puts the probe in a done folder, which the rule reads too.
  */
 function gateRecordMentionCommitted(done) {
   const clone = mkdtempSync(join(tmpdir(), 'nonvacuity-mention-clone-'))
@@ -2240,26 +2300,36 @@ function gateRecordMentionCommitted(done) {
     mkdirSync(dirname(join(clone, probe)), { recursive: true })
     writeFileSync(
       join(clone, probe),
-      probeRecord('It names bug 0338 in prose.', done ? 'Fixed' : 'Draft'),
+      probeRecord('It names ADR-016 in prose.', done ? 'Fixed' : 'Draft'),
     )
     git('add', '-f', '--', probe)
     git('commit', '-q', '-m', 'a committed mention')
+    git('commit', '-q', '--allow-empty', '-m', 'after it')
+    // The premise, checked rather than assumed: the first parent holds the probe too.
+    let inParent = true
+    try {
+      git('cat-file', '-e', `HEAD^:${probe}`)
+    } catch {
+      inParent = false
+    }
     const dirty = git('status', '--porcelain', '--untracked-files=all', '--', 'work', 'adr', 'docs')
     const json = runCorpusScript(['--format', 'json'], { cwd: clone })
     const terminal = runCorpusScript([], { cwd: clone })
     const exact = exactMentionFindings(json, [
-      ['corpus/record-mention-is-a-link', probe, '"bug 0338" is not a link'],
+      ['corpus/record-mention-is-a-link', probe, '"ADR-016" is not a link'],
     ])
     return {
       ok:
+        inParent &&
         dirty === '' &&
         json.code === 1 &&
         terminal.code === 1 &&
         exact &&
-        terminal.stderr.includes('"bug 0338" is not a link'),
+        terminal.stderr.includes('"ADR-016" is not a link'),
       detail:
-        `committed in ${done ? 'a done folder' : 'a live folder'}, tree clean: ${dirty === ''} → ` +
-        `json exit ${json.code}, terminal exit ${terminal.code}; exact findings: ${exact}`,
+        `committed in ${done ? 'a done folder' : 'a live folder'}, in HEAD's first parent too: ` +
+        `${inParent}, tree clean: ${dirty === ''} → json exit ${json.code}, terminal exit ` +
+        `${terminal.code}; exact findings: ${exact}`,
     }
   } finally {
     rmSync(clone, { recursive: true, force: true })
@@ -2267,55 +2337,102 @@ function gateRecordMentionCommitted(done) {
 }
 
 /**
- * The target join: a mention linked to another record is red, its remedy naming the record it
- * names, and that link written in is green.
+ * The target join's `preserveRelations`: a mention linked to another record is red, its remedy saying
+ * where it opens and naming the record it names, and that link written in is green.
  */
 function gateRecordMentionTargetCrossed() {
   return mentionRedThenGreen({
+    files: { [PROBE_998]: probeRecord(`It names [ADR-016](../../../${MENTION_ADR_017}).`) },
+    expected: [
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        `relates to "${MENTION_ADR_017}"`,
+        `It opens ${MENTION_ADR_017}. Link it to the record it names: ${ADR_016_LIVE}`,
+      ],
+    ],
+    remedied: { [PROBE_998]: probeRecord(`It names ${ADR_016_LIVE}.`) },
+  })
+}
+
+/**
+ * The target join's `beComplete`, which `preserveRelations` cannot stand in for (a mention with no
+ * record to pair has no relation to compare): a mention linked to another site, and one naming no
+ * eess record, are each red with their remedy. Green, the first is linked to this repository on
+ * GitHub, which the join reads as the file it names, and the second is gone.
+ */
+function gateRecordMentionTargetElsewhere() {
+  return mentionRedThenGreen({
     files: {
-      [PROBE_998]: probeRecord('It names [bug 0338](../0084-preserve-relations-right-to-left.md).'),
+      [PROBE_998]: probeRecord(
+        'It names [ADR-016](https://example.com/x).\n\nAnd [bug 9999](./0998-probe.md).',
+      ),
     },
     expected: [
       [
         'corpus/record-mention-target',
         PROBE_998,
-        'relates to "work/bugs/0084-preserve-relations-right-to-left.md"',
-        `Link it to the record it names: [bug 0338](../${BUG_0338})`,
+        'has no matching record',
+        `It opens https://example.com/x, which is no eess record. Link it to the record it names: ${ADR_016_LIVE}`,
+      ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        'has no matching record',
+        "No eess record has this number, and ts-archunit's numbering never reached it",
       ],
     ],
-    remedied: { [PROBE_998]: probeRecord(`It names [bug 0338](../${BUG_0338}).`) },
+    remedied: {
+      [PROBE_998]: probeRecord(
+        `It names [ADR-016](https://github.com/nielspeter/eess/blob/main/${MENTION_ADR_016}).`,
+      ),
+    },
+  })
+}
+
+/**
+ * Two records with one key (`0996-` and `996-`): a mention of the number names neither, so the gate
+ * says so rather than guessing a link; one of them removed, green.
+ */
+function gateRecordMentionKeyShared() {
+  const a = `${MENTION_PROBE_REL}/0996-a.md`
+  const b = `${MENTION_PROBE_REL}/996-b.md`
+  return mentionRedThenGreen({
+    files: { [a]: probeRecord('One of two.'), [b]: probeRecord('The other.') },
+    expected: [['corpus/record-mention-key-shared', a, 'are both the record bug:996']],
+    remedied: { [b]: null },
   })
 }
 
 /**
  * A board row whose link text is its target's whole title quotes another record because the title
- * does, so it is not judged: green. The same row with a word changed is judged, and red, so the
- * exemption is the title's and nothing wider.
+ * does, so it is not judged: green. The same row with the text a strict part of the title is judged,
+ * and red, so the exemption is equality with the title and not containment.
  */
 function gateRecordMentionTargetTitleLink() {
   const target = `${MENTION_PROBE_REL}/0997-probe.md`
   // The title links its own mention, as this repository's titles do, and is compared as text.
-  const titled = `# Bug 0997: the probe quotes [bug 0338](../${BUG_0338})\n\n## Status\n\n- **State:** Draft — a non-vacuity probe\n`
+  const titled = `# Bug 0997: the probe quotes ${ADR_016_LIVE}\n\n## Status\n\n- **State:** Draft — a non-vacuity probe\n`
   const row = (text) => probeRecord(`See [0997 — ${text}](./0997-probe.md).`)
   const exempt = withMentionProbes(
-    { [target]: titled, [PROBE_998]: row('the probe quotes bug 0338') },
+    { [target]: titled, [PROBE_998]: row('the probe quotes ADR-016') },
     () => runCorpusScript(['--format', 'json']),
   )
   const exemptGreen = exempt.code === 0 && exactMentionFindings(exempt, [])
   const judged = mentionRedThenGreen({
-    files: { [target]: titled, [PROBE_998]: row('a probe that quotes bug 0338') },
+    files: { [target]: titled, [PROBE_998]: row('probe quotes ADR-016') },
     expected: [
       [
         'corpus/record-mention-target',
         PROBE_998,
         `relates to "${target}"`,
-        `Link it to the record it names: [bug 0338](../${BUG_0338})`,
+        `Link it to the record it names: ${ADR_016_LIVE}`,
       ],
     ],
   })
   return {
     ok: exemptGreen && judged.ok,
-    detail: `the title link → exit ${exempt.code}, green: ${exemptGreen} · a word changed: ${judged.detail}`,
+    detail: `the title link → exit ${exempt.code}, green: ${exemptGreen} · the text a part of the title: ${judged.detail}`,
   }
 }
 
@@ -5312,6 +5429,10 @@ const gates = [
   // Plan 0542: appended, not placed with the rows above, so no other fixture changes shard.
   ['corpus/record-mention/ts-archunit-skipped', gateRecordMentionTsArchunit],
   ['corpus/record-mention/left-out', gateRecordMentionLeftOut],
+  // Plan 0542, Phase 9's review: appended, so no other fixture changes shard.
+  ['corpus/record-mention/target-elsewhere', gateRecordMentionTargetElsewhere],
+  ['corpus/record-mention/waiver-target', () => gateRecordMentionWaiver('target')],
+  ['corpus/record-mention/key-shared', gateRecordMentionKeyShared],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5426,6 +5547,9 @@ const GATE_FOR = {
     'corpus/record-mention/committed-done',
     'corpus/record-mention/ts-archunit-skipped',
     'corpus/record-mention/left-out',
+    'corpus/record-mention/target-elsewhere',
+    'corpus/record-mention/waiver-target',
+    'corpus/record-mention/key-shared',
     'corpus/state-present',
     'corpus/state-present-conflict',
     'corpus/state-present-outside-status',

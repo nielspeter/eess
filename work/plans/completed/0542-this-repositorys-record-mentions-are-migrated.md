@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Done — all nine phases built 2026-10-27/29, Phase 9 in PR #PENDING → completed/; the corpus holds
+- **State:** Done — all nine phases built 2026-10-27/29, Phase 9 in PR #278 → completed/; the corpus holds
   no unlinked record mention, and the gate holds zero and checks a link's target. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
@@ -534,7 +534,8 @@ fails the build` and `accepts a repository that extends the base through an inte
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
   106 plans, 80 bugs, 28 proposals and 69 spikes, so a bug numbered past 0080 after `ts-archunit`
-  cannot be its record:
+  cannot be its record (reworded 2026-10-29 at Phase 9: the example as frozen was a mention in
+  inline code, which the new pattern reads):
   the lookbehind's escape is closed for every later number, with no false positive by construction
   (Phase 1's enforcement review).
 - **Zero outright.** `corpus/record-mention-is-a-link` is judged as the other rules are: any
@@ -575,36 +576,52 @@ fails the build` and `accepts a repository that extends the base through an inte
 - **A skipped number past ts-archunit's range is red.** Each kind has its own alternative, skipped
   only when it follows `ts-archunit` or `ts-archunit's` and its number is in ts-archunit's range,
   the range a pattern beside the kind in `scripts/lib/record-mention.mjs` (`KINDS`). A test holds
-  every written number of every kind to it, after both forms, and a range narrowed by one reds it.
-  The corpus held one such mention, this plan's own example in inline code, now reworded.
+  every written number of every kind to it, in each plural and letter case and after both forms,
+  and a range narrowed by one, or the plural dropped from the skip, reds it. The corpus held one
+  such mention, this plan's own example in inline code, reworded with a dated mark where it stood.
 - **Zero outright.** Every finding of the rule is red. The base machinery is gone: the base module
   and its tests, the seam and its finding, the unreadable-base finding, the shallow-clone stop and
-  the census keys. Decided at build, to be overruled if wrong: the shared-census-key finding went
-  with the counts it protected, since two files that share a key now share nothing;
-  `corpus/record-number-unique` and `check:numbers` keep a number to one record. `check:corpus`
-  takes 7.0 s, against 8.2 s at the base.
-- **What it says.** The remedy is chosen by cause: a number naming no eess record (the ts-archunit
-  form inside the range, else correct it), a record past the range (the link, named in full, and
-  that `ts-archunit` before it does not skip it), and a record inside it (the link, or the ts-archunit
-  form, which takes it out of every check). A mention in inline code is told to leave the span. The
-  summary counts the mentions examined, the unlinked, the skipped, the seven records left out (eight
-  documents) and the links the join judged.
+  the census counts. `check:corpus` takes 7.3 s, against 8.2 s at the base.
+- **Two records with one key stay red.** The build first dropped the shared-key finding with the
+  counts it was written for, on the premise that `corpus/record-number-unique` and `check:numbers`
+  keep a number to one record. The review found that premise false (neither reaches `adr/` or tells
+  `338-` from `0338-`, as the deleted comment said) and that the remedy's record map would then pick
+  one of the two silently. So two records sharing a key are `corpus/record-mention-key-shared`, and
+  neither is offered as a remedy.
+- **What it says.** The remedy is chosen by cause, for an unlinked mention and for a link the join
+  reds alike: a number naming no eess record (the ts-archunit form inside the range, else correct
+  it), a record past the range (the link, named in full, and that `ts-archunit` before it does not
+  skip it), and a record inside it (the link, or the ts-archunit form, which takes it out of every
+  check). A mention in inline code is told to leave the span; a link that opens another site or
+  record is told where it opens. The summary counts the mentions examined, the unlinked, the
+  skipped, the records left out (derived: seven, eight documents), the links the join judged and the
+  title links it did not.
 - **The target.** The census re-run over eess's records alone: 5,749 linked mentions, 5 title links
   exempt, 5,744 judged (22 of them to this repository's own GitHub URLs), and one red, the board row
   for [plan 0454](./0454-box-marks-are-the-callers.md), a click on its quoted bug landing on the plan. The row now links the bug outside
-  the plan's link. The join adds 0.2 s and is its own receipt member, 11,488 checks.
+  the plan's link. The join adds 0.2 s and is its own receipt member. Neither it nor the mention
+  rule takes a waiver.
 - **The rows.** The 13 base-era rows are replaced one for one, in place, so no other fixture changes
-  shard (round-robin by position, and [bug 0552](../../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s slowest shard keeps its load): a plain mention,
-  the no-record and in-range remedies, a done folder, a committed mention in a live and in a done
-  folder (the switch itself, in a shared clone), the unread mention, the three waiver forms, a
-  crossed link, a title link and the same row a word off, and the empty side (a copy of the script
-  whose join selects nothing, since emptying a real corpus trips the dead-root refusal first). Each
-  red half asserts the exact set and the printed `Fix:`; each remedy row writes in the link the
-  finding gave and is green, exit 0. Phase 1's two rows stay, rewritten: in-range numbers after
-  `ts-archunit` are skipped, the count rising by the ten written, and a number one past the range,
-  after either form, is red. The 15 rows ran in 303 s.
+  shard (round-robin by position, and [bug 0552](../../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s slowest shard keeps its load), and three more
+  are appended. Each red half asserts the exact set of the rule's findings and that the terminal
+  prints each; where a row checks a remedy it also asserts the suggestion's text (the plain mention
+  and its code span, both no-record branches, the in-range branch, the done folder, the crossed and
+  the elsewhere links, the title row); and each remedy row writes in what the finding gave (the
+  link itself, read off the finding, where it gives one) and is green, exit 0. The rows: a plain
+  mention and one in inline code; the no-record and in-range remedies; a done folder; a mention
+  committed so that `HEAD`'s first parent holds it too, in a live and in a done folder (each in a
+  shared clone of its own, not on the left-out row's, so the base judgement come back would go green
+  there and red the row); the unread mention; four waiver forms, one of them the join's; a crossed
+  link (`preserveRelations`); a link to another site and one naming no record (`beComplete`, green
+  with a link to this repository on GitHub); a title link, and the same row with its text a strict
+  part of the title; two records with one key; and the empty side (a copy of the script whose join
+  selects nothing, since emptying a real corpus trips the dead-root refusal first). The probes link
+  ADRs, whose paths do not change when a record closes. Phase 1's two rows stay, rewritten: in-range
+  numbers after `ts-archunit` are skipped, the count rising by the ten written, and a number one
+  past the range, after either form, is red. The 18 rows ran in 405 s; with `beComplete` removed
+  from the join, the elsewhere row reds.
 - `mention-fix.rules.ts`, `scripts/lib/mention-anachronisms.mjs` and the lane exports are removed;
-  `CLAUDE.md` says the rule holds zero.
+  `CLAUDE.md` and the CI workflow's comments say the rule holds zero.
 - What it cannot see stays as Phase 9 says: [bug 0553](../../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md)'s links, and a number in ts-archunit's range
   written after `ts-archunit`.
 

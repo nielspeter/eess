@@ -55,17 +55,26 @@ const LAST = { bug: 80, plan: 106, spike: 69, proposal: 28, adr: 10 }
 
 test('after ts-archunit, every written number is skipped when in its range and counted past it', () => {
   assert.deepEqual(TS_ARCHUNIT_LAST, LAST)
-  for (const [word, , sep, digits] of KINDS_AS_WRITTEN) {
+  for (const [word, plural, sep, digits] of KINDS_AS_WRITTEN) {
     const last = LAST[word.toLowerCase()]
-    for (let n = 0; n < 10 ** digits; n++) {
-      const mention = `${word}${sep === '-' ? '-' : ' '}${String(n).padStart(digits, '0')}`
-      for (const before of ['ts-archunit ', "ts-archunit's "]) {
-        const text = `see ${before}${mention}.`
-        const counted = [...text.matchAll(RECORD_MENTION)].length
-        const skipped = [...text.matchAll(SKIPPED_AFTER_TS_ARCHUNIT)].length
-        const want = n <= last ? [0, 1] : [1, 0]
-        if (counted !== want[0] || skipped !== want[1])
-          assert.fail(`${text}: counted ${counted}, skipped ${skipped}, want ${want.join(', ')}`)
+    // Each spelling the pattern reads: the plural where the kind takes one, and any letter case.
+    const words = (plural === '' ? [word] : [word, `${word}s`]).flatMap((w) => [
+      w,
+      w.toLowerCase(),
+      w.toUpperCase(),
+      w[0].toUpperCase() + w.slice(1).toLowerCase(),
+    ])
+    for (const w of [...new Set(words)]) {
+      for (let n = 0; n < 10 ** digits; n++) {
+        const mention = `${w}${sep === '-' ? '-' : ' '}${String(n).padStart(digits, '0')}`
+        for (const before of ['ts-archunit ', "ts-archunit's "]) {
+          const text = `see ${before}${mention}.`
+          const counted = [...text.matchAll(RECORD_MENTION)].length
+          const skipped = [...text.matchAll(SKIPPED_AFTER_TS_ARCHUNIT)].length
+          const want = n <= last ? [0, 1] : [1, 0]
+          if (counted !== want[0] || skipped !== want[1])
+            assert.fail(`${text}: counted ${counted}, skipped ${skipped}, want ${want.join(', ')}`)
+        }
       }
     }
   }
@@ -209,4 +218,11 @@ test('a file inside a record directory belongs to that record', () => {
   assert.equal(recordKeyOfPath('adr/021-x.md'), 'adr:21')
   assert.equal(recordKeyOfPath('work/plans/ROADMAP.md'), undefined)
   assert.equal(recordKeyOfPath('docs/markdown.md'), undefined)
+})
+
+test('a record keeps its key in a done folder, and 338 and 0338 are one key', () => {
+  assert.equal(recordKeyOfPath('work/plans/0541-x.md'), 'plan:541')
+  assert.equal(recordKeyOfPath('work/plans/completed/0541-x.md'), 'plan:541')
+  assert.equal(recordKeyOfPath('work/bugs/fixed/0338-y.md'), 'bug:338')
+  assert.equal(recordKeyOfPath('work/bugs/338-z.md'), 'bug:338')
 })

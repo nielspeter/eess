@@ -164,8 +164,11 @@ or diagrams, run the relevant gate and fix what it reports:
   (a straight apostrophe) and is not judged, but only inside the range
   ts-archunit's numbering reached (10 ADRs, 106 plans, 80 bugs, 28 proposals,
   69 spikes); a number past it is eess's, and red unlinked. A linked mention must
-  also open the record it names. Each finding's `Fix:` line gives the link to
-  write.
+  also open the record it names. Each finding's `Fix:` line says what to write:
+  the link, the ts-archunit form, or to correct a number no record holds. The
+  eight files of seven fold-era records (`LEFT_OUT` in
+  `scripts/lib/record-mention.mjs`) are not judged, and are pinned: editing one
+  is red as `corpus/record-mention-left-out`.
 - `npm run check:ledger` — honesty at close: a _done_ plan (a terminal `State:`
   token, or a plan in `work/plans/completed/`) carries no silently-open `- [ ]`.
   Close a plan by disposing every box (done-otherwise / deferred→<home> /

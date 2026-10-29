@@ -88,6 +88,7 @@ import {
   recordMentions,
   recordsOf,
 } from './lib/record-mention.mjs'
+import { recordKeyOfPath } from './lib/record-key.mjs'
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
 // the others so bug history is not held to today's code (its pointers are not
@@ -1250,8 +1251,29 @@ const recordMentionRule = (corp) =>
 
 const posixRel = (root, file) => relative(root, file).split(sep).join('/')
 
-// The records a mention can name, eess's own (plan 0542, Decision 1), each with its file.
-const recordTargets = new Map(recordsOf(c.fileIndex).map((r) => [r.key, r.target]))
+// The records a mention can name, eess's own (plan 0542, Decision 1), each with its file. Two
+// records with one key (`338-` and `0338-`, or two in `adr/`, which `corpus/record-number-unique`
+// and `check:numbers` do not reach) are a finding below, and neither is offered as a remedy: a
+// mention of that number names neither.
+const recordList = recordsOf(c.fileIndex)
+const recordsByKey = new Map()
+for (const r of recordList) recordsByKey.set(r.key, [...(recordsByKey.get(r.key) ?? []), r.target])
+const recordTargets = new Map(
+  [...recordsByKey].filter(([, ts]) => ts.length === 1).map(([key, [target]]) => [key, target]),
+)
+const sharedKeys = [...recordsByKey].filter(([, ts]) => ts.length > 1)
+/** The relative link from a document to a record's file, as the fix writes one. */
+function hrefTo(fromRel, target) {
+  const href = posix.relative(posix.dirname(fromRel), target)
+  return href.startsWith('.') ? href : `./${href}`
+}
+/** When two records share a mention's key, the remedy that says so; else `undefined`. */
+function sharedKeyRemedy(m) {
+  const shared = recordsByKey.get(mentionKey(m))
+  return shared !== undefined && shared.length > 1
+    ? `Two records share this number (${shared.join(' and ')}): give each its own number, then link the one it names.`
+    : undefined
+}
 
 // `beLinked()`'s two findings for a mention outside a link, told apart from every other finding by
 // rule id. Any other finding of the rule (an unread mention, ADR-021; the vacuity finding, ADR-010;
@@ -1271,6 +1293,8 @@ function mentionRemedy(text, fromRel, inCode) {
   if (m === null) return `Link it to the record it names. ${QUOTED}`
   const kind = m.groups.kind.toLowerCase()
   const inRange = Number(m.groups.n) <= TS_ARCHUNIT_LAST[kind]
+  const shared = sharedKeyRemedy(m)
+  if (shared !== undefined) return `${shared} ${QUOTED}`
   const target = recordTargets.get(mentionKey(m))
   const tsForm = `ts-archunit ${text}` // straight apostrophe for the possessive: ts-archunit's
   if (target === undefined)
@@ -1280,9 +1304,7 @@ function mentionRemedy(text, fromRel, inCode) {
           `correct the number. ${QUOTED}`
       : `No eess record has this number, and ts-archunit's numbering never reached it: correct ` +
           `the number. ${QUOTED}`
-  let href = posix.relative(posix.dirname(fromRel), target)
-  if (!href.startsWith('.')) href = `./${href}`
-  const link = `[${text}](${href})`
+  const link = `[${text}](${hrefTo(fromRel, target)})`
   const linkIt = inCode ? `Take it out of the code span and link it: ${link}.` : `Link it: ${link}.`
   return inRange
     ? `${linkIt} If it means ts-archunit's record of that number instead, write ` +
@@ -1320,21 +1342,34 @@ const configFinding = (ruleId, file, line, message, suggestion) => ({
   codeFrame: undefined,
 })
 
-// No waiver for this rule here: under this script nothing discloses what a waiver suppressed
-// (bug 0537). Read through the kernel's own directive parser, so every form counts.
+// No waiver for either rule here (the mention rule and the target join below): under this script
+// nothing discloses what a waiver suppressed (bug 0537). Read through the kernel's own directive
+// parser, so every form counts.
+const RECORD_TARGET_RULE = 'corpus/record-mention-target'
 for (const d of allDocs) {
   for (const x of parseExclusionComments(d.text, d.file).exclusions) {
-    if (x.ruleId !== RECORD_MENTION_RULE) continue
+    if (x.ruleId !== RECORD_MENTION_RULE && x.ruleId !== RECORD_TARGET_RULE) continue
     recordMentionFindings.push(
       configFinding(
         'corpus/record-mention-waiver',
         d.file,
         x.line,
-        `${d.relPath}:${String(x.line)} waives ${RECORD_MENTION_RULE}, which takes no waiver here.`,
+        `${d.relPath}:${String(x.line)} waives ${x.ruleId}, which takes no waiver here.`,
         'Remove the directive. Link the mention, or move a quoted example into a fenced code block.',
       ),
     )
   }
+}
+for (const [key, targets] of sharedKeys) {
+  recordMentionFindings.push(
+    configFinding(
+      'corpus/record-mention-key-shared',
+      join(c.root, targets[0]),
+      1,
+      `${targets.join(' and ')} are both the record ${key}, so a mention of it names neither, and the link a remedy would give is a guess.`,
+      'Give each record its own number; a number is compared as a number, so 338 and 0338 are one.',
+    ),
+  )
 }
 // Plan 0542, Decision 3: a left-out file is left out because it is not edited again, so a file that
 // is gone or changed since it was pinned is red. The exemption cannot outlive its premise, and a
@@ -1367,22 +1402,33 @@ for (const { path, cause } of leftOut) {
 // What it cannot see: a link to a record whose number ts-archunit also used, written to the wrong
 // project's record before plan 0542's lanes judged theirs (bug 0553); and a mention written after
 // `ts-archunit` in ts-archunit's range, which the pattern skips.
-const RECORD_TARGET_RULE = 'corpus/record-mention-target'
 const OWN_URL = /^https:\/\/github\.com\/nielspeter\/eess\/(?:blob|tree)\/[^/]+\/([^#?]*)/i
 const TITLE_LINK = areInTitleLinks({
   linkPrefix: /^\d{4} — /,
   titlePrefix: /^(Plan|Bug) \d{4}: /,
 })
-/** Where a mention's link points: `local` and a repository path, or `elsewhere` and its URL. */
+/** A URL-encoded path, decoded; as written when it does not decode, so one bad link aborts nothing. */
+function decoded(path) {
+  try {
+    return decodeURIComponent(path)
+  } catch {
+    return path
+  }
+}
+/**
+ * Where a mention's link points: `local` and a repository path, `elsewhere` and its URL, or `none`
+ * for a mention outside a link (the join selects none, but a selection that did must not throw).
+ */
 function pointsAt(m) {
   const link = m.link
+  if (link === undefined) return { source: 'none', at: '' }
   const target = link.target
   switch (target.kind) {
     case 'external': {
       const own = OWN_URL.exec(link.url)?.[1]
       return own === undefined
         ? { source: 'elsewhere', at: link.url }
-        : { source: 'local', at: decodeURIComponent(own) }
+        : { source: 'local', at: decoded(own) }
     }
     case 'self':
       return { source: 'local', at: m.doc.relPath }
@@ -1403,18 +1449,41 @@ const judgedLinks = recordMentions(c)
     identify: (m) => ({ name: namedMention(m), file: m.doc.file, line: m.line }),
   })
 const judgedByName = new Map(judgedLinks.elements.map((m) => [namedMention(m), m]))
-const recordList = [...recordTargets].map(([key, target]) => ({ key, target }))
-/** The remedy for a linked mention the join reds: the link to the record it names. */
+// Every linked mention, to say how many the title-link exemption took out of the join.
+const linkedMentionCount = recordMentions(c)
+  .and()
+  .satisfy(areLinked())
+  .select({ label: 'linked record mention', ...anon }).elements.length
+/**
+ * The remedy for a linked mention the join reds, chosen by cause as `mentionRemedy` chooses: where
+ * the link opens, whether any eess record has the number, and whether it is inside ts-archunit's
+ * range, where the mention may mean ts-archunit's record and is then written unlinked.
+ */
 function targetRemedy(name) {
   const m = judgedByName.get(name)
-  const target = m === undefined ? undefined : recordTargets.get(mentionKey(m))
-  if (m === undefined || target === undefined)
-    return 'Link it to the record it names, or reword it if no eess record has the number.'
-  let href = posix.relative(posix.dirname(m.doc.relPath), target)
-  if (!href.startsWith('.')) href = `./${href}`
+  if (m === undefined) return 'Link it to the record it names.'
+  const shared = sharedKeyRemedy(m)
+  if (shared !== undefined) return shared
+  const kind = m.groups.kind.toLowerCase()
+  const inRange = Number(m.groups.n) <= TS_ARCHUNIT_LAST[kind]
+  const target = recordTargets.get(mentionKey(m))
+  const opens = pointsAt(m)
+  const where =
+    opens.source === 'elsewhere'
+      ? `It opens ${opens.at}, which is no eess record.`
+      : `It opens ${opens.at}.`
+  const tsArchunit = `write "ts-archunit ${m.text}" as text, outside the link, which takes it out of every check`
+  if (target === undefined)
+    return inRange
+      ? `${where} No eess record has this number: if it is ts-archunit's record, ${tsArchunit}; if not, correct the number.`
+      : `${where} No eess record has this number, and ts-archunit's numbering never reached it: correct the number, or remove the link.`
+  const link = `[${m.text}](${hrefTo(m.doc.relPath, target)})`
   return (
-    `Link it to the record it names: [${m.text}](${href}). If the link's text quotes the ` +
-    "target's title, write the title whole, or move the mention out of the link."
+    `${where} Link it to the record it names: ${link}.` +
+    (inRange
+      ? ` If it means ts-archunit's record of that number instead, ${tsArchunit}.`
+      : " ts-archunit's numbering never reached this number, so it is eess's record.") +
+    " If the link's text quotes the target's title, write the title whole, or move the mention out of the link."
   )
 }
 const targetViolations = correspondence({
@@ -1446,6 +1515,10 @@ const targetFindings = targetViolations.map((v) => ({
   suggestion: v.suggestion ?? targetRemedy(v.element),
   bypassFilters: true,
 }))
+
+// The records the list leaves out, not its files: spike 0001 is two documents, and the fold audit
+// is a record of its own though no numbered one.
+const leftOutRecords = new Set(LEFT_OUT.map((e) => recordKeyOfPath(e.path) ?? e.path)).size
 
 // What the lookbehind skips is counted, so a mention written after `ts-archunit` is visible even
 // though no rule judges it (plan 0542, Phase 1).
@@ -1625,8 +1698,9 @@ line(
   'mentions',
   `${String(mentionViolations.examined)} record mention(s) examined · ${String(unlinkedMentions)} unlinked · ` +
     `${String(skippedAfterTsArchunit)} skipped after ts-archunit · ` +
-    `7 fold-era records left out (${String(LEFT_OUT.length)} documents, ${String(LEFT_OUT.length - leftOut.length)} as pinned) · ` +
-    `${String(judgedLinks.elements.length)} link(s) to a record judged by their target · ${
+    `${String(leftOutRecords)} fold-era records left out (${String(LEFT_OUT.length)} documents, ${String(LEFT_OUT.length - leftOut.length)} as pinned) · ` +
+    `${String(judgedLinks.elements.length)} link(s) to a record judged by their target, ` +
+    `${String(linkedMentionCount - judgedLinks.elements.length)} title link(s) not judged · ${
       recordMentionFindings.length + targetFindings.length === 0
         ? '✓ every record mention is a link to the record it names'
         : `✗ ${recordMentionFindings.length + targetFindings.length} finding(s)`
