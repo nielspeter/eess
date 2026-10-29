@@ -499,16 +499,21 @@ fails the build` and `accepts a repository that extends the base through an inte
   less one on an excluded line. The GitHub-link grep printed one line, a URL in inline code; no test
   title in the lane holds a record number.
 - The search lane 7 carried, run before the judges: each fix's text, with twelve characters either
-  side, matched against the tests, fixtures, probes and examples, and every fix within sixty
-  characters of "e.g.", "fixture", "sample", "probe" or "synthetic" listed. 17 hits, each a real
-  reference: sibling plans named beside their own fixtures, and one code comment citing [ADR-005](../../adr/005-no-any-no-type-assertions.md).
+  side, matched against `packages/*/tests/**`, `scripts/nonvacuity/**`, `scripts/check-nonvacuity.mjs`
+  and `examples/**`, and every fix within sixty characters of "e.g.", "fixture", "sample",
+  "probe" or "synthetic" listed (a first pass that also keyed on "example" gave 47, the 30 more
+  all the examples gate's own name; the script, `sample-scan.py`, is kept with the evidence and
+  reproduces both counts at the base). 17 hits, each a real reference: sibling plans named beside
+  their own fixtures, [bug 0502](../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md) beside a fixture it narrowed, and one code comment citing [ADR-005](../../adr/005-no-any-no-type-assertions.md).
 - Judge 1 (Fable, in two halves; seed 20261029) read the 134 fixes in ts-archunit's range and 20
   sampled: 154 right, so no fix was left out and no same-target search was owed. `--apply` wrote 562
   links across 19 files.
 - By hand: a proposer (Fable) proposed 61 edits for the 56 items (the 5 more are other mentions on
   excluded lines), all applied in 14 files: 55 links, 3 fences, 2 rewordings and 1 rewording to the
   ts-archunit form. The builder changed one, dropping two bare-number links the proposer had added
-  after a list's first number, as the fix and the earlier lanes link only the first. Five items are
+  after a list's first number, as the fix links only the first (corrected 2026-10-29 at the lane's
+  review, which found that lane 5 had linked each number of such a list, twice, in [bug 0502](../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md)'s
+  and [bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s State lines; this said the earlier lanes link only the first). Five items are
   sample data, a number in a quoted fixture line, an adopter-notation example, a pattern's example
   and two quoted mentions as written: three are fenced word for word and two reworded, none linked.
   The carried search's other half, every hand edit whose old text held a code span with a mention
@@ -516,8 +521,10 @@ fails the build` and `accepts a repository that extends the base through an inte
   which is among the three fenced. All 21 anachronism lines are over-flags, each record filed the
   day its mention was written, and were linked.
 - Judge 2 (Fable), given no reasons, read 15: every rewording and fence, every hand link with a
-  number in ts-archunit's range, the five sample-data rows and four rows on a closed plan's deferral
-  or a list's display. 15 right.
+  number in ts-archunit's range, and two more, a closed plan's `done-otherwise` box and the list
+  the builder changed: 6 rewordings and fences, the five sample-data rows among them, 7 links and
+  those 2. 15 right. One unwrapped `deferred→` token on a ticked box, in no judge's set, was read
+  by the lane's method review.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
   reads 0 unlinked mentions against 623 at the base, and 202 skipped after ts-archunit against 201
   (`check:corpus`, 2026-10-29). `check:ledger`, the docs link test and format pass over the lane.
