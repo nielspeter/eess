@@ -230,7 +230,7 @@ import { spawnSync } from 'node:child_process'
 import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, join, posix } from 'node:path'
 // Read, not duplicated: these are the sets that decide whether a kernel symbol
 // owes a dialect a re-export, and the aggregation fixture's payload guard has to
 // ask the same question the rule asks.
@@ -2056,8 +2056,10 @@ const probeRecord = (body, state = 'Draft') =>
   `# Probe\n\n## Status\n\n- **State:** ${state} — a non-vacuity probe\n\n${body}\n`
 
 /** True for a path inside one of the two probe folders, which `withMentionProbes` removes. */
-const isMentionProbe = (rel) =>
-  rel.startsWith(`${MENTION_PROBE_REL}/`) || rel.startsWith(`${MENTION_PROBE_DONE_REL}/`)
+const isMentionProbe = (rel) => {
+  const norm = posix.normalize(rel)
+  return norm.startsWith(`${MENTION_PROBE_REL}/`) || norm.startsWith(`${MENTION_PROBE_DONE_REL}/`)
+}
 
 /** Write `files` (repository-relative path → text), run `fn`, and remove the probe folders. */
 function withMentionProbes(files, fn) {
@@ -2338,34 +2340,50 @@ function gateRecordMentionCommitted(done) {
 
 /**
  * The target join's `preserveRelations`: a mention linked to another record is red, its remedy saying
- * where it opens and naming the record it names, and that link written in is green.
+ * where it opens and naming the record it names, by cause: past ts-archunit's range it says the
+ * record is eess's, inside it it offers the ts-archunit form too. Those links written in are green.
  */
 function gateRecordMentionTargetCrossed() {
+  const adr009 = '[ADR-009](../../../adr/009-agent-first-failure-surfaces.md)'
   return mentionRedThenGreen({
-    files: { [PROBE_998]: probeRecord(`It names [ADR-016](../../../${MENTION_ADR_017}).`) },
+    files: {
+      [PROBE_998]: probeRecord(
+        `It names [ADR-016](../../../${MENTION_ADR_017}).\n\nAnd [ADR-009](../../../${MENTION_ADR_017}).`,
+      ),
+    },
     expected: [
       [
         'corpus/record-mention-target',
         PROBE_998,
         `relates to "${MENTION_ADR_017}"`,
-        `It opens ${MENTION_ADR_017}. Link it to the record it names: ${ADR_016_LIVE}`,
+        `It opens ${MENTION_ADR_017}. Link it to the record it names: ${ADR_016_LIVE}. ts-archunit's numbering never reached this number, so it is eess's record.`,
+      ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        `relates to "${MENTION_ADR_017}"`,
+        `Link it to the record it names: ${adr009}. If it means ts-archunit's record of that number instead, write "ts-archunit ADR-009" as text`,
       ],
     ],
-    remedied: { [PROBE_998]: probeRecord(`It names ${ADR_016_LIVE}.`) },
+    remedied: { [PROBE_998]: probeRecord(`It names ${ADR_016_LIVE}.\n\nAnd ${adr009}.`) },
   })
 }
 
 /**
  * The target join's `beComplete`, which `preserveRelations` cannot stand in for (a mention with no
- * record to pair has no relation to compare): a mention linked to another site, and one naming no
- * eess record, are each red with their remedy. Green, the first is linked to this repository on
- * GitHub, which the join reads as the file it names, and the second is gone.
+ * record to pair has no relation to compare): a mention linked to another site, one linked to
+ * ts-archunit on GitHub (which only this repository's own URL may stand in for), and two naming no
+ * eess record, inside and past ts-archunit's range, are each red with the remedy for its cause.
+ * Green, the first is linked to this repository on GitHub, which the join reads as the file it
+ * names, the second is written in the ts-archunit form, and the two with no record are gone.
  */
 function gateRecordMentionTargetElsewhere() {
+  const tsArchunitUrl = 'https://github.com/nielspeter/ts-archunit/blob/main/adr/009-x.md'
   return mentionRedThenGreen({
     files: {
       [PROBE_998]: probeRecord(
-        'It names [ADR-016](https://example.com/x).\n\nAnd [bug 9999](./0998-probe.md).',
+        `It names [ADR-016](https://example.com/x).\n\nAnd [ADR-009](${tsArchunitUrl}).\n\n` +
+          'And [bug 9999](./0998-probe.md), and [bug 0016](./0998-probe.md).',
       ),
     },
     expected: [
@@ -2373,7 +2391,13 @@ function gateRecordMentionTargetElsewhere() {
         'corpus/record-mention-target',
         PROBE_998,
         'has no matching record',
-        `It opens https://example.com/x, which is no eess record. Link it to the record it names: ${ADR_016_LIVE}`,
+        `It opens https://example.com/x, which is no eess record. Link it to the record it names: ${ADR_016_LIVE}. ts-archunit's numbering never reached this number, so it is eess's record.`,
+      ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        'has no matching record',
+        `It opens ${tsArchunitUrl}, which is no eess record. Link it to the record it names: [ADR-009](../../../adr/009-agent-first-failure-surfaces.md). If it means ts-archunit's record of that number instead, write "ts-archunit ADR-009" as text`,
       ],
       [
         'corpus/record-mention-target',
@@ -2381,10 +2405,17 @@ function gateRecordMentionTargetElsewhere() {
         'has no matching record',
         "No eess record has this number, and ts-archunit's numbering never reached it",
       ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        'has no matching record',
+        'No eess record has this number: if it is ts-archunit\'s record, write "ts-archunit bug 0016" as text',
+      ],
     ],
     remedied: {
       [PROBE_998]: probeRecord(
-        `It names [ADR-016](https://github.com/nielspeter/eess/blob/main/${MENTION_ADR_016}).`,
+        `It names [ADR-016](https://github.com/nielspeter/eess/blob/main/${MENTION_ADR_016}).\n\n` +
+          'And ts-archunit ADR-009.',
       ),
     },
   })
@@ -2392,22 +2423,47 @@ function gateRecordMentionTargetElsewhere() {
 
 /**
  * Two records with one key (`0996-` and `996-`): a mention of the number names neither, so the gate
- * says so rather than guessing a link; one of them removed, green.
+ * says so, and the mention's remedy says the two share it rather than guessing a link to one. One of
+ * them removed and the mention linked to the other, green.
  */
 function gateRecordMentionKeyShared() {
   const a = `${MENTION_PROBE_REL}/0996-a.md`
   const b = `${MENTION_PROBE_REL}/996-b.md`
   return mentionRedThenGreen({
-    files: { [a]: probeRecord('One of two.'), [b]: probeRecord('The other.') },
-    expected: [['corpus/record-mention-key-shared', a, 'are both the record bug:996']],
-    remedied: { [b]: null },
+    files: {
+      [a]: probeRecord('One of two.'),
+      [b]: probeRecord('The other.'),
+      [PROBE_998]: probeRecord('It names bug 0996.'),
+    },
+    expected: [
+      ['corpus/record-mention-key-shared', a, 'are both the record bug:996'],
+      [
+        'corpus/record-mention-is-a-link',
+        PROBE_998,
+        '"bug 0996" is not a link',
+        'Two records share this number (',
+      ],
+    ],
+    remedied: { [b]: null, [PROBE_998]: probeRecord('It names [bug 0996](./0996-a.md).') },
+    // A guess would name one of the two: the remedy offers no link at all.
+    extra: ({ json }) => {
+      const v = violationsOf(json).find(
+        (x) =>
+          x?.ruleId === 'corpus/record-mention-is-a-link' &&
+          String(x.file ?? '').includes(PROBE_998),
+      )
+      return v !== undefined && !String(v.suggestion ?? '').includes('Link it:')
+        ? 'the remedy offers no link'
+        : false
+    },
   })
 }
 
 /**
  * A board row whose link text is its target's whole title quotes another record because the title
  * does, so it is not judged: green. The same row with the text a strict part of the title is judged,
- * and red, so the exemption is equality with the title and not containment.
+ * and red, so the exemption is not a part of the title. (That a text running past the title is
+ * judged too is the predicate's own test, `packages/md/tests/builders/mentions.test.ts`.)
  */
 function gateRecordMentionTargetTitleLink() {
   const target = `${MENTION_PROBE_REL}/0997-probe.md`

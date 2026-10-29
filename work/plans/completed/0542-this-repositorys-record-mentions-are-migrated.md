@@ -602,11 +602,14 @@ fails the build` and `accepts a repository that extends the base through an inte
   the plan's link. The join adds 0.2 s and is its own receipt member. Neither it nor the mention
   rule takes a waiver.
 - **The rows.** The 13 base-era rows are replaced one for one, in place, so no other fixture changes
-  shard (round-robin by position, and [bug 0552](../../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s slowest shard keeps its load), and three more
-  are appended. Each red half asserts the exact set of the rule's findings and that the terminal
-  prints each; where a row checks a remedy it also asserts the suggestion's text (the plain mention
-  and its code span, both no-record branches, the in-range branch, the done folder, the crossed and
-  the elsewhere links, the title row); and each remedy row writes in what the finding gave (the
+  shard (round-robin by position), and three more are appended, one each on shards 1, 2 and 3 of
+  four: `key-shared` adds two corpus runs to shard 3, [bug 0552](../../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s slowest, whose time this PR's CI
+  run records. Each red half asserts the exact set of the rule's findings and, but for the empty side's JSON-only
+  run, that the terminal prints each; where a row checks a remedy it also asserts the suggestion's text (the plain mention
+  and its code span, both no-record branches, the in-range branch, the done folder; the join's
+  crossed links and its links elsewhere, past and inside the range, a ts-archunit URL among them, and
+  its no-record links both sides of the range; the title row; and a mention of a shared key, whose
+  remedy names no link); and each remedy row writes in what the finding gave (the
   link itself, read off the finding, where it gives one) and is green, exit 0. The rows: a plain
   mention and one in inline code; the no-record and in-range remedies; a done folder; a mention
   committed so that `HEAD`'s first parent holds it too, in a live and in a done folder (each in a
@@ -614,12 +617,14 @@ fails the build` and `accepts a repository that extends the base through an inte
   there and red the row); the unread mention; four waiver forms, one of them the join's; a crossed
   link (`preserveRelations`); a link to another site and one naming no record (`beComplete`, green
   with a link to this repository on GitHub); a title link, and the same row with its text a strict
-  part of the title; two records with one key; and the empty side (a copy of the script whose join
+  part of the title (a text running past the title is the predicate's own test); two records with one key; and the empty side (a copy of the script whose join
   selects nothing, since emptying a real corpus trips the dead-root refusal first). The probes link
   ADRs, whose paths do not change when a record closes. Phase 1's two rows stay, rewritten: in-range
   numbers after `ts-archunit` are skipped, the count rising by the ten written, and a number one
   past the range, after either form, is red. The 18 rows ran in 405 s; with `beComplete` removed
-  from the join, the elsewhere row reds.
+  from the join, the elsewhere row reds, and with the join's remedy arms collapsed and the shared-key
+  remedy removed, the crossed, elsewhere and shared-key rows red. The summary's two derived counts
+  are display only, asserted by no row.
 - `mention-fix.rules.ts`, `scripts/lib/mention-anachronisms.mjs` and the lane exports are removed;
   `CLAUDE.md` and the CI workflow's comments say the rule holds zero.
 - What it cannot see stays as Phase 9 says: [bug 0553](../../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md)'s links, and a number in ts-archunit's range
