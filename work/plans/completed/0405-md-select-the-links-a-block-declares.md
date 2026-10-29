@@ -122,7 +122,6 @@ Every finding row runs through `links(c)…rule().check()`, never `.select()`.
   near-miss, and plain `Related to: [x](x.md)` is selected; a paragraph
   `Related to that bug, see [x](x.md)` (no colon; the fixture's line, `forms.md:17`, names the bug
   by its number) is neither selected nor a near-miss.
-
 - **Block ownership:** a wrapped label's second-line link is selected; a label followed by a list
   selects the list and its nested sub-list; a labelled list item selects its nested sub-list; a list
   after an intervening paragraph is not selected; `**Related to:** [a](a.md)` followed by a list

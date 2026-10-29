@@ -467,11 +467,11 @@ fails the build` and `accepts a repository that extends the base through an inte
   `completed/`, and were linked. Of the proposer's open calls the builder settled one by measurement:
   [plan 0148](./completed/0148-workspace-multi-root-awareness.md)'s fail-closed citation means eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md): the passage and the code comment it echoes, in
   `project-relative.ts`, were written in eess on 2026-08-16, in the commit that created that ADR
-  (6dbc6f46), and the comment was re-wrapped on 2026-08-21 (corrected at the lane's review, which
-  found the first date given here was the re-wrap's).
+  (6dbc6f46), and the comment was re-wrapped on 2026-08-21 (corrected 2026-10-29 at the lane's
+  review, which found the first date given here was the re-wrap's).
 - Judge 2 (Fable), given no reasons, read 61: the 25 rewordings and fences, the builder's two, the 30 hand
-  links with a number in ts-archunit's range, and four more that unwrap a closed plan's `deferred→`
-  token, one of them dropping a duplicate link after its token. 61 right; every `deferred→` token
+  links with a number in ts-archunit's range, and four more on a closed plan's deferral, three of
+  them unwrapped from code and one dropping a duplicate link after its token. 61 right; every `deferred→` token
   still matches the ledger's reading. One it passed, a paraphrase of a fixture line that
   [plan 0405](./completed/0405-md-select-the-links-a-block-declares.md) had quoted verbatim, was found by the lane's review; the example now says beside it that the
   fixture's line names the bug by its number. A fence would have kept the words, as that file's other
@@ -628,7 +628,9 @@ document. Every new number was reproduced at 4a43bcc4.
 - [x] Phase 7 — `work/plans/completed/` 0001–0449
 - [ ] Phase 8 — `work/plans/completed/` 0450 and above (carried from lane 7: each fix's text matched
       against the tests, fixtures and examples, and the links near "e.g.", "fixture" or "sample",
-      since judge 1 reads a fix past ts-archunit's range only by sample)
+      since judge 1 reads a fix past ts-archunit's range only by sample; and every hand rewording of a
+      code span, its old text matched against the fixtures, so a quote is kept or fenced rather than
+      paraphrased)
 - [ ] Phase 9 — the gate holds zero and checks the target
 
 ## Appendix — the 145 anachronisms, at 4a43bcc4
