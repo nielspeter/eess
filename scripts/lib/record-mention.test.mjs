@@ -4,15 +4,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { corpusFromText } from '@nielspeter/eess-md'
+import { recordKeyOfPath } from './record-key.mjs'
 import {
   LEFT_OUT,
   RECORD_MENTION,
   SKIPPED_AFTER_TS_ARCHUNIT,
   TS_ARCHUNIT_LAST,
-  anachronismsByGlob,
-  assertLaneDisjoint,
   leftOutFaults,
-  mentionFixRule,
   recordMentions,
   recordsOf,
   textHash,
@@ -189,51 +187,6 @@ test('a mention in a left-out file is not selected, and the same in a file besid
   )
 })
 
-test('the fix links a mention to its one record and refuses one with upstream around it', () => {
-  const corp = corpusFromText({
-    'work/bugs/0338-a.md': '# Bug 0338\n',
-    'work/notes.md': '# Notes\n\nIt names bug 0338.\n\nThe upstream bug 0338 is another.\n',
-  })
-  const vs = mentionFixRule(corp, 'work/notes.md').violations()
-  assert.equal(vs.length, 2)
-  assert.equal(vs[0].fix?.replacement, '[bug 0338](./bugs/0338-a.md)')
-  assert.equal(vs[1].fix, undefined)
-  assert.match(vs[1].message, /not fixed: another project/)
-})
-
-test('a lane splits its anachronisms by glob, and refuses one under none or under two', () => {
-  const lane = ['adr/**', 'docs/**']
-  assert.deepEqual(
-    [...anachronismsByGlob(lane, ['adr/019-x.md:40', 'docs/calls.md:150'])],
-    [
-      ['adr/**', ['adr/019-x.md:40']],
-      ['docs/**', ['docs/calls.md:150']],
-    ],
-  )
-  // An exact-file glob matches only once the `:line` suffix is stripped.
-  assert.deepEqual(
-    [...anachronismsByGlob(['docs/calls.md'], ['docs/calls.md:150'])],
-    [['docs/calls.md', ['docs/calls.md:150']]],
-  )
-  assert.throws(() => anachronismsByGlob(lane, ['work/x.md:1']), /under none of LANE's globs/)
-  assert.throws(
-    () => anachronismsByGlob(['docs/**', 'docs/*.md'], ['docs/calls.md:1']),
-    /under more than one of LANE's globs/,
-  )
-})
-
-test('a lane whose globs share a document is refused', () => {
-  assert.doesNotThrow(() => assertLaneDisjoint(['adr/**', 'docs/**'], ['adr/a.md', 'docs/b.md']))
-  assert.throws(
-    () =>
-      assertLaneDisjoint(
-        ['work/plans/completed/0*', 'work/**'],
-        ['work/plans/completed/0001-a.md'],
-      ),
-    /under two of LANE's globs/,
-  )
-})
-
 test('a left-out file that is gone or changed since it was pinned is a fault', () => {
   const root = mkdtempSync(join(tmpdir(), 'record-mention-'))
   try {
@@ -248,4 +201,12 @@ test('a left-out file that is gone or changed since it was pinned is a fault', (
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
+})
+
+test('a file inside a record directory belongs to that record', () => {
+  assert.equal(recordKeyOfPath('work/spikes/0001-eess-over-ts-archunit/README.md'), 'spike:1')
+  assert.equal(recordKeyOfPath('work/proposals/019-x.md'), 'proposal:19')
+  assert.equal(recordKeyOfPath('adr/021-x.md'), 'adr:21')
+  assert.equal(recordKeyOfPath('work/plans/ROADMAP.md'), undefined)
+  assert.equal(recordKeyOfPath('docs/markdown.md'), undefined)
 })
