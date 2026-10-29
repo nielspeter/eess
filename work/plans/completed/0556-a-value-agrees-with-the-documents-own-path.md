@@ -303,8 +303,29 @@ Built 2026-10-29 on `feat/0556-agree-with-path`, as frozen, except where noted:
   `check:arch`'s rules (no JSDoc on `start`, cyclomatic complexity 17, 80 code lines), found by the
   full validate after the commit; it now reads each document in `readDocument`, with one function per
   finding, and the matrix above was run again on the split code: all 18 red, each on the same rows.
-- **Rows:** 24 in `packages/md/tests/conditions/agree-with-path.test.ts`, block 5's 34 still green
-  after its move onto the `Agreement` interface; the example's four; the two `check:nonvacuity`
+- **The build review (enforcement and testing, on ef834bc4), and what changed.** Blocking, from
+  enforcement: the dogfood turned eight record-mention `check:nonvacuity` rows red, their probe
+  records titled `# Probe` under `work/bugs/`; the full validate confirmed exactly those eight. Every
+  probe is now titled by its file's number (`titledProbe`). Should-fix: four of the five lanes could be
+  dropped from the hand-written list with every gate green, so a numbered record that no title lane
+  selects is now `corpus/record-number-in-title-lanes`, with its own `check:nonvacuity` row; dropping
+  the ADR lane from a copy of the script reds all 23 ADRs. The docs' `String(Number(v))` example lacked
+  the caveat the plan promised, and it collapses every non-number into `NaN`: the docs and the example
+  now strip leading zeros and say why, and P4 names the compared values when `normalize` changed them.
+  From testing: the reset of `start()` had no row (now one, red with the reset made a no-op and with
+  the builder's loop removed); the normalize row proved one side only (now padded differently on each,
+  red under either one-sided mutant); and several assertions were tightened (the exact P5 per copy, the
+  kernel's zero-examined finding, the frozen row's text, P5's line and element, a title below line 1, a
+  real `y`-flag run, an empty title capture). Block 5's reset has the same gap, recorded in
+  [plan 0557](../0557-the-agreement-evidence-rule-joins-adr-010.md). Not changed, measured and fail-closed: a numbered file inside a numbered
+  folder is read by the folder's number (none exists; the comment says so).
+- **How the matrix ran.** In place on the source, each file restored from a copy and compared after,
+  not in a worktree as the plan said: the mutations touch only `packages/md/src`, which nothing else
+  was reading. Mutant (12) as run is "P5 from a builder's first agreement only"; the plan's "computed
+  over the union" is red on the same second-agreement row by construction (its first agreement judges
+  one).
+- **Rows:** 25 in `packages/md/tests/conditions/agree-with-path.test.ts`, block 5's 34 still green
+  after its move onto the `Agreement` interface; the example's four; the three `check:nonvacuity`
   rows, each red by id, file and message.
 
 ## Progress ledger

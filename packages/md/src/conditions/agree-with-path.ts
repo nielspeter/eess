@@ -118,7 +118,7 @@ const differ = (
   doc: d,
   line: headingLine(d),
   side: 'both',
-  message: `the path says ${fromPath.raw} and the title says ${fromTitle.raw}${normalized ? ' (after normalize)' : ''}: correct the one that is wrong, by renaming the file or editing the title`,
+  message: `the path says ${fromPath.raw} and the title says ${fromTitle.raw}${normalized ? ` (compared as ${fromPath.value} and ${fromTitle.value} after normalize)` : ''}: correct the one that is wrong, by renaming the file or editing the title`,
 })
 
 /** Read one document's path and title, and give its findings. */

@@ -27,16 +27,19 @@ const said = (found: readonly ArchViolation[]): string[] =>
   found.filter((v) => v.bypassFilters !== true).map((v) => `${v.element}: ${v.message}`)
 /** Every finding's message: an array of findings also carries `examined`, which `toEqual([])` reads. */
 const messages = (found: readonly ArchViolation[]): string[] => found.map((v) => v.message)
-/** The agreement's own findings (P5). */
+/** The agreement's own findings (P5), told from the kernel's by their element. */
 const own = (found: readonly ArchViolation[]): string[] =>
-  found.filter((v) => v.bypassFilters === true).map((v) => v.message)
+  found
+    .filter((v) => v.bypassFilters === true && v.element.startsWith('agreeWithPath'))
+    .map((v) => v.message)
 
 describe('agreeWithPath: P4, the two sides differ', () => {
-  it('a title naming another number is red, with both values as written', () => {
-    const v = run(notes({ 'n/0001-a.md': '# Note 0002: a\n' }))
+  it('a title naming another number is red, with both values as written, at the title line', () => {
+    const v = run(notes({ 'n/0001-a.md': 'An introduction.\n\n# Note 0002: a\n' }))
     expect(said(v)).toEqual([
-      'n/0001-a.md:1: the path says 0001 and the title says 0002: correct the one that is wrong, by renaming the file or editing the title',
+      'n/0001-a.md:3: the path says 0001 and the title says 0002: correct the one that is wrong, by renaming the file or editing the title',
     ])
+    expect(v[0]?.line).toBe(3)
     expect(own(v)).toEqual([])
   })
 
@@ -44,15 +47,16 @@ describe('agreeWithPath: P4, the two sides differ', () => {
     expect(messages(run(notes({ 'n/0001-a.md': '# Note 0001: a\n' })))).toEqual([])
   })
 
-  it('normalize applies to both sides, and a difference after it says so', () => {
-    const c = notes({ 'n/0042-a.md': '# Note 42: a\n', 'n/0043-b.md': '# Note 44: b\n' })
+  it('normalize applies to both sides, and a difference after it names the compared values', () => {
+    // Each side padded differently: normalize on one side only leaves 42 against 042.
+    const c = notes({ 'n/0042-a.md': '# Note 042: a\n', 'n/0043-b.md': '# Note 044: b\n' })
     const o: AgreeWithPathOptions = {
       path: PATH,
       title: /^Note (?<value>\d+):/,
-      normalize: (v) => String(Number(v)),
+      normalize: (v) => v.replace(/^0+(?=\d)/, ''),
     }
     expect(said(run(c, o))).toEqual([
-      'n/0043-b.md:1: the path says 0043 and the title says 44 (after normalize): correct the one that is wrong, by renaming the file or editing the title',
+      'n/0043-b.md:1: the path says 0043 and the title says 044 (compared as 43 and 44 after normalize): correct the one that is wrong, by renaming the file or editing the title',
     ])
   })
 })
@@ -94,11 +98,12 @@ describe('agreeWithPath: a side that cannot be read', () => {
   })
 
   it('an empty capture is no value: two empty sides never agree', () => {
+    // `Note x` matches the title pattern with an empty `value`, as `-x.md` does the path's.
     const o: AgreeWithPathOptions = { path: /(?<value>\d*)-x\.md$/, title: /^Note (?<value>\d*)/ }
-    const c = notes({ 'n/0001-x.md': '# Note 0001\n', 'n/-x.md': '# Note \n' })
+    const c = notes({ 'n/0001-x.md': '# Note 0001\n', 'n/-x.md': '# Note x\n' })
     expect(said(run(c, o))).toEqual([
       `n/-x.md:1: n/-x.md holds no value the path pattern reads (${String(o.path)}): name the file as the pattern expects, or widen the pattern`,
-      `n/-x.md:1: its title "Note" holds no value the title pattern reads (${String(o.title)})`,
+      `n/-x.md:1: its title "Note x" holds no value the title pattern reads (${String(o.title)})`,
     ])
   })
 
@@ -176,9 +181,19 @@ describe('agreeWithPath: the value group', () => {
 
   it("a caller's g or y flag shares no lastIndex: two runs read alike", () => {
     const c = notes({ 'n/0001-a.md': '# Note 0001: a\n', 'n/0002-b.md': '# Note 0002: b\n' })
-    const o: AgreeWithPathOptions = { path: /(?<value>\d{4})-/gy, title: /^Note (?<value>\d{4})/g }
-    expect(messages(run(c, { ...o, path: /(?:^|\/)(?<value>\d{4})-/g }))).toEqual([])
-    expect(messages(run(c, { ...o, path: /(?:^|\/)(?<value>\d{4})-/g }))).toEqual([])
+    const g: AgreeWithPathOptions = {
+      path: /(?:^|\/)(?<value>\d{4})-/g,
+      title: /^Note (?<value>\d{4})/g,
+    }
+    expect(messages(run(c, g))).toEqual([])
+    expect(messages(run(c, g))).toEqual([])
+    // A sticky pattern read from where the last match left off would miss the second note.
+    const y: AgreeWithPathOptions = {
+      path: /^n\/(?<value>\d{4})-/y,
+      title: /^Note (?<value>\d{4})/y,
+    }
+    expect(messages(run(c, y))).toEqual([])
+    expect(messages(run(c, y))).toEqual([])
   })
 })
 
@@ -196,7 +211,10 @@ describe('agreeWithPath: one mistake, one finding (P5)', () => {
     expect(own(v)).toEqual([
       `selected 3 documents, judged none: the title pattern ${String(typo.title)} read none of 3 titles`,
     ])
-    expect(v.filter((x) => x.bypassFilters === true)[0]?.file).toMatch(/0001-a\.md$/)
+    const p5 = v.find((x) => x.element.startsWith('agreeWithPath'))
+    expect(p5?.file).toMatch(/0001-a\.md$/)
+    expect(p5?.line).toBe(1)
+    expect(p5?.element).toBe(`agreeWithPath → ${String(PATH)}`)
   })
 
   it('the same for the path pattern', () => {
@@ -256,8 +274,11 @@ describe('agreeWithPath: a selection that judged none', () => {
 
   it('on a rule declared empty, the kernel says the declaration expired', () => {
     const v = docs(MIXED).should().agreeWithPath(OPTS).expectEmpty().excluding(/.*/).violations()
-    expect(v.some((x) => /declared \.expectEmpty\(\) but examined 2/.test(x.message))).toBe(true)
-    expect(v.map((x) => x.message)).toContain(NONE)
+    expect(v).toHaveLength(2)
+    expect(
+      v.filter((x) => /declared \.expectEmpty\(\) but examined 2/.test(x.message)),
+    ).toHaveLength(1)
+    expect(v.filter((x) => x.message === NONE)).toHaveLength(1)
   })
 
   it('beside a second agreement that judges its documents, still reported', () => {
@@ -283,20 +304,37 @@ describe('agreeWithPath: run state', () => {
     const chain = docs(c).should().agreeWithPath(OPTS)
     const mixed = chain.that().resideInFolder('n/**')
     const good = chain.that().resideInFolder('m/**')
+    const NONE =
+      'selected 2 documents, judged none: the path pattern read 1 and the title pattern 1, but none on the same document'
     for (let i = 0; i < 2; i++) {
-      expect(own(mixed.violations())).toHaveLength(1)
+      expect(own(mixed.violations())).toEqual([NONE])
       expect(messages(good.violations())).toEqual([])
     }
+  })
+
+  it("a run that selects nothing does not report the last run's finding", () => {
+    // The guard is `start()`'s reset: without it the empty copy would report the mixed copy's P5.
+    const c = notes({ 'n/0001-a.md': '# Elsewhere\n', 'n/b.md': '# Note 0002: b\n' })
+    const chain = docs(c).should().agreeWithPath(OPTS)
+    const mixed = chain.that().resideInFolder('n/**')
+    const empty = chain.that().resideInFolder('none/**').expectEmpty()
+    expect(own(mixed.violations())).toHaveLength(1)
+    expect(messages(empty.violations())).toEqual([])
   })
 
   it('a fork that selects nothing gets the kernel finding, not the agreement one', () => {
     const c = notes({ 'n/0001-a.md': '# Note 0001: a\n' })
     const v = docs(c).that().resideInFolder('none/**').should().agreeWithPath(OPTS).violations()
-    expect(own(v).some((m) => m.startsWith('selected'))).toBe(false)
+    expect(v.examined).toBe(0)
+    expect(v.map((x) => x.message)).toHaveLength(1)
+    expect(v[0]?.message).toMatch(/examined zero units/)
+    expect(own(v)).toEqual([])
   })
 
   it('a frozen document is judged', () => {
     const c = notes({ 'done/0001-a.md': '# Note 0002: a\n' }, ['done/**'])
-    expect(said(run(c))).toHaveLength(1)
+    expect(said(run(c))).toEqual([
+      'done/0001-a.md:1: the path says 0001 and the title says 0002: correct the one that is wrong, by renaming the file or editing the title',
+    ])
   })
 })

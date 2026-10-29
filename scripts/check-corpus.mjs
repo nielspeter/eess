@@ -440,7 +440,8 @@ const recordNumbers = docs(c)
 // Plan 0556, dogfooding `agreeWithPath` (proposal 017, block 16): each record's number agrees in its
 // file name and in its title, one rule per lane, compared as exact strings. Selected by lane folder
 // less its board, so a misnamed record is a finding (its path holds no number), never dropped. A
-// numbered folder's files are read by the folder's number. Two forms of one record each are read on
+// numbered folder's files are read by the folder's number (the leftmost numbered segment, so a numbered
+// file inside a numbered folder would be read by the folder's; none exists). Two forms of one record each are read on
 // purpose: bug 0144's number followed by a parenthesis (the bugs pattern's word boundary), and spike
 // 0001's `CONCLUSION.md` titled with a dash, which is pinned as left out of the mention rule and so
 // not retitled. Not filtered by `isProbeArtifact`, or its non-vacuity probes would be invisible to it.
@@ -494,7 +495,28 @@ const numberInTitle = NUMBER_IN_TITLE_LANES.map((l) => {
       .violations(),
   }
 })
-const numberInTitleFindings = numberInTitle.flatMap((r) => [...r.result])
+// The lanes above are a hand-written list, so a numbered record that none of them selects is a
+// finding, one per record: a lane dropped from the list, or a lane added without a rule, is red, not
+// a smaller count on the summary line. ADRs are read by their own number, as the adr lane reads them.
+const inATitleLane = or(...NUMBER_IN_TITLE_LANES.map((l) => resideInFolder(l.folder)))
+const outsideTitleLanes = docs(c)
+  .that()
+  .satisfy({
+    description: 'are numbered records',
+    test: (d) => recordNumber(d) !== '' || /^adr\/\d{3}-[^/]*\.md$/.test(d.relPath),
+  })
+  .and()
+  .satisfy(not(inATitleLane))
+  .should()
+  .notExist()
+  .rule({
+    id: 'corpus/record-number-in-title-lanes',
+    because: 'a numbered record in no title lane is never judged by corpus/record-number-in-title',
+    suggestion:
+      "add the record's lane to NUMBER_IN_TITLE_LANES in scripts/check-corpus.mjs, with the lane's title pattern",
+  })
+  .violations()
+const numberInTitleFindings = [...numberInTitle.flatMap((r) => [...r.result]), ...outsideTitleLanes]
 
 // Plan 0495, dogfooding `agreeWithFolder` (proposal 017, block 5): a lane's done folders hold only
 // its done values, folder → value, one rule per lane. The selection is the done folders, so a closed
@@ -1630,7 +1652,8 @@ const receipt = mergeCollectResults([
   // Its own receipt: one value per numbered record (ADR-010).
   recordNumbers,
   // Plan 0556: one member per lane, each its own selection.
-  ...numberInTitle.map((r) => collectResult([...r.result], { examined: r.result.examined })),
+  ...numberInTitle.map((r) => r.result),
+  outsideTitleLanes,
   ...doneFolderResults,
 ])
 

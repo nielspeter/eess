@@ -37,6 +37,11 @@ how many elements it gave a verdict.
    so the kernel raises "judged none" once for every dialect: a decision first (a spike or a
    proposal), then a plan of its own if it is taken.
 
+3. **A row for `FolderAgreement`'s reset.** [Plan 0556](./completed/0556-a-value-agrees-with-the-documents-own-path.md)'s build review found that block 5's `start()` reset has no
+   row: with it made a no-op, every `agreeWithFolder` row stays green, and a run that selects nothing
+   after one that judged none reports the stale finding (a spurious red, never a green). Block 16's
+   row for the same guard is the model.
+
 ## Out of scope
 
 - Changing either condition's behaviour: both already follow the rule.

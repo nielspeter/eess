@@ -1670,7 +1670,7 @@ docs(c)
   .agreeWithPath({
     path: /(?:^|\/)(?<value>\d{4})-[^/]*\.md$/, // the number in the file name
     title: /^(?:(?<value>\d+)\. |ADR-(?<value>\d+): )/, // the number in either title form
-    normalize: (v) => String(Number(v)), // the file pads the number, the title does not
+    normalize: (v) => v.replace(/^0+(?=\d)/, ''), // the file pads the number, the title does not
   })
   .rule({ id: 'decisions/number-agrees' })
   .check()
@@ -1686,14 +1686,17 @@ dropped, so no `lastIndex` carries from one document to the next.
 **A value that is not there is never a value:** a pattern that does not match, a `value` group that
 took no part in the match, an empty capture, and a value `normalize` makes empty each read as no value,
 so two sides that read nothing never agree. `normalize` applies to both sides and defaults to none
-(exact strings); a `normalize` that throws stops the rule.
+(exact strings); a `normalize` that throws stops the rule. Choose one that keeps distinct values
+distinct: `(v) => String(Number(v))` turns every value that is not a number into `NaN`, so two
+different ones would agree, and loses digits past 2^53; stripping leading zeros, as above, does
+neither. When the compared values differ from the written ones, the finding names both.
 
 **The findings,** each at the document's line (the title's; line 1 for the path):
 
 - `notes/x.md holds no value the path pattern reads (/…/): name the file as the pattern expects, or widen the pattern`
 - `no title: the document has no heading`, and `haveTitle()`'s other causes, word for word.
 - `its title "Use a message queue" holds no value the title pattern reads (/…/)`
-- `the path says 0003 and the title says 4 (after normalize): correct the one that is wrong, by renaming the file or editing the title`
+- `the path says 0003 and the title says 4 (compared as 3 and 4 after normalize): correct the one that is wrong, by renaming the file or editing the title`
 
 A document whose path and title both fail reports both. **One mistake, one finding:** when the
 selection holds documents and none was judged (both values read), the agreement reports it once, at

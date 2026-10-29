@@ -3,8 +3,10 @@
  * record is named `0003-use-a-message-queue.md` and titled `3. Use a message queue`, and a renamed
  * file or a copied title makes the two disagree. One `agreeWithPath()` rule: the file name's number
  * and the title's, each the pattern's named group `value`, compared after the caller's `normalize`,
- * since the file pads the number and the title does not. The title pattern reads both forms in use,
- * `3. …` and `ADR-0003: …`, as one alternation with `value` in each branch.
+ * since the file pads the number and the title does not. Stripping leading zeros keeps distinct
+ * values distinct, which `String(Number(v))` would not for a value that is not a number. The title
+ * pattern reads both forms in use, `3. …` and `ADR-0003: …`, as one alternation with `value` in each
+ * branch.
  */
 import { corpus, docs } from '@nielspeter/eess-md'
 import { describe, expect, it } from 'vitest'
@@ -18,7 +20,7 @@ const TITLE = /^(?:(?<value>\d+)\. |ADR-(?<value>\d+): )/
 const rule = (cwd: string): ReturnType<typeof docs> =>
   docs(corpus({ cwd, roots: ['docs/decisions/**'] }))
     .should()
-    .agreeWithPath({ path: PATH, title: TITLE, normalize: (v) => String(Number(v)) })
+    .agreeWithPath({ path: PATH, title: TITLE, normalize: (v) => v.replace(/^0+(?=\d)/, '') })
     .because('a record is cited by its number, and its file and its title must name the same one')
 
 describe("a decision record's number agrees in its file name and its title", () => {
@@ -31,8 +33,9 @@ describe("a decision record's number agrees in its file name and its title", () 
   it('violating-title-differs: a title naming another number is reported with both', () => {
     const v = rule(fixture(NAME, 'violating-title-differs')).violations()
     expect(v.map((f) => f.message)).toEqual([
-      'the path says 0003 and the title says 4 (after normalize): correct the one that is wrong, by renaming the file or editing the title',
+      'the path says 0003 and the title says 4 (compared as 3 and 4 after normalize): correct the one that is wrong, by renaming the file or editing the title',
     ])
+    expect(v[0]?.file).toMatch(/0003-use-a-message-queue\.md$/)
     expect(v[0]?.bypassFilters).toBeUndefined()
   })
 
