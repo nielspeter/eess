@@ -3,10 +3,10 @@
 ## Status
 
 - **State:** Done — built 2026-10-18 in PR #242 from the reviewed Draft, without a separate
-  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458 and 0456 (and 0454, PR #240, and 0468, PR #241). "Build notes" says where the build departed from the text. Written 2026-10-18 from proposal 017's block 2; revised the same day after one
+  `/plan-ready` step: the build PR's review stands in for it, as for [plans 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) and 0456 (and 0454, PR #240, and 0468, PR #241). "Build notes" says where the build departed from the text. Written 2026-10-18 from [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 2; revised the same day after one
   review round (architect · product · enforcement · method).
-- **Implements:** proposal 017
-- **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
+- **Priority:** High. All three adopters asked for blocks 1 and 2 ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), "Consumer
   feedback"). This is the block that lets a caller write "documents whose `Status` is `fixed` have a
   `Verification` section" in their own words.
 - **Effort:** Medium. One dual-use method on `docs()`, a resolver for each document, and its
@@ -28,7 +28,7 @@ answers both questions with its own code.
 
 ## Design
 
-_(Note 2026-10-18, from plan 0468's review: `readFields(doc, options, setAside)` takes the fence
+_(Note 2026-10-18, from [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s review: `readFields(doc, options, setAside)` takes the fence
 mode. A presence check should pass `'code-blocks'`: the default, `'closed-fences'`, reads past an
 unclosed fence, which errs toward "present" for this plan's question.)_
 
@@ -42,7 +42,7 @@ docs(c).that().haveField(spec) // a predicate: documents whose resolved value ex
 docs(c).should().haveField(spec) // a condition: every selected document has it
 ```
 
-`value` keeps its meaning from plan 0468 (the caller's normaliser), so adopters 1 and 2 keep their
+`value` keeps its meaning from [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md) (the caller's normaliser), so adopters 1 and 2 keep their
 own value end. The method is dual-use by phase, as `haveSection` is
 (`packages/md/src/builders/docs.ts:45`).
 
@@ -62,13 +62,13 @@ precedence is decided in one place (decision 2).
 
 With `oneOf`, a field with several values is allowed only when every value is.
 
-**The header region.** `region: 'header'` is a `FieldOptions` option (plan 0468), so the reader, the
+**The header region.** `region: 'header'` is a `FieldOptions` option ([plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)), so the reader, the
 resolver and the unnamed-form scan all read the same lines. Two adopters' records need it, and so do
 two of this repository's:
 
 - **A register inside a record.** An adopter's plan carries its real `**Status:**` on line 3, then ten
   feedback items each written `- **Status:** open.`.
-- **A kept earlier submission.** Proposals 010 and 016 keep their original submission, with its own
+- **A kept earlier submission.** [Proposals 010](../../proposals/010-ts-performance-at-scale.md) and 016 keep their original submission, with its own
   `**State:**`, below the current header.
 
 Read over the whole document, each of these is a conflict. Within the header, each resolves to its
@@ -76,10 +76,10 @@ real value. A "first occurrence wins" option was considered and rejected, becaus
 second value anywhere, even inside the header. The region hides only what lies outside the part the
 caller names, and only when the caller opts in. That narrows decision 2 ("a losing occurrence that
 disagrees is its own finding"): a disagreeing occurrence outside the region is neither read nor
-reported. The narrowing is recorded in proposal 017.
+reported. The narrowing is recorded in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md).
 
 **Every cause is reported, in either position.** `haveField` used as a selector must not drop a
-document without saying so (ADR-009). Four causes make a document's value unreadable, and the builder's
+document without saying so ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md)). Four causes make a document's value unreadable, and the builder's
 `collectViolations` reports them in both phases, as `links()` reports its declaration findings
 (`packages/md/src/builders/links.ts:140-150`):
 
@@ -106,7 +106,7 @@ document gets one finding per cause even when the same spec is used in both phas
 out an unreadable document without reporting it, as `links()` documents for its own declarations
 (`packages/md/src/builders/links.ts:63-65`). The method's JSDoc and the README say so.
 
-Each document gets one cause (ADR-009 rule 2). An unnamed-form finding replaces "no field" for that
+Each document gets one cause ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2). An unnamed-form finding replaces "no field" for that
 document. These are the messages:
 
 ```
@@ -121,14 +121,14 @@ work/bugs/0001.md:220: prose says Status 'open', but the field at line 3 says 'f
 - **Labels.** "Its labels" lists the wrapped labels the document carries (`wrappedLabelOf`), so a
   record that writes `State` where the rule reads `Status` points at the real label. An alias the
   caller did not name cannot be known, so that is how the second Review's alias condition is met;
-  the narrowing is recorded in proposal 017.
-- **Values.** The allowed-value message is the one `resolveAgainst` prints (plan 0468): one concept,
+  the narrowing is recorded in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md).
+- **Values.** The allowed-value message is the one `resolveAgainst` prints ([plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)): one concept,
   one message.
 - **Withheld documents.** Decision 2 says a withheld document is "counted as withheld". Here each
   withheld document gets one finding, and the findings are the count. No separate summary number is
-  added. This is recorded in proposal 017.
+  added. This is recorded in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md).
 
-A predicate that selects no document gives the kernel's zero-examined finding (ADR-010).
+A predicate that selects no document gives the kernel's zero-examined finding ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
 
 **The example the block exists for:**
 
@@ -162,7 +162,7 @@ Proposals are left out. Two of them (010 and 016) keep their original submission
 `**State:**` line, below the current one, as the lane's rule asks. `region: 'header'` now separates
 those, so whether to add the lane, measured, is the build's choice. This is the first check here that
 reds when a record has no state at all: `honestyAtClose` counts such a record but never refuses it
-(bug 0444).
+([bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md)).
 
 ## Phases
 
@@ -170,7 +170,7 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 2. **`haveField`.** The predicate and condition forms, `collectViolations` in both phases, and the
    messages above.
 3. **Dogfood, docs, release.** The `check:corpus` rule and its `check:nonvacuity` row, an example under
-   `examples/md/`, the eess-md README with the paired rule, the header region and its known limit (plan 0468), a glob that keeps a rule off frozen records, `docs/markdown.md`, a changeset.
+   `examples/md/`, the eess-md README with the paired rule, the header region and its known limit ([plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)), a glob that keeps a rule off frozen records, `docs/markdown.md`, a changeset.
 
 ## Files changed
 
@@ -218,7 +218,7 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 
 ## Release
 
-`@nielspeter/eess-md` minor, additive. It ships after plan 0468's flagged release.
+`@nielspeter/eess-md` minor, additive. It ships after [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s flagged release.
 
 ## Out of scope
 
@@ -226,7 +226,7 @@ reds when a record has no state at all: `honestyAtClose` counts such a record bu
 - **An exported `Predicate<MdDocument>` for `inDocuments`.** Lifting `haveField` onto other elements
   through block 12 would drop these findings, because `inDocuments` has no door for them. That door is
   [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md).
-- **`honestyAtClose` rebuilt on `haveField`:** the second Review's decision 1, and bug 0444.
+- **`honestyAtClose` rebuilt on `haveField`:** the second Review's decision 1, and [bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md).
 - **Any region other than the header** (a named section, for example): block 11.
 - **Requiring `Severity`:** 22 live bugs carry none (measured 2026-10-18). Giving each one a level is a
   judgement per bug, not part of this build.
@@ -240,9 +240,9 @@ Where the build departed from the text above, each overrulable:
   "one concept, one message", and the two cannot both hold. `judge` is shared from
   `packages/md/src/builders/vocabulary.ts`.
 - **An empty value is a fifth unreadable cause:** `Status at line 3 has no value this rule can read`.
-  Plan 0468's review made `readFields` yield an empty value rather than drop it, so the resolver
+  [Plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s review made `readFields` yield an empty value rather than drop it, so the resolver
   sees it; a document whose only value is empty is not selected and is reported.
-- **The resolver reads with `'code-blocks'`,** as plan 0468's review asked: reading past an unclosed
+- **The resolver reads with `'code-blocks'`,** as [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s review asked: reading past an unclosed
   fence would err toward "present".
 - **A selected document can still carry findings:** prose that disagrees, a label elsewhere in a
   form the rule does not read, and (as a condition) a value outside `oneOf`. "One cause per
@@ -283,10 +283,10 @@ Where the build departed from the text above, each overrulable:
     ([bug 0484](../../bugs/0484-state-present-picks-records-by-a-path-prefix.md)); a `## State:`
     heading is reported by both `corpus/state-present` and `corpus/state-in-vocabulary-<lane>`,
     counted twice in the summary ([bug 0483](../../bugs/0483-a-state-heading-is-counted-twice.md));
-    `.select()` carries none of these findings (plan 0470's question); the outside-the-header cause
+    `.select()` carries none of these findings ([plan 0470](./0470-a-lifted-predicate-carries-its-findings.md)'s question); the outside-the-header cause
     reads structured forms only, so a plain or loosely formatted label below the header is "no
-    field" (plan 0468's region limit); each `haveField` use computes a document's verdict more than
-    once (→ plan 0470, whose lift multiplies it per box).
+    field" ([plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s region limit); each `haveField` use computes a document's verdict more than
+    once (→ [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md), whose lift multiplies it per box).
 - **Review verification, 2026-10-18:** each reviewer re-checked their findings against the fix pass.
   Fixed from it: the fence fallback also scans for labels in forms the rule does not read, so such a
   label after a code fence that never closes is reported, not dropped; the message names the code
@@ -303,7 +303,7 @@ Where the build departed from the text above, each overrulable:
 - **Files beyond the plan's list:** `packages/md/src/model/field-verdict.ts`, `field-unread.ts` and
   `builders/have-field.ts` (new); `FieldOccurrence` exported from `model/fields.ts`;
   `examples/README.md`. The README's region limit and the frozen-records glob were already
-  documented (plan 0468's README section and `packages/md/README.md`'s `corpus()` text); this
+  documented ([plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s README section and `packages/md/README.md`'s `corpus()` text); this
   plan's README paragraph points at them rather than repeating them.
 - **The example is `examples/md/a-fixed-bug-shows-its-verification.test.ts`,** with two judgements (a
   fixed bug missing the section, a Status in a form the rule does not read).
@@ -324,13 +324,13 @@ Where the build departed from the text above, each overrulable:
 - [x] `npm run validate` green; duration reported (at a924a041, with this box ticked provisionally
       because `check:ledger` runs inside it: exit 0 in 14 min 37 s. The verification's last pass
       after it (the fence fallback, a throw, two tests) was re-checked by the md suite, sabotage rows
-      1–13, `check:arch`, `lint` and `format:check`; this branch is rebased onto plan 0468's before
-      its PR, and CI is the gate for the combined tree. Rebased onto plan 0468's branch after PR #240
+      1–13, `check:arch`, `lint` and `format:check`; this branch is rebased onto [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s before
+      its PR, and CI is the gate for the combined tree. Rebased onto [plan 0468](./0468-fields-read-a-labelled-value-in-the-callers-forms.md)'s branch after PR #240
       merged, the combined tree was validated again at 9ec9c2a: exit 0 in 14 min 32 s, 222 fixtures,
       md 481 tests)
 - [x] Close: this plan → `completed/`; boards
 
-Deferred: plan 0470 (selector-position dogfood, one verdict per use), bug 0482, bug 0483, bug 0484
+Deferred: [plan 0470](./0470-a-lifted-predicate-carries-its-findings.md) (selector-position dogfood, one verdict per use), [bug 0482](../../bugs/0482-the-havefield-tests-cannot-see-an-extra-finding.md), [bug 0483](../../bugs/0483-a-state-heading-is-counted-twice.md), [bug 0484](../../bugs/0484-state-present-picks-records-by-a-path-prefix.md)
 
 The SHAs above are this branch's commits before its rebase and squash merge (PR #242), so they do
 not resolve on `main`. What they evidence holds for the merged tree: the tree validated at 9ec9c2a

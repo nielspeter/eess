@@ -38,7 +38,7 @@ selected.
 - each report's `ran` equals its `selected`;
 - every fixture of this checkout's list RAN in exactly one shard (none missing, none twice, no name
   the list does not have). The partition and the closing count (`N fixtures each fired`) are built
-  from the union of `ran` less `failed`, never from `selected` or the length of the list (ADR-010).
+  from the union of `ran` less `failed`, never from `selected` or the length of the list ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
   The first version built both from `selected` and the list, so a shard loop that ran nothing read
   green in the shard and in the partition (PR #250's enforcement review, C1);
 - shards `1..N` each reported once, all with the same `N` and the digest of this checkout's list;
@@ -98,7 +98,7 @@ superseded PR runs offsets part of that (PR #250's DevOps review, M3).
 
 Residuals:
 
-- `gate coverage` reads `ci.yml` by line pattern, as `checkBunLoadJob` does (plan 0448); a YAML
+- `gate coverage` reads `ci.yml` by line pattern, as `checkBunLoadJob` does ([plan 0448](./0448-a-bun-load-guard-and-bug-0439s-fix.md)); a YAML
   shape it does not recognise reds rather than passes, but a semantically equivalent rewrite could
   red too.
 - The shard and merge tests run only as the tail of the npm script, `&& node --test

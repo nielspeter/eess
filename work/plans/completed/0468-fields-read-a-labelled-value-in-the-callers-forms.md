@@ -3,11 +3,11 @@
 ## Status
 
 - **State:** Done — built 2026-10-18 in PR #241 from the reviewed Draft, without a separate
-  `/plan-ready` step: the build PR's review stands in for it, as for plans 0458 and 0456 (and 0454, PR #240).
-  "Build notes" says where the build departed from the text. Written 2026-10-18 from proposal 017's block 1; revised the same day after one
+  `/plan-ready` step: the build PR's review stands in for it, as for [plans 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) and 0456 (and 0454, PR #240).
+  "Build notes" says where the build departed from the text. Written 2026-10-18 from [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 1; revised the same day after one
   review round (architect · product · enforcement · method).
-- **Implements:** proposal 017
-- **Priority:** High. All three adopters asked for blocks 1 and 2 (proposal 017, "Consumer
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
+- **Priority:** High. All three adopters asked for blocks 1 and 2 ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), "Consumer
   feedback"). The maintainer asked for these two to be planned on 2026-10-18.
 - **Effort:** Medium. One per-document reader in the model, one new constructor, two new label
   forms beside the two the shared grammar already reads, and a scan for forms the caller did not
@@ -20,7 +20,7 @@
   - [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md), the examples
     gate, which decision 3 makes the condition for every accepted block.
 
-  Where this sits among proposal 017's plans is the maintainer's to set.
+  Where this sits among [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s plans is the maintainer's to set.
 
 - **Followed by:** [plan 0469](./0469-havefield-a-document-has-a-value.md), `haveField`, which
   resolves this reader's occurrences.
@@ -33,8 +33,8 @@ itself. eess-md has two readers, and neither does the job:
 - `terms()` (`packages/md/src/builders/vocabulary.ts:178`) takes a regex and returns the text after
   it. It knows no label forms, cuts its default value at `·—–|`, and reports nothing about a label
   written in a way its regex misses.
-- `honestyAtClose` read only `State` (bug 0444). It now takes `label` and `aliases`, and reads a
-  `## Label: value` heading in a record's header (bug 0476): a second header reader this plan's
+- `honestyAtClose` read only `State` ([bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md)). It now takes `label` and `aliases`, and reads a
+  `## Label: value` heading in a record's header ([bug 0476](../../bugs/fixed/0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md)): a second header reader this plan's
   `readFields` should absorb, with the same header rule.
 
 Adopter 3 counted the forms it uses (live / frozen):
@@ -52,7 +52,7 @@ spans four lines.
 
 ## Design
 
-Proposal 017's "Decisions this settles" 1 and 2 give the shape. They are the coordinator's decisions,
+[Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s "Decisions this settles" 1 and 2 give the shape. They are the coordinator's decisions,
 and the maintainer has not overruled them. The element is a **field**: one element type with two
 constructors, and the caller decides where a value ends.
 
@@ -91,7 +91,7 @@ every occurrence in one document:
 - each occurrence carries the label as written, its form, its line, its raw text, its cut value and
   its split values;
 - `fields()` uses it through `stampedByDocument` (`packages/md/src/builders/links.ts:37`);
-- plan 0469's resolver and the unnamed-form scan use the same function, so there is one
+- [plan 0469](./0469-havefield-a-document-has-a-value.md)'s resolver and the unnamed-form scan use the same function, so there is one
   labelled-value reader (decision 4).
 
 `labelPattern`, which the ledger and `links().areLabelled()` share, does not change. The `heading` and
@@ -112,11 +112,11 @@ every occurrence in one document:
     further down is neither read nor reported.
   - A field that sits under a named section (`## Status`, with `- **State:** v` under it; 51 of
     adopter 3's records, 7 of them live) is outside the header. `haveField` reports it in either
-    position, as plan 0469's "outside the region" cause. A named-section region waits for block 11.
+    position, as [plan 0469](./0469-havefield-a-document-has-a-value.md)'s "outside the region" cause. A named-section region waits for block 11.
 
 - Fenced code is skipped (`proseText`).
 - Frozen documents are read (decision 3: each rule chooses its own documents).
-- An HTML block is read as prose. That is bug 0293, a known limit of every eess-md reader, and
+- An HTML block is read as prose. That is [bug 0293](../../bugs/0293-an-example-inside-an-html-block-is-read-as-prose.md), a known limit of every eess-md reader, and
   this plan does not fix it.
 - A value over several lines continues until a blank line, a heading, a line that is itself a label
   in any form, or the end of its list item. A `heading` value is one line. The element's `line` is
@@ -171,8 +171,8 @@ enforcement condition. The scan:
 found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line
 ```
 
-A label matching nothing at all gives the kernel's zero-examined finding (ADR-010). Narrowed, and
-recorded in proposal 017: an alias the caller did not name cannot be known. Plan 0469's "no field"
+A label matching nothing at all gives the kernel's zero-examined finding ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)). Narrowed, and
+recorded in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md): an alias the caller did not name cannot be known. [Plan 0469](./0469-havefield-a-document-has-a-value.md)'s "no field"
 finding lists the wrapped labels the document does carry instead.
 
 **Dogfooding.** `check:corpus` gains one rule per lane over the `State` values on this repository's live
@@ -186,7 +186,7 @@ green on its first run; Phase 3 measures that. A `check:nonvacuity` row changes 
 live bold `Severity` lines:
 
 - after `cleanValue` and `untilDelimiter(['—'])`, 7 still match no level, because they write prose
-  instead (bugs 0174, 0175, 0177, 0178, 0180, 0181, 0182);
+  instead ([bugs 0174](../../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md), 0175, 0177, 0178, 0180, 0181, 0182);
 - 22 live bugs have no `Severity` line at all.
 
 Giving each of those a level is a judgement per bug, and not part of this build.
@@ -256,15 +256,15 @@ Giving each of those a level is a judgement per bug, and not part of this build.
 `@nielspeter/eess-md` minor, flagged `**Breaking**`. `MdTerm` gains two required fields, so an
 adopter's test that builds an `MdTerm` literal stops compiling. The fix is one line: add `label` and
 `form`. No package in the family builds one (`git grep MdTerm -- packages examples`). The changeset
-names the dependants that release requires (bug 0185): none, since eess-crossvalidate takes eess-md
+names the dependants that release requires ([bug 0185](../../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)): none, since eess-crossvalidate takes eess-md
 only as an optional peer. _(At build, 2026-10-18: a second break, `TermRuleBuilder`'s constructor,
 which now takes a source; the changeset marks both.)_
 
 ## Out of scope
 
-- **Presence, precedence and conflicts:** plan 0469.
+- **Presence, precedence and conflicts:** [plan 0469](./0469-havefield-a-document-has-a-value.md).
 - **Frontmatter:** adopter 3 counts 0 uses, and no adopter asked for it.
-- **`honestyAtClose`'s reader:** bug 0444, and the preset rebuild (the second Review, decision 1).
+- **`honestyAtClose`'s reader:** [bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md), and the preset rebuild (the second Review, decision 1).
 - **A value agreeing with its folder:** block 5, after its ADR.
 - **A census of allowed values that no document uses** (a carried item, report-only): left to the
   first adopter who asks.
@@ -282,7 +282,7 @@ Where the build departed from the text above, each overrulable:
 - **The lane vocabularies moved to `scripts/lib/ledger-lanes.mjs`.** `check:ledger` and the new
   `check:corpus` rule import one list (the plan cited `scripts/check-ledger.mjs:59-67`), so the two
   gates read the same words; with the shared grammar below, the same label shapes. Each keeps its
-  own reader (the ledger's is bug 0444's). Moving it shortened `check-ledger.mjs`; bug 0283's pointer into it was
+  own reader (the ledger's is [bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md)'s). Moving it shortened `check-ledger.mjs`; [bug 0283](../../bugs/0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md)'s pointer into it was
   re-pointed.
 - **The unnamed-form finding is an ordinary finding,** with the rule's context (as `links()`'s
   declaration findings are), not a configuration finding; the example asserts that.
@@ -291,7 +291,7 @@ Where the build departed from the text above, each overrulable:
 - **`bold-line` does not read `**X:\*\* **v**`,** a bold label with a bold value; that is `bold`.
 - **`longestOf` matches a whole word:** `Drafted` is not `Draft`, so it is reported.
 - **`FieldOccurrence` is not exported:** nothing outside the model reads it yet (`no-unused-exports`);
-  plan 0469's resolver will.
+  [plan 0469](./0469-havefield-a-document-has-a-value.md)'s resolver will.
 - **`fields()` is in the vacuity matrix** (over an empty corpus it gives a configuration finding),
   and the three value helpers are listed as not constructors.
 - **Three sabotage rows beyond the plan's four:** whole-value matching (5), the scan's region (6), and
@@ -318,7 +318,7 @@ Where the build departed from the text above, each overrulable:
     `-bugs`), with a `suggestion` listing the lane's words; three non-vacuity rows (a misspelt bug
     State, a plan carrying a bug's word, a heading-form State) read the gate's JSON by id, which is
     what `rule-id coverage` counts (the first validate failed on it).
-  - `readFields` and `scanFields` take the fence mode (`SetAside`), so plan 0469's presence check can
+  - `readFields` and `scanFields` take the fence mode (`SetAside`), so [plan 0469](./0469-havefield-a-document-has-a-value.md)'s presence check can
     pass `'code-blocks'` and not read past an unclosed fence as "present".
   - `TermRuleBuilder`'s constructor changed its argument: a second **Breaking** line in the changeset.
   - The scan's candidates use the rule's own `value`, and patterns are compiled once per scan.
@@ -337,13 +337,13 @@ Where the build departed from the text above, each overrulable:
 - **Departures from the Design's text, besides the above:** `heading` takes no list marker (a list
   item is not a heading); a `bold-line` value is one line, like a `heading` value; the scan lives in
   a new file, `packages/md/src/builders/field-findings.ts`; `honestyAtClose`'s own reader was not
-  absorbed (Problem said `readFields` "should absorb" it; Out of scope keeps it with bug 0444).
+  absorbed (Problem said `readFields` "should absorb" it; Out of scope keeps it with [bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md)).
 - **The example is `examples/md/a-record-states-its-status.test.ts`,** with two judgements (an unknown
   value, a form the rule does not read), not a folder `examples/md/fields/`.
 
 ## Progress ledger
 
-- [x] Preconditions: bug 0403 fixed (PR #237), plan 0458 built (the examples gate)
+- [x] Preconditions: [bug 0403](../../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md) fixed (PR #237), [plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md) built (the examples gate)
 - [x] Phase 1: reader
 - [x] Phase 2: `resolveAgainst` and the unnamed-form scan
 - [x] Phase 3: dogfood rule, non-vacuity row, example, README, docs, changeset
@@ -357,7 +357,7 @@ Where the build departed from the text above, each overrulable:
       because `check:ledger` runs inside it: exit 0 in 14 min 21 s; 217 non-vacuity fixtures; tests
       core 331, crossvalidate 128, gherkin 11, md 417, mermaid 173, eess-ts 3,977, examples 27,
       test:matrix 48. An earlier run on the pre-review code failed on `rule-id coverage`, fixed in
-      the review round. Rebased onto main after PR #240 (plan 0454) merged, the combined tree was
+      the review round. Rebased onto main after PR #240 ([plan 0454](./0454-box-marks-are-the-callers.md)) merged, the combined tree was
       validated again at 11a3d6c: exit 0 in 14 min 26 s, 220 fixtures, md 458 tests)
 - [x] Close: this plan → `completed/`; boards
 

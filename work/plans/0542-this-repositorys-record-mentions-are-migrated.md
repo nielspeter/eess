@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — Phases 1–7 built 2026-10-27/29; lane 8 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Ready — Phases 1–8 built 2026-10-27/29; Phase 9 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
   2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
@@ -490,6 +490,38 @@ fails the build` and `accepts a repository that extends the base through an inte
   (`check:corpus`, 2026-10-29). `check:ledger`, the docs link test, format and `check:fast` pass
   over the lane.
 
+**Lane 8 (Phase 8), built 2026-10-29**, at base 15aa6a42, with `LANE` set to
+`work/plans/completed/04[5-9]*.md` and `work/plans/completed/0[5-9]*.md` (the closed plans numbered
+0450 and above; the commit leaves it empty), under steps 2 and 4 as lane 4 left them:
+
+- The instrument found 21 anachronisms on 21 lines in 587 fixes, the Appendix's lines exactly. The
+  dry run gave 562 fixes, the other 25 sitting on the excluded lines, and 35 refusals, the table's 36
+  less one on an excluded line. The GitHub-link grep printed one line, a URL in inline code; no test
+  title in the lane holds a record number.
+- The search lane 7 carried, run before the judges: each fix's text, with twelve characters either
+  side, matched against the tests, fixtures, probes and examples, and every fix within sixty
+  characters of "e.g.", "fixture", "sample", "probe" or "synthetic" listed. 17 hits, each a real
+  reference: sibling plans named beside their own fixtures, and one code comment citing [ADR-005](../../adr/005-no-any-no-type-assertions.md).
+- Judge 1 (Fable, in two halves; seed 20261029) read the 134 fixes in ts-archunit's range and 20
+  sampled: 154 right, so no fix was left out and no same-target search was owed. `--apply` wrote 562
+  links across 19 files.
+- By hand: a proposer (Fable) proposed 61 edits for the 56 items (the 5 more are other mentions on
+  excluded lines), all applied in 14 files: 55 links, 3 fences, 2 rewordings and 1 rewording to the
+  ts-archunit form. The builder changed one, dropping two bare-number links the proposer had added
+  after a list's first number, as the fix and the earlier lanes link only the first. Five items are
+  sample data, a number in a quoted fixture line, an adopter-notation example, a pattern's example
+  and two quoted mentions as written: three are fenced word for word and two reworded, none linked.
+  The carried search's other half, every hand edit whose old text held a code span with a mention
+  matched against the fixtures, found one verbatim fixture line, `task-items-marks.test.ts:124`,
+  which is among the three fenced. All 21 anachronism lines are over-flags, each record filed the
+  day its mention was written, and were linked.
+- Judge 2 (Fable), given no reasons, read 15: every rewording and fence, every hand link with a
+  number in ts-archunit's range, the five sample-data rows and four rows on a closed plan's deferral
+  or a list's display. 15 right.
+- Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
+  reads 0 unlinked mentions against 623 at the base, and 202 skipped after ts-archunit against 201
+  (`check:corpus`, 2026-10-29). `check:ledger`, the docs link test and format pass over the lane.
+
 ### Phase 9 — the gate holds zero, and checks the target
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
@@ -626,11 +658,11 @@ document. Every new number was reproduced at 4a43bcc4.
       of ts-archunit's bug 0016, its two test-title quotes already updated; reworded to the
       ts-archunit form)
 - [x] Phase 7 — `work/plans/completed/` 0001–0449
-- [ ] Phase 8 — `work/plans/completed/` 0450 and above (carried from lane 7: each fix's text matched
+- [x] Phase 8 — `work/plans/completed/` 0450 and above (carried from lane 7: each fix's text matched
       against the tests, fixtures and examples, and the links near "e.g.", "fixture" or "sample",
       since judge 1 reads a fix past ts-archunit's range only by sample; and every hand rewording of a
       code span, its old text matched against the fixtures, so a quote is kept or fenced rather than
-      paraphrased)
+      paraphrased; both run, and no fix or hand edit links sample data)
 - [ ] Phase 9 — the gate holds zero and checks the target
 
 ## Appendix — the 145 anachronisms, at 4a43bcc4

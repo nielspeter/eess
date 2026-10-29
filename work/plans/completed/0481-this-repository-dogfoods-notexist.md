@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Done — built 2026-10-19 on branch `fix/fail-open-batch` (with bugs 0508, 0499 and
+- **State:** Done — built 2026-10-19 on branch `fix/fail-open-batch` (with [bugs 0508](../../bugs/fixed/0508-an-unknown-report-mode-prints-and-passes.md), 0499 and
   0506's crossvalidate half). Written 2026-10-18 at the maintainer's question ("are we dogfooding
-  all these changes?"). Plan 0456 shipped `notExist()` on every eess-md builder and the kernel's
+  all these changes?"). [Plan 0456](./0456-kernel-notexist-and-dead-glob.md) shipped `notExist()` on every eess-md builder and the kernel's
   broken-selector check, and nothing in this repository's own gates used either: their only real
   use was `examples/md/unclaimed-and-double-claimed.test.ts`.
 - **Priority:** Medium. The change is small, and until it lands the selector-fault check never runs
@@ -12,16 +12,16 @@
 - **Effort:** Small: one rule pair in `check:ledger`, the hand-written check it replaces kept or
   removed by measurement, one non-vacuity row.
 - **Created:** 2026-10-18
-- **Builds after:** plan 0469 (the maintainer's batch order), before the release.
+- **Builds after:** [plan 0469](./0469-havefield-a-document-has-a-value.md) (the maintainer's batch order), before the release.
 - **Built from State: Draft**, at the batch lead's instruction ("build it as written and close it");
   it was never promoted to Ready.
 
 ## Problem
 
 `check:ledger` checks that every directory under `work/` is claimed by a declared lane with a
-hand-written walk, `findUncoveredLanes` (`scripts/lib/lane-coverage.mjs:76`). That is proposal 017's
+hand-written walk, `findUncoveredLanes` (`scripts/lib/lane-coverage.mjs:76`). That is [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s
 block 6, "every document is claimed by one selection", written by hand. eess-md now states it in its
-own blocks: two `notExist()` rules over the caller's selections (plan 0456's recipe). Using them here
+own blocks: two `notExist()` rules over the caller's selections ([plan 0456](./0456-kernel-notexist-and-dead-glob.md)'s recipe). Using them here
 puts `notExist()` and the kernel's `cardinalitySelectorFault()` in front of this repository's own
 globs, which nothing does today.
 
@@ -45,7 +45,7 @@ globs, which nothing does today.
 
 ## Out of scope
 
-- Rebuilding `honestyAtClose` from public blocks (proposal 017, decision 1).
+- Rebuilding `honestyAtClose` from public blocks ([proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md), decision 1).
 
 ## Build notes
 
@@ -79,7 +79,7 @@ Where the build departed from the text above, each overrulable:
   as [bug 0517](../../bugs/0517-a-gates-json-past-64-kib-is-cut-through-a-pipe.md).
 - **Not this plan's:** the change to `check:corpus`'s `FROZEN` list (`**/wont-do/**` and
   `**/archived/**` removed, then restored and declared in `EMPTY_FROZEN` after review) belongs to
-  bug 0499's commits; this plan's corpus passes no frozen globs.
+  [bug 0499](../../bugs/fixed/0499-corpus-does-not-check-its-frozen-globs.md)'s commits; this plan's corpus passes no frozen globs.
 
 ## Progress ledger
 

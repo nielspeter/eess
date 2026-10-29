@@ -2,18 +2,18 @@
 
 ## Status
 
-- **State:** Done — built on maintainer order 2026-10-19 (`3aedd03`), after plan 0496 and the
-  fixes of bugs 0502 and 0507 in the same pull request (see "Build notes"). Written 2026-10-19 from
+- **State:** Done — built on maintainer order 2026-10-19 (`3aedd03`), after [plan 0496](./0496-sections-as-elements.md) and the
+  fixes of [bugs 0502](../../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md) and 0507 in the same pull request (see "Build notes"). Written 2026-10-19 from
   [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md) ask 18 and decision 6
   ("`inSections(predicate)`, the sibling of block 12's `inDocuments`, sharing its owner and memo,
   lifts a section predicate onto any element by its document and line, with no change to any element
   type. 'Under' means any enclosing section. … A section predicate that selects no section is a
   finding naming it, and a box finding names the section it was attributed to"), in PR #247 beside
-  plan 0496; revised the same day after PR #247's verify round (see "Review response").
+  [plan 0496](./0496-sections-as-elements.md); revised the same day after PR #247's verify round (see "Review response").
 - **Accepted:** 2026-10-19 by the maintainer. Asked whether block 18 is in this release, the
   maintainer chose **"Include block 18"**.
-- **Implements:** proposal 017
-- **Priority:** Medium — it extends reach. With `haveTextMatching` below and bug 0507's fix, it makes
+- **Implements:** [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)
+- **Priority:** Medium — it extends reach. With `haveTextMatching` below and [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s fix, it makes
   the adopters' own section rules writable from public blocks: adopter 1's most-wanted rule ("11 and
   12 composed: a box rule limited by a value, inside matching sections", stated in 017's consumer
   feedback as "in a closed record, an open box under an acceptance-criteria section may carry only
@@ -34,7 +34,7 @@
     a deferral on a box's second line is not part of it;
   - [plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md): `inDocuments`, its
     memo, and `scopeDiagnosis`, which this plan generalises;
-  - the ADR-023 pull request (#248, merged before this build): the names `predicateHaveField` and
+  - the [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) pull request (#248, merged before this build): the names `predicateHaveField` and
     `predicateHaveSection` used below.
 
   All of them are in this release batch.
@@ -43,15 +43,15 @@
 
 "In a closed record, an open box under an `Acceptance criteria` section may carry only
 `validation-owed`" is a rule over boxes, limited by the documents and the sections they sit in, and
-by what each box says. Plan 0457 limits any element by its **document**; plan 0496 makes sections
+by what each box says. [Plan 0457](./0457-a-rule-limited-to-the-documents-the-caller-chooses.md) limits any element by its **document**; [plan 0496](./0496-sections-as-elements.md) makes sections
 elements. Nothing limits an element by its **section**, and nothing selects a box by its **text**:
 `taskItems()` offers `areOpen()` and `areChecked()` only
 (`packages/md/src/builders/task-items.ts:90-95`). So neither adopter's rule can be written from
-public blocks, and the examples gate (plan 0458) cannot show it.
+public blocks, and the examples gate ([plan 0458](./0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)) cannot show it.
 
 Adopter 3 rebuilds the heading chain from `doc.sections` by line, because every enclosing heading
-counts, not only the nearest (017, "Adopter 3's section input — 2026-10-18", lesson 1). With plan 0496
-alone an adopter could join `sections().select()` to a literal box predicate by hand; plan 0496's docs
+counts, not only the nearest (017, "Adopter 3's section input — 2026-10-18", lesson 1). With [plan 0496](./0496-sections-as-elements.md)
+alone an adopter could join `sections().select()` to a literal box predicate by hand; [plan 0496](./0496-sections-as-elements.md)'s docs
 do not teach that, because under `notExist()` a misspelt section name empties the join and the rule
 passes.
 
@@ -60,7 +60,7 @@ passes.
 ### The adopters' rules, as they will be written
 
 Each adopter passes its own patterns. eess-md exports no disposition words: they are a working-method
-shape, which the md root does not fix (ADR-022, merged, clause 1; 017's second Review,
+shape, which the md root does not fix ([ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md), merged, clause 1; 017's second Review,
 decision 1). `honestyAtClose`'s private `DEFERRED_DISPOSITION_RE`
 (`packages/md/src/rules/ledger.ts:253`) stays private.
 
@@ -158,26 +158,30 @@ taskItems(c)
 ```
 
 Adopter 3's rules (a) and (c) carry the deferral rule it wrote by hand; (c) is the one that needs
-bug 0507's fix, since its deferrals are often written on a box's second line.
+[bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s fix, since its deferrals are often written on a box's second line.
 
 **Which patterns a guard protects.** A pattern used to **exclude** (`not(haveTextMatching(VALIDATION_OWED))`,
 `not(haveTextMatching(DISPOSED))`) fails closed when it is misspelt: it excludes nothing, so more
 boxes are reported. A pattern or section name used to **select** in front of `notExist()` fails open
-when it is misspelt: the rule examines nothing and stays green (ADR-010 §3). Each selecting name and
+when it is misspelt: the rule examines nothing and stays green ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3). Each selecting name and
 pattern above has a guard, except `DEFERRAL` in rule (c): its guard would have to fail when no closed
 box carries a deferral, which a clean corpus may legitimately reach, so a typo in it, or the adopter's
-notation drifting from it (`deferred to plan 0002`), stays green. That is stated in the docs beside
+notation drifting from it (the drift below), stays green. That is stated in the docs beside
 the example.
+
+```
+deferred to plan 0002
+```
 
 ### The lift
 
 `inSections<T extends { readonly doc: MdDocument; readonly line: number }>(p: Predicate<MdSectionElement>): Predicate<T>`
 
-- **An element is in a section** when the section contains its line (plan 0496's `contains`: the
+- **An element is in a section** when the section contains its line ([plan 0496](./0496-sections-as-elements.md)'s `contains`: the
   heading line through `endLine`). **"Under" is any enclosing section** (decision 6; adopter 3's
   lesson 1): a box under `### X` inside `## Acceptance` is under both.
 - **Membership is strong Kleene over the enclosing sections**, decided once by the kernel's
-  `membership` (ADR-021): selected when `p` holds for some enclosing section; undecided when it holds
+  `membership` ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)): selected when `p` holds for some enclosing section; undecided when it holds
   for none and cannot judge one (a section predicate built from a lifted document predicate); otherwise
   not selected. Undecided elements are reported by the kernel, never dropped.
 - **Owner and memo.** It lives in `packages/md/src/predicates/in-documents.ts` beside `inDocuments`,
@@ -194,15 +198,15 @@ the example.
   boxes whose `text` matches; after `.should()` every selected box's text must match, and a box that
   does not is a finding naming the pattern and quoting the text.
 - **On md's root as a predicate**, generic over any element with a text,
-  `haveTextMatching<T extends { readonly text: string }>(re): Predicate<T>`, the way plan 0496 widens
+  `haveTextMatching<T extends { readonly text: string }>(re): Predicate<T>`, the way [plan 0496](./0496-sections-as-elements.md) widens
   `areInSectionPredicate`, so it composes with `not()`, `and()` and `or()`, as the adopters' rules
   above need, and the plain name stays true when links, fields or terms (which also carry `text`,
   `packages/md/src/model/links.ts:12`, `packages/md/src/model/fields.ts:65`) gain the method later. It is first published as a
-  predicate, so under ADR-023 (#248, merged) the plain name is the predicate; the builder method's
+  predicate, so under [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) (#248, merged) the plain name is the predicate; the builder method's
   condition phase is its twin by phase, as `haveSection` is on `docs()`.
-- **The caller's pattern, read once:** `g` and `y` stripped, as plan 0496's section matcher does, so
+- **The caller's pattern, read once:** `g` and `y` stripped, as [plan 0496](./0496-sections-as-elements.md)'s section matcher does, so
   `lastIndex` never carries from one box to the next.
-- **What `text` is** is bug 0507's to settle (all of the box's own content, a nested box excluded).
+- **What `text` is** is [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s to settle (all of the box's own content, a nested box excluded).
   Until it is fixed, a pattern cannot see a second paragraph, which is why the bug is a precondition.
 
 ### The section predicates on md's root
@@ -217,10 +221,10 @@ the example.
 - **A new shape, acknowledged.** md's other root predicates are verb-first and share the builder
   method's name (`resideInFolder`, `areFrozen`, `inDocuments`). These put the element's noun first,
   because their only callers are lifts (`inSections(…)`) where a bare verb would be ambiguous between
-  element kinds. ADR-023 (#248, merged) governs predicate/condition twins only, so this is the plan's
+  element kinds. [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) (#248, merged) governs predicate/condition twins only, so this is the plan's
   choice; it is offered to that ADR's author as a rule for the next non-document element ("a root
   predicate over a non-document element carries the element's noun when the method name is generic").
-- **They compose** with `and`, `or` and `not`. Each is registered in plan 0496's section-name
+- **They compose** with `and`, `or` and `not`. Each is registered in [plan 0496](./0496-sections-as-elements.md)'s section-name
   registry by identity, so its name is recorded wherever it appears, under `not()` included (the scan
   asks whether the name exists, not the rule's polarity).
 
@@ -239,8 +243,8 @@ selects no section is a finding naming it" is narrowed the way 0457 narrowed blo
   sections in 7 of 140 documents, and they hold none of the 96 task items the rest of this rule
   selects".
 - **On `notExist()`**, an empty section scope is green: an absence rule's empty match is legitimate
-  (ADR-010 §3), as for `inDocuments`. Two guards stand in front of it:
-  - the corpus-wide near-miss scan (plan 0496): a heading that misses the name by case or spacing is
+  ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3), as for `inDocuments`. Two guards stand in front of it:
+  - the corpus-wide near-miss scan ([plan 0496](./0496-sections-as-elements.md)): a heading that misses the name by case or spacing is
     a finding on this rule whatever it examined;
   - the positive guard rule above, which reds when no scoped document has the section.
 - **What that leaves silent, stated plainly:** under `notExist()`, a section name that matches no
@@ -261,7 +265,7 @@ scope, and move it whenever the heading moves; adopter 3 keys its exemptions by 
 (lesson 3). `CorpusRuleBuilder` appends it when the rule holds a section scope, so `notExist()` and
 every condition say it.
 
-### ADR-010, ADR-014, ADR-021
+### [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md), [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md), [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
 
 The receipt is the kernel's: `examined` counts the elements selected, never the sections; the
 scope's counts are in its diagnosis. Undecided elements are the kernel's to report.
@@ -300,7 +304,7 @@ blocks (017's second Review, decision 1) is where `haveTextMatching` would be do
 
 ## Test inventory
 
-**Proposal 017's acceptance rows for ask 18**, each a fixture:
+**[Proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s acceptance rows for ask 18**, each a fixture:
 
 - a box under a `###` beneath the chosen `##` is attributed to the `##`, and its message names it;
 - a box before the first heading is in no section;
@@ -334,7 +338,7 @@ asserted word for word.
 `validation-owed`, red on one open box without it, with an open box under `## Notes` left alone; a
 box's `.excluding()` key unchanged when the rule gains a section scope (the attribution is in the
 message); two corpora with the same `relPath` stay apart (the memo keyed on the object); `links()`
-over a document with a container heading agrees with `inSections` (after bug 0502's fix, which is
+over a document with a container heading agrees with `inSections` (after [bug 0502](../../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md)'s fix, which is
 why it is a precondition).
 
 **The examples** (`examples/md/`): adopter 1's rule, and adopter 3's three, each with its guard
@@ -348,7 +352,7 @@ its test drove only `.that()`; the condition phase keeping `g`/`y` survived. The
 
 **Renamed 2026-10-19 (PR #252's product review, I1).** The free predicate shipped here as
 `haveTextMatching` is `predicateHaveTextMatching`: `taskItems().haveTextMatching()` is a dual-use
-method, so under ADR-023 clause 2 the method keeps the plain word and its free twin takes the prefix,
+method, so under [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) clause 2 the method keeps the plain word and its free twin takes the prefix,
 as `predicateHaveField` did beside `docs().haveField()`. The text above keeps the name it was built
 under.
 
@@ -376,7 +380,7 @@ exports by the vacuity matrix's export enumeration.
 ## Out of scope
 
 - Code blocks in `inSections` (their `line` can be null).
-- Exporting disposition words or `DEFERRED_DISPOSITION_RE`: ADR-022 clause 1; each caller passes its
+- Exporting disposition words or `DEFERRED_DISPOSITION_RE`: [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1; each caller passes its
   own pattern.
 - How prose is read for a disposition beyond a box's text (017's adopter 3 input, lesson 6).
 - Rebuilding `honestyAtClose` on these blocks: 017's second Review, decision 1.
@@ -388,18 +392,18 @@ The coordinator's settlements, recorded so they can be overruled:
 - **The dead section scope (architect N2, enforcement N3, product N5, method N3).**
   `mayMatchNothing` and the separate findings channel are dropped. A section scope now behaves as a
   document scope: named through the one generalised diagnosis hook on positive rules, green under
-  `notExist()` per ADR-010 §3, guarded by the near-miss scan and a positive guard rule, with what stays
+  `notExist()` per [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3, guarded by the near-miss scan and a positive guard rule, with what stays
   silent stated. That also removes the asymmetry with `inDocuments(predicateHaveSection(…))`
-  (product N5) and the ADR-018 citation (method N3); decision 6 is cited and its narrowing recorded
+  (product N5) and the [ADR-018](../../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md) citation (method N3); decision 6 is cited and its narrowing recorded
   in 017.
 - **The adopters' real rules (product N1).** `haveTextMatching` on `taskItems()`, in both phases and
   as a root predicate; the examples are the adopters' rules, with their own patterns; no disposition
-  words exported. Box text beyond the first paragraph is bug 0507, a precondition.
+  words exported. Box text beyond the first paragraph is [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md), a precondition.
 - **The attribution (product N4)** is in the message, not the `element`.
 - **Adopter 3's input (method N1)** is in 017 as "Adopter 3's section input — 2026-10-18"; this
   plan's quotes point at it.
 - **Names (architect N3, method N7, product N6).** `sectionsWithin` became `sectionsInSection`; each
-  name has its reason; the noun-first shape is acknowledged and offered to ADR-023.
+  name has its reason; the noun-first shape is acknowledged and offered to [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md).
 
 ### Final round — 2026-10-19 (PR #247)
 
@@ -423,7 +427,7 @@ overruled:
   there: under `and()` the near miss goes unreported and the rule is green; under `not()` the
   misspelt section is selected, so the rule reds, without saying why. Row 9 is run on the direct form.
   The docs state the limit.
-- **Which documents the scan's container notes read** stays as plan 0496 built it: the rule's
+- **Which documents the scan's container notes read** stays as [plan 0496](./0496-sections-as-elements.md) built it: the rule's
   `inDocuments` scopes. A section scope does not narrow them.
 - **The diagnosis wording** names the inner predicate's description: `inSections(are named
 "Acceptence") selected none of the corpus's 2 sections in 2 documents — the section predicate is
@@ -465,9 +469,9 @@ run, the file restored by `git checkout`, tree clean after; 9 rows, every one re
 - [x] Phase 2: the generalised scope diagnosis with the three counts, the attributed message
 - [x] Phase 3: the adopters' examples with their guards, docs, changeset
 - [x] Sabotage rows 1–9, each red on its named test
-- [ ] The break-class row "a section name under `not()`" — deferred→bug 0512
+- [ ] The break-class row "a section name under `not()`" — deferred→[bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)
 - [ ] `check:examples`, `check:vacuity`, `check:family`, `check:release` and `npm run validate`
       green — validation-owed: validate and CI at the pull request's merging head, recorded in the pull request's description
-- [x] Close: this plan → `completed/`; ROADMAP and proposal 017's row
+- [x] Close: this plan → `completed/`; ROADMAP and [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s row
 
-Deferred: bug 0512
+Deferred: [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)

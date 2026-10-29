@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Done — built on branch `feat/0539-mentions` and closed in [PR #257](https://github.com/nielspeter/eess/pull/257), 2026-10-21: every ledger box ticked, `validate` green. Frozen Ready the same day; written 2026-10-21 for proposal 019's ask A with its ask D.
+- **State:** Done — built on branch `feat/0539-mentions` and closed in [PR #257](https://github.com/nielspeter/eess/pull/257), 2026-10-21: every ledger box ticked, `validate` green. Frozen Ready the same day; written 2026-10-21 for [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask A with its ask D.
 - **Implements:** [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
 - **Priority:** Medium — no project can state "our records are named by links" and have it fail the
   build; this repository alone writes thousands of mentions of its own records as plain text (its
@@ -55,7 +55,7 @@ From [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks
    helpers are typed to boxes (`packages/md/src/builders/box-mark-findings.ts:20-45`), so the
    mention analogue is written beside them on the same pattern: an unread mention carries everything
    a read one does except whether it is linked, so it is tried against the rule's predicates read as
-   linked and as not linked, through the kernel's `membership` (ADR-021's truth table); reached
+   linked and as not linked, through the kernel's `membership` ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s truth table); reached
    either way, or undecided, it is one `md/unread-mention` finding with `bypassFilters: true`, at
    its own line, naming its cause.
 7. **Soft breaks are found**: the match runs over each phrasing run's joined text, newlines
@@ -146,10 +146,17 @@ mentions(c, { pattern: /\b(?<kind>bug|plan)s?\s+(?<n>\d{3})\b/gi })
   reason-required waiver); `\s+` for soft breaks. **What this cannot see**, as `pointers()` writes
   its limits:
   - a mention its pattern misses: `bug number 338`, a bare `0338`, the second number of
-    `plans 0532 and 0533`, a year that looks like a number;
+
+    ```
+    plans 0532 and 0533
+    ```
+
+    and a year that looks like a number;
+
   - the target: a link to the wrong file, an `#anchor` or any external URL is linked (ask B);
   - that a waiver's suppressions are disclosed only under eess-ts's runner
     ([bug 0537](../../bugs/0537-eess-md-alone-has-no-run-level-services.md)).
+
 - `packages/md/README.md`: `mentions()` in the element list, separated in one line from
   `links().beLinkedBack()`.
 - `examples/md/a-mention-of-a-record-is-a-link.test.ts`: passing and failing fixtures, public
@@ -264,8 +271,8 @@ fixture.
     code, went from 7 of 27 killed to 36 of 37, the one not applied being a patch for code since replaced (the 35 tests). The example gained a capitalised mention and a
     `violating-unread-html` fixture.
 - [x] The unread-reach helper is not generalised across `taskItems()` and `mentions()`:
-      dropped-on-purpose, two copies; a third (proposal 015's wikilinks, if built) is the moment to
+      dropped-on-purpose, two copies; a third ([proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)'s wikilinks, if built) is the moment to
       extract it.
 - [x] Invisible characters inside a mention are recorded, not fixed here: deferred→[bug 0543](../../bugs/0543-an-invisible-character-hides-a-mention.md).
 
-Deferred: [bug 0543](../../bugs/0543-an-invisible-character-hides-a-mention.md). Proposal 019's held asks (B, the fix, C) and this repository's own gate were never this plan's; they are in Out of scope with their homes.
+Deferred: [bug 0543](../../bugs/0543-an-invisible-character-hides-a-mention.md). [Proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s held asks (B, the fix, C) and this repository's own gate were never this plan's; they are in Out of scope with their homes.
