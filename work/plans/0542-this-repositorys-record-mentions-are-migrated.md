@@ -532,7 +532,8 @@ fails the build` and `accepts a repository that extends the base through an inte
 ### Phase 9 — the gate holds zero, and checks the target
 
 - **A skipped number past ts-archunit's range is red.** ts-archunit's numbering runs to 10 ADRs,
-  106 plans, 80 bugs, 28 proposals and 69 spikes, so `ts-archunit bug 0400` cannot be its record:
+  106 plans, 80 bugs, 28 proposals and 69 spikes, so a bug numbered past 0080 after `ts-archunit`
+  cannot be its record:
   the lookbehind's escape is closed for every later number, with no false positive by construction
   (Phase 1's enforcement review).
 - **Zero outright.** `corpus/record-mention-is-a-link` is judged as the other rules are: any

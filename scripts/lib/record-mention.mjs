@@ -26,23 +26,84 @@ export const CORPUS_ROOTS = ['work/**', 'adr/**', 'docs/**']
 /** What a number written after it is ts-archunit's: the project's name, or its possessive. */
 const TS_ARCHUNIT_BEFORE = String.raw`ts-archunit(?:'s)?\s+`
 
-/** A number written right after `ts-archunit` is ts-archunit's, so the pattern skips it. */
+/** A number written right after `ts-archunit` may be ts-archunit's, so the pattern can skip it. */
 export const TS_ARCHUNIT_LOOKBEHIND = `(?<!${TS_ARCHUNIT_BEFORE})`
 
-const ALTERNATIVES = [
-  String.raw`\b(?<kind>bug|plan|spike)s?\s+(?<n>\d{4})\b`,
-  String.raw`\b(?<kind>proposal)s?\s+(?<n>\d{3})\b`,
-  String.raw`\b(?<kind>ADR)-(?<n>\d{3})\b`,
+/**
+ * Each kind of record, how it is written, and the last number ts-archunit's own numbering reached:
+ * 10 ADRs, 106 plans, 80 bugs, 28 proposals and 69 spikes. `inRange` is the written number from 0 to
+ * `last`, as a pattern. A number past it cannot be ts-archunit's record, so the lookbehind does not
+ * skip it (Phase 9): `ts-archunit` written before an eess number is no escape.
+ */
+export const KINDS = [
+  {
+    kind: 'bug',
+    word: 'bug',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 4,
+    last: 80,
+    inRange: String.raw`00(?:[0-7]\d|80)`,
+  },
+  {
+    kind: 'plan',
+    word: 'plan',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 4,
+    last: 106,
+    inRange: String.raw`0(?:0\d\d|10[0-6])`,
+  },
+  {
+    kind: 'spike',
+    word: 'spike',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 4,
+    last: 69,
+    inRange: String.raw`00[0-6]\d`,
+  },
+  {
+    kind: 'proposal',
+    word: 'proposal',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 3,
+    last: 28,
+    inRange: String.raw`0(?:[01]\d|2[0-8])`,
+  },
+  {
+    kind: 'adr',
+    word: 'ADR',
+    plural: '',
+    sep: '-',
+    digits: 3,
+    last: 10,
+    inRange: String.raw`0(?:0\d|10)`,
+  },
 ]
 
+/** The last number ts-archunit's numbering reached, by kind (`adr`, `bug`, …). */
+export const TS_ARCHUNIT_LAST = Object.fromEntries(KINDS.map((k) => [k.kind, k.last]))
+
+const alternative = (k, n) => String.raw`\b(?<kind>${k.word})${k.plural}${k.sep}(?<n>${n})\b`
+
+/**
+ * A record mention, skipped only when it follows `ts-archunit` and its number is in ts-archunit's
+ * range: matched when not after `ts-archunit`, or when the number is past the range.
+ */
 export const RECORD_MENTION = new RegExp(
-  ALTERNATIVES.map((a) => TS_ARCHUNIT_LOOKBEHIND + a).join('|'),
+  KINDS.map(
+    (k) =>
+      `(?:${TS_ARCHUNIT_LOOKBEHIND}|(?!${k.word}${k.plural}${k.sep}${k.inRange}\\b))` +
+      alternative(k, String.raw`\d{${k.digits}}`),
+  ).join('|'),
   'gi',
 )
 
 /** What the lookbehind skips, so the gate can say how many it did (plan 0542, Phase 1). */
 export const SKIPPED_AFTER_TS_ARCHUNIT = new RegExp(
-  ALTERNATIVES.map((a) => TS_ARCHUNIT_BEFORE + a).join('|'),
+  KINDS.map((k) => TS_ARCHUNIT_BEFORE + alternative(k, k.inRange)).join('|'),
   'gi',
 )
 

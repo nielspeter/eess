@@ -8,6 +8,7 @@ import {
   LEFT_OUT,
   RECORD_MENTION,
   SKIPPED_AFTER_TS_ARCHUNIT,
+  TS_ARCHUNIT_LAST,
   anachronismsByGlob,
   assertLaneDisjoint,
   leftOutFaults,
@@ -22,20 +23,54 @@ import {
 
 const LB = String.raw`(?<!ts-archunit(?:'s)?\s+)`
 const BEFORE = String.raw`ts-archunit(?:'s)?\s+`
-const ALTS = [
-  String.raw`\b(?<kind>bug|plan|spike)s?\s+(?<n>\d{4})\b`,
-  String.raw`\b(?<kind>proposal)s?\s+(?<n>\d{3})\b`,
-  String.raw`\b(?<kind>ADR)-(?<n>\d{3})\b`,
+// Each kind: its word as written, the separator, the digits, and ts-archunit's range as a pattern.
+const KINDS_AS_WRITTEN = [
+  ['bug', 's?', String.raw`\s+`, 4, String.raw`00(?:[0-7]\d|80)`],
+  ['plan', 's?', String.raw`\s+`, 4, String.raw`0(?:0\d\d|10[0-6])`],
+  ['spike', 's?', String.raw`\s+`, 4, String.raw`00[0-6]\d`],
+  ['proposal', 's?', String.raw`\s+`, 3, String.raw`0(?:[01]\d|2[0-8])`],
+  ['ADR', '', '-', 3, String.raw`0(?:0\d|10)`],
 ]
+const alt = (word, plural, sep, n) => String.raw`\b(?<kind>${word})${plural}${sep}(?<n>${n})\b`
 
-test('the record-mention pattern is pinned as written, the lookbehind on every alternative', () => {
-  assert.equal(RECORD_MENTION.source, ALTS.map((a) => LB + a).join('|'))
+test('the record-mention pattern is pinned as written, the skip on every alternative', () => {
+  assert.equal(
+    RECORD_MENTION.source,
+    KINDS_AS_WRITTEN.map(
+      ([w, p, sep, d, range]) =>
+        `(?:${LB}|(?!${w}${p}${sep}${range}\\b))` + alt(w, p, sep, String.raw`\d{${d}}`),
+    ).join('|'),
+  )
   assert.equal(RECORD_MENTION.flags, 'gi')
 })
 
 test('the skipped-mention pattern is pinned as written', () => {
-  assert.equal(SKIPPED_AFTER_TS_ARCHUNIT.source, ALTS.map((a) => BEFORE + a).join('|'))
+  assert.equal(
+    SKIPPED_AFTER_TS_ARCHUNIT.source,
+    KINDS_AS_WRITTEN.map(([w, p, sep, , range]) => BEFORE + alt(w, p, sep, range)).join('|'),
+  )
   assert.equal(SKIPPED_AFTER_TS_ARCHUNIT.flags, 'gi')
+})
+
+// ts-archunit's numbering ran to 10 ADRs, 106 plans, 80 bugs, 28 proposals and 69 spikes.
+const LAST = { bug: 80, plan: 106, spike: 69, proposal: 28, adr: 10 }
+
+test('after ts-archunit, every written number is skipped when in its range and counted past it', () => {
+  assert.deepEqual(TS_ARCHUNIT_LAST, LAST)
+  for (const [word, , sep, digits] of KINDS_AS_WRITTEN) {
+    const last = LAST[word.toLowerCase()]
+    for (let n = 0; n < 10 ** digits; n++) {
+      const mention = `${word}${sep === '-' ? '-' : ' '}${String(n).padStart(digits, '0')}`
+      for (const before of ['ts-archunit ', "ts-archunit's "]) {
+        const text = `see ${before}${mention}.`
+        const counted = [...text.matchAll(RECORD_MENTION)].length
+        const skipped = [...text.matchAll(SKIPPED_AFTER_TS_ARCHUNIT)].length
+        const want = n <= last ? [0, 1] : [1, 0]
+        if (counted !== want[0] || skipped !== want[1])
+          assert.fail(`${text}: counted ${counted}, skipped ${skipped}, want ${want.join(', ')}`)
+      }
+    }
+  }
 })
 
 test('the left-out list is the eight files of the seven fold-era records, exactly', () => {
@@ -89,6 +124,13 @@ test('a curly apostrophe is not the possessive the lookbehind skips', () => {
 test('a mention written after upstream is counted: the word hides nothing', () => {
   // `upstream` was dropped from the lookbehind (Decision 2): it hides nothing now.
   assert.deepEqual(counted('the upstream bug 0400 in the kernel'), ['bug 0400'])
+})
+
+test('a number past the range is counted after ts-archunit: the form is no escape for it', () => {
+  assert.deepEqual(counted("ts-archunit bug 0400 and ts-archunit's ADR-016."), [
+    'bug 0400',
+    'ADR-016',
+  ])
 })
 
 test('the skipped pattern matches what the lookbehind skips', () => {
