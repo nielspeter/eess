@@ -2,22 +2,23 @@
 
 ## Status
 
-- **State:** Ready — Phases 1–8 built 2026-10-27/29; Phase 9 next. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
+- **State:** Done — all nine phases built 2026-10-27/29, Phase 9 in PR #PENDING → completed/; the corpus holds
+  no unlinked record mention, and the gate holds zero and checks a link's target. Frozen 2026-10-27 on the dogfood measurements below, the maintainer's three
   decisions of that day as narrowed by the freeze's review, and no open question. Written
-  2026-10-21 so that [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
+  2026-10-21 so that [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md)'s ledger had a named home for bringing its count to zero.
 - **Priority:** High — the release that lets adopters fix their mentions waits on it: eess's own
   corpus, migrated with the fix it ships, is the proof (the maintainer, 2026-10-27).
 - **Effort:** Large: nine phases, each its own PR, sized from the counts below to about an hour's
   review (an estimate, not a measurement).
 - **Created:** 2026-10-21
-- **Builds after:** [plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md), [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md) and [plan 0550](./completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), all built.
+- **Builds after:** [plan 0541](./0541-this-repositorys-record-mentions-are-gated.md), [plan 0549](./0549-a-link-names-the-record-it-mentions.md) and [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md), all built.
 
 ## Problem
 
-[Plan 0541](./completed/0541-this-repositorys-record-mentions-are-gated.md) holds this repository's unlinked mentions at the base's count and lets it only
-fall. This plan brings it to zero with the fix [plan 0550](./completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) ships, run the way an adopter
+[Plan 0541](./0541-this-repositorys-record-mentions-are-gated.md) holds this repository's unlinked mentions at the base's count and lets it only
+fall. This plan brings it to zero with the fix [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) ships, run the way an adopter
 runs it, and then switches the gate to hold zero and to check that a link names its record
-([plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)).
+([plan 0549](./0549-a-link-names-the-record-it-mentions.md)).
 
 ## Decisions — the maintainer, 2026-10-27, as the freeze's review narrowed them
 
@@ -44,24 +45,24 @@ runs it, and then switches the gate to hold zero and to check that a link names 
    Review). The fix's `foreign` keeps `upstream`, as the measurement did: it only refuses a fix, so
    it hides nothing from the gate, and without it `--apply` would link 3 of those 15 (the rest are refused
    for other causes) before they are reworded. The pattern is the caller's
-   ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)).
+   ([ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md)).
 
 3. **The seven done fold-era records are left out by name.**
-   [Plan 0071](./completed/0071-ts-archunit-parity.md),
-   [plan 0088](./completed/0088-fold-ts-archunit-into-eess.md),
-   [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md),
-   [plan 0165](./completed/0165-integrate-the-copied-ts-archunit-engine.md),
-   `work/fold-audit-2026-08-19.md`, [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)
+   [Plan 0071](./0071-ts-archunit-parity.md),
+   [plan 0088](./0088-fold-ts-archunit-into-eess.md),
+   [plan 0147](./0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md),
+   [plan 0165](./0165-integrate-the-copied-ts-archunit-engine.md),
+   `work/fold-audit-2026-08-19.md`, [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)
    (its whole folder, `CONCLUSION.md` included, which uses the spike branch's own numbering) and
-   [bug 0198](../bugs/fixed/0198-no-migration-path-from-ts-archunit.md) describe ts-archunit in its
+   [bug 0198](../../bugs/fixed/0198-no-migration-path-from-ts-archunit.md) describe ts-archunit in its
    own numbering, and none of them will be edited again. The maintainer named ten; the review found
-   three of them live, [plan 0090](./0090-adopt-ts-archunit-work-corpus.md),
-   [plan 0100](./0100-publish-the-fold-retire-ts-archunit.md) and
-   [bug 0303](../bugs/0303-ts-archunit-adr-numbers-persist-in-eess-comments.md), where an exemption
+   three of them live, [plan 0090](../0090-adopt-ts-archunit-work-corpus.md),
+   [plan 0100](../0100-publish-the-fold-retire-ts-archunit.md) and
+   [bug 0303](../../bugs/0303-ts-archunit-adr-numbers-persist-in-eess-comments.md), where an exemption
    would leave new mentions unchecked for good. They go through their lanes instead (23 findings, no
    fix: each reworded or linked by hand). The seven are a named list with its reason in
    `check:corpus`, never a glob: each entry is an exact file path, so
-   [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s two files are two entries and
+   [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s two files are two entries and
    seven records are eight entries. Each is pinned by its text's hash, so a file that is missing or
    has changed is a finding: the exemption cannot outlive its premise (corrected at Phase 1's
    review from a folder entry, under which any new file was exempt). A test pins the entries.
@@ -94,10 +95,10 @@ Refusals by reason: 114 another project named around the mention (reworded into 
 where it names ts-archunit, linked by hand where it names eess); 143 in inline code (a quotation
 fenced or reworded, a live reference unwrapped and linked); 96 naming no eess record, 92 of them
 ts-archunit numbers (reworded into Decision 2's form) and 4 not (a plan number claimed on a
-branch, in [bug 0302](../bugs/0302-next-number-cannot-see-numbers-claimed-on-open-branches.md); a
+branch, in [bug 0302](../../bugs/0302-next-number-cannot-see-numbers-claimed-on-open-branches.md); a
 plan number never filed, twice in
-[bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md); a bug number never
-filed, in [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md): each read and
+[bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md); a bug number never
+filed, in [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md): each read and
 reworded or fenced; the rule takes no waiver); 85 touching `*`, `_` or `~` and 81 not written as matched (linked by hand). Each lane's own
 dry run gives its exact list.
 
@@ -153,7 +154,7 @@ dry run gives its exact list.
   patterns' full sources. Two rows, appended at the end of the list so no other fixture changes
   shard: `ts-archunit-skipped` (each alternative, both forms, and the skipped count up by exactly the
   ten written) and `left-out`, in a shared clone (a mention appended to a listed file is not counted
-  and reds the pin, the same text beside it and inside [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s folder is counted, a deleted entry
+  and reds the pin, the same text beside it and inside [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s folder is counted, a deleted entry
   is red). A unit test over `corpusFromText` covers each entry's matching and the fix.
 - **Each guard shown red** by a sabotage of what it guards, in `record-mention.mjs` alone: the
   lookbehind dropped from the `ADR-` alternative; the skipped count wired to nothing; six file
@@ -226,8 +227,8 @@ Each lane is its own PR, in this order:
 - The judge (Fable; seed 20261027) read the 30 fixes in the ts-archunit range and 20 sampled: 49
   right, 1 wrong. `adr/002-ts-morph-ast-engine.md:221` names ts-archunit plan 0075, its element-cache
   plan, not eess's. It was left out by element, through a new `JUDGED_WRONG` list in the rule file,
-  and no other fix in the lane targets [plan 0075](./0075-manifesto-reconciliation.md). The
-  exclusion took the line's two right [proposal 010](../proposals/010-ts-performance-at-scale.md) fixes with it; they were linked by hand.
+  and no other fix in the lane targets [plan 0075](../0075-manifesto-reconciliation.md). The
+  exclusion took the line's two right [proposal 010](../../proposals/010-ts-performance-at-scale.md) fixes with it; they were linked by hand.
 - `--apply` wrote 307 links (310 less the line's three); one more, an anachronism read as right,
   was applied after.
 - **The anachronisms.** 15 of the 16 name the record they would link to, and were linked (14 by
@@ -236,7 +237,7 @@ Each lane is its own PR, in this order:
   written after their record existed. The instrument dates a record by `git log --follow` on its
   current path, and a record closed as a delete and an add, not a rename, reads as born the day it
   closed. Two are true anachronisms that still name their record: `docs/manifesto.md:459`'s
-  [plan 0073](./0073-violation-telemetry-rule-staleness.md), two hours before the plan, and `adr/023`'s [plan 0496](./completed/0496-sections-as-elements.md), written in the PR after the one that
+  [plan 0073](../0073-violation-telemetry-rule-staleness.md), two hours before the plan, and `adr/023`'s [plan 0496](./0496-sections-as-elements.md), written in the PR after the one that
   filed it. In lane 2 the error flagged more, never fewer, so no wrong link came of it; but the Measured
   section's 145 counts it (corrected there), and the lanes whose targets sit in `fixed/` and
   `completed/` (4, 5, 7, 8) will meet more of it.
@@ -250,10 +251,10 @@ Each lane is its own PR, in this order:
 - Two ADR Enforcement rows cite a test title holding a record number, which can be neither linked
   nor fenced. The maintainer chose (2026-10-27) to rename the titles: `an undocumented exclusion
 fails the build` and `accepts a repository that extends the base through an intermediate class`
-  drop their numbers, each kept in a comment beside its test (`'@nielspeter/eess-ts': none`). [Bug 0295](../bugs/fixed/0295-extend-and-implement-read-only-the-direct-clause.md)'s
+  drop their numbers, each kept in a comment beside its test (`'@nielspeter/eess-ts': none`). [Bug 0295](../../bugs/fixed/0295-extend-and-implement-read-only-the-direct-clause.md)'s
   record, in lane 5's folder, quotes the second title and was updated with it. Lane 5 holds
   one more title citation, in
-  [bug 0325](../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md); only a bug
+  [bug 0325](../../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md); only a bug
   record cites it, so it is lane 5's to settle.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
   reads 4,045 unlinked mentions against 4,418 at the base (96b0461e), both from its summary.
@@ -262,9 +263,9 @@ fails the build` and `accepts a repository that extends the base through an inte
 `work/proposals/**` (the commit leaves it empty):
 
 - The instrument found 38 anachronisms on 36 lines in 792 fixes, the Appendix's rows exactly (two
-  lines of [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md) hold two each; one exclusion
+  lines of [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md) hold two each; one exclusion
   per line). Lane 2's carried ts-archunit plan 0075, at
-  [proposal 010](../proposals/010-ts-performance-at-scale.md)'s lines 67, 232 and 234, went into
+  [proposal 010](../../proposals/010-ts-performance-at-scale.md)'s lines 67, 232 and 234, went into
   `JUDGED_WRONG` before the dry run. The dry run gave 746 fixes and 109 refusals (the table's 111,
   less two on excluded lines). The GitHub-link grep printed seven lines: the five links below and two
   URLs in inline code, which are not links.
@@ -283,31 +284,31 @@ fails the build` and `accepts a repository that extends the base through an inte
   had linked the first mention it quoted.
 - **The review found three rewordings wrong, which no judge had read** (a plain rewording was
   outside the second judge's set):
-  [proposal 019](../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B row had come
-  to mean a different test; [proposal 001](../proposals/001-md-corpus-rule-coverage.md)'s quoted
+  [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B row had come
+  to mean a different test; [proposal 001](../../proposals/001-md-corpus-rule-coverage.md)'s quoted
   message had become a `path:line` that never held what it says; and
-  [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s two examples of a form
+  [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s two examples of a form
   that cannot be told apart had been rewritten to show it told apart. Each was put right. A range of
-  ts-archunit numbers in [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) was hidden
+  ts-archunit numbers in [spike 0536](../../spikes/0536-what-a-mention-of-a-record-needs.md) was hidden
   with an inserted word and is now in the ts-archunit form. So step 4 now has the second judge read every rewording as well, for meaning, without the
   proposer's reasons. Lane 3's own rewordings were read by its review, which had seen the reasons,
   not by a judge reading without them.
 - **What the anachronism exclusions caught.** 36 of the 38 name their record and were linked; two
-  are ts-archunit's and were reworded ([proposal 002](../proposals/002-comment-embedded-links.md)'s line 63, ts-archunit proposal 011 with ts-archunit plan 0057 beside it;
-  [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s line 14, ts-archunit proposal 019 with a plan beside it). The second line hid a
+  are ts-archunit's and were reworded ([proposal 002](../../proposals/002-comment-embedded-links.md)'s line 63, ts-archunit proposal 011 with ts-archunit plan 0057 beside it;
+  [proposal 007](../../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s line 14, ts-archunit proposal 019 with a plan beside it). The second line hid a
   wrong fix the judge could not have read: that proposal names no ts-archunit, and its plan number is
   ts-archunit's, which `--apply` would have linked to eess's
-  [plan 0070](./completed/0070-caller-owns-reporting.md). The lane's other fixes to that plan were
+  [plan 0070](./0070-caller-owns-reporting.md). The lane's other fixes to that plan were
   read (judge 1's j004, j006, j008), and its plain mentions in lanes 4 to 8 all mean eess's. The
-  flags were a mix: some true anachronisms filed minutes after the mention ([bugs 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md), [bug 0403](../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)),
+  flags were a mix: some true anachronisms filed minutes after the mention ([bugs 0400](../../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md), [bug 0403](../../bugs/fixed/0403-the-vacuity-matrix-probes-one-dialect-of-five.md), [bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md)),
   some over-flags from a delete-and-add close.
 - Quoted strings were described where a number had to leave them (a code comment, an output
   message, a probe input, an adopter's quote); each still reads true. The lane's one `upstream`
-  mention, [spike 0540](../spikes/0540-one-join-over-every-source.md)'s fixture source name at line
+  mention, [spike 0540](../../spikes/0540-one-join-over-every-source.md)'s fixture source name at line
   62, is its share of Decision 2's 15, reworded without the number.
 - The five ts-archunit GitHub links in
-  [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) and
-  [spike 0540](../spikes/0540-one-join-over-every-source.md) sit inside `md` fences of quoted probe
+  [spike 0536](../../spikes/0536-what-a-mention-of-a-record-needs.md) and
+  [spike 0540](../../spikes/0540-one-join-over-every-source.md) sit inside `md` fences of quoted probe
   input, which no gate reads; they are left as recorded, and Decision 1 says so.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
   reads 3,142 unlinked mentions against 4,045 at the base; the skipped count, 53 at the base, reads 81 at the commit (`check:corpus`, 2026-10-28): 76
@@ -320,7 +321,7 @@ fails the build` and `accepts a repository that extends the base through an inte
   `BUGS.md` rows sat one line lower, since the board gained a row above them, and were found there.
   The dry run gave 700 fixes and 88 refusals (the table's 89, less one on an excluded line).
 - Judge 1 (Fable; seed 20261028) read the 94 fixes in the ts-archunit range, among them
-  [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s line 69 carried from lane 2, and 20 sampled:
+  [bug 0356](../../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s line 69 carried from lane 2, and 20 sampled:
   113 right, 1 wrong. That carried line names ts-archunit plans 0075 and 0076, the element- and
   module-edges caches, as the code comments under `packages/ts` show; it went into `JUDGED_WRONG`
   and was reworded by hand. No other fix in the lane targets ts-archunit plan 0075's eess namesake, and lane 2's
@@ -333,22 +334,22 @@ fails the build` and `accepts a repository that extends the base through an inte
   other rewordings and 2 fences; 5 were covered by another's edit. All 12 anachronisms were read against git and are over-flags, with three causes
   (corrected 2026-10-28 at the lane's review, from "closed later" for all): a record closed by a
   delete and an add; the instrument dating a mention by its text's first appearance anywhere in the
-  file, which gave six board rows citing [ADR-009](../../adr/009-agent-first-failure-surfaces.md) the date of an older row; and a squash merge's
+  file, which gave six board rows citing [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) the date of an older row; and a squash merge's
   ancestry, for two bugs on three lines filed on a stacked branch. Three are delete-and-add closes.
   Judge 2 (Fable), given no reasons, read 72: every rewording and fence, and the 27 hand links in
   files naming ts-archunit with a number in its range. 66 right, 6 wrong, every one a change of
   meaning with the referent right: four rewordings altered verbatim quotes of source comments
-  ([bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md)'s quoted `execute-rule.ts` comment and three in [bug 0351](../bugs/0351-an-adr-citation-in-a-source-comment-is-gated-by-nothing.md)), one turned a recorded
+  ([bug 0233](../../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md)'s quoted `execute-rule.ts` comment and three in [bug 0351](../../bugs/0351-an-adr-citation-in-a-source-comment-is-gated-by-nothing.md)), one turned a recorded
   misnumbering into the corrected form, and one board row came to say the wrong ADR has no rules.
   Each was put right: the quotes are fenced whole as they stood at the base, the fix's own link
   inside one of them going with it, and the two sentences say what was cited and how.
-- The GitHub-link grep printed four lines in the lane: two links, [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 22 and
-  [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md)'s line 24, now plain text in the ts-archunit form; [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 13, in a fence; and
-  its line 58, in inline code. [Bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md), which is about those links, keeps its URL visible in inline
+- The GitHub-link grep printed four lines in the lane: two links, [bug 0183](../../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 22 and
+  [bug 0538](../../bugs/0538-a-metric-baseline-never-tightens.md)'s line 24, now plain text in the ts-archunit form; [bug 0183](../../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md)'s line 13, in a fence; and
+  its line 58, in inline code. [Bug 0183](../../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md), which is about those links, keeps its URL visible in inline
   code.
 - **A wrong link shipped, and a retro read found two more.** The lane's review found that `--apply`
-  had linked [bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md)'s mention of the module-edges per-file cache, ts-archunit plan 0076
-  (`packages/ts/src/core/module-edges.ts` cites it), to eess's [plan 0076](./0076-broader-deterministic-autofix.md). [Bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md) does not name
+  had linked [bug 0335](../../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md)'s mention of the module-edges per-file cache, ts-archunit plan 0076
+  (`packages/ts/src/core/module-edges.ts` cites it), to eess's [plan 0076](../0076-broader-deterministic-autofix.md). [Bug 0335](../../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md) does not name
   ts-archunit, so no judge read it. The cause is the engine: its code under `packages/*/src` came
   from ts-archunit, its comments cite 136 numbers inside ts-archunit's range, and records copy them
   without naming the project. So the links lanes 2 to 4 had written to a number in that range were read. A first retro read
@@ -359,13 +360,13 @@ fails the build` and `accepts a repository that extends the base through an inte
   (`retro2-set.py`, kept with the evidence), and the 432 the first retro had not matched exactly were
   read by two more judges (Fable), each reason quoting the passage: 430 right, 2 wrong, the two the
   re-check had found by hand. Five wrong in all.
-  [Bug 0335](../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md)'s; [bug 0268](../bugs/0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)'s, which is ts-archunit plan 0069, "no rule may certify nothing"
-  (`packages/ts/src/cli/rule-file-findings.ts` cites it by name); and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s, which is
-  ts-archunit's ADR-008 rule 2, eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2, now written as both; and [proposal 007](../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s and [proposal 010](../proposals/010-ts-performance-at-scale.md)'s, each a code comment's ts-archunit ADR-008, eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md). Each is reworded. Two more links the fix had put inside
-  [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s quoted examples of a reference "written as text" contradicted their sentence and
+  [Bug 0335](../../bugs/0335-the-binding-resolver-asks-the-checker-once-per-identifier.md)'s; [bug 0268](../../bugs/0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)'s, which is ts-archunit plan 0069, "no rule may certify nothing"
+  (`packages/ts/src/cli/rule-file-findings.ts` cites it by name); and [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s, which is
+  ts-archunit's ADR-008 rule 2, eess's [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2, now written as both; and [proposal 007](../../proposals/007-ts-expose-terminalbuilder-declared-state.md)'s and [proposal 010](../../proposals/010-ts-performance-at-scale.md)'s, each a code comment's ts-archunit ADR-008, eess's [ADR-009](../../../adr/009-agent-first-failure-surfaces.md). Each is reworded. Two more links the fix had put inside
+  [proposal 017](../../proposals/017-md-blocks-to-check-a-documents-shape.md)'s quoted examples of a reference "written as text" contradicted their sentence and
   are described now. Step 2's and step 4's read sets now cover every number ts-archunit also used,
   whatever the file says. The 423 such links the corpus held before the migration were never read by
-  a lane: [bug 0553](../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md). The 0543 table moved into a fence keeps its content in another notation;
+  a lane: [bug 0553](../../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md). The 0543 table moved into a fence keeps its content in another notation;
   left as it is.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
   reads 2,335 unlinked mentions against 3,142 at the base, and 130 skipped after ts-archunit
@@ -376,41 +377,41 @@ fails the build` and `accepts a repository that extends the base through an inte
 (the commit leaves it empty), under steps 2 and 4 as lane 4 left them:
 
 - The instrument found 9 anachronisms in 521 fixes, the Appendix's rows exactly. The dry run gave
-  509 fixes and 91 refusals: the table's 92 less the one lane 2 closed, [bug 0295](../bugs/fixed/0295-extend-and-implement-read-only-the-direct-clause.md)'s quoted test
+  509 fixes and 91 refusals: the table's 92 less the one lane 2 closed, [bug 0295](../../bugs/fixed/0295-extend-and-implement-read-only-the-direct-clause.md)'s quoted test
   title. The grep found no ts-archunit GitHub link in the lane.
 - Judge 1 (Fable, in two halves; seed 20261028) read every fix whose number ts-archunit also used,
   213, and 20 sampled: 228 right, 5 wrong. Three are ts-archunit's numbering copied from a code or
-  test comment: [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s ts-archunit ADR-008 (eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md)), [bug 0199](../bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s ts-archunit
-  plan 0078 (the configuration-finding census) and [bug 0239](../bugs/fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)'s ts-archunit plan 0079 (the
-  cardinality triage). One, [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s ts-archunit ADR-008, came from the enforcement reviewer's
-  checklist (below). The fifth, [bug 0278](../bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md)'s, named the fold plan where it meant PR #88, the kernel
+  test comment: [bug 0173](../../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s ts-archunit ADR-008 (eess's [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)), [bug 0199](../../bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s ts-archunit
+  plan 0078 (the configuration-finding census) and [bug 0239](../../bugs/fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)'s ts-archunit plan 0079 (the
+  cardinality triage). One, [bug 0170](../../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s ts-archunit ADR-008, came from the enforcement reviewer's
+  checklist (below). The fifth, [bug 0278](../../bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md)'s, named the fold plan where it meant PR #88, the kernel
   split. Each went into `JUDGED_WRONG` and was reworded; every other fix to those targets is in the
   range, so the judges read them. `--apply` wrote 504 links across 108 files.
 - By hand: a proposer (Fable) proposed 105 edits for the 100 items; 93 were applied, 10 were
   markers that another edit covers, and 2 were decided otherwise. With the 4 the builder wrote for
-  four judged-wrong lines (the proposer's own fence covers the fifth, [bug 0173](../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s quoted code
+  four judged-wrong lines (the proposer's own fence covers the fifth, [bug 0173](../../bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md)'s quoted code
   comment), and one applied later, below, that makes 98. The two decided otherwise: a proposed
   rename of a test title to carry "ts-archunit bug 0016" went instead the way lane 2 went, the two
   titles in `packages/core/tests/contract/extension-surface.test.ts` holding ts-archunit's bug 0016
-  dropping the number, each kept in a comment, and every record quoting them updated ([bug 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md),
-  and [plan 0150](./0150-close-0088s-disclosed-review-findings.md), lane 6's); and a proposed edit to a reproduction inside a fence, applied later.
-  [Bug 0325](../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)'s quote of a third test title went the same way as the two. `'@nielspeter/eess': none`
+  dropping the number, each kept in a comment, and every record quoting them updated ([bug 0155](../../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md),
+  and [plan 0150](../0150-close-0088s-disclosed-review-findings.md), lane 6's); and a proposed edit to a reproduction inside a fence, applied later.
+  [Bug 0325](../../bugs/fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)'s quote of a third test title went the same way as the two. `'@nielspeter/eess': none`
   and `'@nielspeter/eess-ts': none`.
 - Judge 2 (Fable), given no reasons, read 78: every rewording and fence and every hand link with a
-  number in ts-archunit's range, whatever the file. 73 right, 4 wrong, 1 unsure. [Bug 0179](../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s
+  number in ts-archunit's range, whatever the file. 73 right, 4 wrong, 1 unsure. [Bug 0179](../../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s
   quoted wrong citation had been linked, which recreates the defect its paragraph describes; the
-  citation is fenced now, as it stood. [Bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s three table cells, which quote a reproduction's
+  citation is fenced now, as it stood. [Bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s three table cells, which quote a reproduction's
   input, no longer matched the reproduction; the reproduction takes the same placeholder for its
   synthetic plan number, with a dated note that the run and its test use the number. The unsure one,
-  [bug 0170](../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s "attribution, not colour", is the enforcement reviewer's checklist
+  [bug 0170](../../bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)'s "attribution, not colour", is the enforcement reviewer's checklist
   (`.claude/agents/reviewer-enforcement.md:37`), which gives "Agent-First Failure Surfaces"
   ts-archunit's number, ts-archunit's ADR-008, as reworded; that file's numbering is
-  [bug 0303](../bugs/0303-ts-archunit-adr-numbers-persist-in-eess-comments.md)'s.
-- Five edits came after judge 2 ran and were read by the lane's method review instead: [bug 0179](../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s
-  fence, [bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s reproduction, and the three test-title quotes in [bugs 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md) and 0325 and [plan 0150](./0150-close-0088s-disclosed-review-findings.md). The review found [bug 0179](../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s first rewording a paraphrase of the quoted citation, now fenced,
-  and [bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s change unnoted, now noted. It also found [bug 0155](../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md)'s pointer to the renamed test
+  [bug 0303](../../bugs/0303-ts-archunit-adr-numbers-persist-in-eess-comments.md)'s.
+- Five edits came after judge 2 ran and were read by the lane's method review instead: [bug 0179](../../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s
+  fence, [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s reproduction, and the three test-title quotes in [bugs 0155](../../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md) and 0325 and [plan 0150](../0150-close-0088s-disclosed-review-findings.md). The review found [bug 0179](../../bugs/fixed/0179-adopted-doc-tests-resolve-the-repo-root-one-level-short.md)'s first rewording a paraphrase of the quoted citation, now fenced,
+  and [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s change unnoted, now noted. It also found [bug 0155](../../bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md)'s pointer to the renamed test
   three lines off after the rename, corrected; and a nonvacuity fixture, `corpus/docs-only-owner`,
-  that sabotaged [bug 0219](../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md) by stripping its `Implements` line as plain text, which this lane had
+  that sabotaged [bug 0219](../../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md) by stripping its `Implements` line as plain text, which this lane had
   linked; `validate` refused the probe that could no longer fire, and it now matches the line in
   either form.
 - Closed: with no exclusion left, the dry run over the lane reports no fix and no finding. The gate
@@ -425,17 +426,17 @@ fails the build` and `accepts a repository that extends the base through an inte
   without the exclusions (the instrument's "hides" notes sum to 17 against the 16 others counted, since
   the board's line 70 at the base holds two anachronisms and its note counts the second among the others),
   so 480 less 29. The refusals are the table's 66 less the two test-title quotes lane 5 renamed in
-  [plan 0150](./0150-close-0088s-disclosed-review-findings.md), less one on an excluded line. The GitHub-link grep printed one line, this plan's own
+  [plan 0150](../0150-close-0088s-disclosed-review-findings.md), less one on an excluded line. The GitHub-link grep printed one line, this plan's own
   step 2, in inline code; no test title in the lane holds a record number.
 - Judge 1 (Fable; seed 20261029) read the 79 fixes in ts-archunit's range and 20 sampled: 99
   right, so no fix was left out and no same-target search was owed. `--apply` wrote 451 links
   across 21 files.
 - By hand: a proposer (Fable) proposed 88 edits for the 75 items (the 13 more are other mentions on
   excluded lines). 85 were applied in 15 files: 73 links, 9 rewordings to the ts-archunit form, 2
-  other rewordings and 1 fence; 3 were covered by another's edit. The builder changed one: [plan 0346](./0346-a-finding-is-identified-by-the-code-it-matched.md)'s
-  sentence on an earlier draft's ADR number, proposed as a link, now says the draft gave its ADR the number 016, which [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md), Bounded Instruments, holds; a link on the draft's number would name an ADR the draft never meant. That line is the lane's one true anachronism; the other 11 are
-  over-flags, ten written the day their record was filed and one, the board's row for [plan 0346](./0346-a-finding-is-identified-by-the-code-it-matched.md),
-  dated by an older row's text. The carried mentions in [plan 0150](./0150-close-0088s-disclosed-review-findings.md) are
+  other rewordings and 1 fence; 3 were covered by another's edit. The builder changed one: [plan 0346](../0346-a-finding-is-identified-by-the-code-it-matched.md)'s
+  sentence on an earlier draft's ADR number, proposed as a link, now says the draft gave its ADR the number 016, which [ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md), Bounded Instruments, holds; a link on the draft's number would name an ADR the draft never meant. That line is the lane's one true anachronism; the other 11 are
+  over-flags, ten written the day their record was filed and one, the board's row for [plan 0346](../0346-a-finding-is-identified-by-the-code-it-matched.md),
+  dated by an older row's text. The carried mentions in [plan 0150](../0150-close-0088s-disclosed-review-findings.md) are
   ts-archunit bug 0016, as the tests they cite say, and are written in that form. The lane's share of Decision 2's 15 `upstream` mentions is one, on the board's line 106 at the base, now in the ts-archunit form.
 - Judge 2 (Fable), given no reasons, read 34: every rewording and the fence, and the 22 hand links
   with a number in ts-archunit's range: 34 right.
@@ -454,9 +455,9 @@ fails the build` and `accepts a repository that extends the base through an inte
   less one on an excluded line. The greps found no ts-archunit GitHub link and no test title holding
   a record number.
 - Judge 1 (Fable, in two halves; seed 20261029) read the 171 fixes in ts-archunit's range and 20
-  sampled: 189 right, 2 wrong. [plan 0089](./completed/0089-family-standalone-sufficiency.md)'s mention of the fold's port of ts-archunit's ADR-008/009, which eess took as
-  [ADR-009](../../adr/009-agent-first-failure-surfaces.md) and [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md), had been linked to eess's [ADR-008](../../adr/008-caller-owns-reporting.md); and [plan 0237](./completed/0237-eess-runtime-use-only-in-rule-files.md)'s ts-archunit plan
-  0067 C, cited from `packages/ts/src/core/project-relative.ts:2`, to eess's [plan 0067](./completed/0067-harness-informed-roadmap.md). Both went
+  sampled: 189 right, 2 wrong. [plan 0089](./0089-family-standalone-sufficiency.md)'s mention of the fold's port of ts-archunit's ADR-008/009, which eess took as
+  [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) and [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md), had been linked to eess's [ADR-008](../../../adr/008-caller-owns-reporting.md); and [plan 0237](./0237-eess-runtime-use-only-in-rule-files.md)'s ts-archunit plan
+  0067 C, cited from `packages/ts/src/core/project-relative.ts:2`, to eess's [plan 0067](./0067-harness-informed-roadmap.md). Both went
   into `JUDGED_WRONG` and were reworded into the ts-archunit form. The lane's other fixes to those two
   targets, eight and one, were in the read set and right, and lane 8's files hold neither form.
   `--apply` wrote 436 links across 32 files.
@@ -465,7 +466,7 @@ fails the build` and `accepts a repository that extends the base through an inte
   rewordings and 2 fences; with the builder's two for the judged-wrong lines. All 34 anachronism lines
   are over-flags, a record filed the same day or one whose first commit at its path is its move to
   `completed/`, and were linked. Of the proposer's open calls the builder settled one by measurement:
-  [plan 0148](./completed/0148-workspace-multi-root-awareness.md)'s fail-closed citation means eess's [ADR-009](../../adr/009-agent-first-failure-surfaces.md): the passage and the code comment it echoes, in
+  [plan 0148](./0148-workspace-multi-root-awareness.md)'s fail-closed citation means eess's [ADR-009](../../../adr/009-agent-first-failure-surfaces.md): the passage and the code comment it echoes, in
   `project-relative.ts`, were written in eess on 2026-08-16, in the commit that created that ADR
   (6dbc6f46), and the comment was re-wrapped on 2026-08-21 (corrected 2026-10-29 at the lane's
   review, which found the first date given here was the re-wrap's).
@@ -473,13 +474,13 @@ fails the build` and `accepts a repository that extends the base through an inte
   links with a number in ts-archunit's range, and four more on a closed plan's deferral, three of
   them unwrapped from code and one dropping a duplicate link after its token. 61 right; every `deferred→` token
   still matches the ledger's reading. One it passed, a paraphrase of a fixture line that
-  [plan 0405](./completed/0405-md-select-the-links-a-block-declares.md) had quoted verbatim, was found by the lane's review; the example now says beside it that the
+  [plan 0405](./0405-md-select-the-links-a-block-declares.md) had quoted verbatim, was found by the lane's review; the example now says beside it that the
   fixture's line names the bug by its number. A fence would have kept the words, as that file's other
   fixture quote is kept, but a fence inside a list item is read as prose by the docs link test
-  ([bug 0416](../bugs/0416-the-link-test-reads-an-indented-fence-as-prose.md)), and this line holds a link.
+  ([bug 0416](../../bugs/0416-the-link-test-reads-an-indented-fence-as-prose.md)), and this line holds a link.
 - **One more wrong fix, outside both judges' sets.** After judge 2, the builder found that
-  [plan 0405](./completed/0405-md-select-the-links-a-block-declares.md)'s sabotage row quoted a fixture's colon-less "Related to" line, whose bug number is
-  sample data, and that the fix had linked the number to eess's [bug 0253](../bugs/0253-frozen-drift-is-not-reported-only-unexamined.md). The row is described now,
+  [plan 0405](./0405-md-select-the-links-a-block-declares.md)'s sabotage row quoted a fixture's colon-less "Related to" line, whose bug number is
+  sample data, and that the fix had linked the number to eess's [bug 0253](../../bugs/0253-frozen-drift-is-not-reported-only-unexamined.md). The row is described now,
   and the lane's method review read it. Judge 1 reads a fix past ts-archunit's range only by sample,
   so the builder scanned the lane's links inside double quotes; it found two more, both a quoted
   criterion naming the plan it means, which are right. The method review then ran the wider search,
@@ -504,7 +505,7 @@ fails the build` and `accepts a repository that extends the base through an inte
   "probe" or "synthetic" listed (a first pass that also keyed on "example" gave 47; the 30 more sit near the word "example" only, most of them the examples gate's name or
   an example file under it, and the lane's method review read each and found a real reference; the script, `sample-scan.py`, is kept with the evidence and
   reproduces both counts at the base). 17 hits, each a real reference: sibling plans named beside
-  their own fixtures, [bug 0502](../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md) named beside another review item's fixture, and one code comment citing [ADR-005](../../adr/005-no-any-no-type-assertions.md).
+  their own fixtures, [bug 0502](../../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md) named beside another review item's fixture, and one code comment citing [ADR-005](../../../adr/005-no-any-no-type-assertions.md).
 - Judge 1 (Fable, in two halves; seed 20261029) read the 134 fixes in ts-archunit's range and 20
   sampled: 154 right, so no fix was left out and no same-target search was owed. `--apply` wrote 562
   links across 19 files.
@@ -512,8 +513,8 @@ fails the build` and `accepts a repository that extends the base through an inte
   excluded lines), all applied in 14 files: 55 links, 3 fences, 2 rewordings and 1 rewording to the
   ts-archunit form. The builder changed one, dropping two bare-number links the proposer had added
   after a list's first number, as the fix links only the first (corrected 2026-10-29 at the lane's
-  review, which found that lane 5 had linked each number of such a list, twice, in [bug 0502](../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md)'s
-  and [bug 0507](../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s State lines; this said the earlier lanes link only the first). Five items are
+  review, which found that lane 5 had linked each number of such a list, twice, in [bug 0502](../../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md)'s
+  and [bug 0507](../../bugs/fixed/0507-a-boxs-text-stops-at-its-first-paragraph.md)'s State lines; this said the earlier lanes link only the first). Five items are
   sample data, a number in a quoted fixture line, an adopter-notation example, a pattern's example
   and two quoted mentions as written: three are fenced word for word and two reworded, none linked.
   The carried search's other half, every hand edit whose old text held a code span with a mention
@@ -552,14 +553,14 @@ fails the build` and `accepts a repository that extends the base through an inte
   check. Each branch has a row showing its remedy, written in, clears the finding. The summary counts the
   mentions examined, the mentions the lookbehind skipped, the records left out (7, eight documents) and the links
   the join judged.
-- **The target.** [plan 0549](./completed/0549-a-link-names-the-record-it-mentions.md)'s join over Decision 1's records with `areInTitleLinks`,
+- **The target.** [plan 0549](./0549-a-link-names-the-record-it-mentions.md)'s join over Decision 1's records with `areInTitleLinks`,
   paired with `beLinked()`, `.expectNonEmpty()` written, reading the same left-out list as the
   mention rule. Re-run first: its census (one true red, the `ROADMAP.md` row for
-  [plan 0454](./completed/0454-box-marks-are-the-callers.md), over 1,409 judged links) was taken
+  [plan 0454](./0454-box-marks-are-the-callers.md), over 1,409 judged links) was taken
   with ts-archunit as a source, before Decision 1. A red beyond that row is recorded as a bug, not
   fixed here. Its rows: a crossed link red, a title link green, an empty mention side red. What it
   cannot see: a link to a record whose number ts-archunit also used that no judge read (the 423
-  written before the migration are [bug 0553](../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md)), and a linked mention written after `ts-archunit`,
+  written before the migration are [bug 0553](../../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md)), and a linked mention written after `ts-archunit`,
   which the pattern skips.
 - `mention-fix.rules.ts`, `scripts/lib/mention-anachronisms.mjs` and
   `scripts/lib/record-mention.mjs`'s lane exports removed; `CLAUDE.md`'s `check:corpus` entry says
@@ -569,14 +570,52 @@ fails the build` and `accepts a repository that extends the base through an inte
 `package.json` (`record-mention-base.test.mjs` leaves the `node --test` list),
 `work/plans/ROADMAP.md`, `CLAUDE.md`, `mention-fix.rules.ts` (deleted).
 
+**Phase 9, built 2026-10-29**, at base 0a13f919, the corpus at zero:
+
+- **A skipped number past ts-archunit's range is red.** Each kind has its own alternative, skipped
+  only when it follows `ts-archunit` or `ts-archunit's` and its number is in ts-archunit's range,
+  the range a pattern beside the kind in `scripts/lib/record-mention.mjs` (`KINDS`). A test holds
+  every written number of every kind to it, after both forms, and a range narrowed by one reds it.
+  The corpus held one such mention, this plan's own example in inline code, now reworded.
+- **Zero outright.** Every finding of the rule is red. The base machinery is gone: the base module
+  and its tests, the seam and its finding, the unreadable-base finding, the shallow-clone stop and
+  the census keys. Decided at build, to be overruled if wrong: the shared-census-key finding went
+  with the counts it protected, since two files that share a key now share nothing;
+  `corpus/record-number-unique` and `check:numbers` keep a number to one record. `check:corpus`
+  takes 7.0 s, against 8.2 s at the base.
+- **What it says.** The remedy is chosen by cause: a number naming no eess record (the ts-archunit
+  form inside the range, else correct it), a record past the range (the link, named in full, and
+  that `ts-archunit` before it does not skip it), and a record inside it (the link, or the ts-archunit
+  form, which takes it out of every check). A mention in inline code is told to leave the span. The
+  summary counts the mentions examined, the unlinked, the skipped, the seven records left out (eight
+  documents) and the links the join judged.
+- **The target.** The census re-run over eess's records alone: 5,749 linked mentions, 5 title links
+  exempt, 5,744 judged (22 of them to this repository's own GitHub URLs), and one red, the board row
+  for [plan 0454](./0454-box-marks-are-the-callers.md), a click on its quoted bug landing on the plan. The row now links the bug outside
+  the plan's link. The join adds 0.2 s and is its own receipt member, 11,488 checks.
+- **The rows.** The 13 base-era rows are replaced one for one, in place, so no other fixture changes
+  shard (round-robin by position, and [bug 0552](../../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s slowest shard keeps its load): a plain mention,
+  the no-record and in-range remedies, a done folder, a committed mention in a live and in a done
+  folder (the switch itself, in a shared clone), the unread mention, the three waiver forms, a
+  crossed link, a title link and the same row a word off, and the empty side (a copy of the script
+  whose join selects nothing, since emptying a real corpus trips the dead-root refusal first). Each
+  red half asserts the exact set and the printed `Fix:`; each remedy row writes in the link the
+  finding gave and is green, exit 0. Phase 1's two rows stay, rewritten: in-range numbers after
+  `ts-archunit` are skipped, the count rising by the ten written, and a number one past the range,
+  after either form, is red. The 15 rows ran in 303 s.
+- `mention-fix.rules.ts`, `scripts/lib/mention-anachronisms.mjs` and the lane exports are removed;
+  `CLAUDE.md` says the rule holds zero.
+- What it cannot see stays as Phase 9 says: [bug 0553](../../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md)'s links, and a number in ts-archunit's range
+  written after `ts-archunit`.
+
 ## Out of scope
 
-- Code references that point at the wrong line: [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md).
+- Code references that point at the wrong line: [proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md).
 - Links to ts-archunit, by Decision 1.
 
 ## Superseded at the freeze, kept as history
 
-The Draft's numbers and Appendix came from [plan 0550](./completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s Phase 0, which declared ts-archunit
+The Draft's numbers and Appendix came from [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s Phase 0, which declared ts-archunit
 as a second source and left 1,601 mentions as collisions (4,704 plain mentions at c9e55336: 3,098
 with one record, 1,601 in both sources, 5 in none). Decision 1 turns those collisions into fixes, so
 the anachronisms were re-counted over the new set (128 then, 145 now), and the refusal lists are
@@ -614,7 +653,7 @@ The revision (46ec9671) was re-checked by both lenses, both Ready with fixes. Ke
   ts-archunit plans by number, which `--apply` would link to the eess plan with the first number. `foreign` keeps `upstream`.
 - **Enforcement N1:** the judge read ADR fixes only, but ts-archunit's plan, bug and proposal
   numbers collide too. The read set is every fix in a file naming ts-archunit whose target number
-  ts-archunit used: 294, measured at 4a43bcc4. [Spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s `CONCLUSION.md` was already left out
+  ts-archunit used: 294, measured at 4a43bcc4. [Spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s `CONCLUSION.md` was already left out
   with its folder; Decision 3 now says so.
 - **Method I2, enforcement N3:** exclusions keyed by line at 4a43bcc4 go stale as the board files
   change, and with every lane's entries in the list the "Unused exclusion" warning is noise. Each
@@ -639,7 +678,7 @@ The fixes were re-checked (cd6cf531). Enforcement, Ready with fixes, kept:
   offered as a way out for an eess mention; the switch row's base, the skipped count from Phase 1,
   and the folder entry's exception stated.
 
-Method, Ready with fixes, kept: [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s folder makes the seven records eight documents, which
+Method, Ready with fixes, kept: [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md)'s folder makes the seven records eight documents, which
 the list, its test and the summary now say; 3 of the 15 `upstream` mentions, not all of them, are
 what `foreign` keeps from `--apply`; the first freeze's 16 counted one in the fold audit, a left-out
 document. Every new number was reproduced at 4a43bcc4.
@@ -650,19 +689,19 @@ document. Every new number was reproduced at 4a43bcc4.
 - [x] Phase 1 — the gate's narrowing, proven, and the rule file
 - [x] Phase 2 — `adr/`, `docs/`, `work/` root, `work/bugs/rejected/`
 - [x] Phase 3 — `work/spikes/`, `work/proposals/` (carried from lane 2: ts-archunit plan 0075 in
-      [proposal 010](../proposals/010-ts-performance-at-scale.md) at lines 67, 232 and 234; the file
+      [proposal 010](../../proposals/010-ts-performance-at-scale.md) at lines 67, 232 and 234; the file
       names no ts-archunit, so the judge's read set misses it; the ts-archunit GitHub links in
-      [spike 0536](../spikes/0536-what-a-mention-of-a-record-needs.md) (lines 48, 49) and
-      [spike 0540](../spikes/0540-one-join-over-every-source.md) (lines 47, 48, 54); ts-archunit plan 0075 excluded and reworded, the GitHub links left as
+      [spike 0536](../../spikes/0536-what-a-mention-of-a-record-needs.md) (lines 48, 49) and
+      [spike 0540](../../spikes/0540-one-join-over-every-source.md) (lines 47, 48, 54); ts-archunit plan 0075 excluded and reworded, the GitHub links left as
       recorded as fenced probe input, Decision 1 corrected)
 - [x] Phase 4 — `work/bugs/` (live) (carried from lane 2, for the judge:
-      [bug 0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s
+      [bug 0356](../../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md)'s
       mention of a plan numbered 0075 at line 69, read as ts-archunit's; the ts-archunit GitHub
-      links in [bug 0183](../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md) (line 22)
-      and [bug 0538](../bugs/0538-a-metric-baseline-never-tightens.md) (line 24); ts-archunit plan 0075 confirmed by judge 1 and reworded, the
+      links in [bug 0183](../../bugs/0183-upstream-citations-are-pinned-to-a-moving-branch.md) (line 22)
+      and [bug 0538](../../bugs/0538-a-metric-baseline-never-tightens.md) (line 24); ts-archunit plan 0075 confirmed by judge 1 and reworded, the
       GitHub links written as plain text)
 - [x] Phase 5 — `work/bugs/fixed/`
-- [x] Phase 6 — `work/plans/` (live) (carried from lane 5: [plan 0150](./0150-close-0088s-disclosed-review-findings.md)'s prose mentions
+- [x] Phase 6 — `work/plans/` (live) (carried from lane 5: [plan 0150](../0150-close-0088s-disclosed-review-findings.md)'s prose mentions
       of ts-archunit's bug 0016, its two test-title quotes already updated; reworded to the
       ts-archunit form)
 - [x] Phase 7 — `work/plans/completed/` 0001–0449
@@ -671,7 +710,10 @@ document. Every new number was reproduced at 4a43bcc4.
       since judge 1 reads a fix past ts-archunit's range only by sample; and every hand rewording of a
       code span, its old text matched against the fixtures, so a quote is kept or fenced rather than
       paraphrased; both run, and no fix or hand edit links sample data)
-- [ ] Phase 9 — the gate holds zero and checks the target
+- [x] Phase 9 — the gate holds zero and checks the target
+
+Deferred: none. The links written before the migration, unjudged, are [bug 0553](../../bugs/0553-links-to-a-colliding-number-written-before-the-migration-are-unjudged.md)'s, filed
+at lane 4.
 
 ## Appendix — the 145 anachronisms, at 4a43bcc4
 

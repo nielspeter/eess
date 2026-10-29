@@ -33,7 +33,7 @@ this.unmetExpectNonEmptyViolation()]` — a real, distinct assertion, not
     verbatim: `'copy() independence: a held selection is not mutated by
 .because()'` and `'named-selection reuse across two branches does not
 leak conditions (RuleBuilder side)'` (both titles dropped ts-archunit bug
-    0016's number in [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5).
+    0016's number in [plan 0542](./completed/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5).
   - **Finding 1 (`orphanExclusions()`) — still genuinely open, confirmed
     twice over.** Zero hits anywhere in `packages/*/src` (unchanged since
     this plan was drafted). Independently confirmed by unrelated [plan 0147](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md)'s

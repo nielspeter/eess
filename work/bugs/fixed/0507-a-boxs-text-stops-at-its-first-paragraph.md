@@ -43,7 +43,7 @@ Deferred: none
 ```
 
 _Note, 2026-10-28:_ the input above and the table below wrote a synthetic plan number,
-0002; they write `plan NNNN` since [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5, so the record-mention gate reads no synthetic number. The
+0002; they write `plan NNNN` since [plan 0542](../../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5, so the record-mention gate reads no synthetic number. The
 run and its test (`packages/md/tests/rules/a-box-reads-all-its-own-text.test.ts`) use 0002, and the
 deferral pattern accepts either, so the findings below are the same.
 

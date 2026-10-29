@@ -80,7 +80,7 @@ re-litigating if this loophole is measured firing in practice, not settled by
 the precedent alone.**
 ```
 
-_Corrected 2026-09-14:_ the source, and this quote of it, cited ts-archunit's ADR-008 by its bare number (reworded 2026-10-28, [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4: the
+_Corrected 2026-09-14:_ the source, and this quote of it, cited ts-archunit's ADR-008 by its bare number (reworded 2026-10-28, [plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4: the
 number in the form the record-mention gate reads as ts-archunit's). [ADR-008](../../adr/008-caller-owns-reporting.md)
 discusses the `warn` report mode, but it does not say the primary consumer does not
 read warnings; that is [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s

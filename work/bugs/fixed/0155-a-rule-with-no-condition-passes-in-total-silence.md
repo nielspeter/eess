@@ -129,7 +129,7 @@ Found in PR #70's review, and it constrains the fix.
 
 `packages/core/tests/contract/extension-surface.test.ts:207` —
 `it('named-selection reuse across two branches does not leak conditions (RuleBuilder side)')` (ts-archunit
-bug 0016's shape; the title dropped its number in [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5) — ends with a branch that calls `.should()` and
+bug 0016's shape; the title dropped its number in [plan 0542](../../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5) — ends with a branch that calls `.should()` and
 adds no condition, asserting `not.toThrow()`. Its comment claims that branch
 _"hits the 'predicates but no conditions' assertion-less path and passes."_
 

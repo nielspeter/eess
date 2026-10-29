@@ -11,12 +11,12 @@
   numbering, a cause the fix cannot read; the maintainer accepted the residual the same day.
 - **Implements:** [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)
 - **Priority:** Medium — each corpus measured holds 3,000 to 4,700 plain mentions, which no one links
-  by hand; [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md) waits on it here.
+  by hand; [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md) waits on it here.
 - **Effort:** Medium, one PR in eess-md: a `span` on a mention, a fix option on `beLinked()` with its
   refusals, a shared path helper, a worked example, docs, one sabotage row. No kernel change.
 - **Created:** 2026-10-25
 - **Builds after:** [plan 0549](./0549-a-link-names-the-record-it-mentions.md).
-- **Builds before:** [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
+- **Builds before:** [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
 
 ## Problem
 
@@ -147,7 +147,7 @@ on 2026-10-26. All of this is accepted, knowingly:
 
 Three measurements over this repository and ts-archunit's record list, by throwaway scripts, recorded
 here with their counts, seeds and durations. They license
-[plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s migration of this repository,
+[plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s migration of this repository,
 not the fix's correctness for another project's sources; the docs say so.
 
 1. **Anachronisms**, over every candidate fix (3,079 at [spike 0540](../../spikes/0540-one-join-over-every-source.md)):
@@ -156,11 +156,11 @@ not the fix's correctness for another project's sources; the docs say so.
    before its record merged). Its date is the mention's first appearance in its file (`git log --follow -S`,
    earliest commit), not `git blame`, which dates a line's last edit. The instrument is first shown
    to find one anachronism planted in a scratch clone. The list goes to
-   [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md), which names how its run
+   [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md), which names how its run
    leaves those mentions out (`--fix --apply` has no per-fix filter); eess-md cannot read git, and
    the docs name the class. The duration is named before it runs: about 560 files.
 2. **What `foreign` refuses.** The candidates Decision 2's qualifier reading refuses here, counted
-   and a sample of them read: each is a mention [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)
+   and a sample of them read: each is a mention [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)
    links by hand, so the count is its cost, and a refusal that names no other project is a reading
    too wide.
 3. **The correctness sample.** From the candidates less the anachronisms and the refusals, 150 fixes at random with a
@@ -185,7 +185,7 @@ excludes.
 
 **Measured 2026-10-26** on `main` at c9e55336, Node 24.22.0, ts-archunit at b4084c9, by throwaway
 scripts over the built packages, which were not kept: the seeds below name the draws, the lists are
-recorded by value in [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s
+recorded by value in [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s
 Appendix and the verdicts in this plan's. Each run took under 7 s but the anachronism pass, 36.1 s
 (named before it ran: one to two minutes).
 
@@ -213,7 +213,7 @@ Appendix and the verdicts in this plan's. Each run took under 7 s but the anachr
 - **Anachronisms.** The instrument found a planted case in a scratch clone, both files renamed.
   136 of the 2,920 local candidates, in 35 files, every one reaching `main` a PR or more before its
   record; 128 are not otherwise refused and leave the frame, listed in
-  [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s Appendix. 53 of the 136 date
+  [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s Appendix. 53 of the 136 date
   the text in the file, not the instance, as `git log -S` does. 13 other candidates could not be
   dated; all 13 are refused by `span`. Not every anachronism is wrong: some are a number claimed on a
   branch before its record merged.
@@ -265,7 +265,7 @@ day to 0 in 150 and seven wrong fixes, all in that one file, four of them made b
 reported to the maintainer with the decision standing. The cause becomes an example row asserting
 the fix, so the residual is visible and a change to it is seen; this repository's run leaves
 [spike 0001](../../spikes/0001-eess-over-ts-archunit/README.md) out by selection
-([plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)).
+([plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)).
 
 ### Phase 1 — `span`
 
@@ -381,7 +381,7 @@ each must turn its test red. The exactly-one sabotage is committed (Phase 4).
 ## Out of scope
 
 - **A dry run grouped by target, and the fix in the JSON report:** [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md).
-- **This repository's migration**, and how its run leaves the anachronisms out: [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
+- **This repository's migration**, and how its run leaves the anachronisms out: [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
 - **eess-md's own door to applying fixes:** [bug 0537](../../bugs/0537-eess-md-alone-has-no-run-level-services.md);
   fixes are applied through `eess-ts check --fix --apply`, as `movedLinkFix`'s are.
 
@@ -411,7 +411,7 @@ Important; enforcement: Changes needed, Critical 1). Kept, not edited away:
   missing and non-`RegExp` cases throw a `TypeError`, recorded as
   [bug 0551](../../bugs/0551-an-untyped-mention-pattern-throws-a-typeerror.md), not fixed here.
 - **Minors:** an `undefined` key, the configuration findings' kind and precedence, the planted
-  anachronism, one amendment before the plan goes back, the exclusion mechanism left to [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md),
+  anachronism, one amendment before the plan goes back, the exclusion mechanism left to [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md),
   `|` in a table cell, and which headings are read.
 
 ## Built — 2026-10-26
@@ -484,7 +484,7 @@ What the build did that the plan did not say, kept here rather than edited into 
   not proved, and that parse is its backstop; no input is known that only it refuses, so no
   sabotage can redden it, and it stays because it can only refuse). A set that fails whole costs
   one more parse per fix; it never ran here. The cost grows with the fixes, not the corpus, so a
-  corpus with no plain mention left pays nothing; [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s
+  corpus with no plain mention left pays nothing; [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s
   migration run is where the 12 s falls. A stretch that does not start the document is read from a
   fresh line, so a `---` there is not front matter (enforcement). With it came the architect's last minors: the inexact-span
   message names the `&` case, the docs say how far an ambiguous `&` reaches, a mention whose own
@@ -749,4 +749,4 @@ x6	work/bugs/BUGS.md:245	bug 0029	ts-archunit:bugs/fixed/0029-a-throwing-warn-tr
 Deferred: none. The limits found in review are recorded under "What this cannot see" in
 `docs/markdown.md`; the grouped dry run and the fix in the JSON report stay
 [proposal 020](../../proposals/020-a-fix-dry-run-a-reader-can-review.md)'s, and this repository's migration
-[plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s.
+[plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s.

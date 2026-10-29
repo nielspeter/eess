@@ -117,7 +117,7 @@ docstring stays [bug 0307](./0307-class-body-rules-skip-class-code-outside-its-m
       file is replaced, as 0323's was.
 - [x] the ruling's two limits pinned —
       `it('still reads no docstring on the member itself')` (the title dropped its number in
-      [plan 0542](../../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5) and
+      [plan 0542](../../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 5) and
       `it('does not let a comment in a parameter decorator satisfy a must-contain rule')`.
 - [x] a changeset — `.changeset/searches-read-every-shape.md`, a breaking `minor` for
       `@nielspeter/eess-ts`: a green class comment rule may now report a comment in a parameter list.

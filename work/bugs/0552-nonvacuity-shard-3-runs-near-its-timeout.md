@@ -11,7 +11,7 @@
   grow, with no row added. This is the second shard timeout this week, after
   [bug 0547](./fixed/0547-eess-md-parses-a-text-more-than-once-per-process.md)'s (PR #260, shard 2).
 - **Origin:** self-found, 2026-10-27, while building
-  [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s Phase 1. Recorded
+  [plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s Phase 1. Recorded
   rather than fixed there: it is CI capacity, not that plan's work.
 - **Reported:** 2026-10-27
 
@@ -65,7 +65,7 @@ Without its heavy rows shard 3 costs what the others do: the whole imbalance is 
 load-bearing both ways), then `corpus/record-mention/production-base` 87 s,
 `arch/no-new-kernel-registry` 82 s, `corpus/record-mention/raised-from-zero` 58 s,
 `arch/examples-md-public-blocks-only` 50 s and `corpus/record-mention/ts-archunit-skipped` 42 s (added
-by [plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s Phase 1).
+by [plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s Phase 1).
 
 The rows also cost more over time: at #265 shard 3 kept its 63 rows and went from 596 s to 837 s;
 its corpus rows went from 294 s to 450 s, and the examples row grows with the examples it proves (40
