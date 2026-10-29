@@ -1,14 +1,10 @@
 /**
- * Plan 0541: which record a corpus document is, read from its path. Two answers, on purpose:
+ * Plan 0541: which record a corpus document is, read from its path. `recordKeyOfPath` is the record
+ * a document belongs to, so a record naming itself is not a mention: a numbered file, or any file
+ * inside a numbered record directory (`work/spikes/0001-eess-over-ts-archunit/README.md` is
+ * `spike:1`).
  *
- *  - `recordKeyOfPath` — the record a document belongs to, so a record naming itself is not a
- *    mention: a numbered file, or any file inside a numbered record directory
- *    (`work/spikes/0001-eess-over-ts-archunit/README.md` is `spike:1`).
- *  - `censusKeyOfPath` — the key a file's unlinked mentions are counted under: `<kind>:<number>`
- *    for a file whose own name is numbered, in a lane folder or any folder under it, or in `adr/`;
- *    every other file is keyed by its path. Two files in one record directory are two census keys.
- *
- * A record keeps both keys when it moves to a done folder, so nothing reads git's rename detection.
+ * A record keeps its key when it moves to a done folder, so nothing reads git's rename detection.
  * Modelled on `proposalNumberFromPath` (`./proposal-ruling.mjs`). Kinds are lower-case, and a
  * number is compared as a number, so `0338` and `338` are one key.
  */
@@ -44,19 +40,4 @@ export function recordKeyOfPath(relPath) {
     if (m !== null) return recordKey(lane.kind, m[1])
   }
   return undefined
-}
-
-/** The key a file's unlinked mentions are counted under. */
-export function censusKeyOfPath(relPath) {
-  const lane = laneOf(relPath)
-  if (lane !== undefined && (lane.kind !== 'adr' || lane.rest.length === 1)) {
-    const m = NUMBERED_FILE.exec(lane.rest[lane.rest.length - 1] ?? '')
-    if (m !== null) return recordKey(lane.kind, m[1])
-  }
-  return relPath
-}
-
-/** True when a census key is a file's path rather than a record's identity. */
-export function isPathKey(key) {
-  return key.includes('/')
 }

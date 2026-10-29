@@ -611,7 +611,7 @@ valuesOrPattern)` makes "a fixed bug has a Verification section" one rule; `poin
 
 _Note, 2026-10-28:_ in ask D above, the submission's three example identifiers "written as text"
 (a bug, an ADR and a proposal, each by its number) are described rather than quoted, by
-[plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4: written plainly they are mentions the record-mention gate requires to be
+[plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4: written plainly they are mentions the record-mention gate requires to be
 links, and linked they would contradict the sentence they illustrate.
 
 > **E. A type's lifecycle is declared, and placement follows it.** `states` names the state field

@@ -12,7 +12,7 @@
   base-resolution module with its own tests, and sabotage rows. No package change.
 - **Created:** 2026-10-21
 - **Builds after:** [plan 0539](./0539-a-mention-of-a-record-is-a-link.md), whose `mentions()` it
-  uses. **Builds before:** [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md),
+  uses. **Builds before:** [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md),
   which brings the count to zero.
 
 ## Problem
@@ -178,7 +178,7 @@ At `75df1b7b` unless stated, re-run by both reviews:
   it still misses 42 of the 74.
 - **The ledger → the merge base's own counts.** With a ledger, an absent base ledger had to be "not
   judged", and the enforcement review showed that state reachable by any later PR: deleting the
-  ledger ([plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s end state), renaming it, or pointing the seam at a new file. Counting the base
+  ledger ([plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s end state), renaming it, or pointing the seam at a new file. Counting the base
   has no such state, judges the bootstrap PR's own additions, and drops the under and stale
   judgements and the update command, which existed only to keep a ledger equal to the tree.
 - **Key uniqueness is the gate's own** (judgement 2), since `check:numbers` does not reach ADRs or
@@ -286,7 +286,7 @@ No package changes; `scripts/` only. `check:release` needs no changeset.
 
 ## Out of scope
 
-- **Bringing the count to zero**: [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
+- **Bringing the count to zero**: [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
 - **`.claude/skills/` and `kit/`**: not corpus roots ([bug 0535](../../bugs/0535-the-corpus-gate-does-not-read-skill-or-kit-files.md)).
 - **What a mention's link points at**: [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s ask B, held.
 - **`check:numbers` reaching `adr/` and digit widths**: judgement 2 covers this rule's need, and
@@ -299,4 +299,4 @@ No package changes; `scripts/` only. `check:release` needs no changeset.
 - [x] The build's review (enforcement and testing, 2026-10-24). One block, found by both: the release-variables test passed the variables as a parameter, so a module reading `process.env` or `origin/$GITHUB_BASE_REF` passed it; the test now sets them both ways, and those mutants red it. Plan detail, all applied: a test for no merge base and for a tree dirty only outside the roots; every seam row asserts that the terminal path prints each finding, since the seam's finding alone makes both exits 1; the production-base row commits a linked control first and asserts the raised mention is the one violation added on both exits, then deletes `main` and asserts the gate stops; one waiver probe sits in a done folder, since the ban reads frozen documents; a remedy per cause for an unreadable base; findings with no file print as the repository; `CLAUDE.md` names the seam. Residual, accepted rather than fixed: the order of `origin/main` before `main` and the base's scratch-directory removal are untested (low impact); a numbered record directory's files do not mention their own record; the probe numbers 0998 and 0999 will one day be real, and the rows then red loudly (`corpus/record-number-unique`, a shared key) rather than pass; `--format json` prints nothing on an unresolvable base, which exits 1 on its message; the inline-code arm is proven by the corpus's own 162 such mentions, not a probe; a local merge of `main` into a branch forgives the branch's earlier mentions (Design, _What this does not catch_), which CI's PR checkout judges.
 - [x] `npm run validate` green, with its time reported: exit 0 in 2,531 s (42 min) on 2026-10-25, 252 non-vacuity fixtures firing and all 36 rule ids `check-corpus.mjs` can emit asserted by one
 
-Deferred: none. Bringing the count to zero is [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)'s, in Out of scope from the start; the build review's residuals are accepted in the ledger above, not deferred.
+Deferred: none. Bringing the count to zero is [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)'s, in Out of scope from the start; the build review's residuals are accepted in the ledger above, not deferred.

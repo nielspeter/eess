@@ -230,7 +230,7 @@ import { spawnSync } from 'node:child_process'
 import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, join, posix } from 'node:path'
 // Read, not duplicated: these are the sets that decide whether a kernel symbol
 // owes a dialect a re-export, and the aggregation fixture's payload guard has to
 // ask the same question the rule asks.
@@ -1967,18 +1967,19 @@ function gateCorpusRecordNumberDirForm() {
   )
 }
 
-// --- Gate: corpus/record-mention/* (plan 0541) ---
+// --- Gate: corpus/record-mention/* (plans 0541 and 0542) ---
 // The production `scripts/check-corpus.mjs`, run in the main tree with an ephemeral probe under
-// `work/bugs/`. Every row but the last names its base through the seam, `EESS_RECORD_MENTION_BASE`:
-// a tree built from the WORKING tree's roots (a temporary `GIT_INDEX_FILE`: `read-tree HEAD`, the
-// roots' working files added, probes excluded by `.gitignore`), with the row's base-side probe
-// added, so a dirty local tree does not red an exact-set row. No tracked file is touched and no ref
-// is written: the built tree is an unreferenced object, and `check:integrity` names a leftover
-// probe directory by its prefix. Each row asserts the exact set of this rule's findings, the
-// seam's own included, so a missing and an extra finding both fail it.
+// `work/bugs/` (a live probe, `Draft`) or `work/bugs/fixed/` (a done one, `Fixed`): each probe is a
+// well-formed record, so a run with only its mention linked is green, and exit 0 proves the remedy.
+// Since plan 0542, Phase 9, every unlinked mention is red whatever any base holds, and the rule
+// says the remedy by cause. Each row asserts the exact set of this rule's findings, so a missing and
+// an extra finding both fail it. `check:integrity` names a leftover probe directory by its prefix.
 //
-// The seam reds every run that sets it, so counting `HEAD` in place of the base would survive
-// every seam row: the last row runs the production base path in a shared clone, with no seam.
+// The rows need `check:corpus` green without their probes: an unlinked mention elsewhere in the tree
+// breaks the red halves' exact sets, and any other red keeps a green half at exit 1. `validate` runs
+// `check:corpus` first and CI checks out clean, so this bites only a standalone local run on a dirty
+// tree; run `npm run check:corpus` first. Probe targets are ADRs, whose paths do not change when a
+// record closes: ADR-016 is past ts-archunit's range, ADR-009 inside it.
 const MENTION_PROBE_DIR = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_mention__')
 const MENTION_PROBE_DONE_DIR = join(
   repoRoot,
@@ -1991,14 +1992,12 @@ const MENTION_PROBE_REL = 'work/bugs/__nonvacuity_probe_mention__'
 const MENTION_PROBE_DONE_REL = 'work/bugs/fixed/__nonvacuity_probe_mention__'
 const RECORD_MENTION_IDS = [
   'corpus/record-mention-is-a-link',
-  'corpus/record-mention-fixture-base',
-  'corpus/record-mention-key-shared',
+  'corpus/record-mention-target',
   'corpus/record-mention-waiver',
-  'corpus/record-mention-base-unreadable',
   'corpus/record-mention-left-out',
+  'corpus/record-mention-key-shared',
   'md/unread-mention',
 ]
-const SEAM_FINDING = ['corpus/record-mention-fixture-base', undefined, 'named by the test seam']
 
 function gitIn(cwd, args, env, input) {
   const r = spawnSync('git', args, {
@@ -2011,30 +2010,11 @@ function gitIn(cwd, args, env, input) {
   return (r.stdout ?? '').trim()
 }
 
-/** A base tree: the working tree's roots, plus `baseFiles` (`{ relPath: text }`). */
-function mentionBaseTree(baseFiles) {
-  const scratch = mkdtempSync(join(tmpdir(), 'nonvacuity-mention-base-'))
-  const env = { ...process.env, GIT_INDEX_FILE: join(scratch, 'index') }
-  try {
-    gitIn(repoRoot, ['read-tree', 'HEAD'], env)
-    gitIn(repoRoot, ['add', '-A', '--', 'work', 'adr', 'docs'], env)
-    for (const [rel, text] of Object.entries(baseFiles)) {
-      const blob = gitIn(repoRoot, ['hash-object', '-w', '--stdin'], env, text)
-      gitIn(repoRoot, ['update-index', '--add', '--cacheinfo', `100644,${blob},${rel}`], env)
-    }
-    return gitIn(repoRoot, ['write-tree'], env)
-  } finally {
-    rmSync(scratch, { recursive: true, force: true })
-  }
-}
-
-/** `scripts/check-corpus.mjs` from the main tree, in `cwd`, with `extraEnv` and the seam's absence. */
-function runCorpusScript(args, { cwd = repoRoot, base } = {}) {
+/** `scripts/check-corpus.mjs` from the main tree, in `cwd`. */
+function runCorpusScript(args, { cwd = repoRoot } = {}) {
   const env = { ...process.env }
   delete env.GITHUB_ACTIONS
   delete env.CI
-  delete env.EESS_RECORD_MENTION_BASE
-  if (base !== undefined) env.EESS_RECORD_MENTION_BASE = base
   const r = spawnSync(process.execPath, [join(repoRoot, 'scripts', 'check-corpus.mjs'), ...args], {
     cwd,
     encoding: 'utf8',
@@ -2048,19 +2028,22 @@ function runCorpusScript(args, { cwd = repoRoot, base } = {}) {
 
 /**
  * True when this rule's findings in `r` are exactly `expected`: each entry is
- * `[ruleId, fileFragment?, messageFragment?]`, matched by a distinct finding, and no other finding of
- * the rule's ids is present. Each id is recorded through `firedOn`, so the rule-id audit sees it.
+ * `[ruleId, fileFragment?, messageFragment?, suggestionFragment?]`, matched by a distinct finding,
+ * and no other finding of the rule's ids is present. Each id is recorded through `firedOn`, so the
+ * rule-id audit sees it.
  */
 function exactMentionFindings(r, expected) {
   const found = violationsOf(r).filter((v) => RECORD_MENTION_IDS.includes(v?.ruleId))
   const left = [...found]
-  for (const [ruleId, fileFragment, messageFragment] of expected) {
+  for (const [ruleId, fileFragment, messageFragment, suggestionFragment] of expected) {
     if (!firedOn(r, ruleId, fileFragment)) return false
     const at = left.findIndex(
       (v) =>
         v.ruleId === ruleId &&
         (fileFragment === undefined || String(v.file ?? '').includes(fileFragment)) &&
-        (messageFragment === undefined || String(v.message ?? '').includes(messageFragment)),
+        (messageFragment === undefined || String(v.message ?? '').includes(messageFragment)) &&
+        (suggestionFragment === undefined ||
+          String(v.suggestion ?? '').includes(suggestionFragment)),
     )
     if (at === -1) return false
     left.splice(at, 1)
@@ -2068,315 +2051,530 @@ function exactMentionFindings(r, expected) {
   return left.length === 0
 }
 
-const mentionSummary = (r) => /(\d+) unlinked here, (\d+) at the base/.exec(r.stderr)
+/** A well-formed probe record: a title, a State its folder accepts, and `body`. */
+const probeRecord = (body, state = 'Draft') =>
+  `# Probe\n\n## Status\n\n- **State:** ${state} — a non-vacuity probe\n\n${body}\n`
 
-/**
- * One seam row: `base` and `head` map probe paths (relative to the repository) to their text. The
- * head probes are written for both runs and removed afterwards, whatever happens.
- */
-function gateRecordMentionSeam({ base = {}, head = {}, seam, expected, extra }) {
-  const tree = seam ?? mentionBaseTree(base)
+/** True for a path inside one of the two probe folders, which `withMentionProbes` removes. */
+const isMentionProbe = (rel) => {
+  const norm = posix.normalize(rel)
+  return norm.startsWith(`${MENTION_PROBE_REL}/`) || norm.startsWith(`${MENTION_PROBE_DONE_REL}/`)
+}
+
+/** Write `files` (repository-relative path → text), run `fn`, and remove the probe folders. */
+function withMentionProbes(files, fn) {
   try {
-    for (const [rel, text] of Object.entries(head)) {
+    for (const [rel, text] of Object.entries(files)) {
+      // Only a probe folder is removed afterwards, so nothing else may be written.
+      if (!isMentionProbe(rel)) throw new Error(`a mention probe outside the probe folders: ${rel}`)
       mkdirSync(dirname(join(repoRoot, rel)), { recursive: true })
       writeFileSync(join(repoRoot, rel), text)
     }
-    const json = runCorpusScript(['--format', 'json'], { base: tree })
-    const terminal = runCorpusScript([], { base: tree })
-    const exact = exactMentionFindings(json, expected)
-    // The seam's finding alone makes both exits 1, so the exit codes prove nothing here: every
-    // finding must also be printed by the terminal path CI runs.
-    const says = expected.every(([, , m]) => m === undefined || terminal.stderr.includes(m))
-    const more = extra === undefined ? true : extra({ json, terminal })
-    return {
-      ok: json.code === 1 && terminal.code === 1 && exact && says && more,
-      detail:
-        `seam base → json exit ${json.code}, terminal exit ${terminal.code}; exact findings: ${exact}; ` +
-        `terminal prints each: ${says}` +
-        (extra === undefined ? '' : `; ${String(more)}`),
-    }
+    return fn()
   } finally {
     rmSync(MENTION_PROBE_DIR, { recursive: true, force: true })
     rmSync(MENTION_PROBE_DONE_DIR, { recursive: true, force: true })
   }
 }
 
+/**
+ * Red on both exits with exactly `expected`, each printed by the terminal path CI runs; then, with
+ * `remedied` written in, green on both: exit 0 and none of the rule's findings. `remedied` maps a
+ * path to its text, to a function of the red run's JSON that writes the text, so a row can write in
+ * the very link the finding suggested, or to `null`, which removes the file.
+ */
+function mentionRedThenGreen({ files, expected, remedied, extra }) {
+  return withMentionProbes(files, () => {
+    const json = runCorpusScript(['--format', 'json'])
+    const terminal = runCorpusScript([])
+    const exact = exactMentionFindings(json, expected)
+    const says = expected.every(
+      ([, , m, sug]) =>
+        (m === undefined || terminal.stderr.includes(m)) &&
+        (sug === undefined || terminal.stderr.includes(sug)),
+    )
+    let greenJson
+    let greenTerminal
+    if (remedied !== undefined) {
+      for (const [rel, text] of Object.entries(remedied)) {
+        if (!isMentionProbe(rel))
+          throw new Error(`a mention probe outside the probe folders: ${rel}`)
+        if (text === null) rmSync(join(repoRoot, rel), { force: true })
+        else writeFileSync(join(repoRoot, rel), typeof text === 'function' ? text(json) : text)
+      }
+      greenJson = runCorpusScript(['--format', 'json'])
+      greenTerminal = runCorpusScript([])
+    }
+    const green =
+      remedied === undefined ||
+      (greenJson.code === 0 && greenTerminal.code === 0 && exactMentionFindings(greenJson, []))
+    const more = extra === undefined ? true : extra({ json, terminal, greenTerminal })
+    return {
+      ok: json.code === 1 && terminal.code === 1 && exact && says && green && more !== false,
+      detail:
+        `red → json exit ${json.code}, terminal exit ${terminal.code}; exact findings: ${exact}; ` +
+        `terminal prints each: ${says}` +
+        (remedied === undefined
+          ? ''
+          : `; remedy written in → exit ${String(greenJson.code)}/${String(greenTerminal.code)}, ` +
+            `none of the rule's findings: ${green}`) +
+        (extra === undefined ? '' : `; ${String(more)}`),
+    }
+  })
+}
+
 const PROBE_998 = `${MENTION_PROBE_REL}/0998-probe.md`
 const PROBE_998_DONE = `${MENTION_PROBE_DONE_REL}/0998-probe.md`
+const MENTION_ADR_016 = 'adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md'
+const MENTION_ADR_017 = 'adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md'
+/** ADR-016's link from a live probe, and from a done one, as the remedy should write it. */
+const ADR_016_LIVE = `[ADR-016](../../../${MENTION_ADR_016})`
+const ADR_016_DONE = `[ADR-016](../../../../${MENTION_ADR_016})`
 
-function gateRecordMentionRaisedFromZero() {
-  const raised = gateRecordMentionSeam({
-    head: { [PROBE_998]: '# Probe\n\nIt names bug 0338 in prose.\n' },
+/**
+ * The link a finding's remedy names, read off the parsed finding, never the rendered stream: the
+ * finding of this rule on `file` at `line`, or the first on `file`.
+ */
+const suggestedLink = (json, file, line) => {
+  const v = violationsOf(json).find(
+    (x) =>
+      RECORD_MENTION_IDS.includes(x?.ruleId) &&
+      String(x.file ?? '').includes(file) &&
+      (line === undefined || x.line === line),
+  )
+  return /link it: (\[[^\]]+\]\([^)]+\))/i.exec(String(v?.suggestion ?? ''))?.[1]
+}
+
+/**
+ * A mention of a record past ts-archunit's range, in prose and in a code span: each red, each remedy
+ * saying it is eess's record and naming the link, the code span's saying to leave the span; both
+ * links, written in as the findings gave them, are green (plan 0542, Phase 9: the remedy's branch for
+ * a record past the range, and for inline code).
+ */
+function gateRecordMentionPlain() {
+  // The probe record's body starts on line 7.
+  const body = (prose, code) => `It names ${prose} in prose.\n\nAnd ${code} in code.`
+  return mentionRedThenGreen({
+    files: { [PROBE_998]: probeRecord(body('ADR-016', '`ADR-016`')) },
     expected: [
       [
         'corpus/record-mention-is-a-link',
         PROBE_998,
-        '"bug 0338" is not a link 1 time(s) in bug:998, against 0',
+        '"ADR-016" is not a link',
+        `Link it: ${ADR_016_LIVE}. ts-archunit's numbering never reached this number, so it is eess's record`,
       ],
-      SEAM_FINDING,
-    ],
-  })
-  // Linked, the same probe raises nothing: only the seam's finding is left.
-  const linked = gateRecordMentionSeam({
-    head: {
-      [PROBE_998]:
-        '# Probe\n\nIt names [bug 0338](../0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md).\n',
-    },
-    expected: [SEAM_FINDING],
-  })
-  return {
-    ok: raised.ok && linked.ok,
-    detail: `plain: ${raised.detail} · linked: ${linked.detail}`,
-  }
-}
-
-function gateRecordMentionRaisedByCount() {
-  return gateRecordMentionSeam({
-    base: { [PROBE_998]: '# Probe\n\nOne bug 0338.\n' },
-    head: { [PROBE_998]: '# Probe\n\nOne bug 0338.\n\nTwo bug 0338.\n' },
-    expected: [
       [
         'corpus/record-mention-is-a-link',
         PROBE_998,
-        '"bug 0338" is not a link 2 time(s) in bug:998, against 1 at the base',
+        '"ADR-016" is in inline code, not a link',
+        `Take it out of the code span and link it: ${ADR_016_LIVE}`,
       ],
-      SEAM_FINDING,
     ],
-    extra: ({ json }) =>
-      violationsOf(json).some((v) => String(v.message ?? '').includes('at line 3, line 5')),
-  })
-}
-
-function gateRecordMentionRaisedBySwap() {
-  return gateRecordMentionSeam({
-    base: { [PROBE_998]: '# Probe\n\nIt names bug 0338.\n' },
-    head: { [PROBE_998]: '# Probe\n\nIt names bug 0339.\n' },
-    expected: [
-      [
-        'corpus/record-mention-is-a-link',
-        PROBE_998,
-        '"bug 0339" is not a link 1 time(s) in bug:998, against 0',
-      ],
-      SEAM_FINDING,
-    ],
-  })
-}
-
-function gateRecordMentionMovedToDone() {
-  const text = '# Probe\n\nIt names bug 0338 in prose.\n'
-  return gateRecordMentionSeam({
-    base: { [PROBE_998]: text },
-    head: { [PROBE_998_DONE]: text },
-    expected: [SEAM_FINDING],
-    // Equal counts catch a head that skips frozen documents, which would hold one fewer; that the
-    // probe raises nothing proves its key was carried across the move.
-    extra: ({ terminal }) => {
-      const m = mentionSummary(terminal)
-      return m !== null && m[1] === m[2] ? `summary ${m[1]} = ${m[2]}` : false
+    remedied: {
+      [PROBE_998]: (json) =>
+        probeRecord(
+          body(
+            suggestedLink(json, PROBE_998, 7) ?? 'nothing suggested',
+            suggestedLink(json, PROBE_998, 9) ?? 'nothing suggested',
+          ),
+        ),
     },
   })
 }
 
-function gateRecordMentionUnnumberedMoved() {
-  const text = '# Probe\n\nIt names bug 0338 in prose.\n'
-  return gateRecordMentionSeam({
-    base: { [`${MENTION_PROBE_REL}/probe.md`]: text },
-    head: { [`${MENTION_PROBE_DONE_REL}/probe.md`]: text },
+/**
+ * A number naming no eess record, inside ts-archunit's range: the remedy says to write it in the
+ * ts-archunit form, and that form written in is green. Past the range, the remedy says to correct it.
+ * (That the written form is counted as skipped is `ts-archunit-skipped`'s to show.)
+ */
+function gateRecordMentionRemedyNoRecord() {
+  return mentionRedThenGreen({
+    files: { [PROBE_998]: probeRecord('It names bug 0016, and bug 9999.') },
     expected: [
       [
         'corpus/record-mention-is-a-link',
-        `${MENTION_PROBE_DONE_REL}/probe.md`,
-        'keyed by its path',
+        PROBE_998,
+        '"bug 0016" is not a link',
+        'write it as "ts-archunit bug 0016"',
       ],
-      SEAM_FINDING,
+      [
+        'corpus/record-mention-is-a-link',
+        PROBE_998,
+        '"bug 9999" is not a link',
+        "ts-archunit's numbering never reached it: correct the number",
+      ],
     ],
+    remedied: { [PROBE_998]: probeRecord('It names ts-archunit bug 0016.') },
   })
 }
 
-function gateRecordMentionKeyShared() {
-  // Identical at the base, and one of the two holds no mention: only the tree is judged.
-  const files = {
-    [`${MENTION_PROBE_REL}/0999-a.md`]: '# Probe\n\nIt names bug 0338 in prose.\n',
-    [`${MENTION_PROBE_REL}/999-b.md`]: '# Probe\n\nNo mention here.\n',
-  }
-  return gateRecordMentionSeam({
-    base: files,
-    head: files,
+/**
+ * An eess record inside ts-archunit's range: the remedy names the link and the ts-archunit form as
+ * the other choice; the link written in is green.
+ */
+function gateRecordMentionRemedyInRange() {
+  return mentionRedThenGreen({
+    files: { [PROBE_998]: probeRecord('It names ADR-009 in prose.') },
     expected: [
-      ['corpus/record-mention-key-shared', '0999-a.md', 'share the census key bug:999'],
-      SEAM_FINDING,
+      [
+        'corpus/record-mention-is-a-link',
+        PROBE_998,
+        '"ADR-009" is not a link',
+        'If it means ts-archunit\'s record of that number instead, write "ts-archunit ADR-009"',
+      ],
     ],
+    remedied: {
+      [PROBE_998]: (json) =>
+        probeRecord(`It names ${suggestedLink(json, PROBE_998) ?? 'nothing suggested'} in prose.`),
+    },
+  })
+}
+
+/**
+ * The rule reads a done folder: a closed record's mention is red, its remedy's link is relative to
+ * the done folder, and that link written in is green.
+ */
+function gateRecordMentionDoneFolder() {
+  return mentionRedThenGreen({
+    files: { [PROBE_998_DONE]: probeRecord('It names ADR-016 in prose.', 'Fixed') },
+    expected: [
+      [
+        'corpus/record-mention-is-a-link',
+        PROBE_998_DONE,
+        '"ADR-016" is not a link',
+        `Link it: ${ADR_016_DONE}`,
+      ],
+    ],
+    remedied: {
+      [PROBE_998_DONE]: (json) =>
+        probeRecord(
+          `It names ${suggestedLink(json, PROBE_998_DONE) ?? 'nothing suggested'} in prose.`,
+          'Fixed',
+        ),
+    },
   })
 }
 
 function gateRecordMentionUnread() {
-  const files = { [PROBE_998]: '# Probe\n\n<div>\nbug 0338\n</div>\n' }
-  return gateRecordMentionSeam({
-    base: files,
-    head: files,
-    expected: [['md/unread-mention', PROBE_998, 'raw HTML block'], SEAM_FINDING],
+  return mentionRedThenGreen({
+    files: { [PROBE_998]: probeRecord('<div>\nADR-016\n</div>') },
+    expected: [['md/unread-mention', PROBE_998, 'raw HTML block']],
   })
 }
 
 const WAIVER_FORMS = {
-  line: '// eess-exclude corpus/record-mention-is-a-link: probe\n',
+  line: '// eess-exclude corpus/record-mention-is-a-link: probe',
   block:
-    '<!-- eess-exclude-start corpus/record-mention-is-a-link: probe -->\n\nText.\n\n<!-- eess-exclude-end -->\n',
-  html: '<!-- eess-exclude corpus/record-mention-is-a-link: probe -->\n',
+    '<!-- eess-exclude-start corpus/record-mention-is-a-link: probe -->\n\nText.\n\n<!-- eess-exclude-end -->',
+  html: '<!-- eess-exclude corpus/record-mention-is-a-link: probe -->',
+  target: '<!-- eess-exclude corpus/record-mention-target: probe -->',
 }
 // The block form sits in a done folder: the ban reads every document, frozen ones included, since a
-// waiver in a closed record would hide that file's mentions as well as a live one's.
+// waiver in a closed record would hide that file's mentions as well as a live one's. The target form
+// waives the join, which takes no waiver either.
 function gateRecordMentionWaiver(form) {
   const probe = form === 'block' ? PROBE_998_DONE : PROBE_998
-  const files = { [probe]: `# Probe\n\n${WAIVER_FORMS[form]}` }
-  return gateRecordMentionSeam({
-    base: files,
-    head: files,
-    expected: [['corpus/record-mention-waiver', probe, 'takes no waiver here'], SEAM_FINDING],
+  const id = form === 'target' ? 'corpus/record-mention-target' : 'corpus/record-mention-is-a-link'
+  return mentionRedThenGreen({
+    files: { [probe]: probeRecord(WAIVER_FORMS[form], form === 'block' ? 'Fixed' : 'Draft') },
+    expected: [['corpus/record-mention-waiver', probe, `waives ${id}, which takes no waiver here`]],
   })
-}
-
-function gateRecordMentionFixtureBase() {
-  return gateRecordMentionSeam({
-    expected: [SEAM_FINDING],
-  })
-}
-
-function gateRecordMentionBaseUnreadable() {
-  return gateRecordMentionSeam({
-    seam: 'refs/__nonvacuity_no_such_tree__',
-    expected: [
-      ['corpus/record-mention-base-unreadable', undefined, 'does not name a tree'],
-      SEAM_FINDING,
-    ],
-  })
-}
-
-/** The gate's own violation count, from the terminal summary: 0 on a green run. */
-function corpusVerdictCount(r) {
-  if (r.stderr.includes('✓ corpus integrity')) return 0
-  const m = /✗ corpus integrity — (\d+) violation/.exec(r.stderr)
-  return m === null ? undefined : Number(m[1])
 }
 
 /**
- * The production base path, no seam. A shared clone (no ref or worktree added to this repository),
- * `origin` removed, `main` at this checkout's `HEAD`, and a probe branch:
- *
- *  1. a commit adding a probe whose mention is linked: the control;
- *  2. a commit unlinking it: the merge base with `main` is the base, so the mention is raised, and
- *     it is the ONE violation the run adds over the control, on both exits. The subtraction holds
- *     on a dirty baseline (bug 0232), since both runs share whatever else the tree carries;
- *  3. `main` moved to that commit, so the merge base is `HEAD` and the roots are clean: still
- *     raised, judged against the first parent, the control;
- *  4. `main` deleted: no base resolves, and the gate stops with exit 1 rather than judging `HEAD`.
- *
- * Counting `HEAD` in place of the base survives every seam row and reds this one. The link targets
- * an ADR, whose path does not change when a record closes.
+ * The switch itself, which a new probe cannot show: a mention every base would hold is still red. A
+ * shared clone (no ref or worktree added to this repository), `origin` removed, `main` at this
+ * checkout's `HEAD`, then a commit adding the probe and an empty commit after it, so `HEAD`, its
+ * first parent and every merge base hold the mention and nothing is uncommitted. The base-era
+ * judgement (a key may not hold more than its base) would count 1 against 1 here and pass, which
+ * reds this row. `done` puts the probe in a done folder, which the rule reads too.
  */
-function gateRecordMentionProductionBase() {
+function gateRecordMentionCommitted(done) {
   const clone = mkdtempSync(join(tmpdir(), 'nonvacuity-mention-clone-'))
+  const probe = done ? PROBE_998_DONE : PROBE_998
   const git = (...args) =>
     gitIn(clone, ['-c', 'user.name=nonvacuity', '-c', 'user.email=nonvacuity@invalid', ...args])
-  const probeCommit = (text, message) => {
-    writeFileSync(join(clone, PROBE_998), text)
-    git('add', '-f', '--', PROBE_998)
-    git('commit', '-q', '-m', message)
-    return git('rev-parse', 'HEAD')
-  }
   try {
     const head = gitIn(repoRoot, ['rev-parse', 'HEAD'])
     gitIn(repoRoot, ['clone', '-q', '--shared', '--no-checkout', repoRoot, clone])
     git('remote', 'remove', 'origin')
     git('checkout', '-q', '-B', 'main', head)
-    git('switch', '-q', '-c', 'probe')
-    mkdirSync(join(clone, MENTION_PROBE_REL), { recursive: true })
-
-    const controlCommit = probeCommit(
-      '# Probe\n\nIt names [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md).\n',
-      'control',
+    mkdirSync(dirname(join(clone, probe)), { recursive: true })
+    writeFileSync(
+      join(clone, probe),
+      probeRecord('It names ADR-016 in prose.', done ? 'Fixed' : 'Draft'),
     )
-    const controlJson = runCorpusScript(['--format', 'json'], { cwd: clone })
-    const controlTerminal = runCorpusScript([], { cwd: clone })
-
-    probeCommit('# Probe\n\nIt names ADR-010 in prose.\n', 'probe')
-    const label = `${head.slice(0, 12)}, the merge base with main`
+    git('add', '-f', '--', probe)
+    git('commit', '-q', '-m', 'a committed mention')
+    git('commit', '-q', '--allow-empty', '-m', 'after it')
+    // The premise, checked rather than assumed: the first parent holds the probe too.
+    let inParent = true
+    try {
+      git('cat-file', '-e', `HEAD^:${probe}`)
+    } catch {
+      inParent = false
+    }
+    const dirty = git('status', '--porcelain', '--untracked-files=all', '--', 'work', 'adr', 'docs')
     const json = runCorpusScript(['--format', 'json'], { cwd: clone })
     const terminal = runCorpusScript([], { cwd: clone })
-    const raised = exactMentionFindings(json, [
-      ['corpus/record-mention-is-a-link', PROBE_998, `against 0 at the base (${label})`],
+    const exact = exactMentionFindings(json, [
+      ['corpus/record-mention-is-a-link', probe, '"ADR-016" is not a link'],
     ])
-    const control = corpusVerdictCount(controlTerminal)
-    const oneMore =
-      violationsOf(json).length === violationsOf(controlJson).length + 1 &&
-      control !== undefined &&
-      corpusVerdictCount(terminal) === control + 1 &&
-      terminal.code === 1 &&
-      terminal.stderr.includes(`at the base (${label})`)
-
-    git('branch', '-f', 'main', 'probe')
-    const onMain = runCorpusScript(['--format', 'json'], { cwd: clone })
-    const parent = exactMentionFindings(onMain, [
-      [
-        'corpus/record-mention-is-a-link',
-        PROBE_998,
-        `against 0 at the base (${controlCommit.slice(0, 12)}, HEAD's first parent`,
-      ],
-    ])
-
-    git('branch', '-D', 'main')
-    const noBase = runCorpusScript([], { cwd: clone })
-    const stops =
-      noBase.code === 1 && noBase.stderr.includes('neither origin/main nor main resolves')
-
     return {
-      ok: json.code === 1 && raised && oneMore && onMain.code === 1 && parent && stops,
+      ok:
+        inParent &&
+        dirty === '' &&
+        json.code === 1 &&
+        terminal.code === 1 &&
+        exact &&
+        terminal.stderr.includes('"ADR-016" is not a link'),
       detail:
-        `merge base → json exit ${json.code}, raised: ${raised}, one violation over the control ` +
-        `(${String(control)}) on both exits, naming ${label}: ${oneMore}; ` +
-        `main at HEAD → json exit ${onMain.code}, raised against the first parent: ${parent}; ` +
-        `no main → exit ${noBase.code}, stops: ${stops}`,
+        `committed in ${done ? 'a done folder' : 'a live folder'}, in HEAD's first parent too: ` +
+        `${inParent}, tree clean: ${dirty === ''} → json exit ${json.code}, terminal exit ` +
+        `${terminal.code}; exact findings: ${exact}`,
     }
   } finally {
     rmSync(clone, { recursive: true, force: true })
   }
 }
 
+/**
+ * The target join's `preserveRelations`: a mention linked to another record is red, its remedy saying
+ * where it opens and naming the record it names, by cause: past ts-archunit's range it says the
+ * record is eess's, inside it it offers the ts-archunit form too. Those links written in are green.
+ */
+function gateRecordMentionTargetCrossed() {
+  const adr009 = '[ADR-009](../../../adr/009-agent-first-failure-surfaces.md)'
+  return mentionRedThenGreen({
+    files: {
+      [PROBE_998]: probeRecord(
+        `It names [ADR-016](../../../${MENTION_ADR_017}).\n\nAnd [ADR-009](../../../${MENTION_ADR_017}).`,
+      ),
+    },
+    expected: [
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        `relates to "${MENTION_ADR_017}"`,
+        `It opens ${MENTION_ADR_017}. Link it to the record it names: ${ADR_016_LIVE}. ts-archunit's numbering never reached this number, so it is eess's record.`,
+      ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        `relates to "${MENTION_ADR_017}"`,
+        `Link it to the record it names: ${adr009}. If it means ts-archunit's record of that number instead, write "ts-archunit ADR-009" as text`,
+      ],
+    ],
+    remedied: { [PROBE_998]: probeRecord(`It names ${ADR_016_LIVE}.\n\nAnd ${adr009}.`) },
+  })
+}
+
+/**
+ * The target join's `beComplete`, which `preserveRelations` cannot stand in for (a mention with no
+ * record to pair has no relation to compare): a mention linked to another site, one linked to
+ * ts-archunit on GitHub (which only this repository's own URL may stand in for), and two naming no
+ * eess record, inside and past ts-archunit's range, are each red with the remedy for its cause.
+ * Green, the first is linked to this repository on GitHub, which the join reads as the file it
+ * names, the second is written in the ts-archunit form, and the two with no record are gone.
+ */
+function gateRecordMentionTargetElsewhere() {
+  const tsArchunitUrl = 'https://github.com/nielspeter/ts-archunit/blob/main/adr/009-x.md'
+  return mentionRedThenGreen({
+    files: {
+      [PROBE_998]: probeRecord(
+        `It names [ADR-016](https://example.com/x).\n\nAnd [ADR-009](${tsArchunitUrl}).\n\n` +
+          'And [bug 9999](./0998-probe.md), and [bug 0016](./0998-probe.md).',
+      ),
+    },
+    expected: [
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        'has no matching record',
+        `It opens https://example.com/x, which is no eess record. Link it to the record it names: ${ADR_016_LIVE}. ts-archunit's numbering never reached this number, so it is eess's record.`,
+      ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        'has no matching record',
+        `It opens ${tsArchunitUrl}, which is no eess record. Link it to the record it names: [ADR-009](../../../adr/009-agent-first-failure-surfaces.md). If it means ts-archunit's record of that number instead, write "ts-archunit ADR-009" as text`,
+      ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        'has no matching record',
+        "No eess record has this number, and ts-archunit's numbering never reached it",
+      ],
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        'has no matching record',
+        'No eess record has this number: if it is ts-archunit\'s record, write "ts-archunit bug 0016" as text',
+      ],
+    ],
+    remedied: {
+      [PROBE_998]: probeRecord(
+        `It names [ADR-016](https://github.com/nielspeter/eess/blob/main/${MENTION_ADR_016}).\n\n` +
+          'And ts-archunit ADR-009.',
+      ),
+    },
+  })
+}
+
+/**
+ * Two records with one key (`0996-` and `996-`): a mention of the number names neither, so the gate
+ * says so, and the mention's remedy says the two share it rather than guessing a link to one. One of
+ * them removed and the mention linked to the other, green.
+ */
+function gateRecordMentionKeyShared() {
+  const a = `${MENTION_PROBE_REL}/0996-a.md`
+  const b = `${MENTION_PROBE_REL}/996-b.md`
+  return mentionRedThenGreen({
+    files: {
+      [a]: probeRecord('One of two.'),
+      [b]: probeRecord('The other.'),
+      [PROBE_998]: probeRecord('It names bug 0996.'),
+    },
+    expected: [
+      ['corpus/record-mention-key-shared', a, 'are both the record bug:996'],
+      [
+        'corpus/record-mention-is-a-link',
+        PROBE_998,
+        '"bug 0996" is not a link',
+        'Two records share this number (',
+      ],
+    ],
+    remedied: { [b]: null, [PROBE_998]: probeRecord('It names [bug 0996](./0996-a.md).') },
+    // A guess would name one of the two: the remedy offers no link at all.
+    extra: ({ json }) => {
+      const v = violationsOf(json).find(
+        (x) =>
+          x?.ruleId === 'corpus/record-mention-is-a-link' &&
+          String(x.file ?? '').includes(PROBE_998),
+      )
+      return v !== undefined && !String(v.suggestion ?? '').includes('Link it:')
+        ? 'the remedy offers no link'
+        : false
+    },
+  })
+}
+
+/**
+ * A board row whose link text is its target's whole title quotes another record because the title
+ * does, so it is not judged: green. The same row with the text a strict part of the title is judged,
+ * and red, so the exemption is not a part of the title. (That a text running past the title is
+ * judged too is the predicate's own test, `packages/md/tests/builders/mentions.test.ts`.)
+ */
+function gateRecordMentionTargetTitleLink() {
+  const target = `${MENTION_PROBE_REL}/0997-probe.md`
+  // The title links its own mention, as this repository's titles do, and is compared as text.
+  const titled = `# Bug 0997: the probe quotes ${ADR_016_LIVE}\n\n## Status\n\n- **State:** Draft — a non-vacuity probe\n`
+  const row = (text) => probeRecord(`See [0997 — ${text}](./0997-probe.md).`)
+  const exempt = withMentionProbes(
+    { [target]: titled, [PROBE_998]: row('the probe quotes ADR-016') },
+    () => runCorpusScript(['--format', 'json']),
+  )
+  const exemptGreen = exempt.code === 0 && exactMentionFindings(exempt, [])
+  const judged = mentionRedThenGreen({
+    files: { [target]: titled, [PROBE_998]: row('probe quotes ADR-016') },
+    expected: [
+      [
+        'corpus/record-mention-target',
+        PROBE_998,
+        `relates to "${target}"`,
+        `Link it to the record it names: ${ADR_016_LIVE}`,
+      ],
+    ],
+  })
+  return {
+    ok: exemptGreen && judged.ok,
+    detail: `the title link → exit ${exempt.code}, green: ${exemptGreen} · the text a part of the title: ${judged.detail}`,
+  }
+}
+
+/**
+ * An empty mention side is red, never a pass (`.expectNonEmpty()`). A copy of the real script whose
+ * join selects the mentions outside a link, of which the corpus at zero holds none: its one finding
+ * of the rule is the empty side, named. Run as a copy, as `corpus/frozen-scope` is, since emptying
+ * a real corpus of linked mentions trips the dead-root and dead-frozen-glob refusals first.
+ */
+function gateRecordMentionTargetEmpty() {
+  const original = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
+  const mutated = original.replace('.satisfy(areLinked())', '.satisfy(not(areLinked()))')
+  if (mutated === original)
+    return {
+      ok: false,
+      detail:
+        'target-empty: the join no longer selects with `.satisfy(areLinked())`, so the copy would ' +
+        'run the pristine join and call the empty side covered',
+    }
+  const script = join(repoRoot, 'scripts', '__nonvacuity_probe_empty_join__.mjs')
+  const json = withProbe(script, mutated, () =>
+    spawnSync(process.execPath, [script, '--format', 'json'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+    }),
+  )
+  const r = {
+    code: json.status ?? 2,
+    out: json.stdout ?? '',
+    stdout: json.stdout ?? '',
+    stderr: json.stderr ?? '',
+  }
+  const exact = exactMentionFindings(r, [
+    [
+      'corpus/record-mention-target',
+      undefined,
+      'declared .expectNonEmpty() but examined zero units',
+    ],
+  ])
+  return {
+    ok: r.code === 1 && exact,
+    detail: `the join's left side emptied → json exit ${r.code}; exactly the empty-side finding: ${exact}`,
+  }
+}
+
 // --- Plan 0542, Phase 1: the gate's two narrowings, each shown to narrow only what it names ---
 
 const PROBE_997 = `${MENTION_PROBE_REL}/0997-probe.md`
-/** One mention per alternative of the pattern. */
-const EACH_ALTERNATIVE = ['bug 0338', 'plans 0541', 'spike 0386', 'proposal 019', 'ADR-008']
+const PROBE_996 = `${MENTION_PROBE_REL}/0996-probe.md`
+/** One mention per alternative of the pattern, each inside ts-archunit's range for its kind. */
+const EACH_ALTERNATIVE = ['bug 0011', 'plans 0069', 'spike 0001', 'proposal 019', 'ADR-008']
+/** The same alternatives, each one past ts-archunit's range (80 bugs, 106 plans, 69 spikes, 28 proposals, 10 ADRs). */
+const PAST_RANGE = ['bug 0081', 'plans 0107', 'spike 0070', 'proposal 029', 'ADR-011']
 const skippedCount = (r) => {
   const m = /(\d+) skipped after ts-archunit/.exec(r.stderr)
   return m === null ? undefined : Number(m[1])
 }
 
 /**
- * A number written after `ts-archunit` or `ts-archunit's` is not counted, for every alternative of
- * the pattern, while the same text without it is: a lookbehind on one alternative only, or on
- * none, reds this row. The summary's skipped count rises by exactly the ten written, against a run
- * without the probes, so a count wired to nothing reds it too.
+ * A number in ts-archunit's range written after `ts-archunit` or `ts-archunit's` is not judged, for
+ * every alternative of the pattern, while the same text without it is red: a lookbehind on one
+ * alternative only, or on none, reds this row. The summary's skipped count rises by exactly the ten
+ * written, against a run without the probes, so a count wired to nothing reds it too. A number one
+ * past the range, after either form, is red (Phase 9): a skip that ignored the range reds the row.
  */
 function gateRecordMentionTsArchunit() {
   const before = skippedCount(runCorpusScript([]))
-  return gateRecordMentionSeam({
-    head: {
-      [PROBE_998]:
-        '# Probe\n\n' +
-        EACH_ALTERNATIVE.map((m) => `ts-archunit ${m} and ts-archunit's ${m}.`).join('\n\n') +
-        '\n',
-      [PROBE_997]: `# Probe\n\n${EACH_ALTERNATIVE.map((m) => `It names ${m}.`).join('\n\n')}\n`,
+  const forms = (list) => list.map((m) => `ts-archunit ${m} and ts-archunit's ${m}.`).join('\n\n')
+  return mentionRedThenGreen({
+    files: {
+      [PROBE_998]: probeRecord(forms(EACH_ALTERNATIVE)),
+      [PROBE_997]: probeRecord(EACH_ALTERNATIVE.map((m) => `It names ${m}.`).join('\n\n')),
+      [PROBE_996]: probeRecord(forms(PAST_RANGE)),
     },
     expected: [
       ...EACH_ALTERNATIVE.map((m) => [
         'corpus/record-mention-is-a-link',
         PROBE_997,
-        `"${m.toLowerCase()}" is not a link 1 time(s) in bug:997, against 0`,
+        `"${m}" is not a link`,
       ]),
-      SEAM_FINDING,
+      ...PAST_RANGE.flatMap((m) => [
+        ['corpus/record-mention-is-a-link', PROBE_996, `"${m}" is not a link`],
+        ['corpus/record-mention-is-a-link', PROBE_996, `"${m}" is not a link`],
+      ]),
     ],
-    // The helper reads `extra`'s result as the verdict: a description on a pass, `false` on a fail.
     extra: ({ terminal }) => {
       const after = skippedCount(terminal)
       return before !== undefined && after === before + 10
@@ -2441,16 +2639,8 @@ function gateRecordMentionLeftOut() {
     const expected = [
       ['corpus/record-mention-left-out', listed, 'whose text changed since it was pinned'],
       ['corpus/record-mention-left-out', gone, 'which names no file'],
-      [
-        'corpus/record-mention-is-a-link',
-        beside,
-        '"bug 0338" is not a link 1 time(s) in this file',
-      ],
-      [
-        'corpus/record-mention-is-a-link',
-        inFolder,
-        '"bug 0338" is not a link 1 time(s) in this file',
-      ],
+      ['corpus/record-mention-is-a-link', beside, '"bug 0338" is not a link'],
+      ['corpus/record-mention-is-a-link', inFolder, '"bug 0338" is not a link'],
     ]
     const exact = exactMentionFindings(json, expected)
     const says = expected.every(([, , m]) => terminal.stderr.includes(m))
@@ -4749,21 +4939,21 @@ const gates = [
   ['corpus/pointers/work-root', gateCorpusWorkPointer],
   ['corpus/record-number-unique', gateCorpusRecordNumberFlat],
   ['corpus/record-number-unique/directory-form', gateCorpusRecordNumberDirForm],
-  // Plan 0541: record mentions judged against the base. Seam rows first, then the production
-  // base path in a shared clone, the one row the seam cannot answer for.
-  ['corpus/record-mention/raised-from-zero', gateRecordMentionRaisedFromZero],
-  ['corpus/record-mention/raised-by-count', gateRecordMentionRaisedByCount],
-  ['corpus/record-mention/raised-by-swap', gateRecordMentionRaisedBySwap],
-  ['corpus/record-mention/moved-to-done', gateRecordMentionMovedToDone],
-  ['corpus/record-mention/unnumbered-moved', gateRecordMentionUnnumberedMoved],
-  ['corpus/record-mention/key-shared', gateRecordMentionKeyShared],
+  // Plans 0541 and 0542: record mentions, every unlinked one red. Plan 0542, Phase 9 replaced the
+  // base-era rows one for one, in place, so no other fixture changes shard.
+  ['corpus/record-mention/plain', gateRecordMentionPlain],
+  ['corpus/record-mention/remedy-no-record', gateRecordMentionRemedyNoRecord],
+  ['corpus/record-mention/remedy-in-range', gateRecordMentionRemedyInRange],
+  ['corpus/record-mention/done-folder', gateRecordMentionDoneFolder],
+  ['corpus/record-mention/committed', () => gateRecordMentionCommitted(false)],
+  ['corpus/record-mention/target-crossed', gateRecordMentionTargetCrossed],
   ['corpus/record-mention/unread', gateRecordMentionUnread],
   ['corpus/record-mention/waiver-line', () => gateRecordMentionWaiver('line')],
   ['corpus/record-mention/waiver-block', () => gateRecordMentionWaiver('block')],
   ['corpus/record-mention/waiver-html', () => gateRecordMentionWaiver('html')],
-  ['corpus/record-mention/fixture-base', gateRecordMentionFixtureBase],
-  ['corpus/record-mention/base-unreadable', gateRecordMentionBaseUnreadable],
-  ['corpus/record-mention/production-base', gateRecordMentionProductionBase],
+  ['corpus/record-mention/target-title-link', gateRecordMentionTargetTitleLink],
+  ['corpus/record-mention/target-empty', gateRecordMentionTargetEmpty],
+  ['corpus/record-mention/committed-done', () => gateRecordMentionCommitted(true)],
   // Bug 0249's review, I2: `frozen` is the gate's only subtraction and had no
   // guard. Runs a copy of the real script with the list widened — the unit test
   // proves the classifier, only this proves the gate calls it.
@@ -5295,6 +5485,10 @@ const gates = [
   // Plan 0542: appended, not placed with the rows above, so no other fixture changes shard.
   ['corpus/record-mention/ts-archunit-skipped', gateRecordMentionTsArchunit],
   ['corpus/record-mention/left-out', gateRecordMentionLeftOut],
+  // Plan 0542, Phase 9's review: appended, so no other fixture changes shard.
+  ['corpus/record-mention/target-elsewhere', gateRecordMentionTargetElsewhere],
+  ['corpus/record-mention/waiver-target', () => gateRecordMentionWaiver('target')],
+  ['corpus/record-mention/key-shared', gateRecordMentionKeyShared],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5394,21 +5588,24 @@ const GATE_FOR = {
   'check:corpus': [
     'corpus/record-number-unique',
     'corpus/record-number-unique/directory-form',
-    'corpus/record-mention/raised-from-zero',
-    'corpus/record-mention/raised-by-count',
-    'corpus/record-mention/raised-by-swap',
-    'corpus/record-mention/moved-to-done',
-    'corpus/record-mention/unnumbered-moved',
-    'corpus/record-mention/key-shared',
+    'corpus/record-mention/plain',
+    'corpus/record-mention/remedy-no-record',
+    'corpus/record-mention/remedy-in-range',
+    'corpus/record-mention/done-folder',
+    'corpus/record-mention/committed',
+    'corpus/record-mention/target-crossed',
     'corpus/record-mention/unread',
     'corpus/record-mention/waiver-line',
     'corpus/record-mention/waiver-block',
     'corpus/record-mention/waiver-html',
-    'corpus/record-mention/fixture-base',
-    'corpus/record-mention/base-unreadable',
-    'corpus/record-mention/production-base',
+    'corpus/record-mention/target-title-link',
+    'corpus/record-mention/target-empty',
+    'corpus/record-mention/committed-done',
     'corpus/record-mention/ts-archunit-skipped',
     'corpus/record-mention/left-out',
+    'corpus/record-mention/target-elsewhere',
+    'corpus/record-mention/waiver-target',
+    'corpus/record-mention/key-shared',
     'corpus/state-present',
     'corpus/state-present-conflict',
     'corpus/state-present-outside-status',

@@ -92,7 +92,7 @@ how `setCallerAggregatesReports` went half-wired ([bug 0163](../work/bugs/0163-a
   the honest position: the kernel cannot know why _your_ universe is empty, and
   inventing a reason is what ts-archunit's ADR-008 rule 2, eess's [ADR-009](./009-agent-first-failure-surfaces.md) rule 2, refuses (this read the
   bare number when accepted, in ts-archunit's numbering; written in both on 2026-10-28 by
-  [plan 0542](../work/plans/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4).
+  [plan 0542](../work/plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)'s lane 4).
 
 ## Enforcement
 

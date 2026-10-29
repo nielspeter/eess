@@ -17,7 +17,7 @@
 - **Builds after:** [plan 0539](./0539-a-mention-of-a-record-is-a-link.md) (built) and
   [bug 0400](../../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) (fixed).
 - **Builds before:** [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) and
-  [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
+  [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
 
 ## Problem
 
@@ -149,7 +149,7 @@ packages, with ts-archunit at b4084c9 as the second source and the two prefixes 
   board rows above for [plan 0448](./0448-a-bun-load-guard-and-bug-0439s-fix.md), [plan 0263](./0263-adr-014s-residual-enforcement-rows.md), [bug 0327](../../bugs/0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md) and [bug 0501](../../bugs/0501-md-and-kernel-leftovers-from-plan-0457.md), and a fifth this record's count
   by eye missed, `docs/tests-cannot-lie.md:4`, a link to [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) whose text is its title.
   The fifth changes no verdict: judged, it is green.
-- **The one red is true**: the [plan 0454](./0454-box-marks-are-the-callers.md) board row above, a click on [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md) in its text landing on the plan. Its fix is the board row's, in [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md)
+- **The one red is true**: the [plan 0454](./0454-box-marks-are-the-callers.md) board row above, a click on [bug 0445](../../bugs/fixed/0445-a-checkbox-state-other-than-space-or-x-is-invisible.md) in its text landing on the plan. Its fix is the board row's, in [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md)
   when B gates this repository.
 - **No false red, so no amendment.** Only the two prefixes were needed: every link here that quotes
   another record is a board row to a bug or a plan. A wider pair covering spikes, proposals and
@@ -254,7 +254,7 @@ green; each must turn its test red.
 ## Out of scope
 
 - **The fix:** [plan 0550](./0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md).
-- **This repository adopting B**, and its migration: [plan 0542](../0542-this-repositorys-record-mentions-are-migrated.md).
+- **This repository adopting B**, and its migration: [plan 0542](./0542-this-repositorys-record-mentions-are-migrated.md).
 - **The relation message** (ask C): held as its own kernel record by [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)'s review, with [bug 0084](../../bugs/0084-preserve-relations-right-to-left.md) first.
 
 ## Review — 2026-10-25

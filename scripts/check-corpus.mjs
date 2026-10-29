@@ -23,9 +23,11 @@
  * this sentence). Exits non-zero on a live violation. Run:
  * `npm run check:corpus`.
  */
-import { join, relative, resolve, sep } from 'node:path'
+import { join, posix, relative, resolve, sep } from 'node:path'
 import {
   and,
+  areInTitleLinks,
+  areLinked,
   areLive,
   corpus,
   correspondence,
@@ -74,20 +76,19 @@ import { laneDirectories } from './lib/lane-coverage.mjs'
 // Extracted so the labels can be tested — they have been wrong twice in place.
 import { pointerSummary } from './lib/pointer-classes.mjs'
 import { LANES } from './lib/ledger-lanes.mjs'
-import { censusKeyOfPath, isPathKey } from './lib/record-key.mjs'
 import {
   LEFT_OUT,
   LEFT_OUT_REASON,
+  RECORD_MENTION,
   SKIPPED_AFTER_TS_ARCHUNIT,
+  TS_ARCHUNIT_LAST,
   leftOutFaults,
+  mentionKey,
   notLeftOut,
   recordMentions,
+  recordsOf,
 } from './lib/record-mention.mjs'
-import {
-  BaseResolutionError,
-  countAtBase,
-  resolveRecordMentionBase,
-} from './lib/record-mention-base.mjs'
+import { recordKeyOfPath } from './lib/record-key.mjs'
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
 // the others so bug history is not held to today's code (its pointers are not
@@ -1231,91 +1232,104 @@ const laneViolations =
 // Plan 0541: this repository's record mentions are gated. A mention of a bug, plan, spike,
 // proposal or ADR by number is a link (plan 0539's `mentions().beLinked()`), over every root,
 // frozen documents included: a done folder is frozen, and leaving it out would turn every close
-// into a paydown. The corpus still holds thousands of plain mentions (plan 0542 brings them to
-// zero), so the rule is judged against the base: a census key may not hold more of a text than
-// the same rule finds in the base's own tree (`./lib/record-mention-base.mjs` says which base, and
-// why there is no ledger). A record naming itself is not a mention (`./lib/record-key.mjs`). The
-// pattern, and the seven fold-era records left out, are `./lib/record-mention.mjs`'s (plan 0542),
-// which the fix's rule file reads too.
+// into a paydown. Plan 0542 brought the corpus to zero, so every unlinked mention is red, whatever
+// any base holds (its Phase 9). A record naming itself is not a mention (`./lib/record-key.mjs`).
+// The pattern, ts-archunit's range and the seven fold-era records left out are
+// `./lib/record-mention.mjs`'s.
 //
-// What this does not catch, by design: a mention moved within a file, or to another key that held
-// the same text (counts are per key and text, not per line); an invisible character inside a
-// mention (bug 0543); a record number reused by the PR that deletes the old record; a direct push
-// of several commits to `main`, judged on its last. The plan's Design section says why each is so.
-// Plan 0542 adds two, decided: a number written right after `ts-archunit` or `ts-archunit's` (any
-// number, an eess one included; the summary counts them), and any mention in the eight files of
-// the seven fold-era records left out, which are pinned by hash so that an edit to one is red.
+// What this does not catch, by design: an invisible character inside a mention (bug 0543); a number
+// in ts-archunit's range written right after `ts-archunit` or `ts-archunit's`, which is that
+// project's own numbering and never linked (the summary counts them; a number past the range is
+// read like any other); and any mention in the eight files of the seven fold-era records left out,
+// which are pinned by hash so that an edit to one is red.
 const RECORD_MENTION_RULE = 'corpus/record-mention-is-a-link'
-const RECORD_ROOTS = ROOTS.map((r) => r.replace(/\/\*\*$/, ''))
 const recordMentionRule = (corp) =>
   recordMentions(corp).should().beLinked().rule({
     id: RECORD_MENTION_RULE,
     because: 'a record named by number is one click from what it names only when it is a link',
   })
 
-// Both of `beLinked()`'s findings are counted, "is not a link" and "is in inline code, not a
-// link"; they are told apart from every other finding by rule id. A counted finding whose text
-// cannot be read is not counted, so it stays red rather than being forgiven by the base.
-const MENTION_TEXT = /^"([^"]+)" is (?:not a link|in inline code, not a link)$/
 const posixRel = (root, file) => relative(root, file).split(sep).join('/')
-/** Unlinked mentions per census key and text, each with where it sits; the rest uncounted. */
-function tallyMentions(violations, root) {
-  const counts = new Map()
-  const uncounted = []
-  for (const v of violations) {
-    const text = v.ruleId === RECORD_MENTION_RULE ? MENTION_TEXT.exec(v.message)?.[1] : undefined
-    if (text === undefined) {
-      uncounted.push(v)
-      continue
-    }
-    const rel = posixRel(root, v.file)
-    const key = censusKeyOfPath(rel)
-    const byText = counts.get(key) ?? new Map()
-    counts.set(key, byText)
-    const norm = text.toLowerCase().replace(/\s+/g, ' ')
-    byText.set(norm, [...(byText.get(norm) ?? []), { file: v.file, rel, line: v.line }])
-  }
-  return { counts, uncounted }
+
+// The records a mention can name, eess's own (plan 0542, Decision 1), each with its file. Two
+// records with one key (`338-` and `0338-`, or two in `adr/`, which `corpus/record-number-unique`
+// and `check:numbers` do not reach) are a finding below, and neither is offered as a remedy: a
+// mention of that number names neither.
+const recordList = recordsOf(c.fileIndex)
+const recordsByKey = new Map()
+for (const r of recordList) recordsByKey.set(r.key, [...(recordsByKey.get(r.key) ?? []), r.target])
+const recordTargets = new Map(
+  [...recordsByKey].filter(([, ts]) => ts.length === 1).map(([key, [target]]) => [key, target]),
+)
+const sharedKeys = [...recordsByKey].filter(([, ts]) => ts.length > 1)
+/** The relative link from a document to a record's file, as the fix writes one. */
+function hrefTo(fromRel, target) {
+  const href = posix.relative(posix.dirname(fromRel), target)
+  return href.startsWith('.') ? href : `./${href}`
 }
-const unlinkedTotal = (counts) =>
-  [...counts.values()].reduce(
-    (n, byText) => n + [...byText.values()].reduce((m, o) => m + o.length, 0),
-    0,
-  )
-
-const headMentions = recordMentionRule(c).violations()
-const head = tallyMentions(headMentions, c.root)
-
-let mentionBase
-try {
-  mentionBase = resolveRecordMentionBase({ cwd: c.root, roots: RECORD_ROOTS })
-} catch (e) {
-  if (!(e instanceof BaseResolutionError)) throw e
-  console.error(`check:corpus: ${e.message} Plan 0541 judges record mentions against a base.`)
-  process.exit(1)
+/** When two records share a mention's key, the remedy that says so; else `undefined`. */
+function sharedKeyRemedy(m) {
+  const shared = recordsByKey.get(mentionKey(m))
+  return shared !== undefined && shared.length > 1
+    ? `Two records share this number (${shared.join(' and ')}): give each its own number, then link the one it names.`
+    : undefined
 }
-// The base is counted with the rule alone: every root that exists there and no frozen globs, since
-// the rule reads every document whatever is frozen, and the head's corpus options can throw at a
-// base that predates them.
-const atBase = countAtBase({
-  cwd: c.root,
-  treeish: mentionBase.treeish,
-  roots: RECORD_ROOTS,
-  count: (dir, present) => {
-    const r = recordMentionRule(
-      corpus({ cwd: dir, roots: present.map((p) => `${p}/**`), frozen: [] }),
-    ).violations()
-    return { counts: tallyMentions(r, dir).counts, examined: r.examined }
-  },
-})
-const baseLabel = `${(mentionBase.commit ?? mentionBase.treeish).slice(0, 12)}, ${mentionBase.how}`
-const isSeamBase = mentionBase.commit === undefined
 
-const RECORD_MENTION_FIX =
-  'Link each mention this change added to the record it names, e.g. ' +
-  '[bug 0338](../bugs/0338-….md); a quoted example goes in a fenced code block, which is not ' +
-  'read. A mention cannot be waived here (plan 0541).'
+// `beLinked()`'s two findings for a mention outside a link, told apart from every other finding by
+// rule id. Any other finding of the rule (an unread mention, ADR-021; the vacuity finding, ADR-010;
+// a configuration finding) keeps its own remedy.
+const MENTION_TEXT = /^"([^"]+)" is (?:not a link|in inline code, not a link)$/
+const QUOTED =
+  'A quoted example goes in a fenced code block, which is not read; a mention takes no waiver here.'
+
+/**
+ * The remedy for one unlinked mention, chosen by its cause (plan 0542, Phase 9): a number naming no
+ * eess record, one naming an eess record past ts-archunit's range, or one inside that range, where
+ * the writer must say which project's record it is.
+ */
+function mentionRemedy(text, fromRel, inCode) {
+  RECORD_MENTION.lastIndex = 0
+  const m = RECORD_MENTION.exec(text)
+  if (m === null) return `Link it to the record it names. ${QUOTED}`
+  const kind = m.groups.kind.toLowerCase()
+  const inRange = Number(m.groups.n) <= TS_ARCHUNIT_LAST[kind]
+  const shared = sharedKeyRemedy(m)
+  if (shared !== undefined) return `${shared} ${QUOTED}`
+  const target = recordTargets.get(mentionKey(m))
+  const tsForm = `ts-archunit ${text}` // straight apostrophe for the possessive: ts-archunit's
+  if (target === undefined)
+    return inRange
+      ? `No eess record has this number. If it is ts-archunit's record, write it as "${tsForm}" ` +
+          `(or "ts-archunit's ${text}", with a straight apostrophe), which is never linked; if not, ` +
+          `correct the number. ${QUOTED}`
+      : `No eess record has this number, and ts-archunit's numbering never reached it: correct ` +
+          `the number. ${QUOTED}`
+  const link = `[${text}](${hrefTo(fromRel, target)})`
+  const linkIt = inCode ? `Take it out of the code span and link it: ${link}.` : `Link it: ${link}.`
+  return inRange
+    ? `${linkIt} If it means ts-archunit's record of that number instead, write ` +
+        `"${tsForm}", which takes the mention out of every check. ${QUOTED}`
+    : `${linkIt} ts-archunit's numbering never reached this number, so it is eess's ` +
+        `record, and writing "ts-archunit" before it does not skip it. ${QUOTED}`
+}
+
+const mentionViolations = recordMentionRule(c).violations()
 const recordMentionFindings = []
+let unlinkedMentions = 0
+for (const v of mentionViolations) {
+  const text = v.ruleId === RECORD_MENTION_RULE ? MENTION_TEXT.exec(v.message)?.[1] : undefined
+  if (text === undefined) {
+    recordMentionFindings.push(v)
+    continue
+  }
+  unlinkedMentions += 1
+  recordMentionFindings.push({
+    ...v,
+    suggestion: mentionRemedy(text, posixRel(c.root, v.file), v.message.includes('in inline code')),
+    bypassFilters: true,
+  })
+}
+
 const configFinding = (ruleId, file, line, message, suggestion) => ({
   rule: 'record-mention',
   ruleId,
@@ -1328,113 +1342,34 @@ const configFinding = (ruleId, file, line, message, suggestion) => ({
   codeFrame: undefined,
 })
 
-if (isSeamBase) {
-  recordMentionFindings.push(
-    configFinding(
-      'corpus/record-mention-fixture-base',
-      c.root,
-      1,
-      `record mentions were judged against ${mentionBase.treeish}, named by the test seam ` +
-        `${mentionBase.how.split(' ')[0]}; a run that sets it never passes.`,
-      'Unset EESS_RECORD_MENTION_BASE: it exists for check:nonvacuity alone.',
-    ),
-  )
-}
-
-if ('failure' in atBase) {
-  recordMentionFindings.push(
-    configFinding(
-      'corpus/record-mention-base-unreadable',
-      c.root,
-      1,
-      `record mentions cannot be judged: the base (${baseLabel}) could not be counted, because ` +
-        `${atBase.failure}.`,
-      // One remedy per cause: fetching cannot clear a base the rule ran on and could not count.
-      /does not name a tree/.test(atBase.failure)
-        ? 'Make the base readable: CI checks out with `fetch-depth: 0`; locally, fetch origin/main.'
-        : 'The rule ran at the base and could not count it: fix the cause named, which ' +
-            '`node scripts/check-corpus.mjs` run in a checkout of the base reports in full.',
-    ),
-  )
-} else {
-  // Judgement 1: a census key holding more of a text than the base held. A key or text absent at
-  // the base held 0, so a new record, a new kind of mention in an old one, and a mention swapped
-  // for another are each red from their first commit; a closed record keeps its key.
-  for (const [key, byText] of head.counts) {
-    const atBaseKey = atBase.counts.get(key)
-    for (const [text, where] of byText) {
-      const before = atBaseKey?.get(text)?.length ?? 0
-      if (where.length <= before) continue
-      const [first] = where
-      const pathKeyNote =
-        isPathKey(key) && atBaseKey === undefined
-          ? ' This file is keyed by its path, since it is not a numbered record, so a new or ' +
-            'moved file starts from 0; a numbered record keeps its key when it moves.'
-          : ''
-      recordMentionFindings.push({
-        rule: 'record-mention',
-        ruleId: RECORD_MENTION_RULE,
-        element: `${key} ${text}`,
-        file: first.file,
-        line: first.line,
-        message:
-          `"${text}" is not a link ${String(where.length)} time(s) in ${isPathKey(key) ? 'this file' : key}, ` +
-          `against ${String(before)} at the base (${baseLabel}), at ${where
-            .map((o) =>
-              o.rel === first.rel ? `line ${String(o.line)}` : `${o.rel}:${String(o.line)}`,
-            )
-            .join(', ')}.` +
-          pathKeyNote,
-        suggestion: RECORD_MENTION_FIX,
-        bypassFilters: true,
-        codeFrame: undefined,
-      })
-    }
-  }
-}
-
-// Every finding the rule makes besides "not a link" is red whatever the base holds: an unread
-// mention (ADR-021), the vacuity finding (ADR-010), a configuration finding.
-recordMentionFindings.push(...head.uncounted)
-
-// Judgement 2: two files with one census key would share one count, so they are red,
-// unsuppressably. `check:numbers` does not reach `adr/` or tell `338-` from `0338-`.
-const filesByKey = new Map()
-for (const d of allDocs) {
-  const key = censusKeyOfPath(d.relPath)
-  if (isPathKey(key)) continue
-  filesByKey.set(key, [...(filesByKey.get(key) ?? []), d])
-}
-for (const [key, docsOfKey] of filesByKey) {
-  if (docsOfKey.length < 2) continue
-  const [first] = docsOfKey
-  recordMentionFindings.push(
-    configFinding(
-      'corpus/record-mention-key-shared',
-      first.file,
-      1,
-      `${docsOfKey.map((d) => d.relPath).join(' and ')} share the census key ${key}, so their ` +
-        'unlinked mentions would be counted as one file.',
-      'Give each record its own number; a number is compared as a number, so 338 and 0338 are one.',
-    ),
-  )
-}
-
-// No waiver for this rule here: under this script nothing discloses what a waiver suppressed
-// (bug 0537). Read through the kernel's own directive parser, so every form counts.
+// No waiver for either rule here (the mention rule and the target join below): under this script
+// nothing discloses what a waiver suppressed (bug 0537). Read through the kernel's own directive
+// parser, so every form counts.
+const RECORD_TARGET_RULE = 'corpus/record-mention-target'
 for (const d of allDocs) {
   for (const x of parseExclusionComments(d.text, d.file).exclusions) {
-    if (x.ruleId !== RECORD_MENTION_RULE) continue
+    if (x.ruleId !== RECORD_MENTION_RULE && x.ruleId !== RECORD_TARGET_RULE) continue
     recordMentionFindings.push(
       configFinding(
         'corpus/record-mention-waiver',
         d.file,
         x.line,
-        `${d.relPath}:${String(x.line)} waives ${RECORD_MENTION_RULE}, which takes no waiver here.`,
+        `${d.relPath}:${String(x.line)} waives ${x.ruleId}, which takes no waiver here.`,
         'Remove the directive. Link the mention, or move a quoted example into a fenced code block.',
       ),
     )
   }
+}
+for (const [key, targets] of sharedKeys) {
+  recordMentionFindings.push(
+    configFinding(
+      'corpus/record-mention-key-shared',
+      join(c.root, targets[0]),
+      1,
+      `${targets.join(' and ')} are both the record ${key}, so a mention of it names neither, and the link a remedy would give is a guess.`,
+      'Give each record its own number; a number is compared as a number, so 338 and 0338 are one.',
+    ),
+  )
 }
 // Plan 0542, Decision 3: a left-out file is left out because it is not edited again, so a file that
 // is gone or changed since it was pinned is red. The exemption cannot outlive its premise, and a
@@ -1456,14 +1391,141 @@ for (const { path, cause } of leftOut) {
   )
 }
 
+// Plan 0542, Phase 9: a linked mention opens the record it names. Plan 0549's join, over eess's own
+// records (Decision 1) and the same mentions the rule above reads (a record naming itself and the
+// left-out files excluded): `beComplete` reds a mention naming no record where its link points,
+// `preserveRelations` one whose link opens another record. A link to this repository on GitHub is
+// read as the file it names; any other URL is no record of eess's. A board row whose link text is its
+// target's whole title is not judged (`areInTitleLinks`): it quotes another record because the
+// title does.
+//
+// What it cannot see: a link to a record whose number ts-archunit also used, written to the wrong
+// project's record before plan 0542's lanes judged theirs (bug 0553); and a mention written after
+// `ts-archunit` in ts-archunit's range, which the pattern skips.
+const OWN_URL = /^https:\/\/github\.com\/nielspeter\/eess\/(?:blob|tree)\/[^/]+\/([^#?]*)/i
+const TITLE_LINK = areInTitleLinks({
+  linkPrefix: /^\d{4} — /,
+  titlePrefix: /^(Plan|Bug) \d{4}: /,
+})
+/** A URL-encoded path, decoded; as written when it does not decode, so one bad link aborts nothing. */
+function decoded(path) {
+  try {
+    return decodeURIComponent(path)
+  } catch {
+    return path
+  }
+}
+/**
+ * Where a mention's link points: `local` and a repository path, `elsewhere` and its URL, or `none`
+ * for a mention outside a link (the join selects none, but a selection that did must not throw).
+ */
+function pointsAt(m) {
+  const link = m.link
+  if (link === undefined) return { source: 'none', at: '' }
+  const target = link.target
+  switch (target.kind) {
+    case 'external': {
+      const own = OWN_URL.exec(link.url)?.[1]
+      return own === undefined
+        ? { source: 'elsewhere', at: link.url }
+        : { source: 'local', at: decoded(own) }
+    }
+    case 'self':
+      return { source: 'local', at: m.doc.relPath }
+    case 'missing':
+      return { source: 'local', at: target.tried[0] ?? link.url }
+    default:
+      return { source: 'local', at: target.path }
+  }
+}
+const namedMention = (m) => `${m.doc.relPath}:${String(m.line)} "${m.text}"`
+const judgedLinks = recordMentions(c)
+  .and()
+  .satisfy(areLinked())
+  .and()
+  .satisfy(not(TITLE_LINK))
+  .select({
+    label: 'linked record mention',
+    identify: (m) => ({ name: namedMention(m), file: m.doc.file, line: m.line }),
+  })
+const judgedByName = new Map(judgedLinks.elements.map((m) => [namedMention(m), m]))
+// Every linked mention, to say how many the title-link exemption took out of the join.
+const linkedMentionCount = recordMentions(c)
+  .and()
+  .satisfy(areLinked())
+  .select({ label: 'linked record mention', ...anon }).elements.length
+/**
+ * The remedy for a linked mention the join reds, chosen by cause as `mentionRemedy` chooses: where
+ * the link opens, whether any eess record has the number, and whether it is inside ts-archunit's
+ * range, where the mention may mean ts-archunit's record and is then written unlinked.
+ */
+function targetRemedy(name) {
+  const m = judgedByName.get(name)
+  if (m === undefined) return 'Link it to the record it names.'
+  const shared = sharedKeyRemedy(m)
+  if (shared !== undefined) return shared
+  const kind = m.groups.kind.toLowerCase()
+  const inRange = Number(m.groups.n) <= TS_ARCHUNIT_LAST[kind]
+  const target = recordTargets.get(mentionKey(m))
+  const opens = pointsAt(m)
+  const where =
+    opens.source === 'elsewhere'
+      ? `It opens ${opens.at}, which is no eess record.`
+      : `It opens ${opens.at}.`
+  const tsArchunit = `write "ts-archunit ${m.text}" as text, outside the link, which takes it out of every check`
+  if (target === undefined)
+    return inRange
+      ? `${where} No eess record has this number: if it is ts-archunit's record, ${tsArchunit}; if not, correct the number.`
+      : `${where} No eess record has this number, and ts-archunit's numbering never reached it: correct the number, or remove the link.`
+  const link = `[${m.text}](${hrefTo(m.doc.relPath, target)})`
+  return (
+    `${where} Link it to the record it names: ${link}.` +
+    (inRange
+      ? ` If it means ts-archunit's record of that number instead, ${tsArchunit}.`
+      : " ts-archunit's numbering never reached this number, so it is eess's record.") +
+    " If the link's text quotes the target's title, write the title whole, or move the mention out of the link."
+  )
+}
+const targetViolations = correspondence({
+  left: judgedLinks,
+  right: { elements: recordList, label: 'record', identify: (r) => ({ name: r.key }) },
+  keyBy: { left: (m) => `${pointsAt(m).source}|${mentionKey(m)}`, right: (r) => `local|${r.key}` },
+  suggest: {
+    // Link the record the mention names; a title is never what is wrong.
+    left: (info) => targetRemedy(info.name),
+  },
+})
+  .should()
+  .beComplete({ direction: 'left-to-right' })
+  .andShould()
+  .preserveRelations({
+    left: (m) => [pointsAt(m).at],
+    right: (r) => [r.target],
+    direction: 'left-to-right',
+  })
+  .expectNonEmpty()
+  .rule({
+    id: RECORD_TARGET_RULE,
+    because: 'a link that names one record and opens another sends its reader to the wrong place',
+  })
+  .violations()
+// `preserveRelations` takes no suggestion, so a crossed link gets the remedy here.
+const targetFindings = targetViolations.map((v) => ({
+  ...v,
+  suggestion: v.suggestion ?? targetRemedy(v.element),
+  bypassFilters: true,
+}))
+
+// The records the list leaves out, not its files: spike 0001 is two documents, and the fold audit
+// is a record of its own though no numbered one.
+const leftOutRecords = new Set(LEFT_OUT.map((e) => recordKeyOfPath(e.path) ?? e.path)).size
+
 // What the lookbehind skips is counted, so a mention written after `ts-archunit` is visible even
 // though no rule judges it (plan 0542, Phase 1).
 const skippedAfterTsArchunit = mentions(c, { pattern: SKIPPED_AFTER_TS_ARCHUNIT })
   .that()
   .satisfy(notLeftOut)
   .select({ label: 'skipped mention', ...anon }).elements.length
-const headUnlinked = unlinkedTotal(head.counts)
-const baseUnlinked = 'failure' in atBase ? undefined : unlinkedTotal(atBase.counts)
 
 const proposalDocsCount = liveDocs.filter(isProposalDoc).length
 const planDocsCount = liveDocs.filter(isPlanDoc).length
@@ -1497,8 +1559,10 @@ const receipt = mergeCollectResults([
   collectResult(unparseableImplementsViolations, { examined: planDocsCount }),
   collectResult(danglingImplementsViolations, { examined: planDocsCount }),
   collectResult(laneViolations, { examined: laneRows.length }),
-  // Plan 0541: the mentions the rule examined at the head, its own denominator.
-  collectResult(recordMentionFindings, { examined: headMentions.examined }),
+  // Plan 0541: the mentions the rule examined, its own denominator.
+  collectResult(recordMentionFindings, { examined: mentionViolations.examined }),
+  // Plan 0542, Phase 9: the links the target join judged, its own denominator.
+  collectResult(targetFindings, { examined: targetViolations.examined }),
   ...stateResults.map((r) => collectResult([...r], { examined: r.examined })),
   collectResult([...statePresent], { examined: statePresent.examined }),
   // Its own receipt (ADR-010): zero examined over `.notExist()` is a declaration, and an undecided
@@ -1628,22 +1692,24 @@ line(
     }`,
 )
 
-// The base it judged against, by commit and by the rule that chose it, so a green run says how much
-// is still owed and against what (plan 0541).
+// What the rule read, what it skipped and what it leaves out, so a green run says how much it judged
+// (plan 0542, Phase 9).
 line(
   'mentions',
-  `${String(headMentions.examined)} record mention(s) · ${String(headUnlinked)} unlinked here, ` +
-    `${baseUnlinked === undefined ? 'unknown' : String(baseUnlinked)} at the base (${baseLabel}) · ` +
+  `${String(mentionViolations.examined)} record mention(s) examined · ${String(unlinkedMentions)} unlinked · ` +
     `${String(skippedAfterTsArchunit)} skipped after ts-archunit · ` +
-    `${String(LEFT_OUT.length - leftOut.length)} of ${String(LEFT_OUT.length)} left-out files as pinned · ${
-      recordMentionFindings.length === 0
-        ? '✓ no key holds more than at the base'
-        : `✗ ${recordMentionFindings.length} finding(s)`
+    `${String(leftOutRecords)} fold-era records left out (${String(LEFT_OUT.length)} documents, ${String(LEFT_OUT.length - leftOut.length)} as pinned) · ` +
+    `${String(judgedLinks.elements.length)} link(s) to a record judged by their target, ` +
+    `${String(linkedMentionCount - judgedLinks.elements.length)} title link(s) not judged · ${
+      recordMentionFindings.length + targetFindings.length === 0
+        ? '✓ every record mention is a link to the record it names'
+        : `✗ ${recordMentionFindings.length + targetFindings.length} finding(s)`
     }`,
 )
 
 const problems = [
   ...recordMentionFindings,
+  ...targetFindings,
   ...statePresent,
   ...closedLive,
   ...recordNumbers,

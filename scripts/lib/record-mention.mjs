@@ -1,10 +1,11 @@
 /**
- * Plan 0542: this repository's record-mention rule, one owner. `check:corpus` judges with it and
- * `mention-fix.rules.ts` fixes with it, so the gate and the fix cannot read a mention differently.
+ * Plan 0542: this repository's record-mention rule, one owner. `check:corpus` judges with it; plan
+ * 0542's lanes fixed the corpus with it, so the gate and the fix read a mention the same way.
  *
  *  - `RECORD_MENTION`: a bug, plan, spike, proposal or ADR named by number (plan 0541), except a
- *    number written right after `ts-archunit` or `ts-archunit's`, which is that project's own
- *    numbering and never linked (Decision 2). The lookbehind is on every alternative.
+ *    number written right after `ts-archunit` or `ts-archunit's` that is inside the range
+ *    ts-archunit's own numbering reached (`KINDS`), which is that project's record and never linked
+ *    (Decision 2; the range since Phase 9). The skip is on every alternative.
  *  - `LEFT_OUT`: the seven done fold-era records, which describe ts-archunit in its own numbering
  *    and are not edited again (Decision 3): eight files, since spike 0001 holds two. Each is pinned
  *    by its text's hash, so an edit is red rather than exempt.
@@ -16,33 +17,90 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import picomatch from 'picomatch'
 import { areSelfMentions, inDocuments, mentions, not, or, resideInFile } from '@nielspeter/eess-md'
 import { LANE_KINDS, recordKey, recordKeyOfPath } from './record-key.mjs'
-
-/** The corpus roots the gate, the fix and the anachronism instrument read. */
-export const CORPUS_ROOTS = ['work/**', 'adr/**', 'docs/**']
 
 /** What a number written after it is ts-archunit's: the project's name, or its possessive. */
 const TS_ARCHUNIT_BEFORE = String.raw`ts-archunit(?:'s)?\s+`
 
-/** A number written right after `ts-archunit` is ts-archunit's, so the pattern skips it. */
+/** A number written right after `ts-archunit` may be ts-archunit's, so the pattern can skip it. */
 export const TS_ARCHUNIT_LOOKBEHIND = `(?<!${TS_ARCHUNIT_BEFORE})`
 
-const ALTERNATIVES = [
-  String.raw`\b(?<kind>bug|plan|spike)s?\s+(?<n>\d{4})\b`,
-  String.raw`\b(?<kind>proposal)s?\s+(?<n>\d{3})\b`,
-  String.raw`\b(?<kind>ADR)-(?<n>\d{3})\b`,
+/**
+ * Each kind of record, how it is written, and the last number ts-archunit's own numbering reached:
+ * 10 ADRs, 106 plans, 80 bugs, 28 proposals and 69 spikes. `inRange` is the written number from 0 to
+ * `last`, as a pattern. A number past it cannot be ts-archunit's record, so the lookbehind does not
+ * skip it (Phase 9): `ts-archunit` written before an eess number is no escape.
+ */
+export const KINDS = [
+  {
+    kind: 'bug',
+    word: 'bug',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 4,
+    last: 80,
+    inRange: String.raw`00(?:[0-7]\d|80)`,
+  },
+  {
+    kind: 'plan',
+    word: 'plan',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 4,
+    last: 106,
+    inRange: String.raw`0(?:0\d\d|10[0-6])`,
+  },
+  {
+    kind: 'spike',
+    word: 'spike',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 4,
+    last: 69,
+    inRange: String.raw`00[0-6]\d`,
+  },
+  {
+    kind: 'proposal',
+    word: 'proposal',
+    plural: 's?',
+    sep: String.raw`\s+`,
+    digits: 3,
+    last: 28,
+    inRange: String.raw`0(?:[01]\d|2[0-8])`,
+  },
+  {
+    kind: 'adr',
+    word: 'ADR',
+    plural: '',
+    sep: '-',
+    digits: 3,
+    last: 10,
+    inRange: String.raw`0(?:0\d|10)`,
+  },
 ]
 
+/** The last number ts-archunit's numbering reached, by kind (`adr`, `bug`, …). */
+export const TS_ARCHUNIT_LAST = Object.fromEntries(KINDS.map((k) => [k.kind, k.last]))
+
+const alternative = (k, n) => String.raw`\b(?<kind>${k.word})${k.plural}${k.sep}(?<n>${n})\b`
+
+/**
+ * A record mention, skipped only when it follows `ts-archunit` and its number is in ts-archunit's
+ * range: matched when not after `ts-archunit`, or when the number is past the range.
+ */
 export const RECORD_MENTION = new RegExp(
-  ALTERNATIVES.map((a) => TS_ARCHUNIT_LOOKBEHIND + a).join('|'),
+  KINDS.map(
+    (k) =>
+      `(?:${TS_ARCHUNIT_LOOKBEHIND}|(?!${k.word}${k.plural}${k.sep}${k.inRange}\\b))` +
+      alternative(k, String.raw`\d{${k.digits}}`),
+  ).join('|'),
   'gi',
 )
 
 /** What the lookbehind skips, so the gate can say how many it did (plan 0542, Phase 1). */
 export const SKIPPED_AFTER_TS_ARCHUNIT = new RegExp(
-  ALTERNATIVES.map((a) => TS_ARCHUNIT_BEFORE + a).join('|'),
+  KINDS.map((k) => TS_ARCHUNIT_BEFORE + alternative(k, k.inRange)).join('|'),
   'gi',
 )
 
@@ -142,65 +200,6 @@ export function recordMentions(corp) {
     )
     .and()
     .satisfy(notLeftOut)
-}
-
-// --- The lanes' fix (Phases 2 to 8), removed in Phase 9 ---
-
-/**
- * The fix refuses a mention with another project named around it. `upstream` stays here though the
- * lookbehind dropped it (Decision 2): this only refuses a fix, so it hides nothing from the gate.
- */
-export const FOREIGN = /\b(?:ts-archunit|upstream)\b/i
-
-/** Throws when a path in `paths` lies under two of the lane's globs: two rules would fix it. */
-export function assertLaneDisjoint(lane, paths) {
-  const matchers = lane.map((g) => [g, picomatch(g)])
-  for (const path of paths) {
-    const hits = matchers.filter(([, match]) => match(path)).map(([g]) => g)
-    if (hits.length > 1)
-      throw new Error(`mention-fix: ${path} is under two of LANE's globs, ${hits.join(' and ')}.`)
-  }
-}
-
-/**
- * The lane's anachronism entries (`path:line`), split by the glob each falls under, matched as
- * `resideInFile` matches. Each rule then holds only entries it can match, so an "Unused exclusion"
- * line is a real one. An entry under no glob, or under two, throws: the first would be dropped
- * without that line, the second excluded from one rule and fixed by the other.
- */
-export function anachronismsByGlob(lane, entries) {
-  const byGlob = new Map(lane.map((g) => [g, []]))
-  const matchers = lane.map((g) => [g, picomatch(g)])
-  for (const entry of entries) {
-    const path = entry.replace(/:\d+$/, '')
-    const hits = matchers.filter(([, match]) => match(path))
-    if (hits.length !== 1)
-      throw new Error(
-        `mention-fix: the anachronism ${entry} is under ${hits.length === 0 ? 'none' : 'more than one'} of LANE's globs.`,
-      )
-    byGlob.get(hits[0][0]).push(entry)
-  }
-  return byGlob
-}
-
-/** One lane glob's rule: each record mention there is linked, with the fix to eess's records. */
-export function mentionFixRule(corp, glob) {
-  return recordMentions(corp)
-    .and()
-    .resideInFile(glob)
-    .should()
-    .beLinked({
-      fix: {
-        records: {
-          elements: recordsOf(corp.fileIndex),
-          label: 'eess records',
-          identify: (r) => ({ name: r.key }),
-        },
-        key: { mention: mentionKey, record: (r) => r.key },
-        target: (r) => r.target,
-        foreign: FOREIGN,
-      },
-    })
 }
 
 const NUMBERED = /^\d{3,4}-/

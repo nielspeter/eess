@@ -135,7 +135,7 @@ the sample's rows are recorded by value in the Appendix:
 
 ## Out of scope
 
-- [Plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md) (this repository's record mentions): a separate migration, built first.
+- [Plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md) (this repository's record mentions): a separate migration, built first.
 - Rewriting this repository's 1,618 pointers as links: a choice for after the check exists.
 
 ## Appendix — the sample, 2026-10-27
@@ -330,7 +330,7 @@ conditions below.
 | C — a fix for a drifted reference                         | `Held`      | A built and its count re-taken; then the text half in eess-md on `beLinked({ fix })`'s `Selection` shape. The declaration half also needs eess-ts to select variables and to see `.mjs` and root files, or it states its reach (about 12 of 26 today) and reports what it cannot judge                                                                                                                                                                                                                                                                                          |
 
 The dogfood migration of this repository's live references is its own plan, as
-[plan 0542](../plans/0542-this-repositorys-record-mentions-are-migrated.md) is for mentions, so the
+[plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md) is for mentions, so the
 eess-md release does not wait on the records.
 
 **Recommended next step:** rewrite this proposal against this review. Settle [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s fork and
