@@ -501,10 +501,10 @@ fails the build` and `accepts a repository that extends the base through an inte
 - The search lane 7 carried, run before the judges: each fix's text, with twelve characters either
   side, matched against `packages/*/tests/**`, `scripts/nonvacuity/**`, `scripts/check-nonvacuity.mjs`
   and `examples/**`, and every fix within sixty characters of "e.g.", "fixture", "sample",
-  "probe" or "synthetic" listed (a first pass that also keyed on "example" gave 47, the 30 more
-  all the examples gate's own name; the script, `sample-scan.py`, is kept with the evidence and
+  "probe" or "synthetic" listed (a first pass that also keyed on "example" gave 47; the 30 more sit near the word "example" only, most of them the examples gate's name or
+  an example file under it, and the lane's method review read each and found a real reference; the script, `sample-scan.py`, is kept with the evidence and
   reproduces both counts at the base). 17 hits, each a real reference: sibling plans named beside
-  their own fixtures, [bug 0502](../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md) beside a fixture it narrowed, and one code comment citing [ADR-005](../../adr/005-no-any-no-type-assertions.md).
+  their own fixtures, [bug 0502](../bugs/fixed/0502-links-and-tables-read-a-heading-in-a-list-differently.md) named beside another review item's fixture, and one code comment citing [ADR-005](../../adr/005-no-any-no-type-assertions.md).
 - Judge 1 (Fable, in two halves; seed 20261029) read the 134 fixes in ts-archunit's range and 20
   sampled: 154 right, so no fix was left out and no same-target search was owed. `--apply` wrote 562
   links across 19 files.
