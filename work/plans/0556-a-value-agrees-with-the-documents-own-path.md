@@ -2,9 +2,10 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-29 from [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 16, at the maintainer's
+- **State:** Ready — frozen 2026-10-29 after review and re-check (architect · enforcement · product),
+  with no open question. Written the same day from [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 16, at the maintainer's
   order to build it before the next release ("build block 16 first", 2026-10-29). Reviewed the same
-  day (architect · enforcement · product) and revised: "Review — 2026-10-29" lists what changed.
+  day and revised: "Review — 2026-10-29" lists what changed.
 - **Implements:** [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** High — the next release waits on it. Block 16 was held "for the next release", adopter
   1 its only asker ([proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md), "Consumer feedback" and "The maintainer's acceptance —
@@ -109,26 +110,32 @@ did not take part in the match, an empty capture, and a value that `normalize` t
 propagates, as `agreeWithFolder`'s does. The docs' `Number` example says what it gives up (a value
 that is not a number becomes `NaN`, so the example also refuses a non-digit capture by its pattern).
 
-**Findings,** each attributed to the document and its line (the title's, or line 1 for the path):
+**Findings,** each attributed to the document and its line (the title's; line 1 for the path, and
+for a document with no heading):
 
-| id  | when                                       | message (shape)                                                                                                                                            | suppressible |
-| --- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| P1  | the path holds no value                    | `<path>` holds no value the path pattern reads (`<pattern>`): name the file as the pattern expects, or widen the pattern                                   | yes          |
-| P2  | there is no title                          | `titleFault`'s own message, verbatim (`packages/md/src/model/sections.ts:231`): no heading, the first heading at the wrong depth, an H1 inside a container | yes          |
-| P3  | the title holds no value                   | its title `"<title>"` holds no value the title pattern reads (`<pattern>`)                                                                                 | yes          |
-| P4  | both read, and they differ                 | the path says `0542` and the title says `0543` (after `normalize`, when given): correct the one that is wrong, by renaming the file or editing the title   | yes          |
-| P5  | one side read nothing across the selection | one finding for that side, naming the pattern and the count (`the title pattern read none of 529 selected titles`), in place of a P1 or P3 per document    | no           |
-| P6  | a non-empty selection judged no document   | its own finding, naming the cause and the counts per side, as `agreeWithFolder`'s `judgedNone` does                                                        | no           |
+| id  | when                                     | message (shape)                                                                                                                                                                                                                                                                                             | suppressible |
+| --- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| P1  | the path holds no value                  | `<path>` holds no value the path pattern reads (`<pattern>`): name the file as the pattern expects, or widen the pattern                                                                                                                                                                                    | yes          |
+| P2  | there is no title                        | `titleFault(d)`'s own message, verbatim and called without a name (`packages/md/src/model/sections.ts:231`): "no heading" or "first heading at depth N", each with its note when the heading sits inside a container                                                                                        | yes          |
+| P3  | the title holds no value                 | its title `"<title>"` holds no value the title pattern reads (`<pattern>`)                                                                                                                                                                                                                                  | yes          |
+| P4  | both read, and they differ               | the path says `0542` and the title says `0543` (raw values; "after normalize" when given): correct the one that is wrong, by renaming the file or editing the title                                                                                                                                         | yes          |
+| P5  | a non-empty selection judged no document | one finding for the agreement, at the first selected document, naming each cause with its pattern and counts: a side that read nothing (`the title pattern read none of 529 titles`), or both sides reading but never on the same document (`the path pattern read 3, the title pattern read 2, none both`) | no           |
 
-A document whose path and title both fail reports both, one pass for its author. P5 is block 5's F7
-reasoning: a pattern that reads nothing is one mistake, not a finding per record. **`examined` is the
-kernel's,** the documents selected, as [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s batch review rebuilt it ("Decision D1, rebuilt",
-and `packages/md/src/builders/docs.ts:150`): a count of documents judged hid three greens there
-(`.expectEmpty()` over a broken pattern, a broken agreement beside another condition, and beside a
-second agreement). "Judged" feeds only P6, which carries `bypassFilters`, so neither `.excluding()`
-nor another condition's count can hide it. The condition is not dual-use; a selector form ("documents
-whose path agrees") can be added later the way `haveField` dispatches between predicate and condition,
-with no prefixed twin ([ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)).
+A document whose path and title both fail reports both, one pass for its author. **One mistake, one
+finding:** a side that reads nothing means no document was judged, so P5 fires and names that side,
+and that side's P1 or P3 per document is withheld (block 5's F7 reasoning: a pattern that reads
+nothing is one mistake, not a finding per record). P2 is never folded in: a document with no title is
+the document's fault, not the pattern's, so the title side's count is the documents that have one.
+**`examined` is the kernel's,** the documents selected, as [plan 0495](./completed/0495-a-value-agrees-with-its-folder.md)'s batch review rebuilt it
+("Decision D1, rebuilt", and `packages/md/src/builders/docs.ts:150`): a count of documents judged hid
+three greens there (`.expectEmpty()` over a broken pattern, a broken agreement beside another
+condition, and beside a second agreement). "Judged" feeds only P5, which carries `bypassFilters`, so
+neither `.excluding()` nor another condition's count can hide it, and it is computed per agreement,
+never over the union of a builder's agreements. The path side is a `RegExp`, not a key function as
+`beUniqueBy` and `SelfMentionKeys.document` take, so that P1 and P5 can name the pattern. The
+condition is not dual-use; a selector form ("documents whose path agrees") can be added later the way
+`haveField` dispatches between predicate and condition, with no prefixed twin ([ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)). It is
+Tier 1.
 
 **One agreement hook.** `DocsRuleBuilder` holds its agreements as `FolderAgreement[]`
 (`packages/md/src/builders/docs.ts:37`) and calls `start`, `declarationFindings` and `judgedNone`
@@ -144,15 +151,22 @@ conditions, and a join to another document's path is `correspondence()`'s.
 ## Phases
 
 1. **The hook and the condition.** The `Agreement` interface over `FolderAgreement`; `agreeWithPath`
-   on `docs()`, the pattern refusals, the value rules, P1 to P6, the kernel's `examined`.
+   on `docs()`, the pattern refusals, the value rules, P1 to P5, the kernel's `examined`.
 2. **Dogfood.** `corpus/record-number-in-title` in `scripts/check-corpus.mjs`, one rule per lane
    (`adr/`, `work/bugs/`, `work/plans/`, `work/spikes/`, `work/proposals/`), each with its own anchored
-   title pattern and no `normalize`, selected by lane folder less its index files (`ROADMAP.md`,
-   `BUGS.md`, `PROPOSALS.md`, and `README.md` at a lane's root) so that a misnamed record is P1, not
-   dropped. The path pattern reads a numbered folder's files by the folder's number ([spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
+   title pattern (the lane's word and the number, a word boundary after it) and no `normalize`,
+   selected by lane folder with the three boards (`work/plans/ROADMAP.md`, `work/bugs/BUGS.md`,
+   `work/proposals/PROPOSALS.md`) left out by exact path, so that a misnamed record is P1, not dropped.
+   The path pattern reads a numbered folder's files by the folder's number ([spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
    `README.md` and `CONCLUSION.md`). The three closed plans titled `NNNN — …` are retitled as their
-   lane titles them. Its `check:nonvacuity` rows: a probe whose title names another number (P4), and
-   a probe whose file name holds no number (P1), each by id, file and message.
+   lane titles them. Two forms stay, each one record, and the lane's pattern reads them: [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)'s
+   number followed by a parenthesis, which the word boundary reads; and [spike 0001](../spikes/0001-eess-over-ts-archunit/README.md)'s
+   `CONCLUSION.md`, whose `—` the spikes pattern reads beside `:` (`^Spike (?<value>\d{4})(?::| —)`),
+   since that file is pinned as left out of the mention rule and is not edited. The summary line
+   prints each lane's selected and judged counts, so a lane rule removed from the script is seen. Its
+   `check:nonvacuity` rows: a probe whose title names another number (P4), and a probe whose file name
+   holds no number (P1), each by id, file and message. The rule's added `check:corpus` time is measured
+   at build and recorded in the Progress ledger, since every nonvacuity row re-runs the gate.
 3. **Example, docs, release.** An example under `examples/md/` with a clean and a violating fixture
    per judgement it states ([plan 0458](./completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)'s gate), an alternation pattern among them; the eess-md README
    (one line on folder against path); `docs/markdown.md`; `examples/public-surface.test.ts`; [proposal
@@ -176,30 +190,34 @@ conditions, and a join to another document's path is `correspondence()`'s.
 
 ## Test inventory
 
-| finding        | rows                                                                                                                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P4 differ      | a title naming another number: red, both raw values in the message; with `normalize` making `0542` and `542` one: green, and the message says "after normalize" when they still differ |
-| P1 path        | a selected document whose name holds no number: red, naming the path and the pattern                                                                                                   |
-| P2 title       | no heading; a first heading at depth 2; an H1 inside a blockquote: `titleFault`'s three messages verbatim                                                                              |
-| P3 title value | a title the pattern does not read: red, quoting the title and the pattern                                                                                                              |
-| both           | a document failing on both sides: P1 and P3, both reported                                                                                                                             |
-| empty          | `(?<value>\d*)` matching empty on both sides: P1 and P3, never agreement; a `normalize` returning `''`: withheld as no value                                                           |
-| alternation    | a title pattern with `value` in its second branch, over each form: agrees; the same on the path side for a numbered folder's file                                                      |
-| leftmost       | an unanchored title pattern over a title naming another record first: P4, and the anchored pattern: green                                                                              |
-| P5             | a title pattern that reads no selected title: one P5 naming the pattern and the count, no P3 per document; the same for the path                                                       |
-| P6             | a selection judged none, per cause (path, title, both): the message names the cause and counts; it survives `.excluding(/.*/)`; `bypassFilters` is set                                 |
-| evidence       | a misspelt title pattern beside `beUniqueBy`: red, `examined` is the selection; the same with `.expectEmpty()`: red; the same beside a second agreement: red                           |
-| forks          | two forks of one chain, one selecting nothing, run alternately: each its own P6                                                                                                        |
-| configuration  | no `value` group, in each option: throws at the call, naming it; a `g`/`y` flag: two runs agree                                                                                        |
-| frozen         | a frozen document is judged                                                                                                                                                            |
+| finding        | rows                                                                                                                                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P4 differ      | a title naming another number: red, both raw values in the message; with `normalize` making `0542` and `542` one: green, and the message says "after normalize" when they still differ                                                                              |
+| P1 path        | a selected document whose name holds no number: red, naming the path and the pattern                                                                                                                                                                                |
+| P2 title       | no heading; a first heading at depth 2; an H1 inside a blockquote: `titleFault`'s two messages and its container note, verbatim                                                                                                                                     |
+| P3 title value | a title the pattern does not read: red, quoting the title and the pattern                                                                                                                                                                                           |
+| both           | a document failing on both sides: P1 and P3, both reported                                                                                                                                                                                                          |
+| empty          | `(?<value>\d*)` matching empty on both sides: P1 and P3, never agreement; a `normalize` returning `''`: withheld as no value                                                                                                                                        |
+| alternation    | a title pattern with `value` in its second branch, over each form: agrees; the same on the path side for a numbered folder's file                                                                                                                                   |
+| leftmost       | an unanchored title pattern over a title naming another record first: P4, and the anchored pattern: green                                                                                                                                                           |
+| one finding    | a title pattern that reads no selected title: exactly one unsuppressable finding, P5 naming the pattern and the count, and no P3; the same for the path                                                                                                             |
+| P5 mixed       | half the selection reads only its path, half only its title, under `.excluding(/.*/)`: P5 is the only finding, naming both counts; `bypassFilters` is set                                                                                                           |
+| P2 not folded  | a selection where no document has a title: a P2 per document, and P5 names no title-pattern cause                                                                                                                                                                   |
+| evidence       | on the mixed selection: beside `beUniqueBy`, red and `examined` is the selection; with `.expectEmpty()`, the kernel's own "declared .expectEmpty() but examined N" finding; beside a second agreement that judges its documents, this agreement's P5 still reported |
+| forks          | two forks of one chain run alternately, one judging nothing: that one's P5 and the other's verdicts; a fork that selects nothing: the kernel's zero-examined finding, not P5                                                                                        |
+| configuration  | no `value` group, in each option: throws at the call, naming it; a `g`/`y` flag: two runs agree                                                                                                                                                                     |
+| frozen         | a frozen document is judged                                                                                                                                                                                                                                         |
 
 **Sabotage matrix,** each row red on the test its break class names, run in a worktree and recorded
 in the Progress ledger: (1) P4 dropped; (2) `normalize` applied to one side only; (3) a withheld
-document counted as agreeing; (4) P1 dropped; (5) P2 reported as P3; (6) P3 dropped; (7) an empty
-capture read as a value (red on the both-empty row); (8) P5 replaced by a finding per document; (9) P6
-dropped; (10) P6 made suppressible, `bypassFilters` dropped (red on the `.excluding(/.*/)` row); (11)
-`examined` overridden to the documents judged (red on the `.expectEmpty()` row); (12) the `value`-group
-refusal removed; (13) frozen documents skipped; (14) the caller's `g` flag kept; (15) the first capture
+document counted as agreeing; (4) P1 dropped; (5) P2 reported as P3, `titleFault` called with the
+title pattern; (6) P3 dropped; (7) an empty capture read as a value (red on the both-empty row); (8)
+a side's per-document findings kept beside P5 (red on the one-finding row); (9) P5 dropped (red on the
+mixed row); (10) P5 made suppressible, `bypassFilters` dropped (red on the mixed row); (11) `examined`
+overridden to the documents judged (red on the `.expectEmpty()` evidence row, by the kernel's finding);
+(12) P5 computed over the union of a builder's agreements (red on the second-agreement row); (13) P5
+raised only when every condition is an agreement (red on the `beUniqueBy` row); (14) the `value`-group
+refusal removed; (15) frozen documents skipped; (16) the caller's `g` flag kept; (17) the first capture
 group read in place of `value` (red on the alternation row).
 
 **`check:nonvacuity`:** the two Phase 2 rows; the rule-id audit reads the new id from
@@ -247,10 +265,18 @@ Architect, enforcement and product, on the first draft at 3f50c272. What changed
 - **Recorded, not built here:** the evidence rule's home and a kernel "judged" channel, as
   [plan 0557](./0557-the-agreement-evidence-rule-joins-adr-010.md).
 
+**Re-check, the same day** (architect and enforcement, on b9e62e40; the ids above are the first
+revision's): no blocking finding. P5 (a side
+read nothing) always came with P6 (judged none), two unsuppressable findings for one mistake, and made
+the evidence rows red by itself: folded into one P5 that names each cause, with a mixed-selection row
+only it can turn red, the evidence rows built on that selection, and block 5's two missing sabotage
+rows. Also: P2's messages as `titleFault` gives them; the fork row; the dogfood's boards left out by
+exact path, its two one-record forms stated, per-lane counts printed, its added time measured.
+
 ## Progress ledger
 
 - [x] Reviewed (architect · enforcement · product), 2026-10-29
-- [ ] Ready
+- [x] Ready (2026-10-29)
 - [ ] Phase 1 — the hook and the condition
 - [ ] Phase 2 — dogfood
 - [ ] Phase 3 — example, docs, release
