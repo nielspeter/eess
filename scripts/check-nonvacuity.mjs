@@ -2294,8 +2294,8 @@ function gateRecordMentionTargetCrossed() {
  */
 function gateRecordMentionTargetTitleLink() {
   const target = `${MENTION_PROBE_REL}/0997-probe.md`
-  const titled =
-    '# Bug 0997: the probe quotes bug 0338\n\n## Status\n\n- **State:** Draft — a non-vacuity probe\n'
+  // The title links its own mention, as this repository's titles do, and is compared as text.
+  const titled = `# Bug 0997: the probe quotes [bug 0338](../${BUG_0338})\n\n## Status\n\n- **State:** Draft — a non-vacuity probe\n`
   const row = (text) => probeRecord(`See [0997 — ${text}](./0997-probe.md).`)
   const exempt = withMentionProbes(
     { [target]: titled, [PROBE_998]: row('the probe quotes bug 0338') },
@@ -2320,33 +2320,45 @@ function gateRecordMentionTargetTitleLink() {
 }
 
 /**
- * An empty mention side is red, never a pass (`.expectNonEmpty()`): a shared clone whose corpus
- * roots hold one record with no record mention at all.
+ * An empty mention side is red, never a pass (`.expectNonEmpty()`). A copy of the real script whose
+ * join selects the mentions outside a link, of which the corpus at zero holds none: its one finding
+ * of the rule is the empty side, named. Run as a copy, as `corpus/frozen-scope` is, since emptying
+ * a real corpus of linked mentions trips the dead-root and dead-frozen-glob refusals first.
  */
 function gateRecordMentionTargetEmpty() {
-  const clone = mkdtempSync(join(tmpdir(), 'nonvacuity-mention-clone-'))
-  const git = (...args) =>
-    gitIn(clone, ['-c', 'user.name=nonvacuity', '-c', 'user.email=nonvacuity@invalid', ...args])
-  try {
-    const head = gitIn(repoRoot, ['rev-parse', 'HEAD'])
-    gitIn(repoRoot, ['clone', '-q', '--shared', '--no-checkout', repoRoot, clone])
-    git('remote', 'remove', 'origin')
-    git('checkout', '-q', '-B', 'main', head)
-    git('rm', '-r', '-q', '--', 'work', 'adr', 'docs')
-    mkdirSync(join(clone, 'work', 'bugs'), { recursive: true })
-    writeFileSync(join(clone, 'work', 'bugs', '0001-only.md'), probeRecord('No record named.'))
-    const json = runCorpusScript(['--format', 'json'], { cwd: clone })
-    const target = violationsOf(json).filter((v) => v?.ruleId === 'corpus/record-mention-target')
-    firedOn(json, 'corpus/record-mention-target')
-    const empty = target.some((v) => /empty|nothing|no element|0 /i.test(String(v.message ?? '')))
+  const original = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
+  const mutated = original.replace('.satisfy(areLinked())', '.satisfy(not(areLinked()))')
+  if (mutated === original)
     return {
-      ok: json.code === 1 && target.length >= 1 && empty,
-      detail: `one record, no mention → json exit ${json.code}; target findings: ${target
-        .map((v) => String(v.message ?? '').slice(0, 90))
-        .join(' | ')}; names the empty side: ${empty}`,
+      ok: false,
+      detail:
+        'target-empty: the join no longer selects with `.satisfy(areLinked())`, so the copy would ' +
+        'run the pristine join and call the empty side covered',
     }
-  } finally {
-    rmSync(clone, { recursive: true, force: true })
+  const script = join(repoRoot, 'scripts', '__nonvacuity_probe_empty_join__.mjs')
+  const json = withProbe(script, mutated, () =>
+    spawnSync(process.execPath, [script, '--format', 'json'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+    }),
+  )
+  const r = {
+    code: json.status ?? 2,
+    out: json.stdout ?? '',
+    stdout: json.stdout ?? '',
+    stderr: json.stderr ?? '',
+  }
+  const exact = exactMentionFindings(r, [
+    [
+      'corpus/record-mention-target',
+      undefined,
+      'declared .expectNonEmpty() but examined zero units',
+    ],
+  ])
+  return {
+    ok: r.code === 1 && exact,
+    detail: `the join's left side emptied → json exit ${r.code}; exactly the empty-side finding: ${exact}`,
   }
 }
 
