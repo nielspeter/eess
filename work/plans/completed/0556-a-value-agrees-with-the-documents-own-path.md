@@ -299,6 +299,10 @@ Built 2026-10-29 on `feat/0556-agree-with-path`, as frozen, except where noted:
   only when every condition is an agreement: the second-agreement and `beUniqueBy` rows, in both
   conditions' tests. (14) the `value` refusal removed, (15) frozen documents skipped, (16) the caller's
   `g` flag kept, (17) the first capture group read: one row each.
+- **Split for this repository's architecture rules.** The first commit's `evaluate` broke three of
+  `check:arch`'s rules (no JSDoc on `start`, cyclomatic complexity 17, 80 code lines), found by the
+  full validate after the commit; it now reads each document in `readDocument`, with one function per
+  finding, and the matrix above was run again on the split code: all 18 red, each on the same rows.
 - **Rows:** 24 in `packages/md/tests/conditions/agree-with-path.test.ts`, block 5's 34 still green
   after its move onto the `Agreement` interface; the example's four; the two `check:nonvacuity`
   rows, each red by id, file and message.

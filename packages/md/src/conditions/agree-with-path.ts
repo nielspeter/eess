@@ -72,6 +72,94 @@ interface DocFinding {
   readonly side: 'path' | 'title' | 'both'
 }
 
+/** One document's two sides, read, and its own findings (P1 to P4). */
+interface DocReading {
+  readonly pathRead: boolean
+  readonly titled: boolean
+  readonly titleRead: boolean
+  readonly judged: boolean
+  readonly findings: readonly DocFinding[]
+}
+
+/** The line a title finding sits at: the first heading's, or 1. */
+const headingLine = (d: MdDocument): number => sectionsOf(d)[0]?.line ?? 1
+
+/** P1: the path holds no value. */
+const noPathValue = (d: MdDocument, path: RegExp): DocFinding => ({
+  doc: d,
+  line: 1,
+  side: 'path',
+  message: `${d.relPath} holds no value the path pattern reads (${String(path)}): name the file as the pattern expects, or widen the pattern`,
+})
+
+/** P2: no title, in `titleFault`'s own words, called without a name so a title the pattern misses stays P3. */
+const noTitle = (d: MdDocument): DocFinding => ({
+  doc: d,
+  line: headingLine(d),
+  side: 'both',
+  message: titleFault(d) ?? 'no title',
+})
+
+/** P3: the title holds no value. */
+const noTitleValue = (d: MdDocument, text: string, title: RegExp): DocFinding => ({
+  doc: d,
+  line: headingLine(d),
+  side: 'title',
+  message: `its title "${text}" holds no value the title pattern reads (${String(title)})`,
+})
+
+/** P4: both sides read, and they differ. */
+const differ = (
+  d: MdDocument,
+  fromPath: Read,
+  fromTitle: Read,
+  normalized: boolean,
+): DocFinding => ({
+  doc: d,
+  line: headingLine(d),
+  side: 'both',
+  message: `the path says ${fromPath.raw} and the title says ${fromTitle.raw}${normalized ? ' (after normalize)' : ''}: correct the one that is wrong, by renaming the file or editing the title`,
+})
+
+/** Read one document's path and title, and give its findings. */
+function readDocument(d: MdDocument, o: AgreeWithPathOptions): DocReading {
+  const fromPath = readValue(o.path, d.relPath, o.normalize)
+  const findings: DocFinding[] = fromPath === undefined ? [noPathValue(d, o.path)] : []
+  const pathRead = fromPath !== undefined
+  const text = titleOf(d)
+  if (text === undefined) {
+    return {
+      pathRead,
+      titled: false,
+      titleRead: false,
+      judged: false,
+      findings: [...findings, noTitle(d)],
+    }
+  }
+  const fromTitle = readValue(o.title, text, o.normalize)
+  if (fromTitle === undefined) findings.push(noTitleValue(d, text, o.title))
+  if (fromPath === undefined || fromTitle === undefined) {
+    return { pathRead, titled: true, titleRead: fromTitle !== undefined, judged: false, findings }
+  }
+  if (fromPath.value !== fromTitle.value) {
+    findings.push(differ(d, fromPath, fromTitle, o.normalize !== undefined))
+  }
+  return { pathRead, titled: true, titleRead: true, judged: true, findings }
+}
+
+/**
+ * One mistake, one finding: when nothing was judged, a side that read nothing is P5's, so its
+ * per-document findings go.
+ */
+function deadSides(last: LastRun): ReadonlySet<DocFinding['side']> {
+  const dead = new Set<DocFinding['side']>()
+  if (last.judged === 0 && last.selected > 0) {
+    if (last.pathRead === 0) dead.add('path')
+    if (last.titled > 0 && last.titleRead === 0) dead.add('title')
+  }
+  return dead
+}
+
 /** What the last evaluation saw, for P5. */
 interface LastRun {
   readonly selected: number
@@ -99,6 +187,7 @@ export class PathAgreement implements Agreement {
     }
   }
 
+  /** Forget the last run: a fork shares this instance, and each run reads only its own. */
   start(): void {
     this.last = undefined
   }
@@ -137,75 +226,20 @@ export class PathAgreement implements Agreement {
   }
 
   private evaluate(elements: readonly MdDocument[], context: ConditionContext): ArchViolation[] {
-    const { path, title, normalize } = this.options
-    const found: DocFinding[] = []
-    let pathRead = 0
-    let titled = 0
-    let titleRead = 0
-    let judged = 0
-    for (const d of elements) {
-      const fromPath = readValue(path, d.relPath, normalize)
-      if (fromPath !== undefined) pathRead += 1
-      else {
-        found.push({
-          doc: d,
-          line: 1,
-          side: 'path',
-          message: `${d.relPath} holds no value the path pattern reads (${String(path)}): name the file as the pattern expects, or widen the pattern`,
-        })
-      }
-      const text = titleOf(d)
-      let fromTitle: Read | undefined
-      if (text === undefined) {
-        // P2: titleFault's own words, called without a name so a title the pattern misses stays P3.
-        found.push({
-          doc: d,
-          line: sectionsOf(d)[0]?.line ?? 1,
-          side: 'both',
-          message: titleFault(d) ?? 'no title',
-        })
-      } else {
-        titled += 1
-        fromTitle = readValue(title, text, normalize)
-        const line = sectionsOf(d)[0]?.line ?? 1
-        if (fromTitle !== undefined) titleRead += 1
-        else {
-          found.push({
-            doc: d,
-            line,
-            side: 'title',
-            message: `its title "${text}" holds no value the title pattern reads (${String(title)})`,
-          })
-        }
-        if (fromPath !== undefined && fromTitle !== undefined) {
-          judged += 1
-          if (fromPath.value !== fromTitle.value) {
-            const after = normalize === undefined ? '' : ' (after normalize)'
-            found.push({
-              doc: d,
-              line,
-              side: 'both',
-              message: `the path says ${fromPath.raw} and the title says ${fromTitle.raw}${after}: correct the one that is wrong, by renaming the file or editing the title`,
-            })
-          }
-        }
-      }
-    }
-    this.last = {
+    const readings = elements.map((d) => readDocument(d, this.options))
+    const count = (has: (r: DocReading) => boolean): number => readings.filter(has).length
+    const last: LastRun = {
       selected: elements.length,
       first: elements[0],
-      pathRead,
-      titled,
-      titleRead,
-      judged,
+      pathRead: count((r) => r.pathRead),
+      titled: count((r) => r.titled),
+      titleRead: count((r) => r.titleRead),
+      judged: count((r) => r.judged),
     }
-    // One mistake, one finding: a side that read nothing is P5's, so its per-document copies go.
-    const dead = new Set<DocFinding['side']>()
-    if (judged === 0 && elements.length > 0) {
-      if (pathRead === 0) dead.add('path')
-      if (titled > 0 && titleRead === 0) dead.add('title')
-    }
-    return found
+    this.last = last
+    const dead = deadSides(last)
+    return readings
+      .flatMap((r) => r.findings)
       .filter((f) => !dead.has(f.side))
       .map((f) =>
         mdViolation({

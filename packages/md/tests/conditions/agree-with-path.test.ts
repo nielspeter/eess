@@ -273,15 +273,16 @@ describe('agreeWithPath: a selection that judged none', () => {
 })
 
 describe('agreeWithPath: run state', () => {
-  it('two forks of one chain, run alternately, each read their own run', () => {
+  it('two copies of one chain, sharing its agreement, run alternately: each reads its own run', () => {
+    // `.that()` copies the builder and keeps its conditions, so both copies hold one agreement.
     const c = notes({
       'n/0001-a.md': '# Elsewhere\n',
       'n/b.md': '# Note 0002: b\n',
       'm/0003-c.md': '# Note 0003: c\n',
     })
     const chain = docs(c).should().agreeWithPath(OPTS)
-    const mixed = chain.fork().that().resideInFolder('n/**')
-    const good = chain.fork().that().resideInFolder('m/**')
+    const mixed = chain.that().resideInFolder('n/**')
+    const good = chain.that().resideInFolder('m/**')
     for (let i = 0; i < 2; i++) {
       expect(own(mixed.violations())).toHaveLength(1)
       expect(messages(good.violations())).toEqual([])
