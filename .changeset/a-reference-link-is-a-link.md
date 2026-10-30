@@ -9,6 +9,6 @@
 - `.areLabelled()` selects a declaration's reference-style links, and the declaration finding "holds reference-style links, which eess-md does not read", with its `(reference links)` element, is gone.
 - `sections().haveLink()` holds for a section whose only link is reference-style, in both its selector and condition form.
 
-A finding about a reference-style link sits at its definition's line, and an exclusion comment goes above the definition, not the reference.
+A `.resolve()` or `.beLinkedBack()` finding about a reference-style link sits at its definition's line, and an exclusion comment for it goes above the definition, not the reference; every other rule reports a reference-style link at its own line, as it reports an inline one.
 
 To migrate: a broken reference this now reports was always broken; fix the definition's URL. An `.excluding()` that sanctioned a `(reference links)` declaration finding has nothing left to match; remove it.

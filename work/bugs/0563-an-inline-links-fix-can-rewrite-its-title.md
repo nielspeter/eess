@@ -34,7 +34,7 @@ The title is rewritten; the URL is still `./old/a\>b.md`.
 ## Root cause
 
 `collectLinkBlocks` takes `raw.lastIndexOf(node.url)` over the link's raw text
-(`packages/md/src/model/links.ts:214`), with no anchor to where the destination starts.
+(`packages/md/src/model/links.ts:225`), with no anchor to where the destination starts.
 
 ## Fix
 

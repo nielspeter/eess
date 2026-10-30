@@ -98,7 +98,7 @@ files yields:
 | Bare-identifier citations    | 130       | 79 resolve     | 51 dangling     |
 
 Both false positives are prose _describing_ link syntax, inside inline-code
-spans in a real comment: `packages/md/src/model/links.ts:38` and
+spans in a real comment: `packages/md/src/model/links.ts:53` and
 `spec.rules.ts:160`. See _Review_ for why that is a design defect rather than a
 tuning problem.
 
@@ -149,7 +149,7 @@ makes the rework cheap rather than a rewrite.
 3. **The false positives come from dropping a protection the cited precedent
    keeps.** `collectLinks()` gets inline-code and fenced-code immunity free
    from mdast — its own docstring says so at
-   `packages/md/src/model/links.ts:38`. `extractPointers()` is **not** the pure
+   `packages/md/src/model/links.ts:53`. `extractPointers()` is **not** the pure
    line-by-line regex scan this proposal cites it as: it calls `fencedRanges()`
    first (`packages/md/src/model/pointers.ts:52`) precisely to buy that
    protection back. The submission cites the technique and drops the guard.

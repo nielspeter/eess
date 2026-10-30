@@ -53,7 +53,13 @@ export function definitionsOf(root: Root, source: string | undefined): Map<strin
       if (source !== undefined && start !== undefined && end !== undefined && node.url !== '') {
         const raw = source.slice(start, end)
         const at = destinationStart(raw)
-        if (at !== undefined && raw.startsWith(node.url, at)) {
+        // The destination ends where the URL does: at the end, a space or a `>`, never inside it.
+        const after = raw.charAt(at === undefined ? 0 : at + node.url.length)
+        if (
+          at !== undefined &&
+          raw.startsWith(node.url, at) &&
+          (after === '' || /[\s>]/.test(after))
+        ) {
           urlStart = start + at
           urlEnd = urlStart + node.url.length
         }

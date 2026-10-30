@@ -55,11 +55,19 @@ function holdsCheckedMarkdown(root: Root): boolean {
  * and holds nothing a Markdown reader checks: a task box or a link into the repository, which a
  * YAML value can carry on an indented continuation line and still parse. Anything else is read as
  * Markdown, as it was before front matter was parsed, so no box or link is hidden by it.
+ *
+ * A reference-style link in the block may be defined in the body (bug 0558), which a parse of the
+ * block alone cannot see, so each body definition is appended as a stand-in, internal or external
+ * as the real one is, before the block is judged.
  */
-function isFrontMatter(value: string): boolean {
+function isFrontMatter(value: string, bodyDefinitions: ReturnType<typeof definitionsOf>): boolean {
   const doc = parseDocument(value)
   if (doc.errors.length > 0 || !isMap(doc.contents) || doc.contents.items.length === 0) return false
-  return !holdsCheckedMarkdown(fromMarkdown(value, GFM_ONLY))
+  const standIns = [...bodyDefinitions.values()].map(
+    (d) => `[${d.label}]: ${EXTERNAL.test(d.url) ? 'https://external.invalid' : './internal'}`,
+  )
+  const judged = standIns.length === 0 ? value : `${value}\n\n${standIns.join('\n')}`
+  return !holdsCheckedMarkdown(fromMarkdown(judged, GFM_ONLY))
 }
 
 /**
@@ -87,7 +95,8 @@ export function parseUncached(text: string): Root {
 function parseFresh(text: string): Root {
   const root = fromMarkdown(text, WITH_FRONT_MATTER)
   const first = root.children[0]
-  if (first?.type !== 'yaml' || isFrontMatter(first.value)) return root
+  if (first?.type !== 'yaml' || isFrontMatter(first.value, definitionsOf(root, undefined)))
+    return root
   return fromMarkdown(text, GFM_ONLY)
 }
 

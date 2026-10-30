@@ -1,5 +1,4 @@
 import type { Root, Nodes } from 'mdast'
-import { ArchConfigError } from '@nielspeter/eess'
 import { textOf } from './text-of.js'
 import { isLabelAlone, wrappedLabelOf } from './label.js'
 import type { MdDocument } from './document.js'
@@ -7,6 +6,22 @@ import { sectionPathAt } from './sections.js'
 import { definitionsOf, type MdLinkDefinition } from './definitions.js'
 
 export type { MdLinkDefinition } from './definitions.js'
+
+/**
+ * The Markdown parser handed eess-md a reference-style link without the definition it pairs it
+ * with (bug 0558): eess-md and the installed `mdast-util-from-markdown` disagree. Never the rule
+ * author's fault, so not an `ArchConfigError`; eess-ts reports it as the crash it is.
+ */
+class ParserContractBroken extends Error {
+  constructor(label: string) {
+    super(
+      `eess-md: the Markdown parser gave the reference [${label}] no definition it pairs with. ` +
+        'eess-md and the installed mdast-util-from-markdown disagree about reference links; ' +
+        'please report it to eess, with both versions.',
+    )
+    this.name = 'ParserContractBroken'
+  }
+}
 
 /** A markdown link occurrence within a document (before doc back-reference). */
 export interface MdLinkRef {
@@ -182,11 +197,7 @@ export function collectLinkBlocks(
       // normalized `identifier`, so a miss here means that contract broke: fail loudly rather
       // than drop the link from every rule's `examined` (ADR-009).
       if (site === undefined) {
-        throw new ArchConfigError(
-          'links()',
-          `eess-md: the reference [${node.label ?? node.identifier}] has no definition the parser gave it; ` +
-            'the installed mdast parser pairs references and definitions differently from the one eess-md was built with',
-        )
+        throw new ParserContractBroken(node.label ?? node.identifier)
       }
       out.push({
         url: site.url,

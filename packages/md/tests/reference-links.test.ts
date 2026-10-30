@@ -194,3 +194,35 @@ describe('sections().should().haveLink() counts a reference-style link (bug 0558
     expect(v.map((x) => x.element)).toEqual(['docs/a.md:7'])
   })
 })
+
+describe('PR #282 re-checks (bug 0558)', () => {
+  it('beLinkedBack(): two broken definitions in one document are two findings', () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\n**Related to:** [b][d], [c][e]\n\n[d]: ./gone-d.md\n[e]: ./gone-e.md\n',
+    })
+    const v = links(c).that().areLabelled('Related to').should().beLinkedBack().violations()
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '5 ./gone-d.md does not exist (the definition of [d])',
+      '6 ./gone-e.md does not exist (the definition of [e])',
+    ])
+  })
+
+  it('a reference in front matter whose definition is in the body is read, not hidden', () => {
+    const v = resolveOf({
+      'docs/a.md': '---\na: |\n  See [g].\n---\n\n# A\n\n[ok](./b.md)\n\n[g]: ./gone.md\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => x.message)).toEqual([
+      'broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
+    ])
+  })
+
+  it('a destination holding an entity gets no fix, not one over part of it', () => {
+    const text = '# A\n\nSee [x][d].\n\n[d]: ./old/m&amp;amp;\n'
+    const v = resolveOf({ 'docs/a.md': text, 'docs/new/m&amp;': '# M\n' })
+    expect(v.map((x) => x.message)).toEqual([
+      'broken link: "./old/m&amp;" does not resolve to a file in the repo (the definition of [d])',
+    ])
+    expect(v[0]?.fix).toBeUndefined()
+  })
+})

@@ -693,7 +693,7 @@ violation must _say_. Colour alone is not the proof; attribution is.
 - [ ] **Frontmatter — no phantom section.** A frontmatter-bearing document
       reports the sections it actually has. _Fixed 2026-10-14 by [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md): front matter
       that is a YAML mapping now parses to a `yaml` node
-      (`packages/md/src/model/prose.ts:73`); the rest of this item is the record as
+      (`packages/md/src/model/prose.ts:81`); the rest of this item is the record as
       written._ Today it does not: the closing `---`
       yields a depth-2 heading containing the frontmatter block
       ([bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md)). This
