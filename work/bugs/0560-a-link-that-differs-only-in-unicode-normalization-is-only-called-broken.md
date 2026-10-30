@@ -4,8 +4,9 @@
 
 - **State:** Draft — measured on the v0.16.0 build (eess-md 0.13.0), Node 24.22.0, on Linux; no red
   test yet.
-- **Severity:** Medium — the verdict stands; the message does not name the cause, so the author
-  looks for a missing file that is there.
+- **Severity:** Medium — whether or not the verdict stands (see Fix), the message does not name
+  the cause, so the author looks for a missing file that is there. Amended 2026-10-30 after PR
+  #280's method and enforcement reviews.
 - **Origin:** self-found · the maintainer's question, 2026-10-30, about letters outside ASCII.
 - **Reported:** 2026-10-30
 
@@ -43,8 +44,8 @@ link that misses by a directory (`directoryHint`).
 ## Why it matters
 
 Which form a name has depends on the tool that created it: macOS file systems have historically
-produced NFD names, and git on macOS stores NFC by default (`core.precomposeunicode`). So the case
-is rare in a repository, and when it happens the message sends the author looking for a file that
+produced NFD names, and git on macOS is said to store NFC by default (`core.precomposeunicode`;
+not measured here, since this was measured on Linux). So the case is likely rare in a repository, and when it happens the message sends the author looking for a file that
 exists. Whether the link works for a reader depends on the platform serving it, so the verdict is
 a decision to state, not a fix to assume.
 
@@ -53,13 +54,21 @@ a decision to state, not a fix to assume.
 Not chosen. At least: when the link's path and an indexed file are equal after NFC normalization,
 the message says so and names both forms. Whether such a link should resolve instead is the
 question to answer first, together with the same question for pointers in
-[bug 0559](./0559-a-code-pointer-into-a-non-ascii-path-is-skipped-or-truncated.md).
+[bug 0559](./0559-a-code-pointer-is-matched-from-inside-its-path.md) and for fragments in
+[bug 0136](./0136-link-fragments-are-never-checked.md).
+
+"Resolve instead" is the direction that can make a false green: if GitHub serves such a link as a
+404, resolving it would pass a link that is broken for every reader. So it needs a measurement of
+what GitHub serves first, and a nonvacuity row if chosen.
 
 ## Verification
 
 - [ ] Red test written first: the reproduction's message names the encoding difference. Today it
       says only "does not resolve".
-- [ ] The decision (report with the cause, or resolve) is written in the record before the fix.
+- [ ] The decision (report with the cause, or resolve) is written in the record before the fix,
+      with what GitHub serves for such a link measured.
+- [ ] The same for a pointer: an NFC pointer to an NFD-named file gets the same verdict and message
+      as a link (today it is truncated first, [bug 0559](./0559-a-code-pointer-is-matched-from-inside-its-path.md)).
 - [ ] A changeset naming `@nielspeter/eess-md`.
 - [ ] `npm run validate` green.
 

@@ -1,6 +1,6 @@
 # Proposal 022 — md: a raw HTML link is resolved
 
-**State:** Draft — filed 2026-10-30 at the maintainer's request; not reviewed.
+**State:** Draft — filed 2026-10-30 at the maintainer's request; not reviewed. Amended the same day from PR #280's reviews.
 **Priority:** Medium — once [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
 reports a raw HTML link as unread, nothing passes over one silently; what is left is that a
 corpus that writes links in HTML is red with "unread" instead of checked.
@@ -32,6 +32,14 @@ reports the inline one only. The reproduction is
   URL in HTML.
 - **Unread disclosure exists**: `mentions()` reports a mention inside a raw HTML block as
   `md/unread-mention` (`packages/md/src/builders/mentions.ts:49`).
+- **An inline `<a href>` recogniser exists:** `OPENS_A = /^<a\s[^>]*\bhref\s*=/i`
+  (`packages/md/src/model/phrasing.ts:64`), which `mentions()` uses to report a mention in an inline
+  HTML link as unread. It reads inline HTML only; a block-level `html` node is a separate cause
+  (`'html-block'`). It is the reuse point for
+  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s unread finding and the
+  starting point for this proposal's scan.
+- **The closest precedent** is [proposal 015](./015-md-wikilinks-are-read-or-reported.md), "read, or
+  reported as unread", for another link form `links()` does not read.
 - **No HTML parser is a dependency** of eess-md today (its dependencies are the mdast and
   micromark packages, `picomatch` and `yaml`).
 
@@ -48,7 +56,14 @@ reports the inline one only. The reproduction is
   `href` to an external URL is external.
 - **Break class:** HTML the reader cannot parse is reported as unread, never skipped; this keeps
   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s guarantee.
+- **Break class (false red):** an `href` inside an HTML comment, an `<a name>` with no `href`, and
+  an external `href` produce no broken-link finding; an entity-encoded `href` (`&amp;`) is decoded
+  before it is resolved.
+- **Evidence:** `examined` counts each `href` read, and a finding is reported at the line the
+  `href` sits on inside a multi-line HTML block, not the block's first line.
 - **Non-vacuity:** a fixture row per break class.
+- **Dogfooding:** this repository holds no `<a href>` in a tracked Markdown file today (PR #280's
+  method review), so `check:corpus` gains nothing to read; the rows are the proof.
 
 ## Open questions
 

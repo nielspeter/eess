@@ -6,9 +6,7 @@
   live gate (see _Reproduction_). No red test yet.
 - **Severity:** High, raised 2026-10-30 — `BUGS.md`'s High row is a gate that
   passes over drift it should catch, and a dead anchor is that drift whether or
-  not this repository holds one. The maintainer named GitHub Flavored Markdown
-  important (2026-10-30): a README or wiki links to headings constantly, so for
-  an adopter the gap is live, not hypothetical. Re-measured on the v0.16.0 build:
+  not this repository holds one. Re-measured on the v0.16.0 build:
   `[x](./other.md#no-such-heading)`, with `other.md` present, and `[x](#nowhere)`
   produce no finding. _Was Medium (2026-08-13): an honesty gap, not High because
   all five internal anchor links in the gated roots were correct; the argument
@@ -135,6 +133,11 @@ gated roots resolve correctly today:
 
 Verified by hand, which is the point: nothing else can.
 
+**For an adopter the gap is live (added 2026-10-30).** The maintainer named GitHub
+Flavored Markdown important: a README or a wiki links to its headings constantly,
+so a corpus outside this repository is likely to hold the dead anchor this one
+does not.
+
 ## Fix
 
 1. **Check the fragment when the target is in the corpus.** Slugify each
@@ -144,14 +147,30 @@ Verified by hand, which is the point: nothing else can.
    the linking document's own headings, which needs no new data at all.
 
    **Letters outside ASCII are kept, not stripped (added 2026-10-30).** GitHub's
-   slug removes punctuation but keeps letters and marks in any script, lowercased:
-   `## Größe der Datei` is `#größe-der-datei`, and `## Kočka` is `#kočka`
-   (measured with `github-slugger` 2.0.0, which implements GitHub's rule). A link
-   may write the fragment percent-encoded (`#gr%C3%B6%C3%9Fe-der-datei`), so the
-   fragment is decoded before it is compared. A slug that strips such letters would
-   turn every correct anchor into a heading written in another language into a
-   false red. The exact rule is GitHub's, to be read from its slugger and pinned by
-   rows, not restated from memory.
+   slug keeps letters in any script, lowercased: `## Größe der Datei` is
+   `#größe-der-datei`, and `## Kočka` is `#kočka`. Measured with
+   `github-slugger` 2.0.0, which implements GitHub's rule, installed into an empty
+   scratch directory (`npm i github-slugger@2.0.0`, then
+   `node -e "import('github-slugger').then(m => console.log(new m.default().slug('Größe der Datei')))"`).
+   A link may write the fragment percent-encoded (`#gr%C3%B6%C3%9Fe-der-datei`), so
+   the fragment is decoded before it is compared, and decoding stays total: a
+   malformed escape (`#gr%E0`) is a finding, never a `URIError`, since
+   `resolveLink` promises not to throw (`packages/md/src/model/resolve-link.ts:187`).
+   Whether a fragment and a heading are compared after NFC normalization is
+   [bug 0560](./0560-a-link-that-differs-only-in-unicode-normalization-is-only-called-broken.md)'s
+   question. A slug that strips such letters would turn every correct anchor into
+   a heading written in another language into a false red. The exact rule is
+   GitHub's, read from its slugger and pinned by rows, not restated from memory.
+
+   **The anchor set is GitHub's, not the section index (added 2026-10-30, PR
+   #280's enforcement review).** eess-md's sections leave out a heading inside a
+   list item, a blockquote or a footnote definition
+   (`packages/md/src/model/sections.ts:13`); GitHub gives each of them an anchor, so
+   slugs built on sections would make `[x](#note)` to a `> ## Note` a false red and
+   shift the `-1`/`-2` numbering. The anchor set is every heading the renderer
+   anchors, plus explicit HTML anchors (`<a name="x">`, `<a id="x">`) and GitHub's
+   `#user-content-…` alias. A fragment on a target that is not a document (a code
+   file's `#L10`) is unverifiable under (3), not red.
 
 2. **Stop overloading the empty target list.** `resolveTargets` should
    distinguish "no file part, resolve the fragment locally" from "not a file
@@ -160,7 +179,13 @@ Verified by hand, which is the point: nothing else can.
    corpus roots cannot be verified; that count belongs in the `check:corpus`
    summary (`N internal · M with fragments · K fragments unverifiable`) rather
    than being silently folded into "all resolve". Same convention as every other
-   denominator the gate prints.
+   denominator the gate prints. **And in the rule itself (added 2026-10-30):** an
+   adopter calling `links().should().resolve()` has no `check-corpus.mjs`, so the
+   rule's own evidence says it did not judge the fragment, as a finding or as a
+   subject it cannot judge ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)),
+   per [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and
+   [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). Today
+   `[y](#nowhere)` counts toward `examined` with nothing checked.
 4. **Make the autofix honest.** Either validate the fragment against the _new_
    target before emitting the rewrite in `movedLinkFix`, or drop the fix when the
    URL carries a fragment the fixer cannot verify. Transplanting an unvalidated
@@ -184,6 +209,10 @@ Verified by hand, which is the point: nothing else can.
       the two shapes most likely to).
 - [ ] A heading with letters outside ASCII (`## Größe der Datei`) is reachable by
       its GitHub slug, written plain and percent-encoded, and a near miss is red.
+- [ ] `#gr%E0` is a finding, not a thrown `URIError`.
+- [ ] A heading inside a blockquote is reachable, and so is an `<a id>` anchor.
+- [ ] A fragment on a code file (`./src/a.ts#L10`) is reported unverifiable, not red.
+- [ ] The rule's own result says which fragments it did not judge, without a caller's summary.
 - [ ] `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
 - [ ] The `check:corpus` summary reports fragments checked and fragments it could
       not verify.

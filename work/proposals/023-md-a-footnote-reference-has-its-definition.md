@@ -1,6 +1,6 @@
 # Proposal 023 — md: a footnote reference has its definition
 
-**State:** Draft — filed 2026-10-30 at the maintainer's request; not reviewed.
+**State:** Draft — filed 2026-10-30 at the maintainer's request; not reviewed. Amended the same day from PR #280's reviews.
 **Priority:** Low — no shipped rule claims to check footnotes, so nothing over-claims; a broken
 footnote shows as literal text on GitHub, which a reader notices and a gate does not.
 **Origin:** self-found · the maintainer, 2026-10-30: "GitHub Flavored Markdown (GFM) is important".
@@ -8,11 +8,12 @@ footnote shows as literal text on GitHub, which a reader notices and a gate does
 
 ## Problem
 
-GFM footnotes pair a reference, `[^note]`, with a definition, `[^note]: …`. Two drifts break the
-pair:
+Footnotes pair a reference, `[^note]`, with a definition, `[^note]: …`. They are not in the GFM
+spec (Version 0.29-gfm, 2019-04-06, has no footnote section); GitHub renders them, and the parser
+eess-md uses reads them (`micromark-extension-gfm`). Two drifts break the pair:
 
-1. **A reference with no definition.** GFM does not treat it as a reference at all: it renders as
-   the literal text `[^note]`. A renamed or deleted definition turns every reference to it into
+1. **A reference with no definition.** The parser does not treat it as a reference at all, and
+   GitHub renders it as the literal text `[^note]`. A renamed or deleted definition turns every reference to it into
    visible brackets.
 2. **A definition nothing references.** It renders nowhere on GitHub, so its text is lost from the
    page while it stays in the source.
@@ -48,7 +49,10 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
 ## Acceptance criteria
 
 - **Break class (A):** `[^missing]` in prose with no definition is reported at its line.
-- **Break class (A, false red):** `[^x]` in a code span or fenced block is not reported.
+- **Break class (A, false red):** `[^x]` in a code span or fenced block is not reported; nor is an
+  escaped `\[^x]` (measured: the parser unescapes it into the text `Escaped [^x] here.`, so the
+  scan reads the source by offset), nor a regex class written in prose (`[^0-9]`, measured: plain
+  text).
 - **Break class (B):** `[^unused]: …` with no reference is reported at the definition's line.
 - **Non-vacuity:** a fixture row per break class.
 
@@ -58,6 +62,12 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
    kernel's whole surface), or a `docs()` condition. eess-md's other pairs are element types.
 2. **Whether A is a mention.** A is a literal-text case, which `mentions()` with a pattern already
    reaches; the review should decide whether a documented example covers it before new API does.
+
+## Dogfooding
+
+Whether this repository's `check:corpus` adopts the rule is for the review. Measured by parsing
+the 594 tracked Markdown files under `work/`, `adr/` and `docs/`: none holds a footnote reference
+or definition, so the gate would read nothing today, and the rows are the proof.
 
 ## Out of scope
 
