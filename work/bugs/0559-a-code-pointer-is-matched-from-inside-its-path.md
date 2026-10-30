@@ -78,7 +78,7 @@ pointers: examined 3 · violations 3
 
 Four stale pointers: one is reported for what it is, two against the wrong path, and the one into
 `src/maß.ts` is not examined. ("3 lines" for a two-line file is a separate defect,
-[bug 0561](./0561-a-pointer-one-line-past-the-end-of-a-file-passes.md).)
+[bug 0561](./fixed/0561-a-pointer-one-line-past-the-end-of-a-file-passes.md).)
 
 ## Root cause
 

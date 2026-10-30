@@ -5,6 +5,7 @@ import { pathSuffixIndex } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import type { MdPointer } from '../model/pointers.js'
 import { isTextCorpus, readCorpusFile } from '../model/corpus-internals.js'
+import { lineCount } from '../model/line-count.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 
 /** How a pointer path resolves against the repo file index. */
@@ -95,10 +96,10 @@ export function pointerResolves(
   const paths = pathSuffixIndex(corpus.fileIndex)
 
   const lineCountCache = new Map<string, number>()
-  const lineCount = (rel: string): number => {
+  const linesOf = (rel: string): number => {
     const cached = lineCountCache.get(rel)
     if (cached !== undefined) return cached
-    const n = readCorpusFile(corpus, rel).split('\n').length
+    const n = lineCount(readCorpusFile(corpus, rel))
     lineCountCache.set(rel, n)
     return n
   }
@@ -176,7 +177,7 @@ export function pointerResolves(
             const abs = join(rootDir, wanted)
             let external: number
             try {
-              external = readFileSync(abs, 'utf8').split('\n').length
+              external = lineCount(readFileSync(abs, 'utf8'))
             } catch (err) {
               void err // not under this root — try the next configured root
               continue
@@ -244,7 +245,7 @@ export function pointerResolves(
           ]
         }
 
-        const lines = lineCount(targetRel)
+        const lines = linesOf(targetRel)
         if (Math.max(p.startLine, p.endLine) > lines) {
           return [
             mdViolation({

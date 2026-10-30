@@ -70,7 +70,7 @@ describe('pointers().resolve({ externalRoots }) — plan 0069 Phase 5', () => {
     // Thing.groovy:3 grounds (5 lines); :99 is stale; Gone.groovy is broken.
     expect(violations).toHaveLength(2)
     const messages = violations.map((v) => v.message).join('\n')
-    expect(messages).toMatch(/stale code pointer: .*Thing\.groovy has 6 lines.*references line 99/)
+    expect(messages).toMatch(/stale code pointer: .*Thing\.groovy has 5 lines.*references line 99/)
     expect(messages).toMatch(/broken code pointer: .*Gone\.groovy.*not under external root/)
   })
 

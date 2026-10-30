@@ -181,7 +181,7 @@ does not.
    anchors, plus explicit HTML anchors (`<a name="x">`, `<a id="x">`) and GitHub's
    `#user-content-…` alias. A fragment on a code file (`#L10`) is a line, and is
    checked as a pointer's line is, with
-   [bug 0561](./0561-a-pointer-one-line-past-the-end-of-a-file-passes.md)'s count;
+   [bug 0561](./fixed/0561-a-pointer-one-line-past-the-end-of-a-file-passes.md)'s count;
    any other fragment on a target that is not a document is reported as not
    judged under (3), never passed.
 

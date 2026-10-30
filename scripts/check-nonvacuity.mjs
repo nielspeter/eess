@@ -3492,21 +3492,50 @@ function gateCorpusWorkRoot() {
  * that tells "in the corpus" from "actually examined".
  */
 function gateCorpusWorkPointer() {
+  // Bug 0561: the second pointer cites the line after the last of a two-line file that ends in a
+  // newline, which a `split('\n').length` count let pass. The row asserts its stale finding and
+  // the file's real line count, so the count regressing reds the row as surely as the root does.
+  const twoLines = join(PROBE_CORPUS_WORK_POINTER_DIR, 'two-lines.ts')
   const { json, terminal } = withProbeDir(
     PROBE_CORPUS_WORK_POINTER_DIR,
     PROBE_CORPUS_WORK_POINTER,
-    '# Non-vacuity probe\n\nA live claim about code that does not exist: `src/__nonvacuity_does_not_exist__.ts:12`\n',
-    () => ({
-      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
-    }),
+    '# Non-vacuity probe\n\nA live claim about code that does not exist: `src/__nonvacuity_does_not_exist__.ts:12`\n\n' +
+      'A line one past the end of a file: `work/__nonvacuity_probe_nested__/two-lines.ts:3`\n',
+    () => {
+      writeFileSync(twoLines, 'export const a = 1\nexport const b = 2\n')
+      return {
+        json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+        terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+      }
+    },
   )
   const file = 'work/__nonvacuity_probe_nested__/pointer.md'
+  // Each planted pointer has its own clause: the missing file's, and the one past the end's.
+  const missing = violationsOf(json).some(
+    (v) =>
+      v?.ruleId === 'corpus/pointers-resolve' &&
+      String(v.file).includes(file) &&
+      String(v.message).startsWith(
+        'broken code pointer: "src/__nonvacuity_does_not_exist__.ts:12"',
+      ),
+  )
+  const pastTheEnd = violationsOf(json).some(
+    (v) =>
+      v?.ruleId === 'corpus/pointers-resolve' &&
+      String(v.file).includes(file) &&
+      String(v.message).startsWith(
+        'stale code pointer: work/__nonvacuity_probe_nested__/two-lines.ts has 2 lines;',
+      ),
+  )
   const ok =
-    json.code === 1 && firedOn(json, 'corpus/pointers-resolve', file) && terminal.code === 1
+    json.code === 1 &&
+    firedOn(json, 'corpus/pointers-resolve', file) &&
+    missing &&
+    pastTheEnd &&
+    terminal.code === 1
   return {
     ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/pointers-resolve, ${file})`,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/pointers-resolve, ${file}), missing file broken: ${missing}, one past the end stale with 2 lines: ${pastTheEnd}`,
   }
 }
 
