@@ -161,6 +161,8 @@ describe('pointers() — a line count reads the lines a file has (bug 0561)', ()
       '- `src/bare.ts:2` `src/bare.ts:3`',
       '- `src/crlf.ts:2` `src/crlf.ts:3`',
       '- `src/blank.ts:3` `src/blank.ts:4`',
+      '- `src/newline.ts:1` `src/newline.ts:2`',
+      '- `src/one.ts:1`',
       '',
     ].join('\n'),
     'src/two.ts': 'a\nb\n',
@@ -168,6 +170,8 @@ describe('pointers() — a line count reads the lines a file has (bug 0561)', ()
     'src/bare.ts': 'a\nb',
     'src/crlf.ts': 'a\r\nb\r\n',
     'src/blank.ts': 'a\nb\n\n',
+    'src/newline.ts': '\n',
+    'src/one.ts': 'a',
   })
   const messages = (): string[] =>
     pointers(c)
@@ -191,7 +195,9 @@ describe('pointers() — a line count reads the lines a file has (bug 0561)', ()
     )
   })
 
-  it('the last line passes, with or without a final newline, in CRLF and before a blank last line', () => {
+  it('exactly the lines past the end are stale, in every shape a file ends in', () => {
+    // One exact list: the last line passes with and without a final newline, in CRLF, before a
+    // blank last line, in a file that is one newline (one line) and in a one-character file.
     expect(messages()).toEqual([
       'stale code pointer: src/two.ts has 2 lines; "src/two.ts:3" references line 3',
       'stale code pointer: src/two.ts has 2 lines; "src/two.ts:2-3" references line 3',
@@ -199,6 +205,7 @@ describe('pointers() — a line count reads the lines a file has (bug 0561)', ()
       'stale code pointer: src/bare.ts has 2 lines; "src/bare.ts:3" references line 3',
       'stale code pointer: src/crlf.ts has 2 lines; "src/crlf.ts:3" references line 3',
       'stale code pointer: src/blank.ts has 3 lines; "src/blank.ts:4" references line 4',
+      'stale code pointer: src/newline.ts has 1 lines; "src/newline.ts:2" references line 2',
     ])
   })
 

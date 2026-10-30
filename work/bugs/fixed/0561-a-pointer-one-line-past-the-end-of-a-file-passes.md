@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Fixed — 2026-10-30, `linesIn` in `packages/md/src/conditions/pointer-resolve.ts`,
-  used at both line-count sites. Found by PR #280's method review, re-measured on the v0.16.0
+- **State:** Fixed — 2026-10-30, `lineCount` in `packages/md/src/model/line-count.ts`, used at
+  both line-count sites and by the section reader, which had the same count of its own. Found by PR #280's method review, re-measured on the v0.16.0
   build (eess-md 0.13.0), Node 24.22.0.
 - **Severity:** High — a false green: a pointer to a line the file does not have passes, and the
   stale-pointer message miscounts the file's lines.
@@ -36,12 +36,12 @@ right.
 
 ## Root cause
 
-Two sites count lines with `split('\n').length`, which counts the empty string after a final
+Before the fix, two sites counted lines with `split('\n').length`, which counts the empty string after a final
 newline as a line, and an empty file as one line:
 
 - `lineCount`, `readCorpusFile(corpus, rel).split('\n').length`
-  (`packages/md/src/conditions/pointer-resolve.ts:101`), for a file in the repository;
-- `readFileSync(abs, 'utf8').split('\n').length` (`packages/md/src/conditions/pointer-resolve.ts:179`),
+  (`packages/md/src/conditions/pointer-resolve.ts:102` now, which calls `lineCount`), for a file in the repository;
+- `readFileSync(abs, 'utf8').split('\n').length` (`packages/md/src/conditions/pointer-resolve.ts:180` now),
   for a file under an external root ([plan 0069](../../plans/completed/0069-spec-corpus-reach.md)'s path).
   Measured by PR #280's enforcement re-check: with an external root holding a two-line file ending
   in a newline, line 3 passes and line 4 is reported against "3 lines".
@@ -49,7 +49,10 @@ newline as a line, and an empty file as one line:
 ## Fix
 
 One count for both sites: a final newline ends the last line rather than starting a new one, and
-an empty file has no lines. The same count serves the message.
+an empty file has no lines. The same count serves the message. It lives in
+`packages/md/src/model/line-count.ts`, where the section reader's own copy (`lastLine` in
+`packages/md/src/model/sections.ts`, the same rule) now reads it too, so the two cannot drift
+(PR #281's testing review).
 
 Builds that are green today go red where a pointer cites the phantom line, so the changeset marks
 it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x. This repository stays green: none of its
@@ -59,7 +62,8 @@ live pointers that resolve to one file cites that line (PR #280's enforcement re
 
 - [x] Red test written first: a pointer to line 3 of a two-line file ending in a newline is
       reported stale. Green before the fix: `packages/md/tests/pointers.test.ts`, the
-      `bug 0561` block, ran 4 failed before `linesIn` and passes after.
+      `bug 0561` block, ran 4 failed before the fix and passes after. A blank file (`"\n"`, one line) and a
+      one-character file pin the empty-file guard against `trim()` and `length <= 1` mutants.
 - [x] A pointer to line 1 of an empty file is reported stale ("has 0 lines").
 - [x] The same row under an external root: a pointer to line 6 of the five-line
       `Thing.groovy` fixture is stale.

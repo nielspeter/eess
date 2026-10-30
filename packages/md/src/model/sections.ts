@@ -2,6 +2,7 @@ import type { Nodes } from 'mdast'
 import { headingName, type MdDocument, type MdSection } from './document.js'
 import { matchName } from './name-match.js'
 import { isNearMiss } from './label.js'
+import { lineCount } from './line-count.js'
 
 /**
  * A section (plan 0496): a heading at the top level of a document, and the lines it governs. Named
@@ -29,13 +30,6 @@ export interface HaveSectionOptions {
   readonly depth?: number
 }
 
-/** The document's last line: a file ending in a newline has no line after it. */
-function lastLine(text: string): number {
-  if (text === '') return 0
-  const n = text.split('\n').length
-  return text.endsWith('\n') ? n - 1 : n
-}
-
 const INDEX = new WeakMap<MdDocument, readonly MdSectionElement[]>()
 
 /**
@@ -45,7 +39,7 @@ const INDEX = new WeakMap<MdDocument, readonly MdSectionElement[]>()
 export function sectionsOf(doc: MdDocument): readonly MdSectionElement[] {
   const known = INDEX.get(doc)
   if (known !== undefined) return known
-  const end = lastLine(doc.text)
+  const end = lineCount(doc.text)
   const out: { section: MdSection; sectionPath: readonly string[]; endLine: number }[] = []
   // The sections still open, outermost first: a heading closes every one at its depth or deeper.
   const open: (typeof out)[number][] = []

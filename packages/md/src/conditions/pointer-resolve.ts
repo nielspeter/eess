@@ -5,6 +5,7 @@ import { pathSuffixIndex } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import type { MdPointer } from '../model/pointers.js'
 import { isTextCorpus, readCorpusFile } from '../model/corpus-internals.js'
+import { lineCount } from '../model/line-count.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 
 /** How a pointer path resolves against the repo file index. */
@@ -36,16 +37,6 @@ export interface PointerResolveOptions {
    *    a skip that reads as a pass is the vacuity this option must not create).
    */
   readonly externalRoots?: readonly string[]
-}
-
-/**
- * The lines a file has, as a pointer numbers them (bug 0561): a final newline ends the last line
- * rather than starting one, and an empty file has none. `split('\n').length` counted one more for
- * every file ending in a newline, so a pointer one past the end passed.
- */
-function linesIn(text: string): number {
-  if (text === '') return 0
-  return (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').length
 }
 
 /** The subset of `roots` that actually exist on disk — for gate summary lines. */
@@ -105,10 +96,10 @@ export function pointerResolves(
   const paths = pathSuffixIndex(corpus.fileIndex)
 
   const lineCountCache = new Map<string, number>()
-  const lineCount = (rel: string): number => {
+  const linesOf = (rel: string): number => {
     const cached = lineCountCache.get(rel)
     if (cached !== undefined) return cached
-    const n = linesIn(readCorpusFile(corpus, rel))
+    const n = lineCount(readCorpusFile(corpus, rel))
     lineCountCache.set(rel, n)
     return n
   }
@@ -186,7 +177,7 @@ export function pointerResolves(
             const abs = join(rootDir, wanted)
             let external: number
             try {
-              external = linesIn(readFileSync(abs, 'utf8'))
+              external = lineCount(readFileSync(abs, 'utf8'))
             } catch (err) {
               void err // not under this root — try the next configured root
               continue
@@ -254,7 +245,7 @@ export function pointerResolves(
           ]
         }
 
-        const lines = lineCount(targetRel)
+        const lines = linesOf(targetRel)
         if (Math.max(p.startLine, p.endLine) > lines) {
           return [
             mdViolation({

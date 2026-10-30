@@ -3510,6 +3510,15 @@ function gateCorpusWorkPointer() {
     },
   )
   const file = 'work/__nonvacuity_probe_nested__/pointer.md'
+  // Each planted pointer has its own clause: the missing file's, and the one past the end's.
+  const missing = violationsOf(json).some(
+    (v) =>
+      v?.ruleId === 'corpus/pointers-resolve' &&
+      String(v.file).includes(file) &&
+      String(v.message).startsWith(
+        'broken code pointer: "src/__nonvacuity_does_not_exist__.ts:12"',
+      ),
+  )
   const pastTheEnd = violationsOf(json).some(
     (v) =>
       v?.ruleId === 'corpus/pointers-resolve' &&
@@ -3521,11 +3530,12 @@ function gateCorpusWorkPointer() {
   const ok =
     json.code === 1 &&
     firedOn(json, 'corpus/pointers-resolve', file) &&
+    missing &&
     pastTheEnd &&
     terminal.code === 1
   return {
     ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/pointers-resolve, ${file}), one past the end stale with 2 lines: ${pastTheEnd}`,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/pointers-resolve, ${file}), missing file broken: ${missing}, one past the end stale with 2 lines: ${pastTheEnd}`,
   }
 }
 
