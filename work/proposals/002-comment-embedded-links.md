@@ -64,7 +64,7 @@ public documentation:
   Neither exists here.
 - `packages/core/src/report.ts:9` — "([plan 0070](../plans/completed/0070-caller-owns-reporting.md), [ADR-008](../../adr/008-caller-owns-reporting.md))". [Plan 0070](../plans/completed/0070-caller-owns-reporting.md) lives
   only in `work/plans/completed/`; it moved when it closed.
-- `packages/core/src/apply-fixes.ts:29` — "([plan 0066](../plans/completed/0066-eess-deterministic-autofix.md))". Likewise.
+- `packages/core/src/apply-fixes.ts:33` — "([plan 0066](../plans/completed/0066-eess-deterministic-autofix.md))". Likewise.
 
 The second and third are exactly the lifecycle the submission describes: a
 citation written when the target was live, left behind when our own close

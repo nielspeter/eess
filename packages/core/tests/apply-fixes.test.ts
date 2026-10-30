@@ -103,6 +103,74 @@ describe('applyFixes()', () => {
     expect(fs.readFileSync(f, 'utf8')).toBe('see [x](./old.md) here')
   })
 
+  it('two fixes with one replacement at different spans are two edits, both applied', () => {
+    const f = tmpFile('[a](./old.md) and [b](./old.md)')
+    dirs.push(f)
+    const first = '[a]('.length
+    const second = '[a](./old.md) and [b]('.length
+    const at = (start: number): ArchFix => ({
+      file: f,
+      start,
+      end: start + 8,
+      replacement: './new.md',
+      describe: `at ${String(start)}`,
+    })
+    const r = applyFixes([vfix(at(first)), vfix(at(second))], { write: true })
+    expect(r.applied).toBe(2)
+    expect(r.skipped).toBe(0)
+    expect(fs.readFileSync(f, 'utf8')).toBe('[a](./new.md) and [b](./new.md)')
+  })
+
+  it('two overlapping fixes with one replacement but different spans are both skipped', () => {
+    const f = tmpFile('see [x](./old.md) here')
+    dirs.push(f)
+    const start = 'see [x]('.length
+    const wide: ArchFix = { file: f, start, end: start + 8, replacement: './new.md', describe: 'w' }
+    // One pair differs in its start, the other in its end; neither is the same edit.
+    for (const other of [
+      { ...wide, start: start + 2, describe: 'n' },
+      { ...wide, end: start + 4, describe: 'e' },
+    ]) {
+      const r = applyFixes([vfix(wide), vfix(other)], { write: true })
+      expect(r.applied).toBe(0)
+      expect(r.skipped).toBe(2)
+      expect(fs.readFileSync(f, 'utf8')).toBe('see [x](./old.md) here')
+    }
+  })
+
+  it('identical edits with different describe text are one edit; the first is reported', () => {
+    const f = tmpFile('see [x](./old.md) here')
+    dirs.push(f)
+    const start = 'see [x]('.length
+    const fix: ArchFix = {
+      file: f,
+      start,
+      end: start + 8,
+      replacement: './new.md',
+      describe: 'one',
+    }
+    const r = applyFixes([vfix(fix), vfix({ ...fix, describe: 'two' })], { write: true })
+    expect(r.applied).toBe(1)
+    expect(r.descriptions).toEqual(['one'])
+  })
+
+  it('an identical edit in two files is two edits, one in each', () => {
+    const f1 = tmpFile('see [x](./old.md) here')
+    const f2 = tmpFile('see [x](./old.md) here')
+    dirs.push(f1, f2)
+    const start = 'see [x]('.length
+    const edit = (file: string): ArchFix => ({
+      file,
+      start,
+      end: start + 8,
+      replacement: './new.md',
+      describe: 'r',
+    })
+    const r = applyFixes([vfix(edit(f1)), vfix(edit(f2))], { write: true })
+    expect(r.applied).toBe(2)
+    expect(r.files).toHaveLength(2)
+  })
+
   it('ignores violations without a fix', () => {
     const r = applyFixes([{ rule: 'r', element: 'e', file: 'x', line: 1, message: 'm' }], {
       write: true,

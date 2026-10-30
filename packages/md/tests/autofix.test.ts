@@ -88,3 +88,27 @@ describe('autofix — two rules, one moved link (bugs 0563, 0564)', () => {
     fs.rmSync(tmp, { recursive: true, force: true })
   })
 })
+
+describe('autofix — two links to one moved file (bug 0564)', () => {
+  it('each link gets its own fix, and both are applied', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-autofix-'))
+    try {
+      fs.mkdirSync(join(tmp, 'docs/new'), { recursive: true })
+      fs.writeFileSync(
+        join(tmp, 'docs/a.md'),
+        '# A\n\nSee [b](./old/b.md) and [again](./old/b.md).\n',
+      )
+      fs.writeFileSync(join(tmp, 'docs/new/b.md'), '# B\n')
+      const c = corpus({ roots: ['docs/**'], cwd: tmp })
+      const r = applyFixes(links(c).that().areInternal().should().resolve().violations(), {
+        write: true,
+      })
+      expect(r.applied).toBe(2)
+      expect(fs.readFileSync(join(tmp, 'docs/a.md'), 'utf8')).toBe(
+        '# A\n\nSee [b](./new/b.md) and [again](./new/b.md).\n',
+      )
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
+  })
+})

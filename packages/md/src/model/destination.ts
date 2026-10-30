@@ -6,8 +6,9 @@
 
 /**
  * Where the destination starts, reading from `from` (just after the `](` or `]:` that opens it):
- * spaces or tabs and at most one line ending, then an optional `<`. `undefined` past a second
- * line ending, where no destination can be.
+ * spaces or tabs and a line ending, then an optional `<`. The bound of one line ending is
+ * defensive: a blank line ends the paragraph or the definition, so no parsed node reaches a
+ * second one, and `undefined` past it is never returned for one.
  */
 export function destinationAt(raw: string, from: number): number | undefined {
   let i = from
@@ -21,8 +22,8 @@ export function destinationAt(raw: string, from: number): number | undefined {
 
 /**
  * True when `url` is written at `at` exactly as the parser read it, and ends there: at the end,
- * a space, a `>` or a `)`. A destination with an escape or an entity is not written as it reads,
- * so it gets no span, and no fix guesses at it.
+ * a space, a `>`, or (for an inline link, which `)` closes) a `)`. A destination with an escape
+ * or an entity is not written as it reads, so it gets no span, and no fix guesses at it.
  */
 export function writtenAt(raw: string, at: number, url: string): boolean {
   if (url === '' || !raw.startsWith(url, at)) return false

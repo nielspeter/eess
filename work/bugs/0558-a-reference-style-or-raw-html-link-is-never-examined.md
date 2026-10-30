@@ -111,7 +111,8 @@ Two parts, one root cause:
      never a comparison of eess-md's own.
    - **The finding names the definition's line**, where the URL the author must edit is, and one
      definition used by several references gives one finding and at most one fix: the fix's span
-     lies in the definition, and overlapping fixes are dropped (`packages/core/src/apply-fixes.ts:61`).
+     lies in the definition, and overlapping fixes that differ are dropped (`packages/core/src/apply-fixes.ts:65`;
+     identical ones are one edit since [bug 0564](./fixed/0564-two-identical-fixes-cancel-each-other.md)).
    - **A dangling full or collapsed reference is reported**: `[text][label]` or `[label][]` outside
      code whose label has no definition, read from the source text by offset, since the parser
      unescapes `\[a\]\[b\]` into the text `[a][b]`. "reference has no definition" at its line,

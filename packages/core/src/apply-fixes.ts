@@ -3,9 +3,13 @@ import type { ArchFix, ArchViolation } from './violation.js'
 
 /** Outcome of an `applyFixes` run. */
 export interface ApplyResult {
-  /** Number of fixes applied (or, in dry-run, that would apply). */
+  /**
+   * Number of distinct edits applied (or, in dry-run, that would apply). Identical fixes are one
+   * edit (bug 0564): a copy of an applied edit is counted neither here nor in `skipped`, since
+   * that edit cures its finding too.
+   */
   readonly applied: number
-  /** Number of fixes skipped because they overlapped another fix. */
+  /** Number of fixes skipped because they overlapped another fix that differs from them. */
   readonly skipped: number
   /** Absolute paths of the files edited (or that would be edited). */
   readonly files: readonly string[]
