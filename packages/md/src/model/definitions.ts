@@ -1,4 +1,5 @@
 import type { Nodes, Root } from 'mdast'
+import { destinationAt, writtenAt } from './destination.js'
 
 /** A link reference definition, `[label]: url`, as a reference-style link reads it (bug 0558). */
 export interface MdLinkDefinition {
@@ -18,21 +19,14 @@ interface DefinitionSite extends MdLinkDefinition {
 
 /**
  * Where a definition's destination starts in its raw text, or `undefined`: after the label's
- * closing `]:` (a `\]` inside the label is escaped, not the close), spaces or tabs and at most one
- * line ending, and an optional `<`. Only there can the destination be; a title or the label
- * holding the same text is never it.
+ * closing `]:` (a `\]` inside the label is escaped, not the close). Only there can the destination
+ * be; a title or the label holding the same text is never it.
  */
 function destinationStart(raw: string): number | undefined {
   let i = 1
   while (i < raw.length && raw[i] !== ']') i += raw[i] === '\\' ? 2 : 1
   if (raw[i + 1] !== ':') return undefined
-  i += 2
-  let lineEndings = 0
-  while (i < raw.length && /\s/.test(raw.charAt(i))) {
-    if (raw[i] === '\n' && ++lineEndings > 1) return undefined
-    i++
-  }
-  return raw[i] === '<' ? i + 1 : i
+  return destinationAt(raw, i + 2)
 }
 
 /**
@@ -53,13 +47,7 @@ export function definitionsOf(root: Root, source: string | undefined): Map<strin
       if (source !== undefined && start !== undefined && end !== undefined && node.url !== '') {
         const raw = source.slice(start, end)
         const at = destinationStart(raw)
-        // The destination ends where the URL does: at the end, a space or a `>`, never inside it.
-        const after = raw.charAt(at === undefined ? 0 : at + node.url.length)
-        if (
-          at !== undefined &&
-          raw.startsWith(node.url, at) &&
-          (after === '' || /[\s>]/.test(after))
-        ) {
+        if (at !== undefined && writtenAt(raw, at, node.url)) {
           urlStart = start + at
           urlEnd = urlStart + node.url.length
         }

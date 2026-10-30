@@ -2,15 +2,16 @@
 
 ## Status
 
-- **State:** Draft — found by PR #282's architect review, re-measured 2026-10-30 on main's build
-  (eess-md 0.13.0 plus PR #282); no red test yet.
+- **State:** Fixed — 2026-10-30, the inline span read through `packages/md/src/model/destination.ts`,
+  the one owner it now shares with a link reference definition's. Found by PR #282's architect
+  review.
 - **Severity:** Medium — a fix that writes the wrong span: applied, it rewrites the title and
   leaves the broken URL in place, which `resolve()` still reports, so it is a corrupt edit, not a
   false green.
 - **Origin:** self-found · PR #282's architect review. PR #282 anchored the same search for a
   reference-style link's definition; the inline path predates it and is recorded here, not fixed
   there.
-- **Reported:** 2026-10-30
+- **Reported:** 2026-10-30 · **Fixed:** 2026-10-30 (PR #283)
 
 ## Symptom
 
@@ -33,20 +34,24 @@ The title is rewritten; the URL is still `./old/a\>b.md`.
 
 ## Root cause
 
-`collectLinkBlocks` takes `raw.lastIndexOf(node.url)` over the link's raw text
+Before PR #283, `collectLinkBlocks` took `raw.lastIndexOf(node.url)` over the link's raw text
 (`packages/md/src/model/links.ts:225`), with no anchor to where the destination starts.
 
 ## Fix
 
 As PR #282 does for a definition (`packages/md/src/model/definitions.ts`): accept a match only
 where the destination starts, after the link text's `](`, and leave the span absent, so no fix,
-anywhere else.
+anywhere else. Built in PR #283: the start and the end check moved to one module,
+`packages/md/src/model/destination.ts`, which both the inline link and the definition read.
 
 ## Verification
 
-- [ ] Red test written first: the reproduction gets no fix. Today the fix rewrites the title.
-- [ ] A plain inline link and one with a title still get their fix over the URL.
-- [ ] A changeset naming `@nielspeter/eess-md`.
-- [ ] `npm run validate` green.
+- [x] Red test written first: the reproduction gets no fix. `packages/md/tests/inline-link-fix.test.ts`:
+      it, and a plain title equal to the URL (which `lastIndexOf` also got wrong, no escape
+      needed), were red before the fix; with `lastIndexOf` put back, 3 tests fail.
+- [x] A plain inline link and one with a title still get their fix over the URL, as does an
+      angle-bracketed one and one whose text equals the URL.
+- [x] A changeset naming `@nielspeter/eess-md` (`.changeset/a-fix-lands-on-the-url-once.md`).
+- [x] `npm run validate` green.
 
 Deferred: none
