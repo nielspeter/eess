@@ -28,8 +28,10 @@ one in a fence, and a standard `[real](gone.md)`:
 
 ## Existing code survey
 
-- **The link walk reads `link` nodes and counts `linkReference` nodes**
-  (`packages/md/src/model/links.ts:192-193`); text is not scanned for links.
+- **The link walk reads `link` nodes and, since [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md), `linkReference` nodes**, and scans a
+  block's text only for a reference whose definition is missing (`packages/md/src/model/links.ts:224-226`,
+  `packages/md/src/model/dangling-references.ts`); a wikilink is read by neither. (Amended
+  2026-10-30: it used to say text is not scanned at all.)
 - **The parser has no wikilink extension:** `parseMarkdown` runs `fromMarkdown` with GFM and YAML
   front matter only (`packages/md/src/model/prose.ts:78-81`, since [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md)'s fix). No `wikilink`, `wiki-link` or `obsidian` appears in
   `packages/*/src`.

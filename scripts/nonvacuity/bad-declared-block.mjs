@@ -10,6 +10,10 @@
  *   section-near-miss     bad-declared-block/section.md has `## See Also` beside a
  *                         declared "See also" → "the heading … is not the
  *                         declared section …".
+ *   dangling-declaration  bad-declared-block/dangling.md holds a "Related to"
+ *                         block whose reference-style link has no definition
+ *                         (its label renamed or deleted) → "the reference [gone]
+ *                         has no definition …" (bug 0558's dangling half).
  *   reference-declaration bad-declared-block/reference.md holds a "Related to"
  *                         block of a reference-style link whose definition names
  *                         a missing file → `resolve()` reports it at the
@@ -95,6 +99,11 @@ const SCENARIOS = {
     file: `${ROOT}/alone.md`,
     declare: (b) => b.areLabelled('Related to'),
     says: 'the "Related to" label stands alone with no list directly under it',
+  },
+  'dangling-declaration': {
+    file: `${ROOT}/dangling.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: 'the reference [gone] has no definition, so it is not a link',
   },
   'formatted-label': {
     file: `${ROOT}/formatted.md`,

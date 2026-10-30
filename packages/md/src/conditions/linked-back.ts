@@ -2,6 +2,7 @@ import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import { collectLinks, type MdLink } from '../model/links.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
+import { undefinedReferenceViolation } from './resolve.js'
 import {
   basenameIndex,
   movedLinkFix,
@@ -120,6 +121,10 @@ export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Co
       // reported once, at the definition, naming it, with at most one fix over its URL.
       const reported = new Set<string>()
       for (const link of links) {
+        if (link.undefinedReference !== undefined) {
+          out.push(undefinedReferenceViolation(link, ctx))
+          continue
+        }
         const target = resolveLink(link, corpus, options)
         if (target.kind === 'document' && index.get(target.path)?.has(link.doc.relPath) === true) {
           continue

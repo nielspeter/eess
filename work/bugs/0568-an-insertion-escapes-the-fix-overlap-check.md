@@ -11,10 +11,21 @@
 ## Symptom
 
 `overlaps` (`packages/core/src/apply-fixes.ts:21`) is `a.start < b.end && b.start < a.end`. A fix
-with `start === end` (an insertion) overlaps nothing under it, so two different insertions at one
-offset are both applied, in rule order, which is a guess; and an insertion at `s` beside a
-replacement of `[s, e)` is not an overlap either, and the replacement, sorted to the same start,
-removes the inserted text.
+with `start === end` (an insertion) overlaps nothing under it, so it is applied beside any other
+edit at its offset, and the outcome depends on the order the rules happened to report in.
+Corrected 2026-10-30 from a measurement (the first version of this record described it wrongly,
+PR #283's re-check): over `abcdef`, with `applyFixes(…, { write: true })` on main's build,
+
+```text
+two insertions at 2, X then Z                "abZXcdef" applied 2 skipped 0
+two insertions at 2, Z then X                "abXZcdef" applied 2 skipped 0
+insertion X, then replacement [2,4)->YY      "abYYdef" applied 2 skipped 0
+replacement [2,4)->YY, then insertion X      "abXYYef" applied 2 skipped 0
+```
+
+Two insertions come out in reverse report order. An insertion reported before a replacement at
+its offset is applied first, and the replacement's span then covers the inserted text: `abYYdef`
+loses the insertion and keeps the `d` it should have replaced. Every case reports `skipped 0`.
 
 `movedLinkFix` and `beLinked`'s fix both replace a non-empty span, so nothing in the family
 emits an insertion today. [Bug 0564](./fixed/0564-two-identical-fixes-cancel-each-other.md)'s fold already makes two identical insertions one edit.

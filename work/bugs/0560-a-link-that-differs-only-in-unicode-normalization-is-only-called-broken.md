@@ -38,7 +38,7 @@ links: examined 1 · violations 1
 
 The resolver compares the link's path with the corpus's file index as strings
 (`packages/md/src/model/resolve-link.ts`), and the message is built in
-`packages/md/src/conditions/resolve.ts:81` with no near-miss check for this case. It has one for a
+`packages/md/src/conditions/resolve.ts:103` with no near-miss check for this case. It has one for a
 link that misses by a directory (`directoryHint`).
 
 ## Why it matters

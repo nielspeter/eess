@@ -3,7 +3,10 @@ import { destinationAt, writtenAt } from './destination.js'
 
 /** A link reference definition, `[label]: url`, as a reference-style link reads it (bug 0558). */
 export interface MdLinkDefinition {
-  /** The definition's label, with escapes and entities decoded, as mdast's `label` holds it. */
+  /**
+   * The definition's label as the source writes it, escapes and entities kept (`[a\\*b]`), so a
+   * finding names text the author can find; mdast's `label` where the source cannot be read.
+   */
   readonly label: string
   /** 1-based line of the definition. */
   readonly line: number
@@ -23,10 +26,16 @@ interface DefinitionSite extends MdLinkDefinition {
  * be; a title or the label holding the same text is never it.
  */
 function destinationStart(raw: string): number | undefined {
+  const close = labelClose(raw)
+  if (close === undefined || raw[close + 1] !== ':') return undefined
+  return destinationAt(raw, close + 2)
+}
+
+/** The index of the `]` that closes a definition's label (a `\\]` inside it is escaped). */
+function labelClose(raw: string): number | undefined {
   let i = 1
   while (i < raw.length && raw[i] !== ']') i += raw[i] === '\\' ? 2 : 1
-  if (raw[i + 1] !== ':') return undefined
-  return destinationAt(raw, i + 2)
+  return i < raw.length ? i : undefined
 }
 
 /**
@@ -44,8 +53,11 @@ export function definitionsOf(root: Root, source: string | undefined): Map<strin
       const end = node.position?.end.offset
       let urlStart: number | undefined
       let urlEnd: number | undefined
-      if (source !== undefined && start !== undefined && end !== undefined && node.url !== '') {
+      let label = node.label ?? node.identifier
+      if (source !== undefined && start !== undefined && end !== undefined) {
         const raw = source.slice(start, end)
+        const close = labelClose(raw)
+        if (raw.startsWith('[') && close !== undefined) label = raw.slice(1, close)
         const at = destinationStart(raw)
         if (at !== undefined && writtenAt(raw, at, node.url)) {
           urlStart = start + at
@@ -53,7 +65,7 @@ export function definitionsOf(root: Root, source: string | undefined): Map<strin
         }
       }
       out.set(node.identifier, {
-        label: node.label ?? node.identifier,
+        label,
         line: node.position?.start.line ?? 0,
         url: node.url,
         urlStart,

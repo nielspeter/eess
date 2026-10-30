@@ -10,7 +10,7 @@
 ## Symptom
 
 `packages/md/src/model/prose.ts:32` declares `EXTERNAL`, a copy of `EXTERNAL_RE`
-(`packages/md/src/model/links.ts:69`). [Plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md) exported `EXTERNAL_RE` so that
+(`packages/md/src/model/links.ts:76`). [Plan 0549](../plans/completed/0549-a-link-names-the-record-it-mentions.md) exported `EXTERNAL_RE` so that
 `mentions()` and `links()` could not disagree about which link points outside the repository. The
 front-matter guard decides with its own copy which links it must not hide, and since PR #282 it
 judges reference-style links with it too, so a change to one pattern would split what the guard

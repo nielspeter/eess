@@ -211,9 +211,10 @@ describe('PR #282 re-checks (bug 0558)', () => {
   // shortcut reference's shape, and reading it as one is a false red (bug 0566 records the gap).
   it('a YAML list shaped like a reference to a body definition stays front matter', () => {
     const v = resolveOf({
-      'docs/a.md': '---\ntags: [adr]\n---\n\n# A\n\n[ok](./b.md)\n\n[adr]: ./adr.md\n',
+      // The definition names a missing file, so reading the block as Markdown would both add an
+      // element and report it: either assertion catches the regression.
+      'docs/a.md': '---\ntags: [adr]\n---\n\n# A\n\n[ok](./b.md)\n\n[adr]: ./gone.md\n',
       'docs/b.md': '# B\n',
-      'docs/adr.md': '# ADR\n',
     })
     expect(v.map((x) => x.message)).toEqual([])
     expect(v.examined).toBe(1)

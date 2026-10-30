@@ -238,7 +238,15 @@ definition, however many references use it, with at most one fix over the
 definition's URL. A label matches its definition as the CommonMark spec says,
 by Unicode case fold (`[ẞ]` finds `[SS]`), the first matching definition used.
 `.beLinkedBack()` reports a reference-style link once, at its definition, too, and an
-exclusion comment for such a finding goes above the definition, not the reference. `.areInternal()`/`.areExternal()` split on
+exclusion comment for such a finding goes above the definition, not the reference.
+A full or collapsed reference whose label has no definition (`[text][gone]`,
+`[gone][]`, its definition deleted or renamed) is text to the parser, so `links()`
+reads it from the source as a link with no destination (`url` `''`,
+`.undefinedReference` naming its label): `.resolve()` and `.beLinkedBack()` report
+"the reference [gone] has no definition" at its own line. A shortcut `[label]` is
+never read so, since `[WIP]`, a task box and `> [!NOTE]` share its shape; text of
+the full shape that is not a link (`matrix[i][j]`) is reported too, and a code span
+clears it. `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
 `tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`
 understand a static site's routing instead of only a repo-hosted one.
