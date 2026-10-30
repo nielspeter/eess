@@ -4,12 +4,15 @@
 
 - **State:** Draft — root cause read from the source and confirmed by probing the
   live gate (see _Reproduction_). No red test yet.
-- **Severity:** Medium — an honesty gap between a stated claim and its actual
-  mechanism, which is `BUGS.md`'s Medium row. **Not** High: all five internal
-  anchor links in the gated roots are correct today (verified below), so nothing
-  is currently passing over drift that is present. The argument for High is the
-  autofix path in _Symptom_ (4), which can actively **produce** a dead anchor
-  rather than merely fail to notice one.
+- **Severity:** High, raised 2026-10-30 — `BUGS.md`'s High row is a gate that
+  passes over drift it should catch, and a dead anchor is that drift whether or
+  not this repository holds one. The maintainer named GitHub Flavored Markdown
+  important (2026-10-30): a README or wiki links to headings constantly, so for
+  an adopter the gap is live, not hypothetical. Re-measured on the v0.16.0 build:
+  `[x](./other.md#no-such-heading)`, with `other.md` present, and `[x](#nowhere)`
+  produce no finding. _Was Medium (2026-08-13): an honesty gap, not High because
+  all five internal anchor links in the gated roots were correct; the argument
+  for High was the autofix path in Symptom (4)._
 - **Origin:** self-found · probed the gate while adding an in-document anchor to
   [proposal 001](../proposals/001-md-corpus-rule-coverage.md) during the
   proposal-003/004 review round
@@ -139,6 +142,17 @@ Verified by hand, which is the point: nothing else can.
    spaces → hyphens, de-duplicate with `-1`, `-2`) and resolve the fragment
    against the target document's slug set. Same-document anchors resolve against
    the linking document's own headings, which needs no new data at all.
+
+   **Letters outside ASCII are kept, not stripped (added 2026-10-30).** GitHub's
+   slug removes punctuation but keeps letters and marks in any script, lowercased:
+   `## Größe der Datei` is `#größe-der-datei`, and `## Kočka` is `#kočka`
+   (measured with `github-slugger` 2.0.0, which implements GitHub's rule). A link
+   may write the fragment percent-encoded (`#gr%C3%B6%C3%9Fe-der-datei`), so the
+   fragment is decoded before it is compared. A slug that strips such letters would
+   turn every correct anchor into a heading written in another language into a
+   false red. The exact rule is GitHub's, to be read from its slugger and pinned by
+   rows, not restated from memory.
+
 2. **Stop overloading the empty target list.** `resolveTargets` should
    distinguish "no file part, resolve the fragment locally" from "not a file
    reference, skip" rather than returning `[]` for both.
@@ -168,6 +182,8 @@ Verified by hand, which is the point: nothing else can.
       `BUGS.md#when-is-a-bug-fixed` — so the fix does not invert into false reds
       on correct slugs (punctuation-stripping and duplicate-heading suffixes are
       the two shapes most likely to).
+- [ ] A heading with letters outside ASCII (`## Größe der Datei`) is reachable by
+      its GitHub slug, written plain and percent-encoded, and a near miss is red.
 - [ ] `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
 - [ ] The `check:corpus` summary reports fragments checked and fragments it could
       not verify.
