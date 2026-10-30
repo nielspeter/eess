@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { corpus, pointers } from '../src/index.js'
+import { corpus, corpusFromText, pointers } from '../src/index.js'
 
 const fixtureRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/corpus')
 
@@ -146,5 +146,74 @@ describe('pointers() — HTML-comment sanctions (family exclusion mechanism)', (
     // for a rule id the comments don't name.
     expect(v).toHaveLength(2)
     expect(v.every((x) => /missing\.ts/.test(x.message))).toBe(true)
+  })
+})
+
+describe('pointers() — a line count reads the lines a file has (bug 0561)', () => {
+  // `split('\n').length` counted the empty string after a final newline as a line, so a pointer
+  // one past the end of a file ending in a newline passed, and an empty file had one line.
+  const c = corpusFromText({
+    'docs/p.md': [
+      '# P',
+      '',
+      '- `src/two.ts:2` `src/two.ts:3` `src/two.ts:1-2` `src/two.ts:2-3`',
+      '- `src/empty.ts:1`',
+      '- `src/bare.ts:2` `src/bare.ts:3`',
+      '- `src/crlf.ts:2` `src/crlf.ts:3`',
+      '- `src/blank.ts:3` `src/blank.ts:4`',
+      '',
+    ].join('\n'),
+    'src/two.ts': 'a\nb\n',
+    'src/empty.ts': '',
+    'src/bare.ts': 'a\nb',
+    'src/crlf.ts': 'a\r\nb\r\n',
+    'src/blank.ts': 'a\nb\n\n',
+  })
+  const messages = (): string[] =>
+    pointers(c)
+      .should()
+      .resolve()
+      .violations()
+      .map((v) => v.message)
+
+  it('a pointer one past the end of a file ending in a newline is stale, with its real count', () => {
+    expect(messages()).toContain(
+      'stale code pointer: src/two.ts has 2 lines; "src/two.ts:3" references line 3',
+    )
+    expect(messages()).toContain(
+      'stale code pointer: src/two.ts has 2 lines; "src/two.ts:2-3" references line 3',
+    )
+  })
+
+  it('a pointer into an empty file is stale: it has no lines', () => {
+    expect(messages()).toContain(
+      'stale code pointer: src/empty.ts has 0 lines; "src/empty.ts:1" references line 1',
+    )
+  })
+
+  it('the last line passes, with or without a final newline, in CRLF and before a blank last line', () => {
+    expect(messages()).toEqual([
+      'stale code pointer: src/two.ts has 2 lines; "src/two.ts:3" references line 3',
+      'stale code pointer: src/two.ts has 2 lines; "src/two.ts:2-3" references line 3',
+      'stale code pointer: src/empty.ts has 0 lines; "src/empty.ts:1" references line 1',
+      'stale code pointer: src/bare.ts has 2 lines; "src/bare.ts:3" references line 3',
+      'stale code pointer: src/crlf.ts has 2 lines; "src/crlf.ts:3" references line 3',
+      'stale code pointer: src/blank.ts has 3 lines; "src/blank.ts:4" references line 4',
+    ])
+  })
+
+  it('a pointer one past the end of a file under an external root is stale', () => {
+    const external = corpus({
+      cwd: join(dirname(fileURLToPath(import.meta.url)), 'fixtures/external-root/repo-line-count'),
+      roots: ['docs/**'],
+    })
+    const legacy = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/external-root/legacy')
+    const v = pointers(external)
+      .should()
+      .resolve({ externalRoots: [legacy] })
+      .violations()
+    expect(v.map((x) => x.message)).toEqual([
+      `stale code pointer: ${legacy}/legacy-src/Thing.groovy has 5 lines; "legacy-src/Thing.groovy:6" references line 6`,
+    ])
   })
 })

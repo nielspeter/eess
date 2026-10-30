@@ -217,7 +217,7 @@ describe('corpusFromText: pointers resolve in memory', () => {
       [
         join(c.root, 'docs/guide.md'),
         3,
-        'stale code pointer: src/app.ts has 3 lines; "src/app.ts:9" references line 9',
+        'stale code pointer: src/app.ts has 2 lines; "src/app.ts:9" references line 9',
       ],
     ])
   })

@@ -38,6 +38,16 @@ export interface PointerResolveOptions {
   readonly externalRoots?: readonly string[]
 }
 
+/**
+ * The lines a file has, as a pointer numbers them (bug 0561): a final newline ends the last line
+ * rather than starting one, and an empty file has none. `split('\n').length` counted one more for
+ * every file ending in a newline, so a pointer one past the end passed.
+ */
+function linesIn(text: string): number {
+  if (text === '') return 0
+  return (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').length
+}
+
 /** The subset of `roots` that actually exist on disk — for gate summary lines. */
 export function presentExternalRoots(roots: readonly string[]): readonly string[] {
   return roots.filter((r) => {
@@ -98,7 +108,7 @@ export function pointerResolves(
   const lineCount = (rel: string): number => {
     const cached = lineCountCache.get(rel)
     if (cached !== undefined) return cached
-    const n = readCorpusFile(corpus, rel).split('\n').length
+    const n = linesIn(readCorpusFile(corpus, rel))
     lineCountCache.set(rel, n)
     return n
   }
@@ -176,7 +186,7 @@ export function pointerResolves(
             const abs = join(rootDir, wanted)
             let external: number
             try {
-              external = readFileSync(abs, 'utf8').split('\n').length
+              external = linesIn(readFileSync(abs, 'utf8'))
             } catch (err) {
               void err // not under this root — try the next configured root
               continue
