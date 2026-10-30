@@ -67,9 +67,8 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
    *
    * The rule also reports, over the whole corpus, what it cannot read: a wrapped
    * label that misses the declared one only by case or spacing, a different
-   * wrapped label inside the declaration, the label where no block starts, a
-   * declaration holding reference-style links, and a wrapped declaration with
-   * nothing under it. That check
+   * wrapped label inside the declaration, the label where no block starts, and a
+   * wrapped declaration with nothing under it. That check
    * runs through this method only: a selection taken with `.select()` carries no
    * findings, so it carries no such check either.
    */

@@ -45,7 +45,7 @@ r.length // 0
 ## Root cause
 
 The scan that reports a label "where no block starts" walks the syntax tree for label-shaped
-`strong` nodes (`packages/md/src/model/links.ts:128`, `:207`). A plain `Label:` is text, not a
+`strong` nodes (`packages/md/src/model/links.ts:81`, `:160`). A plain `Label:` is text, not a
 `strong` node, so the scan never sees it. The docs bullet at `docs/markdown.md:249` does not
 distinguish the forms. It already names one plain-form blind spot, the near miss ("the one
 misspelling the rule does not catch"), but not this one.

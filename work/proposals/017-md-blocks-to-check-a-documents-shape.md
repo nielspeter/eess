@@ -197,7 +197,7 @@ this repository's sabotage harness (31 probes).
 - **Declared relations exist, by link only**: `links().areLabelled(label)` selects the links a
   labelled block declares ([plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)), `areInSection()` the links under a heading, and
   `beLinkedBack()` checks the target answers ([plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md),
-  `packages/md/src/builders/links.ts:128`). `check:corpus` uses them for `**Extends:**` between
+  `packages/md/src/builders/links.ts:127`). `check:corpus` uses them for `**Extends:**` between
   ADRs. A reference written as text (a record named by its number, with no link) is not a link and is read by nothing.
   Wikilinks are [proposal 015](./015-md-wikilinks-are-read-or-reported.md)'s subject and are not read either.
 - **Placement exists**, in both directions, for `State:` only, inside `honestyAtClose`.
@@ -497,7 +497,7 @@ whole.
   green. A declaration must be a new optional input; both existing options and defaults stay.
 - **The evidence is all work records.** Every adopter, and this repository, is a corpus of plans and
   bugs. The generic claim is asserted by fixtures, not shown. Frontmatter, the main field form on
-  documentation sites and wikis, is parsed (`packages/md/src/model/prose.ts:24`) but not exposed on
+  documentation sites and wikis, is parsed (`packages/md/src/model/prose.ts:25`) but not exposed on
   `MdDocument`.
 - **Ask E's workflow-content half has no consumer** and is a different mechanism (a state graph, whose
   notation is a state diagram, which is [proposal 006](./006-mermaid-beyond-classdiagram.md)'s ground).

@@ -236,7 +236,9 @@ reference-style link carries its definition's URL and, as `.definition`, the
 definition's label and line: `.resolve()` reports a broken one once, at the
 definition, however many references use it, with at most one fix over the
 definition's URL. A label matches its definition as the CommonMark spec says,
-by Unicode case fold (`[ẞ]` finds `[SS]`), the first matching definition used. `.areInternal()`/`.areExternal()` split on
+by Unicode case fold (`[ẞ]` finds `[SS]`), the first matching definition used.
+`.beLinkedBack()` reports a reference-style link once, at its definition, too, and an
+exclusion comment for such a finding goes above the definition, not the reference. `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
 `tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`
 understand a static site's routing instead of only a repo-hosted one.

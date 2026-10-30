@@ -34,7 +34,7 @@ text (measured: `A [full][gone] and [collapsed][] and [shortcut].` with no defin
 
 Why the HTML half is a bug when [proposal 015](../proposals/015-md-wikilinks-are-read-or-reported.md)
 filed wikilinks as a proposal: an `<a href>` renders as a link on GitHub, and `links()` is "rules
-over the corpus's markdown links" (`packages/md/src/builders/links.ts:150`); a wikilink renders as
+over the corpus's markdown links" (`packages/md/src/builders/links.ts:149`); a wikilink renders as
 text, so no shipped rule claims it.
 
 ## Reproduction
@@ -67,14 +67,14 @@ The reference link, the shortcut link and the HTML link, three broken targets, p
 
 Before PR #282, the link walk turned a `link` node into an element and only counted a
 `linkReference` node, for the declaration scan that `areLabelled()` reports from; it now makes
-the reference a link (`packages/md/src/model/links.ts:226`). The `definition` node that holds a
+the reference a link (`packages/md/src/model/links.ts:179`). The `definition` node that holds a
 reference link's URL was never read, and an `html` node is
 never scanned. `resolve()` runs over the elements the walk produced, so it cannot see either form.
 
 The family already discloses both forms elsewhere: `mentions()` reports a mention inside a raw
 HTML block or a reference-style link's text as `md/unread-mention`
-(`packages/md/src/builders/mentions.ts:49`), and `areLabelled()` reports a declaration made of
-reference-style links as one it does not read. Its inline-HTML recogniser is
+(`packages/md/src/builders/mentions.ts:49`), and before PR #282 `areLabelled()` reported a
+declaration made of reference-style links as one it does not read. Its inline-HTML recogniser is
 `OPENS_A = /^<a\s[^>]*\bhref\s*=/i` (`packages/md/src/model/phrasing.ts:64`); it reads inline
 `<a>` only, and a block-level `html` node is a separate cause there (`'html-block'`). `links()` is
 the rule a reader trusts for "every link resolves", and it does neither.
@@ -95,7 +95,9 @@ Two parts, one root cause:
 
 1. **Resolve reference-style links.**
    - **Decided at the build (2026-10-30, the maintainer):** a reference-style link is a link
-     everywhere, not only to `resolve()`. The link walk (`collectLinkBlocks`) feeds `links()`,
+     to every `links()` rule, not only to `resolve()` (`mentions()` still reports a mention in a
+     reference link's text as unread: it does not join a reference to its definition, and when it
+     does it reuses `packages/md/src/model/definitions.ts`). The link walk (`collectLinkBlocks`) feeds `links()`,
      `beLinkedBack()` and `areLabelled()`'s declaration scan alike, so all three read it: each
      element is the reference, at its own line and block, carrying its definition's label and
      line as `.definition`. `beLinkedBack()` then counts a link back written as a reference (a
@@ -121,7 +123,7 @@ Two parts, one root cause:
      GitHub alert, `> [!NOTE]` (measured: plain text), are all that shape, and reporting them
      would be false reds. The record says so, and a row pins it.
 2. **Report raw HTML links as unread.**
-   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:100`) on an
+   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:53`) on an
      `<a>` or `<area>`, any letter case and quoted or unquoted, is reported as unread, so the rule
      is never green over one without a word. Reuse the recogniser at
      `packages/md/src/model/phrasing.ts:64`, widened to blocks.
@@ -160,8 +162,11 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
 
 - [x] Red test written first: the reproduction's `[reference link][gone]` and `[shortcut]` produce
       a broken-link finding each, naming their definition's line. `packages/md/tests/reference-links.test.ts`:
-      8 tests, all red before the fix (PR #282), covering the full, collapsed, shortcut and
-      numbered forms, `beLinkedBack()` and `areLabelled()`.
+      9 tests red before the fix (PR #282), covering the full, collapsed, shortcut and numbered
+      forms, `beLinkedBack()`, `areLabelled()` and `haveLink()`; PR #282's reviews added 7 more,
+      each red under its own sabotage (one finding per definition under `beLinkedBack()`, the
+      first definition wins, a fix never over a title or label, front matter holding a reference
+      link, `haveLink()`'s condition form).
 - [ ] Red test: a dangling full reference `[text][gone]` and a dangling collapsed `[gone][]`, with
       no definition, are each reported at their line. Green today.
 - [ ] A dangling shortcut `[WIP]`, an escaped `\[a\]\[b\]`, a task box and `> [!NOTE]` produce

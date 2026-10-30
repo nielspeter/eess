@@ -105,7 +105,8 @@ function unanswered(link: MdLink, target: LinkTarget): Unanswered {
  * `examined` is the selected links: an empty selection fails with the
  * zero-examined finding. A link that cannot answer — a frozen record, a file
  * outside the corpus, a missing target — is one finding naming its cause, on
- * the declaring link's line, with its remedy as the suggestion.
+ * the declaring link's line (a reference-style link's, once at its definition), with its remedy
+ * as the suggestion.
  */
 export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Condition<MdLink> {
   let index: Map<string, Set<string>> | undefined
@@ -115,10 +116,19 @@ export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Co
     evaluate: (links, ctx) => {
       index ??= linksFrom(corpus, options)
       const out: ArchViolation[] = []
+      // Bug 0558: every reference to one definition has its URL, so the definition's cause is
+      // reported once, at the definition, naming it, with at most one fix over its URL.
+      const reported = new Set<string>()
       for (const link of links) {
         const target = resolveLink(link, corpus, options)
         if (target.kind === 'document' && index.get(target.path)?.has(link.doc.relPath) === true) {
           continue
+        }
+        const def = link.definition
+        if (def !== undefined) {
+          const key = `${link.doc.relPath}:${String(def.line)}`
+          if (reported.has(key)) continue
+          reported.add(key)
         }
         const cause = unanswered(link, target)
         byBasename ??= basenameIndex(corpus)
@@ -126,8 +136,9 @@ export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Co
           mdViolation({
             element: `${link.doc.relPath} → ${cause.target}`,
             file: link.doc.file,
-            line: link.line,
-            message: cause.message,
+            line: def?.line ?? link.line,
+            message:
+              cause.message + (def === undefined ? '' : ` (the definition of [${def.label}])`),
             sourceText: link.doc.text,
             fix: target.kind === 'missing' ? movedLinkFix(link, byBasename) : undefined,
             context: { ...ctx, suggestion: cause.suggestion },

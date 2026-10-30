@@ -119,3 +119,78 @@ describe('sections().haveLink() holds for a reference-style link (bug 0558)', ()
     expect(held).toEqual(['A', 'With'])
   })
 })
+
+describe('a reference-style link is judged once, at its definition, by every rule (bug 0558)', () => {
+  it('beLinkedBack(): two references to one moved definition are one finding, with one fix', () => {
+    const text = '# A\n\n**Related to:** [b][d], [c][d]\n\n[d]: ./old/b.md\n'
+    const c = corpusFromText({ 'docs/a.md': text, 'docs/new/b.md': '# B\n' })
+    const v = links(c).that().areLabelled('Related to').should().beLinkedBack().violations()
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '5 ./old/b.md does not exist (the definition of [d])',
+    ])
+    expect(text.slice(v[0]?.fix?.start, v[0]?.fix?.end)).toBe('./old/b.md')
+  })
+
+  it('the first of two matching definitions is the one used, in either order', () => {
+    const firstBroken = '# A\n\nSee [x][d].\n\n[d]: ./gone.md\n[d]: ./b.md\n'
+    const firstFine = '# A\n\nSee [x][d].\n\n[d]: ./b.md\n[d]: ./gone.md\n'
+    expect(
+      resolveOf({ 'docs/a.md': firstBroken, 'docs/b.md': '# B\n' }).map(
+        (x) => `${String(x.line)} ${x.message}`,
+      ),
+    ).toEqual([
+      '5 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [d])',
+    ])
+    expect(
+      resolveOf({ 'docs/a.md': firstFine, 'docs/b.md': '# B\n' }).map((x) => x.message),
+    ).toEqual([])
+  })
+})
+
+describe('a fix rewrites the definition’s URL, never its title or label (bug 0558)', () => {
+  it('a label that equals the URL: the fix is over the URL, after the label', () => {
+    const text = '# A\n\nSee [./old/moved.md].\n\n[./old/moved.md]: ./old/moved.md\n'
+    const v = resolveOf({ 'docs/a.md': text, 'docs/new/moved.md': '# M\n' })
+    const fix = v[0]?.fix
+    expect(fix?.start).toBe(text.lastIndexOf('./old/moved.md'))
+    expect(text.slice(fix?.start, fix?.end)).toBe('./old/moved.md')
+  })
+
+  it('an escaped URL whose title holds the decoded URL gets no fix, not a fix to the title', () => {
+    const text = '# A\n\nSee [x][d].\n\n[d]: <./old/a\\>b.md> "./old/a>b.md"\n'
+    const v = resolveOf({ 'docs/a.md': text, 'docs/new/a>b.md': '# M\n' })
+    expect(v.map((x) => x.message)).toEqual([
+      'broken link: "./old/a>b.md" does not resolve to a file in the repo (the definition of [d])',
+    ])
+    expect(v[0]?.fix).toBeUndefined()
+  })
+
+  it('an angle-bracketed URL with a title: the fix is over the URL', () => {
+    const text = '# A\n\nSee [x][d].\n\n[d]: <./old/moved.md> "Moved"\n'
+    const v = resolveOf({ 'docs/a.md': text, 'docs/new/moved.md': '# M\n' })
+    expect(text.slice(v[0]?.fix?.start, v[0]?.fix?.end)).toBe('./old/moved.md')
+  })
+})
+
+describe('front matter that holds a reference-style link is read as Markdown (bug 0558)', () => {
+  it('a broken reference link in a YAML-shaped first block is reported, as an inline one is', () => {
+    const v = resolveOf({
+      'docs/a.md': '---\na: |\n  See [g].\n\n  [g]: ./gone.md\n---\n\n# A\n\n[ok](./b.md)\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => x.message)).toEqual([
+      'broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
+    ])
+  })
+})
+
+describe('sections().should().haveLink() counts a reference-style link (bug 0558)', () => {
+  it('the condition form holds for a section whose only link is reference-style', () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\n## With\n\nSee [b][b].\n\n## Without\n\nNo link.\n\n[b]: ./b.md\n',
+    })
+    const v = sections(c).should().haveLink().violations()
+    // Only `## Without` (line 7) lacks a link; `## With` (line 3) holds its reference-style one.
+    expect(v.map((x) => x.element)).toEqual(['docs/a.md:7'])
+  })
+})

@@ -1,8 +1,12 @@
 import type { Root, Nodes } from 'mdast'
+import { ArchConfigError } from '@nielspeter/eess'
 import { textOf } from './text-of.js'
 import { isLabelAlone, wrappedLabelOf } from './label.js'
 import type { MdDocument } from './document.js'
 import { sectionPathAt } from './sections.js'
+import { definitionsOf, type MdLinkDefinition } from './definitions.js'
+
+export type { MdLinkDefinition } from './definitions.js'
 
 /** A markdown link occurrence within a document (before doc back-reference). */
 export interface MdLinkRef {
@@ -42,57 +46,6 @@ export interface MdLinkRef {
    * reference's own.
    */
   readonly definition?: MdLinkDefinition
-}
-
-/** A link reference definition, `[label]: url`, as a reference-style link reads it (bug 0558). */
-export interface MdLinkDefinition {
-  /** The label as the definition writes it. */
-  readonly label: string
-  /** 1-based line of the definition. */
-  readonly line: number
-}
-
-/** A definition's URL and where it sits in the source, keyed by the parser's normalized label. */
-interface DefinitionSite extends MdLinkDefinition {
-  readonly url: string
-  readonly urlStart?: number
-  readonly urlEnd?: number
-}
-
-/**
- * Every link reference definition in `root`, by the parser's `identifier`: the label normalized as
- * the spec says ("perform the Unicode case fold"), so `[ẞ]` finds `[SS]`. The first of several
- * matching definitions is the one used, as the spec says.
- */
-function definitionsOf(root: Root, source: string | undefined): Map<string, DefinitionSite> {
-  const out = new Map<string, DefinitionSite>()
-  const walk = (node: Nodes): void => {
-    if (node.type === 'definition' && !out.has(node.identifier)) {
-      const start = node.position?.start.offset
-      const end = node.position?.end.offset
-      let urlStart: number | undefined
-      let urlEnd: number | undefined
-      if (source !== undefined && start !== undefined && end !== undefined) {
-        // The URL follows the `]:` that closes the label; a title after it cannot come first.
-        const raw = source.slice(start, end)
-        const at = raw.indexOf(node.url, raw.indexOf(']:') + 2)
-        if (node.url !== '' && at >= 0) {
-          urlStart = start + at
-          urlEnd = urlStart + node.url.length
-        }
-      }
-      out.set(node.identifier, {
-        label: node.label ?? node.identifier,
-        line: node.position?.start.line ?? 0,
-        url: node.url,
-        urlStart,
-        urlEnd,
-      })
-    }
-    if ('children' in node) for (const child of node.children) walk(child)
-  }
-  walk(root)
-  return out
 }
 
 // A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative.
@@ -225,18 +178,26 @@ export function collectLinkBlocks(
     }
     if (node.type === 'linkReference') {
       const site = definitions.get(node.identifier)
-      if (site !== undefined) {
-        out.push({
-          url: site.url,
-          text: textOf(node),
-          line: node.position?.start.line ?? 0,
-          external: EXTERNAL_RE.test(site.url),
-          urlStart: site.urlStart,
-          urlEnd: site.urlEnd,
-          definition: { label: site.label, line: site.line },
-          ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
-        })
+      // The parser makes a `linkReference` only where its label is defined, and both carry the same
+      // normalized `identifier`, so a miss here means that contract broke: fail loudly rather
+      // than drop the link from every rule's `examined` (ADR-009).
+      if (site === undefined) {
+        throw new ArchConfigError(
+          'links()',
+          `eess-md: the reference [${node.label ?? node.identifier}] has no definition the parser gave it; ` +
+            'the installed mdast parser pairs references and definitions differently from the one eess-md was built with',
+        )
       }
+      out.push({
+        url: site.url,
+        text: textOf(node),
+        line: node.position?.start.line ?? 0,
+        external: EXTERNAL_RE.test(site.url),
+        urlStart: site.urlStart,
+        urlEnd: site.urlEnd,
+        definition: { label: site.label, line: site.line },
+        ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
+      })
     }
     if (node.type === 'link') {
       // Locate the URL's exact char span in the source (for autofix). The link
