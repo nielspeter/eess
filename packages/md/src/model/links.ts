@@ -36,6 +36,63 @@ export interface MdLinkRef {
    * not start a section, is never in it. Set by `linksOf`.
    */
   readonly sectionPath?: readonly string[]
+  /**
+   * For a reference-style link, `[text][label]`, `[label][]` or `[label]` (bug 0558): the definition
+   * that holds its URL. `url`, `urlStart` and `urlEnd` are the definition's, and `line` is the
+   * reference's own.
+   */
+  readonly definition?: MdLinkDefinition
+}
+
+/** A link reference definition, `[label]: url`, as a reference-style link reads it (bug 0558). */
+export interface MdLinkDefinition {
+  /** The label as the definition writes it. */
+  readonly label: string
+  /** 1-based line of the definition. */
+  readonly line: number
+}
+
+/** A definition's URL and where it sits in the source, keyed by the parser's normalized label. */
+interface DefinitionSite extends MdLinkDefinition {
+  readonly url: string
+  readonly urlStart?: number
+  readonly urlEnd?: number
+}
+
+/**
+ * Every link reference definition in `root`, by the parser's `identifier`: the label normalized as
+ * the spec says ("perform the Unicode case fold"), so `[ẞ]` finds `[SS]`. The first of several
+ * matching definitions is the one used, as the spec says.
+ */
+function definitionsOf(root: Root, source: string | undefined): Map<string, DefinitionSite> {
+  const out = new Map<string, DefinitionSite>()
+  const walk = (node: Nodes): void => {
+    if (node.type === 'definition' && !out.has(node.identifier)) {
+      const start = node.position?.start.offset
+      const end = node.position?.end.offset
+      let urlStart: number | undefined
+      let urlEnd: number | undefined
+      if (source !== undefined && start !== undefined && end !== undefined) {
+        // The URL follows the `]:` that closes the label; a title after it cannot come first.
+        const raw = source.slice(start, end)
+        const at = raw.indexOf(node.url, raw.indexOf(']:') + 2)
+        if (node.url !== '' && at >= 0) {
+          urlStart = start + at
+          urlEnd = urlStart + node.url.length
+        }
+      }
+      out.set(node.identifier, {
+        label: node.label ?? node.identifier,
+        line: node.position?.start.line ?? 0,
+        url: node.url,
+        urlStart,
+        urlEnd,
+      })
+    }
+    if ('children' in node) for (const child of node.children) walk(child)
+  }
+  walk(root)
+  return out
 }
 
 // A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative.
@@ -80,26 +137,24 @@ function strongLabel(node: Nodes, next: Nodes | undefined): string | undefined {
 }
 
 /**
- * Collect inline markdown links (`[text](url)`) from a document tree, each with
- * the blocks that enclose it and the headings above it; plus every block, the
- * enclosing blocks of each reference-style link, and every label written where
- * no block starts (later in a paragraph, in a table cell, in a heading), which
- * therefore declares nothing. Links inside fenced code are not parsed as `link`
- * nodes by mdast, so they are naturally excluded.
+ * Collect markdown links from a document tree: inline (`[text](url)`) and reference-style (bug
+ * 0558), each with the blocks that enclose it; plus every block, and every label written where no
+ * block starts (later in a paragraph, in a table cell, in a heading), which therefore declares
+ * nothing. Links inside fenced code are not parsed as link nodes by mdast, so they are naturally
+ * excluded, and the parser makes a reference-style link only where its label is defined.
  */
 export function collectLinkBlocks(
   root: Root,
   source?: string,
 ): {
   links: MdLinkRef[]
-  references: (readonly MdLinkBlock[])[]
   blocks: MdLinkBlock[]
   unreadLabels: MdUnreadLabel[]
 } {
   const out: MdLinkRef[] = []
   const lines = source?.split('\n') ?? []
   const blocks: MdLinkBlock[] = []
-  const references: (readonly MdLinkBlock[])[] = []
+  const definitions = definitionsOf(root, source)
   const unreadLabels: MdUnreadLabel[] = []
 
   // The block a node opens: its first line, read from its content column.
@@ -168,7 +223,21 @@ export function collectLinkBlocks(
       visitChildren(node, node.children, enter(path, blockOf(node)))
       return
     }
-    if (node.type === 'linkReference') references.push(path)
+    if (node.type === 'linkReference') {
+      const site = definitions.get(node.identifier)
+      if (site !== undefined) {
+        out.push({
+          url: site.url,
+          text: textOf(node),
+          line: node.position?.start.line ?? 0,
+          external: EXTERNAL_RE.test(site.url),
+          urlStart: site.urlStart,
+          urlEnd: site.urlEnd,
+          definition: { label: site.label, line: site.line },
+          ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
+        })
+      }
+    }
     if (node.type === 'link') {
       // Locate the URL's exact char span in the source (for autofix). The link
       // node's raw text is `[text](url …)`; the URL is the last occurrence of
@@ -201,13 +270,12 @@ export function collectLinkBlocks(
   }
 
   visitChildren(root, root.children, [])
-  return { links: out, references, blocks, unreadLabels }
+  return { links: out, blocks, unreadLabels }
 }
 
 /**
- * Collect inline markdown links (`[text](url)`) from a document tree. Links
- * inside fenced code are not parsed as `link` nodes by mdast, so they are
- * naturally excluded.
+ * Collect markdown links, inline and reference-style, from a document tree. Links inside fenced
+ * code are not parsed as link nodes by mdast, so they are naturally excluded.
  */
 export function collectLinks(root: Root, source?: string): MdLinkRef[] {
   return collectLinkBlocks(root, source).links

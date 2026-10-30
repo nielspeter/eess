@@ -50,8 +50,12 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
 
   return {
     description: 'resolve to an existing file',
-    evaluate: (links, ctx) =>
-      links.flatMap((link) => {
+    evaluate: (links, ctx) => {
+      // Bug 0558: a reference-style link's URL is its definition's, so a broken one is the
+      // definition's finding, reported once at the definition however many references use it,
+      // with at most one fix over the definition's URL.
+      const reported = new Set<string>()
+      return links.flatMap((link) => {
         const target = resolveLink(link, corpus, options)
         if (
           target.kind === 'external' ||
@@ -62,17 +66,26 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
           return []
         if (target.kind === 'directory' && options.resolveDirectories === true) return []
         const hint = target.kind === 'directory' ? directoryHint(link, target.path) : ''
+        const def = link.definition
+        if (def !== undefined) {
+          const key = `${link.doc.relPath}:${String(def.line)}`
+          if (reported.has(key)) return []
+          reported.add(key)
+        }
         return [
           mdViolation({
             element: `${link.doc.relPath} → ${link.url}`,
             file: link.doc.file,
-            line: link.line,
-            message: `broken link: "${link.url}" does not resolve to a file in the repo${hint}`,
+            line: def?.line ?? link.line,
+            message:
+              `broken link: "${link.url}" does not resolve to a file in the repo${hint}` +
+              (def === undefined ? '' : ` (the definition of [${def.label}])`),
             sourceText: link.doc.text,
             fix: movedLinkFix(link, byBasename),
             context: ctx,
           }),
         ]
-      }),
+      })
+    },
   }
 }

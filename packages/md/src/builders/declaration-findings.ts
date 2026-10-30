@@ -34,8 +34,6 @@ export function declarationKey(d: LinkDeclaration): string {
  *   paragraph, in a table cell or in a heading, where it declares nothing — or
  *   at a block's start in a form the grammar does not read (`**_Label:_**`, a
  *   whole line in bold);
- * - **reference-style links:** a declaration holding `[text][ref]` links, which
- *   eess-md does not read;
  * - **an empty declaration:** a wrapped label selecting no link — it names no
  *   record, or it stands alone with no list directly under it.
  *
@@ -48,7 +46,7 @@ export function declarationFindings(
 ): ArchViolation[] {
   const out: ArchViolation[] = []
   for (const doc of corpus.documents()) {
-    const { links, references, blocks, unreadLabels } = collectLinkBlocks(doc.root, doc.text)
+    const { links, blocks, unreadLabels } = collectLinkBlocks(doc.root, doc.text)
     // Each finding names its kind in its element, so one `.excluding()` sanctions one kind
     // (`→ label "Supersedes" (empty)`), and carries its own remedy as the suggestion.
     const report = (line: number, element: string, message: string, suggestion: string): void => {
@@ -80,17 +78,16 @@ export function declarationFindings(
         )
       }
 
-      // Which declaration blocks select a link, which hold a reference, which enclose anything.
+      // Which declaration blocks select a link, which enclose anything.
       const selects = new Set<number>()
-      const holdsReference = new Set<number>()
       const encloses = new Set<number>()
       const taken = new Map<number, string>()
-      const classify = (path: readonly MdLinkBlock[], isReference: boolean): void => {
+      const classify = (path: readonly MdLinkBlock[]): void => {
         for (const b of path) encloses.add(b.line)
         const decision = decidingBlock(path, declared)
         if (decision === undefined) return
         if (decision.matches) {
-          ;(isReference ? holdsReference : selects).add(decision.block.line)
+          selects.add(decision.block.line)
           return
         }
         const found = wrappedLabelOf(decision.block.text)
@@ -99,8 +96,7 @@ export function declarationFindings(
           taken.set(decision.block.line, found)
         }
       }
-      for (const l of links) classify(l.blockPath ?? [], false)
-      for (const path of references) classify(path, true)
+      for (const l of links) classify(l.blockPath ?? [])
 
       for (const [line, found] of taken) {
         report(
@@ -112,14 +108,7 @@ export function declarationFindings(
       }
       for (const block of blocks) {
         if (!declared.test(block.text)) continue
-        if (holdsReference.has(block.line)) {
-          report(
-            block.line,
-            element(L, 'reference links'),
-            `the "${L}" declaration holds reference-style links, which eess-md does not read`,
-            'write them as inline links ([text](path))',
-          )
-        } else if (
+        if (
           wrappedLabelOf(block.text) === L &&
           !selects.has(block.line) &&
           // A link under it that is not selected is already a finding of its own.
