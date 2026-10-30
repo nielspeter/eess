@@ -133,6 +133,15 @@ gated roots resolve correctly today:
 
 Verified by hand, which is the point: nothing else can.
 
+**No longer clean (re-measured 2026-10-30, PR #280's enforcement re-check).** The
+section above was true on 2026-08-13 and is history now. `check:corpus` loads
+`work/**`, `adr/**` and `docs/**` (`scripts/check-corpus.mjs:115`), and those roots
+hold 39 internal links with a fragment: 20 into another document, 9 within the
+same document, and 10 site-absolute (`/cli#doctor`). At least two are dead, both
+recorded in [bug 0562](./0562-two-anchors-in-the-docs-site-are-dead.md): one on
+every renderer, one on the VitePress site only. The other 37 were not checked
+here; the fix's dogfood row is what proves them.
+
 **For an adopter the gap is live (added 2026-10-30).** The maintainer named GitHub
 Flavored Markdown important: a README or a wiki links to its headings constantly,
 so a corpus outside this repository is likely to hold the dead anchor this one
@@ -141,9 +150,10 @@ does not.
 ## Fix
 
 1. **Check the fragment when the target is in the corpus.** Slugify each
-   `MdDocument`'s section headings (GitHub rules: lowercase, strip punctuation,
-   spaces → hyphens, de-duplicate with `-1`, `-2`) and resolve the fragment
-   against the target document's slug set. Same-document anchors resolve against
+   heading the renderer anchors (superseded 2026-10-30: not the section index,
+   see "The anchor set" below; the slug rule is the renderer's, see "Which
+   renderer"), de-duplicated with `-1`, `-2`, and resolve the fragment against the
+   target document's slug set. Same-document anchors resolve against
    the linking document's own headings, which needs no new data at all.
 
    **Letters outside ASCII are kept, not stripped (added 2026-10-30).** GitHub's
@@ -155,7 +165,7 @@ does not.
    A link may write the fragment percent-encoded (`#gr%C3%B6%C3%9Fe-der-datei`), so
    the fragment is decoded before it is compared, and decoding stays total: a
    malformed escape (`#gr%E0`) is a finding, never a `URIError`, since
-   `resolveLink` promises not to throw (`packages/md/src/model/resolve-link.ts:187`).
+   `resolveLink` promises not to throw (`packages/md/src/model/resolve-link.ts:188`).
    Whether a fragment and a heading are compared after NFC normalization is
    [bug 0560](./0560-a-link-that-differs-only-in-unicode-normalization-is-only-called-broken.md)'s
    question. A slug that strips such letters would turn every correct anchor into
@@ -169,8 +179,32 @@ does not.
    slugs built on sections would make `[x](#note)` to a `> ## Note` a false red and
    shift the `-1`/`-2` numbering. The anchor set is every heading the renderer
    anchors, plus explicit HTML anchors (`<a name="x">`, `<a id="x">`) and GitHub's
-   `#user-content-…` alias. A fragment on a target that is not a document (a code
-   file's `#L10`) is unverifiable under (3), not red.
+   `#user-content-…` alias. A fragment on a code file (`#L10`) is a line, and is
+   checked as a pointer's line is, with
+   [bug 0561](./0561-a-pointer-one-line-past-the-end-of-a-file-passes.md)'s count;
+   any other fragment on a target that is not a document is reported as not
+   judged under (3), never passed.
+
+   **Which renderer (added 2026-10-30, PR #280's enforcement re-check).** The slug
+   rule is the renderer's, and renderers differ. `docs/` is a VitePress site
+   (`SITE_ROOTS`, `scripts/check-corpus.mjs:116`, no custom slugify in
+   `docs/.vitepress/config.ts`), and VitePress's default `slugify`
+   (`@mdit-vue/shared` 2.1.4; parity with the version `vitepress ^1.6.4` bundles not
+   verified) gives, measured beside `github-slugger` 2.0.0:
+
+   ```text
+   heading                                  github                                vitepress
+   A document's shape, built from blocks    a-documents-shape-built-from-blocks   a-document-s-shape-built-from-blocks
+   Kočka                                    kočka                                 kocka
+   Größe der Datei                          größe-der-datei                       große-der-datei
+   Close-out (2026-07-19)                   close-out-2026-07-19                  close-out-2026-07-19
+   ```
+
+   So a single rule is a false green on one renderer or a false red on the other,
+   and the non-ASCII examples above hold for GitHub only. The slug profile is an
+   option of the rule (GitHub, VitePress), tied in this repository to the existing
+   site/repo-native split (`scripts/lib/corpus-link-routing.mjs`), with VitePress's
+   explicit `{#id}` anchors in its anchor set and a row per profile.
 
 2. **Stop overloading the empty target list.** `resolveTargets` should
    distinguish "no file part, resolve the fragment locally" from "not a file
@@ -191,7 +225,8 @@ does not.
    URL carries a fragment the fixer cannot verify. Transplanting an unvalidated
    anchor onto a different file is the one behaviour here that creates drift
    instead of missing it.
-5. **Decide the out-of-roots scope.** Three of five live anchors point into
+5. **Decide the out-of-roots scope.** _(Stale since `work/**` joined the roots;
+   kept as history, 2026-10-30.)_ Three of five live anchors point into
    `work/bugs/**`, which `check:corpus` does not load. Either widen the roots
    (blocked on [0086](./fixed/0086-links-to-directories-do-not-resolve.md)) or parse
    link targets on demand for fragment checking only. This is the scope question
@@ -208,10 +243,15 @@ does not.
       on correct slugs (punctuation-stripping and duplicate-heading suffixes are
       the two shapes most likely to).
 - [ ] A heading with letters outside ASCII (`## Größe der Datei`) is reachable by
-      its GitHub slug, written plain and percent-encoded, and a near miss is red.
+      its slug under each profile (GitHub, VitePress), written plain and
+      percent-encoded, and a near miss is red.
+- [ ] Dogfood red row: the two dead anchors in
+      [bug 0562](./0562-two-anchors-in-the-docs-site-are-dead.md) are reported, the
+      VitePress one under the VitePress profile only.
 - [ ] `#gr%E0` is a finding, not a thrown `URIError`.
 - [ ] A heading inside a blockquote is reachable, and so is an `<a id>` anchor.
-- [ ] A fragment on a code file (`./src/a.ts#L10`) is reported unverifiable, not red.
+- [ ] A fragment on a code file (`./src/a.ts#L10`) is checked against the file's line
+      count; a `#user-content-…` anchor reaches its heading.
 - [ ] The rule's own result says which fragments it did not judge, without a caller's summary.
 - [ ] `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
 - [ ] The `check:corpus` summary reports fragments checked and fragments it could
@@ -224,7 +264,8 @@ does not.
 
 Deferred:
 
-- **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
+- _(Stale 2026-10-30: `work/**` is in the roots now, and 0086 is fixed.)_
+  **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
   [0086](./fixed/0086-links-to-directories-do-not-resolve.md), which already owns that
   scope decision. This record closes on fragment checking within whatever roots
   are loaded; if the answer to fix (5) is on-demand parsing, it closes without

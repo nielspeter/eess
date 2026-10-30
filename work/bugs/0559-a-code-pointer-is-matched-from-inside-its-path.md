@@ -41,7 +41,7 @@ Four ways it goes wrong:
 1. **Skipped.** When the character sits right before the extension, nothing matches, and the stale
    pointer is green.
 2. **Checked against another file.** Resolution is by suffix by default
-   (`packages/md/src/conditions/pointer-resolve.ts:12`), so a truncated path can resolve. Measured:
+   (`packages/md/src/conditions/pointer-resolve.ts:13`), so a truncated path can resolve. Measured:
    with `src/über.ts` (2 lines) and `lib/ber.ts` (200 lines), the stale pointer to line 99 of
    `src/über.ts` gives `examined 1 · violations 0`: it is checked against `lib/ber.ts`, and passes.
 3. **Reported against the wrong path.** Otherwise a truncated pointer is reported broken against a
@@ -98,6 +98,18 @@ Not chosen. Two requirements, whatever the shape:
   `app/(auth)/…`, so some cases cannot be decided, and a boundary that silently drops them would
   turn today's red-but-misattributed `+page.ts` into a skipped green, which is the defect this
   record is for.
+- **Keep the readings that are right today.** In prose, `(` `@` `,` and a word before a path
+  are delimiters, and each of these is read correctly today as `src/a.ts`, reported stale against
+  the right file: the path in parentheses, the `@file` form agent instruction files use, `see`
+  before the path, and a list of two. Admitting `+ ( ) @` and spaces into the class without care
+  turns them into broken or unjudged findings that cannot be suppressed
+  ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5). This
+  repository cannot show it: all 1,247 pointers in its live corpus sit in backticks (PR #280's
+  enforcement re-check).
+- **Decide where the start is known.** Inside an inline code span, the span's start is where the
+  path starts, so `app/(auth)/…` and `src/a b.ts` in backticks can be decided; only bare prose is
+  ambiguous. A candidate, not measured as a design. An unjudged pointer's finding names the remedy
+  that clears it: put the path in a code span.
 - **No fix over a span that is not the whole cited path.**
 
 A name normalised differently from the file on disk (NFC against NFD) is
@@ -118,6 +130,9 @@ question for links and for pointers; it is answered there.
 - [ ] No fix is emitted over a span that is not the whole cited path (the `src/café/index.ts` case).
 - [ ] The ASCII forms in use (`[id].vue`, ranges `:3-7`, a pointer in backticks) still read as
       before.
+- [ ] In prose, a pointer in parentheses, after `@`, after a word and in a comma list still reads
+      as the bare path, reported against the right file (the rows' pointers in a fixture, not
+      here).
 - [ ] A nonvacuity row reddens on the skipped shape (`src/maß.ts`), or asserts a message naming
       the cited path: a truncated-shape probe is red today through the misattributed finding, so
       it would prove nothing.

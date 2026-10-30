@@ -47,17 +47,28 @@ the inline link only. The three missing images produce nothing.
 - **Break class:** `![alt][logo]` with a definition to a missing file reports at the definition's
   line.
 - **Break class:** `<img src="./gone.png">` reports a missing image (B).
+- **Break class:** a dangling `![alt][gone]`, with no definition, is plain text to the parser (as a
+  dangling link reference is, [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)) and is reported.
+- **Break class (B):** `<picture><source srcset="…">`, GitHub's dark-mode logo: `srcset` is a
+  comma list with descriptors, read per entry; read as one path it is a false red, left unread a
+  false green.
 - **Break class (false red):** an external image (a badge, `https://…`), a `data:` URI and an image
-  in a code span or fenced block produce nothing; an image inside a link (`[![badge](…)](…)`) is
-  judged as an image and its link as a link.
+  in a code span or fenced block, and an `<img>` inside an HTML comment, produce nothing; an image
+  inside a link (`[![badge](…)](…)`) is judged as an image and its link as a link; and
+  `./logo.svg#gh-dark-mode-only` resolves the file (it does today, as a link target).
 - **Evidence:** `examined` counts each image read.
 - **Non-vacuity:** a fixture row per break class.
+
+## Dogfooding
+
+This repository's Markdown holds six images, all external badges (PR #280's enforcement
+re-check), so `check:corpus` would read nothing; the rows are the proof.
 
 ## Open questions
 
 1. **Element type or a widened `links()`.** An `images()` element type of its own, or images as
    links of a kind (`links().that().areImages()`). `links()` users would see new findings from the
-   second; the first is additive.
+   second, a break marked as one; the first is additive.
 2. **Alt text.** Whether an image without alt text is in scope, as an accessibility rule beside the
    file check, or a separate ask.
 

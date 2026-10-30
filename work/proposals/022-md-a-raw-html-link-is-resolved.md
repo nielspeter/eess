@@ -70,8 +70,8 @@ reports the inline one only. The reproduction is
 1. **How to read HTML.** A small attribute scan over `html` nodes, which needs no dependency and
    reads a subset of HTML, or an HTML parser as a new dependency. Either must say what it does not
    read.
-2. **Other attributes.** `<img src>` is an image, which `links()` does not select for Markdown
-   images either; whether both join is a separate question.
+2. **Other attributes.** `<img src>` is an image: [proposal 024](./024-md-an-images-file-exists.md)'s
+   Ask B, on this proposal's scan.
 
 ## Out of scope
 

@@ -51,8 +51,13 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
 - **Break class (A):** `[^missing]` in prose with no definition is reported at its line.
 - **Break class (A, false red):** `[^x]` in a code span or fenced block is not reported; nor is an
   escaped `\[^x]` (measured: the parser unescapes it into the text `Escaped [^x] here.`, so the
-  scan reads the source by offset), nor a regex class written in prose (`[^0-9]`, measured: plain
-  text).
+  scan reads the source by offset).
+- **A false red A cannot avoid:** a regex class written in prose (`[^0-9]`, measured: plain text)
+  has the shape of a dangling reference, and `0-9` is a valid footnote label (PR #280's
+  enforcement re-check: with a `[^0-9]: …` definition it is a reference). So A reports it, and the
+  finding names the remedy that clears it, a code span. A heuristic that skipped it (only a
+  document that holds a footnote is read) would miss the common deletion, where a document's only
+  footnote and its definition both go.
 - **Break class (B):** `[^unused]: …` with no reference is reported at the definition's line.
 - **Non-vacuity:** a fixture row per break class.
 
@@ -66,8 +71,8 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
 ## Dogfooding
 
 Whether this repository's `check:corpus` adopts the rule is for the review. Measured by parsing
-the 594 tracked Markdown files under `work/`, `adr/` and `docs/`: none holds a footnote reference
-or definition, so the gate would read nothing today, and the rows are the proof.
+every tracked Markdown file under `work/`, `adr/` and `docs/`: none holds a footnote reference or
+definition, so the gate would read nothing today, and the rows are the proof.
 
 ## Out of scope
 

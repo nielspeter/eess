@@ -35,24 +35,38 @@ right.
 
 ## Root cause
 
-`lineCount` is `readCorpusFile(corpus, rel).split('\n').length`
-(`packages/md/src/conditions/pointer-resolve.ts:101`), which counts the empty string after a final
-newline as a line, and an empty file as one line.
+Two sites count lines with `split('\n').length`, which counts the empty string after a final
+newline as a line, and an empty file as one line:
+
+- `lineCount`, `readCorpusFile(corpus, rel).split('\n').length`
+  (`packages/md/src/conditions/pointer-resolve.ts:101`), for a file in the repository;
+- `readFileSync(abs, 'utf8').split('\n').length` (`packages/md/src/conditions/pointer-resolve.ts:179`),
+  for a file under an external root ([plan 0069](../plans/completed/0069-spec-corpus-reach.md)'s path).
+  Measured by PR #280's enforcement re-check: with an external root holding a two-line file ending
+  in a newline, line 3 passes and line 4 is reported against "3 lines".
 
 ## Fix
 
-Count lines as an editor numbers them: a final newline ends the last line rather than starting a
-new one, and an empty file has no lines. The same count serves the message.
+One count for both sites: a final newline ends the last line rather than starting a new one, and
+an empty file has no lines. The same count serves the message.
+
+Builds that are green today go red where a pointer cites the phantom line, so the changeset marks
+it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x. This repository stays green: none of its
+live pointers that resolve to one file cites that line (PR #280's enforcement re-check).
 
 ## Verification
 
 - [ ] Red test written first: a pointer to line 3 of a two-line file ending in a newline is
       reported stale. Green today.
 - [ ] A pointer to line 1 of an empty file is reported stale.
+- [ ] The same row under an external root.
+- [ ] No false red: a CRLF file, a file ending in a blank line (`a\nb\n\n`, where line 3 is real)
+      and a range ending on the last line all pass.
 - [ ] The message gives the file's real line count (2, not 3).
 - [ ] A pointer to the last line of a file with and without a final newline still passes.
-- [ ] A nonvacuity row reddens on a pointer one line past the end.
-- [ ] A changeset naming `@nielspeter/eess-md`.
+- [ ] A nonvacuity row reddens on a pointer one line past the end of a file that ends in a
+      newline: a file without one is red today, so it would prove nothing.
+- [ ] A changeset naming `@nielspeter/eess-md`, marked `**Breaking (@nielspeter/eess-md):**`.
 - [ ] `npm run validate` green.
 
 Deferred: none

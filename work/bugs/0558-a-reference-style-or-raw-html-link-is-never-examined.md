@@ -25,7 +25,7 @@ link are never selected, never resolved and never reported:
 The rule's `examined` counts only the inline links, so a document whose broken links are all in
 these forms is green with a count that looks complete.
 
-A third way a reference link breaks is the commonest: its definition is deleted, or its label
+A third way a reference link breaks is a common one: its definition is deleted, or its label
 renamed. The reference then is not a reference at all: the parser leaves `[text][gone]` as plain
 text (measured: `A [full][gone] and [collapsed][] and [shortcut].` with no definition is one
 `text` node), GitHub shows the brackets literally, and no rule sees it.
@@ -101,20 +101,39 @@ Two parts, one root cause:
      lies in the definition, and overlapping fixes are dropped (`packages/core/src/apply-fixes.ts:48`).
    - **A dangling full or collapsed reference is reported**: `[text][label]` or `[label][]` outside
      code whose label has no definition, read from the source text by offset, since the parser
-     unescapes `\[a\]\[b\]` into the text `[a][b]`. "reference has no definition" at its line.
+     unescapes `\[a\]\[b\]` into the text `[a][b]`. "reference has no definition" at its line,
+     counted in `examined`, and not suppressible, as a broken link is not.
+   - **Its false reds have a remedy.** `matrix[i][j]` and `int[x][]` in prose are plain text
+     (measured) and have the full and collapsed shapes; the finding says to put such text in a
+     code span, which clears it, and a row pins that.
    - **A dangling shortcut `[label]` stays out**: `[x]`, `[WIP]`, `[id].vue`, a task box and a
      GitHub alert, `> [!NOTE]` (measured: plain text), are all that shape, and reporting them
      would be false reds. The record says so, and a row pins it.
 2. **Report raw HTML links as unread.**
    - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:43`) on an
-     `<a>` or `<area>`, in an inline or block `html` node, any letter case and quoted or unquoted,
-     is reported as unread, so the rule is never green over one without a word. Reuse the
-     recogniser at `packages/md/src/model/phrasing.ts:64`, widened to blocks.
+     `<a>` or `<area>`, any letter case and quoted or unquoted, is reported as unread, so the rule
+     is never green over one without a word. Reuse the recogniser at
+     `packages/md/src/model/phrasing.ts:64`, widened to blocks.
+   - **The scan reads the source text, not only `html` nodes.** An unquoted `href` holding a `/`
+     is not an `html` node to eess-md's parser (micromark 4.0.2): `p <a href=./x.md>x</a>` parses as
+     the text `p <a href=./x.md>x` and an `html` node `</a>` (measured). GitHub renders it as a
+     link: its Markdown API returns `<p>p <a href="./x.md">x</a></p>` for that input, and the same
+     for `<a href=docs/x.md>` and `<A HREF=./x.md>` (measured 2026-10-30). So the scan also reads
+     `text` by source offset, as the dangling-reference half does.
+   - Reported at the line the `href` sits on inside a multi-line block; not counted in `examined`,
+     since it is not judged; and `.expectEmpty()` does not silence it.
    - An external `href` (the centred badge row a README opens with) produces nothing, and an
      `html` node that is one HTML comment is not read (`packages/md/src/model/phrasing.ts:225`).
    - The remedy the finding gives must clear it: write the link in Markdown, with blank lines
      inside the HTML block so it is parsed as Markdown (`<p align="center">`, a blank line,
      `[Guide](./guide.md)`, a blank line, `</p>`).
+   - **Open, decided before the fix is built:** some HTML has no Markdown remedy. A README logo
+     sized with `width` (`<a href="./docs/"><img src="logo.svg" width="120"></a>`) cannot be
+     written in Markdown, and `md/unread-mention`, the precedent, cannot be suppressed
+     (`packages/md/src/builders/mentions.ts:259`). So either the unread finding can be suppressed
+     per cause, with a reason, or this fix resolves the `href` ([proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s ask) instead of
+     reporting it unread; and [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s priority, which assumes "red with unread" is
+     acceptable, follows that decision.
    - Resolving the `href` is a new capability, [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md).
 3. **The docs.** `docs/markdown.md:232` and `docs/markdown.md:680` state what `links()` reads, and
    change with it.
@@ -133,14 +152,15 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
 - [ ] Red test: a dangling full reference `[text][gone]` and a dangling collapsed `[gone][]`, with
       no definition, are each reported at their line. Green today.
 - [ ] A dangling shortcut `[WIP]`, an escaped `\[a\]\[b\]`, a task box and `> [!NOTE]` produce
-      nothing.
+      nothing; `matrix[i][j]` is reported with the code-span remedy, which clears it.
 - [ ] Two references to one broken definition give one finding at the definition's line, and at
       most one fix.
 - [ ] A label matched by Unicode case fold (`[Text][FOO]` with `[foo]: …`) is resolved.
 - [ ] `examined` counts the reference links.
 - [ ] Red test: the reproduction's `<a href>` produces an unread finding. Green today.
 - [ ] An external `<a href="https://…">` and `<!-- <a href="./x.md"> -->` produce nothing;
-      `<A HREF=./x.md>` and a single-quoted `href` are reported.
+      `<A HREF=./x.md>`, `p <a href=./x.md>` (a text node to the parser) and a single-quoted
+      `href` are reported, at the `href`'s own line.
 - [ ] The unread finding's remedy, applied, clears it.
 - [ ] A nonvacuity row reddens on a broken reference-style link, and one on an internal
       `<a href>`, each asserting the message, not only the rule id.

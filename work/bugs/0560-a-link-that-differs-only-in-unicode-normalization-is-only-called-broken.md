@@ -68,7 +68,9 @@ what GitHub serves first, and a nonvacuity row if chosen.
 - [ ] The decision (report with the cause, or resolve) is written in the record before the fix,
       with what GitHub serves for such a link measured.
 - [ ] The same for a pointer: an NFC pointer to an NFD-named file gets the same verdict and message
-      as a link (today it is truncated first, [bug 0559](./0559-a-code-pointer-is-matched-from-inside-its-path.md)).
+      as a link. This row is written after
+      [bug 0559](./0559-a-code-pointer-is-matched-from-inside-its-path.md)'s fix: today the pointer
+      is truncated before normalization matters, so it cannot be red for this cause first.
 - [ ] A changeset naming `@nielspeter/eess-md`.
 - [ ] `npm run validate` green.
 
