@@ -2,7 +2,7 @@ import type { Nodes, Root } from 'mdast'
 
 /** A link reference definition, `[label]: url`, as a reference-style link reads it (bug 0558). */
 export interface MdLinkDefinition {
-  /** The label as the definition writes it. */
+  /** The definition's label, with escapes and entities decoded, as mdast's `label` holds it. */
   readonly label: string
   /** 1-based line of the definition. */
   readonly line: number

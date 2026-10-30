@@ -207,14 +207,16 @@ describe('PR #282 re-checks (bug 0558)', () => {
     ])
   })
 
-  it('a reference in front matter whose definition is in the body is read, not hidden', () => {
+  // A body definition does not make the block Markdown: `tags: [adr]` is a YAML list with a
+  // shortcut reference's shape, and reading it as one is a false red (bug 0566 records the gap).
+  it('a YAML list shaped like a reference to a body definition stays front matter', () => {
     const v = resolveOf({
-      'docs/a.md': '---\na: |\n  See [g].\n---\n\n# A\n\n[ok](./b.md)\n\n[g]: ./gone.md\n',
+      'docs/a.md': '---\ntags: [adr]\n---\n\n# A\n\n[ok](./b.md)\n\n[adr]: ./adr.md\n',
       'docs/b.md': '# B\n',
+      'docs/adr.md': '# ADR\n',
     })
-    expect(v.map((x) => x.message)).toEqual([
-      'broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
-    ])
+    expect(v.map((x) => x.message)).toEqual([])
+    expect(v.examined).toBe(1)
   })
 
   it('a destination holding an entity gets no fix, not one over part of it', () => {
