@@ -4,12 +4,13 @@
 
 - **State:** Draft — root cause read from the source and confirmed by probing the
   live gate (see _Reproduction_). No red test yet.
-- **Severity:** Medium — an honesty gap between a stated claim and its actual
-  mechanism, which is `BUGS.md`'s Medium row. **Not** High: all five internal
-  anchor links in the gated roots are correct today (verified below), so nothing
-  is currently passing over drift that is present. The argument for High is the
-  autofix path in _Symptom_ (4), which can actively **produce** a dead anchor
-  rather than merely fail to notice one.
+- **Severity:** High, raised 2026-10-30 — `BUGS.md`'s High row is a gate that
+  passes over drift it should catch, and a dead anchor is that drift whether or
+  not this repository holds one. Re-measured on the v0.16.0 build:
+  `[x](./other.md#no-such-heading)`, with `other.md` present, and `[x](#nowhere)`
+  produce no finding. _Was Medium (2026-08-13): an honesty gap, not High because
+  all five internal anchor links in the gated roots were correct; the argument
+  for High was the autofix path in Symptom (4)._
 - **Origin:** self-found · probed the gate while adding an in-document anchor to
   [proposal 001](../proposals/001-md-corpus-rule-coverage.md) during the
   proposal-003/004 review round
@@ -132,13 +133,79 @@ gated roots resolve correctly today:
 
 Verified by hand, which is the point: nothing else can.
 
+**No longer clean (re-measured 2026-10-30, PR #280's enforcement re-check).** The
+section above was true on 2026-08-13 and is history now. `check:corpus` loads
+`work/**`, `adr/**` and `docs/**` (`scripts/check-corpus.mjs:115`), and those roots
+hold 39 internal links with a fragment: 20 into another document, 9 within the
+same document, and 10 site-absolute (`/cli#doctor`). At least two are dead, both
+recorded in [bug 0562](./0562-two-anchors-in-the-docs-site-are-dead.md): one on
+every renderer, one on the VitePress site only. The other 37 were not checked
+here; the fix's dogfood row is what proves them.
+
+**For an adopter the gap is live (added 2026-10-30).** The maintainer named GitHub
+Flavored Markdown important: a README or a wiki links to its headings constantly,
+so a corpus outside this repository is likely to hold the dead anchor this one
+does not.
+
 ## Fix
 
 1. **Check the fragment when the target is in the corpus.** Slugify each
-   `MdDocument`'s section headings (GitHub rules: lowercase, strip punctuation,
-   spaces → hyphens, de-duplicate with `-1`, `-2`) and resolve the fragment
-   against the target document's slug set. Same-document anchors resolve against
+   heading the renderer anchors (superseded 2026-10-30: not the section index,
+   see "The anchor set" below; the slug rule is the renderer's, see "Which
+   renderer"), de-duplicated with `-1`, `-2`, and resolve the fragment against the
+   target document's slug set. Same-document anchors resolve against
    the linking document's own headings, which needs no new data at all.
+
+   **Letters outside ASCII are kept, not stripped (added 2026-10-30).** GitHub's
+   slug keeps letters in any script, lowercased: `## Größe der Datei` is
+   `#größe-der-datei`, and `## Kočka` is `#kočka`. Measured with
+   `github-slugger` 2.0.0, which implements GitHub's rule, installed into an empty
+   scratch directory (`npm i github-slugger@2.0.0`, then
+   `node -e "import('github-slugger').then(m => console.log(new m.default().slug('Größe der Datei')))"`).
+   A link may write the fragment percent-encoded (`#gr%C3%B6%C3%9Fe-der-datei`), so
+   the fragment is decoded before it is compared, and decoding stays total: a
+   malformed escape (`#gr%E0`) is a finding, never a `URIError`, since
+   `resolveLink` promises not to throw (`packages/md/src/model/resolve-link.ts:188`).
+   Whether a fragment and a heading are compared after NFC normalization is
+   [bug 0560](./0560-a-link-that-differs-only-in-unicode-normalization-is-only-called-broken.md)'s
+   question. A slug that strips such letters would turn every correct anchor into
+   a heading written in another language into a false red. The exact rule is
+   GitHub's, read from its slugger and pinned by rows, not restated from memory.
+
+   **The anchor set is GitHub's, not the section index (added 2026-10-30, PR
+   #280's enforcement review).** eess-md's sections leave out a heading inside a
+   list item, a blockquote or a footnote definition
+   (`packages/md/src/model/sections.ts:13`); GitHub gives each of them an anchor, so
+   slugs built on sections would make `[x](#note)` to a `> ## Note` a false red and
+   shift the `-1`/`-2` numbering. The anchor set is every heading the renderer
+   anchors, plus explicit HTML anchors (`<a name="x">`, `<a id="x">`) and GitHub's
+   `#user-content-…` alias. A fragment on a code file (`#L10`) is a line, and is
+   checked as a pointer's line is, with
+   [bug 0561](./0561-a-pointer-one-line-past-the-end-of-a-file-passes.md)'s count;
+   any other fragment on a target that is not a document is reported as not
+   judged under (3), never passed.
+
+   **Which renderer (added 2026-10-30, PR #280's enforcement re-check).** The slug
+   rule is the renderer's, and renderers differ. `docs/` is a VitePress site
+   (`SITE_ROOTS`, `scripts/check-corpus.mjs:116`, no custom slugify in
+   `docs/.vitepress/config.ts`), and VitePress's default `slugify`
+   (`@mdit-vue/shared` 2.1.4; parity with the version `vitepress ^1.6.4` bundles not
+   verified) gives, measured beside `github-slugger` 2.0.0:
+
+   ```text
+   heading                                  github                                vitepress
+   A document's shape, built from blocks    a-documents-shape-built-from-blocks   a-document-s-shape-built-from-blocks
+   Kočka                                    kočka                                 kocka
+   Größe der Datei                          größe-der-datei                       große-der-datei
+   Close-out (2026-07-19)                   close-out-2026-07-19                  close-out-2026-07-19
+   ```
+
+   So a single rule is a false green on one renderer or a false red on the other,
+   and the non-ASCII examples above hold for GitHub only. The slug profile is an
+   option of the rule (GitHub, VitePress), tied in this repository to the existing
+   site/repo-native split (`scripts/lib/corpus-link-routing.mjs`), with VitePress's
+   explicit `{#id}` anchors in its anchor set and a row per profile.
+
 2. **Stop overloading the empty target list.** `resolveTargets` should
    distinguish "no file part, resolve the fragment locally" from "not a file
    reference, skip" rather than returning `[]` for both.
@@ -146,13 +213,20 @@ Verified by hand, which is the point: nothing else can.
    corpus roots cannot be verified; that count belongs in the `check:corpus`
    summary (`N internal · M with fragments · K fragments unverifiable`) rather
    than being silently folded into "all resolve". Same convention as every other
-   denominator the gate prints.
+   denominator the gate prints. **And in the rule itself (added 2026-10-30):** an
+   adopter calling `links().should().resolve()` has no `check-corpus.mjs`, so the
+   rule's own evidence says it did not judge the fragment, as a finding or as a
+   subject it cannot judge ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)),
+   per [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and
+   [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). Today
+   `[y](#nowhere)` counts toward `examined` with nothing checked.
 4. **Make the autofix honest.** Either validate the fragment against the _new_
    target before emitting the rewrite in `movedLinkFix`, or drop the fix when the
    URL carries a fragment the fixer cannot verify. Transplanting an unvalidated
    anchor onto a different file is the one behaviour here that creates drift
    instead of missing it.
-5. **Decide the out-of-roots scope.** Three of five live anchors point into
+5. **Decide the out-of-roots scope.** _(Stale since `work/**` joined the roots;
+   kept as history, 2026-10-30.)_ Three of five live anchors point into
    `work/bugs/**`, which `check:corpus` does not load. Either widen the roots
    (blocked on [0086](./fixed/0086-links-to-directories-do-not-resolve.md)) or parse
    link targets on demand for fragment checking only. This is the scope question
@@ -168,6 +242,17 @@ Verified by hand, which is the point: nothing else can.
       `BUGS.md#when-is-a-bug-fixed` — so the fix does not invert into false reds
       on correct slugs (punctuation-stripping and duplicate-heading suffixes are
       the two shapes most likely to).
+- [ ] A heading with letters outside ASCII (`## Größe der Datei`) is reachable by
+      its slug under each profile (GitHub, VitePress), written plain and
+      percent-encoded, and a near miss is red.
+- [ ] Dogfood red row: the two dead anchors in
+      [bug 0562](./0562-two-anchors-in-the-docs-site-are-dead.md) are reported, the
+      VitePress one under the VitePress profile only.
+- [ ] `#gr%E0` is a finding, not a thrown `URIError`.
+- [ ] A heading inside a blockquote is reachable, and so is an `<a id>` anchor.
+- [ ] A fragment on a code file (`./src/a.ts#L10`) is checked against the file's line
+      count; a `#user-content-…` anchor reaches its heading.
+- [ ] The rule's own result says which fragments it did not judge, without a caller's summary.
 - [ ] `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
 - [ ] The `check:corpus` summary reports fragments checked and fragments it could
       not verify.
@@ -179,7 +264,8 @@ Verified by hand, which is the point: nothing else can.
 
 Deferred:
 
-- **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
+- _(Stale 2026-10-30: `work/**` is in the roots now, and 0086 is fixed.)_
+  **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
   [0086](./fixed/0086-links-to-directories-do-not-resolve.md), which already owns that
   scope decision. This record closes on fragment checking within whatever roots
   are loaded; if the answer to fix (5) is on-demand parsing, it closes without
