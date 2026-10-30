@@ -4,6 +4,7 @@ import { isLabelAlone, wrappedLabelOf } from './label.js'
 import type { MdDocument } from './document.js'
 import { sectionPathAt } from './sections.js'
 import { definitionsOf, type MdLinkDefinition } from './definitions.js'
+import { destinationAt, writtenAt } from './destination.js'
 
 export type { MdLinkDefinition } from './definitions.js'
 
@@ -211,20 +212,21 @@ export function collectLinkBlocks(
       })
     }
     if (node.type === 'link') {
-      // Locate the URL's exact char span in the source (for autofix). The link
-      // node's raw text is `[text](url …)`; the URL is the last occurrence of
-      // `node.url` within it (a URL in the link text would come earlier). If the
-      // source form differs from the decoded `node.url`, leave the span absent —
-      // no fix is emitted without an exact span.
+      // Locate the URL's exact char span in the source (for autofix). The link node's raw text is
+      // `[text](url …)`: the destination starts after the `](` that closes the text (bug 0563, not
+      // the last match of the URL, which a title or the text can hold). Where the source does not
+      // write the URL as the parser read it (an escape, an entity), the span is absent, and no fix
+      // is emitted without an exact span.
       let urlStart: number | undefined
       let urlEnd: number | undefined
       const startOff = node.position?.start.offset
       const endOff = node.position?.end.offset
       if (source !== undefined && startOff !== undefined && endOff !== undefined) {
         const raw = source.slice(startOff, endOff)
-        const rel = raw.lastIndexOf(node.url)
-        if (rel >= 0) {
-          urlStart = startOff + rel
+        const textEnd = (node.children.at(-1)?.position?.end.offset ?? startOff + 1) - startOff
+        const at = raw.startsWith('](', textEnd) ? destinationAt(raw, textEnd + 2) : undefined
+        if (at !== undefined && writtenAt(raw, at, node.url)) {
+          urlStart = startOff + at
           urlEnd = urlStart + node.url.length
         }
       }

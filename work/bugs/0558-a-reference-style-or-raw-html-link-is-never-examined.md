@@ -67,7 +67,7 @@ The reference link, the shortcut link and the HTML link, three broken targets, p
 
 Before PR #282, the link walk turned a `link` node into an element and only counted a
 `linkReference` node, for the declaration scan that `areLabelled()` reports from; it now makes
-the reference a link (`packages/md/src/model/links.ts:194`). The `definition` node that holds a
+the reference a link (`packages/md/src/model/links.ts:195`). The `definition` node that holds a
 reference link's URL was never read, and an `html` node is
 never scanned. `resolve()` runs over the elements the walk produced, so it cannot see either form.
 
@@ -111,7 +111,7 @@ Two parts, one root cause:
      never a comparison of eess-md's own.
    - **The finding names the definition's line**, where the URL the author must edit is, and one
      definition used by several references gives one finding and at most one fix: the fix's span
-     lies in the definition, and overlapping fixes are dropped (`packages/core/src/apply-fixes.ts:48`).
+     lies in the definition, and overlapping fixes are dropped (`packages/core/src/apply-fixes.ts:61`).
    - **A dangling full or collapsed reference is reported**: `[text][label]` or `[label][]` outside
      code whose label has no definition, read from the source text by offset, since the parser
      unescapes `\[a\]\[b\]` into the text `[a][b]`. "reference has no definition" at its line,
@@ -123,7 +123,7 @@ Two parts, one root cause:
      GitHub alert, `> [!NOTE]` (measured: plain text), are all that shape, and reporting them
      would be false reds. The record says so, and a row pins it.
 2. **Report raw HTML links as unread.**
-   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:68`) on an
+   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:69`) on an
      `<a>` or `<area>`, any letter case and quoted or unquoted, is reported as unread, so the rule
      is never green over one without a word. Reuse the recogniser at
      `packages/md/src/model/phrasing.ts:64`, widened to blocks.

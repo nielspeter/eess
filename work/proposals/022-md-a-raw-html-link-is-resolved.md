@@ -27,7 +27,7 @@ reports the inline one only. The reproduction is
 
 - **The link walk** reads `link` nodes and, since
   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a), defined `linkReference`
-  nodes (`packages/md/src/model/links.ts:194`); an `html` node is not scanned.
+  nodes (`packages/md/src/model/links.ts:195`); an `html` node is not scanned.
 - **Resolution is `resolveLink`**, one resolver for every case ([plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)). An `href`
   is a URL like any other, so resolution needs no second resolver: the new part is finding the
   URL in HTML.

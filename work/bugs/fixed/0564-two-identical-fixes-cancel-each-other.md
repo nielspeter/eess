@@ -2,11 +2,12 @@
 
 ## Status
 
-- **State:** Draft — found by PR #282's architect review, re-measured 2026-10-30; no red test yet.
+- **State:** Fixed — 2026-10-30, `sameEdit` in `packages/core/src/apply-fixes.ts` folds identical
+  fixes before the overlap test. Found by PR #282's architect review.
 - **Severity:** Medium — a missing capability: a fix two rules agree on is never applied by
   `--fix --apply`. It reports them as skipped, so nothing passes silently.
 - **Origin:** self-found · PR #282's architect review.
-- **Reported:** 2026-10-30
+- **Reported:** 2026-10-30 · **Fixed:** 2026-10-30 (PR #283)
 
 ## Symptom
 
@@ -28,8 +29,8 @@ applyFixes(dry run): {"applied":0,"skipped":2,"files":[],"descriptions":[]}
 
 ## Root cause
 
-`const safe = fixes.filter((f) => !fixes.some((o) => o !== f && overlaps(f, o)))`
-(`packages/core/src/apply-fixes.ts:49`) treats an identical fix as a conflicting one.
+Before PR #283, `const safe = fixes.filter((f) => !fixes.some((o) => o !== f && overlaps(f, o)))`
+(`packages/core/src/apply-fixes.ts:49`) treated an identical fix as a conflicting one.
 
 ## Fix
 
@@ -38,9 +39,13 @@ only fixes that disagree are dropped. A kernel change: it serves every dialect's
 
 ## Verification
 
-- [ ] Red test written first: two identical fixes give `applied: 1`. Today `applied: 0, skipped: 2`.
-- [ ] Two overlapping fixes that differ are still both dropped.
-- [ ] A changeset naming `@nielspeter/eess`.
-- [ ] `npm run validate` green.
+- [x] Red test written first: two identical fixes give `applied: 1`. `packages/core/tests/apply-fixes.test.ts`,
+      red before the fix; with the fold removed it is red again. End to end,
+      `packages/md/tests/autofix.test.ts` runs `resolve()` and `beLinkedBack()` over one moved link
+      and applies the one fix, once, over the URL and not the title holding the same text.
+- [x] Two overlapping fixes that differ are still both dropped: an identical pair beside a fix
+      that disagrees with it is all three skipped.
+- [x] A changeset naming `@nielspeter/eess` (`.changeset/a-fix-lands-on-the-url-once.md`).
+- [x] `npm run validate` green.
 
 Deferred: none

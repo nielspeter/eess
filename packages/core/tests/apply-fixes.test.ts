@@ -78,6 +78,31 @@ describe('applyFixes()', () => {
     expect(fs.readFileSync(f, 'utf8')).toBe('0123456789')
   })
 
+  // Bug 0564: two rules that find one broken link propose the same fix. Identical fixes do not
+  // conflict, so they are one edit, applied once; only fixes that disagree are dropped.
+  it('two identical fixes are one edit, applied once', () => {
+    const f = tmpFile('see [x](./old.md) here')
+    dirs.push(f)
+    const start = 'see [x]('.length
+    const fix: ArchFix = { file: f, start, end: start + 8, replacement: './new.md', describe: 'r' }
+    const r = applyFixes([vfix(fix), vfix({ ...fix })], { write: true })
+    expect(r.applied).toBe(1)
+    expect(r.skipped).toBe(0)
+    expect(fs.readFileSync(f, 'utf8')).toBe('see [x](./new.md) here')
+  })
+
+  it('an identical pair beside a fix that disagrees with it is still dropped, all three', () => {
+    const f = tmpFile('see [x](./old.md) here')
+    dirs.push(f)
+    const start = 'see [x]('.length
+    const fix: ArchFix = { file: f, start, end: start + 8, replacement: './new.md', describe: 'r' }
+    const other: ArchFix = { ...fix, replacement: './other.md' }
+    const r = applyFixes([vfix(fix), vfix({ ...fix }), vfix(other)], { write: true })
+    expect(r.applied).toBe(0)
+    expect(r.skipped).toBe(3)
+    expect(fs.readFileSync(f, 'utf8')).toBe('see [x](./old.md) here')
+  })
+
   it('ignores violations without a fix', () => {
     const r = applyFixes([{ rule: 'r', element: 'e', file: 'x', line: 1, message: 'm' }], {
       write: true,

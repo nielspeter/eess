@@ -62,3 +62,29 @@ describe('autofix (plan 0066) — end-to-end apply', () => {
     fs.rmSync(tmp, { recursive: true, force: true })
   })
 })
+
+describe('autofix — two rules, one moved link (bugs 0563, 0564)', () => {
+  it('resolve() and beLinkedBack() propose one fix for one moved link, and it is applied once', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-autofix-'))
+    fs.mkdirSync(join(tmp, 'docs/new'), { recursive: true })
+    fs.writeFileSync(
+      join(tmp, 'docs/a.md'),
+      '# A\n\n**Related to:** [b](./old/b.md "./old/b.md")\n',
+    )
+    fs.writeFileSync(join(tmp, 'docs/new/b.md'), '# B\n')
+    const c = corpus({ roots: ['docs/**'], cwd: tmp })
+    const both = [
+      ...links(c).that().areInternal().should().resolve().violations(),
+      ...links(c).that().areLabelled('Related to').should().beLinkedBack().violations(),
+    ]
+    expect(both.filter((v) => v.fix !== undefined)).toHaveLength(2)
+    const r = applyFixes(both, { write: true })
+    expect(r.applied).toBe(1)
+    expect(r.skipped).toBe(0)
+    // The URL is rewritten; the title, which holds the same text, is not.
+    expect(fs.readFileSync(join(tmp, 'docs/a.md'), 'utf8')).toBe(
+      '# A\n\n**Related to:** [b](./new/b.md "./old/b.md")\n',
+    )
+    fs.rmSync(tmp, { recursive: true, force: true })
+  })
+})
