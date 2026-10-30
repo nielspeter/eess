@@ -113,7 +113,7 @@ export class SectionRuleBuilder extends CorpusRuleBuilder<MdSectionElement> {
     return this.holding({ kind: 'list item' })
   }
 
-  /** Dual-use (plan 0522): the section holds an inline link, as `links()` reads one. */
+  /** Dual-use (plan 0522): the section holds a link, inline or reference-style, as `links()` reads one. */
   haveLink(): this {
     return this.holding({ kind: 'link' })
   }

@@ -154,8 +154,6 @@ function declarationFindingsOf(
     .sort()
 }
 
-const REFS = (l: number): string =>
-  `${l} the "Related to" declaration holds reference-style links, which eess-md does not read — write them as inline links ([text](path))`
 const NEAR = (l: number, found = 'Related To'): string =>
   `${l} the label "${found}" is not the declared "Related to", so the links under it are not checked — write it "Related to"`
 const ALONE = (l: number): string =>
@@ -168,13 +166,18 @@ const TAKEN = (l: number, found: string): string =>
   `${l} the label "${found}" sits inside the "Related to" declaration and takes the links under it out of it — drop the label, or move it out of the "Related to" list`
 
 describe('declarations nothing can read (plan 0405)', () => {
-  it('a wrapped declaration of only reference-style links is reported, and nothing else', () => {
-    expect(declarationFindingsOf(['docs/refs.md'])).toEqual([REFS(3)])
+  // Bug 0558: a reference-style link is a link, so a declaration of them is read like any other.
+  it('a wrapped declaration of reference-style links selects them, and reports nothing', () => {
+    expect(selectedUnderLabel(['docs/refs.md'])).toEqual(['refs.md a.md'])
+    expect(declarationFindingsOf(['docs/refs.md'])).toEqual([])
   })
 
-  it('a declaration mixing inline and reference-style links selects the inline one and reports the rest', () => {
-    expect(selectedUnderLabel(['docs/mixed-refs.md'])).toEqual(['mixed-refs.md c.md'])
-    expect(declarationFindingsOf(['docs/mixed-refs.md'])).toEqual([REFS(3)])
+  it('a declaration mixing inline and reference-style links selects both', () => {
+    expect(selectedUnderLabel(['docs/mixed-refs.md'])).toEqual([
+      'mixed-refs.md c.md',
+      'mixed-refs.md d.md',
+    ])
+    expect(declarationFindingsOf(['docs/mixed-refs.md'])).toEqual([])
   })
 
   it('a wrapped label alone with nothing under it says no list follows it', () => {
@@ -232,14 +235,15 @@ describe('a label is read wherever a block can hold it (plan 0405 review)', () =
 
 describe('a finding names its kind (plan 0405, final review)', () => {
   it('each kind has its own element, so one exclusion sanctions one kind', () => {
-    const v = findings(['docs/text-only.md', 'docs/refs.md'], (b) =>
+    const v = findings(['docs/text-only.md', 'docs/unread.md'], (b) =>
       b.areLabelled('Related to'),
     ).filter((x) => !/does not resolve|examined zero units/.test(x.message))
-    expect(v.map((x) => x.element).sort()).toEqual([
-      'docs/refs.md → label "Related to" (reference links)',
+    expect([...new Set(v.map((x) => x.element))].sort()).toEqual([
       'docs/text-only.md → label "Related to" (empty)',
+      'docs/unread.md → label "Related To" (not at a block start)',
+      'docs/unread.md → label "Related to" (not at a block start)',
     ])
-    const kept = links(load(['docs/text-only.md', 'docs/refs.md']))
+    const kept = links(load(['docs/text-only.md', 'docs/unread.md']))
       .that()
       .areLabelled('Related to')
       .should()
@@ -248,8 +252,9 @@ describe('a finding names its kind (plan 0405, final review)', () => {
       .excluding(/\(empty\)$/)
       .violations()
       .filter((x) => !/does not resolve|examined zero units/.test(x.message))
-    expect(kept.map((x) => x.element)).toEqual([
-      'docs/refs.md → label "Related to" (reference links)',
+    expect([...new Set(kept.map((x) => x.element))].sort()).toEqual([
+      'docs/unread.md → label "Related To" (not at a block start)',
+      'docs/unread.md → label "Related to" (not at a block start)',
     ])
   })
 })

@@ -7,6 +7,7 @@ import { frontmatterFromMarkdown } from 'mdast-util-frontmatter'
 import { isMap, parseDocument } from 'yaml'
 import { registerCacheReset } from '@nielspeter/eess/internal'
 import { createParseMemo, type ParseMemo } from './parse-memo.js'
+import { definitionsOf } from './definitions.js'
 
 /**
  * Which lines of a markdown document are prose, read with the parser the corpus is read with (bugs 0286
@@ -30,11 +31,19 @@ const WITH_FRONT_MATTER = {
 // A URL with a scheme or `//` points outside the repository — the same test `MdLink.external` uses.
 const EXTERNAL = /^([a-z][a-z0-9+.-]*:|\/\/)/i
 
-/** True when Markdown a reader checks — a task box, or a link into the repository — is in `root`. */
+/**
+ * True when Markdown a reader checks — a task box, or a link into the repository, inline or
+ * reference-style (bug 0558) — is in `root`.
+ */
 function holdsCheckedMarkdown(root: Root): boolean {
+  const definitions = definitionsOf(root, undefined)
   const visit = (node: Nodes): boolean => {
     if (node.type === 'listItem' && typeof node.checked === 'boolean') return true
     if (node.type === 'link' && !EXTERNAL.test(node.url)) return true
+    if (node.type === 'linkReference') {
+      const url = definitions.get(node.identifier)?.url
+      if (url !== undefined && !EXTERNAL.test(url)) return true
+    }
     return 'children' in node && node.children.some(visit)
   }
   return visit(root)
@@ -46,6 +55,10 @@ function holdsCheckedMarkdown(root: Root): boolean {
  * and holds nothing a Markdown reader checks: a task box or a link into the repository, which a
  * YAML value can carry on an indented continuation line and still parse. Anything else is read as
  * Markdown, as it was before front matter was parsed, so no box or link is hidden by it.
+ *
+ * A reference-style link counts when the block defines it (bug 0558). One whose definition is in
+ * the body is not seen: a YAML flow list (`tags: [adr]`) has its shape, so judging it by the body's
+ * definitions read ordinary front matter as Markdown (bug 0566).
  */
 function isFrontMatter(value: string): boolean {
   const doc = parseDocument(value)

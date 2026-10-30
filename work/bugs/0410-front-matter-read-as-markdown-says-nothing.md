@@ -15,7 +15,7 @@
 
 [Bug 0087](./fixed/0087-frontmatter-parsed-as-setext-heading.md)'s fix reads a line-1 `---` block as front matter only when it is a YAML mapping that parses
 without error and holds no task box and no link into the repository
-(`packages/md/src/model/prose.ts:48`). Anything else falls back to Markdown (`:64`). The fallback is
+(`packages/md/src/model/prose.ts:57`). Anything else falls back to Markdown (`:64`). The fallback is
 right — it keeps the content checked — but it says nothing. Front matter with a YAML error, such as a
 duplicate key,
 

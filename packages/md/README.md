@@ -204,7 +204,7 @@ docs(c)
 | `haveContent()`                    | both     | the section holds a block after its heading (not a heading, a rule or a comment)  |
 | `haveCodeBlock({ lang? })`         | both     | it holds a code block, tagged `lang` in any letter case when given                |
 | `haveListItem()`                   | both     | it holds a list item, at any depth                                                |
-| `haveLink()`                       | both     | it holds an inline link                                                           |
+| `haveLink()`                       | both     | it holds a link, inline or reference-style                                        |
 | `haveCodePointer()`                | both     | it holds a code pointer (that it is live is a `pointers()` rule)                  |
 | `notExist()`                       | assert   | each selected section reported at its heading                                     |
 

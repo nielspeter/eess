@@ -229,8 +229,16 @@ pointers(c)
   .check()
 ```
 
-`links()`'s elements are `MdLink` — every `[text](url)` occurrence, with `.doc`
-pointing back to its `MdDocument`. `.areInternal()`/`.areExternal()` split on
+`links()`'s elements are `MdLink` — every `[text](url)` occurrence, and every
+reference-style link (`[text][label]`, `[label][]`, `[label]`) whose label has a
+definition (`[label]: url`), with `.doc` pointing back to its `MdDocument`. A
+reference-style link carries its definition's URL and, as `.definition`, the
+definition's label and line: `.resolve()` reports a broken one once, at the
+definition, however many references use it, with at most one fix over the
+definition's URL. A label matches its definition as the CommonMark spec says,
+by Unicode case fold (`[ẞ]` finds `[SS]`), the first matching definition used.
+`.beLinkedBack()` reports a reference-style link once, at its definition, too, and an
+exclusion comment for such a finding goes above the definition, not the reference. `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
 `tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`
 understand a static site's routing instead of only a repo-hosted one.
@@ -418,8 +426,6 @@ selector also reports what it cannot read, as findings on the rule:
   mid-line, in a table cell or in a heading — where it declares nothing; or at
   a block's start in a form it does not read (`**_Related to:_**`, a whole line
   in bold);
-- a declaration, in any form, holding reference-style links (`[text][ref]`),
-  which eess-md does not read — its inline links are still selected;
 - a wrapped label spelt exactly right with nothing under it: either it names no
   record (`**Related to:** the parser bug`), or it stands alone with no list directly
   under it. A template that writes `**Related to:** none` gets this finding;
@@ -436,7 +442,7 @@ A section's near miss is read only in the documents the rule's `inDocuments`
 scopes admit, as for every corpus builder (`sections()` below).
 They are ordinary findings, each with its remedy as the suggestion, and each
 names its kind at the end of its element — `(near miss)`, `(inside "…")`,
-`(not at a block start)`, `(formatting)`, `(reference links)`, `(empty)` — so
+`(not at a block start)`, `(formatting)`, `(empty)` — so
 one `.excluding()` sanctions one kind: `.excluding(/→ label "Supersedes" \(empty\)$/)`
 accepts a template's `**Supersedes:** none` and still reports everything else
 about that label.
@@ -677,8 +683,9 @@ bug [0338](…)       linked: the number alone in a link
   one HTML comment and nothing else.
 - **Reported as unread** (`md/unread-mention`, which nothing can suppress): a mention in a raw HTML
   block, in a link written in HTML (`<a href>…</a>`), in a reference-style link's text, in a link
-  definition's title, or in an image's alt text or title. A reference-style link is not read
-  because its target is a definition elsewhere, which `links()` does not read either. Your rule's
+  definition's title, or in an image's alt text or title. A mention in a reference-style link's
+  text is not read, because its target is a definition elsewhere, which `mentions()` does not
+  join to it (`links()` reads the link itself). Your rule's
   predicates are asked about it as far as it is known (its document, line, text and captures): one
   that decides it out without its link, such as a path or section scope or
   `not(areSelfMentions(…))`, leaves it out; one that needs its link or whether it is in code cannot
@@ -959,7 +966,7 @@ docs(c)
 | `haveContent()`                    | both     | the section holds a block after its heading (not a heading, a rule or a comment)  |
 | `haveCodeBlock({ lang? })`         | both     | it holds a code block, tagged `lang` in any letter case when given                |
 | `haveListItem()`                   | both     | it holds a list item, at any depth                                                |
-| `haveLink()`                       | both     | it holds an inline link                                                           |
+| `haveLink()`                       | both     | it holds a link, inline or reference-style                                        |
 | `haveCodePointer()`                | both     | it holds a code pointer (that it is live is a `pointers()` rule)                  |
 | `notExist()`                       | assert   | each selected section reported at its heading                                     |
 

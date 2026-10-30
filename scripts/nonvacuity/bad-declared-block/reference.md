@@ -1,7 +1,7 @@
-# Unreadable declaration
+# Reference declaration
 
 **Related to:** [target](target.md)
 
 **Related to:** [target][t]
 
-[t]: target.md
+[t]: gone-reference.md

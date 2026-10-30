@@ -49,7 +49,7 @@ fixtures before it was cancelled.
 A CPU profile of one `check:corpus` run (15.4 s sampled, on PR #260's branch): micromark and the mdast
 packages take about two thirds, garbage collection 7%, eess-md and the kernel about 10%.
 
-Counting the calls to `parseMarkdown` (`packages/md/src/model/prose.ts:64`), the parser eess-md's
+Counting the calls to `parseMarkdown` (`packages/md/src/model/prose.ts:77`), the parser eess-md's
 `corpus()` reads every document with (`packages/md/src/corpus.ts:158`):
 
 | run                     | parses | distinct texts | parse time | run    |

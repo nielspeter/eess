@@ -10,9 +10,11 @@
  *   section-near-miss     bad-declared-block/section.md has `## See Also` beside a
  *                         declared "See also" → "the heading … is not the
  *                         declared section …".
- *   unreadable-declaration bad-declared-block/unreadable.md holds a "Related to"
- *                         block of reference-style links → "… holds
- *                         reference-style links …".
+ *   reference-declaration bad-declared-block/reference.md holds a "Related to"
+ *                         block of a reference-style link whose definition names
+ *                         a missing file → `resolve()` reports it at the
+ *                         definition (bug 0558: a reference-style link is read
+ *                         like an inline one; it used to be reported unread).
  *   empty-declaration     bad-declared-block/empty.md declares "Related to" with
  *                         text and no link → "… names no record".
  *   unread-label          bad-declared-block/unread-label.md has `**Related To:**`
@@ -64,10 +66,10 @@ const SCENARIOS = {
     declare: (b) => b.areInSection('See also'),
     says: 'the heading "See Also" is not the declared section "See also"',
   },
-  'unreadable-declaration': {
-    file: `${ROOT}/unreadable.md`,
+  'reference-declaration': {
+    file: `${ROOT}/reference.md`,
     declare: (b) => b.areLabelled('Related to'),
-    says: 'the "Related to" declaration holds reference-style links',
+    says: 'broken link: "gone-reference.md" does not resolve to a file in the repo (the definition of [t])',
   },
   'empty-declaration': {
     file: `${ROOT}/empty.md`,

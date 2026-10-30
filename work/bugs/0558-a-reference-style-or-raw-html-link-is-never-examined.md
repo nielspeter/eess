@@ -2,8 +2,10 @@
 
 ## Status
 
-- **State:** Draft — measured on the v0.16.0 build (eess-md 0.13.0), Node 24.22.0; no red test yet.
-  Amended 2026-10-30 after PR #280's method and enforcement reviews.
+- **State:** Draft — part (a), reference-style links read as links, fixed 2026-10-30 in PR #282
+  (Fix 1's first two bullets, and the ticked rows below). Open: the dangling-reference half (Fix
+  1's last three bullets) and the HTML half (Fix 2). Measured on the v0.16.0 build (eess-md
+  0.13.0), Node 24.22.0; amended 2026-10-30 after PR #280's method and enforcement reviews.
 - **Severity:** High — a false green: `links().should().resolve()` passes over a broken link
   written in a form it does not read, and its count gives no sign that it skipped one.
 - **Origin:** self-found · the maintainer's question, 2026-10-30, whether GitHub Flavored Markdown
@@ -32,7 +34,7 @@ text (measured: `A [full][gone] and [collapsed][] and [shortcut].` with no defin
 
 Why the HTML half is a bug when [proposal 015](../proposals/015-md-wikilinks-are-read-or-reported.md)
 filed wikilinks as a proposal: an `<a href>` renders as a link on GitHub, and `links()` is "rules
-over the corpus's markdown links" (`packages/md/src/builders/links.ts:150`); a wikilink renders as
+over the corpus's markdown links" (`packages/md/src/builders/links.ts:149`); a wikilink renders as
 text, so no shipped rule claims it.
 
 ## Reproduction
@@ -63,15 +65,16 @@ The reference link, the shortcut link and the HTML link, three broken targets, p
 
 ## Root cause
 
-The link walk turns a `link` node into an element and only counts a `linkReference` node
-(`packages/md/src/model/links.ts:171`), for the declaration scan that `areLabelled()` reports
-from. The `definition` node that holds a reference link's URL is never read, and an `html` node is
+Before PR #282, the link walk turned a `link` node into an element and only counted a
+`linkReference` node, for the declaration scan that `areLabelled()` reports from; it now makes
+the reference a link (`packages/md/src/model/links.ts:194`). The `definition` node that holds a
+reference link's URL was never read, and an `html` node is
 never scanned. `resolve()` runs over the elements the walk produced, so it cannot see either form.
 
 The family already discloses both forms elsewhere: `mentions()` reports a mention inside a raw
 HTML block or a reference-style link's text as `md/unread-mention`
-(`packages/md/src/builders/mentions.ts:49`), and `areLabelled()` reports a declaration made of
-reference-style links as one it does not read. Its inline-HTML recogniser is
+(`packages/md/src/builders/mentions.ts:49`), and before PR #282 `areLabelled()` reported a
+declaration made of reference-style links as one it does not read. Its inline-HTML recogniser is
 `OPENS_A = /^<a\s[^>]*\bhref\s*=/i` (`packages/md/src/model/phrasing.ts:64`); it reads inline
 `<a>` only, and a block-level `html` node is a separate cause there (`'html-block'`). `links()` is
 the rule a reader trusts for "every link resolves", and it does neither.
@@ -91,6 +94,16 @@ adopter's corpus can.
 Two parts, one root cause:
 
 1. **Resolve reference-style links.**
+   - **Decided at the build (2026-10-30, the maintainer):** a reference-style link is a link
+     to every `links()` rule, not only to `resolve()` (`mentions()` still reports a mention in a
+     reference link's text as unread: it does not join a reference to its definition, and when it
+     does it reuses `packages/md/src/model/definitions.ts`). The link walk (`collectLinkBlocks`) feeds `links()`,
+     `beLinkedBack()` and `areLabelled()`'s declaration scan alike, so all three read it: each
+     element is the reference, at its own line and block, carrying its definition's label and
+     line as `.definition`. `beLinkedBack()` then counts a link back written as a reference (a
+     false red before), and `areLabelled()` selects a declaration's reference links, so its
+     "holds reference-style links" finding goes. The narrower option, `resolve()` alone, would
+     have left one link visible to one rule and not the next.
    - A `linkReference` is a link with its definition's URL: select it in `links()` and resolve it
      with the same `resolveLink`. Labels match as the spec says, "perform the Unicode case fold"
      (`[ẞ]` matches `[SS]`), with the first of several matching definitions used: take the
@@ -110,7 +123,7 @@ Two parts, one root cause:
      GitHub alert, `> [!NOTE]` (measured: plain text), are all that shape, and reporting them
      would be false reds. The record says so, and a row pins it.
 2. **Report raw HTML links as unread.**
-   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:43`) on an
+   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:68`) on an
      `<a>` or `<area>`, any letter case and quoted or unquoted, is reported as unread, so the rule
      is never green over one without a word. Reuse the recogniser at
      `packages/md/src/model/phrasing.ts:64`, widened to blocks.
@@ -147,26 +160,40 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
 
 ## Verification
 
-- [ ] Red test written first: the reproduction's `[reference link][gone]` and `[shortcut]` produce
-      a broken-link finding each, naming their definition's line. Green today.
+- [x] Red test written first: the reproduction's `[reference link][gone]` and `[shortcut]` produce
+      a broken-link finding each, naming their definition's line. `packages/md/tests/reference-links.test.ts`:
+      9 tests red before the fix (PR #282), covering the full, collapsed, shortcut and numbered
+      forms, `beLinkedBack()`, `areLabelled()` and `haveLink()`; PR #282's reviews added 7 more,
+      each red under its own sabotage (one finding per definition under `beLinkedBack()`, the
+      first definition wins, a fix never over a title or label, front matter holding a reference
+      link, `haveLink()`'s condition form).
 - [ ] Red test: a dangling full reference `[text][gone]` and a dangling collapsed `[gone][]`, with
       no definition, are each reported at their line. Green today.
 - [ ] A dangling shortcut `[WIP]`, an escaped `\[a\]\[b\]`, a task box and `> [!NOTE]` produce
       nothing; `matrix[i][j]` is reported with the code-span remedy, which clears it.
-- [ ] Two references to one broken definition give one finding at the definition's line, and at
-      most one fix.
-- [ ] A label matched by Unicode case fold (`[Text][FOO]` with `[foo]: …`) is resolved.
-- [ ] `examined` counts the reference links.
+- [x] Two references to one broken definition give one finding at the definition's line, and at
+      most one fix (a moved target's fix rewrites the definition's URL).
+- [x] A label matched by Unicode case fold (`[Text][FOO]` with `[foo]: …`, and `[STRASSE]` with
+      `[straße]: …`) is resolved.
+- [x] `examined` counts the reference links.
 - [ ] Red test: the reproduction's `<a href>` produces an unread finding. Green today.
 - [ ] An external `<a href="https://…">` and `<!-- <a href="./x.md"> -->` produce nothing;
       `<A HREF=./x.md>`, `p <a href=./x.md>` (a text node to the parser) and a single-quoted
       `href` are reported, at the `href`'s own line.
 - [ ] The unread finding's remedy, applied, clears it.
 - [ ] A nonvacuity row reddens on a broken reference-style link, and one on an internal
-      `<a href>`, each asserting the message, not only the rule id.
-- [ ] The declared-block nonvacuity rows still fire only their own finding, since
-      `scripts/nonvacuity/bad-declared-block/unreadable.md` holds a definition `resolve()` then reads.
-- [ ] A changeset naming `@nielspeter/eess-md`, marked `**Breaking (@nielspeter/eess-md):**`.
+      `<a href>`, each asserting the message, not only the rule id. The reference half is in
+      (PR #282): `corpus/declared-block/reference-declaration`, in place of the
+      `unreadable-declaration` row, asserts the definition's broken-link message and is red on
+      the old build. It is fixture-tier: it drives the builder over a fixture root, and this
+      repository's own `check:corpus` examines no reference-style link, since its corpus holds
+      none; a probe through the production gate was left out for its cost per nonvacuity run
+      ([bug 0552](./0552-nonvacuity-shard-3-runs-near-its-timeout.md)). The `<a href>` half is open.
+- [x] The declared-block nonvacuity rows still fire only their own finding: the probe that held
+      reference links unread is now `scripts/nonvacuity/bad-declared-block/reference.md`, and all
+      ten scenarios pass on the new build.
+- [ ] A changeset naming `@nielspeter/eess-md`, marked `**Breaking (@nielspeter/eess-md):**`. Part
+      (a)'s is `.changeset/a-reference-link-is-a-link.md`; the open halves add their own.
 - [ ] `npm run validate` green.
 
 Deferred: resolving a raw HTML link → [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md);

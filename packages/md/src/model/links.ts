@@ -3,6 +3,25 @@ import { textOf } from './text-of.js'
 import { isLabelAlone, wrappedLabelOf } from './label.js'
 import type { MdDocument } from './document.js'
 import { sectionPathAt } from './sections.js'
+import { definitionsOf, type MdLinkDefinition } from './definitions.js'
+
+export type { MdLinkDefinition } from './definitions.js'
+
+/**
+ * The Markdown parser handed eess-md a reference-style link without the definition it pairs it
+ * with (bug 0558): eess-md and the installed `mdast-util-from-markdown` disagree. Never the rule
+ * author's fault, so not an `ArchConfigError`; eess-ts reports it as the crash it is.
+ */
+class ParserContractBroken extends Error {
+  constructor(label: string) {
+    super(
+      `eess-md: the Markdown parser gave the reference [${label}] no definition it pairs with. ` +
+        'eess-md and the installed mdast-util-from-markdown disagree about reference links; ' +
+        'please report it to eess, with both versions.',
+    )
+    this.name = 'ParserContractBroken'
+  }
+}
 
 /** A markdown link occurrence within a document (before doc back-reference). */
 export interface MdLinkRef {
@@ -36,6 +55,12 @@ export interface MdLinkRef {
    * not start a section, is never in it. Set by `linksOf`.
    */
   readonly sectionPath?: readonly string[]
+  /**
+   * For a reference-style link, `[text][label]`, `[label][]` or `[label]` (bug 0558): the definition
+   * that holds its URL. `url`, `urlStart` and `urlEnd` are the definition's, and `line` is the
+   * reference's own.
+   */
+  readonly definition?: MdLinkDefinition
 }
 
 // A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative.
@@ -80,26 +105,24 @@ function strongLabel(node: Nodes, next: Nodes | undefined): string | undefined {
 }
 
 /**
- * Collect inline markdown links (`[text](url)`) from a document tree, each with
- * the blocks that enclose it and the headings above it; plus every block, the
- * enclosing blocks of each reference-style link, and every label written where
- * no block starts (later in a paragraph, in a table cell, in a heading), which
- * therefore declares nothing. Links inside fenced code are not parsed as `link`
- * nodes by mdast, so they are naturally excluded.
+ * Collect markdown links from a document tree: inline (`[text](url)`) and reference-style (bug
+ * 0558), each with the blocks that enclose it; plus every block, and every label written where no
+ * block starts (later in a paragraph, in a table cell, in a heading), which therefore declares
+ * nothing. Links inside fenced code are not parsed as link nodes by mdast, so they are naturally
+ * excluded, and the parser makes a reference-style link only where its label is defined.
  */
 export function collectLinkBlocks(
   root: Root,
   source?: string,
 ): {
   links: MdLinkRef[]
-  references: (readonly MdLinkBlock[])[]
   blocks: MdLinkBlock[]
   unreadLabels: MdUnreadLabel[]
 } {
   const out: MdLinkRef[] = []
   const lines = source?.split('\n') ?? []
   const blocks: MdLinkBlock[] = []
-  const references: (readonly MdLinkBlock[])[] = []
+  const definitions = definitionsOf(root, source)
   const unreadLabels: MdUnreadLabel[] = []
 
   // The block a node opens: its first line, read from its content column.
@@ -168,7 +191,25 @@ export function collectLinkBlocks(
       visitChildren(node, node.children, enter(path, blockOf(node)))
       return
     }
-    if (node.type === 'linkReference') references.push(path)
+    if (node.type === 'linkReference') {
+      const site = definitions.get(node.identifier)
+      // The parser makes a `linkReference` only where its label is defined, and both carry the same
+      // normalized `identifier`, so a miss here means that contract broke: fail loudly rather
+      // than drop the link from every rule's `examined` (ADR-009).
+      if (site === undefined) {
+        throw new ParserContractBroken(node.label ?? node.identifier)
+      }
+      out.push({
+        url: site.url,
+        text: textOf(node),
+        line: node.position?.start.line ?? 0,
+        external: EXTERNAL_RE.test(site.url),
+        urlStart: site.urlStart,
+        urlEnd: site.urlEnd,
+        definition: { label: site.label, line: site.line },
+        ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
+      })
+    }
     if (node.type === 'link') {
       // Locate the URL's exact char span in the source (for autofix). The link
       // node's raw text is `[text](url …)`; the URL is the last occurrence of
@@ -201,13 +242,12 @@ export function collectLinkBlocks(
   }
 
   visitChildren(root, root.children, [])
-  return { links: out, references, blocks, unreadLabels }
+  return { links: out, blocks, unreadLabels }
 }
 
 /**
- * Collect inline markdown links (`[text](url)`) from a document tree. Links
- * inside fenced code are not parsed as `link` nodes by mdast, so they are
- * naturally excluded.
+ * Collect markdown links, inline and reference-style, from a document tree. Links inside fenced
+ * code are not parsed as link nodes by mdast, so they are naturally excluded.
  */
 export function collectLinks(root: Root, source?: string): MdLinkRef[] {
   return collectLinkBlocks(root, source).links

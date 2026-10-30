@@ -76,7 +76,7 @@
  *                 a `State:` one, and a folder with no state at all.
  *   corpus/dead-root (bug 0465) scripts/nonvacuity/bad-corpus-dead-root.mjs: a mistyped
  *                 root beside a live one must be refused, naming it.
- *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,
+ *   corpus/declared-block/{label-near-miss,section-near-miss,reference-declaration,
  *                 empty-declaration,unread-label,nested-declaration,annotated-child,
  *                 inner-label,stands-alone,formatted-label}
  *                 (plan 0405) scripts/nonvacuity/bad-declared-block/ holds one
@@ -4705,10 +4705,10 @@ const gates = [
       gateNode('bad-declared-block.mjs', 'section-near-miss: reported on', ['section-near-miss']),
   ],
   [
-    'corpus/declared-block/unreadable-declaration',
+    'corpus/declared-block/reference-declaration',
     () =>
-      gateNode('bad-declared-block.mjs', 'unreadable-declaration: reported on', [
-        'unreadable-declaration',
+      gateNode('bad-declared-block.mjs', 'reference-declaration: reported on', [
+        'reference-declaration',
       ]),
   ],
   [
@@ -5778,7 +5778,7 @@ const GATE_FOR = {
     // production rule declares a block until plan 0406 dogfoods `areLabelled()`.
     'corpus/declared-block/label-near-miss',
     'corpus/declared-block/section-near-miss',
-    'corpus/declared-block/unreadable-declaration',
+    'corpus/declared-block/reference-declaration',
     'corpus/declared-block/empty-declaration',
     'corpus/declared-block/unread-label',
     'corpus/declared-block/nested-declaration',

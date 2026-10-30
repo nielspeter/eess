@@ -48,10 +48,10 @@ r.rule({ id: 'x' }).violations() // one finding: the `related to` near miss
 a bold word with no colon is not a label to `wrappedLabelOf` (`:60`). Neither of the two scans that
 report what the selector cannot read looks at it:
 
-- the near-miss scan (`packages/md/src/builders/declaration-findings.ts:84`) runs only over what
+- the near-miss scan (`packages/md/src/builders/declaration-findings.ts:82`) runs only over what
   `wrappedLabelOf` returns, and `isNearMiss` (`label.ts:72`) compares case and inner spacing only, so
   a different spelling (`Related` for `Related to`) is not a near miss either;
-- the unread-label scan (`declaration-findings.ts:152`), which reports a label at a block's start
+- the unread-label scan (`declaration-findings.ts:130`), which reports a label at a block's start
   "written with formatting eess-md does not read", only sees a bold run whose text contains a
   colon or is followed by one.
 
