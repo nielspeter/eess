@@ -5,7 +5,8 @@
 - **State:** Draft — part (a), reference-style links read as links, fixed 2026-10-30 in PR #282
   (Fix 1's first two bullets); part (b), a dangling reference, done otherwise 2026-10-31 in PR
   #284: it is not a link, so it is found with the family's pattern for text of a named shape,
-  `mentions()` and an absence rule, shown in `examples/md/a-reference-with-no-definition-is-reported.test.ts` (see "Part (b), decided"). Open: the HTML half
+  `mentions()` and an absence rule, shown in `examples/md/a-reference-with-no-definition-is-reported.test.ts` (see "Part (b), decided"); a match in
+  inline code or written escaped is still reported, deferred to [bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md). Open: the HTML half
   (Fix 2). Measured on the v0.16.0 build (eess-md
   0.13.0), Node 24.22.0; amended 2026-10-30 after PR #280's method and enforcement reviews.
 - **Severity:** High — a false green: `links().should().resolve()` passes over a broken link
@@ -69,7 +70,7 @@ The reference link, the shortcut link and the HTML link, three broken targets, p
 
 Before PR #282, the link walk turned a `link` node into an element and only counted a
 `linkReference` node, for the declaration scan that `areLabelled()` reports from; it now makes
-the reference a link (`packages/md/src/model/links.ts:230`). The `definition` node that holds a
+the reference a link (`packages/md/src/model/links.ts:195`). The `definition` node that holds a
 reference link's URL was never read, and an `html` node is
 never scanned. `resolve()` runs over the elements the walk produced, so it cannot see either form.
 
@@ -132,15 +133,19 @@ Two parts, one root cause:
      holding only `matrix[i][j]`, and an `areLabelled()` declaration lost its "names no record"
      finding) and false reds (26 of 29 findings across 566 READMEs were text the author meant:
      d3's `[, accessor]` notation, array indexing). The maintainer: follow the established
-     pattern. A dangling reference is text of a shape the corpus names, not a link, and the
+     pattern, which is [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)'s: the root offers building blocks, and a shape ships as an
+     example. A dangling reference is text of a shape the corpus names, not a link, and the
      family finds such text with `mentions(corpus, { pattern })`; `examples/md/a-reference-with-no-definition-is-reported.test.ts` pairs it with an absence
      rule (`.should().notExist()`, as `examples/md/box-marks.test.ts` does), leaving out matches in
      links with `areLinked()`. It is opt-in, so a corpus whose
-     prose holds the shape on purpose writes its own pattern. An escaped `\[a\]\[b\]` is still
-     read as a match, since a mention carries no "escaped" fact:
+     prose holds the shape on purpose writes its own pattern, and its rule id lets a line be
+     waived. Its pattern allows empty text, so a README badge whose outer label lost its
+     definition (`[![npm][npm-image]][npm-url]`, read as `[][npm-url]`) is reported; link text
+     holding balanced brackets (`[a [b] c][gone]`) is beyond one regex and is not. A match in
+     inline code or written escaped is still reported, since no public block selects either:
      [bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
 2. **Report raw HTML links as unread.**
-   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:76`) on an
+   - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/links.ts:69`) on an
      `<a>` or `<area>`, any letter case and quoted or unquoted, is reported as unread, so the rule
      is never green over one without a word. Reuse the recogniser at
      `packages/md/src/model/phrasing.ts:64`, widened to blocks.
@@ -165,7 +170,7 @@ Two parts, one root cause:
      reporting it unread; and [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s priority, which assumes "red with unread" is
      acceptable, follows that decision.
    - Resolving the `href` is a new capability, [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md).
-3. **The docs.** `docs/markdown.md:232` and `docs/markdown.md:680` state what `links()` reads, and
+3. **The docs.** `docs/markdown.md:232` and `docs/markdown.md:690` state what `links()` reads, and
    change with it.
 
 Images (`![alt](./x.png)`, `![alt][ref]`, `<img src>`) are not read either, measured; `links()`
@@ -189,11 +194,13 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
       `examples/md/a-reference-with-no-definition-is-reported.test.ts` (its `violating-renamed-definition` and `violating-deleted-definition` fixtures,
       proven load-bearing by `check:nonvacuity`'s example swaps), not by `links()`; see "Part (b),
       decided".
-- [ ] A dangling shortcut `[WIP]`, an escaped `\[a\]\[b\]`, a task box and `> [!NOTE]` produce
-      nothing; `matrix[i][j]` is reported with the code-span remedy. done-otherwise: the example's
-      clean fixture holds a task box, `[WIP]` and an alert, and reports nothing; a match in inline
-      code or written escaped is still read, since no public block selects either,
-      [bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
+- [ ] A dangling shortcut `[WIP]`, a task box and `> [!NOTE]` produce nothing. done-otherwise: the
+      example's clean fixture holds a task box, `[WIP]` and an alert, and reports nothing.
+- [ ] An escaped `\[a\]\[b\]` produces nothing; `matrix[i][j]` is reported with a code-span remedy
+      that clears it. deferred→[bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md): both are still reported by the example's rule (measured),
+      since no public block selects a match in inline code or written escaped, and the absence
+      rule's finding names no remedy beyond its `because`; a waiver comment with the rule's id
+      clears a line.
 - [x] Two references to one broken definition give one finding at the definition's line, and at
       most one fix (a moved target's fix rewrites the definition's URL).
 - [x] A label matched by Unicode case fold (`[Text][FOO]` with `[foo]: …`, and `[STRASSE]` with
@@ -223,4 +230,5 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
 - [ ] `npm run validate` green.
 
 Deferred: resolving a raw HTML link → [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md);
-images → [proposal 024](../proposals/024-md-an-images-file-exists.md).
+images → [proposal 024](../proposals/024-md-an-images-file-exists.md); selecting a mention in inline code or written escaped →
+[bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md).

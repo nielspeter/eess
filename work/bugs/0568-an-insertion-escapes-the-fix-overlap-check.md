@@ -13,8 +13,10 @@
 `overlaps` (`packages/core/src/apply-fixes.ts:21`) is `a.start < b.end && b.start < a.end`. A fix
 with `start === end` (an insertion) overlaps nothing under it, so it is applied beside any other
 edit at its offset, and the outcome depends on the order the rules happened to report in.
-Corrected 2026-10-30 from a measurement (the first version of this record described it wrongly,
-PR #283's re-check): over `abcdef`, with `applyFixes(…, { write: true })` on main's build,
+Corrected 2026-10-30 from a measurement (PR #283's re-check): the first version said two
+insertions apply in report order (they apply in reverse) and that a replacement removes an
+insertion at its offset (only when the insertion is reported first; the other order keeps both).
+Over `abcdef`, with `applyFixes(…, { write: true })` on main's build,
 
 ```text
 two insertions at 2, X then Z                "abZXcdef" applied 2 skipped 0

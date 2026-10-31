@@ -4,9 +4,10 @@
 
 - **State:** Draft — found 2026-10-31 building [bug 0558](./0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s dangling-reference example; measured; no red
   test yet.
-- **Severity:** Medium — a false red with no remedy inside the rule: a match in inline code, or
-  in text an author escaped so it shows literally, is matched like markup, and no public block
-  leaves it out.
+- **Severity:** Medium — a false red with no fact-based remedy: a match in inline code, or in text
+  an author escaped so it shows literally, is matched like markup, and no public block leaves it
+  out. What clears it is per line: `.excluding()` or a waiver comment with the rule's id
+  (measured by PR #284's method review).
 - **Origin:** self-found · PR #284, building `examples/md/a-reference-with-no-definition-is-reported.test.ts`.
 - **Reported:** 2026-10-31
 
@@ -18,14 +19,16 @@ backticks do not hide a record's mention). Two facts a rule needs for a bracket 
 therefore out of reach:
 
 1. **In inline code.** A mention carries `inCode`, but eess-md exports no predicate that selects
-   by it, and an example may compose only public blocks (`arch.rules.ts:125`, [plan 0458](../plans/completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)), so
+   by it, and an example may compose only public blocks (`eess/examples-md-no-hand-built-rules`, `arch.rules.ts:202`, [plan 0458](../plans/completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md)), so
    `matrix[i][j]` in a code span cannot be left out of a rule built from the documented API.
 2. **Escaped.** Nothing records that a match was written with a backslash escape, so
    `\[text\]\[label\]`, written so the brackets show, cannot be left out at all.
 
 ## Reproduction
 
-`docs/a.md` holds `The syntax is \[text\]\[label\], escaped so it shows.`. The example's rule,
+`docs/a.md` holds `The syntax is \[text\]\[label\], escaped so it shows.`. The example's rule
+(with `inCode` read by a predicate written for the probe, `{ description, test: (m) => m.inCode }`,
+which is what eess-md does not export),
 `mentions(c, { pattern: /\[[^[\]\n]+\]\[[^[\]\n]*\]/g })` with `.that().satisfy(not(inCode))
 .and().satisfy(not(areLinked())).should().notExist()`, measured on main's build:
 

@@ -113,7 +113,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-10-30 · **Open:** 234 (231 Draft · 3 Parked) · **Fixed:** 150 · **Rejected:** 2
+**Updated:** 2026-10-31 · **Open:** 234 (231 Draft · 3 Parked) · **Fixed:** 150 · **Rejected:** 2
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >

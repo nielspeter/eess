@@ -6,8 +6,14 @@
  * absence rule over what it finds. A defined reference is a link, not text, so the pattern never
  * sees its brackets; a shortcut `[label]` is left out of the pattern, since a task box, `[WIP]` and
  * `> [!NOTE]` share its shape; and a match inside a link's text is left out with `areLinked()`.
- * A match in inline code, or written escaped, is still reported: eess-md has no public predicate
- * for either yet (bug 0571).
+ * The text may be empty, since an image contributes none: a README badge whose outer label lost
+ * its definition, `[![npm][npm-image]][npm-url]`, reads `[][npm-url]`.
+ *
+ * What the pattern does not reach: link text holding balanced brackets (`[a [b] c][gone]`),
+ * which one regex cannot match. What it reports that is not a reference: a match in inline code,
+ * or written escaped, since eess-md has no public predicate for either yet (bug 0571); prose of
+ * the shape on purpose, such as `input[, init][, row]` notation. Waive such a line with an
+ * `<!-- eess-exclude reference/has-a-definition: … -->` comment, which the rule's id makes possible.
  */
 import { areLinked, corpus, links, mentions, not } from '@nielspeter/eess-md'
 import { describe, expect, it } from 'vitest'
@@ -15,8 +21,9 @@ import { fixture } from './fixture.js'
 
 const NAME = 'a-reference-with-no-definition-is-reported'
 
-// `[text][label]` or `[label][]`: two bracket pairs, neither holding a bracket or a line break.
-const REFERENCE = /\[[^[\]\n]+\]\[[^[\]\n]*\]/g
+// `[text][label]` or `[label][]`: two bracket pairs, neither holding a bracket or a line break;
+// the text may be empty (an image's).
+const REFERENCE = /\[[^[\]\n]*\]\[[^[\]\n]*\]/g
 
 const rule = (cwd: string): ReturnType<typeof mentions> =>
   mentions(corpus({ cwd, roots: ['docs/**'] }), { pattern: REFERENCE })
@@ -24,6 +31,7 @@ const rule = (cwd: string): ReturnType<typeof mentions> =>
     .satisfy(not(areLinked()))
     .should()
     .notExist()
+    .rule({ id: 'reference/has-a-definition' })
     .because('a reference whose definition is gone is not a link: GitHub shows its brackets')
 
 describe('a reference-style link with no definition is reported', () => {
@@ -46,6 +54,11 @@ describe('a reference-style link with no definition is reported', () => {
 
   it('violating-deleted-definition: a collapsed reference with no definition is reported', () => {
     const v = rule(fixture(NAME, 'violating-deleted-definition')).violations()
+    expect(v.map((f) => f.message)).toEqual(['docs/guide.md:3 should not exist'])
+  })
+
+  it('violating-badge: a badge whose outer label lost its definition is reported', () => {
+    const v = rule(fixture(NAME, 'violating-badge')).violations()
     expect(v.map((f) => f.message)).toEqual(['docs/guide.md:3 should not exist'])
   })
 })
