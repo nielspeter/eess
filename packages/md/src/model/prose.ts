@@ -33,8 +33,10 @@ const WITH_FRONT_MATTER = {
  * The first Markdown a reader checks inside lines `from`–`to` of `whole`, the document parsed as
  * Markdown: a task box, or a link into the repository, inline or reference-style (bug 0558). The
  * whole document is the parse that decides (bug 0566), so a reference defined in the body, an
- * escape and a construct crossing the block's edge are read as the parser reads them. A link into
- * the repository is one `EXTERNAL_RE` does not call external, the test `MdLink.external` uses.
+ * escape and a construct crossing the block's edge are read as the parser reads them; only what
+ * starts in the block's lines counts, so a definition there that the body uses does not (bug 0572).
+ * A link into the repository is one `EXTERNAL_RE` does not call external, the test
+ * `MdLink.external` uses.
  */
 function checkedMarkdownIn(whole: Root, from: number, to: number): string | undefined {
   const definitions = definitionsOf(whole, undefined)

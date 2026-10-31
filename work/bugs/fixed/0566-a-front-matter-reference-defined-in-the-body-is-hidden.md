@@ -13,7 +13,7 @@
 ## Symptom
 
 A line-1 `---` block that is a YAML mapping is read as front matter unless it holds Markdown a
-reader checks (`isFrontMatter`, `packages/md/src/model/prose.ts:63`, [bug 0087](./0087-frontmatter-parsed-as-setext-heading.md)). It is judged by
+reader checks (`isFrontMatter` in `packages/md/src/model/prose.ts` at the time, [bug 0087](./0087-frontmatter-parsed-as-setext-heading.md)). It is judged by
 parsing the block alone, so a reference-style link in it counts only when the block also holds
 its definition. A reference whose definition is in the body is plain text to that parse, the
 block stays front matter, and the link is never read.
@@ -69,10 +69,10 @@ re-check, not measured as a design: judge the block from the whole-document `GFM
 asking whether a checked node falls inside the block's lines, which also covers a construct
 opened in the block and closed in the body.
 
-Built that way: `checkedMarkdownIn` (`packages/md/src/model/prose.ts:39`) walks the whole
+Built that way: `checkedMarkdownIn` (`packages/md/src/model/prose.ts:41`) walks the whole
 document's `GFM_ONLY` parse and names the first task box, inline link or reference into the
 repository that falls within the block's lines; a reference counts by its definition's URL, wherever
-the definition is. `parseFresh` (`:140`) runs that parse only when the block holds a `[` or its
+the definition is. `parseFresh` (`:142`) runs that parse only when the block holds a `[` or its
 YAML does not parse, so ordinary front matter costs no second parse. The external-URL test is
 `links()`'s own ([bug 0565](./0565-the-front-matter-guard-keeps-its-own-external-url-test.md)).
 

@@ -16,7 +16,7 @@
 [Bug 0087](./0087-frontmatter-parsed-as-setext-heading.md)'s fix reads a line-1 `---` block as front matter only when it is a YAML mapping that parses
 without error and holds no task box and no link into the repository
 (`packages/md/src/model/prose.ts` at the time; the guard is now `notFrontMatterBecause`,
-`packages/md/src/model/prose.ts:81`). Anything else falls back to Markdown. The fallback is
+`packages/md/src/model/prose.ts:84`). Anything else falls back to Markdown. The fallback is
 right — it keeps the content checked — but it says nothing. Front matter with a YAML error, such as a
 duplicate key,
 
@@ -46,21 +46,26 @@ and its line, or the task box or link it holds), in the style of the ledger's `u
 [plan 0405](../../plans/completed/0405-md-select-the-links-a-block-declares.md)'s "not read" findings. Whether it fails the build or only notes it is the fix's decision:
 the content is checked either way.
 
-Built: the guard keeps its reason, and `frontMatterNotRead` (`packages/md/src/model/prose.ts:108`)
+Built: the guard keeps its reason, and `frontMatterNotRead` (`packages/md/src/model/prose.ts:110`)
 returns it with the block's last line: `its YAML does not parse (DUPLICATE_KEY at line 3)`, `it is
 not a YAML mapping`, `it holds no key`, or `it holds a task box` / `a link into the repository at
 line N`. The only finding the fallback causes is a phantom heading, so the reason goes where that
 finding is made: `titleFault` (`packages/md/src/model/sections.ts:226`) appends "it is in the line-1
 `---` block, read as Markdown, not as front matter, because …" when the heading it names (the first
 heading at the wrong depth, or a title that does not match) starts inside the block. A first
-version gave it only for a heading on line 1 or 2; PR #285's review measured a blank line in the
+version gave it only for a heading on line 1 or 2; PR #285's enforcement review measured a blank line in the
 block pushing the phantom heading to line 4, with no reason given. Like
-`unterminatedFence` (`packages/md/src/model/prose.ts:319`), it is a parse-time fact reported by the
+`unterminatedFence` (`packages/md/src/model/prose.ts:321`), it is a parse-time fact reported by the
 rule that depends on it, so no new rule and no new finding: a document whose fallback makes no
 phantom heading is not reported, because nothing in its verdict depends on the fallback. One
-case stays silent on purpose: a phantom depth-1 title (a YAML comment `# …` on line 2) satisfies a
-`haveTitle()` with no name, because it cannot be told from a document that opens with a horizontal
-rule and then its title.
+case stays silent on purpose, though its verdict does depend on the fallback: a phantom depth-1
+title (a YAML comment `# …` on line 2) satisfies a `haveTitle()` with no name, and with no other
+heading the same document read as front matter would have no title. It stays green because under
+the reading decided here the document has that title, and a pass carries no message, so saying so
+would take a new finding; that finding would also red a document that opens with a horizontal rule
+and then its title whenever the lines below happen to parse as a YAML mapping
+(`---\n# Title\nStatus: Done\n---`). PR #285's review found no such phantom title among 1,364 real
+front-matter documents.
 
 ## Verification
 

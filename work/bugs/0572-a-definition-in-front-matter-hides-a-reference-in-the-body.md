@@ -13,7 +13,7 @@
 ## Symptom
 
 The front-matter guard asks whether a checked node starts inside the block's lines
-(`checkedMarkdownIn`, `packages/md/src/model/prose.ts:39`). A `definition` is not a checked node,
+(`checkedMarkdownIn`, `packages/md/src/model/prose.ts:41`). A `definition` is not a checked node,
 so a block holding one stays front matter. The front-matter parse then has no such definition,
 the body's `[x]` is plain text, and `links()` never examines it. This is the mirror of
 [bug 0566](./fixed/0566-a-front-matter-reference-defined-in-the-body-is-hidden.md), where the
