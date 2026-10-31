@@ -34,15 +34,16 @@ built on [bug 0136](./0136-link-fragments-are-never-checked.md)'s anchor sets an
   (`packages/md/src/model/corpus-internals.ts:31`), as `pointerResolves` reads a file outside the
   roots, unless the caller ignored it.
 - `#L10`, `#L10-L20` and `#L10C5` on a file that is not Markdown is a line, checked against
-  `lineCount(readCorpusFile(…))` (`packages/md/src/conditions/pointer-resolve.ts:102`). On a
-  Markdown file it is an anchor like any other.
-- A fragment on a directory is checked against the directory's index document where one is loaded
-  or readable, else it is not judged.
-- Anything else is not judged: a finding in [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s class for what the rule's own instrument
-  could not read ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
-  rules 3 and 5): `bypassFilters`, one per target file within a rule, naming the file, why it was
-  not read, and the links it covers, as unread mentions are reported
-  (`packages/md/src/builders/mentions.ts:244`).
+  `lineCount(readCorpusFile(…))` (`packages/md/src/conditions/pointer-resolve.ts:102`), and a
+  column against its line's length. On a Markdown file it is an anchor like any other.
+- A fragment on a directory is checked against the page the anchor rule names for a directory
+  (under the default, the directory's `README.md`), loaded or read on demand; a directory with no
+  such page, or a rule that names none, leaves it not judged.
+- Anything else is not judged: a finding in the class
+  [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 3 names, for what
+  the rule's own instrument could not read: `bypassFilters`, as unread mentions are
+  (`packages/md/src/builders/mentions.ts:244`), and one per target file within a rule, as its rule 5
+  says, naming the file, why it was not read, and the links it covers.
 - `movedLinkFix` offers its rewrite, at both callers, only when the new document's anchor set holds
   the fragment; otherwise the finding stays, with no fix.
 
@@ -50,16 +51,19 @@ built on [bug 0136](./0136-link-fragments-are-never-checked.md)'s anchor sets an
 
 - [ ] Red test written first: `[x](../outside/notes.md#gone)` beside an existing, unloaded
       `outside/notes.md` with no such heading is red, and `#present` beside its heading passes.
-- [ ] `[x](./src/a.ts#L3)` passes on a three-line file; `#L4` and `#L2-L4` are red; `#L2C5` passes.
+- [ ] `[x](./src/a.ts#L3)` passes on a three-line file; `#L4` and `#L2-L4` are red; `#L2C5`
+      passes on a line of five or more characters and is red on a shorter one.
 - [ ] `[x](./notes.md#L3)` on a loaded Markdown file is checked as an anchor, and red.
-- [ ] A fragment on a directory with a loaded `README.md` is checked against it; on one with none,
-      it is not judged.
+- [ ] Under the default rule, a fragment on a directory holding a `README.md` is checked against
+      it, loaded or not; on a directory with none, it is not judged.
 - [ ] A fragment on an ignored file and on a `.pdf` is not judged: one finding per target file,
       surviving `.excluding()`, `.warn()` and an exclusion comment.
 - [ ] A moved link whose fragment the new document holds is fixed, at both callers; one whose
       fragment it does not hold is reported with no fix.
-- [ ] Non-vacuity rows, each red on its own under a probe: a fragment link to an existing file
-      outside the corpus roots; `#L<n+1>` on an existing n-line code file; and the gate summary's
+- [ ] Non-vacuity rows, each red on its own under a probe: a link to an existing Markdown file
+      outside the corpus roots with a fragment that file does not hold; `#L<n+1>` on an existing
+      n-line code file; a fragment on a target that cannot be read (an ignored file or a `.pdf`);
+      and the gate summary's
       not-judged count non-zero under a not-judged probe, so a denominator of 0 cannot pass.
 - [ ] A changeset naming `@nielspeter/eess-md`, a minor marked `**Breaking (@nielspeter/eess-md):**`
       with a migration line, released with [bug 0136](./0136-link-fragments-are-never-checked.md)'s.

@@ -13,8 +13,8 @@
   for High was the autofix path in Symptom (4)._
 - **Scope (2026-11-01, [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md)):** the
   Fix's open questions are decided there. This record keeps the fragment check against loaded
-  documents (Fix 1, 2 and the summary half of 3); a fragment on a file the corpus did not load, the
-  `#L` line form and the autofix (the rule half of Fix 3, Fix 4) moved to
+  documents (Fix 1, 2 and the summary half of 3); a fragment on a file the corpus did not load or
+  on a directory, the `#L` line form and the autofix (the rule half of Fix 3, Fix 4) moved to
   [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md), so each closes whole.
 - **Origin:** self-found · probed the gate while adding an in-document anchor to
   [proposal 001](../proposals/001-md-corpus-rule-coverage.md) during the
@@ -157,8 +157,9 @@ does not.
 Decided by [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md), section 5: the
 linking document's renderer's anchor rule is a `LinkResolveOptions` member (heading texts in, ids
 out, plus the ids' alias forms), GitHub's (`github-slugger`) by default; the anchor set is every
-heading at any depth, read by eess-md's own text extraction, plus `id` on any element and `name` on
-`<a>` from `html` nodes with comments removed; `resolveLink` computes the verdict on the target and
+heading at any depth, read by eess-md's own text extraction, plus the HTML anchors the rule's
+renderer keeps (under the default, `id` and `name` on `<a>`), from `html` nodes with comments
+removed; `resolveLink` computes the verdict on the target and
 each door decides what it means; the decoded fragment is compared exactly. The notes below are the
 record of how the questions arose.
 
@@ -282,11 +283,13 @@ record of how the questions arose.
       is red) and is heading text under GitHub's.
 - [ ] `./this.md#x` (a path back to the same document), `/page#x` under `rootDir`, and a
       reference-style `[x][r]` with `[r]: ./other.md#x` are each checked.
-- [ ] Heading text: inline code counts, image alt and inline HTML do not
-      (`## Setup <Badge/>` is `#setup`).
+- [ ] Heading text: inline code counts, image alt and inline HTML do not;
+      `## Setup <Badge/>` is `#setup` under the VitePress rule and what `github-slugger` gives
+      (`#setup-`) under the default, each pinned.
 - [ ] HTML anchors: an `<a id>` in a fenced block, an anchor inside an HTML comment and a
-      `<meta name>` are not anchors.
-- [ ] `#top` and an empty `#` resolve.
+      `<meta name>` are not anchors; under the default rule a `<div id>` is not one either, and
+      under the VitePress rule it is.
+- [ ] `#top`, `#TOP` and an empty `#` resolve.
 - [ ] The VitePress shapes of the spike's section 1 (an emoji shortcode, an entity, a
       footnote mark) are pinned: each matches VitePress, or is recorded as a bug.
 - [ ] A test renders `docs/` with VitePress's `createMarkdownRenderer` and finds the gate's
@@ -308,7 +311,7 @@ record of how the questions arose.
 Deferred:
 
 - [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment on a file the
-  corpus did not load, the `#L` line form and the autofix (see Scope).
+  corpus did not load or on a directory, the `#L` line form and the autofix (see Scope).
 - _(Stale 2026-10-30: `work/**` is in the roots now, and 0086 is fixed.)_
   **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
   [0086](./fixed/0086-links-to-directories-do-not-resolve.md), which already owns that

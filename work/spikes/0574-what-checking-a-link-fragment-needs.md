@@ -44,8 +44,8 @@ including one inside a list item or a blockquote. A heading's text is the concat
 exports `createMarkdownRenderer`: rendering all 50 documents of `docs/` with it took 2.5 s and gave
 793 heading ids, none differing from the prototype's (measured by the enforcement review).
 
-Four heading shapes are slugged from markdown-it's tokens in a way no function of the parsed text
-can reproduce (measured with that renderer):
+Four heading shapes are slugged from markdown-it's tokens, not from the parsed text (measured with
+that renderer). A rule could strip a shortcode from the text; the other three it cannot recover:
 
 ```text
 heading               VitePress id       mdast text, then slugify
@@ -57,15 +57,15 @@ heading               VitePress id       mdast text, then slugify
 
 None occurs in a heading of `docs/` today.
 
-**GitHub** is read through `github-slugger` 2.0.0 (ISC, no dependencies, ESM, 36 KB), which
+**GitHub** is read through `github-slugger` 2.0.0 (ISC, no dependencies, ESM, about 16 KB), which
 mirrors GitHub's rule: lowercase, remove every character on a generated list, turn each space into
 `-`, number duplicates `-1`, `-2`, …. The list is generated from Unicode 13.0 (its build pins
 `@unicode/unicode-13.0.0`). Measured through `slug()` over every code point, it keeps letters,
 marks, digits and connectors as Unicode 13 assigned them, plus 130 symbols, and removes 14,679
 letters and marks added since; 🎉 is removed (`slug('🎉 Release')` is `-release`). A regex over
 Unicode properties keeps those later letters, so it gives a different answer on each Node version
-as V8's Unicode tables move. The package does not: that determinism, not fidelity, is why it is
-the dependency rather than a copy. Whether GitHub itself slugs post-Unicode-13 letters as the
+as V8's Unicode tables move. The package's list does not (its lowercasing is still the runtime's
+`toLowerCase`): that determinism, not fidelity, is why it is the dependency rather than a copy. Whether GitHub itself slugs post-Unicode-13 letters as the
 package does is not measured (section 7).
 
 ## 2. This repository's corpus
@@ -109,9 +109,11 @@ was renamed (`#pow-scales` beside the heading `Power Scales`, `#gold-sponsors` b
 `curveBasis` and its siblings). Two kinds depend on what GitHub does: 11 of the 48 match a heading
 in other letter case only, and one points at a raw HTML `<h3>`.
 
-Across documents, the sample holds 74 fragment links: 39 into another `.md` file and 35 line
+Across documents, the sample holds 68 fragment links: 33 into another `.md` file and 35 line
 fragments (`#L…`) on `.js`/`.ts` files. In a corpus that loads only the README, every one of them
-targets a file the corpus did not load. Raw HTML in the sample holds 1,124 more `href="#…"`
+targets a file the corpus did not load. Of the 33 `.md` targets, 10 exist in the installed packages
+and 23 are missing, which `resolve()` reports already; of the 35 line targets, 27 exist (measured
+by the enforcement review). Raw HTML in the sample holds 1,124 more `href="#…"`
 fragments, which `links()` does not read at all; that is the raw-HTML link boundary
 [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md) is about, and nothing here
 changes it.
@@ -138,29 +140,36 @@ naming any tool" (`packages/md/src/model/resolve-link.ts:10`). Each can be overr
    id the renderer also answers to (GitHub's `user-content-`). The rule is the **linking**
    document's renderer's, since a reader stays in one renderer. The default is GitHub's, built on
    `github-slugger` as a dependency of eess-md and exported from the root, so a caller who wraps it
-   keeps its alias. eess-md names no renderer: the default is GitHub Flavored Markdown's, the
-   dialect eess-md parses, and any other is the caller's to pass. A renderer's anchor rule is not a
+   keeps its alias. eess-md names no renderer but this default: the rule is github.com's renderer's
+   (GitHub Flavored Markdown's specification defines no heading ids), chosen because a
+   repository-hosted corpus is read there; any other is the caller's to pass. The rule also names
+   the page its host shows for a directory (GitHub's: the directory's `README.md`), and the HTML
+   anchors its renderer keeps (decision 2). A renderer's anchor rule is not a
    document's shape, so [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) is not
    engaged. This repository's `check:corpus` passes VitePress's rule for `docs/`, importing
    `slugify` from `@mdit-vue/shared` (bundled into `vitepress`, not installed on its own, so a root
-   devDependency pinned to the version `vitepress` declares); a test renders `docs/` with VitePress's own
-   `createMarkdownRenderer` and pins the gate's anchor sets to it, so a VitePress upgrade that
-   changes ids reds a test, not the gate's cost.
+   devDependency in the range `vitepress` declares); the real pin is a test that renders `docs/`
+   with VitePress's own `createMarkdownRenderer` and finds the gate's anchor sets equal to its ids,
+   so a VitePress upgrade that changes ids reds a test, not the gate's cost.
 2. **The anchor set.** Every heading at any depth (not the section index, which leaves headings in
    containers out). The text the rule reads is eess-md's own extraction, the concatenation of the
    heading's text and inline-code values, with raw HTML, image alt and breaks left out; it is not
-   `headingName`, which keeps inline HTML and so would turn `## Setup <Badge/>` into a false red
-   under both renderers. Then the HTML anchors: `id` on any element and `name` on `<a>` only, read
-   from `html` nodes with comments removed, so an id inside code or a commented-out anchor is not
-   one. The four VitePress shapes of section 1 are a known divergence of a text-based rule; the
-   build pins them and records each one it does not match as a bug. `#top` and an empty `#` name
-   the top of the page (HTML's rule) and resolve.
+   `headingName`, which keeps inline HTML (`Setup <Badge/>` would read as `setup-badge`). The text
+   is the renderer's input as written, leftover spaces included: VitePress trims them, so
+   `## Setup <Badge/>` is `setup` there, while `github-slugger` keeps them, so it is `setup-` under
+   the default (section 7). Then the HTML anchors, read from `html` nodes with comments removed, so
+   an id inside code or a commented-out anchor is not one, and limited to what the rule says its
+   renderer keeps: the default counts `id` and `name` on `<a>` only, the closer reading while
+   section 7 is open; this repository's VitePress rule counts `id` on any element, which VitePress
+   renders as written. The four VitePress shapes of section 1 are a known divergence of a
+   text-based rule; the build pins them and records each one it does not match as a bug. `#top`
+   in any letter case and an empty `#` name the top of the page (HTML's rule) and resolve.
 3. **One owner computes the verdict; each door decides what it means.** `resolveLink` checks the
    fragment against the target's anchor set and reports the result on the target, as an additive
    field (found, absent with the nearest anchors, or malformed), the way it already reports a
    directory whatever `resolveDirectories` says (`packages/md/src/model/resolve-link.ts:49`).
    `resolve()` reds an absent or malformed fragment; `haveLiveTargets()`, `beLinkedBack()` and
-   `mentions()` read it or ignore it, documented. The comparison is exact, after percent-decoding:
+   `mentions()` ignore it, documented, since each asks a different question of the target. The comparison is exact, after percent-decoding:
    letter case included, the stricter reading until section 7 is measured; a malformed escape is a
    finding, never a thrown error. The finding names the fragment, the target, the rule that judged
    it, and the nearest anchors, including one that differs only in letter case. Anchor sets are
@@ -171,18 +180,22 @@ naming any tool" (`packages/md/src/model/resolve-link.ts:10`). Each can be overr
      `pointerResolves` reads a file outside the roots (`readCorpusFile`,
      `packages/md/src/model/corpus-internals.ts:31`), unless the caller ignored it.
    - A `#L10`, `#L10-L20` or `#L10C5` fragment on a file that is not Markdown is a line, checked
-     against `lineCount(readCorpusFile(…))` as a pointer's line is
+     against `lineCount(readCorpusFile(…))` as a pointer's line is, and a column against its
+     line's length
      (`packages/md/src/conditions/pointer-resolve.ts:102`). On a Markdown file it is an anchor like
      any other: GitHub renders the file, and the line form reaches nothing there.
-   - A directory link is checked against the directory's index document where the host renders one,
-     else it is not judged.
+   - A fragment on a directory is checked against the page the rule names for a directory (under
+     the default, the directory's `README.md`), loaded or read on demand; a directory with no such
+     page, or a rule that names none, leaves it not judged. A directory holding the `tryIndex` file
+     already resolves as that document.
    - Anything else (a fragment on an ignored file, on a file of another format, or on a hand-built
      link from outside the corpus) is not judged, and that is a finding in [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s existing class
-     for what a rule's own instrument could not read: unsuppressable (`bypassFilters`), one per
-     cause within a rule, as eess-md's unread mentions are (`packages/md/src/builders/mentions.ts:244`).
-     The cause is the target file, and the finding names it, its reason and the links it covers.
-     In the README sample this leaves nothing not judged: the 39 `.md` targets are read, the 35 line
-     fragments checked.
+     for what a rule's own instrument could not read: unsuppressable (`bypassFilters`), as eess-md's
+     unread mentions are (`packages/md/src/builders/mentions.ts:244`), and one per cause within a
+     rule, as [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5 says. The cause is the target file, and the finding names it, its
+     reason and the links it covers. In the README sample this leaves nothing not judged: the 10
+     `.md` targets that exist are read, the 23 missing are reported as missing, and the 27 line
+     targets that exist are checked.
 5. **The autofix carries a fragment only when the new target has it**, at both callers of
    `movedLinkFix` (`resolve()` and `beLinkedBack()`). Otherwise the finding stays, with no fix.
 6. **The gate's summary counts fragments**: checked, and not judged, from the same owner.
@@ -203,20 +216,23 @@ and passes others without a word. Each is a breaking minor of `@nielspeter/eess-
 
 ## 7. Not measured: what GitHub does
 
-Four questions are GitHub's behaviour, and the only instrument is GitHub:
+Five questions are GitHub's behaviour, and the only instrument is GitHub:
 
 1. whether a fragment in other letter case reaches a heading;
 2. whether a raw HTML heading has an anchor;
 3. which HTML `id`s survive GitHub's sanitizer, under their `user-content-` form;
 4. how a heading holding an emoji shortcode (`## :tada: Release`) or a letter added after Unicode
-   13 is slugged.
+   13 is slugged;
+5. whether the text GitHub slugs keeps a space that inline HTML leaves behind
+   (`## Setup <Badge/>`: `setup` or `setup-`).
 
 Measuring means sending a test document to GitHub (its Markdown API for the HTML ids, a rendered
 page for navigation), which is publishing, so it waits for the maintainer's word. Until then the
 build takes the reading that fails closed where one exists: exact case (at worst it reports the 11
 fragments of section 3 that differ only in case), and no anchor for an HTML heading without an id.
-Question 3 has no closed reading that keeps `<a name>` anchors, a common README pattern, so the
-default counts `id` and `<a name>` and the record says so; question 4 follows the package.
+For question 3 the default counts `id` and `name` on `<a>` only, a common README pattern, and not
+`id` on other elements; questions 4 and 5 follow the package, and the build's tests pin what it
+gives.
 
 ## Corrections
 
@@ -231,3 +247,9 @@ PR #286's reviews corrected this record before merge; the first version is in th
   `resolve()`; decision 4 cited [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md), whose bounded-instrument rules do not fit a scope the
   caller chose, and left the directory target, the `.md` line form, and on-demand reading
   undecided. Section 5 now decides each.
+- The second version credited the default rule to GitHub Flavored Markdown, whose specification
+  defines no heading ids; it is github.com's renderer's. It said `## Setup <Badge/>` is `setup`
+  under both renderers; under `github-slugger` it is `setup-`. It gave the README sample's
+  cross-document links as 74, 39 of them into `.md` files, all read; in the 566-file sample they are
+  68 and 33, and only 10 of the 33 exist. It left "the directory's index document" undefined; the
+  rule now names the page.
