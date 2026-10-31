@@ -11,6 +11,11 @@
   produce no finding. _Was Medium (2026-08-13): an honesty gap, not High because
   all five internal anchor links in the gated roots were correct; the argument
   for High was the autofix path in Symptom (4)._
+- **Scope (2026-11-01, [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md)):** the
+  Fix's open questions are decided there. This record keeps the fragment check against loaded
+  documents (Fix 1, 2 and the summary half of 3); a fragment on a file the corpus did not load, the
+  `#L` line form and the autofix (the rule half of Fix 3, Fix 4) moved to
+  [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md), so each closes whole.
 - **Origin:** self-found · probed the gate while adding an in-document anchor to
   [proposal 001](../proposals/001-md-corpus-rule-coverage.md) during the
   proposal-003/004 review round
@@ -149,6 +154,12 @@ does not.
 
 ## Fix
 
+Decided by [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md), section 5: the
+renderer's heading-id rule is a `LinkResolveOptions` factory, GitHub's (`github-slugger`) by
+default; the anchor set is every heading at any depth, every HTML `id`/`name` and GitHub's
+`user-content-` alias; the decoded fragment is compared exactly. The notes below are the record of
+how the questions arose.
+
 1. **Check the fragment when the target is in the corpus.** Slugify each
    heading the renderer anchors (superseded 2026-10-30: not the section index,
    see "The anchor set" below; the slug rule is the renderer's, see "Which
@@ -250,10 +261,13 @@ does not.
       VitePress one under the VitePress profile only.
 - [ ] `#gr%E0` is a finding, not a thrown `URIError`.
 - [ ] A heading inside a blockquote is reachable, and so is an `<a id>` anchor.
-- [ ] A fragment on a code file (`./src/a.ts#L10`) is checked against the file's line
-      count; a `#user-content-…` anchor reaches its heading.
-- [ ] The rule's own result says which fragments it did not judge, without a caller's summary.
-- [ ] `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
+- [ ] A `#user-content-…` anchor reaches its heading.
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
+      on a code file (`./src/a.ts#L10`) is checked against the file's line count.
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): the rule's
+      own result says which fragments it did not judge, without a caller's summary.
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md):
+      `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
 - [ ] The `check:corpus` summary reports fragments checked and fragments it could
       not verify.
 - [ ] A non-vacuity fixture reddens on a dead fragment — the existing
@@ -264,6 +278,8 @@ does not.
 
 Deferred:
 
+- [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment on a file the
+  corpus did not load, the `#L` line form and the autofix (see Scope).
 - _(Stale 2026-10-30: `work/**` is in the roots now, and 0086 is fixed.)_
   **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
   [0086](./fixed/0086-links-to-directories-do-not-resolve.md), which already owns that
