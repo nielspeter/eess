@@ -211,9 +211,10 @@ describe('PR #282 re-checks (bug 0558)', () => {
   // shortcut reference's shape, and reading it as one is a false red (bug 0566 records the gap).
   it('a YAML list shaped like a reference to a body definition stays front matter', () => {
     const v = resolveOf({
-      'docs/a.md': '---\ntags: [adr]\n---\n\n# A\n\n[ok](./b.md)\n\n[adr]: ./adr.md\n',
+      // The definition names a missing file, so reading the block as Markdown would both add an
+      // element and report it: either assertion catches the regression.
+      'docs/a.md': '---\ntags: [adr]\n---\n\n# A\n\n[ok](./b.md)\n\n[adr]: ./gone.md\n',
       'docs/b.md': '# B\n',
-      'docs/adr.md': '# ADR\n',
     })
     expect(v.map((x) => x.message)).toEqual([])
     expect(v.examined).toBe(1)
@@ -226,5 +227,14 @@ describe('PR #282 re-checks (bug 0558)', () => {
       'broken link: "./old/m&amp;" does not resolve to a file in the repo (the definition of [d])',
     ])
     expect(v[0]?.fix).toBeUndefined()
+  })
+})
+
+describe('a finding names a definition’s label as the source writes it (bug 0558)', () => {
+  it('an escaped label is named with its escape, so the author can find it', () => {
+    const v = resolveOf({ 'docs/a.md': '# A\n\nSee [x][a\\*b].\n\n[a\\*b]: ./gone.md\n' })
+    expect(v.map((x) => x.message)).toEqual([
+      'broken link: "./gone.md" does not resolve to a file in the repo (the definition of [a\\*b])',
+    ])
   })
 })

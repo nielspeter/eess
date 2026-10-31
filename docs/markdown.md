@@ -238,7 +238,11 @@ definition, however many references use it, with at most one fix over the
 definition's URL. A label matches its definition as the CommonMark spec says,
 by Unicode case fold (`[ẞ]` finds `[SS]`), the first matching definition used.
 `.beLinkedBack()` reports a reference-style link once, at its definition, too, and an
-exclusion comment for such a finding goes above the definition, not the reference. `.areInternal()`/`.areExternal()` split on
+exclusion comment for such a finding goes above the definition, not the reference.
+A reference whose label has no definition (`[text][gone]`, `[gone][]`) is not a link
+but text, so `links()` does not read it; find it as text of a shape you name, with
+`mentions()` and an absence rule, as
+`examples/md/a-reference-with-no-definition-is-reported.test.ts` does. `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
 `tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`
 understand a static site's routing instead of only a repo-hosted one.
