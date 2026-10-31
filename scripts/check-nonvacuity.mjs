@@ -78,7 +78,7 @@
  *                 root beside a live one must be refused, naming it.
  *   corpus/declared-block/{label-near-miss,section-near-miss,reference-declaration,
  *                 empty-declaration,unread-label,nested-declaration,annotated-child,
- *                 inner-label,stands-alone,formatted-label,dangling-declaration}
+ *                 inner-label,stands-alone,formatted-label}
  *                 (plan 0405) scripts/nonvacuity/bad-declared-block/ holds one
  *                 document per declaration finding, plus the nested shape whose
  *                 parent once swallowed a label unread and the annotated item that
@@ -5602,14 +5602,6 @@ const gates = [
         { dir: LANE_PROBE_DIR, relDir: LANE_PROBE_REL, id: 'corpus/record-number-in-title-lanes' },
       ),
   ],
-  // Bug 0558 (b), appended so the round-robin shard partition of every earlier row holds.
-  [
-    'corpus/declared-block/dangling-declaration',
-    () =>
-      gateNode('bad-declared-block.mjs', 'dangling-declaration: reported on', [
-        'dangling-declaration',
-      ]),
-  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5794,7 +5786,6 @@ const GATE_FOR = {
     'corpus/declared-block/inner-label',
     'corpus/declared-block/stands-alone',
     'corpus/declared-block/formatted-label',
-    'corpus/declared-block/dangling-declaration',
     // Plan 0412 — FIXTURE tier (bug 0127): they prove the eess-md builder reports each failure of
     // a code-block parse. No production rule parses code blocks until plan 0413's dogfood gate.
     'corpus/code-block-parse/invalid-verdict',

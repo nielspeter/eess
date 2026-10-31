@@ -5,7 +5,6 @@ import type { MdDocument } from './document.js'
 import { sectionPathAt } from './sections.js'
 import { definitionsOf, type MdLinkDefinition } from './definitions.js'
 import { destinationAt, writtenAt } from './destination.js'
-import { danglingReferencesIn } from './dangling-references.js'
 
 export type { MdLinkDefinition } from './definitions.js'
 
@@ -63,12 +62,6 @@ export interface MdLinkRef {
    * reference's own.
    */
   readonly definition?: MdLinkDefinition
-  /**
-   * For a full or collapsed reference whose label has no definition (bug 0558): the label as the
-   * source writes it. Such a link has no destination (`url` is `''`); `resolve()` and
-   * `beLinkedBack()` report it as having no definition.
-   */
-  readonly undefinedReference?: { readonly label: string }
 }
 
 // A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative.
@@ -127,34 +120,10 @@ export function collectLinkBlocks(
   blocks: MdLinkBlock[]
   unreadLabels: MdUnreadLabel[]
 } {
-  // Each link with its source offset, so the dangling references a block's scan finds sit in
-  // document order beside the link nodes the walk meets.
-  const found: { readonly offset: number; readonly link: MdLinkRef }[] = []
-  const add = (node: Nodes, link: MdLinkRef): void => {
-    found.push({ offset: node.position?.start.offset ?? 0, link })
-  }
+  const out: MdLinkRef[] = []
   const lines = source?.split('\n') ?? []
   const blocks: MdLinkBlock[] = []
   const definitions = definitionsOf(root, source)
-  const defined = new Set(definitions.keys())
-  // Bug 0558 (b): a reference whose label has no definition is text to the parser, read here from
-  // the block's source.
-  const scanDangling = (node: Nodes, path: readonly MdLinkBlock[]): void => {
-    if (source === undefined) return
-    for (const d of danglingReferencesIn(node, source, defined)) {
-      found.push({
-        offset: d.offset,
-        link: {
-          url: '',
-          text: d.text,
-          line: d.line,
-          external: false,
-          undefinedReference: { label: d.label },
-          ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
-        },
-      })
-    }
-  }
   const unreadLabels: MdUnreadLabel[] = []
 
   // The block a node opens: its first line, read from its content column.
@@ -216,17 +185,13 @@ export function collectLinkBlocks(
 
   const visit = (node: Nodes, path: readonly MdLinkBlock[]): void => {
     if (node.type === 'heading') {
-      scanDangling(node, [])
       visitChildren(node, node.children, [])
       return
     }
     if (node.type === 'listItem' || node.type === 'paragraph') {
-      const inner = enter(path, blockOf(node))
-      if (node.type === 'paragraph') scanDangling(node, inner)
-      visitChildren(node, node.children, inner)
+      visitChildren(node, node.children, enter(path, blockOf(node)))
       return
     }
-    if (node.type === 'tableCell') scanDangling(node, path)
     if (node.type === 'linkReference') {
       const site = definitions.get(node.identifier)
       // The parser makes a `linkReference` only where its label is defined, and both carry the same
@@ -235,7 +200,7 @@ export function collectLinkBlocks(
       if (site === undefined) {
         throw new ParserContractBroken(node.label ?? node.identifier)
       }
-      add(node, {
+      out.push({
         url: site.url,
         text: textOf(node),
         line: node.position?.start.line ?? 0,
@@ -265,7 +230,7 @@ export function collectLinkBlocks(
           urlEnd = urlStart + node.url.length
         }
       }
-      add(node, {
+      out.push({
         url: node.url,
         text: textOf(node),
         line: node.position?.start.line ?? 0,
@@ -279,8 +244,7 @@ export function collectLinkBlocks(
   }
 
   visitChildren(root, root.children, [])
-  const links = [...found].sort((a, b) => a.offset - b.offset).map((f) => f.link)
-  return { links, blocks, unreadLabels }
+  return { links: out, blocks, unreadLabels }
 }
 
 /**

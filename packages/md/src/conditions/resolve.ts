@@ -1,7 +1,7 @@
-import type { Condition, ConditionContext } from '@nielspeter/eess'
+import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdLink } from '../model/links.js'
-import { mdViolation, type ArchViolation } from '../model/violation.js'
+import { mdViolation } from '../model/violation.js'
 import {
   basenameIndex,
   linkTargets,
@@ -16,27 +16,6 @@ import {
  * share (plan 0404); re-exported here so existing imports keep working.
  */
 export type { LinkResolveOptions } from '../model/resolve-link.js'
-
-/** The remedy for a reference whose label has no definition (bug 0558), every way it can be cured. */
-function undefinedReferenceMessage(label: string): string {
-  return (
-    `the reference [${label}] has no definition, so it is not a link: add its definition ` +
-    `([${label}]: url), write it as a link ([text](url)), or put it in a code span if it is not one`
-  )
-}
-
-/** A reference whose label has no definition, at its own line (bug 0558). */
-export function undefinedReferenceViolation(link: MdLink, ctx: ConditionContext): ArchViolation {
-  const label = link.undefinedReference?.label ?? ''
-  return mdViolation({
-    element: `${link.doc.relPath} → [${label}]`,
-    file: link.doc.file,
-    line: link.line,
-    message: undefinedReferenceMessage(label),
-    sourceText: link.doc.text,
-    context: ctx,
-  })
-}
 
 /**
  * Condition: every (internal) link resolves to a file in the corpus's repo tree.
@@ -77,7 +56,6 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
       // with at most one fix over the definition's URL.
       const reported = new Set<string>()
       return links.flatMap((link) => {
-        if (link.undefinedReference !== undefined) return [undefinedReferenceViolation(link, ctx)]
         const target = resolveLink(link, corpus, options)
         if (
           target.kind === 'external' ||

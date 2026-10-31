@@ -98,7 +98,7 @@ files yields:
 | Bare-identifier citations    | 130       | 79 resolve     | 51 dangling     |
 
 Both false positives are prose _describing_ link syntax, inside inline-code
-spans in a real comment: `packages/md/src/model/links.ts:55` and
+spans in a real comment: `packages/md/src/model/links.ts:54` and
 `spec.rules.ts:160`. See _Review_ for why that is a design defect rather than a
 tuning problem.
 
@@ -131,7 +131,7 @@ submitting one: a source file citing a doc is invisible to `corpus()`, the
 citation rots on the corpus's own normal lifecycle, and nothing watches it.
 The layering analysis is the strongest part of the submission — every field it
 claims `linkResolves()` and `mdViolation()` read was checked against
-`packages/md/src/conditions/resolve.ts:99` and found accurate, so the "condition
+`packages/md/src/conditions/resolve.ts:77` and found accurate, so the "condition
 runs unmodified" and "autofix comes for free" claims both hold. That is what
 makes the rework cheap rather than a rewrite.
 
@@ -149,7 +149,7 @@ makes the rework cheap rather than a rewrite.
 3. **The false positives come from dropping a protection the cited precedent
    keeps.** `collectLinks()` gets inline-code and fenced-code immunity free
    from mdast — its own docstring says so at
-   `packages/md/src/model/links.ts:55`. `extractPointers()` is **not** the pure
+   `packages/md/src/model/links.ts:54`. `extractPointers()` is **not** the pure
    line-by-line regex scan this proposal cites it as: it calls `fencedRanges()`
    first (`packages/md/src/model/pointers.ts:52`) precisely to buy that
    protection back. The submission cites the technique and drops the guard.
@@ -231,12 +231,12 @@ existing `extractPointers()` technique — line-by-line regex over raw text,
 shape, backed by a minimal document carrier built from the real source
 file's real text — not a synthetic markdown-parsed document. Feed the result
 straight into the **unmodified** `linkResolves()` condition
-(`conditions/resolve.ts:99`).
+(`conditions/resolve.ts:77`).
 
 **Why this layering wins:**
 
 - `linkResolves()` and `mdViolation()` need zero changes. Reading
-  `conditions/resolve.ts:52-113`, the only fields of `MdLink`/`link.doc` they
+  `conditions/resolve.ts:31-91`, the only fields of `MdLink`/`link.doc` they
   touch are `url`, `line`, `external`, `urlStart`/`urlEnd`, and
   `doc.relPath`/`doc.file`/`doc.text` — none of `MdDocument`'s
   markdown-structural fields (`sections`, `tables`, `codeBlocks`, `root`).
