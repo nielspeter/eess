@@ -64,9 +64,11 @@ export interface MdLinkRef {
   readonly definition?: MdLinkDefinition
 }
 
-// A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative.
-// Exported model-internally (plan 0549), so `mentions()` and `links()` cannot disagree about a link.
-export const EXTERNAL_RE = /^([a-z][a-z0-9+.-]*:|\/\/)/i
+// A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative. Exported
+// model-internally (plan 0549), so `mentions()` and `links()` cannot disagree about a link; its one
+// owner is `external.ts` (bug 0565).
+export { EXTERNAL_RE } from './external.js'
+import { EXTERNAL_RE } from './external.js'
 
 /**
  * A block that can hold a link (plan 0405): a paragraph or a list item.

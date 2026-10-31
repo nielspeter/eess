@@ -58,10 +58,10 @@ r // one finding at a.md:4, "not at the start of a paragraph or list item"
 ## Root cause
 
 A link's block is its enclosing paragraph or list item. The block's label text is that block's
-**first source line** (`blockOf`, `packages/md/src/model/links.ts:129-134`). A soft break does not end
+**first source line** (`blockOf`, `packages/md/src/model/links.ts:131-136`). A soft break does not end
 a paragraph in CommonMark, so `**Related to:**` on the paragraph's second line is never the start of
 a block. The syntax-tree scan finds the label-shaped `strong` that is not its paragraph's first
-child, and records it as unread by position (`packages/md/src/model/links.ts:177`). The finding is then raised at
+child, and records it as unread by position (`packages/md/src/model/links.ts:179`). The finding is then raised at
 `packages/md/src/builders/declaration-findings.ts:130-140`.
 
 [Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md) chose the first line on purpose: "The label is read from the block's first source line"

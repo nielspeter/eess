@@ -79,7 +79,7 @@ and the finding says why, when:
   any depth; a whole blockquote; the paragraph directly before a top-level list or table, for a
   mention at any depth in it; and the heading of
   each section that contains it, the title included (`sectionPathAt`,
-  `packages/md/src/model/sections.ts:99`). A project's name is often only in a heading or a list's
+  `packages/md/src/model/sections.ts:100`). A project's name is often only in a heading or a list's
   lead-in, so the mention's own sentence misses it. This fails safe: a match too wide costs a reader
   one link by hand. (Amended at Phase 0, in answer to measurement 2's width test, not under the
   stop rules: the whole table and the whole list, read first, refused 376 here, 17 of 20 sampled

@@ -497,7 +497,7 @@ whole.
   green. A declaration must be a new optional input; both existing options and defaults stay.
 - **The evidence is all work records.** Every adopter, and this repository, is a corpus of plans and
   bugs. The generic claim is asserted by fixtures, not shown. Frontmatter, the main field form on
-  documentation sites and wikis, is parsed (`packages/md/src/model/prose.ts:25`) but not exposed on
+  documentation sites and wikis, is parsed (`packages/md/src/model/prose.ts:26`) but not exposed on
   `MdDocument`.
 - **Ask E's workflow-content half has no consumer** and is a different mechanism (a state graph, whose
   notation is a state diagram, which is [proposal 006](./006-mermaid-beyond-classdiagram.md)'s ground).

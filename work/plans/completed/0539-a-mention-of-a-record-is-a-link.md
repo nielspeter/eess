@@ -74,7 +74,7 @@ A new module, `packages/md/src/model/phrasing.ts`, owns the inline walk: for eac
 heading and table cell (list items reach it through their paragraphs), a run of segments, each with
 its text, its source position and its inline ancestry (link, inline code). Fenced and indented code,
 front matter and HTML comments are not walked. `links()` keeps its own block walk
-(`packages/md/src/model/links.ts:85-200`), which tracks block ancestry and URL spans and does not
+(`packages/md/src/model/links.ts:87-202`), which tracks block ancestry and URL spans and does not
 need runs; [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)'s wikilink scan, if
 built, consumes this module.
 

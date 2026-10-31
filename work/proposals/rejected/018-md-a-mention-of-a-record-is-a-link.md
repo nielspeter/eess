@@ -65,7 +65,7 @@ with this repository's are a finite, closed set of history, not a namespace that
 
 ## Existing code survey
 
-- **`links()` reads `link` nodes only** (`packages/md/src/model/links.ts:170-171`) and resolves
+- **`links()` reads `link` nodes only** (`packages/md/src/model/links.ts:172-173`) and resolves
   them (`resolve()`, `beLinkedBack()`, `areLabelled()`). A reference written as text is never an
   element.
 - **`terms()` reads one labelled value per line** (`packages/md/src/builders/vocabulary.ts:130`),

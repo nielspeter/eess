@@ -35,7 +35,7 @@ Every eess-md element that belongs to a document carries that document as `doc`:
 | element           | builder        | `doc` declared at                              |
 | ----------------- | -------------- | ---------------------------------------------- |
 | `MdTaskItem`      | `taskItems()`  | `packages/md/src/builders/task-items.ts:9`     |
-| `MdLink`          | `links()`      | `packages/md/src/model/links.ts:216`           |
+| `MdLink`          | `links()`      | `packages/md/src/model/links.ts:218`           |
 | `MdPointer`       | `pointers()`   | `packages/md/src/model/pointers.ts:90`         |
 | `MdRow`           | `rows()`       | `packages/md/src/model/rows.ts:22`             |
 | `MdTerm`          | `terms()`      | `packages/md/src/builders/vocabulary.ts:83`    |

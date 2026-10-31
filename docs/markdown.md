@@ -524,9 +524,17 @@ first: not Markdown, then ignored, then outside the roots.
 
 A document may open with YAML front matter between `---` lines. It is read as front matter — a
 `yaml` node in `MdDocument.root`, not a section — only when it is a YAML mapping that parses without
-error and holds no task box and no link into the repository. Anything else between a first-line
-`---` and a later one is read as Markdown, so a document that opens with a horizontal rule keeps its
-boxes, links and headings checked, and front matter with a YAML error still appears as a section.
+error and holds no task box and no link into the repository in its own lines, as the whole
+document parses them: a reference-style link there counts when its definition, in the block or in
+the body, names a file in the repository, so `tags: [adr]` beside an `[adr]: ./adr.md` definition is
+read as Markdown. Anything else between a first-line `---` and a later one is read as Markdown, so
+a document that opens with a horizontal rule keeps its boxes, links and headings checked, and front
+matter with a YAML error still appears as a section. When the heading a `haveTitle()` finding
+names starts inside that block, the finding says why: "it is in the line-1 `---` block, read as
+Markdown, not as front matter, because" its YAML does not parse (the error and its line), it is not
+a YAML mapping, it holds no key, or it holds a task box or a link into the repository (its line).
+A definition in the block that a reference in the body uses is not judged: the block stays front
+matter and that link is not read ([bug 0572](../work/bugs/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)).
 `terms()`, `pointers()` and the ledger read front-matter lines in both cases. TOML (`+++`) front
 matter is not recognised and is read as Markdown.
 
