@@ -42,9 +42,9 @@ definitions appended as stand-ins; its architect re-check measured that `tags: [
 `versions: [1]` and `title: "[RFC] …"` beside a body definition of the same label were then read
 as Markdown, giving a phantom section and link: a false red on common front matter. The
 enforcement re-check found the stand-ins also missed labels holding an escape or an entity. The
-change was reverted in PR #282, and the test `a YAML list shaped like a reference to a body
-definition stays front matter` (`packages/md/tests/reference-links.test.ts`) now pins the
-`tags: [adr]` case.
+change was reverted in PR #282, and a test in `packages/md/tests/reference-links.test.ts` then
+pinned the `tags: [adr]` case as front matter; the Decision below reverses it, and PR #285
+renamed and rewrote that test.
 
 ## Decision
 
@@ -53,7 +53,9 @@ Markdown reader checks, "exactly as before front matter was parsed". Before fron
 parsed, the whole document was read as Markdown, and `tags: [adr]` beside `[adr]: ./adr.md` was a
 link. So a `[label]` in a YAML value is a link when the whole document's Markdown parse reads it
 as one: its definition, in the block or in the body, names a file in the repository. An external
-definition, or no definition, leaves the block front matter. The cost, accepted on 2026-10-31: a
+definition, or no definition, leaves the block front matter. What is judged is the block's own
+lines: a definition in the block that a reference in the body uses is not, so that link stays
+hidden, the mirror of this bug, recorded as [bug 0572](../0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md). The cost, accepted on 2026-10-31: a
 document whose front matter holds `tags: [adr]` and whose body defines `[adr]` with an internal
 URL shows the block as a section and has the link checked; [bug 0410](./0410-front-matter-read-as-markdown-says-nothing.md)'s fix makes the title
 finding say why.
@@ -70,7 +72,7 @@ opened in the block and closed in the body.
 Built that way: `checkedMarkdownIn` (`packages/md/src/model/prose.ts:39`) walks the whole
 document's `GFM_ONLY` parse and names the first task box, inline link or reference into the
 repository that falls within the block's lines; a reference counts by its definition's URL, wherever
-the definition is. `parseFresh` (`:135`) runs that parse only when the block holds a `[` or its
+the definition is. `parseFresh` (`:140`) runs that parse only when the block holds a `[` or its
 YAML does not parse, so ordinary front matter costs no second parse. The external-URL test is
 `links()`'s own ([bug 0565](./0565-the-front-matter-guard-keeps-its-own-external-url-test.md)).
 
@@ -84,7 +86,10 @@ YAML does not parse, so ordinary front matter costs no second parse. The externa
       definition do not stay front matter; by the Decision they are read as Markdown when the
       definition is internal (measured 2026-10-31: each gives one examined link and its finding),
       and stay front matter when it is external or absent (examined 0). `packages/md/tests/reference-links.test.ts` · `it('a YAML list shaped like a reference to a body definition is read as Markdown, its link checked')`
-      pins the first, `packages/md/tests/front-matter-guard.test.ts` · `it('a block whose reference is to an external definition stays front matter')` the second.
+      pins the first; `packages/md/tests/front-matter-guard.test.ts` · `it('a block whose reference is to an external definition stays front matter')`
+      pins the external case by its title (no phantom heading), and `it('front matter with a list beside an internal link in the body stays front matter')`
+      pins that a link outside the block's lines does not count. The absent case is pinned by
+      `it('valid front matter gives no title finding')`.
 - [x] A changeset naming `@nielspeter/eess-md`: `.changeset/front-matter-is-judged-as-a-reader-sees-it.md`, a minor marked breaking.
 - [x] `npm run validate` green.
 

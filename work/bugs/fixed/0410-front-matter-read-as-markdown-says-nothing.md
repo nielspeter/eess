@@ -46,15 +46,21 @@ and its line, or the task box or link it holds), in the style of the ledger's `u
 [plan 0405](../../plans/completed/0405-md-select-the-links-a-block-declares.md)'s "not read" findings. Whether it fails the build or only notes it is the fix's decision:
 the content is checked either way.
 
-Built: the guard keeps its reason, and `frontMatterNotRead` (`packages/md/src/model/prose.ts:106`)
-returns it: `its YAML does not parse (DUPLICATE_KEY at line 3)`, `it is not a YAML mapping`, `it
-holds no key`, or `it holds a task box` / `a link into the repository at line N`. The only finding
-the fallback causes is a phantom first heading, so the reason goes where that finding is made:
-`titleFault` (`packages/md/src/model/sections.ts:226`) appends "it is the line-1 `---` block, read
-as Markdown, not as front matter, because …" when the first heading starts on line 1 or 2. Like
-`unterminatedFence` (`packages/md/src/model/prose.ts:314`), it is a parse-time fact reported by the
+Built: the guard keeps its reason, and `frontMatterNotRead` (`packages/md/src/model/prose.ts:108`)
+returns it with the block's last line: `its YAML does not parse (DUPLICATE_KEY at line 3)`, `it is
+not a YAML mapping`, `it holds no key`, or `it holds a task box` / `a link into the repository at
+line N`. The only finding the fallback causes is a phantom heading, so the reason goes where that
+finding is made: `titleFault` (`packages/md/src/model/sections.ts:226`) appends "it is in the line-1
+`---` block, read as Markdown, not as front matter, because …" when the heading it names (the first
+heading at the wrong depth, or a title that does not match) starts inside the block. A first
+version gave it only for a heading on line 1 or 2; PR #285's review measured a blank line in the
+block pushing the phantom heading to line 4, with no reason given. Like
+`unterminatedFence` (`packages/md/src/model/prose.ts:319`), it is a parse-time fact reported by the
 rule that depends on it, so no new rule and no new finding: a document whose fallback makes no
-phantom heading is not reported, because nothing in its verdict depends on the fallback.
+phantom heading is not reported, because nothing in its verdict depends on the fallback. One
+case stays silent on purpose: a phantom depth-1 title (a YAML comment `# …` on line 2) satisfies a
+`haveTitle()` with no name, because it cannot be told from a document that opens with a horizontal
+rule and then its title.
 
 ## Verification
 
@@ -63,9 +69,10 @@ phantom heading is not reported, because nothing in its verdict depends on the f
       title finding rather than as a separate "front matter not read" finding
       (`packages/md/tests/front-matter-guard.test.ts` · `it('a duplicate key: the YAML error and its line')`;
       red with the reason removed).
-- [x] a document that opens with a `---` block holding a task box is deliberately not reported: read
-      as Markdown, it makes no phantom heading, and the box is checked like any other; pinned by
-      `it('a task box on a continuation line makes no phantom title, so nothing needs naming')`.
+- [ ] done-otherwise: a document that opens with a `---` block holding a task box is reported
+      when, read as Markdown, the block makes a phantom heading (`it('a task box past a blank line in the block: the box and its line')`),
+      and deliberately not when it makes none, since the box is checked like any other
+      (`it('a task box on a continuation line makes no phantom title, so nothing needs naming')`).
 - [x] valid front matter produces no such report: `it('valid front matter gives no title finding')`.
 - [x] `npm run validate` green.
 

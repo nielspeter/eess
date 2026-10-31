@@ -29,12 +29,12 @@ const WITH_FRONT_MATTER = {
   mdastExtensions: [gfmFromMarkdown(), frontmatterFromMarkdown(['yaml'])],
 }
 
-// A URL with a scheme or `//` points outside the repository — the same test `MdLink.external` uses.
 /**
  * The first Markdown a reader checks inside lines `from`–`to` of `whole`, the document parsed as
  * Markdown: a task box, or a link into the repository, inline or reference-style (bug 0558). The
  * whole document is the parse that decides (bug 0566), so a reference defined in the body, an
- * escape and a construct crossing the block's edge are read as the parser reads them.
+ * escape and a construct crossing the block's edge are read as the parser reads them. A link into
+ * the repository is one `EXTERNAL_RE` does not call external, the test `MdLink.external` uses.
  */
 function checkedMarkdownIn(whole: Root, from: number, to: number): string | undefined {
   const definitions = definitionsOf(whole, undefined)
@@ -72,8 +72,9 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
  * mapping even beside an error, so the errors decide — and holds nothing a Markdown reader checks:
  * a task box or a link into the repository, which a YAML value can carry on an indented
  * continuation line and still parse. Anything else is read as Markdown, exactly as before front
- * matter was parsed, so no box or link is hidden by it; `whole` is that reading (bug 0566). The
- * reason is kept for the finding that names it (bug 0410).
+ * matter was parsed; `whole` is that reading (bug 0566), and the block's own lines are what it
+ * judges. A definition in the block that a reference in the body uses is not judged, so that link
+ * stays hidden (bug 0572). The reason is kept for the finding that names it (bug 0410).
  *
  * The same rule reads `tags: [adr]` as Markdown when the body defines `[adr]` with an internal URL:
  * to the whole document it is a reference. It fails closed, and the title finding says why.
@@ -100,14 +101,18 @@ function yamlRefusal(block: Yaml): string | undefined {
 }
 
 /**
- * Why `text`'s line-1 `---` block was read as Markdown, not as front matter (bug 0410), or
- * `undefined` when it was front matter or there is no such block.
+ * Why `text`'s line-1 `---` block was read as Markdown, not as front matter (bug 0410), and the
+ * block's last line, so a finding about a heading inside it can say why; `undefined` when it was
+ * front matter or there is no such block.
  */
-export function frontMatterNotRead(text: string): string | undefined {
+export function frontMatterNotRead(
+  text: string,
+): { because: string; lastLine: number } | undefined {
   if (!text.startsWith('---') && !text.startsWith('\uFEFF---')) return undefined
   const first = fromMarkdown(text, WITH_FRONT_MATTER).children[0]
   if (first?.type !== 'yaml') return undefined
-  return notFrontMatterBecause(first, fromMarkdown(text, GFM_ONLY))
+  const because = notFrontMatterBecause(first, fromMarkdown(text, GFM_ONLY))
+  return because === undefined ? undefined : { because, lastLine: first.position?.end.line ?? 1 }
 }
 
 /**

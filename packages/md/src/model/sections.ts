@@ -236,16 +236,21 @@ export function titleFault(doc: MdDocument, name?: string | RegExp): string | un
   if (first === undefined) return `no title: the document has no heading${note}`
   const title = titleOf(doc)
   if (title === undefined) {
-    // Bug 0410: a first heading that is a line-1 `---` block read as Markdown names why.
-    const notRead = first.line <= 2 ? frontMatterNotRead(doc.text) : undefined
-    const why =
-      notRead === undefined
-        ? ''
-        : `; it is the line-1 \`---\` block, read as Markdown, not as front matter, because ${notRead}`
-    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}${why}`
+    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}${notReadNote(doc, first.line)}`
   }
   if (name !== undefined && !matchName(title, name)) {
-    return `the title "${title}" (line ${String(first.line)}) is not "${String(name)}"`
+    return `the title "${title}" (line ${String(first.line)}) is not "${String(name)}"${notReadNote(doc, first.line)}`
   }
   return undefined
+}
+
+/**
+ * Bug 0410: a heading inside a line-1 `---` block read as Markdown names why the block was not
+ * front matter, wherever in the block the heading starts.
+ */
+function notReadNote(doc: MdDocument, line: number): string {
+  const notRead = frontMatterNotRead(doc.text)
+  return notRead === undefined || line > notRead.lastLine
+    ? ''
+    : `; it is in the line-1 \`---\` block, read as Markdown, not as front matter, because ${notRead.because}`
 }
