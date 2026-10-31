@@ -3,6 +3,7 @@ import { headingName, type MdDocument, type MdSection } from './document.js'
 import { matchName } from './name-match.js'
 import { isNearMiss } from './label.js'
 import { lineCount } from './line-count.js'
+import { frontMatterNotRead } from './prose.js'
 
 /**
  * A section (plan 0496): a heading at the top level of a document, and the lines it governs. Named
@@ -235,7 +236,13 @@ export function titleFault(doc: MdDocument, name?: string | RegExp): string | un
   if (first === undefined) return `no title: the document has no heading${note}`
   const title = titleOf(doc)
   if (title === undefined) {
-    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}`
+    // Bug 0410: a first heading that is a line-1 `---` block read as Markdown names why.
+    const notRead = first.line <= 2 ? frontMatterNotRead(doc.text) : undefined
+    const why =
+      notRead === undefined
+        ? ''
+        : `; it is the line-1 \`---\` block, read as Markdown, not as front matter, because ${notRead}`
+    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}${why}`
   }
   if (name !== undefined && !matchName(title, name)) {
     return `the title "${title}" (line ${String(first.line)}) is not "${String(name)}"`

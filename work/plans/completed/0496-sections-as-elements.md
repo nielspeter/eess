@@ -56,7 +56,7 @@ same heading walk links and tables use". There are two walks, and they read diff
 - `buildDocument` reads only the root's children (`packages/md/src/model/document.ts:139`), so
   `doc.sections` and every table's `sectionPath` ignore a heading inside a list item or a
   blockquote;
-- `collectLinks` recurses (`packages/md/src/model/links.ts:158-160`, `:198`), so such a heading
+- `collectLinks` recurses (`packages/md/src/model/links.ts:160-162`, `:198`), so such a heading
   enters a link's `sectionPath`, pops the real headings at its depth off the stack, and stays there
   after its container closes.
 
@@ -174,7 +174,7 @@ export interface MdSectionElement extends MdSection {
 - **No object links.** Parent and subsections are not fields. Containment is one helper,
   `contains(section, line)`: `section.line <= line <= section.endLine`. The heading's own line is
   inside its section, which is what `links()` already says of a link in a heading's text
-  (`## See [x](y)` carries that heading in its `sectionPath`, `packages/md/src/model/links.ts:158-161`).
+  (`## See [x](y)` carries that heading in its `sectionPath`, `packages/md/src/model/links.ts:160-163`).
   A section's subsections are the other sections it contains. The element stays plain data and the
   document is not a cycle.
 - **The index.** `sectionsOf(doc): readonly MdSectionElement[]`, in `packages/md/src/model/sections.ts`,

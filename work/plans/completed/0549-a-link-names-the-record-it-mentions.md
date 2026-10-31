@@ -82,7 +82,7 @@ the target's title from `link.target`'s document, so it never resolves a link a 
 3. the link's text less `linkPrefix` equals the target's title less `titlePrefix`, whitespace
    collapsed and ASCII letter case ignored; both prefixes are the caller's `RegExp` (eess-md fixes
    none, [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md)), and the title is the first section's depth-1 heading as `haveTitle()` reads it
-   (`packages/md/src/model/sections.ts:225-243`);
+   (`packages/md/src/model/sections.ts:226-250`);
 4. the mention lies in the compared text, not in a stripped prefix, and `pattern` matches at its
    place in the title.
 

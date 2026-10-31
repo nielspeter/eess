@@ -24,7 +24,7 @@ the inline link only. The three missing images produce nothing.
 
 ## Existing code survey
 
-- **`links()` reads links, inline and (since [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a)) reference-style, not images** (`packages/md/src/model/links.ts:195`); its docs scope it to
+- **`links()` reads links, inline and (since [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a)) reference-style, not images** (`packages/md/src/model/links.ts:197`); its docs scope it to
   `[text](url)` (`docs/markdown.md:232`), so images are not claimed.
 - **Image nodes are known** elsewhere: the phrasing walk reads an `image` and an `imageReference`
   (`packages/md/src/model/phrasing.ts:191`), and the fix check compares images by URL

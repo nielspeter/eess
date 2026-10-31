@@ -1,4 +1,4 @@
-import type { Nodes, Root } from 'mdast'
+import type { Nodes, Root, Yaml } from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfm } from 'micromark-extension-gfm'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
@@ -8,6 +8,7 @@ import { isMap, parseDocument } from 'yaml'
 import { registerCacheReset } from '@nielspeter/eess/internal'
 import { createParseMemo, type ParseMemo } from './parse-memo.js'
 import { definitionsOf } from './definitions.js'
+import { EXTERNAL_RE } from './external.js'
 
 /**
  * Which lines of a markdown document are prose, read with the parser the corpus is read with (bugs 0286
@@ -29,41 +30,84 @@ const WITH_FRONT_MATTER = {
 }
 
 // A URL with a scheme or `//` points outside the repository — the same test `MdLink.external` uses.
-const EXTERNAL = /^([a-z][a-z0-9+.-]*:|\/\/)/i
-
 /**
- * True when Markdown a reader checks — a task box, or a link into the repository, inline or
- * reference-style (bug 0558) — is in `root`.
+ * The first Markdown a reader checks inside lines `from`–`to` of `whole`, the document parsed as
+ * Markdown: a task box, or a link into the repository, inline or reference-style (bug 0558). The
+ * whole document is the parse that decides (bug 0566), so a reference defined in the body, an
+ * escape and a construct crossing the block's edge are read as the parser reads them.
  */
-function holdsCheckedMarkdown(root: Root): boolean {
-  const definitions = definitionsOf(root, undefined)
-  const visit = (node: Nodes): boolean => {
-    if (node.type === 'listItem' && typeof node.checked === 'boolean') return true
-    if (node.type === 'link' && !EXTERNAL.test(node.url)) return true
-    if (node.type === 'linkReference') {
-      const url = definitions.get(node.identifier)?.url
-      if (url !== undefined && !EXTERNAL.test(url)) return true
-    }
-    return 'children' in node && node.children.some(visit)
+function checkedMarkdownIn(whole: Root, from: number, to: number): string | undefined {
+  const definitions = definitionsOf(whole, undefined)
+  const inside = (node: Nodes): boolean => {
+    const line = node.position?.start.line ?? 0
+    return line >= from && line <= to
   }
-  return visit(root)
+  let found: string | undefined
+  const visit = (node: Nodes): void => {
+    if (found !== undefined) return
+    const line = String(node.position?.start.line ?? 0)
+    if (inside(node) && node.type === 'listItem' && typeof node.checked === 'boolean') {
+      found = `it holds a task box at line ${line}`
+      return
+    }
+    const url =
+      node.type === 'link'
+        ? node.url
+        : node.type === 'linkReference'
+          ? definitions.get(node.identifier)?.url
+          : undefined
+    if (inside(node) && url !== undefined && !EXTERNAL_RE.test(url)) {
+      found = `it holds a link into the repository at line ${line}`
+      return
+    }
+    if ('children' in node) for (const child of node.children) visit(child)
+  }
+  visit(whole)
+  return found
 }
 
 /**
- * Whether a line-1 `---` block is front matter (bug 0087). Only if it is a YAML mapping that parses
- * with no error — the yaml library hands back a mapping even beside an error, so the errors decide —
- * and holds nothing a Markdown reader checks: a task box or a link into the repository, which a
- * YAML value can carry on an indented continuation line and still parse. Anything else is read as
- * Markdown, as it was before front matter was parsed, so no box or link is hidden by it.
+ * Why a line-1 `---` block is not front matter (bug 0087), or `undefined` when it is. It is front
+ * matter only if it is a YAML mapping that parses with no error — the yaml library hands back a
+ * mapping even beside an error, so the errors decide — and holds nothing a Markdown reader checks:
+ * a task box or a link into the repository, which a YAML value can carry on an indented
+ * continuation line and still parse. Anything else is read as Markdown, exactly as before front
+ * matter was parsed, so no box or link is hidden by it; `whole` is that reading (bug 0566). The
+ * reason is kept for the finding that names it (bug 0410).
  *
- * A reference-style link counts when the block defines it (bug 0558). One whose definition is in
- * the body is not seen: a YAML flow list (`tags: [adr]`) has its shape, so judging it by the body's
- * definitions read ordinary front matter as Markdown (bug 0566).
+ * The same rule reads `tags: [adr]` as Markdown when the body defines `[adr]` with an internal URL:
+ * to the whole document it is a reference. It fails closed, and the title finding says why.
  */
-function isFrontMatter(value: string): boolean {
-  const doc = parseDocument(value)
-  if (doc.errors.length > 0 || !isMap(doc.contents) || doc.contents.items.length === 0) return false
-  return !holdsCheckedMarkdown(fromMarkdown(value, GFM_ONLY))
+function notFrontMatterBecause(block: Yaml, whole: Root): string | undefined {
+  return (
+    yamlRefusal(block) ??
+    checkedMarkdownIn(whole, block.position?.start.line ?? 1, block.position?.end.line ?? 1)
+  )
+}
+
+/** Why the block is not a YAML mapping front matter can be, read from its YAML alone. */
+function yamlRefusal(block: Yaml): string | undefined {
+  const doc = parseDocument(block.value)
+  const [error] = doc.errors
+  if (error !== undefined) {
+    // The library counts the block's lines from 1; the block starts after the `---` line.
+    const line = (error.linePos?.[0]?.line ?? 1) + (block.position?.start.line ?? 1)
+    return `its YAML does not parse (${error.code} at line ${String(line)})`
+  }
+  if (!isMap(doc.contents)) return 'it is not a YAML mapping'
+  if (doc.contents.items.length === 0) return 'it holds no key'
+  return undefined
+}
+
+/**
+ * Why `text`'s line-1 `---` block was read as Markdown, not as front matter (bug 0410), or
+ * `undefined` when it was front matter or there is no such block.
+ */
+export function frontMatterNotRead(text: string): string | undefined {
+  if (!text.startsWith('---') && !text.startsWith('\uFEFF---')) return undefined
+  const first = fromMarkdown(text, WITH_FRONT_MATTER).children[0]
+  if (first?.type !== 'yaml') return undefined
+  return notFrontMatterBecause(first, fromMarkdown(text, GFM_ONLY))
 }
 
 /**
@@ -72,7 +116,7 @@ function isFrontMatter(value: string): boolean {
  *
  * GFM, and YAML front matter, which parses to a `yaml` node. Without it, CommonMark reads the
  * closing `---` as a setext underline and the YAML above it becomes a depth-2 section (bug 0087).
- * A line-1 `---` block that is not front matter by {@link isFrontMatter} is read as Markdown instead,
+ * A line-1 `---` block that is not front matter by `notFrontMatterBecause` is read as Markdown instead,
  * so it fails closed: every reader sees what it holds. Text-line readers — `terms()`, `pointers()`,
  * the ledger — see front-matter lines either way, since only code blocks are set aside.
  */
@@ -91,8 +135,12 @@ export function parseUncached(text: string): Root {
 function parseFresh(text: string): Root {
   const root = fromMarkdown(text, WITH_FRONT_MATTER)
   const first = root.children[0]
-  if (first?.type !== 'yaml' || isFrontMatter(first.value)) return root
-  return fromMarkdown(text, GFM_ONLY)
+  if (first?.type !== 'yaml') return root
+  // A block with no `[` holds neither a task box nor a link into the repository (an autolink is
+  // always external), so valid YAML is front matter without a second, whole-document parse.
+  if (!first.value.includes('[') && yamlRefusal(first) === undefined) return root
+  const whole = fromMarkdown(text, GFM_ONLY)
+  return notFrontMatterBecause(first, whole) === undefined ? root : whole
 }
 
 // Bug 0547: one parse per distinct text per process; the master tree never leaves this module, and
