@@ -155,10 +155,12 @@ does not.
 ## Fix
 
 Decided by [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md), section 5: the
-renderer's heading-id rule is a `LinkResolveOptions` factory, GitHub's (`github-slugger`) by
-default; the anchor set is every heading at any depth, every HTML `id`/`name` and GitHub's
-`user-content-` alias; the decoded fragment is compared exactly. The notes below are the record of
-how the questions arose.
+linking document's renderer's anchor rule is a `LinkResolveOptions` member (heading texts in, ids
+out, plus the ids' alias forms), GitHub's (`github-slugger`) by default; the anchor set is every
+heading at any depth, read by eess-md's own text extraction, plus `id` on any element and `name` on
+`<a>` from `html` nodes with comments removed; `resolveLink` computes the verdict on the target and
+each door decides what it means; the decoded fragment is compared exactly. The notes below are the
+record of how the questions arose.
 
 1. **Check the fragment when the target is in the corpus.** Slugify each
    heading the renderer anchors (superseded 2026-10-30: not the section index,
@@ -268,12 +270,39 @@ how the questions arose.
       own result says which fragments it did not judge, without a caller's summary.
 - [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md):
       `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
-- [ ] The `check:corpus` summary reports fragments checked and fragments it could
-      not verify.
-- [ ] A non-vacuity fixture reddens on a dead fragment — the existing
-      `corpus/links` fixture cannot, since it only covers missing files.
-- [ ] A changeset naming `@nielspeter/eess-md` — `linkResolves` behaviour and the
-      autofix are consumer-visible.
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
+      on a directory, or on a file the corpus did not load, is read or reported.
+- [ ] Letter case: `[x](#Foo)` beside `## Foo` is red, and the finding names `#foo` as
+      differing only in case.
+- [ ] The `user-content-` alias answers under GitHub's rule only: `#user-content-x` on a
+      `docs/` link is red under the VitePress rule.
+- [ ] Duplicate numbering counts headings in containers: with two `## Dup`, one in a
+      blockquote, `#dup-1` passes and `#dup-2` is red.
+- [ ] `{#install}` is the id under the VitePress rule (`#install` passes, the slug of the text
+      is red) and is heading text under GitHub's.
+- [ ] `./this.md#x` (a path back to the same document), `/page#x` under `rootDir`, and a
+      reference-style `[x][r]` with `[r]: ./other.md#x` are each checked.
+- [ ] Heading text: inline code counts, image alt and inline HTML do not
+      (`## Setup <Badge/>` is `#setup`).
+- [ ] HTML anchors: an `<a id>` in a fenced block, an anchor inside an HTML comment and a
+      `<meta name>` are not anchors.
+- [ ] `#top` and an empty `#` resolve.
+- [ ] The VitePress shapes of the spike's section 1 (an emoji shortcode, an entity, a
+      footnote mark) are pinned: each matches VitePress, or is recorded as a bug.
+- [ ] A test renders `docs/` with VitePress's `createMarkdownRenderer` and finds the gate's
+      anchor sets equal to its ids.
+- [ ] Anchor sets are cached per rule: one corpus checked under both profiles gives each its
+      own answer.
+- [ ] The `check:corpus` summary reports fragments checked and fragments it did not
+      verify.
+- [ ] Non-vacuity rows, one per routing region, each red on its own: a `docs/` probe with a
+      GitHub-valid, VitePress-dead slug (red only if the site profile really passes the
+      VitePress rule), and a `work/` probe with a dead fragment on an existing document. The
+      existing `corpus/links` rows cannot, since they cover missing files only.
+- [ ] A changeset naming `@nielspeter/eess-md`, a minor marked
+      `**Breaking (@nielspeter/eess-md):**` with a migration line, since `resolve()` newly reds
+      on adopters' corpora; released together with
+      [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md)'s.
 - [ ] `npm run validate` green.
 
 Deferred:
