@@ -175,7 +175,7 @@ does not.
    **The anchor set is GitHub's, not the section index (added 2026-10-30, PR
    #280's enforcement review).** eess-md's sections leave out a heading inside a
    list item, a blockquote or a footnote definition
-   (`packages/md/src/model/sections.ts:13`); GitHub gives each of them an anchor, so
+   (`packages/md/src/model/sections.ts:14`); GitHub gives each of them an anchor, so
    slugs built on sections would make `[x](#note)` to a `> ## Note` a false red and
    shift the `-1`/`-2` numbering. The anchor set is every heading the renderer
    anchors, plus explicit HTML anchors (`<a name="x">`, `<a id="x">`) and GitHub's

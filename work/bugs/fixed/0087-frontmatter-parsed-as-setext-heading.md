@@ -152,4 +152,4 @@ version. The lockfile adds `fault`, `format` (0.2.2, unmaintained, no license fi
 `escape-string-regexp`.
 
 **Not fixed here, recorded:** a `---` block that falls back to Markdown does so silently, so
-front matter with a YAML error still shows its phantom section without a word — [bug 0410](../0410-front-matter-read-as-markdown-says-nothing.md).
+front matter with a YAML error still shows its phantom section without a word — [bug 0410](./0410-front-matter-read-as-markdown-says-nothing.md).

@@ -39,7 +39,7 @@ actually want is narrower: links made under a **declared marker** must be answer
 
 - **Links are parsed with their source and line.** `MdLinkRef` carries `url`, `text`, `line` and
   `external` (`packages/md/src/model/links.ts:6-23`); `MdLink` adds `doc`
-  (`packages/md/src/model/links.ts:72-74`). Only inline links become `MdLink`s:
+  (`packages/md/src/model/links.ts:74-76`). Only inline links become `MdLink`s:
   `collectLinks` visits `link` nodes (`packages/md/src/model/links.ts:36`), so a reference-style
   link, `[text][ref]`, is invisible to eess-md as well as to the consumer's regex.
 - **Resolution exists and is internal.** `resolveTargets` strips `#fragment`, URL-decodes, treats a

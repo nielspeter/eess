@@ -33,7 +33,7 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
 ## Existing code survey
 
 - **Footnote nodes are known** to the section reader, which does not count a heading inside a
-  footnote definition as a section (`packages/md/src/model/sections.ts:124`).
+  footnote definition as a section (`packages/md/src/model/sections.ts:125`).
 - **No footnote element type exists** in `packages/md/src/builders/`, and no rule reports either
   drift.
 - **The nearest shapes** are `links().should().resolve()` (a reference must reach its target) and

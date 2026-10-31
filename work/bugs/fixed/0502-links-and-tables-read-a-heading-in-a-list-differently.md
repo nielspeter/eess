@@ -30,7 +30,7 @@ eess-md has two heading walks, and they disagree about a heading that sits insid
   inside a list item or a blockquote is not in `doc.sections`, and it does not enter a table's
   `sectionPath`. `haveSection`, `haveTable({ section })` and `vocabulary({ fromHeadings })` read this
   walk.
-- `collectLinks` recurses into every node (`packages/md/src/model/links.ts:158-160`, `:198`), so the
+- `collectLinks` recurses into every node (`packages/md/src/model/links.ts:160-162`, `:198`), so the
   same heading enters the running heading stack, and a link's `sectionPath`. Entering it truncates
   the stack to its depth, which drops every real heading at that depth or deeper, and the stack is
   never restored when the container closes. Two directions follow:

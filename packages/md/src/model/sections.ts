@@ -3,6 +3,7 @@ import { headingName, type MdDocument, type MdSection } from './document.js'
 import { matchName } from './name-match.js'
 import { isNearMiss } from './label.js'
 import { lineCount } from './line-count.js'
+import { frontMatterNotRead } from './prose.js'
 
 /**
  * A section (plan 0496): a heading at the top level of a document, and the lines it governs. Named
@@ -235,10 +236,21 @@ export function titleFault(doc: MdDocument, name?: string | RegExp): string | un
   if (first === undefined) return `no title: the document has no heading${note}`
   const title = titleOf(doc)
   if (title === undefined) {
-    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}`
+    return `no title: the first heading, "${first.name}" at line ${String(first.line)}, is at depth ${String(first.depth)}${note}${notReadNote(doc, first.line)}`
   }
   if (name !== undefined && !matchName(title, name)) {
-    return `the title "${title}" (line ${String(first.line)}) is not "${String(name)}"`
+    return `the title "${title}" (line ${String(first.line)}) is not "${String(name)}"${notReadNote(doc, first.line)}`
   }
   return undefined
+}
+
+/**
+ * Bug 0410: a heading inside a line-1 `---` block read as Markdown names why the block was not
+ * front matter, wherever in the block the heading starts.
+ */
+function notReadNote(doc: MdDocument, line: number): string {
+  const notRead = frontMatterNotRead(doc.text)
+  return notRead === undefined || line > notRead.lastLine
+    ? ''
+    : `; it is in the line-1 \`---\` block, read as Markdown, not as front matter, because ${notRead.because}`
 }
