@@ -33,12 +33,12 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
 ## Existing code survey
 
 - **Footnote nodes are known** to the section reader, which does not count a heading inside a
-  footnote definition as a section (`packages/md/src/model/sections.ts:125`).
+  footnote definition as a section (`packages/md/src/model/sections.ts:125`). _Corrected 2026-11-01 (review): that line is the doc comment; the code is at `packages/md/src/model/sections.ts:119`._
 - **No footnote element type exists** in `packages/md/src/builders/`, and no rule reports either
   drift.
 - **The nearest shapes** are `links().should().resolve()` (a reference must reach its target) and
   `mentions()` (a text pattern the caller names, so `[^…]` in text can be found today with a
-  pattern; that finds the missing-definition case by its literal brackets, outside code).
+  pattern; that finds the missing-definition case by its literal brackets, outside code). _Corrected 2026-11-01 (review): `mentions()` reads inline code too; only fenced code is skipped (`packages/md/src/model/phrasing.ts:223`), so a `[^x]` in a code span is found. The fix is [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md)'s._
 
 ## Asks
 
@@ -51,13 +51,13 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
 - **Break class (A):** `[^missing]` in prose with no definition is reported at its line.
 - **Break class (A, false red):** `[^x]` in a code span or fenced block is not reported; nor is an
   escaped `\[^x]` (measured: the parser unescapes it into the text `Escaped [^x] here.`, so the
-  scan reads the source by offset).
+  scan reads the source by offset). _Corrected 2026-11-01 (review): a scan that reads the source by offset is a separate scanner, which contradicts open question 2's design of A as a mention; the proposal states two designs for A._
 - **A false red A cannot avoid:** a regex class written in prose (`[^0-9]`, measured: plain text)
   has the shape of a dangling reference, and `0-9` is a valid footnote label (PR #280's
   enforcement re-check: with a `[^0-9]: …` definition it is a reference). So A reports it, and the
-  finding names the remedy that clears it, a code span. A heuristic that skipped it (only a
+  finding names the remedy that clears it, a code span. _Corrected 2026-11-01 (review): a code span does not clear it today, since `mentions()` reads inline code; nor do `&#91;` or `[\^`. That waits on [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md)._ A heuristic that skipped it (only a
   document that holds a footnote is read) would miss the common deletion, where a document's only
-  footnote and its definition both go.
+  footnote and its definition both go. _Corrected 2026-11-01 (review): if both go, nothing dangles. The real case is that the only definition is deleted, so the document holds no footnote node; the one real dangling footnote in 1,881 READMEs measured is in a file with no definition._
 - **Break class (B):** `[^unused]: …` with no reference is reported at the definition's line.
 - **Non-vacuity:** a fixture row per break class.
 
@@ -72,7 +72,7 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
 
 Whether this repository's `check:corpus` adopts the rule is for the review. Measured by parsing
 every tracked Markdown file under `work/`, `adr/` and `docs/`: none holds a footnote reference or
-definition, so the gate would read nothing today, and the rows are the proof.
+definition, so the gate would read nothing today, and the rows are the proof. _Corrected 2026-11-01 (review): this is wrong for A. A's composition over `check:corpus`'s roots reports 32 findings, all in inline code and 20 of them in this proposal, and none once [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md) is fixed. All three lenses recommend no `check:corpus` adoption; the proof is fixture-tier._
 
 ## Out of scope
 

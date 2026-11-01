@@ -31,7 +31,9 @@ the inline link only. The three missing images produce nothing.
   (`packages/md/src/model/phrasing.ts:191`), and the fix check compares images by URL
   (`packages/md/src/model/fix-check.ts:80`). No element type or rule resolves one.
 - **Resolution is `resolveLink`** ([plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)): an image's URL resolves the way a link's does, so
-  no second resolver is needed.
+  no second resolver is needed. _Corrected 2026-11-01 (review): one resolver is enough, but the
+  link door's accepted cases are not the image door's. `![a]()`, `![a](#)`, a directory and a
+  Markdown file all pass as links, so the image door needs accepted cases of its own._
 - **The reference form** shares [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s definition lookup, and `<img src>`
   shares [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s HTML scan.
 
@@ -40,7 +42,12 @@ the inline link only. The three missing images produce nothing.
 - **A — an image's local file exists.** Inline and reference-style images whose URL is not
   external are resolved, and a missing file is reported at its line (a reference image's at its
   definition's line, as in [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)).
+  _Corrected 2026-11-01 (review): ask A cannot ship alone. 66 of 73 local images in the README
+  sample are `<img src>`, so A without B is a false green; the two ship together._
 - **B — `<img src>`.** The same for an `src` in raw HTML, on [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s scan.
+  _Corrected 2026-11-01 (review): ask B also covers `<img srcset>`, not only `<source srcset>`. An
+  unquoted `<img src=./x.png>` is a text node to the parser, so a scan that reads only HTML nodes
+  never sees it._
 
 ## Acceptance criteria
 
@@ -50,6 +57,10 @@ the inline link only. The three missing images produce nothing.
 - **Break class:** `<img src="./gone.png">` reports a missing image (B).
 - **Break class:** a dangling `![alt][gone]`, with no definition, is plain text to the parser (as a
   dangling link reference is, [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)) and is reported.
+  _Corrected 2026-11-01 (review): this re-opens a decided record and is already met.
+  [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b) decided
+  that a dangling reference is text, and its example, `mentions()` with `notExist()`, reports
+  `![alt][nodef]` today. The criterion is struck._
 - **Break class (B):** `<picture><source srcset="…">`, GitHub's dark-mode logo: `srcset` is a
   comma list with descriptors, read per entry; read as one path it is a false red, left unread a
   false green.
@@ -57,8 +68,14 @@ the inline link only. The three missing images produce nothing.
   in a code span or fenced block, and an `<img>` inside an HTML comment, produce nothing; an image
   inside a link (`[![badge](…)](…)`) is judged as an image and its link as a link; and
   `./logo.svg#gh-dark-mode-only` resolves the file (it does today, as a link target).
+  _Corrected 2026-11-01 (review): the fragment clause conflicts with
+  [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4, which makes a
+  fragment on a non-Markdown file a not-judged finding, and goes stale once
+  [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md) lands. The image door
+  ignores the fragment verdict, and says so in its docs._
 - **Evidence:** `examined` counts each image read.
-- **Non-vacuity:** a fixture row per break class.
+- **Non-vacuity:** a fixture row per break class. _Corrected 2026-11-01 (review): as written this
+  cannot fail. Each row names the sabotage it goes red under and asserts message, file and line._
 
 ## Dogfooding
 
@@ -69,7 +86,9 @@ re-check), so `check:corpus` would read nothing; the rows are the proof.
 
 1. **Element type or a widened `links()`.** An `images()` element type of its own, or images as
    links of a kind (`links().that().areImages()`). `links()` users would see new findings from the
-   second, a break marked as one; the first is additive.
+   second, a break marked as one; the first is additive. _Corrected 2026-11-01 (review): the second
+   also moves the verdicts of three other readers of the same links, `sections().haveLink`,
+   `beLinkedBack` and `areLabelled`, some from red to green._
 2. **Alt text.** Whether an image without alt text is in scope, as an accessibility rule beside the
    file check, or a separate ask.
 
@@ -212,7 +231,7 @@ Each of these is decided here so the work can move, and each can be overruled.
   chooses: no autofix for images, the fix offered in the message only, or a stricter match.
 - **Missing false-red classes** (measured):
   - a query string: `./x.png?raw=true` and `./a.md?plain=1` are "broken link" today, because
-    `linkTargets` strips only `#` (`packages/md/src/model/resolve-link.ts:136`). That is a resolver
+    `linkTargets` strips only `#` (`resolve-link.ts` as it stood on 2026-11-01). _Fixed since by [bug 0583](../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md): `splitPath` (`packages/md/src/model/resolve-link.ts:131`) ends the path at the first `?` or `#`._ That is a resolver
     defect of its own, now recorded as
     [bug 0583](../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md), and this work
     depends on it;

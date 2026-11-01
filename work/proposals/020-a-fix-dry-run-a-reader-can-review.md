@@ -10,6 +10,8 @@ fix proposes thousands of edits in one run, and its safety rests on a reader che
 after reading a dry-run list grouped by target, and sampling it.
 **Affects:** `@nielspeter/eess-ts` (the `check --fix` output) for A; `@nielspeter/eess` for B
 (`ArchFix` and the JSON report, `packages/core/src/format-json.ts`, which is the agent contract).
+_Corrected 2026-11-01 (review): A is not eess-ts alone; it also touches the kernel (the `ArchFix`
+field, `ApplyResult` and the grouping helper) and the three eess-md producers._
 
 ## Problem
 
@@ -17,7 +19,10 @@ after reading a dry-run list grouped by target, and sampling it.
 listed per file and by offset within a file (`packages/core/src/apply-fixes.ts`), then a count (`packages/ts/src/cli/commands/check.ts:457-469`). That
 serves `movedLinkFix`, which proposes a handful of edits. The mention fix proposes one edit per plain
 mention, about 3,000 to 4,700 in each corpus measured, and the one error a reader can catch is many
-mentions sent to the same wrong target. A flat list hides it.
+mentions sent to the same wrong target. A flat list hides it. _Corrected 2026-11-01 (review): the
+error [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md) measured was many wrong fixes in one file, each to a different
+record, which today's per-file order shows and a grouping by target scatters. Grouping by target
+catches a different class, many mentions sent to one record._
 
 ## Existing code survey
 
@@ -41,6 +46,8 @@ mentions sent to the same wrong target. A flat list hides it.
 - **Break class:** a dry run of two fixes to one target and one to another lists the pair under one
   target, with its count, before the single.
 - **Break class:** `--format json` of a finding with a fix carries the fix; without one, no fix field.
+  _Corrected 2026-11-01 (review): the JSON report writes `null` for an absent field, so a finding
+  without a fix carries `fix: null`, not no field._
 - **Break class (no change):** `--apply` writes exactly what the dry run listed.
 - **Non-vacuity:** a fixture row per break class.
 
@@ -51,7 +58,11 @@ showed the stopgap pipeline does not group by record. A fix's `describe` names i
 link destination it writes, relative to the mentioning document, so one record cited from different
 folders lands in different groups: the same [plan 0456](../plans/completed/0456-kernel-notexist-and-dead-glob.md) counted once as `0456-kernel-…` and once as
 `plans/completed/0456-kernel-…`. A reader looking for many mentions sent to one wrong record would
-miss it. Ask A needs the target as a repository path. Until then the docs' pipeline groups by the
+miss it. Ask A needs the target as a repository path. _Corrected 2026-11-01 (review): a repository
+path repeats the defect one level up, since eess-md's `relPath` is relative to each corpus's own
+`cwd` (`packages/md/src/corpus.ts:47`), and a project root in a kernel type is what
+[ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) forbids. The target is an
+opaque identity, in a form each producer resolves._ Until then the docs' pipeline groups by the
 target's file name, which is one record only where a corpus's record file names are unique, and
 says so.
 
@@ -63,6 +74,8 @@ says so.
    ADR row rather than only a plan. Until then, [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)
    fixes its `describe` with the target last, so a shell pipeline can group the dry run.
 2. **Grouped by what for `movedLinkFix`.** Its target is the moved file; the same field would serve.
+   _Corrected 2026-11-01 (review): the question omits the third producer, the pointer rewrite, which
+   the same field serves too._
 
 ## Out of scope
 
