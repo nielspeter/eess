@@ -10,6 +10,8 @@
 - **Origin:** self-found · [proposal 014](../proposals/014-crossvalidate-tests-in-any-language.md)'s
   review (enforcement lens, Critical 2), which measured it in today's TS form and asked for a
   bug of its own, outside the proposal's scope.
+  (That review's ruling is recorded with [proposal 014](../proposals/014-crossvalidate-tests-in-any-language.md)'s amended text and plan, in their own PR;
+  until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
 ## Symptom

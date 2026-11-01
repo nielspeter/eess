@@ -5,10 +5,10 @@
 - **State:** Draft — measured 2026-11-01 on `main` at bd78b962; no red test yet.
 - **Severity:** High — a false green: a run whose rule's instrument is broken writes an empty
   baseline and reports success, and the next `check --baseline` has nothing to say it was broken.
-- **Origin:** self-found · [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md)'s
+- **Origin:** self-found · [proposal 011](../proposals/011-core-name-the-evidence-gate.md)'s
   review, 2026-11-01, which found this is the real silent drop behind its ask C.
 - **Reported:** 2026-11-01
-- **Implements:** [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md)
+- **Part of:** [proposal 011](../proposals/011-core-name-the-evidence-gate.md)'s ask C, which is held; this record owns one of its cases
 
 ## Symptom
 

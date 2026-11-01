@@ -9,6 +9,8 @@
 - **Origin:** self-found ·
   [proposal 025](../proposals/025-md-a-field-written-empty-can-mean-absent.md)'s architect review,
   which found it by reading; reproduced before filing.
+  (That review's ruling is recorded with [proposal 025](../proposals/025-md-a-field-written-empty-can-mean-absent.md)'s amended text and plan, in their own PR;
+  until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
 ## Symptom

@@ -162,15 +162,16 @@ Two parts, one root cause:
    - The remedy the finding gives must clear it: write the link in Markdown, with blank lines
      inside the HTML block so it is parsed as Markdown (`<p align="center">`, a blank line,
      `[Guide](./guide.md)`, a blank line, `</p>`).
-   - **Decided 2026-11-01 (overrulable), from [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s
-     review: resolve the `href`, do not report it unread.** An unread finding cannot be suppressed
+   - **Decided 2026-11-01 (overrulable): resolve the `href`, do not report it unread.** Reached in
+     the review of [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md), whose ruling
+     lands with its amended text and plan in their own PR; the reasoning is recorded here. An unread finding cannot be suppressed
      ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5), and for a
      sized logo or a `target` link its only remedy would be deleting a correct link, against
      [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2. Resolving gives a broken
      `href` the remedy "fix the path", and what the reader cannot parse is reported unread with the
-     remedy "write it in a form eess-md reads". So this half closes done-otherwise against
-     [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s plan, through one shared
-     reader of HTML attributes. The decision as first recorded:
+     remedy "write it in a form eess-md reads". So this half is to close done-otherwise against the
+     plan that builds [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md), through one
+     shared reader of HTML attributes. The decision as first recorded:
    - **Open, decided before the fix is built (superseded above):** some HTML has no Markdown remedy. A README logo
      sized with `width` (`<a href="./docs/"><img src="logo.svg" width="120"></a>`) cannot be
      written in Markdown, and `md/unread-mention`, the precedent, cannot be suppressed

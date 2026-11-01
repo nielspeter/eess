@@ -145,8 +145,9 @@ Each of these is decided here so the work can move, and each can be overruled.
    [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b)'s
    first build reverted. All three lenses' evidence leans the same way. An additive `images()` is
    an eess-md minor.
-2. **Raw HTML is resolved directly**, through the one shared reader of HTML attributes that
-   [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s ruling chose. So ask B does not wait
+2. **Raw HTML is resolved directly**, through one shared reader of HTML attributes: the decision recorded in
+   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2
+   (2026-11-01), which [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan will build. So ask B does not wait
    on an "unread first" step, and ask A does not need a disclosure finding with no remedy. This
    settles, for images, the "unread, or resolve" choice that
    [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 left

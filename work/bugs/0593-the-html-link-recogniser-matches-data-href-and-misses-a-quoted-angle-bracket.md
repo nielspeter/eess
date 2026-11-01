@@ -8,6 +8,8 @@
   Two are red under the wrong finding, with a remedy for a link that is not there and no fix.
 - **Origin:** self-found · [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s
   review, 2026-11-01.
+  (That review's ruling is recorded with [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
+  until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
 ## Symptom

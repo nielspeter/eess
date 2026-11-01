@@ -22,7 +22,8 @@ passes: the test side it compares against was never read, and nothing says so.
 
 One feature file with an `@wip` scenario; two TypeScript projects, one with no source file and one
 whose single test cites the scenario. `scenarioExemptionsCurrent(project, features, { report:
-'return', isExempt: (s) => s.tags.includes('@wip') })`, against `packages/*/dist`, 0.17 s:
+'return', isExempt: (s) => s.tags.includes('wip') })` (eess-gherkin stores a tag without its `@`), against
+`packages/*/dist`, 0.17 s:
 
 ```text
 -- empty 0 files

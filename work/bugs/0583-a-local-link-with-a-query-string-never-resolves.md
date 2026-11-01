@@ -7,6 +7,8 @@
   read, and `resolve()` calls it broken, with no fix.
 - **Origin:** self-found · [proposal 024](../proposals/024-md-an-images-file-exists.md)'s and
   [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s reviews, 2026-11-01.
+  (That review's ruling is recorded with [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
+  until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
 ## Symptom
