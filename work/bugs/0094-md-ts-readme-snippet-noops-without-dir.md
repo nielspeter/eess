@@ -30,7 +30,7 @@ check zero documents (green-but-empty)".
 
 ## Root cause
 
-`packages/crossvalidate/src/md-ts.ts:94`:
+`packages/crossvalidate/src/md-ts.ts:103`:
 
 ```ts
 const dir = options.dir ?? 'docs/adr/**'

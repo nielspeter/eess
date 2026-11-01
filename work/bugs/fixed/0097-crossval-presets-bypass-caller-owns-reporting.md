@@ -1,9 +1,9 @@
-# Bug 0097: two crossvalidate presets return `void` — [ADR-008](../../adr/008-caller-owns-reporting.md)'s "caller owns reporting" never reached them, and its gate can't see the gap
+# Bug 0097: two crossvalidate presets return `void` — [ADR-008](../../../adr/008-caller-owns-reporting.md)'s "caller owns reporting" never reached them, and its gate can't see the gap
 
 ## Status
 
-- **State:** Draft — confirmed against the source; no red test written yet.
-- **Reported:** 2026-08-12 — self-found during the [plan 0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)
+- **State:** Fixed — both presets finish through `finishPreset` and take `PresetReportOptions` (PR #288).
+- **Reported:** 2026-08-12 — self-found during the [plan 0096](../../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)
   review, when the devops persona checked whether the existing dogfood gates
   actually fail on violations. **Rewritten 2026-08-12** after review: the first
   filing accused `scripts/check-crossval.mjs:6` of a stale comment ("the
@@ -14,7 +14,7 @@
 ## Symptom
 
 `@nielspeter/eess-crossvalidate` ships six dialect-pair presets. Four of them
-honour [ADR-008](../../adr/008-caller-owns-reporting.md): they take
+honour [ADR-008](../../../adr/008-caller-owns-reporting.md): they take
 `PresetReportOptions`, return `ArchViolation[]`, and finish through the kernel's
 `finishPreset`. Two do not:
 
@@ -71,14 +71,14 @@ const violations = adrCitationsResolve(corpus(...), project(...), { report: 'ret
 
 ## Root cause
 
-[Plan 0070](../plans/completed/0070-caller-owns-reporting.md) ([ADR-008](../../adr/008-caller-owns-reporting.md)) split detection from emission and introduced `finishPreset`.
+[Plan 0070](../../plans/completed/0070-caller-owns-reporting.md) ([ADR-008](../../../adr/008-caller-owns-reporting.md)) split detection from emission and introduced `finishPreset`.
 It intended to migrate **every** preset — and its own inventory of "every
 preset" was already missing these two, twice:
 
-- [0070](../plans/completed/0070-caller-owns-reporting.md) Problem section:
+- [0070](../../plans/completed/0070-caller-owns-reporting.md) Problem section:
   "Every preset routes through this — `adrEnforcement`, `honestyAtClose`,
   `scenarioCitationsResolve`, `tableErAgree`, and the eess-ts preset family."
-- [0070](../plans/completed/0070-caller-owns-reporting.md) Phase 2 _Files
+- [0070](../../plans/completed/0070-caller-owns-reporting.md) Phase 2 _Files
   changed_: "every preset (`md/src/rules/{adr,ledger}.ts`,
   `crossvalidate/src/md-{mermaid,mermaid-er,gherkin}.ts`, `ts/src/presets/*`)".
   The brace expansion covers three of the five crossvalidate preset modules;
@@ -97,10 +97,10 @@ builder terminal `.check()`, which emits and throws by a different route. So
 they were invisible to the survey that defined the work, and a hand-written list
 of "every preset" carried the gap into the plan, the commit, and the ADR row.
 
-Nothing downstream could catch it, because the only mechanism [ADR-008](../../adr/008-caller-owns-reporting.md) bound the
+Nothing downstream could catch it, because the only mechanism [ADR-008](../../../adr/008-caller-owns-reporting.md) bound the
 clause to is a kernel unit test (below).
 
-**[ADR-008](../../adr/008-caller-owns-reporting.md)'s own gate cannot see this.** Its Enforcement table marks
+**[ADR-008](../../../adr/008-caller-owns-reporting.md)'s own gate cannot see this.** Its Enforcement table marks
 
 > Presets return violations, don't force emission | 2 | `packages/core/tests/report.test.ts` — the `report: return` case | **gated**
 
@@ -117,7 +117,7 @@ header comment at `scripts/check-crossval.mjs:6` generalizes over all of them:
 
 > the crossvalidate presets return void and throw ArchRuleError
 
-That was true when written ([plan 0060](../plans/completed/0060-full-coverage-dogfooding.md) mounted exactly the two `void` presets)
+That was true when written ([plan 0060](../../plans/completed/0060-full-coverage-dogfooding.md) mounted exactly the two `void` presets)
 and is now half true — accurate for `diagramMatchesCode`/`adrCitationsResolve`,
 wrong for the four the script and its siblings have since gained. A reader can
 take either half as the rule and be wrong about the other. During the plan-0096
@@ -152,6 +152,11 @@ export function diagramMatchesCode(
 }
 ```
 
+The sample above is the fix as filed. As shipped, both presets return the kernel's `CollectResult`
+(the receipt `rule.violations()` already carries) and pass the rule's reason on, as
+`finishPreset(violations, { ...options, reason: options.reason ?? BECAUSE })`, so the thrown
+message keeps it.
+
 `finishPreset` defaults to `report: 'throw'`, so **every existing caller keeps
 its current behaviour** — the change is additive (a return value where there was
 none, and two new accepted options). Same treatment for `adrCitationsResolve`.
@@ -159,28 +164,38 @@ none, and two new accepted options). Same treatment for `adrCitationsResolve`.
 Then correct `scripts/check-crossval.mjs:6` to describe one contract instead of
 two.
 
-A minor changeset covers both packages' surface change.
+A minor changeset covers the package's surface change (one package, two presets).
 
 ## Verification
 
-- [ ] Red test written first: `diagramMatchesCode(..., { report: 'return' })`
-      returns the violations and writes nothing to stderr/stdout — today it does
-      not compile (`report` is not an accepted option). Same for
-      `adrCitationsResolve`.
-- [ ] Default behaviour unchanged: both still emit once and throw
-      `ArchRuleError` when called without `report` (the existing
-      `check:crossval` gates are the live proof).
-- [ ] No exported preset in any package returns `void` — the family has one
-      preset contract.
-- [ ] `scripts/check-crossval.mjs:6` describes that one contract.
-- [ ] `npm run validate` green.
+- [x] Red test written first: `diagramMatchesCode(..., { report: 'return' })`
+      returns the violations and writes nothing to stderr/stdout; same for
+      `adrCitationsResolve`, with and without `expectNonEmpty`
+      (`packages/crossvalidate/tests/mermaid-ts.test.ts` · `it('with report: return, hands the findings back and writes nothing')`,
+      `packages/crossvalidate/tests/md-ts.test.ts` · `it('with report: return, hands the dangling citation back and writes nothing')`).
+      On main's two preset files the five new tests are red.
+- [x] Default behaviour unchanged: both still emit once and throw
+      `ArchRuleError` with the same message, the rule's reason included, when
+      called without `report`, pinned by
+      `it('without options, prints the findings once and throws with the rule reason')`
+      and its `adrCitationsResolve` twin; `check:crossval` is green. (The first
+      build dropped the reason from the thrown message; PR #288's review caught
+      it.) The empty
+      case is unchanged too: the vacuity matrix still reports both as
+      [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md)'s known fail-open.
+- [x] No exported preset in any package returns `void` — the family has one
+      preset contract (grep of every `export function … : void` in
+      `packages/*/src`, 2026-11-01: the rest are utilities and terminals).
+- [x] `scripts/check-crossval.mjs:6` describes that one contract.
+- [x] `npm run validate` green.
 
 Deferred:
 
-- **Widening [ADR-008](../../adr/008-caller-owns-reporting.md)'s Enforcement mechanism so this class cannot recur** — the
+- **Widening [ADR-008](../../../adr/008-caller-owns-reporting.md)'s Enforcement mechanism so this class cannot recur** — the
   clause needs a Tier-1 rule over `packages/*/src/**` asserting no exported
   preset returns `void`, not just a kernel unit test. That is an ADR-enforcement
-  change with its own authoring/validation loop (`.claude/workflows/adr-enforce.mjs`),
-  so it is re-homed to [0101](../plans/completed/0101-sibling-gates-go-fail-closed.md), which
-  already owns making the family's gates honest. Filing this bug fixed
-  without that row widened leaves the clause honest-but-narrow, not false.
+  change with its own authoring/validation loop (`.claude/workflows/adr-enforce.mjs`).
+  It was first re-homed to [0101](../../plans/completed/0101-sibling-gates-go-fail-closed.md),
+  which closed without taking it; deferred→[bug 0576](../0576-adr-008s-preset-clause-is-gated-by-a-kernel-unit-test-only.md)
+  (2026-11-01). Filing this bug fixed without that row widened leaves the
+  clause honest-but-narrow, not false.

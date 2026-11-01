@@ -10,6 +10,10 @@ The generic engine lives in the kernel: `correspondence()` binds two element `Se
 npm install -D @nielspeter/eess-crossvalidate
 ```
 
+Every preset here reports the same way: by default it prints its findings and throws
+`ArchRuleError`. Pass `{ report: 'return' }` to get the findings back as a list instead, or
+`{ format: 'json' }` for a machine-readable stream.
+
 ## Mermaid ↔ TypeScript
 
 Every class in the diagram must exist in code, and every class in code must appear in the diagram:

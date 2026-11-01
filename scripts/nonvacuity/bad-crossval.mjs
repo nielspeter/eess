@@ -33,8 +33,9 @@ try {
   // completeness in BOTH directions and this fixture violates both, so the
   // code→diagram half alone would satisfy a gate labelled for the diagram→code
   // half — delete the direction under test and the gate stays green. Assert the
-  // direction, not just the failure. (`diagramMatchesCode` returns void — bug
-  // 0097 — so the violations are read off the thrown error, not a return value.)
+  // direction, not just the failure. (`diagramMatchesCode` runs here as the
+  // gate calls it, with no `report`, so it throws and the violations are read
+  // off the thrown error; bug 0097 added the `report: 'return'` form.)
   const ghost = err.violations.filter(
     (v) => v.ruleId === 'crossval/diagram-completeness' && /has no matching TS class/.test(v.message),
   )

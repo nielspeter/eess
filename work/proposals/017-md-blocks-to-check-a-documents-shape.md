@@ -321,7 +321,7 @@ What exists, and where a fixed position limits it:
   column (this repository's `spec.rules.ts` binds two tables to the workspace and to `adr/`).
   Generic already.
 - **Markdown to code, tests and diagrams** (`@nielspeter/eess-crossvalidate`): `adrCitationsResolve`
-  (`packages/crossvalidate/src/md-ts.ts:130`) resolves test titles cited in an ADR's Enforcement
+  (`packages/crossvalidate/src/md-ts.ts:159`) resolves test titles cited in an ADR's Enforcement
   table only; `scenarioCitationsResolve` (`packages/crossvalidate/src/md-gherkin.ts:104`) resolves
   scenario citations; `embeddedDiagramsMatchCode` (`packages/crossvalidate/src/md-mermaid.ts:72`)
   binds diagrams embedded in Markdown to code; `tableErAgree`
@@ -330,7 +330,7 @@ What exists, and where a fixed position limits it:
   has no join.
 
   > **Correction (second review, 2026-10-16): overstated.** `adrCitationsResolve` already takes
-  > `dir`, `section` and `mechanismColumn` (`packages/crossvalidate/src/md-ts.ts:12`), so it resolves
+  > `dir`, `section` and `mechanismColumn` (`packages/crossvalidate/src/md-ts.ts:21`), so it resolves
   > titles cited in any table column under any heading in any folder; `scenarioCitationsResolve`
   > scans the whole corpus by default and takes a caller's `extract`
   > (`packages/crossvalidate/src/md-gherkin.ts:21`). What is
@@ -807,7 +807,7 @@ the frozen-default break ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-a
 - The `State:`-only silent pass, reproduced.
 - `corpus()`'s frozen default (decision 2). Filed 2026-10-19 as [bug 0497](../bugs/0497-corpus-freezes-two-folder-names-by-default.md).
 - `matchName` keeps a caller's `g` or `y` flag between documents, in two copies:
-  `packages/md/src/model/query.ts:4` and `packages/crossvalidate/src/md-ts.ts:32`. To be reproduced.
+  `packages/md/src/model/query.ts:4` and `packages/crossvalidate/src/md-ts.ts:41`. To be reproduced.
   (Reproduced and recorded 2026-10-19 as
   [bug 0506](../bugs/fixed/0506-a-section-matcher-with-a-g-flag-skips-every-other-document.md); [plan 0496](../plans/completed/0496-sections-as-elements.md)
   strips the flags in md's copy.)

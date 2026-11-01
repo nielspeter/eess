@@ -3,9 +3,10 @@
  * Dogfood: cross-validate this repo's own spec artifacts against its code with
  * eess-crossvalidate (plan 0060 Phase 2).
  *
- * Wiring note: the crossvalidate presets return void and throw ArchRuleError —
- * they cannot live in an eess-ts CLI rule file (the loader only accepts
- * .check()-able builders), so this is a script, matching check-corpus.mjs.
+ * Wiring note: the crossvalidate presets are functions, not .check()-able
+ * builders — each returns its findings and, by default (`report: 'throw'`),
+ * prints them and throws ArchRuleError (bug 0097). An eess-ts CLI rule file only
+ * accepts builders, so this is a script, matching check-corpus.mjs.
  *
  *  1. diagram ↔ code — docs/architecture.mmd must agree with the kernel's
  *     classes in BOTH directions, within the a-priori charter declared in the

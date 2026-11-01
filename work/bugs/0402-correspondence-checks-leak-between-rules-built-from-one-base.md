@@ -6,8 +6,8 @@
 - **Severity:** Medium — a false red with a false attribution ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2). A rule reports a
   finding from a check it never declared, under its own id, so its author goes looking for a fault
   in the wrong rule. Exposure is user-written rule code: every shipped consumer builds a fresh
-  `correspondence()` per rule (`packages/crossvalidate/src/md-ts.ts:153`,
-  `packages/crossvalidate/src/md-mermaid.ts:126`, `packages/crossvalidate/src/mermaid-ts.ts:52`),
+  `correspondence()` per rule (`packages/crossvalidate/src/md-ts.ts:190`,
+  `packages/crossvalidate/src/md-mermaid.ts:126`, `packages/crossvalidate/src/mermaid-ts.ts:64`),
   and no rule file in this repo derives two rules from one base.
 - **Origin:** self-found · architect review of [proposal 013](../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md), 2026-10-07.
 - **Reported:** 2026-10-07
