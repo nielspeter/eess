@@ -1,15 +1,15 @@
 # Proposal 011 — core: name the evidence gate, instead of reaching it through a reporting function
 
 **State:** Draft — reviewed 2026-11-01 (architect · product · enforcement), ruling `Split and sequence`; see `## Review — 2026-11-01` below. Asks A and B rejected; ask C held, with two of its cases recorded as [bug 0586](../bugs/0586-the-kernels-collect-violations-swallows-a-configuration-error.md) and [bug 0595](../bugs/0595-generate-baseline-drops-a-configuration-finding-without-a-word.md). **What this proposal produces is a decision, not a change**: ask A cannot be evaluated until root-vs-`/internal` is settled (open question 1), so accepting it schedules that decision rather than an implementation. Surveyed against the repo source at the head of `plan-0263-phase-2`; every call site below was enumerated with `grep -rn "report: 'return'" packages/*/src scripts` rather than recalled. No red test written yet; nothing here is a defect, so there may never be one.
-**Priority:** Medium — no false green today. It is a surface-honesty question about a seam that four packages and eight scripts already depend on, which is exactly the kind that gets more expensive to move.
+**Priority:** Medium — no false green today. It is a surface-honesty question about a seam that four packages and eight scripts already depend on, which is exactly the kind that gets more expensive to move. _Corrected 2026-11-01 (review): the "eight scripts" is the recalled number the Affects line below retracts; three scripts use the compound._
 **Origin:** self-found — raised by the architect lens reviewing PR #118 ([plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) Phase 2), which declined the `verdictOf` primitive it had itself proposed in the previous round and named this as the complaint that survives.
-**Affects:** `packages/core/src/report.ts` (`withEvidenceGate`, `finishPreset`), `packages/core/src/index.ts` (the root surface), `packages/ts/src/cli/commands/check.ts`, `packages/ts/src/cli/commands/baseline.ts`, `packages/ts/src/core/check-all.ts`, `packages/ts/src/presets/shared.ts`, `packages/core/src/preset-dispatch.ts`, and the three dogfood scripts that use the compound this proposal is about — `scripts/check-corpus.mjs`, `scripts/check-ledger.mjs`, `scripts/check-release.mjs`. (An earlier draft said "eight dogfood scripts", a number no reading of the grep produces: six files directly under `scripts/` contain the string, twelve including `scripts/nonvacuity/`, three contain the compound. It was recalled, in the line claiming derivation — the habit [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md) is about, caught by a method review.)
+**Affects:** `packages/core/src/report.ts` (`withEvidenceGate`, `finishPreset`), `packages/core/src/index.ts` (the root surface), `packages/ts/src/cli/commands/check.ts`, `packages/ts/src/cli/commands/baseline.ts`, `packages/ts/src/core/check-all.ts`, `packages/ts/src/presets/shared.ts`, `packages/core/src/preset-dispatch.ts`, and the three dogfood scripts that use the compound this proposal is about — `scripts/check-corpus.mjs`, `scripts/check-ledger.mjs`, `scripts/check-release.mjs`. _Corrected 2026-11-01 (review): the list misses `packages/mermaid/src/cli/commands/check.ts` (a call site at line 154) and `scripts/nonvacuity/bad-emitter-remedies.mjs`, the migration that matters most; `packages/core/src/preset-dispatch.ts` has no call site, only a doc comment._ (An earlier draft said "eight dogfood scripts", a number no reading of the grep produces: six files directly under `scripts/` contain the string, twelve including `scripts/nonvacuity/`, three contain the compound. It was recalled, in the line claiming derivation — the habit [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md) is about, caught by a method review.)
 
 ## Problem
 
 [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) requires every emitter to refuse a verdict it has no evidence for. The
 mechanism is one kernel function, `withEvidenceGate`
-(`packages/core/src/report.ts:100`). It is **private** — not exported from the
+(`packages/core/src/report.ts:100`). _Corrected 2026-11-01 (review): the function is now at `packages/core/src/report.ts:101`._ It is **private** — not exported from the
 root, not from `@nielspeter/eess/internal`.
 
 So every caller that wants _"gate this receipt and hand me the findings"_ reaches
@@ -52,11 +52,11 @@ mechanism becomes citable by name.
 **B. Decide what `finishPreset(x, { report: 'return' })` then means.** If the
 gate is nameable, that call is the compound of two things a caller can now say
 separately. Keeping both is fine; what is not fine is leaving the compound as
-the _only_ spelling and then citing the gate in a binding ADR.
+the _only_ spelling and then citing the gate in a binding ADR. _Corrected 2026-11-01 (review): this premise is hypothetical; [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) never names `withEvidenceGate`, it cites `finishPreset`._
 
 **C. The `collectViolations` residual.** `packages/ts/src/index.ts:317` exports
 a helper typed to accept a bare array and documented as not throwing, so an
-adopter calling it with `generateBaseline` by hand still bypasses the gate. PR
+adopter calling it with `generateBaseline` by hand still bypasses the gate. _Corrected 2026-11-01 (review): the export is now at `packages/ts/src/index.ts:319`._ PR
 #118 states this rather than closing it, deliberately: closing it is a
 public-API decision. It is the same question as A — _what is the supported way
 to obtain a gated verdict?_ — and should be answered with it, not separately.
@@ -77,7 +77,11 @@ only names it — so the criteria are about the seam not going quietly inert.
   `emitter/*` probe drives, by name, rather than a wrapper the probes reach only
   through `finishPreset`. `scripts/vacuity-matrix.mjs` already carries five
   `EMITTER_PROBES` entries; if the named gate is not on the path they exercise, the
-  export is decorative and the criterion is not met.
+  export is decorative and the criterion is not met. _Corrected 2026-11-01 (review): there are six
+  `EMITTER_PROBES` entries, not five, and they cannot score a correct gate: `classify()`
+  (`scripts/vacuity-matrix.mjs:67`) reads only a throw as red, so a gate that returns its findings
+  scores `fail-open`. The instrument that can is `scripts/nonvacuity/bad-emitter-remedies.mjs`,
+  whose inline `gate` at line 27 the export would replace by import._
 - **Tier:** 1 for the signature, 2 for the behaviour. No new tier is claimed.
 
 **B — what `finishPreset(x, { report: 'return' })` means afterwards.**
@@ -96,10 +100,17 @@ only names it — so the criteria are about the seam not going quietly inert.
 - **Non-vacuity:** whatever closes it must be driven by the probe rule file
   `check:nonvacuity` already plants, through the helper rather than through the
   CLI — the CLI door is gated and would pass regardless, which is exactly the
-  false-green shape that made this residual worth stating.
+  false-green shape that made this residual worth stating. _Corrected 2026-11-01 (review): the
+  silent drop is in `generateBaseline`, not `collectViolations`: it filters out `bypassFilters`
+  findings and writes the file anyway (`packages/core/src/baseline.ts:203-208`), so a criterion met
+  through the helper alone closes nothing. The sink is recorded as
+  [bug 0595](../bugs/0595-generate-baseline-drops-a-configuration-finding-without-a-word.md)._
 - **Explicitly deferred:** if the answer is "document it, do not close it", the
   criterion is that the docstring states the hole rather than describing the
-  helper as safe. A wrong reassurance is worse than the hole.
+  helper as safe. A wrong reassurance is worse than the hole. _Corrected 2026-11-01 (review): both
+  docstrings already state the gate bypass, but core's does not state that its `collectViolations`
+  swallows a configuration error, recorded as
+  [bug 0586](../bugs/0586-the-kernels-collect-violations-swallows-a-configuration-error.md)._
 
 ## Open questions
 

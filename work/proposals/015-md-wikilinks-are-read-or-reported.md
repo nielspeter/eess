@@ -15,7 +15,9 @@ for wikilinks.
 Obsidian and similar tools link with wikilinks — `[[Page]]`, `[[Page|label]]`, `[[Page#Heading]]`,
 `[[Page#^block]]`, and embeds `![[file.png]]`. To CommonMark they are plain text. eess-md reads only
 `link` nodes, so a wikilink is never selected, never resolved and never reported: a broken
-`[[Missing Page]]` is green.
+`[[Missing Page]]` is green. _Corrected 2026-11-01 (review): a corpus with only wikilinks is red
+today, through the zero-examined path; the false green is a corpus that mixes wikilinks with
+standard links._
 
 ## Measured
 
@@ -27,12 +29,17 @@ one in a fence, and a standard `[real](gone.md)`:
 - `.should().resolve()` reports `gone.md` only — the three wikilinks in prose, one of them broken,
   produce no finding.
 
+_Corrected 2026-11-01 (review): the reviewers re-ran this on eess-md 0.13.0, and the result is
+unchanged._
+
 ## Existing code survey
 
 - **The link walk reads `link` nodes and counts `linkReference` nodes**
-  (`packages/md/src/model/links.ts:194-195`); text is not scanned for links.
+  (`packages/md/src/model/links.ts:194-195`); text is not scanned for links. _Corrected 2026-11-01
+  (review): those lines now fall in the paragraph and list-item branch; the reference-link branch is
+  `packages/md/src/model/links.ts:197-215`._
 - **The parser has no wikilink extension:** `parseMarkdown` runs `fromMarkdown` with GFM and YAML
-  front matter only (`packages/md/src/model/prose.ts:129-132`, since [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md)'s fix). No `wikilink`, `wiki-link` or `obsidian` appears in
+  front matter only (`packages/md/src/model/prose.ts:129-132`, since [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md)'s fix). _Corrected 2026-11-01 (review): the parser setup has moved to `packages/md/src/model/prose.ts:26-29`, and the two parses are at `packages/md/src/model/prose.ts:143` and `packages/md/src/model/prose.ts:149`._ No `wikilink`, `wiki-link` or `obsidian` appears in
   `packages/*/src`.
 - **Resolution is `resolveLink`** ([plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)): relative paths, with `tryExtensions`, `tryIndex`,
   `rootDir` and directories. Obsidian resolves differently — a bare name matches a file by its name
@@ -40,6 +47,7 @@ one in a fence, and a standard `[real](gone.md)`:
 - **The closest precedent is reporting what cannot be read.** [Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s declaration scan reports a
   declaration made of reference-style links as one eess-md "does not read", rather than skipping it
   ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 7).
+  _Corrected 2026-11-01 (review): that finding no longer exists; it was removed when [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made reference-style links read as links. The live precedents are `md/unread-mention` (`packages/md/src/builders/mentions.ts:46`, with its findings built at `packages/md/src/builders/mentions.ts:244`) and [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2._
 
 ## Asks
 
@@ -47,14 +55,14 @@ one in a fence, and a standard `[real](gone.md)`:
   as unread, or reports how many it did not read beside its green. A wikilink in code is not one.
 - **B — resolve.** Wikilinks are links: selected by `links()` and resolved with Obsidian's rules, so
   `resolve()` reports a broken one. Expected to be held until a consumer brings a real vault, since
-  the rules are a second resolver beside `resolveLink`.
+  the rules are a second resolver beside `resolveLink`. _Corrected 2026-11-01 (review): the maintainer has since (2026-10-30 and 2026-10-31) made full link support, wikilinks included, a goal for any corpus, so Ask B is the deliverable, not held for a vault._
 
 ## Acceptance criteria
 
 **A — disclosure.**
 
 - **Break class:** a corpus whose only broken link is a wikilink is not green without a word: the
-  unread wikilink is a finding, or its count is reported beside the result.
+  unread wikilink is a finding, or its count is reported beside the result. _Corrected 2026-11-01 (review): the count branch is ruled out. A count beside a green cannot go red, since an emptied scanner prints 0 beside a green, and it never reaches `--format json`; [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1, [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 1 and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) forbid it._
 - **Break class (false red):** a `[[…]]` inside a code span or fenced block is not counted.
 - **Break class:** an embed, `![[…]]`, is counted like a link.
 - **Non-vacuity:** a fixture row per break class.
@@ -65,6 +73,7 @@ one in a fence, and a standard `[real](gone.md)`:
 
 1. **Finding or count.** Is an unread wikilink a finding that fails the build (fail closed, but red
    for every Obsidian corpus until B ships), or a count disclosed beside a green (honest, but green)?
+   _Corrected 2026-11-01 (review): a count beside a green is not an option. It cannot go red, which [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1, [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 1 and [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) forbid._
 2. **How to find them.** A micromark wikilink extension parses them as nodes; a scan of text nodes
    finds them without a new dependency. Either must skip code.
 3. **Resolution rules.** Which tool's rules — Obsidian's, or a common subset — and whether
@@ -72,7 +81,7 @@ one in a fence, and a standard `[real](gone.md)`:
 
 ## Out of scope
 
-- Other non-CommonMark link forms (MediaWiki, Roam block references).
+- Other non-CommonMark link forms (MediaWiki, Roam block references). _Corrected 2026-11-01 (review): MediaWiki shares the wikilink syntax, so it cannot be out of scope as a link form; it can be excluded only as a resolution default._
 
 ## Review — 2026-11-01
 
