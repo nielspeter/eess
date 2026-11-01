@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   attributeOf,
   decodeReferences,
+  inlineKind,
   inlineTagStartsOf,
   isLinkStart,
   isOnlyComment,
@@ -14,16 +15,18 @@ import { parseUncached } from '../src/model/prose.js'
 // Plan 0580 Phase 1: the one reader of HTML tags and attributes. Every row names the Measured row or
 // probe (P, Q, A, B) it pins, so a micromark upgrade that changes one reds here first.
 
-const htmlNodes = (root: Nodes, out: Nodes[] = []): Nodes[] => {
-  if (root.type === 'html') out.push(root)
-  if ('children' in root) for (const c of root.children) htmlNodes(c, out)
+/** Every `html` node in `root`, with the number of blockquotes around it. */
+const htmlNodes = (root: Nodes, depth = 0, out: [Nodes, number][] = []): [Nodes, number][] => {
+  if (root.type === 'html') out.push([root, depth])
+  if ('children' in root)
+    for (const c of root.children) htmlNodes(c, root.type === 'blockquote' ? depth + 1 : depth, out)
   return out
 }
 
 /** Every `html` node in `md`, read. */
 const read = (md: string): ReturnType<typeof readHtmlNode>[] => {
   const root: Root = parseUncached(md)
-  return htmlNodes(root).map((n) => readHtmlNode(n, md))
+  return htmlNodes(root).map(([n, depth]) => readHtmlNode(n, md, depth))
 }
 
 /** The `href` of every link start the owner reads in `md`'s `html` nodes. */
@@ -62,6 +65,11 @@ describe('inside an html node the owner reads tags as the HTML tokenizer does (D
     expect(hrefs('see <a title="a>b" href="./x.md">x</a> here\n')).toEqual(['./x.md'])
   })
 
+  it('the tokenizer keeps one attribute per name, the first', () => {
+    const [tag] = tokenizeHtml('<a href="./first.md" HREF="./second.md">', 1, false).starts
+    expect(tag?.attributes.map((a) => `${a.name}=${a.value}`)).toEqual(['href=./first.md'])
+  })
+
   it('keeps the first of two hrefs, and reads a valueless href as ""', () => {
     expect(hrefs('<a href="./first.md" href="./second.md">D</a>\n')).toEqual(['./first.md'])
     expect(hrefs('the <a href>element</a> here\n')).toEqual([''])
@@ -85,6 +93,16 @@ describe('inside an html node the owner reads tags as the HTML tokenizer does (D
       hrefs('<div>\n<!-- <a href="./x.md">K</a> -->\n<a href="./y.md">Y</a>\n</div>\n'),
     ).toEqual(['./y.md'])
     expect(hrefs('<![CDATA[\n<a href="./x.md">D</a>\n]]>\n')).toEqual([])
+  })
+
+  it('ends a comment at <!-->, <!---> and --!>, as the HTML tokenizer does (D2)', () => {
+    expect(hrefs('<div>\n<!-->\n<a href="./x.md">x</a>\n</div>\n')).toEqual(['./x.md'])
+    expect(hrefs('<div>\n<!--->\n<a href="./x.md">x</a>\n</div>\n')).toEqual(['./x.md'])
+    expect(hrefs('<div>\n<!-- a --!>\n<a href="./x.md">x</a>\n</div>\n')).toEqual(['./x.md'])
+  })
+
+  it('reads </ before anything but a letter as a bogus comment, to the next >', () => {
+    expect(hrefs('<div>\n</ <a href="./x.md">x</a>\n</div>\n')).toEqual([])
   })
 
   it('reads no tag inside another tag’s quoted value: <img alt="<a href=…>">', () => {
@@ -137,11 +155,42 @@ describe('a tag the node ends inside is split-tag or unterminated (R3)', () => {
     expect(unfinished('- <div>\n  <a\nhref="./gone.md">x</a>\n')).toEqual(['a:unterminated@2'])
   })
 
+  it('E1, E2: a tag the end of the document cuts is unterminated, not split-tag', () => {
+    expect(unfinished('<div>\n<a href="./x.md"\n')).toEqual(['a:unterminated@2'])
+    expect(unfinished('<div>\n<a href="./x\n')).toEqual(['a:unterminated@2'])
+  })
+
+  it('E3: P15 inside a blockquote is split-tag: the blank line there is a lone >', () => {
+    expect(unfinished('> <div>\n> <a href="./x\n>\n> md">x</a>\n> </div>\n')).toEqual([
+      'a:split-tag@2',
+    ])
+  })
+
+  it('without its source, a node cannot tell a blank line, so its unfinished tag is unterminated', () => {
+    const md = '<div>\n<a href="./x\n\nmd">x</a>\n</div>\n'
+    const node = htmlNodes(parseUncached(md))[0]?.[0]
+    expect(node === undefined ? [] : readHtmlNode(node).unfinished.map((u) => u.cause)).toEqual([
+      'unterminated',
+    ])
+  })
+
+  it('an unfinished end tag is not reported: it is no link (E7)', () => {
+    expect(unfinished('<div>\nx</a\n\n>\n')).toEqual([])
+  })
+
   it('an unfinished tag inside a tagfilter element whose end tag the node holds is silenced (D5)', () => {
     // A quote that never closes swallows `</script>`, so the `<a` is unfinished inside the element.
     const [r] = read("<script>\nconst s = '<a href=\"' + u\n</script>\n")
     expect(r?.unfinished).toEqual([])
     expect(r?.silenced.map((u) => u.name)).toEqual(['a'])
+    const [t] = read('<textarea>\n<a href="x\n</textarea>\n')
+    expect(t?.silenced.map((u) => u.name)).toEqual(['a'])
+  })
+
+  it('an end tag must be the element’s own: </scripts> closes no <script> (E11)', () => {
+    const [r] = read("<script>\nconst s = '<a href=\"' + u\n</scripts>\n")
+    expect(r?.silenced).toEqual([])
+    expect(r?.unfinished.map((u) => u.name)).toEqual(['a'])
   })
 
   it('an unclosed <textarea> has no inside, so P15’s split after it is split-tag', () => {
@@ -208,6 +257,19 @@ describe('in a paragraph, heading or table cell the owner applies CommonMark’s
     expect(inline('[x](<a href=./z.md>)\n')).toEqual([])
   })
 
+  it('finds no start inside an earlier tag’s quoted value (E25)', () => {
+    expect(inline('see <a href=./x.md title="<a href=./y.md>">x</a>\n')).toEqual([
+      'unquoted-slash:href@1',
+    ])
+  })
+
+  it('classifies a refused tag with an href and no unquoted / as refused-tag', () => {
+    expect(inlineKind([{ name: 'href', raw: './x.md', quoted: true }])).toEqual({
+      kind: 'refused-tag',
+    })
+    expect(inlineKind([{ name: 'name', raw: 'a/b', quoted: false }])).toEqual({ kind: 'no-href' })
+  })
+
   it('finds no start in a tag micromark accepted, which is an html node', () => {
     expect(inline('see <a href=x.md>x</a> here\n')).toEqual([])
   })
@@ -227,6 +289,11 @@ describe('a node that is only comments holds nothing a reader sees (D2)', () => 
     expect(isOnlyComment('<!-- a -->\n<!-- b -->')).toBe(true)
     expect(isOnlyComment('<!DOCTYPE html>')).toBe(true)
     expect(isOnlyComment('<?x?>')).toBe(true)
+  })
+
+  it('a comment ends at <!--> and --!>, so what follows is seen', () => {
+    expect(isOnlyComment('<!--> <b>visible</b>')).toBe(false)
+    expect(isOnlyComment('<!-- a --!> visible')).toBe(false)
   })
 
   it('a comment beside text, a tag, or nothing at all', () => {

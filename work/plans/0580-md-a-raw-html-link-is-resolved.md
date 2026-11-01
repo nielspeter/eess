@@ -547,14 +547,13 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   cut the autofix, which was the span's only consumer.
 - **D8 differs.** `sourceOffsets` is not moved. Its prefix stepper is steered by the decoded
   character it is looking for, and D7 has none, so D7 steps `> ` by the container's blockquote depth
-  instead. That is also exact where a greedy `[ \t>]` is not: a tag's own `>` at the start of a
-  quoted line (`> >`) is kept. One stepper each, in their own modules.
+  instead. One stepper each, in their own modules.
 - **R5, in part.** The shared helper (`packages/md/src/builders/unread.ts`) holds `reachedUnread`
   and the receipt (`withUnread`, which counts unread findings as undecided:
   [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)). Each
   builder keeps its own finding text, since a mention's message and a link's differ.
-- **D10's id** is `eess/one-html-attribute-reader`, not `md/…`: every rule in `arch.rules.ts` is
-  `eess/`. Its nonvacuity row is one run of one probe, every alternative on its own line, the rule
+- **D10** is `md/one-html-attribute-reader`, as frozen. Its nonvacuity row,
+  `arch/md-one-html-attribute-reader`, is one run of one probe, every alternative on its own line, the rule
   required on exactly lines 1 to 4 (3 s); with `src` dropped from the matcher it fails, naming line 2.
 - **Measured on the build:** a `<script>` holding `"<a href=\"" + u` finishes its tag at
   `</script>`'s `>`, as the HTML tokenizer does, so it is read, not silenced; a quote that never
@@ -565,6 +564,20 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   the unread count removed (2 rows of
   [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s), the old one-comment pattern back (1 row), `src`
   dropped from D10's matcher (its nonvacuity row).
+- **Code review (architect · enforcement, 2026-11-02), both Approve with changes; applied:**
+  `mentions()` opened an HTML link on a void `<area>`, swallowing the rest of the paragraph (now `<a>`
+  only); the four comment closers `<!-->`, `<!--->`, `-->`, `--!>` and `</` before a non-letter (a
+  bogus comment) are read as the tokenizer reads them, in both the tokenizer and `isOnlyComment`;
+  "ended by a blank line" no longer counts the end of the document, and steps a quote's `>`; only a
+  start tag is reported unfinished; an end tag closes its element only by its own name
+  (`</scripts>` closes no `<script>`); §6.6's whitespace has no form feed; D7 skips a start inside a
+  tag it already found (`title="<a href=…>"`); `inlineKind` is the seam the `refused-tag` row drives.
+  Each with its row, and each row red under its own sabotage (the end-of-document blank, `<!-->`
+  unread, `<area>` opening, the consumed span, the dedupe). Not done here: a shared constructor for
+  an unread finding's `bypassFilters` (Phase 2, when `links()` adds the second), and deleting the
+  three `eess-exclude` comments on `tokenizeHtml`, `attributeOf` and `inlineTagStartsOf` once Phase 2
+  imports them (stale then, and reported). Phase 2 also reads an `html` node that micromark made
+  inside a refused tag's quoted value as that value, not as a link.
 - **Pointers.** Code pointers into `mentions.ts`, `phrasing.ts` and `section-holds.ts` that moved
   were renumbered; those naming code this phase removed (`OPENS_A`, `ONE_COMMENT`, `HTML_COMMENT`)
   are pinned "on `6bcd35e6`", the house form for code as it was.

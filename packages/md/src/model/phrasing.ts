@@ -197,8 +197,11 @@ export function phrasingOf(
           // cannot read: it is reported, so the author is not told to add a link that is there.
           // An `<a>` inside a Markdown link is inside that link already.
           // The tag is read by the one HTML reader (plan 0580): `data-href` is not an `href`, and a
-          // quoted `>` does not end the tag (bug 0593).
-          if (link === undefined && readHtmlNode(node).starts.some(isLinkStart))
+          // quoted `>` does not end the tag (bug 0593). Only an `<a>` holds text: an `<area>` is void.
+          if (
+            link === undefined &&
+            readHtmlNode(node).starts.some((t) => t.name === 'a' && isLinkStart(t))
+          )
             htmlLink ??= { text: '', line: lineOf(node) }
           else if (htmlLink !== undefined && readHtmlNode(node).ends.some((e) => e.name === 'a')) {
             unread.push({ text: htmlLink.text, line: htmlLink.line, cause: 'html-link' })

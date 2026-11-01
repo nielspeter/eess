@@ -63,6 +63,19 @@ describe('an HTML link is what the one reader says it is (bug 0593)', () => {
   })
 })
 
+describe('an <area> is a link to links(), and holds no text for mentions()', () => {
+  it('a mention after an inline <area href> in the same paragraph is plain text', () => {
+    expect(
+      said(
+        one('# A\n\n<map><area href="./x.md"></map> bug 0001 here.\n')
+          .should()
+          .beLinked()
+          .violations(),
+      ),
+    ).toEqual(['3: - "bug 0001" is not a link'])
+  })
+})
+
 describe('a rule over only unread mentions reports them and nothing beside (bug 0602)', () => {
   const unreadOnly = '# A\n\n<div>\nbug 0001\n</div>\n'
 

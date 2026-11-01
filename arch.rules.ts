@@ -81,7 +81,7 @@ const langTagComparison: ExpressionMatcher = {
  * This matches a regular-expression literal whose source text names an attribute or a link tag
  * (`href`, `src`, `<a`, `<\/a`), any case. What it cannot see (ADR-016 rule 7): a pattern built from
  * a string (`new RegExp('href')`), a search that is no pattern (`includes('href')`), and a pattern
- * that spells the word another way (`h\x72ef`, `[h]ref`). A Tier-1 check on the spelled pattern.
+ * that spells the word another way (`h\x72ef`, `[h]ref`, or the owner's own `<(?:a|area)`). A Tier-1 check on the spelled pattern.
  */
 const HTML_READ = /href|src|<a|<\\\/a/i
 const htmlAttributeRead: ExpressionMatcher = {
@@ -401,7 +401,7 @@ export default [
     .should()
     .notContain(htmlAttributeRead)
     .rule({
-      id: 'eess/one-html-attribute-reader',
+      id: 'md/one-html-attribute-reader',
       because:
         'plan 0580: an HTML tag is read in one place, so mentions() and links() never disagree about what an <a href> is (bug 0593 was a second reader that did)',
       suggestion:

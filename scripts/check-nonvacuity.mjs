@@ -35,7 +35,7 @@
  *                 three ways (`===`, a bare method call on it, `switch`), one probe
  *                 per branch of the matcher → eess/one-code-block-tag-comparison; a
  *                 probe asking only `.lang === null` must exit 0.
- *   arch/one-html-attribute-reader (plan 0580 D10)
+ *   arch/md-one-html-attribute-reader (plan 0580 D10)
  *                 the same probe file holds one regex per alternative the matcher
  *                 claims (`href`, `src`, `<a`, `<\/a`) and a quiet one → the rule
  *                 fires on exactly lines 1 to 4.
@@ -895,12 +895,12 @@ function gateArchOneTagComparison() {
   }
 }
 
-// --- Gate: arch/one-html-attribute-reader (plan 0580 D10) ---
+// --- Gate: arch/md-one-html-attribute-reader (plan 0580 D10) ---
 // One probe file, one run: a literal per alternative the matcher claims (`href`, `src`, `<a`, `<\/a`),
 // each on its own line, and a quiet literal after them. The rule must fire on exactly lines 1 to 4, so
 // dropping an alternative reddens the row, and widening the matcher to every literal reddens it too.
 function gateArchOneHtmlAttributeReader() {
-  const RULE = 'eess/one-html-attribute-reader'
+  const RULE = 'md/one-html-attribute-reader'
   const body = [
     'export const a = /href/',
     'export const b = /src=/',
@@ -4548,7 +4548,7 @@ const gates = [
   ['arch/md-layers-point-down', gateArchMdLayersPointDown],
   ['arch/md-rules-import-only-the-root', gateArchMdRulesRootOnly],
   ['arch/one-code-block-tag-comparison', gateArchOneTagComparison],
-  ['arch/one-html-attribute-reader', gateArchOneHtmlAttributeReader],
+  ['arch/md-one-html-attribute-reader', gateArchOneHtmlAttributeReader],
   ['internal arch', gateInternalArch],
   ['arch/no-new-kernel-registry', gateNoNewKernelRegistry],
   ['family re-export (index)', gateFamilyReExportIndex],
@@ -5753,6 +5753,7 @@ const GATE_FOR = {
     'arch/md-layers-point-down',
     'arch/md-rules-import-only-the-root',
     'arch/one-code-block-tag-comparison',
+    'arch/md-one-html-attribute-reader',
     'internal arch',
     'arch/one-fence-reader (packages)',
     'arch/one-fence-reader (scripts)',

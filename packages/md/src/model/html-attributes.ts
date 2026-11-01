@@ -3,7 +3,7 @@ import { decodeNamedCharacterReference } from 'decode-named-character-reference'
 
 /**
  * The one reader of HTML tags and attributes in eess-md (plan 0580, D1 to D10; gated by the arch rule
- * `eess/one-html-attribute-reader`). It answers "which tags does this HTML hold, and what are their
+ * `md/one-html-attribute-reader`). It answers "which tags does this HTML hold, and what are their
  * attributes?" for every builder that needs it (`mentions()` today, `links()` next), so no two readers
  * disagree about what an `<a href>` is.
  *
@@ -21,7 +21,8 @@ import { decodeNamedCharacterReference } from 'decode-named-character-reference'
  *   source.
  *
  * Values are decoded after the tag is tokenized, as CommonMark decodes a reference: `&name;`, `&#N;`
- * and `&#xH;`, each with its `;`. The scan is linear: no nested quantifier.
+ * and `&#xH;`, each with its `;`. A legacy reference without its `;` (`&amp"`), which a browser also
+ * decodes, is kept as written. The scan is linear: no nested quantifier.
  */
 
 /** One attribute of a tag, as the tokenizer read it. */
@@ -94,6 +95,9 @@ const TAGFILTER = new Set([
 
 const isSpace = (c: string | undefined): boolean =>
   c === ' ' || c === '\t' || c === '\n' || c === '\r' || c === '\f'
+/** CommonMark's whitespace for an open tag (§6.6): space, tab and a line ending; no form feed. */
+const isMdSpace = (c: string | undefined): boolean =>
+  c === ' ' || c === '\t' || c === '\n' || c === '\r'
 const isAsciiAlpha = (c: string | undefined): boolean =>
   c !== undefined && c.length === 1 && /[A-Za-z]/.test(c)
 
@@ -134,7 +138,41 @@ export function decodeReferences(text: string): string {
 }
 
 /**
- * Tokenize the value of one `html` node (D1, D2, D5). `firstLine` is the node's first line;
+ * Where a comment or bogus comment that starts at `at` ends (exclusive), as the HTML tokenizer ends
+ * it, or `undefined` when none starts there (D2). A comment ends at `<!-->` and `<!--->` (an abrupt
+ * empty comment), or at the first `-->` or `--!>` after `<!--`, or with the text. A bogus comment is
+ * `<!…`, `<?…`, or `</` before anything but a letter, and runs to the next `>`.
+ */
+function commentEnd(text: string, at: number): number | undefined {
+  if (text[at] !== '<') return undefined
+  if (text.startsWith('<!--', at)) {
+    if (text.startsWith('<!-->', at)) return at + 5
+    if (text.startsWith('<!--->', at)) return at + 6
+    for (let k = at + 4; k < text.length; k++) {
+      if (text.startsWith('-->', k)) return k + 3
+      if (text.startsWith('--!>', k)) return k + 4
+    }
+    return text.length
+  }
+  const next = text[at + 1]
+  const bogus = next === '!' || next === '?' || (next === '/' && !isAsciiAlpha(text[at + 2]))
+  if (!bogus || next === undefined) return undefined
+  const close = text.indexOf('>', at + 2)
+  return close === -1 ? text.length : close + 1
+}
+
+/** Whether `text` holds an end tag `</name` (any case) followed by whitespace, `/`, `>` or its end. */
+function holdsEndTag(text: string, name: string): boolean {
+  const lower = text.toLowerCase()
+  for (let k = lower.indexOf(`</${name}`); k !== -1; k = lower.indexOf(`</${name}`, k + 1)) {
+    const after = lower[k + 2 + name.length]
+    if (after === undefined || isSpace(after) || after === '/' || after === '>') return true
+  }
+  return false
+}
+
+/**
+ * Tokenize the value of one `html` node (D1, D5). `firstLine` is the node's first line;
  * `endedByBlankLine` says whether a blank line, and not the end of the document or of a container,
  * ended it, which tells `split-tag` from `unterminated`.
  */
@@ -168,22 +206,13 @@ export function tokenizeHtml(
       step()
       continue
     }
-    const next = value[i + 1]
-    // A comment: to its `-->`, or to the end of the node.
-    if (value.startsWith('<!--', i)) {
-      const close = value.indexOf('-->', i + 4)
-      const to = close === -1 ? n : close + 3
-      while (i < to) step()
+    // A comment or a bogus comment (CDATA included) is cut out (D2).
+    const cut = commentEnd(value, i)
+    if (cut !== undefined) {
+      while (i < cut) step()
       continue
     }
-    // A bogus comment (`<!…>`, CDATA included, and `<?…>`): to the next `>`.
-    if (next === '!' || next === '?') {
-      const close = value.indexOf('>', i + 2)
-      const to = close === -1 ? n : close + 1
-      while (i < to) step()
-      continue
-    }
-    const isEnd = next === '/'
+    const isEnd = value[i + 1] === '/'
     const nameAt = isEnd ? i + 2 : i + 1
     if (!isAsciiAlpha(value[nameAt])) {
       step() // `<` not followed by a tag name is text.
@@ -279,13 +308,14 @@ export function tokenizeHtml(
       } else {
         starts.push({ name, attributes, line: tagLine })
         if (TAGFILTER.has(name)) {
-          const closes = value.slice(i).toLowerCase().includes(`</${name}`)
+          const closes = holdsEndTag(value.slice(i), name)
           open.push({ name, closes })
         }
       }
       continue
     }
-    // The node ended inside this tag.
+    // The node ended inside this tag. Only a start tag is reported: an unfinished end tag is no link.
+    if (isEnd) continue
     const inside = open.some((o) => o.closes)
     const couldClose = inQuote === undefined || !inQuote.gtSoFar
     const cause: UnfinishedCause = endedByBlankLine && couldClose ? 'split-tag' : 'unterminated'
@@ -296,17 +326,38 @@ export function tokenizeHtml(
   return { starts, ends, unfinished, silenced }
 }
 
-/** Whether a blank line follows the node in `source`, so a blank line, not a container, ended it. */
-function endedByBlankLineIn(node: Nodes, source: string | undefined): boolean {
+/**
+ * Whether a blank line, and not a container or the end of the document, ended the node: the line
+ * after it holds nothing once `depth` blockquote markers are stepped over, and a line ending closes it.
+ */
+function endedByBlankLineIn(node: Nodes, source: string | undefined, depth: number): boolean {
   const end = node.position?.end.offset
   if (source === undefined || end === undefined) return false
-  return /^\r?\n[ \t]*(?:\r?\n|$)/.test(source.slice(end))
+  let k = end
+  if (source[k] === '\r') k++
+  if (source[k] !== '\n') return false
+  k++
+  for (let d = 0; d < depth; d++) {
+    while (source[k] === ' ' || source[k] === '\t') k++
+    if (source[k] !== '>') break
+    k++
+  }
+  while (source[k] === ' ' || source[k] === '\t') k++
+  if (source[k] === '\r') k++
+  return source[k] === '\n'
 }
 
-/** Tokenize an mdast `html` node (D1). Without its source, an unfinished tag is `unterminated`. */
-export function readHtmlNode(node: Nodes, source?: string): HtmlRead {
+/**
+ * Tokenize an mdast `html` node (D1). `depth` is the number of blockquotes around it, so a blank
+ * line inside a quote (`>`) is read as one. Without its source, an unfinished tag is `unterminated`.
+ */
+export function readHtmlNode(node: Nodes, source?: string, depth = 0): HtmlRead {
   if (node.type !== 'html') return { starts: [], ends: [], unfinished: [], silenced: [] }
-  return tokenizeHtml(node.value, node.position?.start.line ?? 0, endedByBlankLineIn(node, source))
+  return tokenizeHtml(
+    node.value,
+    node.position?.start.line ?? 0,
+    endedByBlankLineIn(node, source, depth),
+  )
 }
 
 /** A tag's attribute by name, in any letter case. */
@@ -331,15 +382,9 @@ export function isOnlyComment(value: string): boolean {
   for (;;) {
     rest = rest.replace(/^\s+/, '')
     if (rest === '') return any
-    if (rest.startsWith('<!--')) {
-      const close = rest.indexOf('-->', 4)
-      if (close === -1) return true // a comment to the end of the node hides the rest
-      rest = rest.slice(close + 3)
-    } else if (rest.startsWith('<!') || rest.startsWith('<?')) {
-      const close = rest.indexOf('>', 2)
-      if (close === -1) return true
-      rest = rest.slice(close + 1)
-    } else return false
+    const cut = commentEnd(rest, 0)
+    if (cut === undefined) return false
+    rest = rest.slice(cut)
     any = true
   }
 }
@@ -357,14 +402,40 @@ type InlineTagStart =
     }
   | { readonly kind: 'refused-tag'; readonly line: number; readonly name: string }
 
+/** An attribute as §6.6 reads it: its raw value, and whether it was quoted. */
+interface InlineAttribute {
+  readonly name: string
+  readonly raw: string
+  readonly quoted: boolean
+}
+
+/**
+ * What a tag micromark refused is, by its attributes (R3): no `href`, an unquoted value holding `/`
+ * (each such attribute named), or a refusal no Measured row explains.
+ */
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
+export function inlineKind(
+  attributes: readonly InlineAttribute[],
+):
+  | { readonly kind: 'no-href' }
+  | { readonly kind: 'unquoted-slash'; readonly attributes: readonly string[] }
+  | { readonly kind: 'refused-tag' } {
+  if (!attributes.some((a) => a.name === 'href')) return { kind: 'no-href' }
+  const slashed = attributes.filter((a) => !a.quoted && a.raw.includes('/')).map((a) => a.name)
+  return slashed.length > 0
+    ? { kind: 'unquoted-slash', attributes: slashed }
+    : { kind: 'refused-tag' }
+}
+
 /** §6.6's attribute name and unquoted value. */
 const ATTR_NAME = /[A-Za-z_:][A-Za-z0-9_.:-]*/y
 const UNQUOTED = /[^"'=<>`\s]+/y
 
 /**
  * Apply CommonMark's open tag (§6.6) to `text` at `at`, a `<`. Returns the tag's name and its
- * attributes with their raw values and whether each was quoted, or `undefined` when it is not one.
- * Spaces include line endings; `text` has its container prefixes already stepped over.
+ * attributes with their raw values and whether each was quoted, and the index after its `>`, or
+ * `undefined` when it is not one. Spaces include line endings; `text` has its container prefixes
+ * already stepped over.
  */
 function openTagAt(
   text: string,
@@ -372,7 +443,8 @@ function openTagAt(
 ):
   | {
       readonly name: string
-      readonly attributes: readonly { name: string; raw: string; quoted: boolean }[]
+      readonly attributes: readonly InlineAttribute[]
+      readonly end: number
     }
   | undefined {
   if (at < 0 || text[at] !== '<') return undefined
@@ -383,17 +455,17 @@ function openTagAt(
   if (nm === null) return undefined
   const name = nm[0].toLowerCase()
   i += nm[0].length
-  const attributes: { name: string; raw: string; quoted: boolean }[] = []
+  const attributes: InlineAttribute[] = []
   const spaces = (): number => {
     const s = i
-    while (i < text.length && isSpace(text[i])) i++
+    while (i < text.length && isMdSpace(text[i])) i++
     return i - s
   }
   for (;;) {
     const gap = spaces()
     const c = text[i]
-    if (c === '>') return { name, attributes }
-    if (c === '/' && text[i + 1] === '>') return { name, attributes }
+    if (c === '>') return { name, attributes, end: i + 1 }
+    if (c === '/' && text[i + 1] === '>') return { name, attributes, end: i + 2 }
     if (gap === 0) return undefined // an attribute must follow whitespace
     ATTR_NAME.lastIndex = i
     const an = ATTR_NAME.exec(text)
@@ -489,6 +561,8 @@ function inlineTagStarts(
   // Lines are counted forward once: starts are visited in source order.
   let counted = from
   let line = firstLine
+  /** The index in the container's text up to which a tag already found reaches: a start inside it is its value. */
+  let consumed = -1
   for (const [s, e] of textSpans(container)) {
     for (let at = source.indexOf('<', s); at !== -1 && at < e; at = source.indexOf('<', at + 1)) {
       if (!/^<(?:a|area)(?:[\s/>]|$)/i.test(source.slice(at, at + 6))) continue
@@ -497,22 +571,19 @@ function inlineTagStarts(
       if (slashes % 2 === 1) continue
       for (; counted < at; counted++) if (source[counted] === '\n') line++
       built ??= containerText(source, from, end, depth)
-      const tag = openTagAt(built.text, built.at[at - from] ?? -1)
+      const index = built.at[at - from] ?? -1
+      if (index < consumed) continue
+      const tag = openTagAt(built.text, index)
       if (tag === undefined) {
         out.push({ kind: 'not-a-tag', line })
         continue
       }
-      if (!tag.attributes.some((a) => a.name === 'href')) {
-        out.push({ kind: 'no-href', line, name: tag.name })
-        continue
-      }
-      const slashed = tag.attributes
-        .filter((a) => !a.quoted && a.raw.includes('/'))
-        .map((a) => a.name)
+      consumed = tag.end
+      const kind = inlineKind(tag.attributes)
       out.push(
-        slashed.length > 0
-          ? { kind: 'unquoted-slash', line, name: tag.name, attributes: slashed }
-          : { kind: 'refused-tag', line, name: tag.name },
+        kind.kind === 'unquoted-slash'
+          ? { kind: 'unquoted-slash', line, name: tag.name, attributes: kind.attributes }
+          : { kind: kind.kind, line, name: tag.name },
       )
     }
   }
