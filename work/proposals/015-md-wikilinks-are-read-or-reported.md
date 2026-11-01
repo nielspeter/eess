@@ -87,7 +87,9 @@ written, for four reasons:
 1. Its central criterion offers a branch the ADRs forbid: an unread wikilink "or its count is
    reported beside the result". That is an instrument that cannot go red.
 2. Its other branch, a finding that is on by default, was measured at zero true positives.
-3. Its premise is stale. The maintainer has since made full link support, wikilinks included, a goal
+3. Its premise is stale. The maintainer has since (2026-10-30 and 2026-10-31, asking for GitHub
+   Flavored Markdown link support and for a wiki corpus to be checkable as plans and bugs are) made
+   full link support, wikilinks included, a goal
    for any corpus. Ask B is no longer "held until a consumer brings a real vault". It is the
    deliverable.
 4. Its acceptance criteria miss break classes the reviewers measured, two of them false greens.
@@ -149,7 +151,7 @@ the template learns from them.
   [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md).
 - **Ask A inside `links()` is new, and it shares a channel that is not built yet.** `links()` has no
   unread or `bypassFilters` path. [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
-  Fix 2, still open, specifies that channel for raw HTML links: not counted in `examined`, not
+  Fix 2 (decided 2026-11-01: raw HTML is resolved, not reported unread; see that bug) specified that channel for raw HTML links: not counted in `examined`, not
   silenced by `.expectEmpty()`, reported at the link's own line. Whichever is built first builds it
   for both. The kernel's path for a subject a rule cannot judge is `undecidedViolations`
   ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). The text walk to
@@ -177,12 +179,16 @@ into `packages/core`.
 Each of these is the maintainer side's call, taken from the ADRs and the measurements, and each can
 be overruled.
 
-1. **Open question 1 is decided: the wiki reading is declared, never a default.** `[[…]]` is not
-   syntax that CommonMark or GFM defines. [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)
-   says the root reads no shape the caller did not name, and it counts only Markdown's and GFM's own
-   syntax as "the language, not a shape". Wiki tools also differ on order: Obsidian and MediaWiki
-   write `[[Page|label]]`, and two lenses report, from memory, that Gollum writes the reverse. A
-   default-on reading was measured at 29 findings, all 29 false: 14 in 6 of about 600 installed
+1. **Open question 1 is decided: the wiki reading is declared, never a default.** The basis is
+   the measurement below, supported by a principle. `[[…]]` is not syntax that CommonMark or GFM
+   defines. [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) calls the syntax
+   Markdown and GFM define "the language, not a shape", and its root reads no shape the caller did
+   not name; it does not, though, say that every other syntax is a shape, and its definition of a
+   shape (a label, a state, a folder, a section, a box mark) does not cover link syntax. That gap is
+   why step 3 below extends [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) rather than citing it. Wiki tools may also differ on order:
+   Obsidian and MediaWiki write `[[Page|label]]`, and two lenses recalled that Gollum writes the
+   reverse, which is unverified until the spike reads Gollum's docs. A default-on reading was
+   measured at 29 findings, all 29 false: 14 in 6 of about 600 installed
    READMEs (POSIX classes such as `[[:digit:]]` in inline code, the ECMAScript slots `[[Prototype]]`
    and `[[Class]]` in prose, and findings on HTML blocks that cannot be suppressed), and 15 in this
    repository, 12 of them in this proposal's own text. Under
@@ -287,10 +293,12 @@ be overruled.
   comparison of two parses at `packages/md/src/model/prose.ts:114-116`), breaks the text-keyed parse
   memo, and adds a dependency that bakes in one tool's syntax. Product's constraint: with no reading
   declared, behaviour is byte-identical.
-- **Suppression, decided once for two records.**
-  [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2 has an
-  open sub-decision that binds this proposal too: may an unread finding with no Markdown remedy be
-  suppressed per cause, with a reason? Decide it once for both.
+- **Suppression, decided for raw HTML.**
+  [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2's
+  sub-decision (may an unread finding with no Markdown remedy be suppressed per cause?) is settled
+  for raw HTML by resolving the `href` instead (recorded in that bug, 2026-11-01). For wikilinks the
+  question does not arise the same way: under a declared reading a wikilink is resolved, and only a
+  form the reading does not cover is unread, whose remedy (write it in a covered form) is real.
 
 ### Recorded separately
 

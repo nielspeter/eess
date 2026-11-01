@@ -20,6 +20,11 @@ own package. [Bug 0179](./fixed/0179-adopted-doc-tests-resolve-the-repo-root-one
 `../../plans/0059-…`) was dead in the repository too. Those are fixed, but
 nothing stops the twelfth.
 
+**The twelfth, measured 2026-11-01** (found by [proposal 024](../proposals/024-md-an-images-file-exists.md)'s
+review): `packages/md/README.md` now holds six relative links into the repository's `docs/`, at
+lines 162, 566, 588, 619, 631 and 665, each `](../../docs/markdown.md#…)`. The other five
+packages' READMEs hold none. Nothing caught them, which is this bug's point 1 exactly.
+
 **2. `.md` citations in source comments.** The only mechanism is
 `cross-document-links-resolve.test.ts`'s source-comment row, whose
 `sourceFiles()` walks `packageRoot` only. Measured populations after 0179's fix:

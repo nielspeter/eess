@@ -88,8 +88,8 @@ and placed correctly, and almost every part it needs exists already. But the pro
 separable things, and its central ask cannot ship in the form it is written. Ask A without ask B
 is a measured false green on the image form READMEs mostly use. So both asks are `Held`, on one
 condition: the shared reader of HTML attributes that
-[proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s ruling decided, and
-[plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md) builds. All measurement was done with
+[proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s review (2026-11-01) calls for, which 022's
+plan will build; 022's ruling is recorded with its amended text and its plan, in their own PR. All measurement was done with
 throwaway scripts against `packages/md/dist`; each probe took 0.14–0.21 s, the README census 3.7 s
 and 4.8 s, and the repository census 6.3 s. No suite, validate or nonvacuity run was needed.
 
@@ -293,8 +293,9 @@ Each of these is decided here so the work can move, and each can be overruled.
 - The review's claim that no gate resolves the root README's ordinary links did not reproduce:
   `packages/ts/tests/docs/cross-document-links-resolve.test.ts` resolves every inline link in
   `README.md`, `CLAUDE.md` and `RELEASING.md` on every `npm test` (30 links, 0 broken, measured
-  2026-11-01). Measuring it found [bug 0594](../bugs/0594-eess-mds-published-readme-links-into-the-repository-relatively.md)
-  instead: eess-md's published README links into the repository relatively.
+  2026-11-01). Measuring it found a new instance of open
+  [bug 0181](../bugs/0181-link-checks-cover-one-package-of-six.md) instead: eess-md's published
+  README links into the repository relatively, six times; recorded there.
 
 ### Praise
 
@@ -310,7 +311,7 @@ attribution already work through the existing walk. Those classes need only rows
 
 ### Disposition
 
-| Ask                                                           | Disposition | What would unhold it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A — inline and reference-style Markdown images resolve        | `Held`      | It ships together with ask B, never alone: 66 of 73 local README images are `<img src>`. Unheld when [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan, [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md), has built the shared HTML-attribute reader. Then A and B are planned together as one `images()` element with the accepted cases in critical item 2, the image fix policy, the fragment rule against [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md), the asset-root scope, and the rewritten non-vacuity criterion |
-| B — `<img src>`, `<img srcset>` and `<source srcset>` resolve | `Held`      | The same condition: [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md) has built the shared HTML-attribute reader. B reads `src` and `srcset` through it, with the srcset grammar in the same module                                                                                                                                                                                                                                                                                                                                                                  |
+| Ask                                                           | Disposition | What would unhold it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — inline and reference-style Markdown images resolve        | `Held`      | It ships together with ask B, never alone: 66 of 73 local README images are `<img src>`. Unheld when [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. Then A and B are planned together as one `images()` element with the accepted cases in critical item 2, the image fix policy, the fragment rule against [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md), the asset-root scope, and the rewritten non-vacuity criterion |
+| B — `<img src>`, `<img srcset>` and `<source srcset>` resolve | `Held`      | The same condition: [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. B reads `src` and `srcset` through it, with the srcset grammar in the same module                                                                                                                                                                                                                                                                                                 |

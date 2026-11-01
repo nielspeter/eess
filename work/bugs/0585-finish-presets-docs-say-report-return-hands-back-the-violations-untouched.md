@@ -6,7 +6,7 @@
 - **Severity:** Low — no false verdict: the code gates every door, and the docs are what is wrong.
   The wording inverts the truth, though: a reader concludes that `report: 'return'` skips the
   evidence gate, and the root-public docstring is what an IDE shows every adopter.
-- **Origin:** self-found · [proposal 011](../proposals/011-core-name-the-evidence-gate.md)'s
+- **Origin:** self-found · [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md)'s
   review, 2026-11-01 (all three lenses); reproduced before filing.
 - **Reported:** 2026-11-01
 

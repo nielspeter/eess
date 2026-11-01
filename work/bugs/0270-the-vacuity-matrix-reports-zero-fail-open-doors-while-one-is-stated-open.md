@@ -78,7 +78,7 @@ maintaining the list by hand.
 Not decided. The cheapest honest shape is two moves:
 
 1. Add both `collectViolations` symbols to `KNOWN_FAIL_OPEN` as dated entries
-   pointing at [proposal 011](../proposals/011-core-name-the-evidence-gate.md)
+   pointing at [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md)
    ask C, so the summary line reads `2 tracked` instead of `0` and the debt
    expires on a version like every other entry.
 2. Re-reason `.:checkAll` — either probe it as an emitter door, or keep it
@@ -100,7 +100,7 @@ Deferred: none.
 
 ## Related
 
-- [Proposal 011](../proposals/011-core-name-the-evidence-gate.md) — ask C owns
+- [Proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md) — ask C owns
   the decision about `collectViolations` itself; this record is about the
   instrument that cannot see it.
 - [Plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) — Phase 2

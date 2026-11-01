@@ -5,9 +5,10 @@
 - **State:** Draft — reproduced 2026-11-01 on `packages/core/dist` at `bd78b962`; no red test yet.
 - **Severity:** High — a false green: a rule that refused to run gives 0 violations and no throw,
   and the documented next step writes a baseline with `count: 0` over it.
-- **Origin:** self-found · [proposal 011](../proposals/011-core-name-the-evidence-gate.md)'s
+- **Origin:** self-found · [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md)'s
   review, 2026-11-01 (all three lenses); reproduced before filing.
 - **Reported:** 2026-11-01
+- **Implements:** [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md) (ask C, with [bug 0595](./0595-generate-baseline-drops-a-configuration-finding-without-a-word.md))
 
 ## Symptom
 
@@ -27,7 +28,7 @@ and drops everything else without a word. Three kinds of throw are lost:
 The docstring says the helper "bypasses the evidence gate"
 (`packages/core/src/baseline-generator.ts:10`). It says nothing about the swallow. That is an
 [ADR-009](../../adr/009-agent-first-failure-surfaces.md) fake green, separate from the gate bypass
-that [proposal 011](../proposals/011-core-name-the-evidence-gate.md) ask C is about.
+that [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md) ask C is about.
 
 ## Reproduction
 
@@ -68,12 +69,12 @@ harvested nor rethrown.
 Harvest with `isArchRuleError` and rethrow every other error. A configuration error then fails the
 call that generates the baseline, as it fails `check()`, and a second kernel copy's violations are
 kept. The docstring keeps its gate-bypass caveat, which is
-[proposal 011](../proposals/011-core-name-the-evidence-gate.md) ask C's to close, and stops
+[proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md) ask C's to close, and stops
 describing the helper as harvesting everything a rule throws.
 
 Out of scope here: `generateBaseline` silently drops `bypassFilters` findings
 (`packages/core/src/baseline.ts:208`), and eess-ts's own `collectViolations`. Both belong to
-[proposal 011](../proposals/011-core-name-the-evidence-gate.md) ask C.
+[proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md) ask C.
 
 ## Verification
 

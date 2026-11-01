@@ -7,7 +7,7 @@
   of findings depends on how many doors the receipt went through, and one pass can leave a wrong
   flag unnamed. Measured: no receipt that the two double-gating scripts can build reaches it, so
   their real output is unaffected today.
-- **Origin:** self-found · [proposal 011](../proposals/011-core-name-the-evidence-gate.md)'s
+- **Origin:** self-found · [proposal 011](../proposals/promoted/011-core-name-the-evidence-gate.md)'s
   review, 2026-11-01 (architect lens); reproduced before filing.
 - **Reported:** 2026-11-01
 

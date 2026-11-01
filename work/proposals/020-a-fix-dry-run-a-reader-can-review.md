@@ -144,8 +144,9 @@ until it is settled which document it extends. The measurements were throwaway s
    `packages/core/src/format-json.ts:199` serialises edits from a builder whose receipt was refused:
    `check --format json` carried the fixable violation next to `emitter/no-receipt`, while
    `check --fix` refused it and left the file byte-identical. That breaks
-   [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s "a refused verdict
-   refuses every edit computed from it". It also serialises edits from before the fold of
+   the rule stated in [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s
+   Enforcement table (`adr/014-the-emitter-refuses-a-verdict-without-evidence.md:494`), "a refused
+   verdict refuses every edit computed from it", which is a row there, not a Decision clause. It also serialises edits from before the fold of
    [bug 0564](../bugs/fixed/0564-two-identical-fixes-cancel-each-other.md) and the overlap skips:
    enforcement measured 5 fixes on the wire against 2 edits written. Every consumer would have to
    rebuild `applyFixes`, and one that applies the edits in report order corrupts any file with two

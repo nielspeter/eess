@@ -162,7 +162,16 @@ Two parts, one root cause:
    - The remedy the finding gives must clear it: write the link in Markdown, with blank lines
      inside the HTML block so it is parsed as Markdown (`<p align="center">`, a blank line,
      `[Guide](./guide.md)`, a blank line, `</p>`).
-   - **Open, decided before the fix is built:** some HTML has no Markdown remedy. A README logo
+   - **Decided 2026-11-01 (overrulable), from [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s
+     review: resolve the `href`, do not report it unread.** An unread finding cannot be suppressed
+     ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5), and for a
+     sized logo or a `target` link its only remedy would be deleting a correct link, against
+     [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2. Resolving gives a broken
+     `href` the remedy "fix the path", and what the reader cannot parse is reported unread with the
+     remedy "write it in a form eess-md reads". So this half closes done-otherwise against
+     [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s plan, through one shared
+     reader of HTML attributes. The decision as first recorded:
+   - **Open, decided before the fix is built (superseded above):** some HTML has no Markdown remedy. A README logo
      sized with `width` (`<a href="./docs/"><img src="logo.svg" width="120"></a>`) cannot be
      written in Markdown, and `md/unread-mention`, the precedent, cannot be suppressed
      (`packages/md/src/builders/mentions.ts:259`). So either the unread finding can be suppressed
@@ -198,9 +207,11 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
       example's clean fixture holds a task box, `[WIP]` and an alert, and reports nothing.
 - [ ] An escaped `\[a\]\[b\]` produces nothing; `matrix[i][j]` is reported with a code-span remedy
       that clears it. deferred→[bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md): both are still reported by the example's rule (measured),
-      since no public block selects a match in inline code or written escaped, and the absence
-      rule's finding names no remedy beyond its `because`; a waiver comment with the rule's id
-      clears a line.
+      since no public block selects a match in inline code or written escaped; a waiver comment
+      with the rule's id clears a line. (Corrected 2026-11-01, from
+      [proposal 023](../proposals/023-md-a-footnote-reference-has-its-definition.md)'s review: this
+      note first said the absence rule's finding names no remedy beyond its `because`, but
+      `.rule({ suggestion })` gives it one.)
 - [x] Two references to one broken definition give one finding at the definition's line, and at
       most one fix (a moved target's fix rewrites the definition's URL).
 - [x] A label matched by Unicode case fold (`[Text][FOO]` with `[foo]: …`, and `[STRASSE]` with

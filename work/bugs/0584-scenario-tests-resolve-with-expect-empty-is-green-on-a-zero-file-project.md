@@ -103,7 +103,8 @@ receipt {examined:0, sourceEmpty:true} + expectEmpty -> emitter/source-empty: th
 Whether `scenarioExemptionsCurrent` should get the same fact is out of scope. The review measured
 its zero-file case as green without any declaration, because its `examined` counts exempt
 scenarios, and as `emitter/expired-declaration` with one. That is a separate finding of the same
-review (Critical 2), not this bug. A `sourceEmpty`
+review (its enforcement lens's Critical 2), recorded as
+[bug 0594](./0594-a-stale-exemption-passes-on-a-project-with-no-source-files.md), not this bug. A `sourceEmpty`
 beside `examined > 0` would also be refused as `emitter/contradictory-evidence`, which names the
 wrong remedy for it.
 
