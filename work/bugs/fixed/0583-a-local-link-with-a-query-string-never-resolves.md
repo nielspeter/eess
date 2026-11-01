@@ -2,12 +2,13 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-11-01 on the build of main at `bd78b962`; no red test yet.
+- **State:** Fixed — `linkTargets` and `movedLinkFix` cut a URL's path at its first `?` or `#`
+  through one helper, `splitPath` (PR #291).
 - **Severity:** Medium — a false red. The file exists and the link works where the document is
   read, and `resolve()` calls it broken, with no fix.
-- **Origin:** self-found · [proposal 024](../proposals/024-md-an-images-file-exists.md)'s and
-  [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s reviews, 2026-11-01.
-  (That review's ruling is recorded with [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
+- **Origin:** self-found · [proposal 024](../../proposals/024-md-an-images-file-exists.md)'s and
+  [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s reviews, 2026-11-01.
+  (That review's ruling is recorded with [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
   until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
@@ -78,12 +79,17 @@ target linked with a query gets no fix: its basename is `logo.png?raw=true`, whi
 
 ## Verification
 
-- [ ] Red test written first: the reproduction's three links resolve, and `./gone.png?raw=true`
-      is still broken.
-- [ ] `./a%3F.md` resolves to a file named `a?.md`.
-- [ ] `[x](?plain=1)` resolves to the document itself.
-- [ ] A moved target linked with `?raw=true#x` gets a fix that keeps `?raw=true#x`.
-- [ ] A changeset naming `@nielspeter/eess-md`.
-- [ ] `npm run validate` green.
+- [x] Red test written first: the reproduction's three links resolve, and `./gone.png?raw=true`
+      is still broken (`packages/md/tests/query-string-links.test.ts`; three of its five tests red
+      on the code before the fix, the two controls green). The review added two: a `?` after a `#`
+      is part of the fragment, and `haveLiveTargets` drops a query-string link into a frozen record.
+- [x] `./a%3F.md` resolves to a file named `a?.md`.
+- [x] `[x](?plain=1)` resolves to the document itself.
+- [x] A moved target linked with `?raw=true#x` gets a fix that keeps `?raw=true#x`.
+- [x] A changeset naming `@nielspeter/eess-md`.
+- [x] `npm run validate` green.
+
+The same shape in this repository's own cross-document link test, found while fixing this, is
+recorded as [bug 0596](../0596-the-repositorys-cross-document-link-test-cuts-a-url-at-its-fragment-only.md).
 
 Deferred: none

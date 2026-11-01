@@ -67,7 +67,7 @@ export type NotInCorpusReason = 'not-markdown' | 'ignored' | 'outside-roots'
  * fact with a different remedy, so a rule over links can say which one it met:
  *
  * - `external`: a URL with a scheme or `//`; not resolved against the repo.
- * - `self`: a pure `#anchor`, or a path back to the linking document itself.
+ * - `self`: a pure `#anchor` or `?query`, or a path back to the linking document itself.
  * - `document`: an existing, loaded corpus document, whose links are parsed.
  * - `not-in-corpus`: an existing file the corpus did not load, with every reason.
  * - `directory`: no candidate is a file, but one names a real directory.
@@ -124,7 +124,17 @@ function indexes(corpus: Corpus): CorpusIndexes {
 }
 
 /**
- * A link URL's base repo-relative target(s), or `[]` for a pure fragment.
+ * A link URL's path, before its query (`?…`) or fragment (`#…`), and the rest, kept whole. GitHub
+ * reads `?raw=true` and `?plain=1` as a query, never as part of a file name, and a `?` in a name is
+ * written `%3F`, which decodes only after the cut (bug 0583).
+ */
+function splitPath(url: string): { readonly path: string; readonly rest: string } {
+  const end = url.search(/[?#]/)
+  return end === -1 ? { path: url, rest: '' } : { path: url.slice(0, end), rest: url.slice(end) }
+}
+
+/**
+ * A link URL's base repo-relative target(s), or `[]` for a pure fragment or query.
  * Site-absolute links (leading `/`) yield the repo-root target, then the
  * content-root target when `rootDir` is set. Throws `URIError` on malformed
  * percent-encoding; `resolveLink` turns that into `missing`.
@@ -133,9 +143,9 @@ function indexes(corpus: Corpus): CorpusIndexes {
  * in its directory hint (bug 0137); not part of the package's public API.
  */
 export function linkTargets(link: LinkToResolve, options: LinkResolveOptions): string[] {
-  const withoutFragment = link.url.split('#')[0] ?? ''
-  if (withoutFragment === '') return []
-  const decoded = decodeURIComponent(withoutFragment)
+  const { path } = splitPath(link.url)
+  if (path === '') return []
+  const decoded = decodeURIComponent(path)
   if (decoded.startsWith('/')) {
     const repoRooted = posix.normalize(decoded.replace(/^\/+/, ''))
     return options.rootDir !== undefined
@@ -275,14 +285,13 @@ export function movedLinkFix(
   byBasename: ReadonlyMap<string, readonly string[]>,
 ): ArchFix | undefined {
   if (link.urlStart === undefined || link.urlEnd === undefined) return undefined
-  const path = link.url.split('#')[0] ?? ''
-  const fragment = link.url.slice(path.length) // '' or '#anchor'
+  const { path, rest } = splitPath(link.url) // rest: '', '?query', '#anchor' or both, carried over
   const base = path.slice(path.replace(/\/+$/, '').lastIndexOf('/') + 1)
   const matches = byBasename.get(base) ?? []
   if (matches.length !== 1) return undefined // renamed (no match) or ambiguous → no fix
   const target = matches[0]
   if (target === undefined) return undefined
-  const replacement = relativeLinkPath(link.doc.relPath, target) + fragment
+  const replacement = relativeLinkPath(link.doc.relPath, target) + rest
   if (replacement === link.url) return undefined
   return {
     file: link.doc.file,
