@@ -7,7 +7,7 @@
   fix; no red test yet.
 - **Severity:** Low — internal dev-loop feedback; no gate verdict is affected. It fails closed: a
   missing module exits non-zero, so CI goes red, never green. The cost is that the defect shows up
-  only in CI, after a full local `npm run validate` has passed.
+  only in CI: a full local `npm run validate` cannot see it, because it always has `node_modules`.
 - **Origin:** self-found · devops review of PR #293's second commit, 2026-11-01 (its Minors 1
   and 2). The review offered the header rewording for #293; it was moved here instead, so the
   rewording lands with the guard that enforces it.
@@ -49,8 +49,9 @@ directory, so no `node_modules` is reachable, and add an empty `reports/` beside
 mkdir reports && cp -r <repo>/scripts . && EESS_NONVACUITY_MERGE=reports node scripts/check-nonvacuity.mjs
 ```
 
-- As committed, it loads and exits 1 with `nonvacuity: the merge FAILED`, because rule-id coverage
-  finds no shard reports. That red is expected with an empty `reports/`, and it is not this bug.
+- As committed, it loads and exits 1 with `nonvacuity: the merge FAILED` on several rows: the copy
+  has no shard reports, no `package.json` and no `.github/ci.yml`. Those reds are the copy's, not
+  this bug; what matters is that the script loaded.
 - With one line added after the shebang, `import '@nielspeter/eess-md/internal'`, it exits 1 with
   `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@nielspeter/eess-md'`, CI's error.
 
