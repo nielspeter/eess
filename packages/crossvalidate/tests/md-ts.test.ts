@@ -1,9 +1,9 @@
-import { afterAll, describe, it, expect } from 'vitest'
+import { afterAll, afterEach, describe, it, expect, vi } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchConfigError, ArchRuleError } from '@nielspeter/eess'
 import { corpus } from '@nielspeter/eess-md'
 import { project } from '@nielspeter/eess-ts'
 import { adrCitationsResolve, adrCitationStats } from '../src/md-ts.js'
@@ -53,6 +53,80 @@ describe('adrCitationsResolve() — MD↔TS (AST-grounded)', () => {
     expect(err).toBeInstanceOf(ArchRuleError)
     const messages = (err as ArchRuleError).violations.map((v) => v.message).join('\n')
     expect(messages).toMatch(/it\('missing'\).*no matching test/)
+  })
+})
+
+// Bug 0097: the preset ended in `.check()`, so a caller could not ask for its findings; it now
+// finishes through `finishPreset`, as every other preset does (ADR-008).
+describe('adrCitationsResolve() — the caller owns reporting (bug 0097)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('with report: return, hands the dangling citation back and writes nothing', () => {
+    const err = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    const out = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    const v = adrCitationsResolve(c(['docs/adr/0002-bad.md']), proj(), { report: 'return' })
+    expect(v.map((x) => x.message)).toEqual([
+      expect.stringMatching(/it\('missing'\).*no matching test/),
+    ])
+    expect(v.examined).toBeGreaterThan(0)
+    expect(err).not.toHaveBeenCalled()
+    expect(out).not.toHaveBeenCalled()
+  })
+
+  it('without options, prints the dangling citation once and throws with the rule reason', () => {
+    const err = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    expect(() => adrCitationsResolve(c(['docs/adr/0002-bad.md']), proj())).toThrow(
+      'Architecture violation (1 found) — an ADR that cites a test must cite one that exists',
+    )
+    expect(err).toHaveBeenCalledTimes(1)
+    expect(String(err.mock.calls[0]?.[0])).toMatch(/it\('missing'\)/)
+  })
+
+  it('with format: json, writes the dangling citation as JSON and still throws', () => {
+    const err = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    const out = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    expect(() =>
+      adrCitationsResolve(c(['docs/adr/0002-bad.md']), proj(), { format: 'json' }),
+    ).toThrow(ArchRuleError)
+    expect(out).toHaveBeenCalledTimes(1)
+    expect(err).not.toHaveBeenCalled()
+    expect(String(out.mock.calls[0]?.[0])).toMatch(/"ruleId":\s*"crossval\/adr-citations-resolve"/)
+  })
+
+  it('refuses expectEmpty beside expectNonEmpty, which together can never pass', () => {
+    const call = () =>
+      adrCitationsResolve(c(['docs/adr/0001-good.md']), proj(), {
+        expectEmpty: true,
+        expectNonEmpty: true,
+      })
+    expect(call).toThrow(ArchConfigError)
+    expect(call).toThrow(/both expectNonEmpty and expectEmpty/)
+  })
+
+  it('with report: warn, prints the dangling citation once and returns it without throwing', () => {
+    const err = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    const v = adrCitationsResolve(c(['docs/adr/0002-bad.md']), proj(), { report: 'warn' })
+    expect(v.map((x) => x.ruleId)).toEqual(['crossval/adr-citations-resolve'])
+    expect(err).toHaveBeenCalledTimes(1)
+  })
+
+  it('with expectEmpty over ADRs that cite tests, reds as an expired declaration', () => {
+    const v = adrCitationsResolve(c(['docs/adr/0001-good.md']), proj(), {
+      expectEmpty: true,
+      report: 'return',
+    })
+    expect(v.map((x) => x.ruleId)).toEqual(['emitter/expired-declaration'])
+  })
+
+  it('with report: return and expectNonEmpty, returns the finding for zero citations', () => {
+    const v = adrCitationsResolve(c(['docs/adr/0001-good.md']), proj(), {
+      dir: 'docs/none/**',
+      expectNonEmpty: true,
+      report: 'return',
+    })
+    expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/\.expectNonEmpty\(\)/)])
   })
 })
 

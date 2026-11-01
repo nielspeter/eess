@@ -1,4 +1,9 @@
-import { type Direction } from '@nielspeter/eess'
+import {
+  finishPreset,
+  type CollectResult,
+  type Direction,
+  type PresetReportOptions,
+} from '@nielspeter/eess'
 import { correspondence } from '@nielspeter/eess'
 import { classes as mmdClasses, type ArchProject as MermaidDiagram } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
@@ -8,10 +13,14 @@ import { identifyTsClass } from './shared.js'
 // the family's binding tool, so unlike the other dialects it MUST re-export
 // what its own body imports — a caller composing a custom cross-dialect
 // binding needs these same primitives.
-export { correspondence } from '@nielspeter/eess'
-export type { Direction } from '@nielspeter/eess'
+export { correspondence, finishPreset } from '@nielspeter/eess'
+export type { ArchViolation, CollectResult, Direction, PresetReportOptions } from '@nielspeter/eess'
 
-export interface DiagramMatchesCodeOptions {
+// The rule's reason, also the thrown error's: `.check()` put it there, and `finishPreset` does when
+// told (bug 0097), so a caller matching the message sees what it saw before.
+const BECAUSE = 'the diagram and the code must agree on which classes exist'
+
+export interface DiagramMatchesCodeOptions extends PresetReportOptions {
   /** Glob (matched against a class's directory) restricting which TS classes
    * participate. Defaults to a `src` folder anywhere in the tree. */
   readonly scope?: string
@@ -31,12 +40,15 @@ export interface DiagramMatchesCodeOptions {
  * ```ts
  * diagramMatchesCode(diagram('docs/architecture.mmd'), project('tsconfig.json'))
  * ```
+ *
+ * It finishes as every preset does, through `finishPreset` (ADR-008, bug 0097): by default it
+ * prints the findings and throws `ArchRuleError`; `{ report: 'return' }` hands them back instead.
  */
 export function diagramMatchesCode(
   diagram: MermaidDiagram,
   project: ArchProject,
   options: DiagramMatchesCodeOptions = {},
-): void {
+): CollectResult {
   const scope = options.scope ?? '**/src/**'
 
   const left = mmdClasses(diagram).select({
@@ -49,12 +61,13 @@ export function diagramMatchesCode(
     identify: identifyTsClass,
   })
 
-  correspondence({ left, right })
+  const violations = correspondence({ left, right })
     .should()
     .beComplete({ direction: options.completeness ?? 'both' })
     .rule({
       id: 'crossval/diagram-completeness',
-      because: 'the diagram and the code must agree on which classes exist',
+      because: BECAUSE,
     })
-    .check()
+    .violations()
+  return finishPreset(violations, { ...options, reason: options.reason ?? BECAUSE })
 }

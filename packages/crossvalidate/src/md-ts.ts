@@ -1,15 +1,24 @@
 import picomatch from 'picomatch'
-import { type Selection } from '@nielspeter/eess'
+import {
+  ArchConfigError,
+  finishPreset,
+  type CollectResult,
+  type PresetReportOptions,
+  type Selection,
+} from '@nielspeter/eess'
 import { correspondence } from '@nielspeter/eess'
 import type { Corpus } from '@nielspeter/eess-md'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import { citedItTitles, itTitleOf } from './it-title.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { correspondence } from '@nielspeter/eess'
-export type { Selection } from '@nielspeter/eess'
+export { ArchConfigError, correspondence, finishPreset } from '@nielspeter/eess'
+export type { ArchViolation, CollectResult, PresetReportOptions, Selection } from '@nielspeter/eess'
 
-export interface AdrCitationsResolveOptions {
+// The rule's reason, also the thrown error's, as `.check()` gave it (bug 0097).
+const BECAUSE = 'an ADR that cites a test must cite one that exists'
+
+export interface AdrCitationsResolveOptions extends PresetReportOptions {
   /** Glob selecting ADR files. Default `docs/adr/**`. */
   readonly dir?: string
   /** Enforcement section heading. Default `/^enforcement$/i`. */
@@ -143,12 +152,23 @@ function extractTestDefs(project: ArchProject): TestDef[] {
  * bug 0111 it is the only title check in the family: `eess-md`'s `adrEnforcement`
  * checks cited paths and leaves titles here, because its text-level reading matched
  * a title as a prefix and could not tell a commented-out test from a live one.
+ *
+ * It finishes as every preset does, through `finishPreset` (ADR-008, bug 0097): by default it
+ * prints the findings and throws `ArchRuleError`; `{ report: 'return' }` hands them back instead.
  */
 export function adrCitationsResolve(
   corpus: Corpus,
   project: ArchProject,
   options: AdrCitationsResolveOptions = {},
-): void {
+): CollectResult {
+  if (options.expectNonEmpty === true && options.expectEmpty === true) {
+    // Each declaration contradicts the other, so the run could never pass, and the receipt would
+    // claim an emptiness the finding beside it calls a fault (bug 0097's review).
+    throw new ArchConfigError(
+      'expectEmpty',
+      'adrCitationsResolve was given both expectNonEmpty and expectEmpty. Declare that the ADRs cite tests (expectNonEmpty) or that they legitimately cite none (expectEmpty), not both.',
+    )
+  }
   const dir = options.dir ?? 'docs/adr/**'
   const section = options.section ?? /^enforcement$/i
   const mechanismColumn = options.mechanismColumn ?? /mechanism/i
@@ -191,9 +211,9 @@ export function adrCitationsResolve(
     .beComplete({ direction: 'left-to-right' })
     .rule({
       id: 'crossval/adr-citations-resolve',
-      because: 'an ADR that cites a test must cite one that exists',
+      because: BECAUSE,
     })
   // A declaration returns a new builder; the one that carries it is the one checked.
   const declared = options.expectNonEmpty === true ? rule.expectNonEmpty() : rule
-  declared.check()
+  return finishPreset(declared.violations(), { ...options, reason: options.reason ?? BECAUSE })
 }

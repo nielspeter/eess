@@ -15,7 +15,7 @@
 
 `eess-md`'s removed resolver searched only the test files cited on the same row, so a title
 cited beside the wrong file was reported. `adrCitationsResolve` keys on the title across the
-whole project (`packages/crossvalidate/src/md-ts.ts:156`, `keyBy: (e) => e.title`), with no
+whole project (`packages/crossvalidate/src/md-ts.ts:193`, `keyBy: (e) => e.title`), with no
 file in the key. Measured on the crossvalidate fixture: a row citing `` `tests/quoted.cases.ts` ``
 · `it('exists')`, where `exists` lives only in `tests/example.test.ts`, was reported before
 0111 and passes after it. A row citing a title with no test path at all passes the same way.

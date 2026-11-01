@@ -71,7 +71,7 @@ the sample's rows are recorded by value in the Appendix:
 - **[ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)**:
   a string that names code is resolved against what the checker can see, and resolving to nothing
   is a finding. A pointer beside the name it cites is such a string.
-- **`adrCitationsResolve`** (`packages/crossvalidate/src/md-ts.ts:147`) resolves an ADR's cited
+- **`adrCitationsResolve`** (`packages/crossvalidate/src/md-ts.ts:159`) resolves an ADR's cited
   `it('…')` title against the real test AST: the one place the family already checks Markdown's
   claim about code by reading the code. eess-ts reads declarations; eess-md reads text.
 - **Text is not enough for the fix.** In the sample's s03, `FOREIGN_HEADER` occurs twice in its

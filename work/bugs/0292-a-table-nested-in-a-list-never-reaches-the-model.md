@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft. Measured on `main` through the document model and the row matcher; no red test yet.
-- **Severity:** **High**, a **fail-open**. Rows in a nested table are invisible to every table consumer, and one silent path is measured: the md↔ts ADR citation binding skips a nested Enforcement table with no finding (`packages/crossvalidate/src/md-ts.ts:51`), so a broken test citation in it passes. Where completeness is asserted, as in a correspondence that expects every row, the loss is loud instead. An earlier version rated this Medium, pending a measured silent path.
+- **Severity:** **High**, a **fail-open**. Rows in a nested table are invisible to every table consumer, and one silent path is measured: the md↔ts ADR citation binding skips a nested Enforcement table with no finding (`packages/crossvalidate/src/md-ts.ts:60`), so a broken test citation in it passes. Where completeness is asserted, as in a correspondence that expects every row, the loss is loud instead. An earlier version rated this Medium, pending a measured silent path.
 
 - **Origin:** self-found · architecture review of a markdown design
 - **Reported:** 2026-09-13
@@ -13,7 +13,7 @@
 `buildDocument` collects tables from the root's direct children only (`packages/md/src/model/document.ts:115`, inside the loop at `packages/md/src/model/document.ts:109`). A GFM table inside a list item or a blockquote is therefore absent from the document's tables, and every consumer of that list sees nothing:
 
 - the row matcher (`packages/md/src/model/rows.ts:79`);
-- the ADR citation table lookup (`packages/crossvalidate/src/md-ts.ts:46`);
+- the ADR citation table lookup (`packages/crossvalidate/src/md-ts.ts:55`);
 - the table structure condition (`packages/md/src/conditions/structure.ts:40`).
 
 ## Reproduce

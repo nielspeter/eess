@@ -17,7 +17,7 @@ Since [bug 0400](./fixed/0400-a-one-way-becomplete-counts-the-side-it-never-read
 an emptied checked side red. `adrCitationsResolve` takes `expectNonEmpty` and passes it on. These do not:
 
 - `diagramMatchesCode` with `completeness: 'left-to-right'` or `'right-to-left'`
-  (`packages/crossvalidate/src/mermaid-ts.ts:54`; the default is `'both'`, which counts both sides).
+  (`packages/crossvalidate/src/mermaid-ts.ts:66`; the default is `'both'`, which counts both sides).
 - `embeddedDiagramsMatchCode` with a one-way `completeness`
   (`packages/crossvalidate/src/md-mermaid.ts:78`, default `'left-to-right'`, so its default is
   exposed).

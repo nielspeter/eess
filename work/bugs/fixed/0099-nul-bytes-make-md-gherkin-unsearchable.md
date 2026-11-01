@@ -101,7 +101,7 @@ symbol does not exist, rather than that the search was skipped.
 It has already cost this repo accuracy. During the plan-0096 review, two grep
 sweeps over `packages/crossvalidate/src/` silently omitted this file; the
 resulting picture of the package's preset contract was wrong in a way that went
-into a filed bug ([0097](../0097-crossval-presets-bypass-caller-owns-reporting.md),
+into a filed bug ([0097](./0097-crossval-presets-bypass-caller-owns-reporting.md),
 since rewritten). The searches did not fail — they returned confidently
 incomplete results.
 

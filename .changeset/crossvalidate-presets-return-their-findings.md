@@ -1,0 +1,5 @@
+---
+'@nielspeter/eess-crossvalidate': minor
+---
+
+`diagramMatchesCode` and `adrCitationsResolve` now finish as every other preset does, through `finishPreset` (bug 0097, ADR-008). Both return their findings (a `CollectResult`) and accept `PresetReportOptions`: `{ report: 'return' }` hands the findings back without printing or throwing, `report: 'warn'` prints them without throwing, `format: 'json'` or `'github'` chooses the output, `expectEmpty` declares that the preset's subject legitimately does not exist here, and `reason` sets the thrown error's reason. Without those options nothing changes: each still prints its findings once and throws `ArchRuleError` with the same message, the rule's reason included. A caller that wrapped either preset in `try`/`catch` to read `error.violations` can pass `{ report: 'return' }` instead. `adrCitationsResolve` refuses `expectEmpty` beside its own `expectNonEmpty`, which together could never pass. `ArchViolation` and `ArchConfigError` are re-exported where these presets live.

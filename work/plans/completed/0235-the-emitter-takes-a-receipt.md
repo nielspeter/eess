@@ -916,7 +916,7 @@ corollaries — not from this document's list of what it thinks it changed.
   [bug 0233](../../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md).
   Same failure class, different seam.
 - **The two crossvalidate presets that return `void`** —
-  [bug 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md).
+  [bug 0097](../../bugs/fixed/0097-crossval-presets-bypass-caller-owns-reporting.md).
 - **Detecting a wrong `examined`.** [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)'s stated ceiling, including its
   honest half: a count taken before the loop's own `continue` is the same
   mistake one line earlier, and the required field cannot tell it from the right

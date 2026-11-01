@@ -10,8 +10,8 @@
  * and `check-crossval.mjs` declares `expectNonEmpty`, so zero citations is a finding. Deleting
  * either half (the count, or the declaration) turns this fixture vacuous.
  *
- * One bare terminal run, the invocation CI makes. Not `--format json`: `adrCitationsResolve` takes no
- * `format` option (bug 0097), so this gate prints its finding in the terminal format whatever is passed.
+ * One bare terminal run, the invocation CI makes. Not `--format json`: this fixture reads the
+ * terminal output CI reads. (`adrCitationsResolve` has honoured `format` since bug 0097.)
  *
  * Exit codes (consumed by scripts/check-nonvacuity.mjs):
  *   1 = the empty citation side was reported — OK

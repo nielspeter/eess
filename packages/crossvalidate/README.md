@@ -4,6 +4,10 @@ Cross-validation presets for the [eess](https://github.com/nielspeter/eess/blob/
 
 The generic engine lives in the kernel: [`correspondence()`](https://www.npmjs.com/package/@nielspeter/eess) binds two element `Selection`s (from any dialects) and checks completeness both ways plus relation preservation. This package ships the **dialect-coupled presets** — the pairs that must import two concrete dialects.
 
+Every preset here reports the same way: by default it prints its findings and throws
+`ArchRuleError`. Pass `{ report: 'return' }` to get the findings back as a list instead, or
+`{ format: 'json' }` for a machine-readable stream.
+
 ## Mermaid ↔ TypeScript
 
 ```typescript

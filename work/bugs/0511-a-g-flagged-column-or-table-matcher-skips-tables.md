@@ -16,7 +16,7 @@ Each of these calls `.test()` on a caller's `RegExp` as given, across tables and
 
 - `packages/md/src/conditions/structure.ts:42`, a `haveTable({ columns })` column matcher;
 - `packages/md/src/model/rows.ts:43` and `:52`, `rows()`'s column matchers;
-- `packages/crossvalidate/src/md-ts.ts:61` and `:64`, `adrCitationsResolve`'s `mechanismColumn`;
+- `packages/crossvalidate/src/md-ts.ts:70` and `:73`, `adrCitationsResolve`'s `mechanismColumn`;
 - `packages/crossvalidate/src/md-mermaid-er.ts:138`, `:139`, `:152` and `:157`, the ER binding's
   table `section`, `name` and column matchers.
 

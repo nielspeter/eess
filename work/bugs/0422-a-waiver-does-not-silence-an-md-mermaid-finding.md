@@ -54,7 +54,7 @@ through, so this likely holds for every crossvalidate preset, not only md-mermai
 
 Not traced. The crossvalidate presets build their findings by hand and hand them to `finishPreset`;
 exclusion comments are applied in the kernel's rule execution, which a hand-built preset may never
-pass through. [Bug 0097](./0097-crossval-presets-bypass-caller-owns-reporting.md) records related gaps in how these presets report.
+pass through. [Bug 0097](./fixed/0097-crossval-presets-bypass-caller-owns-reporting.md) records related gaps in how these presets report.
 
 ## Fix
 

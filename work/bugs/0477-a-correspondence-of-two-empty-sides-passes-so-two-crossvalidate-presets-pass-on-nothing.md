@@ -16,8 +16,8 @@
 `correspondence().beComplete()` (`packages/core/src/correspondence.ts:109-116`) carries the
 cardinality mark: "no element lacks a counterpart" is an absence assertion, and an absence assertion
 over nothing is satisfied. When both sides of the join are empty, the join examines nothing and
-passes. `diagramMatchesCode()` (`packages/crossvalidate/src/mermaid-ts.ts:35`) and
-`adrCitationsResolve()` (`packages/crossvalidate/src/md-ts.ts:130`) end in that join, so a broken
+passes. `diagramMatchesCode()` (`packages/crossvalidate/src/mermaid-ts.ts:47`) and
+`adrCitationsResolve()` (`packages/crossvalidate/src/md-ts.ts:159`) end in that join, so a broken
 input on both sides (an empty diagram, an unloaded project) is a green build.
 
 The vacuity matrix carries `correspondence()` and both presets as `KNOWN_FAIL_OPEN` entries naming

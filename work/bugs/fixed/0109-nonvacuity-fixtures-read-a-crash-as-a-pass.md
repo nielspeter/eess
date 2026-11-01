@@ -190,7 +190,7 @@ caught teaches the next author nothing.
    code→diagram half alone satisfied a gate labelled for the diagram→code half.
    Reproduced with a diagram whose classes all exist in code: still threw, still
    exit 1, direction under test never exercised. `bad-crossval.mjs` now reads the
-   violations off the thrown error (`diagramMatchesCode` returns `void` — [bug 0097](../0097-crossval-presets-bypass-caller-owns-reporting.md)) and requires a diagram→code violation specifically.
+   violations off the thrown error (`diagramMatchesCode` returns `void` — [bug 0097](./0097-crossval-presets-bypass-caller-owns-reporting.md)) and requires a diagram→code violation specifically.
 
 The generalisation these three share — _proving a gate ran is not proving the
 right rule fired_ — is only half-done. Five `gateNode` gates still pass a

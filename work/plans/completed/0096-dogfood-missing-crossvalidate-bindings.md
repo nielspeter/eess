@@ -9,7 +9,7 @@
   the corpus). Deferred: none — the two disclosed follow-ups (missing
   `suggestion`/`docs` field on both new presets' violations; no
   `EESS_CROSSVAL_*_ROOT`-style e2e tier for these two gates) are named in Out
-  of Scope below, alongside existing [bugs 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098, not new open items this
+  of Scope below, alongside existing [bugs 0097](../../bugs/fixed/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098, not new open items this
   plan owes a home. Created 2026-08-12; reworked 2026-08-12
   after a six-persona review found the first pass manufactured proof that could
   not go green (a repo-root citation that wouldn't resolve, a two-line citation
@@ -42,7 +42,7 @@
   Phase 1 targets; `docs/architecture.md` still does not exist (Phase 2's plant
   is still needed); `scenarioCitationsResolve`/`scenarioCitationStats`
   (`md-gherkin.ts`) and `embeddedDiagramsMatchCode` (`md-mermaid.ts`) are
-  unchanged; [bugs 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098 are still Draft, so `scenarioCitationStats` still has
+  unchanged; [bugs 0097](../../bugs/fixed/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098 are still Draft, so `scenarioCitationStats` still has
   no `titled` field and the Phase 1 floor's stated limit still holds exactly as
   written. Phase 3's fixture tier (`gateNode`, matching `bad-gherkin-ts.mjs`) is
   still the live convention for this class of gate — [plan 0145](./0145-crossvalidate-stale-wip-detection.md) elevated only
@@ -422,7 +422,7 @@ which is the file's own inventory of what is proven.
   gate reuses the file's existing `scenarioSpecs` rather than a second
   hardcoded `FeatureSet`. Their imports.
   - **Not** the header comment: lines 6–8 are
-    [bug 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)'s
+    [bug 0097](../../bugs/fixed/0097-crossval-presets-bypass-caller-owns-reporting.md)'s
     lane, and that bug changes two preset signatures, so it owns what the comment
     must end up saying. Whichever lands second inherits a correct comment.
 - `docs/crossvalidate.md` — fix line 79's citation to the cwd-relative
@@ -533,7 +533,7 @@ gains two rows and stays green.
   ghost-class violation sends an author only a raw diff-shaped message, no
   `Fix:` line. Worth a follow-up bug rather than blocking this plan, since
   fixing it is a `packages/crossvalidate/src` change and this plan ships no new
-  public surface — alongside [bugs 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098, already linked above, against the
+  public surface — alongside [bugs 0097](../../bugs/fixed/0097-crossval-presets-bypass-caller-owns-reporting.md)/0098, already linked above, against the
   same package.
 - **The `files` entry point** — a selection factory, not a dialect-pair binding;
   not a dogfood target.

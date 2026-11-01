@@ -79,7 +79,8 @@ try {
     process.exit(2)
   }
   // Assert WHICH rule fired, not that something did (bug 0110). `adrCitationsResolve`
-  // returns void (bug 0097), so the violations are read off the thrown error.
+  // runs as the gate calls it, with no `report`, so it throws and the violations are
+  // read off the thrown error (bug 0097 added the `report: 'return'` form).
   const dangling = err.violations.filter(
     (v) => v.ruleId === RULE && /has no matching test/.test(v.message),
   )

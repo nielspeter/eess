@@ -140,7 +140,7 @@ _"Count emissions, not silences"_) adds no registry at all.
 sequencing together rather than one at a time:
 [0206](./0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) (the
 dialect's default path bypasses the kernel finisher) and
-[0097](../0097-crossval-presets-bypass-caller-owns-reporting.md) (two presets return
+[0097](./0097-crossval-presets-bypass-caller-owns-reporting.md) (two presets return
 `void`, so [ADR-008](../../../adr/008-caller-owns-reporting.md) never reached them).
 
 ## Fix
