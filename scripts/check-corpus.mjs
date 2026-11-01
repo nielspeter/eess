@@ -681,8 +681,8 @@ const proposalPlanViolations = proposalPlanMatch.leftUnmatched.map((d) => {
 const acceptedProposalCount = proposalSelection.elements.length
 
 // The accepted-proposal->plan rule is live-only, so its denominator drains as
-// proposals promote: 005 is the only accepted one today, and freezing
-// `promoted/` would take this to 0 while still printing a green summary. Devops
+// proposals promote: freezing `promoted/`, or every accepted proposal being
+// dispatched, would take this to 0 while still printing a green summary. Devops
 // review found it has never had the zero-guard the board rule just gained.
 // Zero accepted proposals is legitimate (a lane can have none reviewed yet), so
 // this fires only when there are proposals AND none is accepted AND at least one

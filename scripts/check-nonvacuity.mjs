@@ -248,6 +248,8 @@ import {
   parseShard,
   selectShard,
 } from './lib/nonvacuity-shards.mjs'
+import { isAccepted, operativeRuling } from './lib/proposal-ruling.mjs'
+import { proseText } from '@nielspeter/eess-md/internal'
 const SHARD_TESTS_LINK = 'node --test scripts/lib/nonvacuity-shards.test.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -3775,31 +3777,84 @@ function gateCorpusProposalNumberDuplicated() {
 // The accepted-proposal -> plan rule is live-only, so its denominator drains as
 // proposals promote or freeze. Devops review found it had never carried the
 // zero-guard the board rule gained, and the guard then shipped without a fixture
-// of its own — the same omission one level down. Sabotage: demote the lane's only
+// of its own — the same omission one level down. Sabotage: demote every live
 // accepted proposal, so nothing is accepted while reviews plainly happened.
+//
+// Bug 0597: this once demoted one named proposal, which was the lane's only
+// accepted one when it was written, so recording a second accepted ruling left
+// the violating input unviolated. The accepted set is now read the way the gate
+// reads it (`isAccepted(operativeRuling(text))`), and the row requires both that
+// it demoted at least one proposal and that none is left accepted.
+const PROPOSALS_DIR = join(repoRoot, 'work', 'proposals')
+
+function proposalFiles(dir) {
+  const out = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...proposalFiles(path))
+    else if (entry.name.endsWith('.md') && entry.name !== 'PROPOSALS.md') out.push(path)
+  }
+  return out
+}
+
+const acceptedProposalFiles = () =>
+  proposalFiles(PROPOSALS_DIR).filter((p) => isAccepted(operativeRuling(readFileSync(p, 'utf8'))))
+
+/**
+ * Rewrite the operative Ruling line, and only it, to a ruling that is not accepted. The operative
+ * line is the last `**Ruling: …**` line outside fenced code. It is found in `proseText`'s reading,
+ * the one fence reader, which keeps every line in place, so its index is the raw line's.
+ * `operativeRulingLine` is not used: it names the blank line above a ruling (bug 0326). The row
+ * then re-reads every file with the gate's reader, so a line this misses fails it closed.
+ */
+function demoteOperativeRuling(text) {
+  const written = `**Ruling: ${operativeRuling(text)}**`
+  const prose = proseText(text, 'closed-fences').split('\n')
+  const at = prose.findLastIndex((line) => line.includes(written))
+  const lines = text.split('\n')
+  if (at === -1 || !(lines[at] ?? '').includes(written)) {
+    throw new Error(
+      `non-vacuity: no ${written} line outside fenced code, so this probe cannot demote it. ` +
+        'The ruling reader and the file disagree.',
+    )
+  }
+  lines[at] = (lines[at] ?? '').replace(written, '**Ruling: Docs-only**')
+  return lines.join('\n')
+}
+
+/** Rewrite each file in turn, restoring every one on any exit (nested `withRewrittenFile`). */
+function withRewrittenFiles(paths, rewrite, fn) {
+  const [first, ...rest] = paths
+  if (first === undefined) return fn()
+  return withRewrittenFile(first, rewrite, () => withRewrittenFiles(rest, rewrite, fn))
+}
+
 function gateCorpusAcceptedDenominatorEmpty() {
-  const p005 = join(
-    repoRoot,
-    'work',
-    'proposals',
-    'promoted',
-    '005-crossvalidate-stale-wip-detection.md',
-  )
-  const { json, terminal } = withRewrittenFile(
-    p005,
-    (t) => t.split('**Ruling: Ship as-is**').join('**Ruling: Docs-only**'),
-    () => ({
-      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
-    }),
-  )
+  const accepted = acceptedProposalFiles()
+  if (accepted.length === 0) {
+    return {
+      ok: false,
+      detail:
+        'no live proposal is accepted, so this probe cannot build its input. If any ruling parses, ' +
+        'the gate already reports corpus/accepted-proposal-denominator-empty on the real corpus; ' +
+        'if none does, the ruling reader is what to check',
+    }
+  }
+  const { json, terminal, remaining } = withRewrittenFiles(accepted, demoteOperativeRuling, () => ({
+    remaining: acceptedProposalFiles().length,
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
   const ok =
+    remaining === 0 &&
     json.code === 1 &&
     firedOn(json, 'corpus/accepted-proposal-denominator-empty') &&
     terminal.code === 1
   return {
     ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/accepted-proposal-denominator-empty)`,
+    detail:
+      `demoted ${String(accepted.length)} accepted proposal(s), ${String(remaining)} left accepted; ` +
+      `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/accepted-proposal-denominator-empty)`,
   }
 }
 
