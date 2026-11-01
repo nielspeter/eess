@@ -1,5 +1,6 @@
 import type { Nodes, Root } from 'mdast'
 import { headingName } from './document.js'
+import { isLinkStart, isOnlyComment, readHtmlNode } from './html-attributes.js'
 
 /**
  * Phrasing runs (plan 0539): the inline text of each paragraph, heading and table cell, as segments
@@ -8,8 +9,8 @@ import { headingName } from './document.js'
  * holds it. `links()` keeps its own block walk (`links.ts`), which needs block ancestry and URL spans,
  * not runs.
  *
- * Not walked: fenced and indented code, front matter, and a block that is one HTML comment and
- * nothing else, which a reader never sees. What a reader sees but this walk cannot place in a run is
+ * Not walked: fenced and indented code, front matter, and a block that is only HTML comments (bogus
+ * ones included, `isOnlyComment`), which a reader never sees. What a reader sees but this walk cannot place in a run is
  * returned as unread text with its cause, never skipped: a raw HTML block, the text of a link written
  * in inline HTML, a reference-style link's text, a link definition's title, and an image's alt text
  * and title. A link's own title is read, as linked.
@@ -58,11 +59,6 @@ interface UnreadText {
   readonly line: number
   readonly cause: UnreadCause
 }
-
-/** Exactly one HTML comment, alone: `<!-- a --> text <!-- b -->` is not one, and its text is seen. */
-const ONE_COMMENT = /^\s*<!--(?:(?!-->)[\s\S])*-->\s*$/
-const OPENS_A = /^<a\s[^>]*\bhref\s*=/i
-const CLOSES_A = /^<\/a\s*>/i
 
 /** A link with no target is not a link to anything: `[x]()` and `[x](#)`. */
 const pointsNowhere = (url: string): boolean => url.trim() === '' || url.trim() === '#'
@@ -200,9 +196,11 @@ export function phrasingOf(
           // Inline HTML is a tag, never text, except that the text of an `<a>` is a link this walk
           // cannot read: it is reported, so the author is not told to add a link that is there.
           // An `<a>` inside a Markdown link is inside that link already.
-          if (OPENS_A.test(node.value) && link === undefined)
+          // The tag is read by the one HTML reader (plan 0580): `data-href` is not an `href`, and a
+          // quoted `>` does not end the tag (bug 0593).
+          if (link === undefined && readHtmlNode(node).starts.some(isLinkStart))
             htmlLink ??= { text: '', line: lineOf(node) }
-          else if (CLOSES_A.test(node.value) && htmlLink !== undefined) {
+          else if (htmlLink !== undefined && readHtmlNode(node).ends.some((e) => e.name === 'a')) {
             unread.push({ text: htmlLink.text, line: htmlLink.line, cause: 'html-link' })
             htmlLink = undefined
           }
@@ -222,7 +220,7 @@ export function phrasingOf(
   const block = (node: Nodes): void => {
     if (node.type === 'code' || node.type === 'yaml') return
     if (node.type === 'html') {
-      if (!ONE_COMMENT.test(node.value))
+      if (!isOnlyComment(node.value))
         unread.push({ text: node.value, line: lineOf(node), cause: 'html-block' })
       return
     }

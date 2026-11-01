@@ -38,16 +38,16 @@ reports the inline one only. The reproduction is
   is a URL like any other, so resolution needs no second resolver: the new part is finding the
   URL in HTML.
 - **Unread disclosure exists**: `mentions()` reports a mention inside a raw HTML block as
-  `md/unread-mention` (`packages/md/src/builders/mentions.ts:49`).
+  `md/unread-mention` (`packages/md/src/builders/mentions.ts:43`).
 - **An inline `<a href>` recogniser exists:** `OPENS_A = /^<a\s[^>]*\bhref\s*=/i`
-  (`packages/md/src/model/phrasing.ts:64`), which `mentions()` uses to report a mention in an inline
+  (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`), which `mentions()` uses to report a mention in an inline
   HTML link as unread. It reads inline HTML only; a block-level `html` node is a separate cause
   (`'html-block'`). It is the reuse point for
   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s unread finding and the
   starting point for this proposal's scan. _Corrected 2026-11-01 (review): `OPENS_A` cannot be
   that starting point. It pulls out no value, it already matches `data-href` and `title="href=…"`,
   and it misses `<a title="a>b" href=…>`; that misread is
-  [bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)._
+  [bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)._
 - **The closest precedent** is [proposal 015](./015-md-wikilinks-are-read-or-reported.md), "read, or
   reported as unread", for another link form `links()` does not read.
 - **No HTML parser is a dependency** of eess-md today (its dependencies are the mdast and
@@ -152,8 +152,8 @@ Each decision below can be overruled; its basis is stated so that it can be.
    closes done-otherwise against [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md), and
    this proposal's Priority line, which assumed unread first, is superseded (see the corrections).
 2. **One owner for reading HTML attributes.** Today the only HTML recogniser is `OPENS_A`
-   (`packages/md/src/model/phrasing.ts:64`). It answers yes or no and pulls out no value, and
-   `mentions()` uses it (`packages/md/src/model/phrasing.ts:203`) only to report a mention in an
+   (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`). It answers yes or no and pulls out no value, and
+   `mentions()` uses it (`packages/md/src/model/phrasing.ts:203` on `6bcd35e6`) only to report a mention in an
    inline `<a>` as unread, cause `html-link`. Three records are queued on the same reader: this
    proposal (`href`), [proposal 024](./024-md-an-images-file-exists.md) Ask B (`src`, and `srcset`
    per entry), and [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 2
@@ -175,7 +175,7 @@ Each decision below can be overruled; its basis is stated so that it can be.
      block's start and in a table cell) while GitHub renders it as a link. It is reported, not
      re-tokenized, since a second tokenizer would go against asking the parser. The scan reads
      source offsets, so an escaped `\<a href>` stays text (`sourceOffsets`,
-     `packages/md/src/model/phrasing.ts:79-115`, is the precedent);
+     `packages/md/src/model/phrasing.ts:76-112`, is the precedent);
    - Vue's `:href` and `v-bind:href`;
    - `<a title="a>b" href=…>`, where a `>` sits inside a quoted value;
    - an unterminated quote;
@@ -209,7 +209,7 @@ Each decision below can be overruled; its basis is stated so that it can be.
 - **Break classes for context:** raw-text elements (`<script>`, `<style>`, `<textarea>`, `<title>`,
   CDATA) hold no links, and GFM's tagfilter changes what renders, so measure against GitHub rather
   than reason it out. The content of `<pre>` is a link. A comment inside a larger `html` node needs
-  its own skipping; `ONE_COMMENT` (`packages/md/src/model/phrasing.ts:63`) skips only a node that is
+  its own skipping; `ONE_COMMENT` (`packages/md/src/model/phrasing.ts:63` on `6bcd35e6`) skips only a node that is
   all comment. Whether an `<a>` inside a Markdown link is one element or two is stated.
 - **The autofix span.** An `html` node's `value` drops `> `, list indentation and continuation
   indentation (measured), so an offset into the value is not an offset into the source, and
@@ -247,7 +247,7 @@ The submission above is kept as written. These are the defects the review found 
   one: it pulls out no value, it already matches `data-href` and `title="href=…"`, and it misses
   `<a title="a>b" href=…>`, since `[^>]*` stops at the quoted `>` (measured by two lenses). That
   misread in `mentions()`'s `html-link` cause is recorded as
-  [bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md).
+  [bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md).
 - **Ask A narrows [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s measured scope without saying so.** It reads "a raw HTML node" and
   `<a>` only; Fix 2 reads the source text and covers `<area>`, any letter case, quoted or unquoted.
   Decision 3 restores Fix 2's scope.
@@ -285,7 +285,7 @@ The submission above is kept as written. These are the defects the review found 
 
 - [Bug 0583](../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md): a local link with a
   query string never resolves, for Markdown links as well.
-- [Bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md):
+- [Bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md):
   the HTML link recogniser matches `data-href` and misses a quoted `>`. Decision 2's owner is
   where it gets fixed, but the defect stands on its own today.
 

@@ -76,9 +76,9 @@ never scanned. `resolve()` runs over the elements the walk produced, so it canno
 
 The family already discloses both forms elsewhere: `mentions()` reports a mention inside a raw
 HTML block or a reference-style link's text as `md/unread-mention`
-(`packages/md/src/builders/mentions.ts:49`), and before PR #282 `areLabelled()` reported a
+(`packages/md/src/builders/mentions.ts:43`), and before PR #282 `areLabelled()` reported a
 declaration made of reference-style links as one it does not read. Its inline-HTML recogniser is
-`OPENS_A = /^<a\s[^>]*\bhref\s*=/i` (`packages/md/src/model/phrasing.ts:64`); it reads inline
+`OPENS_A = /^<a\s[^>]*\bhref\s*=/i` (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`); it reads inline
 `<a>` only, and a block-level `html` node is a separate cause there (`'html-block'`). `links()` is
 the rule a reader trusts for "every link resolves", and it does neither.
 
@@ -148,7 +148,7 @@ Two parts, one root cause:
    - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/external.ts:6`) on an
      `<a>` or `<area>`, any letter case and quoted or unquoted, is reported as unread, so the rule
      is never green over one without a word. Reuse the recogniser at
-     `packages/md/src/model/phrasing.ts:64`, widened to blocks.
+     `packages/md/src/model/phrasing.ts:64` on `6bcd35e6`, widened to blocks.
    - **The scan reads the source text, not only `html` nodes.** An unquoted `href` holding a `/`
      is not an `html` node to eess-md's parser (micromark 4.0.2): `p <a href=./x.md>x</a>` parses as
      the text `p <a href=./x.md>x` and an `html` node `</a>` (measured). GitHub renders it as a
@@ -158,7 +158,7 @@ Two parts, one root cause:
    - Reported at the line the `href` sits on inside a multi-line block; not counted in `examined`,
      since it is not judged; and `.expectEmpty()` does not silence it.
    - An external `href` (the centred badge row a README opens with) produces nothing, and an
-     `html` node that is one HTML comment is not read (`packages/md/src/model/phrasing.ts:225`).
+     `html` node that is one HTML comment is not read (`packages/md/src/model/phrasing.ts:225` on `6bcd35e6`).
    - The remedy the finding gives must clear it: write the link in Markdown, with blank lines
      inside the HTML block so it is parsed as Markdown (`<p align="center">`, a blank line,
      `[Guide](./guide.md)`, a blank line, `</p>`).
@@ -175,7 +175,7 @@ Two parts, one root cause:
    - **Open, decided before the fix is built (superseded above):** some HTML has no Markdown remedy. A README logo
      sized with `width` (`<a href="./docs/"><img src="logo.svg" width="120"></a>`) cannot be
      written in Markdown, and `md/unread-mention`, the precedent, cannot be suppressed
-     (`packages/md/src/builders/mentions.ts:259`). So either the unread finding can be suppressed
+     (`packages/md/src/builders/mentions.ts:201`). So either the unread finding can be suppressed
      per cause, with a reason, or this fix resolves the `href` ([proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s ask) instead of
      reporting it unread; and [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s priority, which assumes "red with unread" is
      acceptable, follows that decision.

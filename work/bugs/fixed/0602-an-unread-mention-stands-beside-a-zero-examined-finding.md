@@ -2,20 +2,19 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-11-01 on `main` at 7daac794; closed by
-  [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md)'s shared unread helper (its R5),
-  which `links()` also uses.
+- **State:** Fixed — the shared unread helper (`packages/md/src/builders/unread.ts`) counts each
+  reached unread finding as undecided, built by [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s Phase 1 (PR #296).
 - **Severity:** Medium — the receipt contradicts itself: it says the rule could not read a mention
   and, beside that, that the emptiness was declared or that nothing was examined. The build is red
   either way, but the generic finding sends an author to `.expectEmpty()` or to the selector.
 - **Origin:** self-found · the architect's second re-check of
-  [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md)'s freeze, which found that sharing
+  [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s freeze, which found that sharing
   `mentions()`'s helper unchanged would copy this into `links()`.
 - **Reported:** 2026-11-01
 
 ## Symptom
 
-[ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 7: a rule whose
+[ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 7: a rule whose
 only subjects are undecided reports them, and neither the generic zero-examined finding nor a
 declared emptiness beside them. Over a document whose only mention is unread, measured against
 `packages/md/dist` (0.14 s):
@@ -37,16 +36,17 @@ beside the unread findings it was handed.
 
 ## Fix
 
-The unread helper that [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md) shares between
+The unread helper that [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md) shares between
 `mentions()` and `links()` counts each reached unread finding as undecided, so the terminal withholds
 the generic finding and `declaredEmpty`. Built in that plan's Phase 1, since it is the same code path.
 
 ## Verification
 
-- [ ] Red first: the reproduction's `beLinked()` returns only `md/unread-mention`.
-- [ ] `notExist()` over it has no `declaredEmpty`.
-- [ ] A document with a read mention beside an unread one is unchanged.
-- [ ] A changeset naming `@nielspeter/eess-md`.
-- [ ] `npm run validate` green.
+- [x] Red first: the reproduction's `beLinked()` returns only `md/unread-mention`
+      (`packages/md/tests/builders/mentions-html-reader.test.ts`; red with the count removed).
+- [x] `notExist()` over it has no `declaredEmpty`.
+- [x] A document with a read mention beside an unread one is unchanged.
+- [x] A changeset naming `@nielspeter/eess-md` (`.changeset/one-html-reader.md`).
+- [x] `npm run validate` green.
 
 Deferred: none

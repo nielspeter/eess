@@ -38,7 +38,7 @@ So the parse already holds both drifts, and no eess-md element or rule reads the
   drift.
 - **The nearest shapes** are `links().should().resolve()` (a reference must reach its target) and
   `mentions()` (a text pattern the caller names, so `[^…]` in text can be found today with a
-  pattern; that finds the missing-definition case by its literal brackets, outside code). _Corrected 2026-11-01 (review): `mentions()` reads inline code too; only fenced code is skipped (`packages/md/src/model/phrasing.ts:223`), so a `[^x]` in a code span is found. The fix is [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md)'s._
+  pattern; that finds the missing-definition case by its literal brackets, outside code). _Corrected 2026-11-01 (review): `mentions()` reads inline code too; only fenced code is skipped (`packages/md/src/model/phrasing.ts:222`), so a `[^x]` in a code span is found. The fix is [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md)'s._
 
 ## Asks
 
@@ -110,7 +110,7 @@ it is not ready to plan. Both are `Held` on the conditions in the table below.
 - **A's two false-red exclusions are owned by
   [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md).** Its `inCode`
   predicate and `escaped` fact are what lines 52-54 ask for, word for word. Fenced code is already
-  skipped (`packages/md/src/model/phrasing.ts:223`).
+  skipped (`packages/md/src/model/phrasing.ts:222`).
 - **B is genuinely new.** Nothing in the family reports an unused definition of any kind, footnote
   or link. `definitionsOf` (`packages/md/src/model/definitions.ts:49`) builds its map only to
   resolve references. A footnote definition's label is not text, so `mentions()` cannot reach it.

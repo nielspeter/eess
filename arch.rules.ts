@@ -77,6 +77,22 @@ const langTagComparison: ExpressionMatcher = {
 }
 
 /**
+ * Plan 0580 D10: eess-md reads HTML tags and attributes in one place, `model/html-attributes.ts`.
+ * This matches a regular-expression literal whose source text names an attribute or a link tag
+ * (`href`, `src`, `<a`, `<\/a`), any case. What it cannot see (ADR-016 rule 7): a pattern built from
+ * a string (`new RegExp('href')`), a search that is no pattern (`includes('href')`), and a pattern
+ * that spells the word another way (`h\x72ef`, `[h]ref`). A Tier-1 check on the spelled pattern.
+ */
+const HTML_READ = /href|src|<a|<\\\/a/i
+const htmlAttributeRead: ExpressionMatcher = {
+  description: 'a regular expression over HTML tags or attributes outside the one HTML reader',
+  matches(node) {
+    return node.getKindName() === 'RegularExpressionLiteral' && HTML_READ.test(node.getText())
+  },
+}
+const HTML_READER = '**/packages/md/src/model/html-attributes.ts'
+
+/**
  * Plan 0458 — the document-shape examples under `examples/md/` are built from eess-md's public blocks
  * only (proposal 017, decision 3). Three rules hold it, at Tier 1: what they cannot see is recorded
  * in the plan ("What the rules do not catch") and held by review.
@@ -374,5 +390,21 @@ export default [
         'ADR-019: a language tag is compared in any letter case and nothing else, in one place, so two readers never answer "is this mermaid?" differently',
       suggestion:
         'call tagIsLanguage(block.lang, language) from @nielspeter/eess-md/internal (inside eess-md, from model/code-block-tag.js)',
+    }),
+
+  // Plan 0580 D10 — one reader of HTML tags and attributes in eess-md (matcher and blind spots above).
+  modules(p)
+    .that()
+    .resideInFolder('**/packages/md/src/**')
+    .and()
+    .satisfy(not(resideInFile(HTML_READER)))
+    .should()
+    .notContain(htmlAttributeRead)
+    .rule({
+      id: 'eess/one-html-attribute-reader',
+      because:
+        'plan 0580: an HTML tag is read in one place, so mentions() and links() never disagree about what an <a href> is (bug 0593 was a second reader that did)',
+      suggestion:
+        'read the tag with readHtmlNode() and attributeOf() from model/html-attributes.js, and add what is missing there',
     }),
 ]

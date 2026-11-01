@@ -282,7 +282,7 @@ and owns the general fix. The plan cross-references it and does not fix it.
   7. the guard over a misspelt `const G`.
 - **"Cites code" means a `path.ext:line` pointer** (`packages/md/src/model/pointers.ts`), not a
   backticked path. A pointer in a subsection counts for its parent section
-  (`packages/md/src/model/section-holds.ts:27`), so a group section whose subsection cites code
+  (`packages/md/src/model/section-holds.ts:28`), so a group section whose subsection cites code
   qualifies. This is inherited from `haveCodePointer()` and is named as a residual.
 - **The description reads as "at least one"** section. The every-section and some-section forms
   are documented side by side in `docs/markdown.md` and `packages/md/README.md`, beside the "three
@@ -327,7 +327,7 @@ and owns the general fix. The plan cross-references it and does not fix it.
 4. **The dogfooding claim (`:107`) is false.** The plans' "Files changed" sections do not cite code
    in the sense the rule reads: 0 of 32 hold a `path:line` pointer (decision 5).
 5. **Ask B lists four kinds; there are five** (`:79-80`). `SectionHolding` also has `content`,
-   behind `haveContent()` (`packages/md/src/model/section-holds.ts:13-18`). Phase 1 exports all
+   behind `haveContent()` (`packages/md/src/model/section-holds.ts:14-19`). Phase 1 exports all
    five.
 
 ### Disposition, per ask
