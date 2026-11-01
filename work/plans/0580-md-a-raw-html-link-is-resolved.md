@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — freeze written 2026-11-01, under the re-check of the lenses that raised its
-  items; flips to Ready when they accept it
+- **State:** Draft — freeze written 2026-11-01, re-checked Not ready and revised the same day
+  (Review below); flips to Ready when the same lenses accept the revision
 - **Implements:** [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)
 - **Priority:** High, [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
   severity: this plan closes that bug's HTML half, a false green
@@ -53,160 +53,220 @@ and a quoted-attribute scan covers all 2,349.
 
 ## Measured
 
-Both tables were measured 2026-11-01 and are recorded here by value. The build reads them from
-this plan, not from the source.
+Measured 2026-11-01 and recorded here by value. The build reads these tables from this plan, not
+from the source. Two instruments: micromark, eess-md's parser with GFM, on `main` at 7daac794; and
+GitHub's renderer (`gh api -X POST /markdown`, `mode=gfm`), given synthetic input only. The P
+numbers are the freeze re-check's probes.
 
-**How micromark parses each case** (eess-md's parser, with GFM, on `main` at 7daac794):
+**Where micromark puts a tag.** micromark tokenizes inline raw HTML with CommonMark's open-tag
+grammar (§6.6), with one divergence: an unquoted attribute value ends at `/` and must then be
+followed by `>` (line 573 of micromark-core-commonmark's lib/html-text.js). So any unquoted value
+holding a `/` that is not followed by `>` turns the whole tag into text, whichever attribute it sits
+on. Inside an HTML block (§4.6, types 1 to 6: `<div>`, `<details>`, `<p>`, `<table>`, `<pre>`,
+`<script>` …), micromark checks only the block's start condition. The `<a …>` tags inside it are
+never tokenized.
 
-| Input                                      | Node micromark makes                                  |
-| ------------------------------------------ | ----------------------------------------------------- |
-| `see <a href=./x.md>x</a> here`            | `text` `see <a href=./x.md>x`, then `html` `</a>`     |
-| `see <a href=x.md>x</a> here`              | `html` `<a href=x.md>`                                |
-| `see <a title="a>b" href="./x.md">x</a>`   | `html` `<a title="a>b" href="./x.md">`                |
-| `see <a :href="foo">x</a>`                 | `html` `<a :href="foo">`                              |
-| `see <a href="./x.md>x</a>` (no close)     | `text` `see <a href="./x.md>x`                        |
-| `see \<a href="./x.md">x</a>` (escaped)    | `text` `see <a href="./x.md">x`, the same as unquoted |
-| `<a href=docs/>x</a>`                      | `html` `<a href=docs/>`                               |
-| `<a href="./R&amp;D.md">x</a>`             | `html` holding `&amp;` as written                     |
-| a `<div>` block inside `> `                | one `html` node, its value without the `> ` prefixes  |
-| `<details>` holding a fence, no blank line | one `html` node holding the fence lines               |
-| `<script>` holding `'<a href="./x.md">'`   | one `html` node holding the string                    |
+| Input                                                             | micromark                                            | GitHub                                        |
+| ----------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------- |
+| `see <a href=x.md>x</a>`                                          | `html` `<a href=x.md>`                               | link                                          |
+| `see <a title="a>b" href="./x.md">x</a>`                          | `html`                                               | link                                          |
+| `see <a href=./x.md>x</a>` (unquoted `/`)                         | `text`                                               | link, `href="./x.md"`                         |
+| `see <a href=x.md title=a/b>x</a>` (P1)                           | `text`                                               | link, `href="x.md"`                           |
+| `see <a` + newline + `href=./x.md>x</a>` (P3)                     | `text`, one node across the soft break               | link                                          |
+| table cell `<a href=./x.md>x</a>` (P5)                            | `text`                                               | (not measured; same tag as row 3)             |
+| `see <a href="./x.md"title="y">x</a>` (P7)                        | `text`                                               | text, no link                                 |
+| `see <a @click="go" href="./x.md">x</a>` (P8)                     | `text`                                               | text, no link                                 |
+| `see <a href="./x.md" foo=bar=baz>x</a>`                          | `text`                                               | text, no link                                 |
+| `see <a href="./x.md>x</a>` (unclosed quote)                      | `text`                                               | text, no link                                 |
+| `see \<a href="./x.md">x</a>` (escaped)                           | `text`, the same value as the unquoted case          | (text by CommonMark)                          |
+| `see &lt;a href=./x.md>x` (P14)                                   | `text` whose decoded value starts `<a`               | (text by CommonMark)                          |
+| `the <a href>element</a>` (P13)                                   | `html` `<a href>`                                    | link, `href=""`                               |
+| `<a href="./first.md" href="./second.md">`                        | `html`                                               | link to `./first.md`                          |
+| `<a href=docs/>x</a>`                                             | `html` `<a href=docs/>`                              | link, `href="docs/"`                          |
+| `see <a :href="foo">x</a>`                                        | `html`                                               | `see V`: attribute removed, no link           |
+| `<div>` + `<a href="./x.md"title="y">` + `</div>` (P9)            | one `html` node                                      | link, `href="./x.md"`                         |
+| `<div align=center>` + `<a @click="go" href="./x.md">` (P10)      | one `html` node                                      | link, `href="./x.md"`                         |
+| a `<div>` block inside `> `                                       | one `html` node, its value without the `> ` prefixes | (link)                                        |
+| `<details>` holding a fence, no blank line                        | one `html` node holding the fence lines              | backticks as text, the `<a>` a link           |
+| the same with a blank line after `<details>`                      | `html`, then a `code` node                           | the fence as code, no link                    |
+| `<div>` holding a code span                                       | one `html` node                                      | backticks as text, the `<a>` a link           |
+| `<script>`, `<style>`, `<textarea>`, `<title>` holding `<a href>` | one `html` node                                      | the tag escaped (tagfilter), the `<a>` a link |
+| `<pre>` holding `<a href>`                                        | one `html` node                                      | link                                          |
+| `<map><area href="./x.md"></map>`                                 | one `html` node                                      | nothing: removed                              |
+| `<![CDATA[` + `<a href="./x.md">D</a>` + `]]>`                    | one `html` node                                      | `D ]]>`: no link                              |
+| `see <img alt="<a href='./g.md'>"> here`                          | `html` `<img …>`                                     | no link from the inner `<a`                   |
+| a comment holding `<a href>` beside a real one                    | one `html` node                                      | the comment dropped, the real one a link      |
+| `<a href="./R&amp;D.md">`                                         | `html` holding `&amp;` as written                    | (link to `./R&D.md`)                          |
 
-**How GitHub renders each case** (`gh api -X POST /markdown`, `mode=gfm`, synthetic input only):
-
-| Input                                                              | GitHub's output                                                            |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `<a href>` inside `<script>`, `<style>`, `<textarea>` or `<title>` | the tag escaped as text (GFM's tagfilter), the inner `<a href>` **a link** |
-| `<map><area href="./x.md"></map>`                                  | nothing: the elements are removed                                          |
-| a fence inside `<details>`, no blank line                          | the backticks as text, the `<a href>` **a link**                           |
-| a code span inside `<div>`                                         | the backticks as text, the `<a href>` **a link**                           |
-| `see <a href=./x.md>U</a>`                                         | **a link**, `href="./x.md"`                                                |
-| `see <a :href="foo">V</a>`                                         | `see V`: the attribute removed, no link                                    |
-| `<pre>` holding `<a href>`                                         | **a link**                                                                 |
-| `<a href=docs/>`                                                   | **a link**, `href="docs/"`                                                 |
-| a comment holding `<a href>` beside a real one                     | the comment dropped, the real one a link                                   |
+A row in parentheses was not rendered; it follows from CommonMark or from a measured row. In this
+repository, the 1,431 tracked Markdown files hold no `<a` or `<area` tag start outside a code span
+(the re-check's scan, 4.8 s), so the repository's own gates exercise nothing this plan adds; only the
+suite and the three nonvacuity scenarios prove it live.
 
 ## Design
 
+### The principle
+
+A literal `href` on an HTML link element (`<a>`, `<area>`) is a link, read where a renderer reads it.
+An expression binding (`:href`, `v-bind:href`), a component's prop (`<VPButton href>`) and other
+attributes (`data-href`, `xlink:href`) are not links: they have no value to resolve, and a finding on
+them could only be cleared by deleting correct code
+([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2). What eess-md cannot read where a
+renderer would make a link is reported, never dropped
+([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)).
+
 ### The attribute owner
 
-One model module, `packages/md/src/model/html-attributes.ts`. Given an `html` node and the
-document's source, it returns each element it reads: the tag name (lower-cased), each attribute's
-name (lower-cased), its decoded value, the value's source span and its line. An arch rule makes it
-the one owner of reading HTML attributes in eess-md, as `arch.rules.ts:361` does for
-[ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)'s tag comparison.
+One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-md: not on the root
+([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1) and not on
+`/internal` until a second package needs it.
 
-- **D1. The grammar is CommonMark's open tag (§6.6), named in its docstring:** a tag name, then
-  attributes, each a name (`[A-Za-z_:][A-Za-z0-9_.:-]*`) with an optional value, unquoted
-  (no whitespace, `"`, `'`, `=`, `<`, `>` or backtick), single-quoted or double-quoted. This is the
-  grammar micromark used to make the `html` node, so the reader agrees with the parser. No HTML
-  parser is added: that would be a decision the size of
-  [ADR-002](../../adr/002-ts-morph-ast-engine.md), it would engage
-  [ADR-020](../../adr/020-a-package-supports-a-runtime-only-where-ci-checks-it-there.md), and it
-  would not fix the unquoted case, which is the Markdown parser's (open question 1, answered).
-- **D2. Tokenize first, decode after.** The tag is found in the source text and its value decoded
-  once, so `&lt;a href…&gt;` is never a tag and `./R&amp;D.md` resolves to `R&D.md`. The finding
-  quotes the decoded URL, as a Markdown link's finding quotes mdast's decoded `url` today.
-- **D3. An unquoted value follows the HTML tokenizer:** it runs to whitespace or `>`, so
-  `<a href=docs/>` reads `docs/` (GitHub agrees, measured).
-- **D4. Comments are cut out** of the node before it is read, wherever they sit in it; `ONE_COMMENT`
-  (`packages/md/src/model/phrasing.ts:63`) skips only a node that is all comment, and that is not
-  enough here.
-- **D5. Inside an `html` node, everything is HTML.** A fence or a code span inside an HTML block is
-  rendered with its backticks as text and its `<a href>` as a link (measured on GitHub), so the
-  reader reads it. This differs from `fencesInHtml` (`packages/md/src/model/prose.ts:235`), which
-  sets such a fence aside for prose. That choice is about what an author means as an example. This
-  one is about what renders as a link. A red here has a real remedy: a blank line after the opening
-  tag, which makes the fence render as code on GitHub too.
-- **D6. Raw-text elements hold links under GFM.** GFM's tagfilter shows `<script>`, `<style>`,
-  `<textarea>`, `<title>` (and `<xmp>`, `<iframe>`, `<noembed>`, `<noframes>`, `<plaintext>`) as
-  text, so an `<a href>` inside them renders as a link (measured for the first four), and the reader
-  reads it. A renderer that runs the script instead, such as VitePress's `<script setup>`, sees
-  code there. A broken target found there still has a real remedy: fix the target.
-- **D7. `<pre>` holds links** (measured). An `<a>` written inside a Markdown link's text,
-  `[<a href="x">y</a>](z)`, is two links: each URL is written and each is resolved.
-- **D8. The scan is linear:** no nested quantifier over `[^>]*`. An `href` reaches only
-  `resolveLink`'s index lookup. The autofix (below) is the only path that writes.
+- **D1. Inside an `html` node, it is an HTML tokenizer for tags**, following the WHATWG tokenizer's
+  data, tag-open, tag-name, attribute and comment states (HTML §13.2.5), because micromark never
+  tokenized those tags (Measured) and a browser reads them this way (P9, P10). It returns each start
+  tag it reads: the tag name and attribute names lower-cased, each value decoded, the value's source
+  span and its line. What the tokenizer does, the reader does: an attribute name is any run up to
+  whitespace, `/`, `>` or `=` (so `@click` is a name, and `href` after it is read); a missing space
+  between attributes is accepted; an unquoted value runs to whitespace or `>` (`<a href=docs/>` reads
+  `docs/`); the first of two `href`s wins; a valueless `href` is `""`; a `<` inside a quoted value is
+  text (`<img alt="<a …>">` holds no `<a>`).
+- **D2. Comments and bogus comments are cut out**, as the tokenizer does: `<!-- … -->`, and `<!`
+  (CDATA included) or `<?` up to the next `>` (the CDATA row). The owner's `isOnlyComment(value)`
+  replaces both `ONE_COMMENT` (`packages/md/src/model/phrasing.ts:63`) and `HTML_COMMENT`
+  (`packages/md/src/model/section-holds.ts:29`), which test the same thing.
+- **D3. Tokenize first, decode after.** `&lt;a href…&gt;` is never a tag, and `./R&amp;D.md`
+  resolves to `R&D.md`. The finding quotes the decoded URL, as a Markdown link's finding quotes mdast's
+  decoded `url` today.
+- **D4. Inside an `html` node, everything is HTML.** A fence or a code span inside an HTML block is
+  rendered with its backticks as text and its `<a href>` as a link (measured), so it is read. This
+  differs from `fencesInHtml` (`packages/md/src/model/prose.ts:235`), which sets such a fence aside
+  for prose. That choice is about what an author means as an example; this one is about what
+  renders as a link. A red here has a real remedy, measured: a blank line after the opening tag,
+  which makes the fence render as code. Phase 1 adds a line to `fencesInHtml`'s docstring naming
+  this difference, so neither is "fixed" to match the other.
+- **D5. GFM's tagfilter elements do not change the tokenizer's state.** GFM shows `<script>`,
+  `<style>`, `<textarea>`, `<title>`, `<xmp>`, `<iframe>`, `<noembed>`, `<noframes>` and
+  `<plaintext>` as text, so an `<a href>` inside them renders as a link (measured for the first four)
+  and is read. Their content is often a program, not a page (VitePress's `<script setup>`), so a tag
+  start inside them that the tokenizer cannot finish is not reported (R3): its only remedy would be
+  to delete code.
+- **D6. `<pre>` holds links** (measured). `[<a href="x">y</a>](z)` is two links, each URL written and
+  each resolved.
+- **D7. Inside a `text` node, the owner applies §6.6 from each literal `<a` or `<area`** (a `<` in the
+  source, found through the offset walk, so `\<a` and `&lt;a` are not tag starts), with line endings
+  as whitespace, up to the tag's `>` or the node's end. This is the grammar GitHub uses for inline
+  HTML (P7, P8 and the unclosed quote render as text; P1 and P3 render as links). A §6.6 tag with an
+  `href` there is a tag micromark refused and a renderer links (R3).
+- **D8. One offset walk.** `sourceOffsets` (`packages/md/src/model/phrasing.ts:79`) moves into the
+  owner's module and is exported to `phrasing.ts`, so the text-node detector and `mentions()` share
+  one walk and no second one is written.
+- **D9. The scan is linear:** no nested quantifier over `[^>]*`. An `href` reaches only
+  `resolveLink`'s index lookup, and nothing writes: an `href` gets no autofix (the review's first
+  option). `movedLinkFix` depends on `writtenAt`, which accepts no closing quote
+  (`packages/md/src/model/destination.ts:28`), and a fix for an attribute value is new work that no
+  one has asked for.
+- **D10. The owner's arch rule**, `md/one-html-attribute-reader`, in `arch.rules.ts` beside
+  [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)'s
+  (`arch.rules.ts:361`). Outside `html-attributes.ts`, no file under `packages/md/src` holds a regular
+  expression literal whose source contains `href`, `src\s*=`, `<a\b`, `<\/a` or `<area`. `OPENS_A`
+  and `CLOSES_A` (`packages/md/src/model/phrasing.ts:64-65`) move into the owner. What the rule
+  cannot see is stated in its `because` ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
+  rule 7): a pattern built from a string (`new RegExp('href')`), and `includes('href')`.
 
 ### What `links()` reads, and what it reports unread
 
-- **R1. Read:** each `href` on an `<a>` or `<area>` element the owner reads, in any letter case and
-  any quoting. It becomes an `MdLink` at the line the `href` sits on, resolved by `resolveLink` with
-  no second resolver. `<area>` is read although GitHub removes it (measured): HTML defines it as a
-  link, eess-md serves any Markdown corpus, and a broken one has a real remedy.
-- **R2. Not a link, and not reported:** `data-href`, `xlink:href`, and `:href` / `v-bind:href`.
-  These are other attributes, not `href`. The last two are a framework's binding of an expression,
-  and GitHub removes the attribute (measured). A component's `href` prop (`<VPButton href>`) is not
-  an `<a>`. An `<a name>` or `<a id>` with no `href` is an anchor, left to
-  [bug 0136](../bugs/0136-link-fragments-are-never-checked.md). _This overrules the review's
-  decision 3 for `:href` and `v-bind:href`, which listed them as reported unread. An unsuppressable
-  finding on a correct Vue binding would have no remedy but deleting it, the case decision 1
-  rejected under [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2._
-- **R3. The detector.** It finds every tag start that the source does not escape: `<a` or `<area`,
-  any case, followed by whitespace, `/` or `>`. It looks in `html` nodes and in `text` nodes,
-  reading source offsets so that an escaped `\<a` stays text; `sourceOffsets`
-  (`packages/md/src/model/phrasing.ts:79`) is the precedent. A tag start the reader did not read
-  is reported under one of these named causes, each with a remedy verified to clear it:
+- **R1. Read:** each `href` on an `<a>` or `<area>` start tag that the owner reads in an `html` node,
+  in any letter case and any quoting. It becomes an `MdLink` at the line the `href` sits on, resolved
+  by `resolveLink`, with no second resolver. `<area>` is read although GitHub removes it (measured):
+  HTML defines it as a link, eess-md serves any Markdown corpus, and the docs say GitHub drops it.
+  `<a title="a>b" href=…>` is read; the review listed it as unread, and the owner reads it because
+  the tokenizer does.
+- **R2. Not read, and not reported:** `:href`, `v-bind:href`, `data-href`, `xlink:href`, a component's
+  `href` prop, and an `<a name>` or `<a id>` with no `href`, which is an anchor left to
+  [bug 0136](../bugs/0136-link-fragments-are-never-checked.md). The docs list each by name. _This
+  overrules the review's decision 3 for `:href` and `v-bind:href`, which listed them as reported
+  unread (the principle above)._
+- **R3. Unread, with a cause.** The detector is the owner. Every `<a` or `<area` start the owner
+  enters ends in one of three ways: a tag it reads, a cause below, or nothing to report (a text-node
+  start that is not a §6.6 tag, or a tagfilter element's unfinished one). There is no fourth path,
+  and a suite row pins the invariant. The causes, decided in this order from the source:
 
-  | Cause              | Where                                                                                                                                | Remedy, verified to clear it     |
-  | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-  | `unquoted-in-text` | a `text` node holding a tag start with `href`: micromark did not take it as HTML (`href=./x.md`; GitHub renders it a link, measured) | quote the attribute's value      |
-  | `unterminated`     | a tag start whose quote never closes before the node ends                                                                            | close the quote                  |
-  | `split-tag`        | a tag start in an `html` node whose `>` is cut off by the node's end (a blank line ends an HTML block)                               | keep the tag on contiguous lines |
+  | Order | Cause            | Where                                                                                                                          | Remedy (each verified to clear it in the suite)                                                 |
+  | ----- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+  | 1     | `split-tag`      | an `html` node ends inside a tag, and the tag's `>` follows in the source after a blank line (a blank line ends an HTML block) | keep the tag inside one HTML block, with no blank line in it                                    |
+  | 2     | `unterminated`   | an `html` node ends inside a tag, and no `>` follows before the next blank line                                                | close the tag: its quote or its `>`                                                             |
+  | 3     | `unquoted-slash` | a `text` node holds a §6.6 tag with an `href` (D7), which micromark refused because an unquoted value holds `/`                | quote the named attribute's value (the finding names it: "quote `title`'s value, it holds `/`") |
 
-  A tag start in a `text` node with no `href` before the line ends is not reported: it is prose
-  that reads like a tag, and no renderer makes it a link.
+  The message says where the site is and its cause, and the remedy names the attribute. A §6.6 tag
+  in a text node with no unquoted `/` value is not expected (micromark's one divergence is the `/`);
+  if the build finds one, it is a bug against this plan, not a fourth cause made up on the spot.
 
-- **R4. The unread finding follows `md/unread-mention`** (`packages/md/src/builders/mentions.ts:46`):
-  rule id `md/unread-link`, one finding per unread site at its line, a WHERE and a REMEDY per cause,
-  carrying `bypassFilters` ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
-  rule 5). An unread site is not counted in `examined`
-  ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)), and `.expectEmpty()` does not
-  silence it. It is reported where the verdict depends on it
-  ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 4): always for
-  `.resolve()`; for `haveLink()`, only on a section with no read link; for `beLinkedBack()`, only
-  where the back-link is otherwise missing. A section whose only link is unread is undecided, not
-  "has no link".
-
-### The autofix
-
-- **F1.** An `href` gets `movedLinkFix`'s rewrite on the same terms as a Markdown link
-  (`packages/md/src/model/resolve-link.ts:283`): only when the value's source span is known. The
-  owner sets `urlStart`/`urlEnd` only when `writtenAt` (`packages/md/src/model/destination.ts:28`)
-  confirms that the source bytes at that span are the decoded value. So an entity-encoded value gets
-  no fix, and a value whose `html` node dropped a `> ` or an indent is mapped to the source or gets
-  none.
-- **F2.** No fix is offered when the replacement cannot be written in that value's quoting: an
-  unquoted value, or a replacement holding the value's own quote character.
+- **R4. Subject side: an unread site is undecided in every `links()` rule.** It is asked of the rule's
+  predicates as far as it is known (document, line, `sectionPath`, `block`, `blockPath`); `url`,
+  `external` and the target are unknowable, so `areInternal()`, `areExternal()` and
+  `haveLiveTargets()` cannot decide it out. If no predicate decides it false, it is reported, whatever
+  the conditions are (`resolve()`, `beLinkedBack()`, `satisfy()`, `notExist()`), as
+  [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 4 says. Rule id
+  `md/unread-link`, one finding per site per rule, at its line, carrying `bypassFilters` (rule 5).
+  It is not counted in `examined` ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)).
+  When every reached site is unread and nothing is read, the rule reports the unread findings and no
+  zero-examined finding beside them (rule 7).
+- **R5. One shared helper.** `reachedUnread` and `unreadFindings`
+  (`packages/md/src/builders/mentions.ts:212-257`) become one helper, generic over the element and
+  its "as seen" view, called by `mentions()` and `links()`. No copy is made.
+- **R6. Evidence side: an unread site in another subject's evidence.**
+  - `sections().haveLink()`: a section with no read link and an unread site is undecided, following
+    `haveField`'s pattern (`packages/md/src/builders/have-field.ts:67`). In predicate position,
+    `sectionsHolding({ kind: 'link' })` declares `undecided` (rule 1), so `.select()` and
+    `matchingElements` refuse (rule 6) and `not(haveLink())` stays unknown (rule 2). In condition
+    position, the unread finding replaces "has no link"; it does not sit beside it. A section with a
+    read link and an unread site gets no unread finding.
+  - `beLinkedBack()`: a target document with no read link back and an unread site is undecided for
+    that pair. The unread finding replaces "does not link back", once per site per rule however many
+    links point at that document ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
+    rule 5), at the site's line. A target with a read link back gets no unread finding.
+- **R7. `links().select()` refuses** when its predicates reach an unread site
+  ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 6,
+  [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)): a side of
+  `correspondence()` built from it would otherwise drop the link without a word. `mentions().select()`
+  has the same gap today, recorded as
+  [bug 0600](../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+- **R8. `block` and `blockPath` for an `href`:** an HTML node is not an `MdLinkBlock`
+  (`packages/md/src/model/links.ts:73`). An `href` takes the paragraph or list item that holds an
+  inline `html` node, and only its enclosing list item or blockquote when it sits in an HTML block.
+  So `**Links:**` followed by a `<ul><li><a href>` HTML block is not declared.
+- **R9. No new `MdLink` field.** How a link is written (`inline`, `reference`, `html`) is not
+  exposed: no consumer needs it, and a field is added when one does, as `.definition` was for a
+  reference-style link.
 
 ### What changes for each reader of `links()`
 
 The changeset marks `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x, as
 [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did. No
-other package moves: eess-crossvalidate imports no `links()`. The changeset and `docs/markdown.md`
-state each change:
+other package moves: eess-crossvalidate never calls `links()`. The changeset and `docs/markdown.md`
+state each change, and each has a suite row:
 
-- `.resolve()`: a broken `href` is red at its line, and an unread site is red as `md/unread-link`.
-- `.beLinkedBack()`, both directions: an `href` counts as a link to its target and as a link back;
-  a commented-out one counts as neither.
-- `sections().haveLink()`: an `href` gives its section a link.
-- `areLabelled()` and `areInSection()`: an `href` in inline HTML gets a `blockPath` (measured by the
-  review), so it becomes declared like an inline link in the same block.
+- `.resolve()`: a broken `href` is red at its line; an unread site is `md/unread-link`.
+- `.beLinkedBack()`, both directions: an `href` counts as a link to its target and as a link back; a
+  commented-out one counts as neither; R6's replacement.
+- `sections().haveLink()`: an `href` gives its section a link; R6.
+- `areLabelled()` and `areInSection()`: per R8.
 - `haveLiveTargets()`: reads an `href` into a frozen record as that record, like any link.
-- `.select()` into `correspondence()`: the selected set grows by every `href` read.
+- `.select()`: the selected set grows by every `href` read; R7.
 - `examined`: counts each `href` read, and no unread site.
-- `MdLinkRef` fields for an `href`: `url` is the decoded value; `line` is the `href`'s own line
-  inside a multi-line block; `block` and `blockPath` as for an inline link at that line; `.text` is
-  the element's text, which is empty for `<a><img></a>` (13 of the 14 block-level links the review
-  measured).
-- Pinned because honest but surprising: `href=""` resolves as `self`; `href="#…"` resolves as `self`,
-  its fragment left to [bug 0136](../bugs/0136-link-fragments-are-never-checked.md); `javascript:`
-  is external by `EXTERNAL_RE` (`packages/md/src/model/external.ts:6`); a templated `href`
-  (`{{ site.baseurl }}`) is red as missing, as its Markdown twin is.
+- `MdLinkRef` for an `href`: `url` is the decoded value; `line` is the `href`'s own line inside a
+  multi-line block; `block`/`blockPath` per R8; `.text` is the element's text, empty for
+  `<a><img></a>` (13 of the 14 block-level links the review measured).
+- Pinned because honest but surprising: `href=""` and a valueless `href` resolve as `self`;
+  `href="#…"` resolves as `self`, its fragment left to
+  [bug 0136](../bugs/0136-link-fragments-are-never-checked.md); `javascript:` is external by
+  `EXTERNAL_RE` (`packages/md/src/model/external.ts:6`); a templated `href` (`{{ site.baseurl }}`)
+  is red as missing, as its Markdown twin is.
 
-The docs state the subset where `links()` is described (`docs/markdown.md:232`, and the `links()`
-docstring, `packages/md/src/builders/links.ts:149`), with one phrase for the construct where today
-there are three.
+The docs state the subset where `links()` is described (`docs/markdown.md:232`), where `mentions()`
+describes its `<a href>` cause (`docs/markdown.md:701`), and in the `links()` docstring
+(`packages/md/src/builders/links.ts:149`), with one phrase for the construct where today there are
+three. They name R2's attributes and that GitHub removes `<area>`.
 
 ## Phase 0: the review's changes (dispositions, 2026-11-01)
 
@@ -229,91 +289,157 @@ dispositions below correct it.
 - [ ] The false-green rows for `haveLink()` and `beLinkedBack()` — done-otherwise: the Test
       inventory, Phase 2.
 - [ ] The attribute and context break classes, and the decision on a code span or fence inside an
-      HTML block — done-otherwise: D1 to D7, and the Test inventory.
-- [ ] The autofix rule — done-otherwise: F1 and F2.
-- [ ] The entity row in the path — done-otherwise: D2, and the Test inventory.
+      HTML block — done-otherwise: D1 to D7 (D4 for the fence), and the Test inventory.
+- [ ] The autofix rule — done-otherwise: D9, no autofix for an `href` (the review's first option).
+- [ ] The entity row in the path — done-otherwise: D3, and the Test inventory.
 - [ ] The break statement and the impact on each reader — done-otherwise: "What changes for each
       reader of `links()`".
 - [ ] Suite rows and two or three nonvacuity scenarios — done-otherwise: the Test inventory.
 - [ ] [Bug 0136](../bugs/0136-link-fragments-are-never-checked.md) named as a consumer of the
       owner — done-otherwise: the Status block's second decision.
-- [ ] Open question 1 — done-otherwise: D1, an attribute scan on CommonMark's named grammar, with no
-      ADR.
+- [ ] Open question 1 — done-otherwise: D1 and D7, a tag tokenizer of the owner's own (HTML's in an
+      `html` node, CommonMark's in a `text` node), with no parser dependency and no ADR.
 
 ## Phases
 
-1. **The attribute owner.** `html-attributes.ts` as designed (D1 to D8), with its arch rule.
-   `mentions()` recognises an `<a href>` through it, and `OPENS_A` is removed. That closes
+1. **The attribute owner.** `html-attributes.ts` as designed (D1 to D10), with its arch rule.
+   `mentions()` recognises an `<a href>` through it, and `OPENS_A`, `CLOSES_A`, `ONE_COMMENT` and
+   `HTML_COMMENT` are replaced. That closes
    [bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)
    (`OPENS_A` matches `data-href` and misses `title="a>b"`), which moves to `fixed/` with this plan.
+   The unread helper is shared (R5).
 2. **`links()` reads `href`.** `collectLinkBlocks` (`packages/md/src/model/links.ts:117`) yields an
-   `MdLink` per `href` the owner reads (R1), the detector reports the residue (R3, R4), and the
-   autofix follows F1 and F2. The docs and the changeset state each reader's change.
+   `MdLink` per `href` the owner reads (R1), the owner's causes become `md/unread-link` findings on the
+   subject side (R3, R4), the evidence side follows R6, `.select()` refuses (R7), and `block`/`blockPath`
+   follow R8. The docs and the changeset state each reader's change.
    [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) is closed
    done-otherwise against this plan.
 
 ## Files changed
 
 - Phase 1: `packages/md/src/model/html-attributes.ts` (new), `packages/md/src/model/phrasing.ts`,
-  `arch.rules.ts`, `work/bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md`
+  `packages/md/src/model/section-holds.ts` (its comment test), `packages/md/src/model/prose.ts` (one
+  docstring line, D4), `packages/md/src/builders/mentions.ts` (the shared helper), `arch.rules.ts`,
+  `work/bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md`
   (to `fixed/`).
 - Phase 2: `packages/md/src/model/links.ts`, `packages/md/src/builders/links.ts`,
-  `packages/md/src/model/resolve-link.ts` (if F1 needs it), `docs/markdown.md`,
-  `scripts/check-nonvacuity.mjs` and `scripts/nonvacuity/`, `.changeset/` (one changeset, marked
-  Breaking, `@nielspeter/eess-md` minor),
+  `packages/md/src/model/section-holds.ts`, `packages/md/src/predicates/section.ts`,
+  `packages/md/src/builders/sections.ts`, `packages/md/src/conditions/linked-back.ts`,
+  `docs/markdown.md`, `scripts/check-nonvacuity.mjs` and `scripts/nonvacuity/`, `.changeset/` (one
+  changeset, marked Breaking, `@nielspeter/eess-md` minor),
   `work/bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md` (its disposition).
 
 ## Test inventory
 
 Each suite row goes red under its own sabotage; a case that produces nothing is a suite row, never
-a nonvacuity row.
+a nonvacuity row. Every Measured row with a micromark result is a suite row, so a micromark upgrade
+that changes one reds it (line 573's divergence included).
 
 - **Phase 1, the owner:**
   - attributes: `href=` inside another attribute's value is not `href`; `data-href`, `:href` and
     `xlink:href` are not `href`; spaces around `=`; a tag over several lines; `<A HREF>`; single
-    quotes; `<a href=docs/>` reads `docs/`; `<a title="a>b" href="./x.md">` reads `./x.md`;
+    quotes; `<a href=docs/>` reads `docs/`; `title="a>b"`; no space between attributes (P9);
+    `@click` before `href` (P10); the first of two `href`s; a valueless `href` is `""`;
   - decoding: `&lt;a href…&gt;` is not a tag; `./R&amp;D.md` decodes to `./R&D.md`;
-  - context: a comment inside a larger node is cut out; a fence and a code span inside an HTML block
-    are read (D5); `<script>` and `<textarea>` content is read (D6); `<pre>` content is read;
-  - `mentions()`'s existing `'html-link'` tests green, plus a `data-href` row that no longer
-    matches and a `title="a>b"` row that now does
-    ([bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)).
+  - context: a comment and a CDATA section inside a larger node are cut out; a tag start inside
+    another tag's quoted value is not a tag; a fence and a code span inside an HTML block are read
+    (D4); `<script>` and `<textarea>` content is read and an unfinished tag start there is not
+    reported (D5); `<pre>` content is read;
+  - text nodes (D7): P1, P3, P5 and the unquoted-`/` row are §6.6 tags with an `href`; P7, P8,
+    `foo=bar=baz` and the unclosed quote are not; `\<a` and `&lt;a` are not tag starts;
+  - the invariant: every `<a`/`<area` start the owner enters is read, given a cause, or one of the
+    two named silences, over a fixture holding every Measured row;
+  - `mentions()`'s existing `'html-link'` tests green, plus a `data-href` row that no longer matches
+    and a `title="a>b"` row that now does
+    ([bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md));
+    `mentions()`'s unread findings unchanged through the shared helper (R5).
 - **Phase 2, `links()`:**
-  - a readable broken `href` red at its own line inside a multi-line block, and inside a blockquote;
-  - `./R&amp;D.md` resolves against `R&D.md`, and the finding quotes the decoded URL;
-  - each cause in R3 reported once at its line, and its remedy clearing it; an escaped `\<a` and a
-    prose `<a` with no `href` reported by none;
-  - a commented-out `<a href>` is not a link back and does not satisfy `haveLink()`; a section
-    whose only link is unread is reported as undecided, not as having no link;
-  - an external `href`, `href=""`, `href="#x"`, an `<a name>` and a `:href` produce no broken-link
-    finding;
-  - `examined` counts each `href` read and no unread site; `.expectEmpty()` does not silence an
-    unread one;
-  - the autofix: rewritten in a quoted value; none for an entity-encoded value, an unquoted value,
-    or a value in a blockquote whose span does not map.
-- **Nonvacuity:** one fixture script, three scenarios, each asserting its message: a readable
-  broken `href`; an `unquoted-in-text` site, so an emptied detector reds; an `unterminated` site.
+  - read: a broken `href` red at its own line inside a multi-line block, inside a blockquote, and
+    inside a `<details>` fence; `./R&amp;D.md` resolves against `R&D.md`, and the finding quotes the
+    decoded URL; an `<area>` read;
+  - each cause in R3 at its line with its remedy's text, and each remedy clearing it: `split-tag`
+    (a blank line inside a quoted value in a `<div>`), `unterminated` (a `<div>` with
+    `<a href="./gone.md>`), and `unquoted-slash` on P1 (naming `title`), P3 and the unquoted-`/` row
+    (naming `href`); P7, P8 and an escaped `\<a` give no finding of any rule id;
+  - the subject side (R4): `resolve()`, `beLinkedBack()`, `satisfy()` and `notExist()` each report an
+    unread site their predicates reach; `resideInFile` deciding a site out reports nothing for it;
+    `areExternal()` cannot decide one out;
+  - unsuppressable (R4): `.excluding(/.*/)` does not hide `md/unread-link` and the finding carries
+    `bypassFilters`, the twin of
+    `packages/md/tests/builders/mentions.test.ts` · `it('an unread mention is unsuppressable: .excluding() does not hide it')`;
+    `.warn()` and a baseline do not hide it either;
+  - the evidence side (R6): a section whose only link is unread is undecided under `.that().haveLink()`
+    and `.select()` throws; under `.should().haveLink()` it is `md/unread-link`, not "has no link"; a
+    section with a read link and an unread site gets no unread finding; a target whose only link back
+    is unread gets `md/unread-link` once, not "does not link back"; one with a read link back gets
+    none;
+  - a commented-out `<a href>` is not a link back and does not satisfy `haveLink()`;
+  - `.select()` refuses when it reaches an unread site (R7);
+  - R8: an `href` in a top-level HTML block has no `block`; `**Links:**` above a `<ul>` HTML block is
+    not declared;
+  - an external `href`, `href=""`, a valueless `href`, `href="#x"`, an `<a name>` and a `:href`
+    produce no broken-link finding;
+  - `examined` counts each `href` read and no unread site; a rule whose only reached sites are unread
+    reports them and no zero-examined finding (rule 7);
+  - the reader-impact list: one row each for `areLabelled()`, `areInSection()`, `haveLiveTargets()`,
+    `.select()` and `.text` on `<a><img></a>`.
+- **Nonvacuity:** one fixture script, three scenarios, each asserting its message and cause: a readable
+  broken `href` in a `<div>` block (an emptied reader reds it); an `unquoted-slash` site in a paragraph
+  (an emptied text-node detector reds it); an `unterminated` site in a `<div>` block (an emptied
+  `html`-node detector reds it).
   [Bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard is near its timeout,
   so the build measures the three rows' cost and says which shard takes them.
 
 ## Out of scope
 
 - Links built by script, and HTML outside the Markdown documents.
+- An autofix for an `href` (D9).
 - `<img src>`: [proposal 024](../proposals/024-md-an-images-file-exists.md) Ask B, on Phase 1's owner.
 - A fragment in an `href`: resolved as `self` here, checked by
   [bug 0136](../bugs/0136-link-fragments-are-never-checked.md).
-- `mentions()` still reporting an `<a>`'s text as unread while `links()` resolves its `href`: said
-  in the docs and recorded as a follow-up, as
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did.
+- `mentions()` still reporting an `<a>`'s text as unread while `links()` resolves its `href`: recorded
+  as [bug 0601](../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md).
+- `mentions().select()` dropping an unread mention: [bug 0600](../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
 - A local link with a query string never resolving: fixed by
   [bug 0583](../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md).
+
+## Review — 2026-11-01 (the freeze re-check)
+
+Architect and enforcement, on the freeze at af342dec. Both said Not ready. What changed:
+
+- **Two silent false greens (enforcement C1, C2).** Inside an HTML block the §6.6 reader rejected
+  tags a browser links (P9, P10), and no cause caught them; a tag start followed by a newline was
+  exempted (P3). Now the owner is an HTML tokenizer inside an `html` node (D1), §6.6 applies only in a
+  `text` node up to the tag's `>` (D7), and every start the owner enters ends read, with a cause, or
+  in one of two named silences (R3). The GitHub renders behind it were measured (Measured: P1, P3,
+  P7 to P10, CDATA, the alt value, the duplicate and valueless `href`, D4's remedy).
+- **Subject and evidence (architect C1, I1).** Reporting depended on the condition; now a site is
+  decided by the rule's predicates on the subject side (R4), and the evidence side follows
+  `haveField` (R6).
+- **Causes (enforcement I1, I2; architect I4).** Ordered from the source, three causes, a remedy that
+  names the attribute; prose that reads like a tag and is not a §6.6 tag is silent, as GitHub
+  renders it as text.
+- **Cut, as the review allowed:** no autofix for an `href` (D9; `writtenAt` takes no closing quote,
+  architect I3, enforcement I6).
+- **`.select()` (architect I2):** refuses (R7); `mentions()`'s same gap is
+  [bug 0600](../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+- **Raw text (architect I5):** read what parses; an unfinished tag start there is not reported (D5).
+- **Reuse (architect I6, I7, I8):** one unread helper (R5), one offset walk (D8), one comment test
+  (D2), the arch rule's matcher and blind spots (D10), `blockPath` for an HTML block (R8).
+- **Rows (enforcement I3, I4, I5, M7):** `bypassFilters`, the subject side under four conditions, the
+  evidence side both ways, nonvacuity scenario 3 in a block, one row per reader change.
+- **Minor:** `title="a>b"` marked as a change (R1); `docs/markdown.md:701` restored; no `MdLink`
+  marker (R9); the principle stated once; the follow-up given a home
+  ([bug 0601](../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md));
+  rule 7 stated; the owner kept internal; dogfooding stated (Measured).
 
 ## Progress ledger
 
 - [x] Reviewed, as [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s Review
       (architect · product · enforcement), 2026-11-01
 - [x] Freeze written: the review's changes, the measurements, the open question answered (2026-11-01)
-- [ ] Freeze re-checked by the lenses that raised its items
+- [x] Freeze re-checked (architect · enforcement), 2026-11-01: Not ready; revised (Review above)
+- [ ] The revision re-checked by the same lenses
 - [ ] Ready
 - [ ] Phase 1 — the attribute owner
 - [ ] Phase 2 — `links()` reads `href`
