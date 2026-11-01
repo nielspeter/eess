@@ -108,6 +108,9 @@ never tokenized.
 | `see <a href="./x.md" data-x=a/_b_>x</a>` (Q10)                         | `text`, `emphasis`, `text`: the tag split            | (link, as Q2)                                 |
 | `> <div>` + `> <a` + `href="./gone.md">x</a>` (B1; B2 in a list)        | `html` `<div>\n<a`, ended by its container           | (no link)                                     |
 | `<div>` + `<a href="./gone.md>x</a>` + `</div>` + a later `"`, `>` (B3) | one `html` node ending inside a quoted value         | `<div></div>`: no link                        |
+| `![logo <a href=./x.md>](y.png)` (A1; A2 quoted)                        | `image`, the tag only in `alt`                       | (alt text, no link)                           |
+| `[x](y.md "<a href=./z.md>")` (A3)                                      | `link`, the tag only in its `title`                  | (a title, no link)                            |
+| `[x](<a href=./z.md>)` (A4)                                             | `link`, `url` `a href=./z.md`                        | (a destination, no link)                      |
 
 A row in parentheses was not rendered; it follows from CommonMark or from a measured row. Q2, Q4,
 Q5, Q6 and B3 were rendered at the freeze's second re-check, the same day. In this
@@ -162,14 +165,17 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   and is read. Their content is often a program, not a page (VitePress's `<script setup>`), so a tag
   start inside them that the tokenizer cannot finish is not reported (R3): its only remedy would be
   to delete code. "Inside" runs from the element's start tag to its matching end tag (the same name,
-  any case), or to the node's end when there is none.
+  any case). An element with no matching end tag in the node has no inside, so causes 1 and 2 apply
+  after it.
 - **D6. `<pre>` holds links** (measured). `[<a href="x">y</a>](z)` is two links, each URL written and
   each resolved.
 - **D7. Outside `html` nodes, the owner scans each inline container's source:** a paragraph, a
   heading or a table cell (which ends where GFM splits the cell). A tag start is a literal `<a` or
   `<area` in the source, any case, followed by whitespace, `/` or `>`, that is preceded by an even
-  number of `\` (so `\<a` is not one and `\\<a` is, Q4) and that does not fall inside an `html` or
-  `inlineCode` node's span (Q6's `<a` is outside its code span). An entity is source text, so `&lt;a`
+  number of `\` (so `\<a` is not one and `\\<a` is, Q4), and whose `<` lies inside a `text` node's
+  source span. So a `<a` in an `html` or `inlineCode` node, in an image's alt text, in a link's title
+  or in its destination is not a start (A1 to A4: GitHub renders none of them as a link); Q6's `<a` is
+  in a `text` node, before its code span. An entity is source text, so `&lt;a`
   is not a tag start and a decoded `&amp;` before a real one does not hide it (Q5). From each start,
   §6.6 is applied over the container's source, with line endings as whitespace and container prefixes
   (`> `, list indentation) stepped over, up to the tag's `>` or the container's end, never stopping
@@ -395,11 +401,10 @@ that changes one reds it (line 573's divergence included).
   - context: a comment and a CDATA section inside a larger node are cut out; a tag start inside
     another tag's quoted value is not a tag; a fence and a code span inside an HTML block are read
     (D4); `<script>` and `<textarea>` content is read and an unfinished tag start there is not
-    reported (D5); `<pre>` content is read;
+    reported (D5); \1 an unclosed `<textarea>` followed by P15's split is `split-tag` (D5);
   - inline containers (D7): P1, P3, P5, Q1 to Q3, Q5, Q6, Q10 and the unquoted-`/` row are §6.6
     tags with an `href`, each found whole although micromark split it; P7, P8, `foo=bar=baz` and the
-    unclosed quote are not; `\<a` and `&lt;a` are not tag starts, and Q4's `\\<a` is; Q7 is a tag
-    with no `href`;
+    unclosed quote are not; `\<a` and `&lt;a` are not tag starts, and Q4's `\\<a` is; \1 A1 (a tag in an image's alt) and A3 (in a link's title) are not starts and give\n no finding;
   - the invariant: every `<a`/`<area` start the owner enters is read, given a cause, or in one of
     the three named silences, over a fixture holding every Measured row and every P, Q and B probe;
   - `isOnlyComment` (D2): `mentions()` and `sections()` treat a node that is only a bogus comment
@@ -446,10 +451,10 @@ that changes one reds it (line 573's divergence included).
   broken `href` in a `<div>` block (an emptied reader reds it); an `unquoted-slash` site in a paragraph
   (an emptied text-node detector reds it); an `unterminated` site in a `<div>` block (an emptied
   `html`-node detector reds it). Plus D10's gate row, as `arch/one-code-block-tag-comparison` has
-  one (`scripts/check-nonvacuity.mjs:858`): a fixture writes `/href/` into a file under
+  one (`scripts/check-nonvacuity.mjs:859`): a fixture writes `/href/` into a file under
   `packages/md/src` outside the owner and expects `md/one-html-attribute-reader`.
   [Bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard is near its timeout,
-  so the build measures the three rows' cost and says which shard takes them.
+  so the build measures the four rows' cost and says which shard takes them.
 
 ## Out of scope
 
@@ -514,7 +519,12 @@ no further design round. What changed:
 - **Minor:** one finding per site per rule on both sides, and none twice (architect M1, M2); D5's
   span and the finishable tag in a script (M3, M4); R8 without blockquote (M4); R4's unknowable
   fields (M5); Q7 a named silence (enforcement M1); `isOnlyComment`'s consumers (M2); Q8 in the docs
-  (M6).
+  \1
+  A verification pass the same day (architect: applied, with
+  [bug 0602](../bugs/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s root cause
+  corrected; enforcement: D5's "inside" misapplied, and D7's start set too wide, A1 to A4) gave one
+  clause and one row each: an unclosed tagfilter element has no inside, and a start's `<` lies in a
+  `text` node.
 
 ## Progress ledger
 

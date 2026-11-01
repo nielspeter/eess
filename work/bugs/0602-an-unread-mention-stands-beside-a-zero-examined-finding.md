@@ -29,10 +29,11 @@ m().should().notExist().violations() // md/unread-mention, with declaredEmpty: t
 
 ## Root cause
 
-`mentions()`'s `collectViolations` (`packages/md/src/builders/mentions.ts:135`) takes the kernel's
-finished verdict, which already holds the zero-examined finding and `declaredEmpty`, and appends the
-unread findings to it. They are not counted in `undecided`, the count the terminal reads to withhold
-both (`packages/core/src/terminal-builder.ts:290`).
+`mentions()`'s `collectViolations` (`packages/md/src/builders/mentions.ts:135`) appends the unread
+findings to the kernel's violations and returns a receipt whose `undecided` does not count them. The
+terminal runs after it and reads that count: with `examined` 0 and `undecided` unset, it adds the
+generic zero-examined finding and sets `declaredEmpty` (`packages/core/src/terminal-builder.ts:290`),
+beside the unread findings it was handed.
 
 ## Fix
 
