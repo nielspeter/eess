@@ -551,8 +551,12 @@ takes the same `LinkResolveOptions`, never throws, and returns one named case:
 | `not-in-corpus` | an existing file the corpus did not load; `reasons` lists every one of `not-markdown`, `ignored`, `outside-roots` |
 | `directory`     | no candidate is a file, but one names a real directory                                                            |
 | `missing`       | nothing exists; `tried` lists every candidate, in order                                                           |
-| `self`          | a pure `#anchor`, an empty link, or a path back to the linking document                                           |
+| `self`          | a pure `#anchor` or `?query`, an empty link, or a path back to the linking document                               |
 | `external`      | a URL with a scheme                                                                                               |
+
+A URL's path ends at its first `?` or `#`: `./logo.png?raw=true` and `./a.md?plain=1` resolve to
+`logo.png` and `a.md`, as GitHub reads them, and a moved target's fix carries the query and the
+fragment over. A `?` that is part of a file name is written `%3F`.
 
 Candidates are tried in a fixed order: the repo-root target, then the
 content-root one when `rootDir` is set, each as written, then with

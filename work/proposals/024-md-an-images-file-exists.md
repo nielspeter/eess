@@ -214,7 +214,7 @@ Each of these is decided here so the work can move, and each can be overruled.
   - a query string: `./x.png?raw=true` and `./a.md?plain=1` are "broken link" today, because
     `linkTargets` strips only `#` (`packages/md/src/model/resolve-link.ts:136`). That is a resolver
     defect of its own, now recorded as
-    [bug 0583](../bugs/0583-a-local-link-with-a-query-string-never-resolves.md), and this work
+    [bug 0583](../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md), and this work
     depends on it;
   - a file under the built-in ignore list (`packages/md/src/corpus.ts:78`): a committed
     `coverage/badge.svg` or `dist/logo.png` is reported as absent, so the message must name the
@@ -289,7 +289,7 @@ Each of these is decided here so the work can move, and each can be overruled.
 
 ### Recorded separately
 
-- [Bug 0583](../bugs/0583-a-local-link-with-a-query-string-never-resolves.md): a local link with a
+- [Bug 0583](../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md): a local link with a
   query string never resolves.
 - The review's claim that no gate resolves the root README's ordinary links did not reproduce:
   `packages/ts/tests/docs/cross-document-links-resolve.test.ts` resolves every inline link in
