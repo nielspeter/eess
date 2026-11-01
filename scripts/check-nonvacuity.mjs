@@ -228,6 +228,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync, mkdtempSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, posix } from 'node:path'
@@ -248,8 +249,6 @@ import {
   parseShard,
   selectShard,
 } from './lib/nonvacuity-shards.mjs'
-import { isAccepted, operativeRuling } from './lib/proposal-ruling.mjs'
-import { proseText } from '@nielspeter/eess-md/internal'
 const SHARD_TESTS_LINK = 'node --test scripts/lib/nonvacuity-shards.test.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -3787,6 +3786,14 @@ function gateCorpusProposalNumberDuplicated() {
 // it demoted at least one proposal and that none is left accepted.
 const PROPOSALS_DIR = join(repoRoot, 'work', 'proposals')
 
+// Loaded when the row runs, never at the top: the merge job runs this script with Node builtins only
+// (no `npm ci`), and these modules reach a workspace package. A shard job has installed and built.
+const rulingReader = () => createRequire(import.meta.url)('./lib/proposal-ruling.mjs')
+// `require` resolves with its own export conditions, and eess-md exports `./internal` for `import`
+// only, so the path is resolved the way an import resolves it, then loaded.
+const proseReader = () =>
+  createRequire(import.meta.url)(fileURLToPath(import.meta.resolve('@nielspeter/eess-md/internal')))
+
 function proposalFiles(dir) {
   const out = []
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -3797,8 +3804,12 @@ function proposalFiles(dir) {
   return out
 }
 
-const acceptedProposalFiles = () =>
-  proposalFiles(PROPOSALS_DIR).filter((p) => isAccepted(operativeRuling(readFileSync(p, 'utf8'))))
+const acceptedProposalFiles = () => {
+  const { isAccepted, operativeRuling } = rulingReader()
+  return proposalFiles(PROPOSALS_DIR).filter((p) =>
+    isAccepted(operativeRuling(readFileSync(p, 'utf8'))),
+  )
+}
 
 /**
  * Rewrite the operative Ruling line, and only it, to a ruling that is not accepted. The operative
@@ -3808,6 +3819,8 @@ const acceptedProposalFiles = () =>
  * then re-reads every file with the gate's reader, so a line this misses fails it closed.
  */
 function demoteOperativeRuling(text) {
+  const { operativeRuling } = rulingReader()
+  const { proseText } = proseReader()
   const written = `**Ruling: ${operativeRuling(text)}**`
   const prose = proseText(text, 'closed-fences').split('\n')
   const at = prose.findLastIndex((line) => line.includes(written))

@@ -47,6 +47,12 @@ at least one proposal, that none is left accepted, and the gate's finding. The s
       ([bug 0326](../0326-a-ruling-finding-names-the-blank-line-above-the-ruling.md)'s off-by-one), and the row refused to rewrite the wrong line; the next scanned
       fences with a regex of its own, and `scripts/lib/one-fence-reader.test.mjs` refused it,
       since `proseText` is the one fence reader.
+- [x] The script still loads in CI's merge job, which runs it with Node builtins only and no
+      `npm ci`. The first push imported the ruling reader and `proseText` at the top of
+      `scripts/check-nonvacuity.mjs`, and that job failed with `ERR_MODULE_NOT_FOUND` for
+      `@nielspeter/eess-md`. They are now loaded inside the row, when it runs. Measured: a copy of
+      `scripts/` with no `node_modules` loads the new version and reproduces CI's error with the
+      pushed one.
 - [x] `npm run validate` green.
 
 Deferred: none
