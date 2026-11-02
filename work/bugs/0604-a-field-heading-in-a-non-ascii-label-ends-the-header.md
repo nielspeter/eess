@@ -29,7 +29,7 @@ just before it. `fields(c, { …, region: 'header' })`:
 | `# T` · `## Area: F7` · `**Owner:** Ann` · `## Body`  | `Ann`, line 5  | `F7`, line 3        |
 | `# T` · `## Größe: F7` · `**Owner:** Ann` · `## Body` | none           | none                |
 
-Over two records, `b.md` with `## Größe: F7` above `**Owner:** Zed`, the value rule
+Over two records, `a.md` with `**Owner:** Bob` in its header and `b.md` with `## Größe: F7` above `**Owner:** Zed`, the value rule
 `fields(c, { label: 'Owner', forms: ['bold'], region: 'header' }).should().resolveAgainst(vocabulary(c, { terms: ['Ann', 'Bob'] }))`
 is green with `examined` 1: `Zed` is never judged.
 
