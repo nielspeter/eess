@@ -1,5 +1,6 @@
 import type { Nodes } from 'mdast'
 import { decodeNamedCharacterReference } from 'decode-named-character-reference'
+import { parseUncached } from './prose.js'
 
 /**
  * The one reader of HTML tags and attributes in eess-md (plan 0580, D1 to D10; gated by the arch rule
@@ -45,12 +46,18 @@ interface HtmlStartTag {
   readonly attributes: readonly HtmlAttribute[]
   /** 1-based line of the tag's `<`. */
   readonly line: number
+  /** Index in the node's value of the tag's `<`. */
+  readonly start: number
+  /** Index in the node's value just after the tag's `>`, where its content starts. */
+  readonly end: number
 }
 
 /** An end tag the tokenizer finished. */
 interface HtmlEndTag {
   readonly name: string
   readonly line: number
+  /** Index in the node's value of the tag's `<`. */
+  readonly start: number
 }
 
 /**
@@ -64,6 +71,8 @@ type UnfinishedCause = 'split-tag' | 'unterminated'
 interface HtmlUnfinishedTag {
   readonly name: string
   readonly line: number
+  /** Index in the node's value of the tag's `<`, which names it where its line holds two. */
+  readonly start: number
   readonly cause: UnfinishedCause
 }
 
@@ -219,6 +228,7 @@ export function tokenizeHtml(
       continue
     }
     const tagLine = line
+    const tagStart = i
     while (i < nameAt) step()
     let name = ''
     while (i < n && !isSpace(value[i]) && value[i] !== '/' && value[i] !== '>') {
@@ -299,14 +309,14 @@ export function tokenizeHtml(
     }
     if (finished) {
       if (isEnd) {
-        ends.push({ name, line: tagLine })
+        ends.push({ name, line: tagLine, start: tagStart })
         for (let at = open.length - 1; at >= 0; at--) {
           if (open[at]?.name !== name) continue
           open.splice(at)
           break
         }
       } else {
-        starts.push({ name, attributes, line: tagLine })
+        starts.push({ name, attributes, line: tagLine, start: tagStart, end: i })
         if (TAGFILTER.has(name)) {
           const closes = holdsEndTag(value.slice(i), name)
           open.push({ name, closes })
@@ -319,7 +329,7 @@ export function tokenizeHtml(
     const inside = open.some((o) => o.closes)
     const couldClose = inQuote === undefined || !inQuote.gtSoFar
     const cause: UnfinishedCause = endedByBlankLine && couldClose ? 'split-tag' : 'unterminated'
-    const tag = { name, line: tagLine, cause }
+    const tag = { name, line: tagLine, start: tagStart, cause }
     if (inside) silenced.push(tag)
     else unfinished.push(tag)
   }
@@ -330,9 +340,9 @@ export function tokenizeHtml(
  * Whether a blank line, and not a container or the end of the document, ended the node: the line
  * after it holds nothing once `depth` blockquote markers are stepped over, and a line ending closes it.
  */
-function endedByBlankLineIn(node: Nodes, source: string | undefined, depth: number): boolean {
+function endedByBlankLineIn(node: Nodes, source: string, depth: number): boolean {
   const end = node.position?.end.offset
-  if (source === undefined || end === undefined) return false
+  if (end === undefined) return false
   let k = end
   if (source[k] === '\r') k++
   if (source[k] !== '\n') return false
@@ -347,21 +357,78 @@ function endedByBlankLineIn(node: Nodes, source: string | undefined, depth: numb
   return source[k] === '\n'
 }
 
+/** Where an `html` node sits: its document's source, and the number of blockquotes around it. */
+interface HtmlContext {
+  readonly source: string
+  readonly depth: number
+}
+
+/** Every `html` node in `root`, with its start offset. */
+function htmlNodeAt(root: Nodes, offset: number): Nodes | undefined {
+  if (root.type === 'html') return root.position?.start.offset === offset ? root : undefined
+  if (!('children' in root)) return undefined
+  for (const child of root.children) {
+    const found = htmlNodeAt(child, offset)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
 /**
- * Tokenize an mdast `html` node (D1). `depth` is the number of blockquotes around it, so a blank
- * line inside a quote (`>`) is read as one. Without its source, an unfinished tag is `unterminated`.
+ * Whether the tag at `line` would finish if the blank line after `node` were not there (plan 0580,
+ * Phase 2): `split-tag` is decided by its remedy. The document is parsed again without that line, so
+ * the parser, not a second reading of containers, says whether the HTML block now runs on: it does
+ * not past a quote or list item the line ended, nor take a line with no `>` into a quote.
  */
-export function readHtmlNode(node: Nodes, source?: string, depth = 0): HtmlRead {
+function finishesOnceJoined(node: Nodes, source: string, cut: HtmlUnfinishedTag): boolean {
+  const end = node.position?.end.offset
+  const start = node.position?.start.offset
+  if (end === undefined || start === undefined) return false
+  const lineEnd = source.indexOf('\n', end)
+  if (lineEnd === -1) return false
+  // Remove the whole run of blank lines (a quote's blank line is a lone `>`), not only the first.
+  let after = lineEnd + 1
+  for (;;) {
+    const next = source.indexOf('\n', after)
+    if (next === -1 || !/^[ \t>]*\r?$/.test(source.slice(after, next))) break
+    after = next + 1
+  }
+  if (after === lineEnd + 1) return false
+  const joined = source.slice(0, lineEnd + 1) + source.slice(after)
+  const again = htmlNodeAt(parseUncached(joined), start)
+  if (again === undefined || again.type !== 'html') return false
+  // The value before the cut is unchanged, so the tag sits at the same index; matched by it, not by
+  // its line, which another tag can share.
+  const read = tokenizeHtml(again.value, again.position?.start.line ?? 0, false)
+  return read.starts.some((t) => t.start === cut.start && t.name === cut.name)
+}
+
+/**
+ * Tokenize an mdast `html` node (D1). The context is required, so no caller reads a quote's blank
+ * line (`>`) at the wrong depth by leaving it out; `'no-source'` says the caller reads only finished
+ * tags, and then an unfinished tag is `unterminated`. A `split-tag` is kept only when removing the
+ * blank line lets the tag finish; otherwise it is `unterminated`.
+ */
+export function readHtmlNode(node: Nodes, context: HtmlContext | 'no-source'): HtmlRead {
   if (node.type !== 'html') return { starts: [], ends: [], unfinished: [], silenced: [] }
-  return tokenizeHtml(
+  const ctx = context === 'no-source' ? undefined : context
+  const read = tokenizeHtml(
     node.value,
     node.position?.start.line ?? 0,
-    endedByBlankLineIn(node, source, depth),
+    ctx !== undefined && endedByBlankLineIn(node, ctx.source, ctx.depth),
   )
+  if (ctx === undefined || !read.unfinished.some((u) => u.cause === 'split-tag')) return read
+  return {
+    ...read,
+    unfinished: read.unfinished.map((u) =>
+      u.cause === 'split-tag' && !finishesOnceJoined(node, ctx.source, u)
+        ? { ...u, cause: 'unterminated' }
+        : u,
+    ),
+  }
 }
 
 /** A tag's attribute by name, in any letter case. */
-// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function attributeOf(tag: HtmlStartTag, name: string): HtmlAttribute | undefined {
   const want = name.toLowerCase()
   return tag.attributes.find((a) => a.name === want)
@@ -547,7 +614,7 @@ function containerText(
  * literal `<a` or `<area` (any case, then whitespace, `/` or `>`) inside a `text` node's source span,
  * after an even number of `\`. `depth` is the number of blockquotes around the container.
  */
-function inlineTagStarts(
+export function inlineTagStarts(
   container: InlineContainer,
   source: string,
   depth: number,
@@ -590,20 +657,29 @@ function inlineTagStarts(
   return out
 }
 
-/** Every inline tag start in a document (D7): each paragraph, heading and table cell, at its blockquote depth. */
-// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
-export function inlineTagStartsOf(root: Nodes, source: string): InlineTagStart[] {
-  const out: InlineTagStart[] = []
-  const walk = (node: Nodes, depth: number): void => {
-    if (node.type === 'paragraph' || node.type === 'heading' || node.type === 'tableCell') {
-      out.push(...inlineTagStarts(node, source, depth))
-      return
+/**
+ * The text a reader sees inside an element whose end tag the same node holds: from just after
+ * `tag` to the first `</name>` after it, with tags and comments cut out and references decoded.
+ * `undefined` when the node does not close it, so the caller reads the text from the nodes after it.
+ */
+export function elementText(value: string, tag: HtmlStartTag, read: HtmlRead): string | undefined {
+  const close = read.ends.find((e) => e.name === tag.name && e.start >= tag.end)
+  if (close === undefined) return undefined
+  const inner = value.slice(tag.end, close.start)
+  let text = ''
+  for (let i = 0; i < inner.length; ) {
+    const cut = commentEnd(inner, i)
+    if (cut !== undefined) {
+      i = cut
+      continue
     }
-    if ('children' in node) {
-      const inner = node.type === 'blockquote' ? depth + 1 : depth
-      for (const child of node.children) walk(child, inner)
+    if (inner[i] === '<' && (isAsciiAlpha(inner[i + 1]) || inner[i + 1] === '/')) {
+      const gt = inner.indexOf('>', i)
+      i = gt === -1 ? inner.length : gt + 1
+      continue
     }
+    text += inner[i] ?? ''
+    i++
   }
-  walk(root, 0)
-  return out
+  return decodeReferences(text).replace(/\s+/g, ' ').trim()
 }

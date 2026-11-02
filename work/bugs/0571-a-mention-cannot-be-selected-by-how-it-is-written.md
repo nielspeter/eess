@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — found 2026-10-31 building [bug 0558](./0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s dangling-reference example; measured; no red
+- **State:** Draft — found 2026-10-31 building [bug 0558](./fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s dangling-reference example; measured; no red
   test yet.
 - **Severity:** Medium — a false red with no fact-based remedy: a match in inline code, or in text
   an author escaped so it shows literally, is matched like markup, and no public block leaves it

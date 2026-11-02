@@ -5,7 +5,7 @@
 - **State:** Ready — frozen 2026-11-01 after two re-checks (architect · enforcement), the second
   Ready with changes and its changes applied (Review below)
 - **Implements:** [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)
-- **Priority:** High, [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
+- **Priority:** High, [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
   severity: this plan closes that bug's HTML half, a false green
   (`links().should().resolve()` passes over a broken `<a href>` today).
 - **Effort:** Medium. One owner for reading HTML attributes, and `links()` widened onto it.
@@ -19,7 +19,7 @@
 - **Decided on the review (2026-11-01), each overrulable:**
   - **Resolve directly, not unread first.** The `href` is read and resolved in one build; what the
     reader cannot read is reported as unread in the same build. This settles the open decision in
-    [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2, so
+    [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2, so
     no [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) amendment for
     suppressible unread findings is needed.
   - **One owner for reading HTML attributes** (`href`, `src`, `id`, `name`) in eess-md. `links()`
@@ -32,7 +32,7 @@
     unread, under a named cause.
   - **One change marked Breaking** (`**Breaking (@nielspeter/eess-md):**`, a minor on 0.x). No other
     package moves.
-  - [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s HTML half
+  - [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s HTML half
     closes done-otherwise against this plan, in the same PR.
 
 ## Problem
@@ -40,7 +40,7 @@
 `links()` reads `link` nodes and defined `linkReference` nodes
 (`packages/md/src/model/links.ts:197`); an `html` node is never scanned, so a broken
 `<a href="./gone.md">` is not examined and the rule is green
-([bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)). The only
+([bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)). The only
 recogniser, `OPENS_A`, answers yes or no, pulls out no value, over-matches `data-href` and misses
 `<a title="a>b" href=…>` (the review's survey, measured). The review also found that a misread
 `href` is a false green as well as a false red: the link walk feeds `beLinkedBack()`'s index
@@ -293,7 +293,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
 ### What changes for each reader of `links()`
 
 The changeset marks `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x, as
-[bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did. No
+[bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did. No
 other package moves: eess-crossvalidate never calls `links()`. The changeset and `docs/markdown.md`
 state each change, and each has a suite row:
 
@@ -332,7 +332,7 @@ draft said the changes would land in the proposal; that was this plan's mistake,
 dispositions below correct it.
 
 - [x] Record the corrections to the proposal's own text: `OPENS_A` is not a starting point for the
-      scan; Ask A narrowed [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
+      scan; Ask A narrowed [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
       measured scope without saying so; the entity example sat in a query string, where it cannot
       show decoding.
 - [ ] Rewrite the Priority line for "resolve directly" — done-otherwise: annotated in place in the
@@ -365,10 +365,18 @@ dispositions below correct it.
    The unread helper is shared (R5).
 2. **`links()` reads `href`.** `collectLinkBlocks` (`packages/md/src/model/links.ts:117`) yields an
    `MdLink` per `href` the owner reads (R1), the owner's causes become `md/unread-link` findings on the
-   subject side (R3, R4), the evidence side follows R6, `.select()` refuses (R7), and `block`/`blockPath`
-   follow R8. The docs and the changeset state each reader's change.
-   [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) is closed
+   subject side (R3, R4), `.select()` refuses (R7), and `block`/`blockPath` follow R8. The docs and the
+   changeset state each reader's change.
+   [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) is closed
    done-otherwise against this plan.
+3. **The evidence side (R6).** `sections().haveLink()` and `.beLinkedBack()` read an unread site as
+   undecided, not as no link; and so does the declaration scan, which today says a label "stands
+   alone with no list directly under it" when its list holds only an unread link (found by Phase 2's
+   testing review; the same root, an unread site read as absent). _Split from Phase 2 on the build
+   (2026-11-02), so each is one reviewable PR. Between the two, Phase 2 adds no false green: a
+   section or a target whose only link is unread is read as having none, as before this plan: red
+   with the wrong words in condition position, and, in predicate position (`.that().haveLink()`),
+   left out without a word, as every `<a href>` was._
 
 ## Files changed
 
@@ -603,6 +611,60 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   were renumbered; those naming code this phase removed (`OPENS_A`, `ONE_COMMENT`, `HTML_COMMENT`)
   are pinned "on `6bcd35e6`", the house form for code as it was.
 
+### Phase 2 — 2026-11-02, PR #297
+
+Built as frozen, except where noted:
+
+- **Split (above):** R6 is Phase 3.
+- **`split-tag` decided by its remedy** (the Phase 1 note): the owner parses the document again with
+  the blank line removed, and keeps `split-tag` only when the tag then finishes in its block
+  (`finishesOnceJoined`); the parser decides whether the block runs on, not a second reading of quotes
+  and list items. Rows: the four inputs that are now `unterminated`, and P15 and E3 still `split-tag`.
+  `readHtmlNode` takes its context as a required argument (`{ source, depth }` or `'no-source'`).
+- **The link walk** (`model/links.ts`) reads each `html` node through the owner and each paragraph,
+  heading and table cell through `inlineTagStarts`, with the blockquote depth passed down; an `<a>`'s
+  `.text` is `elementText` in a block, or the inline nodes up to its `</a>`. `unreadLinksOf` gives the
+  unread sites with their `sectionPath`.
+- **The builder** (`builders/links.ts`): `md/unread-link` (exported as `UNREAD_LINK`), one finding per
+  site per rule, through the shared `unreadFinding`, which now owns `bypassFilters` for `mentions()`
+  too (the review's M5); `select()` refuses through the kernel's `refuseUndecided`.
+- **`check:corpus` counts its links from the rule's receipt** (`examined`), not `.select()`: with R7,
+  a selection refuses at an unread link, which there is a finding to report, not a crash. Its count is
+  unchanged (8,127 internal links today).
+- **Nonvacuity:** one row, `corpus/links/html`, one probe through the production gate, three sites
+  each asserted by its message (a readable broken `href` in a block, an unquoted-`/` site, an
+  unterminated tag), one pair of `check:corpus` runs (16 s); red, naming the read site, with the HTML
+  reader emptied.
+- **The invariant row** (deferred from Phase 1) is built at the `links()` level, over every Measured
+  row and P, Q and B probe: each input ends read, with a cause, or silent, as listed.
+- **Sabotage, each red then green:** the HTML reader emptied, the inline scan emptied, the unread
+  findings dropped, `select()` not refusing, `split-tag` always kept, `bypassFilters` false, the
+  blockquote depth not counted (by the E3 row, added at the `links()` level for it).
+- **Review (architect · enforcement · a fresh testing lens, 2026-11-02), each Approve with changes;
+  applied:** `split-tag` matched by the tag's offset in its block, not its line, which an earlier
+  tag can share; the whole run of blank lines removed for the check; an inline `<a>`'s `.text` cuts
+  tags (`Read <b>this</b>` is `Read this`, an `<img>` alone is empty); the inline kinds in an
+  exhaustive `switch`, so a new kind does not compile until it is handled; `inlineTagStartsOf`
+  deleted (its rows walk containers in the test); the link walk memoized per tree (`check:corpus`
+  8.04 s before, 7.62 s after, one run each); `check:corpus` counts unread links apart from broken
+  ones; rows for each sabotage that stayed green: a heading, a quoted paragraph and a quoted table
+  (the inline scan's depth), an unfinished `<area>`, `areInSection()` and `areLabelled()` reaching an
+  unread site and deciding out one elsewhere, a `.text`-reading predicate, the positive
+  `beLinkedBack()`/`haveLink()` through an `href`, the zero-examined sentence; the invariant table
+  asserts each site's line and cause. Eleven sabotages, each red, the last a compile error.
+- **The reviews' confirmation pass** (all three: applied) found three minors, fixed with rows:
+  `split-tag`'s remedy says "the blank lines", since the check joins the whole run; an inline `<a>`'s
+  `.text` collapses whitespace as the block path does; the memoized walk's arrays are typed read-only,
+  so the compiler holds every caller to not writing them.
+- **Shards:** `corpus/links/html` runs in shard 4 and `arch/md-one-html-attribute-reader` in shard 2
+  (position mod 4, read from a full run's order), not
+  [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard 3.
+- **The baseline row** of the inventory is the `bypassFilters` assertion: a baseline keys on that
+  field, and the kernel's own tests pin it, as for `mentions()`.
+- **`.warn()`** on a rule with an unread link throws, as a terminal escalates an unsuppressable
+  finding; the row asserts the thrown violations. A baseline keys on `bypassFilters`, which the row
+  asserts; the kernel's own tests pin a baseline's handling of it.
+
 ## Progress ledger
 
 - [x] Reviewed, as [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s Review
@@ -613,7 +675,8 @@ Built as frozen, except where noted. Each difference is a decision on the build,
       (Second re-check above)
 - [x] Ready (2026-11-01)
 - [x] Phase 1 — the attribute owner (PR #296; Build notes below)
-- [ ] Phase 2 — `links()` reads `href`
+- [x] Phase 2 — `links()` reads `href` (PR #297; Build notes below)
+- [ ] Phase 3 — the evidence side (R6)
 - [ ] Sabotage matrix, all red
 
 Deferred: none

@@ -273,9 +273,21 @@ const repoLinkRule = links(c).that().areInternal().should().resolve(REPO_OPTS).r
 // The element set (which links count as "internal") is options-independent,
 // so either rule's .select() reports the same total — the split only changes
 // which options apply to which link's resolution, not how many are checked.
-const linksChecked = linkRule.select({ label: 'link', ...anon }).elements.length
+// Counted from the rule's receipt, not `.select()`: a selection refuses once it reaches an HTML
+// link eess-md cannot read (plan 0580, R7), and here that link is a finding to report.
+const linkFindings = linkRule.violations()
+/** "✓ all resolve", or the broken links and the unread HTML links (plan 0580), counted apart. */
+const linkVerdict = () => {
+  if (broken.length === 0) return '✓ all resolve'
+  const unread = broken.filter((v) => v.ruleId === 'md/unread-link').length
+  const missing = broken.length - unread
+  return `✗ ${[missing > 0 ? `${missing} broken` : '', unread > 0 ? `${unread} unread` : '']
+    .filter(Boolean)
+    .join(' · ')}`
+}
+const linksChecked = linkFindings.examined
 const broken = [
-  ...linkRule.violations().filter((v) => !isRepoNativeLink(relTo(v.file))),
+  ...linkFindings.filter((v) => !isRepoNativeLink(relTo(v.file))),
   ...repoLinkRule.violations().filter((v) => isRepoNativeLink(relTo(v.file))),
 ]
 
@@ -1681,10 +1693,7 @@ line(
   'documents',
   `${liveDocs.length} live · ${frozenCount} frozen (history — broken links still fail; pointers unchecked)`,
 )
-line(
-  'links',
-  `${linksChecked} internal · ${broken.length === 0 ? '✓ all resolve' : `✗ ${broken.length} broken`}`,
-)
+line('links', `${linksChecked} internal · ${linkVerdict()}`)
 line(
   'pointers',
   // Split by what the violation actually says. Calling a *broken* pointer

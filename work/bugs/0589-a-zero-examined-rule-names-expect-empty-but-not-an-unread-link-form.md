@@ -68,7 +68,7 @@ Output (0.15 s wall time):
 ```
 
 The same holds for a corpus whose only link is a raw HTML link, the other unread form
-([bug 0558](./0558-a-reference-style-or-raw-html-link-is-never-examined.md), Fix 2, still open).
+([bug 0558](./fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md), Fix 2, still open).
 `<p align="center"><a href="./gone.md">Guide</a></p>` (0.13 s):
 
 ```text
@@ -104,7 +104,7 @@ dialect materialises, not the project):
   `.expectEmpty()` as an empty source and a selector fault already do, so the declaration cannot
   turn the corpus green. Which forms eess-md recognises as unread, and how, is
   [proposal 015](../proposals/015-md-wikilinks-are-read-or-reported.md)'s question for wikilinks and
-  [bug 0558](./0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2's for raw HTML.
+  [bug 0558](./fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2's for raw HTML.
   This bug must not decide either. It owns the kernel's message and the precedence slot both can use.
 
 ## Verification

@@ -22,6 +22,8 @@ export type {
   ArchFix,
   // Plan 0550: `beLinked({ fix })` names the records as a selection, which a caller builds.
   Selection,
+  // Plan 0580: `links().select()` takes an `identify` that returns one.
+  ElementInfo,
   PresetReportOptions,
   PresetBaseOptions,
 } from '@nielspeter/eess'
@@ -103,7 +105,7 @@ export type { ArchViolation } from './model/violation.js'
 
 // Entry points
 export { docs, DocsRuleBuilder } from './builders/docs.js'
-export { links, LinkRuleBuilder } from './builders/links.js'
+export { links, LinkRuleBuilder, UNREAD_LINK } from './builders/links.js'
 export type { MdLink } from './builders/links.js'
 export type { MdLinkBlock, MdLinkDefinition } from './model/links.js'
 export type { LinkResolveOptions } from './conditions/resolve.js'

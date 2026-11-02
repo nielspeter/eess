@@ -18,7 +18,7 @@
 text that matched. When one line holds two matches, the two findings are identical, in
 `violations()` and in `check()`'s output alike.
 
-This is the shape [bug 0558](./0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
+This is the shape [bug 0558](./fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
 dangling-reference example ships (`examples/md/a-reference-with-no-definition-is-reported.test.ts`).
 Its three violating fixtures pin the message `docs/guide.md:3 should not exist`
 (`examples/md/a-reference-with-no-definition-is-reported.test.ts:52`). A reference whose

@@ -200,10 +200,13 @@ export function phrasingOf(
           // quoted `>` does not end the tag (bug 0593). Only an `<a>` holds text: an `<area>` is void.
           if (
             link === undefined &&
-            readHtmlNode(node).starts.some((t) => t.name === 'a' && isLinkStart(t))
+            readHtmlNode(node, 'no-source').starts.some((t) => t.name === 'a' && isLinkStart(t))
           )
             htmlLink ??= { text: '', line: lineOf(node) }
-          else if (htmlLink !== undefined && readHtmlNode(node).ends.some((e) => e.name === 'a')) {
+          else if (
+            htmlLink !== undefined &&
+            readHtmlNode(node, 'no-source').ends.some((e) => e.name === 'a')
+          ) {
             unread.push({ text: htmlLink.text, line: htmlLink.line, cause: 'html-link' })
             htmlLink = undefined
           }

@@ -2,11 +2,11 @@
 
 ## Status
 
-- **State:** Draft — part (a), reference-style links read as links, fixed 2026-10-30 in PR #282
+- **State:** Fixed — the HTML half (Fix 2) by [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s Phase 2 (PR #297): `links()` reads an `href` in raw HTML and resolves it, and reports one it cannot read as `md/unread-link`. Before that: part (a), reference-style links read as links, fixed 2026-10-30 in PR #282
   (Fix 1's first two bullets); part (b), a dangling reference, done otherwise 2026-10-31 in PR
   #284: it is not a link, so it is found with the family's pattern for text of a named shape,
   `mentions()` and an absence rule, shown in `examples/md/a-reference-with-no-definition-is-reported.test.ts` (see "Part (b), decided"); a match in
-  inline code or written escaped is still reported, deferred to [bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md). Open: the HTML half
+  inline code or written escaped is still reported, deferred to [bug 0571](../0571-a-mention-cannot-be-selected-by-how-it-is-written.md). Open: the HTML half
   (Fix 2). Measured on the v0.16.0 build (eess-md
   0.13.0), Node 24.22.0; amended 2026-10-30 after PR #280's method and enforcement reviews.
 - **Severity:** High — a false green: `links().should().resolve()` passes over a broken link
@@ -35,7 +35,7 @@ renamed. The reference then is not a reference at all: the parser leaves `[text]
 text (measured: `A [full][gone] and [collapsed][] and [shortcut].` with no definition is one
 `text` node), GitHub shows the brackets literally, and no rule sees it.
 
-Why the HTML half is a bug when [proposal 015](../proposals/015-md-wikilinks-are-read-or-reported.md)
+Why the HTML half is a bug when [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)
 filed wikilinks as a proposal: an `<a href>` renders as a link on GitHub, and `links()` is "rules
 over the corpus's markdown links" (`packages/md/src/builders/links.ts:149`); a wikilink renders as
 text, so no shipped rule claims it.
@@ -115,7 +115,7 @@ Two parts, one root cause:
    - **The finding names the definition's line**, where the URL the author must edit is, and one
      definition used by several references gives one finding and at most one fix: the fix's span
      lies in the definition, and overlapping fixes that differ are dropped (`packages/core/src/apply-fixes.ts:65`;
-     identical ones are one edit since [bug 0564](./fixed/0564-two-identical-fixes-cancel-each-other.md)).
+     identical ones are one edit since [bug 0564](./0564-two-identical-fixes-cancel-each-other.md)).
    - **A dangling full or collapsed reference is reported**: `[text][label]` or `[label][]` outside
      code whose label has no definition, read from the source text by offset, since the parser
      unescapes `\[a\]\[b\]` into the text `[a][b]`. "reference has no definition" at its line,
@@ -133,7 +133,7 @@ Two parts, one root cause:
      holding only `matrix[i][j]`, and an `areLabelled()` declaration lost its "names no record"
      finding) and false reds (26 of 29 findings across 566 READMEs were text the author meant:
      d3's `[, accessor]` notation, array indexing). The maintainer: follow the established
-     pattern, which is [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)'s: the root offers building blocks, and a shape ships as an
+     pattern, which is [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md)'s: the root offers building blocks, and a shape ships as an
      example. A dangling reference is text of a shape the corpus names, not a link, and the
      family finds such text with `mentions(corpus, { pattern })`; `examples/md/a-reference-with-no-definition-is-reported.test.ts` pairs it with an absence
      rule (`.should().notExist()`, as `examples/md/box-marks.test.ts` does), leaving out matches in
@@ -143,7 +143,7 @@ Two parts, one root cause:
      definition (`[![npm][npm-image]][npm-url]`, read as `[][npm-url]`) is reported; link text
      holding balanced brackets (`[a [b] c][gone]`) is beyond one regex and is not. A match in
      inline code or written escaped is still reported, since no public block selects either:
-     [bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
+     [bug 0571](../0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
 2. **Report raw HTML links as unread.**
    - An `href` that is not external (`EXTERNAL_RE`, `packages/md/src/model/external.ts:6`) on an
      `<a>` or `<area>`, any letter case and quoted or unquoted, is reported as unread, so the rule
@@ -163,29 +163,29 @@ Two parts, one root cause:
      inside the HTML block so it is parsed as Markdown (`<p align="center">`, a blank line,
      `[Guide](./guide.md)`, a blank line, `</p>`).
    - **Decided 2026-11-01 (overrulable): resolve the `href`, do not report it unread.** Reached in
-     the review of [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md), whose ruling
+     the review of [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md), whose ruling
      lands with its amended text and plan in their own PR; the reasoning is recorded here. An unread finding cannot be suppressed
-     ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5), and for a
+     ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5), and for a
      sized logo or a `target` link its only remedy would be deleting a correct link, against
-     [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2. Resolving gives a broken
+     [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2. Resolving gives a broken
      `href` the remedy "fix the path", and what the reader cannot parse is reported unread with the
      remedy "write it in a form eess-md reads". So this half is to close done-otherwise against the
-     plan that builds [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md), through one
+     plan that builds [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md), through one
      shared reader of HTML attributes. The decision as first recorded:
    - **Open, decided before the fix is built (superseded above):** some HTML has no Markdown remedy. A README logo
      sized with `width` (`<a href="./docs/"><img src="logo.svg" width="120"></a>`) cannot be
      written in Markdown, and `md/unread-mention`, the precedent, cannot be suppressed
      (`packages/md/src/builders/mentions.ts:201`). So either the unread finding can be suppressed
-     per cause, with a reason, or this fix resolves the `href` ([proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s ask) instead of
-     reporting it unread; and [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s priority, which assumes "red with unread" is
+     per cause, with a reason, or this fix resolves the `href` ([proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s ask) instead of
+     reporting it unread; and [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s priority, which assumes "red with unread" is
      acceptable, follows that decision.
-   - Resolving the `href` is a new capability, [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md).
+   - Resolving the `href` is a new capability, [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md).
 3. **The docs.** `docs/markdown.md:232` and `docs/markdown.md:690` state what `links()` reads, and
    change with it.
 
 Images (`![alt](./x.png)`, `![alt][ref]`, `<img src>`) are not read either, measured; `links()`
 does not claim them (`docs/markdown.md:232`), so they are
-[proposal 024](../proposals/024-md-an-images-file-exists.md)'s, not this bug's.
+[proposal 024](../../proposals/024-md-an-images-file-exists.md)'s, not this bug's.
 
 **A break.** Builds that are green today go red where a reference link is broken, so the changeset
 marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
@@ -207,10 +207,10 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
 - [ ] A dangling shortcut `[WIP]`, a task box and `> [!NOTE]` produce nothing. done-otherwise: the
       example's clean fixture holds a task box, `[WIP]` and an alert, and reports nothing.
 - [ ] An escaped `\[a\]\[b\]` produces nothing; `matrix[i][j]` is reported with a code-span remedy
-      that clears it. deferred→[bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md): both are still reported by the example's rule (measured),
+      that clears it. deferred→[bug 0571](../0571-a-mention-cannot-be-selected-by-how-it-is-written.md): both are still reported by the example's rule (measured),
       since no public block selects a match in inline code or written escaped; a waiver comment
       with the rule's id clears a line. (Corrected 2026-11-01, from
-      [proposal 023](../proposals/023-md-a-footnote-reference-has-its-definition.md)'s review: this
+      [proposal 023](../../proposals/023-md-a-footnote-reference-has-its-definition.md)'s review: this
       note first said the absence rule's finding names no remedy beyond its `because`, but
       `.rule({ suggestion })` gives it one.)
 - [x] Two references to one broken definition give one finding at the definition's line, and at
@@ -218,11 +218,17 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
 - [x] A label matched by Unicode case fold (`[Text][FOO]` with `[foo]: …`, and `[STRASSE]` with
       `[straße]: …`) is resolved.
 - [x] `examined` counts the reference links.
-- [ ] Red test: the reproduction's `<a href>` produces an unread finding. Green today.
+- [ ] Red test: the reproduction's `<a href>` produces an unread finding. Green today. —
+      done-otherwise: by the review's decision 1 a readable `<a href>` is resolved, not reported
+      unread; its broken-link rows are `packages/md/tests/links-html.test.ts`, red with the HTML
+      reader emptied.
 - [ ] An external `<a href="https://…">` and `<!-- <a href="./x.md"> -->` produce nothing;
       `<A HREF=./x.md>`, `p <a href=./x.md>` (a text node to the parser) and a single-quoted
-      `href` are reported, at the `href`'s own line.
-- [ ] The unread finding's remedy, applied, clears it.
+      `href` are reported, at the `href`'s own line. — done-otherwise: the first two produce
+      nothing; an upper-case or single-quoted `href` is read and resolved at its own line; an
+      unquoted `href` holding `/` in a paragraph is reported as `md/unread-link`
+      (`unquoted-slash`); each a row in `links-html.test.ts`.
+- [x] The unread finding's remedy, applied, clears it (one row per cause in `links-html.test.ts`).
 - [ ] A nonvacuity row reddens on a broken reference-style link, and one on an internal
       `<a href>`, each asserting the message, not only the rule id. The reference half is in
       (PR #282): `corpus/declared-block/reference-declaration`, in place of the
@@ -230,17 +236,18 @@ marks it `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x.
       the old build. It is fixture-tier: it drives the builder over a fixture root, and this
       repository's own `check:corpus` examines no reference-style link, since its corpus holds
       none; a probe through the production gate was left out for its cost per nonvacuity run
-      ([bug 0552](./0552-nonvacuity-shard-3-runs-near-its-timeout.md)). The dangling half needs no row of its own: its example's
-      fixtures are swapped by `check:nonvacuity`'s examples row. The `<a href>` half is open.
+      ([bug 0552](../0552-nonvacuity-shard-3-runs-near-its-timeout.md)). The dangling half needs no row of its own: its example's
+      fixtures are swapped by `check:nonvacuity`'s examples row. The `<a href>` half:
+      `corpus/links/html`, through the production gate, three sites asserted by their messages. —
+      done-otherwise: the reference half is fixture-tier, as recorded.
 - [x] The declared-block nonvacuity rows still fire only their own finding: the probe that held
       reference links unread is now `scripts/nonvacuity/bad-declared-block/reference.md`, and all
       ten scenarios pass on the new build.
-- [ ] A changeset naming `@nielspeter/eess-md`, marked `**Breaking (@nielspeter/eess-md):**`. Part
+- [x] A changeset naming `@nielspeter/eess-md`, marked `**Breaking (@nielspeter/eess-md):**`. Part
       (a)'s is `.changeset/a-reference-link-is-a-link.md`; (b) ships no behaviour (an example), and
       its label-as-written change is `.changeset/a-definitions-label-as-written.md`, a patch; the
-      HTML half adds its own.
-- [ ] `npm run validate` green.
+      HTML half's is `.changeset/links-read-an-html-href.md`.
+- [x] `npm run validate` green.
 
-Deferred: resolving a raw HTML link → [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md);
-images → [proposal 024](../proposals/024-md-an-images-file-exists.md); selecting a mention in inline code or written escaped →
-[bug 0571](./0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
+Deferred: images → [proposal 024](../../proposals/024-md-an-images-file-exists.md); selecting a mention in inline code or written escaped →
+[bug 0571](../0571-a-mention-cannot-be-selected-by-how-it-is-written.md).

@@ -2775,6 +2775,47 @@ function gateCorpusLinksSite() {
   )
 }
 
+// Plan 0580 Phase 2: links() reads an `href` in raw HTML and reports one it cannot read. One probe,
+// one run, three sites, each asserted by its own message, so each half of the reader reds alone: a
+// readable broken `href` in an HTML block (the `html` node reader), an `<a>` micromark left as text
+// for an unquoted `/` (the inline scan), and a tag its block never closes (the unfinished cause).
+const CORPUS_PROBE_HTML_LINKS_MD = [
+  '# Non-vacuity probe',
+  '',
+  '<div>',
+  '<a href="./__nonvacuity_html_gone__.md">gone</a>',
+  '</div>',
+  '',
+  'See <a href=./__nonvacuity_unquoted__.md title=a/b>x</a> here.',
+  '',
+  '<div>',
+  '<a href="./__nonvacuity_open__.md>x</a>',
+  '</div>',
+  '',
+].join('\n')
+
+function gateCorpusHtmlLinks() {
+  const { json, terminal } = withProbe(PROBE_CORPUS_LINK_SITE, CORPUS_PROBE_HTML_LINKS_MD, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const probe = '__nonvacuity_probe_site__'
+  const sites = {
+    read: firedNamingPayload(json, 'corpus/broken-links', probe, '__nonvacuity_html_gone__'),
+    unquoted: firedNamingPayload(json, 'md/unread-link', probe, 'reads its tag as text'),
+    unterminated: firedNamingPayload(json, 'md/unread-link', probe, 'never closes'),
+  }
+  const ok = json.code === 1 && terminal.code === 1 && Object.values(sites).every(Boolean)
+  return {
+    ok,
+    detail:
+      `bad → json exit ${json.code}, terminal exit ${terminal.code}; ` +
+      Object.entries(sites)
+        .map(([k, v]) => `${k}: ${v ? 'fired' : 'MISSING'}`)
+        .join(' · '),
+  }
+}
+
 // The other half of the same split — `broken` unions two independently
 // filtered spreads (`scripts/check-corpus.mjs:115-118`), so a probe in only
 // one region cannot prove the other branch is wired. Two rows, not one,
@@ -5076,6 +5117,7 @@ const gates = [
   // routing region bug 0086 split `broken` into — a single probe cannot
   // prove the other region's spread is still wired.
   ['corpus/links/site', gateCorpusLinksSite],
+  ['corpus/links/html', gateCorpusHtmlLinks],
   ['corpus/links/repo-native', gateCorpusLinksRepoNative],
   ['corpus/links/work-root', gateCorpusWorkRoot],
   // Bug 0086's review round: check-corpus.mjs's directory-link routing
@@ -5850,6 +5892,7 @@ const GATE_FOR = {
     'corpus/undocumented-waiver',
     'corpus/adr',
     'corpus/links/site',
+    'corpus/links/html',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',

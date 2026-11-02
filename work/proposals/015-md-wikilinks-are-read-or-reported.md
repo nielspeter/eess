@@ -47,7 +47,7 @@ unchanged._
 - **The closest precedent is reporting what cannot be read.** [Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s declaration scan reports a
   declaration made of reference-style links as one eess-md "does not read", rather than skipping it
   ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 7).
-  _Corrected 2026-11-01 (review): that finding no longer exists; it was removed when [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made reference-style links read as links. The live precedents are `md/unread-mention` (`packages/md/src/builders/mentions.ts:40`, with its findings built at `packages/md/src/builders/mentions.ts:186`) and [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2._
+  _Corrected 2026-11-01 (review): that finding no longer exists; it was removed when [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made reference-style links read as links. The live precedents are `md/unread-mention` (`packages/md/src/builders/mentions.ts:40`, with its findings built at `packages/md/src/builders/mentions.ts:186`) and [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2._
 
 ## Asks
 
@@ -136,11 +136,11 @@ the template learns from them.
     `packages/md/src/model/prose.ts:143` and `packages/md/src/model/prose.ts:149`.
   - The "closest precedent", [plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s
     finding for a declaration made of reference-style links, no longer exists. It was removed when
-    [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made
+    [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made
     reference-style links read as links. The live precedents are `md/unread-mention`
     (`packages/md/src/builders/mentions.ts:40`, with its findings built at
     `packages/md/src/builders/mentions.ts:186`) and
-    [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2.
+    [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2.
   - "Measured" names `8db0605` and eess-md 0.8.0. The reviewers re-ran it on eess-md 0.13.0, and the
     result is unchanged.
 - **Out of scope does not hold together for MediaWiki.** It shares the syntax. It can be excluded
@@ -154,12 +154,12 @@ the template learns from them.
   [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)) finds wikilinks in prose,
   with aliases and embeds, and fenced blocks are already clean. It false-reds a match in inline code
   or written escaped: that is [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
-  It is the shape [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
+  It is the shape [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
   part (b) was resolved to, as the opt-in example
   `examples/md/a-reference-with-no-definition-is-reported.test.ts`, under
   [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md).
 - **Ask A inside `links()` is new, and it shares a channel that is not built yet.** `links()` has no
-  unread or `bypassFilters` path. [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
+  unread or `bypassFilters` path. [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
   Fix 2 (decided 2026-11-01: raw HTML is resolved, not reported unread; see that bug) specified that channel for raw HTML links: not counted in `examined`, not
   silenced by `.expectEmpty()`, reported at the link's own line. Whichever is built first builds it
   for both. The kernel's path for a subject a rule cannot judge is `undecidedViolations`
@@ -225,7 +225,7 @@ be overruled.
       read [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) as "a renderer's rule is not a document's shape"; this would apply that reading a
       second time and widen it from anchors to link syntax and name lookup, which is a binding
       decision.
-   4. The build, after [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
+   4. The build, after [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
       Fix 2 and [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
 3. **The "count beside a green" branch is deleted**, on
    [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1,
@@ -239,7 +239,7 @@ be overruled.
   reds, with a message that leads with `.expectEmpty()`. Following it gives a green with 0 findings
   (enforcement, measured). The rewrite needs this as a break class, and must state the precedence:
   a wikilink finding outranks `.expectEmpty()`, is not counted in `examined`, and bypasses filters,
-  as [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2 decided
+  as [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2 decided
   for HTML.
 - **`[[Page]]` beside a `[Page]: ./b.md` definition.** It parses as `[`, a shortcut reference and
   `]`, and `links()` resolves it to `b.md`: a false green under a wiki reading. A scan by source
@@ -279,7 +279,7 @@ be overruled.
   rule 5 and [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4 give one
   finding per cause per rule, naming the links it covers. `md/unread-mention` reports one per
   occurrence, and a vault with thousands of wikilinks must not get one finding per link. Share one id
-  with [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2;
+  with [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2;
   product suggests `md/unread-link`, with a cause per form.
 - **Cache scope.** A scan whose result depends on a declared reading caches per rule and options, as
   [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 3 does, never per
@@ -303,7 +303,7 @@ be overruled.
   memo, and adds a dependency that bakes in one tool's syntax. Product's constraint: with no reading
   declared, behaviour is byte-identical.
 - **Suppression, decided for raw HTML.**
-  [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2's
+  [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2's
   sub-decision (may an unread finding with no Markdown remedy be suppressed per cause?) is settled
   for raw HTML by resolving the `href` instead (recorded in that bug, 2026-11-01). For wikilinks the
   question does not arise the same way: under a declared reading a wikilink is resolved, and only a

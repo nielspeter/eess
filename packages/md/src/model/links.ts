@@ -5,6 +5,13 @@ import type { MdDocument } from './document.js'
 import { sectionPathAt } from './sections.js'
 import { definitionsOf, type MdLinkDefinition } from './definitions.js'
 import { destinationAt, writtenAt } from './destination.js'
+import {
+  attributeOf,
+  elementText,
+  inlineTagStarts,
+  isLinkStart,
+  readHtmlNode,
+} from './html-attributes.js'
 
 export type { MdLinkDefinition } from './definitions.js'
 
@@ -82,6 +89,25 @@ export interface MdLinkBlock {
   readonly text: string
 }
 
+/**
+ * Why an HTML link could not be read (plan 0580, R3): a tag its `html` node ended inside, cut by a
+ * blank line it would finish without (`split-tag`) or not (`unterminated`); or a tag micromark left as
+ * text, for an unquoted value holding `/` (`unquoted-slash`) or for a reason no measurement explains
+ * (`refused-tag`).
+ */
+export type UnreadLinkCause = 'split-tag' | 'unterminated' | 'unquoted-slash' | 'refused-tag'
+
+/** An HTML link eess-md cannot read: where it sits, and why. Its URL and target are unknowable. */
+export interface MdUnreadLinkRef {
+  readonly line: number
+  readonly cause: UnreadLinkCause
+  /** For `unquoted-slash`: every attribute whose unquoted value holds a `/`. */
+  readonly attributes?: readonly string[]
+  readonly block?: MdLinkBlock
+  readonly blockPath?: readonly MdLinkBlock[]
+  readonly sectionPath?: readonly string[]
+}
+
 /** A label written where no block starts — read by `areLabelled()`'s declaration scan. */
 interface MdUnreadLabel {
   readonly line: number
@@ -107,22 +133,52 @@ function strongLabel(node: Nodes, next: Nodes | undefined): string | undefined {
   return undefined
 }
 
+/** The text a reader sees in an inline node: text and inline code, never a tag. */
+function seenText(node: Nodes): string {
+  if (node.type === 'text' || node.type === 'inlineCode') return node.value
+  if ('children' in node) return node.children.map(seenText).join('')
+  return ''
+}
+
+type LinkBlocks = ReturnType<typeof walkLinkBlocks>
+
 /**
- * Collect markdown links from a document tree: inline (`[text](url)`) and reference-style (bug
- * 0558), each with the blocks that enclose it; plus every block, and every label written where no
- * block starts (later in a paragraph, in a table cell, in a heading), which therefore declares
- * nothing. Links inside fenced code are not parsed as link nodes by mdast, so they are naturally
- * excluded, and the parser makes a reference-style link only where its label is defined.
+ * One walk per document tree and source (plan 0580): `links()`'s elements, its unread sites,
+ * `beLinkedBack()`'s index and the declaration scan all read it, and a tree is never mutated once
+ * built. Callers read the arrays and never write to them.
  */
-export function collectLinkBlocks(
+const walked = new WeakMap<
+  Root,
+  { readonly source: string | undefined; readonly blocks: LinkBlocks }
+>()
+
+/**
+ * Collect the links from a document tree: Markdown inline (`[text](url)`) and reference-style (bug
+ * 0558) links, and every `href` on an `<a>` or `<area>` in raw HTML (plan 0580), each with the
+ * blocks that enclose it; the HTML links that cannot be read; every block; and every label written
+ * where no block starts (later in a paragraph, in a table cell, in a heading), which therefore
+ * declares nothing. A Markdown link in fenced code is not parsed as a link node; an `href` in a fence
+ * inside an HTML block is read, since GitHub renders it as a link (D4).
+ */
+export function collectLinkBlocks(root: Root, source?: string): LinkBlocks {
+  const known = walked.get(root)
+  if (known !== undefined && known.source === source) return known.blocks
+  const blocks = walkLinkBlocks(root, source)
+  walked.set(root, { source, blocks })
+  return blocks
+}
+
+function walkLinkBlocks(
   root: Root,
   source?: string,
 ): {
-  links: MdLinkRef[]
-  blocks: MdLinkBlock[]
-  unreadLabels: MdUnreadLabel[]
+  readonly links: readonly MdLinkRef[]
+  readonly blocks: readonly MdLinkBlock[]
+  readonly unreadLabels: readonly MdUnreadLabel[]
+  readonly unreadLinks: readonly MdUnreadLinkRef[]
 } {
   const out: MdLinkRef[] = []
+  const unreadLinks: MdUnreadLinkRef[] = []
   const lines = source?.split('\n') ?? []
   const blocks: MdLinkBlock[] = []
   const definitions = definitionsOf(root, source)
@@ -141,24 +197,108 @@ export function collectLinkBlocks(
     return [...path, block]
   }
 
+  const at = (path: readonly MdLinkBlock[]) =>
+    path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}
+
+  /**
+   * An `html` node (plan 0580, Phase 2): each `<a>` or `<area>` with an `href` is a link at the
+   * line its `href` sits on (R1), and each such tag the node ends inside is unread (R3). The text of
+   * an `<a>` is what the node holds before its `</a>`, or else the inline nodes after it up to one.
+   */
+  const html = (
+    node: Nodes,
+    after: readonly Nodes[],
+    path: readonly MdLinkBlock[],
+    depth: number,
+  ): void => {
+    if (node.type !== 'html') return
+    const read = readHtmlNode(node, source === undefined ? 'no-source' : { source, depth })
+    for (const tag of read.starts) {
+      const href = isLinkStart(tag) ? attributeOf(tag, 'href') : undefined
+      if (href === undefined) continue
+      let text = tag.name === 'a' ? elementText(node.value, tag, read) : ''
+      if (text === undefined) {
+        // An inline `<a>`: its text is what a reader sees in the nodes up to its `</a>`. A tag
+        // between them (`<b>`, `<img>`) is HTML, never text.
+        text = ''
+        for (const next of after) {
+          if (
+            next.type === 'html' &&
+            readHtmlNode(next, 'no-source').ends.some((e) => e.name === 'a')
+          )
+            break
+          text += seenText(next)
+        }
+      }
+      out.push({
+        url: href.value,
+        text: text.replace(/\s+/g, ' ').trim(),
+        line: href.line,
+        external: EXTERNAL_RE.test(href.value),
+        ...at(path),
+      })
+    }
+    for (const u of read.unfinished) {
+      if (u.name === 'a' || u.name === 'area')
+        unreadLinks.push({ line: u.line, cause: u.cause, ...at(path) })
+    }
+  }
+
+  /** A paragraph, heading or table cell: the HTML links micromark left as text (R3, D7). */
+  const inline = (node: Nodes, path: readonly MdLinkBlock[], depth: number): void => {
+    if (source === undefined) return
+    if (node.type !== 'paragraph' && node.type !== 'heading' && node.type !== 'tableCell') return
+    for (const start of inlineTagStarts(node, source, depth)) {
+      // Every kind is named, so a new one is a compile error, not a site dropped (R3's "by
+      // construction"). `refused-tag` has no input that reaches it today: it is the report a refusal
+      // nobody has measured gets, so it stays though no row can drive it here.
+      switch (start.kind) {
+        case 'unquoted-slash':
+          unreadLinks.push({
+            line: start.line,
+            cause: 'unquoted-slash',
+            attributes: start.attributes,
+            ...at(path),
+          })
+          break
+        case 'refused-tag':
+          unreadLinks.push({ line: start.line, cause: 'refused-tag', ...at(path) })
+          break
+        case 'not-a-tag': // a named silence: GitHub renders it as text
+        case 'no-href': // a named silence: an anchor, not a link
+          break
+        default: {
+          // Exhaustive: a kind added to `InlineTagStart` without a case here does not compile.
+          const unknown: never = start
+          void unknown
+        }
+      }
+    }
+  }
+
   const visitChildren = (
     parent: Nodes,
     children: readonly Nodes[],
     path: readonly MdLinkBlock[],
+    depth: number,
   ): void => {
     for (let i = 0; i < children.length; i++) {
       const child = children[i]
       if (child === undefined) continue
+      if (child.type === 'html') {
+        html(child, children.slice(i + 1), path, depth)
+        continue
+      }
       // A label alone on its paragraph encloses the lists directly after it — every
       // one, since a changed bullet starts a new list.
       if (child.type === 'paragraph' && children[i + 1]?.type === 'list') {
         const label = blockOf(child)
         if (isLabelAlone(label.text)) {
           const inner = enter(path, label)
-          visit(child, inner)
+          visit(child, inner, depth)
           while (children[i + 1]?.type === 'list') {
             const list = children[i + 1]
-            if (list !== undefined) visit(list, inner)
+            if (list !== undefined) visit(list, inner, depth)
             i++
           }
           continue
@@ -181,19 +321,23 @@ export function collectLinkBlocks(
           unreadLabels.push({ line, label, reason: 'format' })
         }
       }
-      visit(child, path)
+      visit(child, path, depth)
     }
   }
 
-  const visit = (node: Nodes, path: readonly MdLinkBlock[]): void => {
+  const visit = (node: Nodes, path: readonly MdLinkBlock[], depth: number): void => {
     if (node.type === 'heading') {
-      visitChildren(node, node.children, [])
+      inline(node, [], depth)
+      visitChildren(node, node.children, [], depth)
       return
     }
     if (node.type === 'listItem' || node.type === 'paragraph') {
-      visitChildren(node, node.children, enter(path, blockOf(node)))
+      const inner = enter(path, blockOf(node))
+      inline(node, inner, depth)
+      visitChildren(node, node.children, inner, depth)
       return
     }
+    if (node.type === 'tableCell') inline(node, path, depth)
     if (node.type === 'linkReference') {
       const site = definitions.get(node.identifier)
       // The parser makes a `linkReference` only where its label is defined, and both carry the same
@@ -210,7 +354,7 @@ export function collectLinkBlocks(
         urlStart: site.urlStart,
         urlEnd: site.urlEnd,
         definition: { label: site.label, line: site.line },
-        ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
+        ...at(path),
       })
     }
     if (node.type === 'link') {
@@ -239,21 +383,19 @@ export function collectLinkBlocks(
         external: EXTERNAL_RE.test(node.url),
         urlStart,
         urlEnd,
-        ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
+        ...at(path),
       })
     }
-    if ('children' in node) visitChildren(node, node.children, path)
+    if ('children' in node)
+      visitChildren(node, node.children, path, node.type === 'blockquote' ? depth + 1 : depth)
   }
 
-  visitChildren(root, root.children, [])
-  return { links: out, blocks, unreadLabels }
+  visitChildren(root, root.children, [], 0)
+  return { links: out, blocks, unreadLabels, unreadLinks }
 }
 
-/**
- * Collect markdown links, inline and reference-style, from a document tree. Links inside fenced
- * code are not parsed as link nodes by mdast, so they are naturally excluded.
- */
-export function collectLinks(root: Root, source?: string): MdLinkRef[] {
+/** The links of a document tree, as `collectLinkBlocks` reads them (Markdown and raw HTML). */
+export function collectLinks(root: Root, source?: string): readonly MdLinkRef[] {
   return collectLinkBlocks(root, source).links
 }
 
@@ -265,6 +407,14 @@ export function linksOf(doc: MdDocument): MdLinkRef[] {
   return collectLinks(doc.root, doc.text).map((l) => ({
     ...l,
     sectionPath: sectionPathAt(doc, l.line),
+  }))
+}
+
+/** A document's unread HTML links (plan 0580, R3), each with the sections that contain its line. */
+export function unreadLinksOf(doc: MdDocument): MdUnreadLinkRef[] {
+  return collectLinkBlocks(doc.root, doc.text).unreadLinks.map((u) => ({
+    ...u,
+    sectionPath: sectionPathAt(doc, u.line),
   }))
 }
 

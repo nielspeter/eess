@@ -62,6 +62,22 @@ export function reachedUnread<E, U>(
 }
 
 /**
+ * One unread finding (ADR-021 rule 5): it carries `bypassFilters`, so `.excluding()`, `.warn()`, an
+ * exclusion comment and a baseline cannot hide it. The one constructor, so no builder writes the field
+ * by hand and forgets it.
+ */
+export function unreadFinding(f: {
+  readonly ruleId: string
+  readonly element: string
+  readonly file: string
+  readonly line: number
+  readonly message: string
+  readonly suggestion: string
+}): ArchViolation {
+  return { rule: f.ruleId, bypassFilters: true, ...f }
+}
+
+/**
  * The kernel's verdict with the unread findings added. Each reached item counts as undecided on the
  * receipt, so the terminal withholds the generic zero-examined finding and `declaredEmpty` beside them
  * (ADR-021 rule 7; bug 0602): the emptiness is theirs, not declared and not a dead selector.

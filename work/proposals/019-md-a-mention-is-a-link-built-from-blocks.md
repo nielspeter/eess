@@ -84,7 +84,7 @@ identify })` is a `Selection`, and the caller's function reads a key from the pa
 - **The waiver exists and discloses itself.** `<!-- eess-exclude <rule-id>: <reason> -->` reads
   Markdown (`packages/core/src/exclusion-comments.ts:117-122`); every suppression is named by rule
   and file on a green run (`packages/core/src/comment-suppression.ts`).
-- **No element reads a mention.** `links()` reads `link` nodes, and since [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a) defined `linkReference` nodes (`packages/md/src/model/links.ts:197`);
+- **No element reads a mention.** `links()` reads `link` nodes, and since [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a) defined `linkReference` nodes (`packages/md/src/model/links.ts:197`);
   `terms()` and `fields()` read a labelled value per line (`packages/md/src/builders/vocabulary.ts:130`)
   and cannot say whether it sits in a link; `pointers()` reads `path.ext:line` for code extensions
   (`packages/md/src/model/pointers.ts:27`). The link walk is the one that tracks inline ancestry and
@@ -410,7 +410,7 @@ A, B and the fix are built; C stays held as its own kernel record.
 
 ## Note — 2026-10-30
 
-Since [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a), `links()` reads reference-style links, while `mentions()` still
+Since [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a), `links()` reads reference-style links, while `mentions()` still
 reports a mention in a reference link's text as unread (`md/unread-mention`). When `mentions()`
 comes to read it, it reuses `packages/md/src/model/definitions.ts`, the one reader of link reference
 definitions, rather than a second one, so the two cannot disagree about which definition a label

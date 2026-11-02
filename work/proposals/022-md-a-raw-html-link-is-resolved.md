@@ -1,7 +1,7 @@
 # Proposal 022 — md: a raw HTML link is resolved
 
 **State:** Draft — filed 2026-10-30 at the maintainer's request; amended the same day from PR #280's reviews; reviewed 2026-11-01 (architect · product · enforcement), Ship with changes, owned by [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md) — see "Review — 2026-11-01".
-**Priority:** Medium — once [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
+**Priority:** Medium — once [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
 reports a raw HTML link as unread, nothing passes over one silently; what is left is that a
 corpus that writes links in HTML is red with "unread" instead of checked.
 _Corrected 2026-11-01 (review): unread does not ship first. The review's decision 1 resolves a raw
@@ -15,7 +15,7 @@ cannot read is reported as unread._
 GFM lets a document hold raw HTML, and GitHub READMEs use it for what Markdown cannot say: a
 centred logo with a link, a `<details>` block holding links, a table cell with a line break.
 `<a href="./target.md">` in such a block is a link to a reader. eess-md never selects it
-([bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)), and once that
+([bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)), and once that
 bug is fixed it reports it as unread. This proposal is the step after: read the `href` and resolve
 it like any other link.
 
@@ -24,7 +24,7 @@ it like any other link.
 On the v0.16.0 build (eess-md 0.13.0), one document holding `<a href="./gone-html.md">raw
 html</a>` and one inline link to a missing file: `links(c).should().resolve()` examines 1 link and
 reports the inline one only. The reproduction is
-[bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s. _Corrected 2026-11-01
+[bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s. _Corrected 2026-11-01
 (review): this rests only on a synthetic reproduction. The product lens measured real READMEs: of
 607, 49% hold raw HTML and 17 (2.8%) hold an internal `<a href>`, and of the 2,349 hrefs it found,
 1,346 (57%) are fragments._
@@ -32,7 +32,7 @@ reports the inline one only. The reproduction is
 ## Existing code survey
 
 - **The link walk** reads `link` nodes and, since
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a), defined `linkReference`
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a), defined `linkReference`
   nodes (`packages/md/src/model/links.ts:197`); an `html` node is not scanned.
 - **Resolution is `resolveLink`**, one resolver for every case ([plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)). An `href`
   is a URL like any other, so resolution needs no second resolver: the new part is finding the
@@ -43,7 +43,7 @@ reports the inline one only. The reproduction is
   (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`), which `mentions()` uses to report a mention in an inline
   HTML link as unread. It reads inline HTML only; a block-level `html` node is a separate cause
   (`'html-block'`). It is the reuse point for
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s unread finding and the
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s unread finding and the
   starting point for this proposal's scan. _Corrected 2026-11-01 (review): `OPENS_A` cannot be
   that starting point. It pulls out no value, it already matches `data-href` and `title="href=…"`,
   and it misses `<a title="a>b" href=…>`; that misread is
@@ -58,7 +58,7 @@ reports the inline one only. The reproduction is
 - **A — resolve `href`.** An `href` on an `<a>` element in a raw HTML node is a link: selected by
   `links()` at its own line and resolved with `resolveLink`, so a broken one is reported like an
   inline link. _Corrected 2026-11-01 (review): this narrows
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 without saying so.
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 without saying so.
   Fix 2 reads the source text and covers `<a>` and `<area>`, in any letter case, quoted or
   unquoted; the review's decision 3 restores that scope._
 
@@ -74,7 +74,7 @@ reports the inline one only. The reproduction is
   with the choice `fencesInHtml` makes (`packages/md/src/model/prose.ts:235`), and the plan states
   the choice as a decision._
 - **Break class:** HTML the reader cannot parse is reported as unread, never skipped; this keeps
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s guarantee. _Corrected
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s guarantee. _Corrected
   2026-11-01 (review): this cannot fail. A subset scan only matches or does not match; it has no
   "cannot parse" state. It is replaced by a detector wider than the reader, with each case the
   reader cannot read reported under a named cause and a remedy that clears it._
@@ -118,7 +118,7 @@ Reviewed by the architect, product and enforcement lenses, each on its own surve
 `main` at `bd78b962`. The architect and product lenses said ship with changes; the enforcement lens
 said the acceptance criteria must be rewritten before a plan. No lens disputes the shape of the ask.
 Every critical finding is about scope, about a criterion that cannot fail, or about the decision
-[bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 held open.
+[bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 held open.
 That decision is now taken (below), so the ask is ready to plan with the changes listed here. The
 owner is [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md).
 
@@ -138,7 +138,7 @@ internal `<a href>`; d3-dsv's README holds about 40 hrefs missing their `#`, bro
 Each decision below can be overruled; its basis is stated so that it can be.
 
 1. **Resolve directly, not unread first. This settles the open decision in
-   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2.** GFM
+   [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2.** GFM
    passes raw HTML through, and GitHub renders `<a href>` as a link, so reading it fixes no
    document's shape ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)). Unread
    first would make every `<a href>` an unsuppressable finding
@@ -148,7 +148,7 @@ Each decision below can be overruled; its basis is stated so that it can be.
    must be real. The other way out, unread findings suppressible per cause, would amend [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
    rule 5. Resolving gives a broken `href` a real remedy: fix the target. A tag the reader cannot
    parse is still reported as unread, under named causes, with the remedy "write it in a form
-   eess-md reads". Adopters take one break on this construct, not two. So [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s HTML half
+   eess-md reads". Adopters take one break on this construct, not two. So [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s HTML half
    closes done-otherwise against [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md), and
    this proposal's Priority line, which assumed unread first, is superseded (see the corrections).
 2. **One owner for reading HTML attributes.** Today the only HTML recogniser is `OPENS_A`
@@ -166,7 +166,7 @@ Each decision below can be overruled; its basis is stated so that it can be.
    [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md) gates its tag
    comparison (`arch.rules.ts:361`). With it, `mentions()` can judge a mention inside `<a>` as
    linked instead of reporting it unread, so the two builders agree on what an `<a href>` is.
-3. **Scope: `<a>` and `<area>`, in any letter case, quoted or unquoted**, as [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2
+3. **Scope: `<a>` and `<area>`, in any letter case, quoted or unquoted**, as [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2
    scoped it. The plan pins `<area>` against GitHub's Markdown API, since only `<a>` was measured
    there. A detector wider than the reader finds any `<a` or `<area` tag start; whatever it finds
    that the reader cannot read is reported unread, each under a named cause with a remedy verified
@@ -219,7 +219,7 @@ Each decision below can be overruled; its basis is stated so that it can be.
   cannot be written in that attribute's quoting. Rows: in a blockquote, on an indented continuation
   line, in an unquoted value.
 - **A break statement and its impact per reader.** The changeset marks
-  `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x, as [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did; no other package
+  `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x, as [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did; no other package
   moves. The plan lists what changes for `.resolve()`, `.beLinkedBack()` in both directions,
   `haveLink()`, `areLabelled()` and `areInSection()` (an `href` in inline HTML gets a `blockPath`,
   measured, and so becomes declared), `haveLiveTargets()`, `.select()` into `correspondence()`, and
@@ -248,7 +248,7 @@ The submission above is kept as written. These are the defects the review found 
   `<a title="a>b" href=…>`, since `[^>]*` stops at the quoted `>` (measured by two lenses). That
   misread in `mentions()`'s `html-link` cause is recorded as
   [bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md).
-- **Ask A narrows [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s measured scope without saying so.** It reads "a raw HTML node" and
+- **Ask A narrows [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s measured scope without saying so.** It reads "a raw HTML node" and
   `<a>` only; Fix 2 reads the source text and covers `<area>`, any letter case, quoted or unquoted.
   Decision 3 restores Fix 2's scope.
 - **The Priority line assumes unread ships first.** Fix 2 held that order open, and decision 1
@@ -258,7 +258,7 @@ The submission above is kept as written. These are the defects the review found 
   reader split, the named causes and their remedies (decision 3).
 - **The criteria treat a misread `href` as a false red only.** It is also a false green through
   `beLinkedBack()` and `haveLink()` (above), the fail-open twin of the regression PR #284 measured
-  for [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md).
+  for [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md).
 - **"An `href` in a code span or fenced block is not a link" holds in Markdown and fails inside an
   HTML block**, where GitHub renders backticks and fences literally. That disagrees with the choice
   `fencesInHtml` makes (`packages/md/src/model/prose.ts:235`), and the plan states it as a decision.
@@ -278,7 +278,7 @@ The submission above is kept as written. These are the defects the review found 
 - **The survey misses a consumer:** [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md)'s anchor sets for [bug 0136](../bugs/0136-link-fragments-are-never-checked.md) need the same attribute
   reader (decision 2), and open question 2 should name it.
 - **The external-`href` false-red case appears twice** in the criteria; it is one row.
-- **The Measured section rests only on [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s synthetic reproduction.** The real-corpus figures
+- **The Measured section rests only on [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s synthetic reproduction.** The real-corpus figures
   above belong beside it.
 
 ### Recorded separately, not in this scope
