@@ -96,7 +96,7 @@ it is not ready to plan. Both are `Held` on the conditions in the table below.
 
 - **A already exists as a composition of public blocks.** `mentions()` with a footnote pattern,
   `.that().satisfy(not(areLinked())).should().notExist()`, is the established pattern for text of
-  a named shape. It is what [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
+  a named shape. It is what [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
   part (b) shipped, in `examples/md/a-reference-with-no-definition-is-reported.test.ts`. The parser
   pairs a defined `[^a]` into a `footnoteReference`, which has no text for the mention walk to read.
   An undefined `[^x]` stays text, so only dangling references match. All three lenses measured
@@ -105,7 +105,7 @@ it is not ready to plan. Both are `Held` on the conditions in the table below.
 - **The remedy line A wants already exists.** It is `.rule({ suggestion })`
   (`packages/core/src/rule-metadata.ts:15`), printed as `Fix:`. The survey said the composition
   lacks one, and so does a verification note in
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md). Both are
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md). Both are
   wrong. That note's correction belongs to that record, not to this one.
 - **A's two false-red exclusions are owned by
   [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md).** Its `inCode`
@@ -138,7 +138,7 @@ it is not ready to plan. Both are `Held` on the conditions in the table below.
 The review weighed two orders. In the first, A waits for
 [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md). In the second, A
 ships now as an opt-in example with the residuals
-[bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) disclosed, and
+[bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) disclosed, and
 lines 52-58 are rewritten as "after the fix". The architect preferred the second, enforcement the
 first, and product accepted either.
 
@@ -164,7 +164,7 @@ failed to pair becomes text and reds the clean test. The population assertion st
   one referenced only from inside an unreferenced definition (a chain), one that references only
   itself, an a↔b cycle with no reference from the body, and the second of two duplicate `[^a]:`
   definitions. Each needs a break-class row, and the meaning needs measuring on GitHub's renderer,
-  as [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) measured
+  as [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) measured
   `<a href>` through GitHub's Markdown API. Nobody had network access, so cmark-gfm is unmeasured.
   The rendering claims in this review (literal brackets, renders nowhere) are proxy measurements
   from micromark and mdast-util-to-hast.
@@ -217,10 +217,10 @@ failed to pair becomes text and reds the clean test. The population assertion st
   the parser did not read as one", not "every footnote has its definition". Priority Low is right.
 - **An ADR candidate, outside this scope.** "Text shaped like syntax the parser did not build is a
   mention found with the caller's pattern, never an element" has now been decided twice: in
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b) and in
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b) and in
   this proposal's A. It will decide
   [proposal 015](./015-md-wikilinks-are-read-or-reported.md) and the HTML half of
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) too. The
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) too. The
   architect suggests an ADR, or an amendment extending
   [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md). Not filed by this review.
 - **Pre-existing and out of scope.** The empty-corpus finding names "an unreadable tsconfig" to a
@@ -250,7 +250,7 @@ decides from them whether the predicate stays.
   [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md) the count would be
   zero. B over this corpus examines nothing. All three lenses recommend no `check:corpus` adoption:
   the proof is fixture-tier, as for the reference half of
-  [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md), and it avoids a
+  [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md), and it avoids a
   gate cost that nonvacuity multiplies per row.
 - **The pointer `packages/md/src/model/sections.ts:125`** is the doc comment. The code is at
   `packages/md/src/model/sections.ts:119`.

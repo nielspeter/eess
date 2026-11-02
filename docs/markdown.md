@@ -242,7 +242,30 @@ exclusion comment for such a finding goes above the definition, not the referenc
 A reference whose label has no definition (`[text][gone]`, `[gone][]`) is not a link
 but text, so `links()` does not read it; find it as text of a shape you name, with
 `mentions()` and an absence rule, as
-`examples/md/a-reference-with-no-definition-is-reported.test.ts` does. `.areInternal()`/`.areExternal()` split on
+`examples/md/a-reference-with-no-definition-is-reported.test.ts` does.
+
+An HTML link in raw HTML is a link too: every `<a>` and `<area>` with an `href`,
+in any letter case and any quoting, in an HTML block or inline, at the line the
+`href` sits on, its value decoded (`./R&amp;D.md` is `./R&D.md`). It is read as
+GitHub renders it: inside an HTML block, as a browser reads the tags, so a fence
+or a code span there, and the content of `<script>`, `<style>`, `<textarea>`,
+`<title>` and `<pre>`, can hold one; a comment, CDATA, and a tag inside another
+tag's quoted value hold none. Its `.text` is what the element holds (empty for
+`<a><img></a>`), it gets no autofix, and it is declared by `areLabelled()` and
+`areInSection()` as an inline link in the same block is, except in an HTML block
+of its own (a `<ul>` under `**Links:**` declares nothing). Not read: `:href`,
+`v-bind:href`, `data-href`, `xlink:href` and a component's `href` prop, which
+are not HTML's `href`. GitHub removes `<area>`; eess-md reads it, since HTML
+defines it as a link. An HTML link eess-md cannot read is reported as
+`md/unread-link`, which nothing can suppress (`.excluding()`, `.warn()`, a
+baseline), wherever the rule's predicates reach it: a tag a blank line cuts
+inside its block (`split-tag`: remove the blank line), a tag that never closes
+in its block (`unterminated`: close it), and an `<a>` the Markdown parser reads
+as text because an unquoted value holds a `/` (`unquoted-slash`: quote it). It
+is not counted in `examined`, and `.select()` refuses rather than drop it. Not
+yet: `sections().haveLink()` and `.beLinkedBack()` still read a section or a
+target whose only link is unread as having none, a red with the wrong words
+([plan 0580](../work/plans/0580-md-a-raw-html-link-is-resolved.md), Phase 3). `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
 `tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`
 understand a static site's routing instead of only a repo-hosted one.
@@ -701,7 +724,9 @@ bug [0338](…)       linked: the number alone in a link
   block, in a link written in HTML (`<a href>…</a>`), in a reference-style link's text, in a link
   definition's title, or in an image's alt text or title. A mention in a reference-style link's
   text is not read, because its target is a definition elsewhere, which `mentions()` does not
-  join to it (`links()` reads the link itself). Your rule's
+  join to it (`links()` reads the link itself). A mention in an HTML `<a>` is reported the same way,
+  though `links()` now reads that `<a>`'s `href`: judging the mention by it is
+  [bug 0601](../work/bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)'s. Your rule's
   predicates are asked about it as far as it is known (its document, line, text and captures): one
   that decides it out without its link, such as a path or section scope or
   `not(areSelfMentions(…))`, leaves it out; one that needs its link or whether it is in code cannot

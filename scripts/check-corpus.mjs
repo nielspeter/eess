@@ -273,9 +273,12 @@ const repoLinkRule = links(c).that().areInternal().should().resolve(REPO_OPTS).r
 // The element set (which links count as "internal") is options-independent,
 // so either rule's .select() reports the same total — the split only changes
 // which options apply to which link's resolution, not how many are checked.
-const linksChecked = linkRule.select({ label: 'link', ...anon }).elements.length
+// Counted from the rule's receipt, not `.select()`: a selection refuses once it reaches an HTML
+// link eess-md cannot read (plan 0580, R7), and here that link is a finding to report.
+const linkFindings = linkRule.violations()
+const linksChecked = linkFindings.examined
 const broken = [
-  ...linkRule.violations().filter((v) => !isRepoNativeLink(relTo(v.file))),
+  ...linkFindings.filter((v) => !isRepoNativeLink(relTo(v.file))),
   ...repoLinkRule.violations().filter((v) => isRepoNativeLink(relTo(v.file))),
 ]
 

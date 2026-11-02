@@ -1,8 +1,19 @@
-import type { Predicate } from '@nielspeter/eess'
+import type { CollectResult, ElementInfo, Predicate, Selection } from '@nielspeter/eess'
+import { refuseUndecided } from '@nielspeter/eess/internal'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
-import { linksOf, type MdLink, type MdLinkRef } from '../model/links.js'
+import {
+  linksOf,
+  unreadLinksOf,
+  type MdLink,
+  type MdLinkDefinition,
+  type MdLinkRef,
+  type MdUnreadLinkRef,
+  type UnreadLinkCause,
+} from '../model/links.js'
+import type { MdDocument } from '../model/document.js'
+import { reachedUnread, UNKNOWN, unreadFinding, withUnread } from './unread.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { linkResolves, type LinkResolveOptions } from '../conditions/resolve.js'
 import { linkedBack } from '../conditions/linked-back.js'
@@ -19,6 +30,88 @@ export type { LinkResolveOptions } from '../conditions/resolve.js'
 
 /** A link element: a link occurrence plus its containing document. */
 export type { MdLink } from '../model/links.js'
+
+/** An HTML link this rule cannot read: one finding per site per rule, unsuppressable (plan 0580, R4). */
+export const UNREAD_LINK = 'md/unread-link'
+
+/** An unread HTML link with its document. */
+interface MdUnreadLink extends MdUnreadLinkRef {
+  readonly doc: MdDocument
+}
+
+const WHERE: Record<UnreadLinkCause, (u: MdUnreadLink) => string> = {
+  'split-tag': () => 'its HTML tag is cut by a blank line, which ends the HTML block',
+  unterminated: () => 'its HTML tag never closes inside its HTML block',
+  'unquoted-slash': (u) =>
+    `the Markdown parser reads its tag as text, because ${names(u)} unquoted ${values(u)} a "/"`,
+  'refused-tag': () => 'the Markdown parser reads its tag as text',
+}
+
+// Each remedy clears its finding (plan 0580, R3): measured by a row per cause.
+const REMEDY: Record<UnreadLinkCause, (u: MdUnreadLink) => string> = {
+  'split-tag': () => 'Keep the tag inside one HTML block: remove the blank line inside it.',
+  unterminated: () => 'Close the tag inside the same HTML block: its quote, or its ">".',
+  'unquoted-slash': (u) =>
+    `Quote ${names(u)} ${plural(u) ? 'values' : 'value'}: write each in double quotes.`,
+  'refused-tag': () => 'Write the link in Markdown, `[text](url)`.',
+}
+
+const plural = (u: MdUnreadLink): boolean => (u.attributes?.length ?? 1) > 1
+const values = (u: MdUnreadLink): string => (plural(u) ? 'values hold' : 'value holds')
+
+/** "`href`'s", or "`href`'s and `title`'s". */
+const names = (u: MdUnreadLink): string =>
+  (u.attributes ?? ['href']).map((a) => `\`${a}\`'s`).join(' and ')
+
+/** An unread link as a predicate sees it: where it sits is known; its URL, text and target are not. */
+function asSeen(u: MdUnreadLink): MdLink {
+  const unknown = (): never => {
+    throw UNKNOWN
+  }
+  return {
+    doc: u.doc,
+    line: u.line,
+    ...(u.block !== undefined ? { block: u.block } : {}),
+    ...(u.blockPath !== undefined ? { blockPath: u.blockPath } : {}),
+    ...(u.sectionPath !== undefined ? { sectionPath: u.sectionPath } : {}),
+    get url(): string {
+      return unknown()
+    },
+    get text(): string {
+      return unknown()
+    },
+    get external(): boolean {
+      return unknown()
+    },
+    get urlStart(): number | undefined {
+      return unknown()
+    },
+    get urlEnd(): number | undefined {
+      return unknown()
+    },
+    get definition(): MdLinkDefinition | undefined {
+      return unknown()
+    },
+  }
+}
+
+/** One finding per unread link: `.excluding()` cannot hide it. */
+function unreadLinkFindings(
+  unread: readonly MdUnreadLink[],
+  examinedNothing: boolean,
+): ArchViolation[] {
+  const why = examinedNothing ? ' It is why this rule examined nothing.' : ''
+  return unread.map((u) =>
+    unreadFinding({
+      ruleId: UNREAD_LINK,
+      element: `${u.doc.relPath}:${String(u.line)}`,
+      file: u.doc.file,
+      line: u.line,
+      message: `an HTML link here cannot be read: ${WHERE[u.cause](u)}, so its target is not checked.${why}`,
+      suggestion: REMEDY[u.cause](u),
+    }),
+  )
+}
 
 const areInternal = (): Predicate<MdLink> => ({
   description: 'are internal',
@@ -41,6 +134,48 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
 
   protected getElements(): MdLink[] {
     return stampedByDocument<MdLinkRef>(this.project, linksOf)
+  }
+
+  /** The unread HTML links this rule's predicates reach (ADR-021 rule 4), and their causes. */
+  private reachedUnread(): ReturnType<typeof reachedUnread<MdLink, MdUnreadLink>> {
+    const unread = this.project
+      .documents()
+      .flatMap((doc) => unreadLinksOf(doc).map((u): MdUnreadLink => ({ ...u, doc })))
+    return reachedUnread(unread, this._predicates, asSeen)
+  }
+
+  /** The kernel's verdict, plus a finding for each unread HTML link this rule's predicates reach (R4). */
+  protected override collectViolations(): CollectResult {
+    const base = super.collectViolations()
+    const { reached, undecided } = this.reachedUnread()
+    return withUnread(
+      base,
+      unreadLinkFindings(reached, base.examined === 0),
+      undecided,
+      this.buildConditionContext(),
+    )
+  }
+
+  /**
+   * The selected links, for `correspondence()`. Refuses when the rule's predicates reach an HTML link
+   * it cannot read (plan 0580, R7): a selection hands back no findings, so it would drop that link
+   * without a word (ADR-021 rule 6).
+   */
+  override select(opts: {
+    label: string
+    identify: (element: MdLink) => ElementInfo
+  }): Selection<MdLink> {
+    const { reached } = this.reachedUnread()
+    refuseUndecided(
+      reached.map((u) => ({
+        file: u.doc.file,
+        line: u.line,
+        element: `${u.doc.relPath}:${String(u.line)}`,
+        message: `an HTML link here cannot be read: ${WHERE[u.cause](u)}`,
+      })),
+      'select()',
+    )
+    return super.select(opts)
   }
   protected locate(e: MdLink): MdLocation {
     return atLine(e)
@@ -146,7 +281,11 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
   }
 }
 
-/** Entry point: build rules over the corpus's markdown links. */
+/**
+ * Entry point: build rules over the corpus's links: Markdown inline and reference-style links, and an
+ * `href` on an `<a>` or `<area>` in raw HTML (plan 0580). An HTML link that cannot be read is reported
+ * as `md/unread-link`, unsuppressable, wherever the rule's predicates reach it.
+ */
 export function links(corpus: Corpus): LinkRuleBuilder {
   return new LinkRuleBuilder(corpus)
 }

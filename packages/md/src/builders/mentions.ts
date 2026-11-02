@@ -20,7 +20,7 @@ import { resideInFile, resideInFolder } from '../predicates/document.js'
 import { liftToDocument } from '../predicates/in-documents.js'
 import { beLinked, type BeLinkedOptions } from '../conditions/be-linked.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
-import { reachedUnread, UNKNOWN, withUnread } from './unread.js'
+import { reachedUnread, UNKNOWN, unreadFinding, withUnread } from './unread.js'
 
 export type { MdMention, MdUnreadMention }
 
@@ -188,18 +188,18 @@ function unreadFindings(
   examinedNothing: boolean,
 ): ArchViolation[] {
   const why = examinedNothing ? ' It is why this rule examined nothing.' : ''
-  return unread.map((u) => ({
-    rule: UNREAD_MENTION,
-    ruleId: UNREAD_MENTION,
-    element: `${u.doc.relPath}:${String(u.line)}`,
-    file: u.doc.file,
-    line: u.line,
-    message:
-      `"${u.text.replace(/\s+/g, ' ')}" sits in ${WHERE[u.cause]}, which this rule does not read, ` +
-      `so it can be judged neither linked nor not.${why}`,
-    suggestion: REMEDY[u.cause],
-    bypassFilters: true,
-  }))
+  return unread.map((u) =>
+    unreadFinding({
+      ruleId: UNREAD_MENTION,
+      element: `${u.doc.relPath}:${String(u.line)}`,
+      file: u.doc.file,
+      line: u.line,
+      message:
+        `"${u.text.replace(/\s+/g, ' ')}" sits in ${WHERE[u.cause]}, which this rule does not read, ` +
+        `so it can be judged neither linked nor not.${why}`,
+      suggestion: REMEDY[u.cause],
+    }),
+  )
 }
 
 /**

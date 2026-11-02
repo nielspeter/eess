@@ -25,7 +25,7 @@ the inline link only. The three missing images produce nothing.
 
 ## Existing code survey
 
-- **`links()` reads links, inline and (since [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a)) reference-style, not images** (`packages/md/src/model/links.ts:197`); its docs scope it to
+- **`links()` reads links, inline and (since [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a)) reference-style, not images** (`packages/md/src/model/links.ts:197`); its docs scope it to
   `[text](url)` (`docs/markdown.md:232`), so images are not claimed.
 - **Image nodes are known** elsewhere: the phrasing walk reads an `image` and an `imageReference`
   (`packages/md/src/model/phrasing.ts:188`), and the fix check compares images by URL
@@ -34,14 +34,14 @@ the inline link only. The three missing images produce nothing.
   no second resolver is needed. _Corrected 2026-11-01 (review): one resolver is enough, but the
   link door's accepted cases are not the image door's. `![a]()`, `![a](#)`, a directory and a
   Markdown file all pass as links, so the image door needs accepted cases of its own._
-- **The reference form** shares [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s definition lookup, and `<img src>`
+- **The reference form** shares [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s definition lookup, and `<img src>`
   shares [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s HTML scan.
 
 ## Asks
 
 - **A — an image's local file exists.** Inline and reference-style images whose URL is not
   external are resolved, and a missing file is reported at its line (a reference image's at its
-  definition's line, as in [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)).
+  definition's line, as in [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)).
   _Corrected 2026-11-01 (review): ask A cannot ship alone. 66 of 73 local images in the README
   sample are `<img src>`, so A without B is a false green; the two ship together._
 - **B — `<img src>`.** The same for an `src` in raw HTML, on [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s scan.
@@ -56,9 +56,9 @@ the inline link only. The three missing images produce nothing.
   line.
 - **Break class:** `<img src="./gone.png">` reports a missing image (B).
 - **Break class:** a dangling `![alt][gone]`, with no definition, is plain text to the parser (as a
-  dangling link reference is, [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)) and is reported.
+  dangling link reference is, [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)) and is reported.
   _Corrected 2026-11-01 (review): this re-opens a decided record and is already met.
-  [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b) decided
+  [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b) decided
   that a dangling reference is text, and its example, `mentions()` with `notExist()`, reports
   `![alt][nodef]` today. The criterion is struck._
 - **Break class (B):** `<picture><source srcset="…">`, GitHub's dark-mode logo: `srcset` is a
@@ -125,7 +125,7 @@ and 4.8 s, and the repository census 6.3 s. No suite, validate or nonvacuity run
   example's pattern, `mentions()` with `notExist()`
   (`examples/md/a-reference-with-no-definition-is-reported.test.ts:26`), reports `![alt][nodef]`
   and `![coll][]` today, measured.
-  [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b)
+  [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b)
   decided that a dangling reference is text, and shipped it as an example, not a builder element.
 - **Ask B is new.** No HTML scan exists. The only recogniser is the inline-only `OPENS_A`
   (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`), which reads `<a href>` and nothing else.
@@ -142,7 +142,7 @@ not-judged and zero-examined machinery the work needs is already in the kernel
 [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). There is one HTML
 attribute reader in eess-md's model layer, for `href`, `src` and `srcset` alike:
 [proposal 022](./022-md-a-raw-html-link-is-resolved.md), this proposal's ask B and
-[bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 are one
+[bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 are one
 instrument with three consumers. The `srcset` split lives in the same module, never in a second
 copy. Image handling must not be put inside the link walk's output or inside `linkResolves`'
 accepted cases.
@@ -161,19 +161,19 @@ Each of these is decided here so the work can move, and each can be overruled.
    back. `areLabelled`'s scan does too
    (`packages/md/src/builders/declaration-findings.ts:49`). Some of those changes turn a red into a
    green, which no migration line can undo. That is the regression class that got
-   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b)'s
+   [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b)'s
    first build reverted. All three lenses' evidence leans the same way. An additive `images()` is
    an eess-md minor.
 2. **Raw HTML is resolved directly**, through one shared reader of HTML attributes: the decision recorded in
-   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2
+   [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2
    (2026-11-01), which [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan will build. So ask B does not wait
    on an "unread first" step, and ask A does not need a disclosure finding with no remedy. This
    settles, for images, the "unread, or resolve" choice that
-   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 left
+   [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 left
    open. It also means no suppressible unread finding is proposed, so nothing here amends
    [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5.
 3. **The dangling `![alt][gone]` criterion is struck.** It is already met by
-   [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s example. An
+   [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s example. An
    image fixture and a line in that example's doc comment would show it; that is an example
    change with release `none`. The enforcement lens raised one argument, not settled here: a
    dangling image shortcut `![logo]` does not share the false-red shape (`[x]`, `[WIP]`,
@@ -294,7 +294,7 @@ Each of these is decided here so the work can move, and each can be overruled.
 - It treated ask A as shippable alone. 66 of 73 local README images are `<img src>`, so A alone is
   the false green in critical item 1.
 - Its fourth criterion, a dangling `![alt][gone]`, re-opened a decided record and is already met
-  by [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s example.
+  by [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s example.
 - Its fragment criterion, `./logo.svg#gh-dark-mode-only` resolving "as it does today", conflicts
   with [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4 and goes
   stale once [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md) lands.

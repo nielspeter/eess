@@ -26,7 +26,7 @@ const htmlNodes = (root: Nodes, depth = 0, out: [Nodes, number][] = []): [Nodes,
 /** Every `html` node in `md`, read. */
 const read = (md: string): ReturnType<typeof readHtmlNode>[] => {
   const root: Root = parseUncached(md)
-  return htmlNodes(root).map(([n, depth]) => readHtmlNode(n, md, depth))
+  return htmlNodes(root).map(([n, depth]) => readHtmlNode(n, { source: md, depth }))
 }
 
 /** The `href` of every link start the owner reads in `md`'s `html` nodes. */
@@ -166,12 +166,21 @@ describe('a tag the node ends inside is split-tag or unterminated (R3)', () => {
     ])
   })
 
+  it('split-tag only where removing the blank line finishes the tag: four that it does not', () => {
+    // A blank line that ends a quote, then the end of the document, then a list item whose next
+    // line is not indented, then an unclosed quote before a paragraph: the remedy does not clear.
+    expect(unfinished('> <div>\n> <a href="./x\n\nmd">x</a>\n')).toEqual(['a:unterminated@2'])
+    expect(unfinished('<div>\n<a href="./x\n\n')).toEqual(['a:unterminated@2'])
+    expect(unfinished('- <div>\n  <a href="./x\n\nmd">x</a>\n')).toEqual(['a:unterminated@2'])
+    expect(unfinished('<div>\n<a href="./x.md\n\nSee this.\n')).toEqual(['a:unterminated@2'])
+  })
+
   it('without its source, a node cannot tell a blank line, so its unfinished tag is unterminated', () => {
     const md = '<div>\n<a href="./x\n\nmd">x</a>\n</div>\n'
     const node = htmlNodes(parseUncached(md))[0]?.[0]
-    expect(node === undefined ? [] : readHtmlNode(node).unfinished.map((u) => u.cause)).toEqual([
-      'unterminated',
-    ])
+    expect(
+      node === undefined ? [] : readHtmlNode(node, 'no-source').unfinished.map((u) => u.cause),
+    ).toEqual(['unterminated'])
   })
 
   it('an unfinished end tag is not reported: it is no link (E7)', () => {
