@@ -14,7 +14,7 @@ text is a second link.
 
 An HTML link eess-md cannot read is now reported as `md/unread-link` (exported as `UNREAD_LINK`),
 which `.excluding()`, `.warn()` and a baseline cannot hide, wherever the rule's predicates reach it: a
-tag a blank line cuts inside its block (remove the blank line), a tag that never closes in its block
+tag a blank line cuts inside its block (remove the blank lines), a tag that never closes in its block
 (close it), and an `<a>` the Markdown parser reads as text because an unquoted value holds a `/`
 (quote it). `.select()` on a `links()` rule that reaches one refuses, as a configuration error naming
 the site, rather than hand it to `correspondence()` without it.

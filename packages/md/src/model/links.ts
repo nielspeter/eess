@@ -172,10 +172,10 @@ function walkLinkBlocks(
   root: Root,
   source?: string,
 ): {
-  links: MdLinkRef[]
-  blocks: MdLinkBlock[]
-  unreadLabels: MdUnreadLabel[]
-  unreadLinks: MdUnreadLinkRef[]
+  readonly links: readonly MdLinkRef[]
+  readonly blocks: readonly MdLinkBlock[]
+  readonly unreadLabels: readonly MdUnreadLabel[]
+  readonly unreadLinks: readonly MdUnreadLinkRef[]
 } {
   const out: MdLinkRef[] = []
   const unreadLinks: MdUnreadLinkRef[] = []
@@ -232,7 +232,7 @@ function walkLinkBlocks(
       }
       out.push({
         url: href.value,
-        text: text.trim(),
+        text: text.replace(/\s+/g, ' ').trim(),
         line: href.line,
         external: EXTERNAL_RE.test(href.value),
         ...at(path),
@@ -395,7 +395,7 @@ function walkLinkBlocks(
 }
 
 /** The links of a document tree, as `collectLinkBlocks` reads them (Markdown and raw HTML). */
-export function collectLinks(root: Root, source?: string): MdLinkRef[] {
+export function collectLinks(root: Root, source?: string): readonly MdLinkRef[] {
   return collectLinkBlocks(root, source).links
 }
 

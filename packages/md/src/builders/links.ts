@@ -49,7 +49,7 @@ const WHERE: Record<UnreadLinkCause, (u: MdUnreadLink) => string> = {
 
 // Each remedy clears its finding (plan 0580, R3): measured by a row per cause.
 const REMEDY: Record<UnreadLinkCause, (u: MdUnreadLink) => string> = {
-  'split-tag': () => 'Keep the tag inside one HTML block: remove the blank line inside it.',
+  'split-tag': () => 'Keep the tag inside one HTML block: remove the blank lines inside it.',
   unterminated: () => 'Close the tag inside the same HTML block: its quote, or its ">".',
   'unquoted-slash': (u) =>
     `Quote ${names(u)} ${plural(u) ? 'values' : 'value'}: write each in double quotes.`,

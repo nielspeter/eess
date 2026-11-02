@@ -259,7 +259,7 @@ are not HTML's `href`. GitHub removes `<area>`; eess-md reads it, since HTML
 defines it as a link. An HTML link eess-md cannot read is reported as
 `md/unread-link`, which nothing can suppress (`.excluding()`, `.warn()`, a
 baseline), wherever the rule's predicates reach it: a tag a blank line cuts
-inside its block (`split-tag`: remove the blank line), a tag that never closes
+inside its block (`split-tag`: remove the blank lines), a tag that never closes
 in its block (`unterminated`: close it), and an `<a>` the Markdown parser reads
 as text because an unquoted value holds a `/` (`unquoted-slash`: quote it). A
 fourth cause, `refused-tag` (write the link in Markdown), reports a refusal no

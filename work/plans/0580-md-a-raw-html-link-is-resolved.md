@@ -652,6 +652,10 @@ Built as frozen, except where noted:
   unread site and deciding out one elsewhere, a `.text`-reading predicate, the positive
   `beLinkedBack()`/`haveLink()` through an `href`, the zero-examined sentence; the invariant table
   asserts each site's line and cause. Eleven sabotages, each red, the last a compile error.
+- **The reviews' confirmation pass** (all three: applied) found three minors, fixed with rows:
+  `split-tag`'s remedy says "the blank lines", since the check joins the whole run; an inline `<a>`'s
+  `.text` collapses whitespace as the block path does; the memoized walk's arrays are typed read-only,
+  so the compiler holds every caller to not writing them.
 - **Shards:** `corpus/links/html` runs in shard 4 and `arch/md-one-html-attribute-reader` in shard 2
   (position mod 4, read from a full run's order), not
   [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard 3.

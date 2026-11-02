@@ -96,6 +96,15 @@ describe('an HTML link links() cannot read is reported under its cause (R3)', ()
     expect(resolved(cut.replace('\n>\n', '\n'))).toEqual([])
   })
 
+  it('split-tag over two blank lines: the remedy names the blank lines, and removing them clears it', () => {
+    const cut = '<div>\n<a href="./a.md"\n\n\ntitle="t">x</a>\n</div>'
+    const v = resolveOf({ 'docs/p.md': page(cut), 'docs/a.md': '# A\n\n[home](./a.md)\n' })
+    expect(v.map((x) => x.suggestion)).toEqual([
+      'Keep the tag inside one HTML block: remove the blank lines inside it.',
+    ])
+    expect(resolved(cut.replace('\n\n\n', '\n'))).toEqual([])
+  })
+
   it('unterminated (a quote that never closes), and closing it clears it', () => {
     const open = '<div>\n<a href="./a.md>x</a>\n</div>'
     expect(resolved(open)).toEqual([
@@ -311,6 +320,17 @@ describe('what changes for the other readers of links()', () => {
       .select({ label: 'l', identify: (l) => ({ name: l.url }) })
       .elements.map((l) => l.text)
     expect(texts).toEqual(['Read this', '', 'two'])
+  })
+
+  it('an inline <a> across a line break has its whitespace collapsed, as in a block', () => {
+    const c = corpusFromText({
+      'docs/p.md': page('see <a href="./a.md">Read\nthis</a> here'),
+      'docs/a.md': '# A\n',
+    })
+    const texts = links(c)
+      .select({ label: 'l', identify: (l) => ({ name: l.url }) })
+      .elements.map((l) => l.text)
+    expect(texts).toEqual(['Read this'])
   })
 
   it('an href counts as a link back, and gives its section a link', () => {
