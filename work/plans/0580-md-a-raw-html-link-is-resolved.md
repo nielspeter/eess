@@ -26,7 +26,7 @@
     reads it, and so do a future `images()` ([proposal 024](../proposals/024-md-an-images-file-exists.md)'s
     Ask B), [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md)'s anchor sets
     ([bug 0136](../bugs/0136-link-fragments-are-never-checked.md)) and `mentions()`, whose use of
-    `OPENS_A` (`packages/md/src/model/phrasing.ts:64`) it replaces.
+    `OPENS_A` (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`) it replaces.
   - **Scope:** `<a>` and `<area>`, in any letter case, quoted or unquoted. A detector wider than the
     reader finds every `<a` or `<area` tag start; what it finds and the reader cannot extract is
     unread, under a named cause.
@@ -147,8 +147,8 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   text (`<img alt="<a …>">` holds no `<a>`).
 - **D2. Comments and bogus comments are cut out**, as the tokenizer does: `<!-- … -->`, and `<!`
   (CDATA included) or `<?` up to the next `>` (the CDATA row). The owner's `isOnlyComment(value)`
-  replaces both `ONE_COMMENT` (`packages/md/src/model/phrasing.ts:63`) and `HTML_COMMENT`
-  (`packages/md/src/model/section-holds.ts:29`), which test the same thing.
+  replaces both `ONE_COMMENT` (`packages/md/src/model/phrasing.ts:63` on `6bcd35e6`) and `HTML_COMMENT`
+  (`packages/md/src/model/section-holds.ts:29` on `6bcd35e6`), which test the same thing.
 - **D3. Tokenize first, decode after.** `&lt;a href…&gt;` is never a tag, and `./R&amp;D.md`
   resolves to `R&D.md`. The finding quotes the decoded URL, as a Markdown link's finding quotes mdast's
   decoded `url` today.
@@ -185,7 +185,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   render as links). A §6.6 tag with an `href` there is a tag micromark refused and a renderer links
   (R3).
 - **D8. One prefix stepper.** The container-prefix stepping in `sourceOffsets`
-  (`packages/md/src/model/phrasing.ts:79`) moves into the owner's module and is exported to
+  (`packages/md/src/model/phrasing.ts:76`) moves into the owner's module and is exported to
   `phrasing.ts`, so D7 and `mentions()` step prefixes one way and no second stepper is written.
 - **D9. The scan is linear:** no nested quantifier over `[^>]*`. An `href` reaches only
   `resolveLink`'s index lookup, and nothing writes: an `href` gets no autofix (the review's first
@@ -196,7 +196,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)'s
   (`arch.rules.ts:361`). Outside `html-attributes.ts`, no file under `packages/md/src` holds a regular
   expression literal whose source text contains `href`, `src`, `<a` or `<\/a`. `OPENS_A` and
-  `CLOSES_A` (`packages/md/src/model/phrasing.ts:64-65`) move into the owner. What the rule cannot
+  `CLOSES_A` (`packages/md/src/model/phrasing.ts:64-65` on `6bcd35e6`) move into the owner. What the rule cannot
   see is stated in its `because` ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
   rule 7): a pattern built from a string (`new RegExp('href')`), `includes('href')`, and a pattern
   that spells the word another way (`h\x72ef`). Like its precedent, it has a nonvacuity row (the
@@ -253,12 +253,12 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   When every reached site is unread and nothing is read, the rule reports the unread findings and no
   zero-examined finding beside them (rule 7).
 - **R5. One shared helper.** `reachedUnread` and `unreadFindings`
-  (`packages/md/src/builders/mentions.ts:212-257`) become one helper, generic over the element and
+  (then in `mentions.ts`; built as `packages/md/src/builders/unread.ts:32`) become one helper, generic over the element and
   its "as seen" view, called by `mentions()` and `links()`. No copy is made. It counts each reached
   unread finding in the receipt's `undecided`, so the terminal withholds the generic zero-examined
   finding and `declaredEmpty` beside them (`packages/core/src/terminal-builder.ts:290`).
   `mentions()` does not do this today, and that is
-  [bug 0602](../bugs/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md), which this
+  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md), which this
   plan closes: the same root cause on the same code path.
 - **R6. Evidence side: an unread site in another subject's evidence.** The cause names the site,
   not the section or the target, so the kernel's deduplication (`undecidedViolations`,
@@ -360,7 +360,7 @@ dispositions below correct it.
 1. **The attribute owner.** `html-attributes.ts` as designed (D1 to D10), with its arch rule.
    `mentions()` recognises an `<a href>` through it, and `OPENS_A`, `CLOSES_A`, `ONE_COMMENT` and
    `HTML_COMMENT` are replaced. That closes
-   [bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)
+   [bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)
    (`OPENS_A` matches `data-href` and misses `title="a>b"`), which moves to `fixed/` with this plan.
    The unread helper is shared (R5).
 2. **`links()` reads `href`.** `collectLinkBlocks` (`packages/md/src/model/links.ts:117`) yields an
@@ -414,10 +414,10 @@ that changes one reds it (line 573's divergence included).
     (`<!DOCTYPE html>`, `<?x?>`) as they treat a comment, one row each, and the changeset says so;
   - `mentions()`'s existing `'html-link'` tests green, plus a `data-href` row that no longer matches
     and a `title="a>b"` row that now does
-    ([bug 0593](../bugs/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md));
+    ([bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md));
     `mentions()`'s unread findings unchanged through the shared helper (R5), except that a rule over
     only unread mentions no longer adds the zero-examined finding or `declaredEmpty`
-    ([bug 0602](../bugs/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s rows).
+    ([bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s rows).
 - **Phase 2, `links()`:**
   - read: a broken `href` red at its own line inside a multi-line block, inside a blockquote, and
     inside a `<details>` fence; `./R&amp;D.md` resolves against `R&D.md`, and the finding quotes the
@@ -516,7 +516,7 @@ no further design round. What changed:
   `unquoted-slash` names every attribute holding a `/`.
 - **Rule 7 (architect I-new-2).** The shared helper counts unread findings in `undecided`, which
   fixes `mentions()` too:
-  [bug 0602](../bugs/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md) (measured,
+  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md) (measured,
   same code path), closed by this plan.
 - **D10 (enforcement I3, M5).** A nonvacuity row, and a matcher on the words with its blind spots.
 - **Minor:** one finding per site per rule on both sides, and none twice (architect M1, M2); D5's
@@ -525,10 +525,67 @@ no further design round. What changed:
   (M6).
 
 A verification pass the same day (architect: applied, with
-[bug 0602](../bugs/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s root cause
+[bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s root cause
 corrected; enforcement: D5's "inside" misapplied, and D7's start set too wide, A1 to A4) gave one
 clause and one row each: an unclosed tagfilter element has no inside, and a start's `<` lies in a
 `text` node.
+
+## Build notes
+
+### Phase 1 — 2026-11-02, PR #296
+
+Built as frozen, except where noted. Each difference is a decision on the build, overrulable:
+
+- **The owner** (`packages/md/src/model/html-attributes.ts`): `tokenizeHtml`/`readHtmlNode` (D1,
+  D2, D5), `openTagAt`/`inlineTagStarts`/`inlineTagStartsOf` (D7), `isLinkStart`, `isOnlyComment`,
+  `decodeReferences`. Its 33 rows are `packages/md/tests/html-attributes.test.ts`, one per Measured
+  row or probe the owner decides.
+- **The decoder.** No entity decoder was a dependency of eess-md. `decode-named-character-reference`,
+  which micromark already installs to decode a Markdown link's URL, is now a direct dependency: it
+  adds no package to an install. A reference is decoded only with its `;`, as CommonMark decodes one.
+- **No source span (D1 differs).** The owner returns each attribute's line, not its source span: D9
+  cut the autofix, which was the span's only consumer.
+- **D8 differs.** `sourceOffsets` is not moved. Its prefix stepper is steered by the decoded
+  character it is looking for, and D7 has none, so D7 steps `> ` by the container's blockquote depth
+  instead. One stepper each, in their own modules.
+- **R5, in part.** The shared helper (`packages/md/src/builders/unread.ts`) holds `reachedUnread`
+  and the receipt (`withUnread`, which counts unread findings as undecided:
+  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)). Each
+  builder keeps its own finding text, since a mention's message and a link's differ.
+- **D10** is `md/one-html-attribute-reader`, as frozen. Its nonvacuity row,
+  `arch/md-one-html-attribute-reader`, is one run of one probe, every alternative on its own line, the rule
+  required on exactly lines 1 to 4 (3 s); with `src` dropped from the matcher it fails, naming line 2.
+- **Measured on the build:** a `<script>` holding `"<a href=\"" + u` finishes its tag at
+  `</script>`'s `>`, as the HTML tokenizer does, so it is read, not silenced; a quote that never
+  closes (`'<a href="' + u`) is what D5 silences. A `<textarea>` opens a type-1 HTML block, which a
+  blank line does not end, so P15's split after an unclosed one needs a `<div>` around it.
+- **Sabotage, each red then green:** the old `OPENS_A` back (2 rows of
+  [bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)),
+  the unread count removed (2 rows of
+  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s), the old one-comment pattern back (1 row), `src`
+  dropped from D10's matcher (its nonvacuity row).
+- **Code review (architect · enforcement, 2026-11-02), both Approve with changes; applied:**
+  `mentions()` opened an HTML link on a void `<area>`, swallowing the rest of the paragraph (now `<a>`
+  only); the four comment closers `<!-->`, `<!--->`, `-->`, `--!>` and `</` before a non-letter (a
+  bogus comment) are read as the tokenizer reads them, in both the tokenizer and `isOnlyComment`;
+  "ended by a blank line" no longer counts the end of the document, and steps a quote's `>`; only a
+  start tag is reported unfinished; an end tag closes its element only by its own name
+  (`</scripts>` closes no `<script>`); §6.6's whitespace has no form feed; D7 skips a start inside a
+  tag it already found (`title="<a href=…>"`); `inlineKind` is the seam the `refused-tag` row drives.
+  Each with its row, and each row red under its own sabotage (the end-of-document blank, `<!-->`
+  unread, `<area>` opening, the consumed span, the dedupe). Not done here: a shared constructor for
+  an unread finding's `bypassFilters` (Phase 2, when `links()` adds the second), and deleting the
+  three `eess-exclude` comments on `tokenizeHtml`, `attributeOf` and `inlineTagStartsOf` once Phase 2
+  imports them (stale then, and reported). Phase 2 also reads an `html` node that micromark made
+  inside a refused tag's quoted value as that value, not as a link.
+- **For Phase 2, from the review's verification pass (no Phase 1 caller reads `unfinished`, so
+  neither changes a verdict today):** a blank line that ends a blockquote (no `>` on it) is not a
+  blank line inside the quote, so a tag it cuts is `unterminated`, not `split-tag` (removing the
+  blank line does not clear it: an HTML block takes no lazy continuation), with its row; and
+  `readHtmlNode`'s `depth` becomes required, so a caller cannot leave it at 0 and bring E3 back.
+- **Pointers.** Code pointers into `mentions.ts`, `phrasing.ts` and `section-holds.ts` that moved
+  were renumbered; those naming code this phase removed (`OPENS_A`, `ONE_COMMENT`, `HTML_COMMENT`)
+  are pinned "on `6bcd35e6`", the house form for code as it was.
 
 ## Progress ledger
 
@@ -539,7 +596,7 @@ clause and one row each: an unclosed tagfilter element has no inside, and a star
 - [x] The revision re-checked by the same lenses, 2026-11-01: Ready with changes; changes applied
       (Second re-check above)
 - [x] Ready (2026-11-01)
-- [ ] Phase 1 — the attribute owner
+- [x] Phase 1 — the attribute owner (PR #296; Build notes below)
 - [ ] Phase 2 — `links()` reads `href`
 - [ ] Sabotage matrix, all red
 

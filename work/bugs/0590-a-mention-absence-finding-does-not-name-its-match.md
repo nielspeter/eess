@@ -71,7 +71,7 @@ Neither finding contains `[setup][setpu]` or `[reference][refrence]`.
 
 The kernel's `notExistCondition` writes `${name} should not exist`
 (`packages/core/src/not-exist.ts:27`), where the dialect supplies the name. eess-md's
-`MentionRuleBuilder.locate` returns `atLine(m)` (`packages/md/src/builders/mentions.ts:152`).
+`MentionRuleBuilder.locate` returns `atLine(m)` (`packages/md/src/builders/mentions.ts:142`).
 `atLine` names an element `relPath:line` (`packages/md/src/conditions/not-exist.ts:32`), so the
 mention's matched text (`MdMentionMatch.text`, `packages/md/src/model/mentions.ts:24`) never reaches
 the finding.

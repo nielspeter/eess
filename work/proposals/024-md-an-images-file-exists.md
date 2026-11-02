@@ -28,7 +28,7 @@ the inline link only. The three missing images produce nothing.
 - **`links()` reads links, inline and (since [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s part (a)) reference-style, not images** (`packages/md/src/model/links.ts:197`); its docs scope it to
   `[text](url)` (`docs/markdown.md:232`), so images are not claimed.
 - **Image nodes are known** elsewhere: the phrasing walk reads an `image` and an `imageReference`
-  (`packages/md/src/model/phrasing.ts:191`), and the fix check compares images by URL
+  (`packages/md/src/model/phrasing.ts:188`), and the fix check compares images by URL
   (`packages/md/src/model/fix-check.ts:80`). No element type or rule resolves one.
 - **Resolution is `resolveLink`** ([plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)): an image's URL resolves the way a link's does, so
   no second resolver is needed. _Corrected 2026-11-01 (review): one resolver is enough, but the
@@ -128,7 +128,7 @@ and 4.8 s, and the repository census 6.3 s. No suite, validate or nonvacuity run
   [Bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (b)
   decided that a dangling reference is text, and shipped it as an example, not a builder element.
 - **Ask B is new.** No HTML scan exists. The only recogniser is the inline-only `OPENS_A`
-  (`packages/md/src/model/phrasing.ts:64`), which reads `<a href>` and nothing else.
+  (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`), which reads `<a href>` and nothing else.
 - **Alt text has a precedent in a sibling dialect**: eess-ts's
   `jsxElements(p).that().areHtmlElements('img').should().haveAttribute('alt')`
   (`packages/ts/src/builders/jsx-rule-builder.ts:50`).

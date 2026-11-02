@@ -42,7 +42,7 @@ built on [bug 0136](./0136-link-fragments-are-never-checked.md)'s anchor sets an
 - Anything else is not judged: a finding in the class
   [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 3 names, for what
   the rule's own instrument could not read: `bypassFilters`, as unread mentions are
-  (`packages/md/src/builders/mentions.ts:244`), and one per target file within a rule, as its rule 5
+  (`packages/md/src/builders/mentions.ts:186`), and one per target file within a rule, as its rule 5
   says, naming the file, why it was not read, and the links it covers.
 - `movedLinkFix` offers its rewrite, at both callers, only when the new document's anchor set holds
   the fragment; otherwise the finding stays, with no fix.

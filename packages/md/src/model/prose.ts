@@ -231,6 +231,10 @@ export function codeShapeAt(text: string, root: Root, line: number): CodeShape |
  * and no structure inside it. So this loop can drift from micromark's fence rules where they are subtler
  * than run length and the info string — which is why it lives in the owner, under the check that allows
  * a fence regex in this file and nowhere else.
+ *
+ * `links()` deliberately differs (plan 0580, D4): it reads an `<a href>` inside such a fence, because
+ * GitHub renders the fence's backticks as text and the tag as a link. This is about what an author
+ * means as an example; that is about what renders as a link. Neither is to be "fixed" to match.
  */
 function fencesInHtml(text: string, root: Root): { first: number; last: number }[] {
   const lines = text.split('\n')

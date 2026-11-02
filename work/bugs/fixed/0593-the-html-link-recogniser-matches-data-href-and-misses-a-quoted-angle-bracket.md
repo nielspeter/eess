@@ -2,13 +2,14 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-11-01 on the build of main at `bd78b962`; no red test yet.
+- **State:** Fixed — `mentions()` reads an inline `<a>` through the one HTML reader,
+  `model/html-attributes.ts`, built by [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s Phase 1 (PR #296).
 - **Severity:** Medium — no false green: every case measured is red. One is a false red: a linked
   mention is called "not a link", and the fix offered writes a Markdown link inside the HTML link.
   Two are red under the wrong finding, with a remedy for a link that is not there and no fix.
-- **Origin:** self-found · [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s
+- **Origin:** self-found · [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s
   review, 2026-11-01.
-  (That review's ruling is recorded with [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
+  (That review's ruling is recorded with [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
   until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
@@ -90,17 +91,22 @@ and a `>` inside one does not end the tag.
 matched: the text a reader sees there is in a link this rule cannot read. Decided here, to be
 overruled.
 
-[Proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md) needs an attribute reader that
+[Proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md) needs an attribute reader that
 pulls out the `href` value. If it lands first, this bug is closed by reusing it.
 
 ## Verification
 
-- [ ] Red test written first: the reproduction's line 9 is unread, and lines 5 and 7 are "not a
-      link" with a fix.
-- [ ] Lines 3 and 11 keep today's findings.
-- [ ] `<A HREF="…">`, `<a href='…'>` and `<a href=./x.md>` are links; `<a name="x">` is not.
-- [ ] `<a :href="x">` stays a link.
-- [ ] A changeset naming `@nielspeter/eess-md`.
-- [ ] `npm run validate` green.
+- [x] Red test written first: the reproduction's line 9 is unread, and lines 5 and 7 are "not a
+      link" (`packages/md/tests/builders/mentions-html-reader.test.ts`; red with `OPENS_A` restored).
+- [x] Lines 3 and 11 keep today's findings.
+- [ ] `<A HREF="…">`, `<a href='…'>` and `<a href=./x.md>` are links; `<a name="x">` is not —
+      deferred→[bug 0601](../0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md):
+      the first two and `<a name>` are as written and tested; `<a href=./x.md>` is text to micromark
+      (an unquoted `/`), and judging a mention in it needs the inline scan, which that bug's fix uses.
+- [ ] `<a :href="x">` stays a link — done-otherwise: it is not a link, by
+      [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s R2 (GitHub removes the
+      attribute, measured), so a mention in it is plain text; tested.
+- [x] A changeset naming `@nielspeter/eess-md` (`.changeset/one-html-reader.md`).
+- [x] `npm run validate` green.
 
-Deferred: none
+Deferred: [bug 0601](../0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)
