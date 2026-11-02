@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — awaiting the review's changes (see the proposal's Review, 2026-11-01); not ready to build
+- **State:** Draft — held: its only asker no longer needs it (2026-11-02), so it is not frozen or
+  built until a consumer asks again; the review's changes (see the proposal's Review, 2026-11-01) stand
 - **Implements:** [proposal 025](../proposals/025-md-a-field-written-empty-can-mean-absent.md)
 - **Priority:** Medium. No false green today: an empty value is always reported. A corpus whose
   empty field means "not yet" cannot state an optional field's rule for the blank case.

@@ -1,8 +1,9 @@
 # Proposal 025 — md: a field written empty can mean absent
 
 **State:** Draft — filed 2026-11-01 from an adopter's question, at the maintainer's request;
-reviewed 2026-11-01, Ship with changes (see Review). Still Draft: its plan is
-[plan 0581](../plans/0581-md-a-field-written-empty-can-mean-absent.md).
+reviewed 2026-11-01, Ship with changes (see Review). Its only asker no longer needs it (2026-11-02: the consuming
+project removed the code that needed it), so [plan 0581](../plans/0581-md-a-field-written-empty-can-mean-absent.md) stays Draft and is held until a
+consumer asks again; the ruling stands, since withdrawn demand does not falsify the design.
 **Priority:** Medium — no false green: an empty value is always reported today. But a corpus whose
 convention is that an empty field means "not yet" cannot state an optional field's rule at all,
 and the workaround an adopter reaches for inverts its required-field rule into a false green.
