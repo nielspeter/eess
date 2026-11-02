@@ -133,14 +133,42 @@ function strongLabel(node: Nodes, next: Nodes | undefined): string | undefined {
   return undefined
 }
 
+/** The text a reader sees in an inline node: text and inline code, never a tag. */
+function seenText(node: Nodes): string {
+  if (node.type === 'text' || node.type === 'inlineCode') return node.value
+  if ('children' in node) return node.children.map(seenText).join('')
+  return ''
+}
+
+type LinkBlocks = ReturnType<typeof walkLinkBlocks>
+
 /**
- * Collect markdown links from a document tree: inline (`[text](url)`) and reference-style (bug
- * 0558), each with the blocks that enclose it; plus every block, and every label written where no
- * block starts (later in a paragraph, in a table cell, in a heading), which therefore declares
- * nothing. Links inside fenced code are not parsed as link nodes by mdast, so they are naturally
- * excluded, and the parser makes a reference-style link only where its label is defined.
+ * One walk per document tree and source (plan 0580): `links()`'s elements, its unread sites,
+ * `beLinkedBack()`'s index and the declaration scan all read it, and a tree is never mutated once
+ * built. Callers read the arrays and never write to them.
  */
-export function collectLinkBlocks(
+const walked = new WeakMap<
+  Root,
+  { readonly source: string | undefined; readonly blocks: LinkBlocks }
+>()
+
+/**
+ * Collect the links from a document tree: Markdown inline (`[text](url)`) and reference-style (bug
+ * 0558) links, and every `href` on an `<a>` or `<area>` in raw HTML (plan 0580), each with the
+ * blocks that enclose it; the HTML links that cannot be read; every block; and every label written
+ * where no block starts (later in a paragraph, in a table cell, in a heading), which therefore
+ * declares nothing. A Markdown link in fenced code is not parsed as a link node; an `href` in a fence
+ * inside an HTML block is read, since GitHub renders it as a link (D4).
+ */
+export function collectLinkBlocks(root: Root, source?: string): LinkBlocks {
+  const known = walked.get(root)
+  if (known !== undefined && known.source === source) return known.blocks
+  const blocks = walkLinkBlocks(root, source)
+  walked.set(root, { source, blocks })
+  return blocks
+}
+
+function walkLinkBlocks(
   root: Root,
   source?: string,
 ): {
@@ -190,6 +218,8 @@ export function collectLinkBlocks(
       if (href === undefined) continue
       let text = tag.name === 'a' ? elementText(node.value, tag, read) : ''
       if (text === undefined) {
+        // An inline `<a>`: its text is what a reader sees in the nodes up to its `</a>`. A tag
+        // between them (`<b>`, `<img>`) is HTML, never text.
         text = ''
         for (const next of after) {
           if (
@@ -197,7 +227,7 @@ export function collectLinkBlocks(
             readHtmlNode(next, 'no-source').ends.some((e) => e.name === 'a')
           )
             break
-          text += textOf(next)
+          text += seenText(next)
         }
       }
       out.push({
@@ -219,15 +249,29 @@ export function collectLinkBlocks(
     if (source === undefined) return
     if (node.type !== 'paragraph' && node.type !== 'heading' && node.type !== 'tableCell') return
     for (const start of inlineTagStarts(node, source, depth)) {
-      if (start.kind === 'unquoted-slash') {
-        unreadLinks.push({
-          line: start.line,
-          cause: 'unquoted-slash',
-          attributes: start.attributes,
-          ...at(path),
-        })
-      } else if (start.kind === 'refused-tag') {
-        unreadLinks.push({ line: start.line, cause: 'refused-tag', ...at(path) })
+      // Every kind is named, so a new one is a compile error, not a site dropped (R3's "by
+      // construction"). `refused-tag` has no input that reaches it today: it is the report a refusal
+      // nobody has measured gets, so it stays though no row can drive it here.
+      switch (start.kind) {
+        case 'unquoted-slash':
+          unreadLinks.push({
+            line: start.line,
+            cause: 'unquoted-slash',
+            attributes: start.attributes,
+            ...at(path),
+          })
+          break
+        case 'refused-tag':
+          unreadLinks.push({ line: start.line, cause: 'refused-tag', ...at(path) })
+          break
+        case 'not-a-tag': // a named silence: GitHub renders it as text
+        case 'no-href': // a named silence: an anchor, not a link
+          break
+        default: {
+          // Exhaustive: a kind added to `InlineTagStart` without a case here does not compile.
+          const unknown: never = start
+          void unknown
+        }
       }
     }
   }
@@ -350,10 +394,7 @@ export function collectLinkBlocks(
   return { links: out, blocks, unreadLabels, unreadLinks }
 }
 
-/**
- * Collect markdown links, inline and reference-style, from a document tree. Links inside fenced
- * code are not parsed as link nodes by mdast, so they are naturally excluded.
- */
+/** The links of a document tree, as `collectLinkBlocks` reads them (Markdown and raw HTML). */
 export function collectLinks(root: Root, source?: string): MdLinkRef[] {
   return collectLinkBlocks(root, source).links
 }

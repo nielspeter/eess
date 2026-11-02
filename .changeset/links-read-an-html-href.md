@@ -7,7 +7,10 @@
 link at the line its `href` sits on, its value decoded: `.resolve()` checks it, `.beLinkedBack()`
 counts it, `sections().haveLink()` sees it, and `examined` counts it. It is read as GitHub renders it;
 `:href`, `v-bind:href`, `data-href` and `xlink:href` are not read. A broken one was green before and
-is now red. To migrate: fix the target, or the `href`.
+is now red. To migrate: fix the target, or the `href`. Also new: its `.text` is the text a reader sees
+in the element; an inline `href` is declared by `areLabelled()` and `areInSection()` as an inline link
+is, so a label whose only link is an `href` now declares it; and an `<a>` inside a Markdown link's
+text is a second link.
 
 An HTML link eess-md cannot read is now reported as `md/unread-link` (exported as `UNREAD_LINK`),
 which `.excluding()`, `.warn()` and a baseline cannot hide, wherever the rule's predicates reach it: a

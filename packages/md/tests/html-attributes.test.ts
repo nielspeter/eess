@@ -4,7 +4,7 @@ import {
   attributeOf,
   decodeReferences,
   inlineKind,
-  inlineTagStartsOf,
+  inlineTagStarts,
   isLinkStart,
   isOnlyComment,
   readHtmlNode,
@@ -34,6 +34,19 @@ const hrefs = (md: string): string[] =>
   read(md).flatMap((r) =>
     r.starts.filter(isLinkStart).map((t) => attributeOf(t, 'href')?.value ?? '<none>'),
   )
+
+/** Every inline container in `root` with its blockquote depth, read by the owner (D7). */
+const inlineTagStartsOf = (
+  root: Nodes,
+  md: string,
+  depth = 0,
+): ReturnType<typeof inlineTagStarts> => {
+  if (root.type === 'paragraph' || root.type === 'heading' || root.type === 'tableCell')
+    return inlineTagStarts(root, md, depth)
+  if (!('children' in root)) return []
+  const inner = root.type === 'blockquote' ? depth + 1 : depth
+  return root.children.flatMap((c) => inlineTagStartsOf(c, md, inner))
+}
 
 const inline = (md: string) =>
   inlineTagStartsOf(parseUncached(md), md).map((s) =>
@@ -153,6 +166,18 @@ describe('a tag the node ends inside is split-tag or unterminated (R3)', () => {
   it('B1 and B2: a block its container ended is unterminated', () => {
     expect(unfinished('> <div>\n> <a\nhref="./gone.md">x</a>\n')).toEqual(['a:unterminated@2'])
     expect(unfinished('- <div>\n  <a\nhref="./gone.md">x</a>\n')).toEqual(['a:unterminated@2'])
+  })
+
+  it('split-tag is matched by the tag’s offset: an earlier tag on its line does not keep it', () => {
+    expect(unfinished('<div>\n<a href="./y.md">y</a> <a href="./x\n\nprose without gt\n')).toEqual([
+      'a:unterminated@2',
+    ])
+  })
+
+  it('removing the whole run of blank lines decides split-tag, not only the first', () => {
+    expect(unfinished('<div>\n<a href="./a.md"\n\n\ntitle="t">x</a>\n</div>\n')).toEqual([
+      'a:split-tag@2',
+    ])
   })
 
   it('E1, E2: a tag the end of the document cuts is unterminated, not split-tag', () => {

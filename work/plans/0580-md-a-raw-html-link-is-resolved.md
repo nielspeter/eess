@@ -370,9 +370,13 @@ dispositions below correct it.
    [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) is closed
    done-otherwise against this plan.
 3. **The evidence side (R6).** `sections().haveLink()` and `.beLinkedBack()` read an unread site as
-   undecided, not as no link. _Split from Phase 2 on the build (2026-11-02), so each is one reviewable
-   PR. Between the two, a section or a target whose only link is unread is read as having none: a red
-   with the wrong words, which is how both read it before this plan, never a false green._
+   undecided, not as no link; and so does the declaration scan, which today says a label "stands
+   alone with no list directly under it" when its list holds only an unread link (found by Phase 2's
+   testing review; the same root, an unread site read as absent). _Split from Phase 2 on the build
+   (2026-11-02), so each is one reviewable PR. Between the two, Phase 2 adds no false green: a
+   section or a target whose only link is unread is read as having none, as before this plan: red
+   with the wrong words in condition position, and, in predicate position (`.that().haveLink()`),
+   left out without a word, as every `<a href>` was._
 
 ## Files changed
 
@@ -636,6 +640,23 @@ Built as frozen, except where noted:
 - **Sabotage, each red then green:** the HTML reader emptied, the inline scan emptied, the unread
   findings dropped, `select()` not refusing, `split-tag` always kept, `bypassFilters` false, the
   blockquote depth not counted (by the E3 row, added at the `links()` level for it).
+- **Review (architect · enforcement · a fresh testing lens, 2026-11-02), each Approve with changes;
+  applied:** `split-tag` matched by the tag's offset in its block, not its line, which an earlier
+  tag can share; the whole run of blank lines removed for the check; an inline `<a>`'s `.text` cuts
+  tags (`Read <b>this</b>` is `Read this`, an `<img>` alone is empty); the inline kinds in an
+  exhaustive `switch`, so a new kind does not compile until it is handled; `inlineTagStartsOf`
+  deleted (its rows walk containers in the test); the link walk memoized per tree (`check:corpus`
+  8.04 s before, 7.62 s after, one run each); `check:corpus` counts unread links apart from broken
+  ones; rows for each sabotage that stayed green: a heading, a quoted paragraph and a quoted table
+  (the inline scan's depth), an unfinished `<area>`, `areInSection()` and `areLabelled()` reaching an
+  unread site and deciding out one elsewhere, a `.text`-reading predicate, the positive
+  `beLinkedBack()`/`haveLink()` through an `href`, the zero-examined sentence; the invariant table
+  asserts each site's line and cause. Eleven sabotages, each red, the last a compile error.
+- **Shards:** `corpus/links/html` runs in shard 4 and `arch/md-one-html-attribute-reader` in shard 2
+  (position mod 4, read from a full run's order), not
+  [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard 3.
+- **The baseline row** of the inventory is the `bypassFilters` assertion: a baseline keys on that
+  field, and the kernel's own tests pin it, as for `mentions()`.
 - **`.warn()`** on a rule with an unread link throws, as a terminal escalates an unsuppressable
   finding; the row asserts the thrown violations. A baseline keys on `bypassFilters`, which the row
   asserts; the kernel's own tests pin a baseline's handling of it.

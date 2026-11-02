@@ -46,6 +46,8 @@ interface HtmlStartTag {
   readonly attributes: readonly HtmlAttribute[]
   /** 1-based line of the tag's `<`. */
   readonly line: number
+  /** Index in the node's value of the tag's `<`. */
+  readonly start: number
   /** Index in the node's value just after the tag's `>`, where its content starts. */
   readonly end: number
 }
@@ -69,6 +71,8 @@ type UnfinishedCause = 'split-tag' | 'unterminated'
 interface HtmlUnfinishedTag {
   readonly name: string
   readonly line: number
+  /** Index in the node's value of the tag's `<`, which names it where its line holds two. */
+  readonly start: number
   readonly cause: UnfinishedCause
 }
 
@@ -312,7 +316,7 @@ export function tokenizeHtml(
           break
         }
       } else {
-        starts.push({ name, attributes, line: tagLine, end: i })
+        starts.push({ name, attributes, line: tagLine, start: tagStart, end: i })
         if (TAGFILTER.has(name)) {
           const closes = holdsEndTag(value.slice(i), name)
           open.push({ name, closes })
@@ -325,7 +329,7 @@ export function tokenizeHtml(
     const inside = open.some((o) => o.closes)
     const couldClose = inQuote === undefined || !inQuote.gtSoFar
     const cause: UnfinishedCause = endedByBlankLine && couldClose ? 'split-tag' : 'unterminated'
-    const tag = { name, line: tagLine, cause }
+    const tag = { name, line: tagLine, start: tagStart, cause }
     if (inside) silenced.push(tag)
     else unfinished.push(tag)
   }
@@ -376,18 +380,27 @@ function htmlNodeAt(root: Nodes, offset: number): Nodes | undefined {
  * the parser, not a second reading of containers, says whether the HTML block now runs on: it does
  * not past a quote or list item the line ended, nor take a line with no `>` into a quote.
  */
-function finishesOnceJoined(node: Nodes, source: string, line: number, name: string): boolean {
+function finishesOnceJoined(node: Nodes, source: string, cut: HtmlUnfinishedTag): boolean {
   const end = node.position?.end.offset
   const start = node.position?.start.offset
   if (end === undefined || start === undefined) return false
   const lineEnd = source.indexOf('\n', end)
-  const blankEnd = lineEnd === -1 ? -1 : source.indexOf('\n', lineEnd + 1)
-  if (blankEnd === -1) return false
-  const joined = source.slice(0, lineEnd + 1) + source.slice(blankEnd + 1)
+  if (lineEnd === -1) return false
+  // Remove the whole run of blank lines (a quote's blank line is a lone `>`), not only the first.
+  let after = lineEnd + 1
+  for (;;) {
+    const next = source.indexOf('\n', after)
+    if (next === -1 || !/^[ \t>]*\r?$/.test(source.slice(after, next))) break
+    after = next + 1
+  }
+  if (after === lineEnd + 1) return false
+  const joined = source.slice(0, lineEnd + 1) + source.slice(after)
   const again = htmlNodeAt(parseUncached(joined), start)
   if (again === undefined || again.type !== 'html') return false
+  // The value before the cut is unchanged, so the tag sits at the same index; matched by it, not by
+  // its line, which another tag can share.
   const read = tokenizeHtml(again.value, again.position?.start.line ?? 0, false)
-  return read.starts.some((t) => t.line === line && t.name === name)
+  return read.starts.some((t) => t.start === cut.start && t.name === cut.name)
 }
 
 /**
@@ -408,7 +421,7 @@ export function readHtmlNode(node: Nodes, context: HtmlContext | 'no-source'): H
   return {
     ...read,
     unfinished: read.unfinished.map((u) =>
-      u.cause === 'split-tag' && !finishesOnceJoined(node, ctx.source, u.line, u.name)
+      u.cause === 'split-tag' && !finishesOnceJoined(node, ctx.source, u)
         ? { ...u, cause: 'unterminated' }
         : u,
     ),
@@ -641,24 +654,6 @@ export function inlineTagStarts(
       )
     }
   }
-  return out
-}
-
-/** Every inline tag start in a document (D7): each paragraph, heading and table cell, at its blockquote depth. */
-// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
-export function inlineTagStartsOf(root: Nodes, source: string): InlineTagStart[] {
-  const out: InlineTagStart[] = []
-  const walk = (node: Nodes, depth: number): void => {
-    if (node.type === 'paragraph' || node.type === 'heading' || node.type === 'tableCell') {
-      out.push(...inlineTagStarts(node, source, depth))
-      return
-    }
-    if ('children' in node) {
-      const inner = node.type === 'blockquote' ? depth + 1 : depth
-      for (const child of node.children) walk(child, inner)
-    }
-  }
-  walk(root, 0)
   return out
 }
 

@@ -250,8 +250,8 @@ in any letter case and any quoting, in an HTML block or inline, at the line the
 GitHub renders it: inside an HTML block, as a browser reads the tags, so a fence
 or a code span there, and the content of `<script>`, `<style>`, `<textarea>`,
 `<title>` and `<pre>`, can hold one; a comment, CDATA, and a tag inside another
-tag's quoted value hold none. Its `.text` is what the element holds (empty for
-`<a><img></a>`), it gets no autofix, and it is declared by `areLabelled()` and
+tag's quoted value hold none. Its `.text` is the text a reader sees in the element, tags cut
+(empty for `<a><img></a>`), it gets no autofix, and it is declared by `areLabelled()` and
 `areInSection()` as an inline link in the same block is, except in an HTML block
 of its own (a `<ul>` under `**Links:**` declares nothing). Not read: `:href`,
 `v-bind:href`, `data-href`, `xlink:href` and a component's `href` prop, which
@@ -261,7 +261,9 @@ defines it as a link. An HTML link eess-md cannot read is reported as
 baseline), wherever the rule's predicates reach it: a tag a blank line cuts
 inside its block (`split-tag`: remove the blank line), a tag that never closes
 in its block (`unterminated`: close it), and an `<a>` the Markdown parser reads
-as text because an unquoted value holds a `/` (`unquoted-slash`: quote it). It
+as text because an unquoted value holds a `/` (`unquoted-slash`: quote it). A
+fourth cause, `refused-tag` (write the link in Markdown), reports a refusal no
+measurement explains; no input reaches it today. It
 is not counted in `examined`, and `.select()` refuses rather than drop it. Not
 yet: `sections().haveLink()` and `.beLinkedBack()` still read a section or a
 target whose only link is unread as having none, a red with the wrong words

@@ -88,13 +88,12 @@ describe('an HTML link links() cannot read is reported under its cause (R3)', ()
     expect(resolved(cut.replace('\n\n', '\n'))).toEqual([])
   })
 
-  it('split-tag inside a blockquote (E3): the walk passes the quote’s depth', () => {
+  it('split-tag inside a blockquote (E3): the walk passes the quote’s depth, and the remedy clears it', () => {
     const cut = '> <div>\n> <a href="./a.md"\n>\n> title="t">x</a>\n> </div>'
-    expect(
-      resolved(cut).map(
-        (x) => x.split(':')[0] + ' ' + x.split(' ')[1] + ' ' + x.includes('blank line'),
-      ),
-    ).toEqual([`4 ${UNREAD_LINK} true`])
+    expect(resolved(cut)).toEqual([
+      `4: ${UNREAD_LINK} an HTML link here cannot be read: its HTML tag is cut by a blank line, which ends the HTML block, so its target is not checked.`,
+    ])
+    expect(resolved(cut.replace('\n>\n', '\n'))).toEqual([])
   })
 
   it('unterminated (a quote that never closes), and closing it clears it', () => {
@@ -122,12 +121,18 @@ describe('an HTML link links() cannot read is reported under its cause (R3)', ()
 
   it('unquoted-slash across a line break (P3) and around emphasis (Q2), and quoting clears both', () => {
     expect(
-      resolved('see <a\nhref=./a.md>x</a>').map((s) => s.split(' ').slice(0, 2).join(' ')),
-    ).toEqual([`3: ${UNREAD_LINK}`])
+      resolved('see <a\nhref=./a.md>x</a>').map(
+        (s) =>
+          `${s.split(' ').slice(0, 2).join(' ')} ${String(s.includes('reads its tag as text, because'))}`,
+      ),
+    ).toEqual([`3: ${UNREAD_LINK} true`])
     expect(resolved('see <a\nhref="./a.md">x</a>')).toEqual([])
     expect(
-      resolved('see <a href=./a.md title=*t*>x</a>').map((s) => s.split(' ').slice(0, 2).join(' ')),
-    ).toEqual([`3: ${UNREAD_LINK}`])
+      resolved('see <a href=./a.md title=*t*>x</a>').map(
+        (s) =>
+          `${s.split(' ').slice(0, 2).join(' ')} ${String(s.includes('reads its tag as text, because'))}`,
+      ),
+    ).toEqual([`3: ${UNREAD_LINK} true`])
     expect(resolved('see <a href="./a.md" title=*t*>x</a>')).toEqual([])
   })
 
@@ -171,6 +176,37 @@ describe('an unread link is undecided in every links() rule its predicates reach
     )
   })
 
+  it('areInSection() reaches a site in the section, and decides out one outside it', () => {
+    const c = corpusFromText({
+      'docs/p.md':
+        '# R\n\n## Refs\n\nsee <a href=./a.md title=a/b>x</a>\n\n## Other\n\nsee <a href=./a.md title=a/b>y</a>\n',
+      'docs/a.md': '# A\n',
+    })
+    const v = links(c).that().areInSection('Refs').should().resolve().violations()
+    expect(v.filter((x) => x.ruleId === UNREAD_LINK).map((x) => x.line)).toEqual([5])
+  })
+
+  it('areLabelled() reaches a site under the label, and decides out one elsewhere', () => {
+    const c = corpusFromText({
+      'docs/p.md': page(
+        '**Links:**\n\n- see <a href=./a.md title=a/b>x</a>\n\nsee <a href=./a.md title=a/b>y</a>',
+      ),
+      'docs/a.md': '# A\n',
+    })
+    const v = links(c).that().areLabelled('Links').should().resolve().violations()
+    expect(v.filter((x) => x.ruleId === UNREAD_LINK).map((x) => x.line)).toEqual([5])
+  })
+
+  it('a predicate that reads .text cannot decide a site out: its text is unknown', () => {
+    const v = links(c())
+      .that()
+      .satisfy({ description: 'text x', test: (l) => l.text === 'nothing like it' })
+      .should()
+      .resolve()
+      .violations()
+    expect(ids(v)).toContain(UNREAD_LINK)
+  })
+
   it('is unsuppressable: .excluding() keeps it, it carries bypassFilters, and .warn() still throws', () => {
     const v = links(c()).should().resolve().excluding(/.*/).violations()
     const found = v.filter((x) => x.ruleId === UNREAD_LINK)
@@ -192,6 +228,7 @@ describe('an unread link is undecided in every links() rule its predicates reach
     const v = links(only).should().resolve().violations()
     expect(v.examined).toBe(0)
     expect(ids(v)).toEqual([UNREAD_LINK])
+    expect(v[0]?.message.endsWith('It is why this rule examined nothing.')).toBe(true)
     const none = links(only).should().notExist().violations()
     expect(ids(none)).toEqual([UNREAD_LINK])
     expect(none.declaredEmpty).toBeUndefined()
@@ -208,7 +245,11 @@ describe('select() refuses when it reaches an unread link (R7)', () => {
       'docs/p.md': page('see <a href="./a.md">x</a>'),
       'docs/a.md': '# A\n',
     })
-    expect(links(good).select({ label: 'l', identify }).elements).toHaveLength(1)
+    expect(
+      links(good)
+        .select({ label: 'l', identify })
+        .elements.map((l) => l.url),
+    ).toEqual(['./a.md'])
   })
 })
 
@@ -238,7 +279,11 @@ describe('what changes for the other readers of links()', () => {
       'docs/completed/r.md': '# R\n',
       'docs/a.md': '# A\n',
     })
-    expect(links(c).that().haveLiveTargets().should().resolve().violations().examined).toBe(1)
+    const live = links(c)
+      .that()
+      .haveLiveTargets()
+      .select({ label: 'l', identify: (l) => ({ name: l.url }) })
+    expect(live.elements.map((l) => l.url)).toEqual(['./a.md'])
   })
 
   it('.text is the element’s text, and empty for <a><img></a>', () => {
@@ -255,6 +300,30 @@ describe('what changes for the other readers of links()', () => {
     ).toEqual(['Read this', ''])
   })
 
+  it('an inline <a>’s .text is what a reader sees: tags cut, and empty around an image', () => {
+    const c = corpusFromText({
+      'docs/p.md': page(
+        'see <a href="./a.md">Read <b>this</b></a> and <a href="./a.md"><img src="x.png"></a>, <a href="./a.md">two</a>',
+      ),
+      'docs/a.md': '# A\n',
+    })
+    const texts = links(c)
+      .select({ label: 'l', identify: (l) => ({ name: l.url }) })
+      .elements.map((l) => l.text)
+    expect(texts).toEqual(['Read this', '', 'two'])
+  })
+
+  it('an href counts as a link back, and gives its section a link', () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\nSee [b](./b.md).\n',
+      'docs/b.md': '# B\n\n<a href="./a.md">a</a>\n',
+    })
+    const back = links(c).that().satisfy(inFile('docs/a.md')).should().beLinkedBack().violations()
+    expect(said(back)).toEqual([])
+    expect(back.examined).toBe(1)
+    expect(said(sections(c).that().areNamed('B').should().haveLink().violations())).toEqual([])
+  })
+
   it('a commented-out href is not a link back, and gives a section no link', () => {
     const c = corpusFromText({
       'docs/a.md': '# A\n\nSee [b](./b.md).\n',
@@ -262,57 +331,76 @@ describe('what changes for the other readers of links()', () => {
     })
     expect(
       said(links(c).that().satisfy(inFile('docs/a.md')).should().beLinkedBack().violations()),
-    ).toHaveLength(1)
-    expect(sections(c).that().areNamed('B').should().haveLink().violations()).toHaveLength(1)
+    ).toEqual(['3: - docs/a.md declares docs/b.md, and docs/b.md does not link back'])
+    expect(said(sections(c).that().areNamed('B').should().haveLink().violations())).toEqual([
+      '1: - section "B" holds no link',
+    ])
   })
 })
 
 describe('every <a or <area start ends read, with a cause, or in a named silence (R3 invariant)', () => {
   /** What one input yields: the links read, the unread sites, and nothing else. */
+  const causeOf = (message: string): string =>
+    message.includes('cut by a blank line')
+      ? 'split-tag'
+      : message.includes('never closes')
+        ? 'unterminated'
+        : message.includes('reads its tag as text, because')
+          ? 'unquoted-slash'
+          : 'refused-tag'
   const outcome = (body: string): string => {
     const v = links(corpusFromText({ 'docs/p.md': page(body) }))
       .should()
       .notExist()
       .violations()
-    const unread = v.filter((x) => x.ruleId === UNREAD_LINK).length
-    return `read ${String(v.examined)} · unread ${String(unread)}`
+    const unread = v
+      .filter((x) => x.ruleId === UNREAD_LINK)
+      .map((x) => `${String(x.line)}:${causeOf(x.message)}`)
+    return `read ${String(v.examined)} · unread ${unread.join(',') || 'none'}`
   }
   const rows: readonly (readonly [string, string])[] = [
     // read
-    ['see <a href=x.md>x</a>', 'read 1 · unread 0'],
-    ['see <a title="a>b" href="./x.md">x</a>', 'read 1 · unread 0'],
-    ['the <a href>element</a>', 'read 1 · unread 0'],
-    ['<a href=docs/>x</a>', 'read 1 · unread 0'],
-    ['<div>\n<a href="./x.md"title="y">W</a>\n</div>', 'read 1 · unread 0'],
-    ['<div align=center>\n<a @click="go" href="./x.md">C</a>\n</div>', 'read 1 · unread 0'],
-    ['<details>\n```\n<a href="./x.md">F</a>\n```\n</details>', 'read 1 · unread 0'],
-    ['<script>\nvar s = \'<a href="./x.md">S</a>\'\n</script>', 'read 1 · unread 0'],
-    ['<pre>\n<a href="./x.md">P</a>\n</pre>', 'read 1 · unread 0'],
-    ['<map name="m">\n<area href="./x.md" alt="A">\n</map>', 'read 1 · unread 0'],
+    ['see <a href=x.md>x</a>', 'read 1 · unread none'],
+    ['see <a title="a>b" href="./x.md">x</a>', 'read 1 · unread none'],
+    ['the <a href>element</a>', 'read 1 · unread none'],
+    ['<a href=docs/>x</a>', 'read 1 · unread none'],
+    ['<div>\n<a href="./x.md"title="y">W</a>\n</div>', 'read 1 · unread none'],
+    ['<div align=center>\n<a @click="go" href="./x.md">C</a>\n</div>', 'read 1 · unread none'],
+    ['<details>\n```\n<a href="./x.md">F</a>\n```\n</details>', 'read 1 · unread none'],
+    ['<script>\nvar s = \'<a href="./x.md">S</a>\'\n</script>', 'read 1 · unread none'],
+    ['<pre>\n<a href="./x.md">P</a>\n</pre>', 'read 1 · unread none'],
+    ['<map name="m">\n<area href="./x.md" alt="A">\n</map>', 'read 1 · unread none'],
     // a cause
-    ['see <a href=./x.md>x</a>', 'read 0 · unread 1'],
-    ['see <a href=x.md title=a/b>x</a>', 'read 0 · unread 1'],
-    ['see <a\nhref=./x.md>x</a>', 'read 0 · unread 1'],
-    ['| h |\n| - |\n| <a href=./x.md>x</a> |', 'read 0 · unread 1'],
-    ['see <a href=./a*b*.md>x</a>', 'read 0 · unread 1'],
-    ['see <a title="`" href=./x.md>x`</a>', 'read 0 · unread 1'],
-    ['see R&amp;D <a href=./x.md>x</a>', 'read 0 · unread 1'],
-    ['see \\\\<a href=./x.md>x</a>', 'read 0 · unread 1'],
-    ['<div>\n<a href="./x\n\nmd">x</a>\n</div>', 'read 0 · unread 1'],
-    ['<div>\n<a href="./gone.md>x</a>\n</div>\n\nSee "this" -> there.', 'read 0 · unread 1'],
-    ['> <div>\n> <a\nhref="./gone.md">x</a>', 'read 0 · unread 1'],
+    ['see <a href=./x.md>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['see <a href=x.md title=a/b>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['see <a\nhref=./x.md>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['| h |\n| - |\n| <a href=./x.md>x</a> |', 'read 0 · unread 5:unquoted-slash'],
+    ['> | h |\n> | - |\n> | <a href=./x.md>x</a> |', 'read 0 · unread 5:unquoted-slash'],
+    ['## see <a href=./x.md>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['> see <a class="c"\n> href=./x.md>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['see <a href=./a*b*.md>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['see <a title="`" href=./x.md>x`</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['see R&amp;D <a href=./x.md>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['see \\\\<a href=./x.md>x</a>', 'read 0 · unread 3:unquoted-slash'],
+    ['<div>\n<a href="./x\n\nmd">x</a>\n</div>', 'read 0 · unread 4:split-tag'],
+    [
+      '<div>\n<a href="./gone.md>x</a>\n</div>\n\nSee "this" -> there.',
+      'read 0 · unread 4:unterminated',
+    ],
+    ['> <div>\n> <a\nhref="./gone.md">x</a>', 'read 0 · unread 4:unterminated'],
+    ['<map>\n<area href="./x.md\n</map>', 'read 0 · unread 4:unterminated'],
     // a named silence: no tag GitHub renders, a tag with no href, a comment, an attribute value
-    ['see <a href="./x.md"title="y">W</a> here', 'read 0 · unread 0'],
-    ['see <a @click="go" href="./x.md">C</a> here', 'read 0 · unread 0'],
-    ['see <a href="./x.md>x</a> here', 'read 0 · unread 0'],
-    ['see <a name=a/b>x</a>', 'read 0 · unread 0'],
-    ['see \\<a href=./x.md>x</a>', 'read 0 · unread 0'],
-    ['see &lt;a href=./x.md>x', 'read 0 · unread 0'],
-    ['<![CDATA[\n<a href="./x.md">D</a>\n]]>', 'read 0 · unread 0'],
-    ['see <img alt="<a href=\'./g.md\'>"> here', 'read 0 · unread 0'],
-    ['![logo <a href=./x.md>](y.png)', 'read 0 · unread 0'],
-    ['[x](y.md "<a href=./z.md>")', 'read 1 · unread 0'],
-    ["<script>\nconst s = '<a href=\"' + u\n</script>", 'read 0 · unread 0'],
+    ['see <a href="./x.md"title="y">W</a> here', 'read 0 · unread none'],
+    ['see <a @click="go" href="./x.md">C</a> here', 'read 0 · unread none'],
+    ['see <a href="./x.md>x</a> here', 'read 0 · unread none'],
+    ['see <a name=a/b>x</a>', 'read 0 · unread none'],
+    ['see \\<a href=./x.md>x</a>', 'read 0 · unread none'],
+    ['see &lt;a href=./x.md>x', 'read 0 · unread none'],
+    ['<![CDATA[\n<a href="./x.md">D</a>\n]]>', 'read 0 · unread none'],
+    ['see <img alt="<a href=\'./g.md\'>"> here', 'read 0 · unread none'],
+    ['![logo <a href=./x.md>](y.png)', 'read 0 · unread none'],
+    ['[x](y.md "<a href=./z.md>")', 'read 1 · unread none'],
+    ["<script>\nconst s = '<a href=\"' + u\n</script>", 'read 0 · unread none'],
   ]
 
   it.each(rows)('%j → %s', (body, want) => {
