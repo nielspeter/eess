@@ -2303,10 +2303,19 @@ function gateRecordMentionDoneFolder() {
   })
 }
 
+// Two causes in one run: a raw HTML block, and a link written in HTML, which the one HTML reader
+// (plan 0580) must recognise through a quoted `>` (bug 0593), so an emptied `isLinkStart` reddens it.
 function gateRecordMentionUnread() {
   return mentionRedThenGreen({
-    files: { [PROBE_998]: probeRecord('<div>\nADR-016\n</div>') },
-    expected: [['md/unread-mention', PROBE_998, 'raw HTML block']],
+    files: {
+      [PROBE_998]: probeRecord(
+        '<div>\nADR-016\n</div>\n\nSee <a title="a>b" href="./x.md">ADR-016</a> here.',
+      ),
+    },
+    expected: [
+      ['md/unread-mention', PROBE_998, 'raw HTML block'],
+      ['md/unread-mention', PROBE_998, 'link written in HTML'],
+    ],
   })
 }
 

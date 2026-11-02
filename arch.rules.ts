@@ -90,6 +90,9 @@ const htmlAttributeRead: ExpressionMatcher = {
     return node.getKindName() === 'RegularExpressionLiteral' && HTML_READ.test(node.getText())
   },
 }
+// The owner holds no literal HTML_READ matches today (its start pattern is spelled `<(?:a|area)`), so
+// this exclusion is not exercised: dropping it stays green until the owner gains such a literal, and
+// then the rule reds on the owner itself, loudly, which is the safe direction.
 const HTML_READER = '**/packages/md/src/model/html-attributes.ts'
 
 /**

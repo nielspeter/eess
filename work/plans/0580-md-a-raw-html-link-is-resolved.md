@@ -538,7 +538,7 @@ Built as frozen, except where noted. Each difference is a decision on the build,
 
 - **The owner** (`packages/md/src/model/html-attributes.ts`): `tokenizeHtml`/`readHtmlNode` (D1,
   D2, D5), `openTagAt`/`inlineTagStarts`/`inlineTagStartsOf` (D7), `isLinkStart`, `isOnlyComment`,
-  `decodeReferences`. Its 33 rows are `packages/md/tests/html-attributes.test.ts`, one per Measured
+  `decodeReferences`. Its 43 rows are `packages/md/tests/html-attributes.test.ts`, one per Measured
   row or probe the owner decides.
 - **The decoder.** No entity decoder was a dependency of eess-md. `decode-named-character-reference`,
   which micromark already installs to decode a Markdown link's URL, is now a direct dependency: it
@@ -578,11 +578,27 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   three `eess-exclude` comments on `tokenizeHtml`, `attributeOf` and `inlineTagStartsOf` once Phase 2
   imports them (stale then, and reported). Phase 2 also reads an `html` node that micromark made
   inside a refused tag's quoted value as that value, not as a link.
-- **For Phase 2, from the review's verification pass (no Phase 1 caller reads `unfinished`, so
-  neither changes a verdict today):** a blank line that ends a blockquote (no `>` on it) is not a
-  blank line inside the quote, so a tag it cuts is `unterminated`, not `split-tag` (removing the
-  blank line does not clear it: an HTML block takes no lazy continuation), with its row; and
-  `readHtmlNode`'s `depth` becomes required, so a caller cannot leave it at 0 and bring E3 back.
+- **For Phase 2, from the review's verification pass and PR #296's testing review (no Phase 1
+  caller reads `unfinished`, verified by the testing review, so none changes a verdict today):**
+  `split-tag` is decided from the text before the cut, but its remedy depends on the text after it.
+  Four inputs get `split-tag` where removing the blank line leaves the tag `unterminated`: a blank
+  line that ends a blockquote, a blank line and then the end of the document, a list item whose next
+  line is not indented, and an unclosed quote cut before a paragraph with no `>` (this last follows
+  R3 as frozen, so R3's `split-tag` definition is a Phase 2 review question). Phase 2 decides
+  `split-tag` by its remedy (does the tag finish inside the same block once the blank line is gone?),
+  with a row for each of the four; and `readHtmlNode`'s `depth` becomes required, so a caller cannot
+  leave it at 0 and bring E3 back.
+- **Deferred to Phase 2: the R3 invariant row** ("every start ends read, with a cause, or in a named
+  silence"). Each Measured row and probe has its own row here; the invariant across both scans
+  guards what `links()` will report, so it is built with its first consumer.
+- **PR #296's testing review (a fresh lens, 2026-11-02), Approve with changes; applied:** a row that
+  only `</a>` closes an HTML link in `mentions()` (red when any end tag closes it); the
+  `haveContent()` rows assert the finding, not a count; the HTML-link cause joins
+  `corpus/record-mention/unread`'s probe in the same run (red with `isLinkStart` emptied); a note that
+  D10's owner exclusion is not exercised; the changeset names four more verdict changes. Recorded, not
+  fixed here: [bug 0603](../bugs/0603-an-unread-box-stands-beside-a-zero-examined-finding.md),
+  `taskItems()` with
+  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s shape.
 - **Pointers.** Code pointers into `mentions.ts`, `phrasing.ts` and `section-holds.ts` that moved
   were renumbered; those naming code this phase removed (`OPENS_A`, `ONE_COMMENT`, `HTML_COMMENT`)
   are pinned "on `6bcd35e6`", the house form for code as it was.

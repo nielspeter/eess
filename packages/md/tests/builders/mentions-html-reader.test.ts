@@ -63,6 +63,19 @@ describe('an HTML link is what the one reader says it is (bug 0593)', () => {
   })
 })
 
+describe('only </a> closes an HTML link for mentions()', () => {
+  it('an end tag of another element inside the <a> does not close it', () => {
+    const v = one('# A\n\n<a href="./x.md"><code>foo</code> bug 0001</a> and bug 0002.\n')
+      .should()
+      .beLinked()
+      .violations()
+    expect(said(v).map((x) => x.slice(0, 34))).toEqual([
+      '3: - "bug 0002" is not a link',
+      '3: md/unread-mention "bug 0001" si',
+    ])
+  })
+})
+
 describe('an <area> is a link to links(), and holds no text for mentions()', () => {
   it('a mention after an inline <area href> in the same paragraph is plain text', () => {
     expect(
@@ -122,10 +135,10 @@ describe('a node of only comments is invisible to both of its readers (plan 0580
 
   it('sections().haveContent(): a doctype is no content; text between two comments is', () => {
     const c = (body: string) => corpusFromText({ 'a.md': `## A\n\n${body}\n\n## C\n\ntext\n` })
-    const empty = (body: string) =>
-      sections(c(body)).that().areNamed('A').should().haveContent().violations().length
-    expect(empty('<!DOCTYPE html>')).toBe(1)
-    expect(empty('<!-- a -->\n<!-- b -->')).toBe(1)
-    expect(empty('<!-- a --> text <!-- b -->')).toBe(0)
+    const findings = (body: string) =>
+      said(sections(c(body)).that().areNamed('A').should().haveContent().violations())
+    expect(findings('<!DOCTYPE html>')).toEqual(['1: - section "A" is empty'])
+    expect(findings('<!-- a -->\n<!-- b -->')).toEqual(['1: - section "A" is empty'])
+    expect(findings('<!-- a --> text <!-- b -->')).toEqual([])
   })
 })

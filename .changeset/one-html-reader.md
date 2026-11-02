@@ -18,9 +18,16 @@
   `<!DOCTYPE html>`. Text between two comments is seen: before, `haveContent()` called
   `<!-- a --> text <!-- b -->` empty.
 
-To migrate: a section that holds only a doctype or a processing instruction now fails
-`.should().haveContent()`, as a section of only comments did; text written between two comments now
-counts. A mention inside `<a data-href>` is now judged as plain text.
+To migrate, each of these can change a verdict:
+
+- A section that holds only a doctype or a processing instruction now fails `.should().haveContent()`,
+  as a section of only comments did; text written between two comments now counts; a comment left
+  open to the end of the document hides what follows it, so a section holding only `<!-- a` is empty
+  and a mention in it is not read.
+- A mention inside `<a data-href>`, `<a v-bind:href>` or `<a xlink:href>` is now judged as plain
+  text; one inside a bare `<a href>` (no value) or `<a title="a>b" href>` is now reported as unread.
+- `<!-->`, `<!--->` and a comment closed by `--!>` are comments, as in HTML, so a block of only those
+  is invisible.
 
 eess-md now depends directly on `decode-named-character-reference`, which micromark already
 installed, to decode a reference in an attribute's value.
