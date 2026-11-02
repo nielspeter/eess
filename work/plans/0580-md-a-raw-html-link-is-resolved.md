@@ -578,6 +578,11 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   three `eess-exclude` comments on `tokenizeHtml`, `attributeOf` and `inlineTagStartsOf` once Phase 2
   imports them (stale then, and reported). Phase 2 also reads an `html` node that micromark made
   inside a refused tag's quoted value as that value, not as a link.
+- **For Phase 2, from the review's verification pass (no Phase 1 caller reads `unfinished`, so
+  neither changes a verdict today):** a blank line that ends a blockquote (no `>` on it) is not a
+  blank line inside the quote, so a tag it cuts is `unterminated`, not `split-tag` (removing the
+  blank line does not clear it: an HTML block takes no lazy continuation), with its row; and
+  `readHtmlNode`'s `depth` becomes required, so a caller cannot leave it at 0 and bring E3 back.
 - **Pointers.** Code pointers into `mentions.ts`, `phrasing.ts` and `section-holds.ts` that moved
   were renumbered; those naming code this phase removed (`OPENS_A`, `ONE_COMMENT`, `HTML_COMMENT`)
   are pinned "on `6bcd35e6`", the house form for code as it was.
