@@ -35,6 +35,10 @@
  *                 three ways (`===`, a bare method call on it, `switch`), one probe
  *                 per branch of the matcher → eess/one-code-block-tag-comparison; a
  *                 probe asking only `.lang === null` must exit 0.
+ *   arch/md-one-html-attribute-reader (plan 0580 D10)
+ *                 the same probe file holds one regex per alternative the matcher
+ *                 claims (`href`, `src`, `<a`, `<\/a`) and a quiet one → the rule
+ *                 fires on exactly lines 1 to 4.
  *   internal arch packages/core/src/__nonvacuity_probe_catch__.ts has a silent
  *                 `catch {}` → eess/no-silent-catch. (This gate has in-flight
  *                 violations from other agents; the clean direction is reported
@@ -888,6 +892,35 @@ function gateArchOneTagComparison() {
   return {
     ok,
     detail: `${probeNote} · \`.lang === null\` → ${quietOk ? 'quiet' : `exit ${quiet.code}, not quiet`}`,
+  }
+}
+
+// --- Gate: arch/md-one-html-attribute-reader (plan 0580 D10) ---
+// One probe file, one run: a literal per alternative the matcher claims (`href`, `src`, `<a`, `<\/a`),
+// each on its own line, and a quiet literal after them. The rule must fire on exactly lines 1 to 4, so
+// dropping an alternative reddens the row, and widening the matcher to every literal reddens it too.
+function gateArchOneHtmlAttributeReader() {
+  const RULE = 'md/one-html-attribute-reader'
+  const body = [
+    'export const a = /href/',
+    'export const b = /src=/',
+    'export const c = /<a /',
+    'export const d = /<\\/a>/',
+    'export const q = /lang/',
+    '',
+  ].join('\n')
+  const bad = withProbe(PROBE_TAG, body, () =>
+    sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const fired = firedOn(bad, RULE, '__nonvacuity_probe_tag__')
+  const lines = violationsOf(bad)
+    .filter((v) => v?.ruleId === RULE && String(v?.file ?? '').includes('__nonvacuity_probe_tag__'))
+    .map((v) => Number(v?.line))
+    .sort((x, y) => x - y)
+  const ok = bad.code === 1 && fired && lines.join(',') === '1,2,3,4'
+  return {
+    ok,
+    detail: `exit ${bad.code}; fired on lines ${lines.join(',') || 'none'} (want 1,2,3,4)`,
   }
 }
 
@@ -2270,10 +2303,19 @@ function gateRecordMentionDoneFolder() {
   })
 }
 
+// Two causes in one run: a raw HTML block, and a link written in HTML, which the one HTML reader
+// (plan 0580) must recognise through a quoted `>` (bug 0593), so an emptied `isLinkStart` reddens it.
 function gateRecordMentionUnread() {
   return mentionRedThenGreen({
-    files: { [PROBE_998]: probeRecord('<div>\nADR-016\n</div>') },
-    expected: [['md/unread-mention', PROBE_998, 'raw HTML block']],
+    files: {
+      [PROBE_998]: probeRecord(
+        '<div>\nADR-016\n</div>\n\nSee <a title="a>b" href="./x.md">ADR-016</a> here.',
+      ),
+    },
+    expected: [
+      ['md/unread-mention', PROBE_998, 'raw HTML block'],
+      ['md/unread-mention', PROBE_998, 'link written in HTML'],
+    ],
   })
 }
 
@@ -4515,6 +4557,7 @@ const gates = [
   ['arch/md-layers-point-down', gateArchMdLayersPointDown],
   ['arch/md-rules-import-only-the-root', gateArchMdRulesRootOnly],
   ['arch/one-code-block-tag-comparison', gateArchOneTagComparison],
+  ['arch/md-one-html-attribute-reader', gateArchOneHtmlAttributeReader],
   ['internal arch', gateInternalArch],
   ['arch/no-new-kernel-registry', gateNoNewKernelRegistry],
   ['family re-export (index)', gateFamilyReExportIndex],
@@ -5719,6 +5762,7 @@ const GATE_FOR = {
     'arch/md-layers-point-down',
     'arch/md-rules-import-only-the-root',
     'arch/one-code-block-tag-comparison',
+    'arch/md-one-html-attribute-reader',
     'internal arch',
     'arch/one-fence-reader (packages)',
     'arch/one-fence-reader (scripts)',

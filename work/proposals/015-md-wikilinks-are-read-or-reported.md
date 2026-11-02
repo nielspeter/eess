@@ -47,7 +47,7 @@ unchanged._
 - **The closest precedent is reporting what cannot be read.** [Plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)'s declaration scan reports a
   declaration made of reference-style links as one eess-md "does not read", rather than skipping it
   ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md) rule 7).
-  _Corrected 2026-11-01 (review): that finding no longer exists; it was removed when [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made reference-style links read as links. The live precedents are `md/unread-mention` (`packages/md/src/builders/mentions.ts:46`, with its findings built at `packages/md/src/builders/mentions.ts:244`) and [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2._
+  _Corrected 2026-11-01 (review): that finding no longer exists; it was removed when [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made reference-style links read as links. The live precedents are `md/unread-mention` (`packages/md/src/builders/mentions.ts:40`, with its findings built at `packages/md/src/builders/mentions.ts:186`) and [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2._
 
 ## Asks
 
@@ -138,8 +138,8 @@ the template learns from them.
     finding for a declaration made of reference-style links, no longer exists. It was removed when
     [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) made
     reference-style links read as links. The live precedents are `md/unread-mention`
-    (`packages/md/src/builders/mentions.ts:46`, with its findings built at
-    `packages/md/src/builders/mentions.ts:244`) and
+    (`packages/md/src/builders/mentions.ts:40`, with its findings built at
+    `packages/md/src/builders/mentions.ts:186`) and
     [bug 0558](../bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2.
   - "Measured" names `8db0605` and eess-md 0.8.0. The reviewers re-ran it on eess-md 0.13.0, and the
     result is unchanged.
@@ -150,7 +150,7 @@ the template learns from them.
 
 - **Ask A, as a composition, mostly exists.**
   `mentions(c, { pattern: /!?\[\[[^\]\n]+\]\]/g }).should().notExist()`
-  (`packages/md/src/builders/mentions.ts:267`,
+  (`packages/md/src/builders/mentions.ts:209`,
   [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md)) finds wikilinks in prose,
   with aliases and embeds, and fenced blocks are already clean. It false-reds a match in inline code
   or written escaped: that is [bug 0571](../bugs/0571-a-mention-cannot-be-selected-by-how-it-is-written.md).
@@ -164,13 +164,13 @@ the template learns from them.
   silenced by `.expectEmpty()`, reported at the link's own line. Whichever is built first builds it
   for both. The kernel's path for a subject a rule cannot judge is `undecidedViolations`
   ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). The text walk to
-  scan is `phrasingOf` (`packages/md/src/model/phrasing.ts:118`). The close of
+  scan is `phrasingOf` (`packages/md/src/model/phrasing.ts:115`). The close of
   [plan 0539](../plans/completed/0539-a-mention-of-a-record-is-a-link.md) names this proposal as the
   third copy of the unread-reach helper, and the moment to extract it; when it is extracted, it
   should fold into the channel of
   [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rather than become a
   third hand-built `bypassFilters` array (one copy is at
-  `packages/md/src/builders/mentions.ts:259`).
+  `packages/md/src/builders/mentions.ts:201`).
 - **Ask B is new.** `resolveLink` ([plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md))
   resolves by path, and covers conventions "generically instead of naming any tool"
   (`packages/md/src/model/resolve-link.ts:8-11`). A wikilink maps a name to candidates instead. The

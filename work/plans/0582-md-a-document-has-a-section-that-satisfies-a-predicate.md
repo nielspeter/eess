@@ -11,7 +11,7 @@
 - **Created:** 2026-11-01
 - **Decided on the review (2026-11-01), each overrulable:**
   - **Phase 1 exports the five section-holding predicate forms** (content, code block, list item,
-    link, code pointer: `packages/md/src/model/section-holds.ts:13`). Whether Phase 1 closes on its
+    link, code pointer: `packages/md/src/model/section-holds.ts:14`). Whether Phase 1 closes on its
     own, as a plan of its own, or this stays one plan in two phases, is decided before Ready
     (Phase 0); the review left it to the author.
   - **Phase 2 is an option on `haveSection` / `predicateHaveSection`** that takes a section

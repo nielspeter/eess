@@ -1,11 +1,4 @@
-import {
-  collectResult,
-  type ArchViolation,
-  type CollectResult,
-  type Predicate,
-  type Undecided,
-} from '@nielspeter/eess'
-import { membership, undecidedViolations, type Membership } from '@nielspeter/eess/internal'
+import type { ArchViolation, CollectResult } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import {
   findMentions,
@@ -27,6 +20,7 @@ import { resideInFile, resideInFolder } from '../predicates/document.js'
 import { liftToDocument } from '../predicates/in-documents.js'
 import { beLinked, type BeLinkedOptions } from '../conditions/be-linked.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
+import { reachedUnread, UNKNOWN, withUnread } from './unread.js'
 
 export type { MdMention, MdUnreadMention }
 
@@ -134,18 +128,14 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   /** The kernel's verdict, plus a finding for each unread mention this rule's predicates reach. */
   protected override collectViolations(): CollectResult {
     const base = super.collectViolations()
-    const { reached, undecided } = reachedUnread(this.unread(), this._predicates)
-    if (reached.length === 0) return base
+    const { reached, undecided } = reachedUnread(this.unread(), this._predicates, asSeen)
     // ADR-021: a mention whose membership is undecided reports that cause too, beside it.
-    const causes = undecidedViolations(undecided, this.buildConditionContext(), base)
-    return collectResult([...base, ...causes, ...unreadFindings(reached, base.examined === 0)], {
-      examined: base.examined,
-      sourceEmpty: base.sourceEmpty,
-      declaredEmpty: base.declaredEmpty,
-      notRun: base.notRun,
-      deadGlob: base.deadGlob,
-      undecided: (base.undecided ?? 0) + causes.length,
-    })
+    return withUnread(
+      base,
+      unreadFindings(reached, base.examined === 0),
+      undecided,
+      this.buildConditionContext(),
+    )
   }
 
   protected locate(m: MdMention): MdLocation {
@@ -173,15 +163,6 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   }
 }
 
-/** What reading an unread mention's `link`, `inCode` or `span` throws: none is known, nor any field of `link`. */
-class UnknowableField extends Error {
-  constructor() {
-    super('an unread mention has no known link or code')
-    this.name = 'UnknowableField'
-  }
-}
-const UNKNOWN = new UnknowableField()
-
 /** An unread mention as a predicate sees it: everything known, and `link` and `inCode` unknowable. */
 function asSeen(u: MdUnreadMention): MdMention {
   return {
@@ -199,45 +180,6 @@ function asSeen(u: MdUnreadMention): MdMention {
       throw UNKNOWN
     },
   }
-}
-
-/**
- * The unread mentions the rule must report (ADR-021). Each predicate is asked about the mention as
- * far as it is known: its document, line, text and captures, but not its link or whether it is in
- * code. A predicate that decides it out (a path scope, a section scope, `not(areSelfMentions(…))`)
- * leaves it out, as false does in strong Kleene logic; one that reads the unknown link or code
- * cannot judge it, so it is reported rather than dropped; a predicate that is undecided reports it
- * with its causes. Nothing about a predicate's shape is trusted, so no field can be forged to drop one.
- */
-function reachedUnread(
-  unread: readonly MdUnreadMention[],
-  predicates: readonly Predicate<MdMention>[],
-): { readonly reached: MdUnreadMention[]; readonly undecided: readonly Undecided[] } {
-  const reached: MdUnreadMention[] = []
-  const undecided: Undecided[] = []
-  for (const u of unread) {
-    const seen = asSeen(u)
-    let left = false
-    const causes: Undecided[] = []
-    for (const p of predicates) {
-      let m: Membership
-      try {
-        m = membership([p], 'all', seen)
-      } catch (e) {
-        if (e === UNKNOWN) continue
-        throw e
-      }
-      if (m === false) {
-        left = true
-        break
-      }
-      if (m !== true) causes.push(...m)
-    }
-    if (left) continue
-    reached.push(u)
-    undecided.push(...causes)
-  }
-  return { reached, undecided }
 }
 
 /** One configuration finding per unread mention: `.excluding()` cannot hide it. */

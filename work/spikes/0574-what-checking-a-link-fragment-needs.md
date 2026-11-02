@@ -191,7 +191,7 @@ naming any tool" (`packages/md/src/model/resolve-link.ts:10`). Each can be overr
    - Anything else (a fragment on an ignored file, on a file of another format, or on a hand-built
      link from outside the corpus) is not judged, and that is a finding in [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s existing class
      for what a rule's own instrument could not read: unsuppressable (`bypassFilters`), as eess-md's
-     unread mentions are (`packages/md/src/builders/mentions.ts:244`), and one per cause within a
+     unread mentions are (`packages/md/src/builders/mentions.ts:186`), and one per cause within a
      rule, as [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5 says. The cause is the target file, and the finding names it, its
      reason and the links it covers. In the README sample this leaves nothing not judged: the 10
      `.md` targets that exist are read, the 23 missing are reported as missing, and the 27 line

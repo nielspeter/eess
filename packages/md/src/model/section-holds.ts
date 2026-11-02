@@ -1,5 +1,6 @@
 import type { Nodes } from 'mdast'
 import { tagIsLanguage } from './code-block-tag.js'
+import { isOnlyComment } from './html-attributes.js'
 import { linksOf } from './links.js'
 import { extractPointers } from './pointers.js'
 import type { MdDocument } from './document.js'
@@ -25,8 +26,6 @@ const lineOf = (n: { readonly position?: { readonly start: { readonly line: numb
  * heading's text is in that heading's section, the answer `inSections` gives (PR #252).
  */
 const inBody = contains
-
-const HTML_COMMENT = /^\s*<!--[\s\S]*-->\s*$/
 
 /** The lines a document's list items, links and pointers sit on, read once per document. */
 interface HeldLines {
@@ -64,7 +63,7 @@ export function holds(s: MdSectionElement, h: SectionHolding): boolean {
           inBody(s, lineOf(n)) &&
           n.type !== 'heading' &&
           n.type !== 'thematicBreak' &&
-          !(n.type === 'html' && HTML_COMMENT.test(n.value)),
+          !(n.type === 'html' && isOnlyComment(n.value)),
       )
     case 'code block':
       return doc.codeBlocks.some(

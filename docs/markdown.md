@@ -696,7 +696,7 @@ bug [0338](…)       linked: the number alone in a link
 - **Linked** when the match's last character sits in a link that points somewhere, a link's own
   title included.
 - **Not read, and never an element:** fenced and indented code, front matter, and a block that is
-  one HTML comment and nothing else.
+  only HTML comments (`<!-- … -->`, and the `<!…>` and `<?…>` forms HTML treats as comments).
 - **Reported as unread** (`md/unread-mention`, which nothing can suppress): a mention in a raw HTML
   block, in a link written in HTML (`<a href>…</a>`), in a reference-style link's text, in a link
   definition's title, or in an image's alt text or title. A mention in a reference-style link's
@@ -1036,7 +1036,8 @@ blockquote is therefore red, not green. What the scan does not see: a predicate 
 turns the near-miss note off (so each user picks their own case); the `haveSection(name)` condition without a `depth`, which records nothing (it names a near miss in its own
 finding instead), so a released rule gains no finding of the scan's; a `## Status` inside a fence or an
 `<h2>` in an HTML block, which is not a heading to the parser and gets no note. `haveContent()` counts
-any block that is not a heading, a thematic break or an HTML comment, so a link-reference definition or
+any block that is not a heading, a thematic break or a block of only HTML comments (a doctype counts
+as one; text between two comments does not), so a link-reference definition or
 a lone `<br>` is content. A section name's `RegExp` may carry `g`
 or `y`; it is read without them.
 
