@@ -22,7 +22,11 @@ about, measured against `packages/md/dist` (0.14 s):
 ```js
 const c = corpusFromText({ 'a.md': '# A\n\n- [~] thing\n' })
 taskItems(c).should().notExist().violations() // md/undeclared-box-mark, declaredEmpty: true
-taskItems(c).should().satisfy(anyCondition).violations() // md/undeclared-box-mark, and "this rule examined zero units …"
+taskItems(c)
+  .should()
+  .satisfy({ description: 'x', evaluate: () => [] })
+  .violations()
+// md/undeclared-box-mark, and "this rule examined zero units …"
 ```
 
 ## Root cause
