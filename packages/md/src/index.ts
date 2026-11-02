@@ -22,6 +22,8 @@ export type {
   ArchFix,
   // Plan 0550: `beLinked({ fix })` names the records as a selection, which a caller builds.
   Selection,
+  // Plan 0580: `links().select()` takes an `identify` that returns one.
+  ElementInfo,
   PresetReportOptions,
   PresetBaseOptions,
 } from '@nielspeter/eess'
