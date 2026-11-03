@@ -3,7 +3,7 @@ import { checkDepth, matchName } from '../model/name-match.js'
 import { contains, sectionsMatching, type MdSectionElement } from '../model/sections.js'
 import { declaresSections } from '../model/section-declarations.js'
 import { holdingText, holds, undecidingLinks, type SectionHolding } from '../model/section-holds.js'
-import { unreadLinkReason } from '../model/unread-link.js'
+import { unreadLinkReason, unreadLinkRemedy } from '../model/unread-link.js'
 import { areInSectionPredicate } from './declared-block.js'
 
 /**
@@ -83,7 +83,7 @@ export function sectionsHolding(h: SectionHolding): Predicate<MdSectionElement> 
       file: u.doc.file,
       line: u.line,
       element: `${u.doc.relPath}:${String(u.line)}`,
-      message: `${unreadLinkReason(u)}, so whether its section holds a link cannot be judged`,
+      message: `${unreadLinkReason(u)}, so whether its section holds a link cannot be judged. ${unreadLinkRemedy(u)}`,
     }))
   return {
     description: `hold ${holdingText(h)}`,

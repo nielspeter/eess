@@ -31,7 +31,10 @@
     reader finds every `<a` or `<area` tag start; what it finds and the reader cannot extract is
     unread, under a named cause.
   - **One change marked Breaking** (`**Breaking (@nielspeter/eess-md):**`, a minor on 0.x). No other
-    package moves.
+    package moves. _Corrected 2026-11-03 (Phase 3's close review): three changesets ship, one per
+    phase, each marked Breaking (`.changeset/one-html-reader.md`, `.changeset/links-read-an-html-href.md`,
+    `.changeset/an-unread-link-is-undecided-evidence.md`), since each phase changed verdicts on its
+    own; released together they are still one minor of eess-md, with three entries in its changelog._
   - [Bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s HTML half
     closes done-otherwise against this plan, in the same PR.
 
@@ -393,6 +396,13 @@ dispositions below correct it.
   `docs/markdown.md`, `scripts/check-nonvacuity.mjs` and `scripts/nonvacuity/`, `.changeset/` (one
   changeset, marked Breaking, `@nielspeter/eess-md` minor),
   `work/bugs/0558-a-reference-style-or-raw-html-link-is-never-examined.md` (its disposition).
+- Phase 3: `packages/md/src/model/unread-link.ts` and `packages/md/src/model/unread-finding.ts` (new),
+  `packages/md/src/model/section-holds.ts`, `packages/md/src/conditions/section.ts`,
+  `packages/md/src/predicates/section.ts`, `packages/md/src/conditions/linked-back.ts`,
+  `packages/md/src/builders/links.ts`, `packages/md/src/builders/unread.ts`,
+  `packages/md/src/builders/declaration-findings.ts`, `packages/md/tests/links-html-evidence.test.ts`
+  (new), `docs/markdown.md`, `.changeset/an-unread-link-is-undecided-evidence.md`, and the close: this
+  plan to `completed/`, [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md) to `promoted/`, the boards.
 
 ## Test inventory
 
@@ -688,6 +698,19 @@ Built as frozen (R6), with the declaration scan the Phase 2 review added to it:
 - **Sabotage, each red then green:** the condition saying "holds no link", the predicate without
   `undecided`, `beLinkedBack()` ignoring the unread link, the subject side duplicating a site, the
   declaration scan ignoring unread links, and each of the two site dedups removed.
+
+- **Phase 3's review (architect: Approve; enforcement and method: with changes), applied:** a site is
+  keyed by its document, line and remedy (`unreadSiteKey`), so two causes on one line are two findings
+  ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5) in all three dedups; after `.that().haveLink()` the kernel's undecided finding
+  carries the site's remedy in its message, and `unread-link.ts` no longer claims the site reads the
+  same there; `unreadFinding` is in `model/unread-finding.ts`, not a module named for links; rows for
+  two sites on one line (both readers), the remedy in predicate position, a section with a read and an
+  unread link selected, and a frozen target keeping its own finding, each red under its sabotage.
+  The close: the three Breaking changesets annotated on the decision, Files changed for Phase 3,
+  [bug 0605](../../bugs/0605-promoted-means-a-plan-owns-the-ask-but-the-lane-promotes-when-it-ships.md)
+  narrowed now that 022 left its scope, and [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md) naming
+  [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)
+  for the part of its decision 2 this plan did not build.
 
 ## Progress ledger
 

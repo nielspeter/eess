@@ -6,7 +6,7 @@ import { citesHeadings, declaresSections } from '../model/section-declarations.j
 import { subsectionsOf, subsectionText, type SubsectionOptions } from '../predicates/section.js'
 import { columnsText, hasColumns } from './structure.js'
 import { holdingText, holds, undecidingLinks, type SectionHolding } from '../model/section-holds.js'
-import { unreadLinkFinding } from '../model/unread-link.js'
+import { unreadLinkFinding, unreadSiteKey } from '../model/unread-link.js'
 import type { ArchViolation } from '../model/violation.js'
 
 /**
@@ -115,7 +115,7 @@ export function sectionHolds(h: SectionHolding): Condition<MdSectionElement> {
         const sites = undecidingLinks(s, h)
         if (sites.length === 0) return true
         for (const u of sites) {
-          const key = `${u.doc.file}:${String(u.line)}`
+          const key = unreadSiteKey(u)
           if (reported.has(key)) continue
           reported.add(key)
           unread.push(

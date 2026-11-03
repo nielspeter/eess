@@ -2,7 +2,7 @@ import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import { collectLinks, type MdLink } from '../model/links.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
-import { unreadLinkFinding, unreadLinksIn } from '../model/unread-link.js'
+import { unreadLinkFinding, unreadLinksIn, unreadSiteKey } from '../model/unread-link.js'
 import {
   basenameIndex,
   movedLinkFix,
@@ -133,7 +133,7 @@ export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Co
           const sites = unreadLinksIn(target.doc)
           if (sites.length > 0) {
             for (const u of sites) {
-              const key = `${u.doc.file}:${String(u.line)}`
+              const key = unreadSiteKey(u)
               if (unreadSites.has(key)) continue
               unreadSites.add(key)
               out.push(

@@ -9,6 +9,7 @@ import {
   unreadLinkFinding,
   unreadLinkReason,
   unreadLinksIn,
+  unreadSiteKey,
   type MdUnreadLink,
 } from '../model/unread-link.js'
 import { reachedUnread, UNKNOWN, withUnread } from './unread.js'
@@ -109,9 +110,11 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
     // A site a condition already reported as its evidence (R6: `beLinkedBack()`) is one finding per
     // rule, not two.
     const already = new Set(
-      base.filter((v) => v.ruleId === UNREAD_LINK).map((v) => `${v.file}:${String(v.line)}`),
+      base
+        .filter((v) => v.ruleId === UNREAD_LINK)
+        .map((v) => `${v.file}:${String(v.line)}:${v.suggestion ?? ''}`),
     )
-    const fresh = reached.filter((u) => !already.has(`${u.doc.file}:${String(u.line)}`))
+    const fresh = reached.filter((u) => !already.has(unreadSiteKey(u)))
     return withUnread(
       base,
       unreadLinkFindings(fresh, base.examined === 0),

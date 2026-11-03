@@ -1,6 +1,6 @@
 # Proposal 022 — md: a raw HTML link is resolved
 
-**State:** Promoted — → [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md), built and merged in three phases (PRs #296, #297, #300); it declares `**Implements:** proposal 022`. Before that: filed 2026-10-30 at the maintainer's request; amended the same day from PR #280's reviews; reviewed 2026-11-01 (architect · product · enforcement), Ship with changes, owned by [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md) — see "Review — 2026-11-01".
+**State:** Promoted — → [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md), built and merged in three phases (PRs #296, #297, #300); it declares `**Implements:** proposal 022`. Decision 2's last part, a mention inside an `<a>` judged as linked, was left out of that plan and is owned by [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md). Before that: filed 2026-10-30 at the maintainer's request; amended the same day from PR #280's reviews; reviewed 2026-11-01 (architect · product · enforcement), Ship with changes, owned by [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md) — see "Review — 2026-11-01".
 **Priority:** Medium — once [bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)
 reports a raw HTML link as unread, nothing passes over one silently; what is left is that a
 corpus that writes links in HTML is red with "unread" instead of checked.
@@ -293,4 +293,6 @@ The submission above is kept as written. These are the defects the review found 
 
 [Plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md) declares that it implements this proposal
 and carries the changes above as its acceptance criteria. This proposal stays Draft until that plan
-owns the ask.
+owns the ask. _2026-11-03: it stayed Draft until the plan shipped, the lane's practice; what Promoted
+means is [bug 0605](../../bugs/0605-promoted-means-a-plan-owns-the-ask-but-the-lane-promotes-when-it-ships.md)'s
+question._

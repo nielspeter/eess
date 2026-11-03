@@ -1,12 +1,14 @@
 import type { MdDocument } from './document.js'
 import { unreadLinksOf, type MdUnreadLinkRef, type UnreadLinkCause } from './links.js'
 import type { ArchViolation } from './violation.js'
+import { unreadFinding } from './unread-finding.js'
 
 /**
- * An HTML link eess-md cannot read (plan 0580), as every reader reports it: `links()` on the subject
- * side (R4), and `sections().haveLink()` and `beLinkedBack()` where one stands in their evidence (R6).
- * One rule id, one text per cause, one remedy per cause, so a site reads the same wherever it is
- * reported. In `model/`, below the conditions and the builders that use it.
+ * An HTML link eess-md cannot read (plan 0580), as its readers report it: `links()` on the subject
+ * side (R4), and `sections().should().haveLink()` and `beLinkedBack()` where one stands in their
+ * evidence (R6), each as `md/unread-link` with one text and one remedy per cause. After
+ * `.that().haveLink()` the site is the kernel's undecided finding, under the rule's own id (ADR-021):
+ * its message carries the same reason and remedy. In `model/`, below the conditions and the builders.
  */
 export const UNREAD_LINK = 'md/unread-link'
 
@@ -44,25 +46,23 @@ const REMEDY: Record<UnreadLinkCause, (u: MdUnreadLink) => string> = {
   'refused-tag': () => 'Write the link in Markdown, `[text](url)`.',
 }
 
-/** Why the site cannot be read: "an HTML link here cannot be read: …". */
-export function unreadLinkReason(u: MdUnreadLink): string {
-  return `an HTML link here cannot be read: ${WHERE[u.cause](u)}`
+/** The remedy that clears the site's finding, by its cause. */
+export function unreadLinkRemedy(u: MdUnreadLink): string {
+  return REMEDY[u.cause](u)
 }
 
 /**
- * One unread finding (ADR-021 rule 5): it carries `bypassFilters`, so `.excluding()`, `.warn()`, an
- * exclusion comment and a baseline cannot hide it. The one constructor, so no reader writes the field
- * by hand and forgets it.
+ * The site as one finding is keyed: its document, line, cause and attributes, so two sites on one
+ * line with different causes are two findings (ADR-021 rule 5), and one site is one however many
+ * readers reach it in a rule.
  */
-export function unreadFinding(f: {
-  readonly ruleId: string
-  readonly element: string
-  readonly file: string
-  readonly line: number
-  readonly message: string
-  readonly suggestion: string
-}): ArchViolation {
-  return { rule: f.ruleId, bypassFilters: true, ...f }
+export function unreadSiteKey(u: MdUnreadLink): string {
+  return `${u.doc.file}:${String(u.line)}:${unreadLinkRemedy(u)}`
+}
+
+/** Why the site cannot be read: "an HTML link here cannot be read: …". */
+export function unreadLinkReason(u: MdUnreadLink): string {
+  return `an HTML link here cannot be read: ${WHERE[u.cause](u)}`
 }
 
 /** An unread link's finding, with what it leaves unjudged: `so its target is not checked.` */
@@ -73,6 +73,6 @@ export function unreadLinkFinding(u: MdUnreadLink, consequence: string): ArchVio
     file: u.doc.file,
     line: u.line,
     message: `${unreadLinkReason(u)}, ${consequence}`,
-    suggestion: REMEDY[u.cause](u),
+    suggestion: unreadLinkRemedy(u),
   })
 }

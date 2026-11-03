@@ -8,7 +8,7 @@ import {
 } from '@nielspeter/eess'
 import { membership, undecidedViolations, type Membership } from '@nielspeter/eess/internal'
 
-export { unreadFinding } from '../model/unread-link.js'
+export { unreadFinding } from '../model/unread-finding.js'
 
 /**
  * The one helper for what a builder reads but cannot judge (plan 0580, R5): `mentions()` uses it for

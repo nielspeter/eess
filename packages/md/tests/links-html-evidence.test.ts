@@ -41,6 +41,18 @@ describe('sections().haveLink() after .should(): an unread link is reported, not
     ])
   })
 
+  it('two sites on one line with different causes are two findings', () => {
+    const c = corpusFromText({
+      'docs/p.md':
+        '# R\n\n## A\n\nsee <a href=./a.md title=a/b>x</a> and <a href=./b.md data-x=c/d>y</a>\n',
+    })
+    const v = sections(c).that().areNamed('A').should().haveLink().violations()
+    expect(v.map((x) => x.suggestion)).toEqual([
+      "Quote `href`'s and `title`'s values: write each in double quotes.",
+      "Quote `href`'s and `data-x`'s values: write each in double quotes.",
+    ])
+  })
+
   it('reports a site once per rule, however many nested sections contain it', () => {
     const c = corpusFromText({ 'docs/p.md': `# R\n\n## A\n\n### A1\n\n${UNREAD}\n` })
     const v = sections(c).should().haveLink().violations()
@@ -52,11 +64,30 @@ describe('sections().haveLink() after .that(): a section whose only link is unre
   it('is reported at the site, and neither selected nor dropped silently', () => {
     const v = sections(twoSections()).that().haveLink().should().notExist().violations()
     const site = v.filter((x) => x.line === 5)
-    expect(site.map((x) => x.message.split(', so ')[1])).toEqual([
+    expect(site.map((x) => x.message.split(', so ')[1]?.split('. ')[0])).toEqual([
       'whether its section holds a link cannot be judged',
     ])
     expect(site[0]?.bypassFilters).toBe(true)
     expect(v.some((x) => x.message.includes('docs/p.md:3'))).toBe(false)
+  })
+
+  it('its message carries the site’s remedy, since the kernel’s finding has no suggestion of its own', () => {
+    const v = sections(twoSections()).that().haveLink().should().notExist().violations()
+    expect(v.find((x) => x.line === 5)?.message).toMatch(
+      /cannot be judged\. Quote `href`'s and `title`'s values: write each in double quotes\.$/,
+    )
+  })
+
+  it('a section holding a read link and an unread one is selected, not undecided', () => {
+    const c = corpusFromText({
+      'docs/p.md': '# R\n\n## A\n\nsee <a href=./a.md title=a/b>x</a>\n\n[ok](./t.md)\n',
+      'docs/t.md': '# T\n',
+    })
+    const names = sections(c)
+      .that()
+      .haveLink()
+      .select({ label: 's', identify: (x) => ({ name: x.name }) })
+    expect(names.elements.map((x) => x.name)).toEqual(['R', 'A'])
   })
 
   it('select() refuses, naming the site; a corpus with no unread link selects as before', () => {
@@ -101,6 +132,26 @@ describe('beLinkedBack(): a target whose only link back may be an unread one is 
   it('is one finding when the subject side reaches the same site in the same rule', () => {
     const v = links(declared()).should().beLinkedBack().violations()
     expect(v.filter((x) => x.ruleId === UNREAD_LINK).map((x) => x.line)).toEqual([3])
+  })
+
+  it('two sites on one line of the target are two findings', () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\nSee [b](./b.md).\n',
+      'docs/b.md':
+        '# B\n\nsee <a href=./a.md title=a/b>x</a> and <a href=./b.md data-x=c/d>y</a>\n',
+    })
+    const v = links(c).that().satisfy(inFile('docs/a.md')).should().beLinkedBack().violations()
+    expect(v.filter((x) => x.ruleId === UNREAD_LINK).map((x) => x.line)).toEqual([3, 3])
+  })
+
+  it('a frozen target keeps its own finding, whatever links it holds', () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\nSee [b](./completed/b.md).\n',
+      'docs/completed/b.md':
+        '# B\n\nsee <a href=./a.md title=a/b>x</a> and <a href=./b.md data-x=c/d>y</a>\n',
+    })
+    const v = links(c).that().satisfy(inFile('docs/a.md')).should().beLinkedBack().violations()
+    expect(said(v)).toEqual(['3: - docs/completed/b.md is frozen and cannot answer'])
   })
 
   it('a target with a read link back passes, whatever else it holds', () => {

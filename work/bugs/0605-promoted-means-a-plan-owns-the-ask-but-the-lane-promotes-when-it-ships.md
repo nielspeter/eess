@@ -18,7 +18,7 @@ the header names it**". Four proposals meet that definition and are `Draft`:
 [proposal 022](../proposals/promoted/022-md-a-raw-html-link-is-resolved.md),
 [proposal 025](../proposals/025-md-a-field-written-empty-can-mean-absent.md) and
 [proposal 026](../proposals/026-md-a-document-has-a-section-that-satisfies-a-predicate.md), each owned
-by a plan that declares `**Implements:**`. The lane's practice is to promote when the plan ships:
+by a plan that declares `**Implements:**`. _2026-11-03: [proposal 022](../proposals/promoted/022-md-a-raw-html-link-is-resolved.md) was promoted at its plan's close (PR #300). It is `Promoted` under either reading, its plan both owning the ask and shipped, so it has left this bug's scope; three remain._ The lane's practice is to promote when the plan ships:
 [proposal 013](../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md) was promoted
 when every ask was built. [Proposal 025](../proposals/025-md-a-field-written-empty-can-mean-absent.md)'s own text says both: its Review says the plan "is being
 written now" (`work/proposals/025-md-a-field-written-empty-can-mean-absent.md:149`), and its Next
@@ -38,7 +38,7 @@ owns it", a held plan needs a word of its own; if it means "the ask shipped", th
 ## Verification
 
 - [ ] `PROPOSALS.md` states one meaning of `Promoted`.
-- [ ] 014, 022, 025 and 026 carry the state that meaning gives them, and 025's Review and Next step
+- [ ] 014, 025 and 026 carry the state that meaning gives them (022 left the scope, 2026-11-03), and 025's Review and Next step
       agree with its State line.
 - [ ] `npm run check:corpus` green.
 
