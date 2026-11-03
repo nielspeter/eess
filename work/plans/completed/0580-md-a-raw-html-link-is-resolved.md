@@ -712,6 +712,13 @@ Built as frozen (R6), with the declaration scan the Phase 2 review added to it:
   [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)
   for the part of its decision 2 this plan did not build.
 
+- **Two loose ends, closed in writing.** Of the three test-only `eess-exclude` comments Phase 1
+  named, `attributeOf`'s went when Phase 2 imported it and `inlineTagStartsOf` was deleted;
+  `tokenizeHtml`'s stays, correctly, since nothing under `src` imports it (`readHtmlNode` wraps it),
+  so its exclusion is true and not stale. And two sites on one line with the same remedy (two
+  `<a href=./x/y.md>`) share a key and give one finding until the first is fixed: the docstring says
+  the split is by cause and attributes, the remedy clears both, and nothing goes green.
+
 ## Progress ledger
 
 - [x] Reviewed, as [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)'s Review
