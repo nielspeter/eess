@@ -107,3 +107,57 @@ describe('a title finding names why the front matter was read as Markdown (bug 0
     expect(titleOf('---\ntitle: Doc\ntags: [a, b]\n---\n\n# Doc\n')).toEqual([])
   })
 })
+
+// Bug 0572's attempt (PR #302) read a block holding a definition a body reference uses as Markdown,
+// and three review rounds each found a shape where that hid a broken body link main reports. It was
+// withdrawn; these rows pin what holds on main, so the next design cannot turn one of them green.
+describe('a definition in a front-matter block, as main reads it (bug 0572)', () => {
+  it('a label the body also defines: the body’s broken target is reported', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [g]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [g].\n\n[g]: ./gone.md\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '14 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
+    ])
+    expect(v.examined).toBe(2)
+  })
+
+  it('a second label the body also defines: the body’s broken target is reported', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [x]: ./b.md\n\n  [y]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [x] and [y].\n\n[y]: ./gone.md\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '16 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [y])',
+    ])
+  })
+
+  it('a fence opened in the block does not swallow a broken body link', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [x]: ./b.md\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./gone.md)\n\n```\n\nSee [x].\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '12 broken link: "./gone.md" does not resolve to a file in the repo',
+    ])
+  })
+
+  it('a link whose text holds a block-defined label is still a link', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [x]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\n[see [x]](./gone.md)\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '12 broken link: "./gone.md" does not resolve to a file in the repo',
+    ])
+  })
+
+  it('ordinary front matter beside a body reference and its body definition stays front matter', () => {
+    const text = '---\ntitle: Doc\ntags: [a, b]\n---\n\n# Doc\n\nSee [g].\n\n[g]: ./adr.md\n'
+    expect(titleOf(text)).toEqual([])
+  })
+})
