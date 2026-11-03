@@ -27,12 +27,12 @@ body `[g]: ./gone.md` is never examined, while a renderer that drops front matte
 link. Each input below also holds `# A`, `[ok](./b.md)`, `See [g].` and `[g]: ./gone.md` in the
 body, with `docs/b.md` present; each is green:
 
-| Why the block is Markdown                            | The block's lines                                                              |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
-| a task box                                           | `a: \|`, `  - [ ] t`, `  [g]: ./b.md`, `b: c`                                  |
-| a YAML error                                         | `a: b`, `a: c`, `[g]: ./b.md`                                                  |
-| an inline internal link                              | `a: \|`, `  [t](./b.md)`, `  [g]: ./b.md`, `b: c`                              |
-| a reference to a body definition (the bug 0566 path) | `a: \|`, `  See [h].`, `  [g]: ./b.md`, `b: c`, with `[h]: ./b.md` in the body |
+| Why the block is Markdown                                                                                                      | The block's lines                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| a task box                                                                                                                     | `a: \|`, `  - [ ] t`, `  [g]: ./b.md`, `b: c`                                  |
+| a YAML error                                                                                                                   | `a: b`, `a: c`, `[g]: ./b.md`                                                  |
+| an inline internal link                                                                                                        | `a: \|`, `  [t](./b.md)`, `  [g]: ./b.md`, `b: c`                              |
+| a reference to a body definition (the [bug 0566](./fixed/0566-a-front-matter-reference-defined-in-the-body-is-hidden.md) path) | `a: \|`, `  See [h].`, `  [g]: ./b.md`, `b: c`, with `[h]: ./b.md` in the body |
 
 [Bug 0572](./fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)'s fix refuses to read the block as Markdown on a definition while any used label
 straddles the block's edge, so it adds no case to this list; it does not remove these.
