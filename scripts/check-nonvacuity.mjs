@@ -2851,39 +2851,62 @@ function gateCorpusFragment(region) {
   }
 }
 
-const FRAGMENT_REACH = {
-  unloaded: {
-    md: '# Non-vacuity probe\n\nSee [the readme](../../README.md#__nonvacuity_no_such_anchor__).\n',
-    rule: 'corpus/broken-links',
-    payload:
-      '"#__nonvacuity_no_such_anchor__" is no heading or anchor in README.md under the GitHub anchor rule',
-  },
-  line: {
-    md: '# Non-vacuity probe\n\nSee [the manifest](../../package.json#L999999).\n',
-    rule: 'corpus/broken-links',
-    payload: '"#L999999" is past the end of package.json',
-  },
-  'not-judged': {
-    md: '# Non-vacuity probe\n\nSee [the manifest](../../package.json#__nonvacuity_section__).\n',
-    rule: 'md/fragment-not-judged',
-    payload: 'the fragment of 1 link into package.json is not judged',
-    summary: '1 not judged',
-  },
-}
+const CORPUS_PROBE_FRAGMENT_REACH_MD = [
+  '# Non-vacuity probe',
+  '',
+  'See [the readme](../../README.md#__nonvacuity_no_such_anchor__).',
+  '',
+  'See [the manifest line](../../package.json#L999999).',
+  '',
+  'See [the dialect](../../packages/md/#__nonvacuity_no_such_page_anchor__).',
+  '',
+  'See [the manifest](../../package.json#__nonvacuity_section__).',
+  '',
+].join('\n')
 
-function gateCorpusFragmentReach(kind) {
-  const probe = FRAGMENT_REACH[kind]
-  const { json, terminal } = withProbe(PROBE_CORPUS_LINK_REPO, probe.md, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
-  }))
-  const fired = firedNamingPayload(json, probe.rule, '__nonvacuity_probe_repo__', probe.payload)
-  const counted = probe.summary === undefined || terminal.stderr.includes(probe.summary)
+const FRAGMENT_REACH_PAYLOADS = [
+  [
+    'unloaded',
+    'corpus/broken-links',
+    '"#__nonvacuity_no_such_anchor__" is no heading or anchor in README.md under the GitHub anchor rule',
+  ],
+  ['line', 'corpus/broken-links', '"#L999999" is past the end of package.json'],
+  [
+    'directory',
+    'corpus/broken-links',
+    'is no heading or anchor in the page of packages/md/ under the GitHub anchor rule',
+  ],
+  [
+    'not-judged',
+    'md/fragment-not-judged',
+    'the fragment of 1 link into package.json is not judged',
+  ],
+]
+
+function gateCorpusFragmentReach() {
+  const { json, terminal } = withProbe(
+    PROBE_CORPUS_LINK_REPO,
+    CORPUS_PROBE_FRAGMENT_REACH_MD,
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const sites = Object.fromEntries(
+    FRAGMENT_REACH_PAYLOADS.map(([k, rule, payload]) => [
+      k,
+      firedNamingPayload(json, rule, '__nonvacuity_probe_repo__', payload),
+    ]),
+  )
+  sites.summary = terminal.stderr.includes('1 not judged')
+  const ok = json.code === 1 && terminal.code === 1 && Object.values(sites).every(Boolean)
   return {
-    ok: json.code === 1 && terminal.code === 1 && fired && counted,
+    ok,
     detail:
-      `bad → json exit ${json.code}, terminal exit ${terminal.code}; ${kind}: ` +
-      `${fired ? 'fired' : 'MISSING'}${probe.summary === undefined ? '' : `, summary ${counted ? 'counted' : 'NOT COUNTED'}`}`,
+      `bad → json exit ${json.code}, terminal exit ${terminal.code}; ` +
+      Object.entries(sites)
+        .map(([k, v]) => `${k}: ${v ? 'fired' : 'MISSING'}`)
+        .join(' · '),
   }
 }
 
@@ -5832,12 +5855,11 @@ const gates = [
   ['corpus/links/fragment-site', () => gateCorpusFragment('site')],
   ['corpus/links/fragment-repo', () => gateCorpusFragment('repo')],
   // Bug 0575: a fragment on what the corpus did not load, appended so no other fixture changes
-  // shard. One probe each, from the repo region, into files outside the gate's roots: the root
-  // README.md's anchors, a line past the end of package.json, and a fragment package.json cannot
-  // hold, whose finding and the summary's "not judged" count are both required.
-  ['corpus/links/fragment-unloaded', () => gateCorpusFragmentReach('unloaded')],
-  ['corpus/links/fragment-line', () => gateCorpusFragmentReach('line')],
-  ['corpus/links/fragment-not-judged', () => gateCorpusFragmentReach('not-judged')],
+  // shard. One probe from the repo region, outside the gate's roots: the root README.md's anchors,
+  // a line past the end of package.json, the README.md of packages/md/ as a directory's page, and a
+  // fragment package.json cannot hold. Each payload, and the summary's "not judged" count, must fire,
+  // so emptying any one reader reds the row; one probe keeps it to one gate run.
+  ['corpus/links/fragment-reach', gateCorpusFragmentReach],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5978,9 +6000,7 @@ const GATE_FOR = {
     'corpus/links/html',
     'corpus/links/fragment-site',
     'corpus/links/fragment-repo',
-    'corpus/links/fragment-unloaded',
-    'corpus/links/fragment-line',
-    'corpus/links/fragment-not-judged',
+    'corpus/links/fragment-reach',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',

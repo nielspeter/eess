@@ -86,13 +86,30 @@ export type FragmentVerdict =
       readonly column?: { readonly column: number; readonly length: number }
     }
   /** A fragment this rule cannot judge (bug 0575): ADR-021's class, an unsuppressable finding. */
-  | { readonly kind: 'not-judged'; readonly fragment: string; readonly reason: NotJudgedReason }
+  | {
+      readonly kind: 'not-judged'
+      readonly fragment: string
+      readonly reason: NotJudgedReason
+      /** The file the fragment would be read in, when it is not the link's own target (a directory's page). */
+      readonly file?: string
+      /** The page the rule names for a directory, for `no-directory-page`. */
+      readonly page?: string
+    }
 
 /**
- * Why a fragment is not judged: its target is a file the corpus ignores, a file that is neither
- * Markdown nor read by line, a directory with no page the rule names, or a file that cannot be read.
+ * Why a fragment is not judged: its target is a file the corpus ignores; a text file that is not
+ * Markdown, with a fragment that is not a line; a file that is not text, which has no lines; a
+ * directory without the page the rule names for it, or a rule that names none; a file that cannot be
+ * read; or the linking document itself, when the corpus did not load it.
  */
-export type NotJudgedReason = 'ignored' | 'not-markdown' | 'no-directory-page' | 'unreadable'
+export type NotJudgedReason =
+  | 'ignored'
+  | 'not-markdown'
+  | 'not-text'
+  | 'no-directory-page'
+  | 'no-page-rule'
+  | 'unreadable'
+  | 'not-loaded'
 
 /**
  * A document's anchors under one rule: every form a fragment can reach, the ids alone, and the HTML

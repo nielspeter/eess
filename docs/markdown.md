@@ -304,9 +304,10 @@ their ids, one each, out), optional `aliases(id)`, and `keepsHtmlAnchor(element,
 attribute)`, and optional `directoryPage`. One corpus checked under two rules gives each its own
 answer. A Markdown file the corpus did not load is read for its anchors alone, and a fragment on
 a directory link is judged against the page the rule names for a directory (GitHub's:
-`README.md`), loaded or not. Anything else — a fragment on a file the corpus ignores, on a file
-that is neither Markdown nor a line target (`./f.pdf#page=2`), or on a directory with no such
-page — is not judged, and says so: one `md/fragment-not-judged` finding (`FRAGMENT_NOT_JUDGED`)
+`README.md`), loaded or not. Anything else — a fragment on a file the corpus ignores, on a file that is not text (a PDF, an
+image: a file holding a NUL byte has neither anchors nor lines), an anchor on a text file that is
+not Markdown, a directory with no such page, a file that cannot be read, or a hand-built link from
+a document the corpus did not load — is not judged, and says so: one `md/fragment-not-judged` finding (`FRAGMENT_NOT_JUDGED`)
 per target file and cause, naming the links it covers, which `.excluding()`, `.warn()`, an
 exclusion comment and a baseline cannot hide. Only `.resolve()`
 reads the fragment: `haveLiveTargets()`, `beLinkedBack()` and `mentions()` ask about
@@ -622,7 +623,8 @@ takes the same `LinkResolveOptions` and returns one named case. No URL makes it 
 
 A URL's path ends at its first `?` or `#`: `./logo.png?raw=true` and `./a.md?plain=1` resolve to
 `logo.png` and `a.md`, as GitHub reads them. A moved target's fix carries the query over, and the
-fragment only when the new target holds it; it writes the new destination in `<…>` when a space
+fragment only when the new target holds it; it is offered only when the new URL resolves to the
+moved file; it writes the new destination in `<…>` when a space
 or a parenthesis needs it, and offers no fix when the document, read again with it applied, would
 not hold a link to the new URL (a `|` in a table row splits the cell). A `?` that is part of a
 file name is written `%3F`. On `document`, `self`, `not-in-corpus` and `directory`,

@@ -66,6 +66,28 @@ member (`README.md` under `githubAnchors`). `resolve()` reports a `not-judged` f
 finds it on the new target, at both callers. A line after `?plain=1` on a loaded Markdown file is
 judged as a line now, as [bug 0136](./0136-link-fragments-are-never-checked.md) deferred here.
 
+**Review round (2026-11-04).** The architect and enforcement reviews changed the build:
+
+- A file that is not text (one holding a NUL byte) is not judged: `#L1` on a PDF or an image passed
+  as a line, and the not-judged finding's own remedy ("link a line of it as `#L5`") led there. Its
+  cause is `not-text`, whose remedy offers no line; `not-markdown` is now only a text file.
+- A hand-built self link from a document the corpus did not load is `not-loaded`, not a silent
+  pass, as [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4 named it; a directory whose rule names no page is `no-page-rule`,
+  apart from `no-directory-page`, whose remedy names the rule's own page; an ignored target's
+  remedy says to remove it from `ignore`, and a directory's page is named as the file.
+- The not-judged finding sits at a reference-style link's definition, once per site.
+- The moved-link fix is kept only when `resolveLink` of the new URL is the file the fix names (a
+  `?`, `%` or `%20` in a folder name wrote a link the next run reported) and when the re-read
+  document holds the new URL at the rewritten span, not anywhere; the document's link count is
+  taken once.
+- `#L0`, a column 0 and a line on an empty file each name what is wrong.
+- The three non-vacuity rows became one, `corpus/links/fragment-reach`, with a fourth payload for a
+  directory's page: one gate run, each payload required (directory MISSING with directory verdicts
+  switched off, measured).
+
+Which files a host renders, so that a line fragment reaches nothing on them, is
+[bug 0615](../0615-which-files-the-host-renders-decides-a-line-fragment.md).
+
 ## Verification
 
 - [x] Red test written first: `[x](../outside/notes.md#gone)` beside an existing, unloaded
@@ -84,7 +106,7 @@ judged as a line now, as [bug 0136](./0136-link-fragments-are-never-checked.md) 
       outside the corpus roots with a fragment that file does not hold; `#L<n+1>` on an existing
       n-line code file; a fragment on a target that cannot be read (an ignored file or a `.pdf`);
       and the gate summary's
-      not-judged count non-zero under a not-judged probe, so a denominator of 0 cannot pass. : `corpus/links/fragment-unloaded` (the root `README.md`, outside the gate's roots), `corpus/links/fragment-line` (`package.json#L999999`) and `corpus/links/fragment-not-judged` (a fragment on `package.json`, which also requires the summary to print `1 not judged`, and reports NOT COUNTED with that count switched off, measured), appended in `scripts/check-nonvacuity.mjs`.
+      not-judged count non-zero under a not-judged probe, so a denominator of 0 cannot pass. : `corpus/links/fragment-reach` in `scripts/check-nonvacuity.mjs`, one probe with four payloads (the root `README.md`, outside the gate's roots; `package.json#L999999`; `packages/md/` as a directory; a fragment on `package.json`) and the summary's `1 not judged`, each required; the not-judged count reported NOT COUNTED and the directory payload MISSING under their sabotages (measured).
 - [x] A changeset naming `@nielspeter/eess-md`, a minor marked `**Breaking (@nielspeter/eess-md):**`
       with a migration line, released with [bug 0136](./0136-link-fragments-are-never-checked.md)'s. : `.changeset/a-fragment-reaches-every-target.md`.
 - [x] `npm run validate` green.

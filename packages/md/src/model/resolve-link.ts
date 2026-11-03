@@ -13,6 +13,7 @@ import {
   judgeLine,
   type AnchorRule,
   type FragmentVerdict,
+  type NotJudgedReason,
 } from './anchors.js'
 
 /**
@@ -262,6 +263,16 @@ function unloadedDocument(corpus: Corpus, path: string): MdDocument | undefined 
   return doc
 }
 
+/** How many links a document holds, counted once per document for the moved-link fix's check. */
+const linkCounts = new WeakMap<MdDocument, number>()
+function linkCountOf(doc: MdDocument): number {
+  const known = linkCounts.get(doc)
+  if (known !== undefined) return known
+  const n = collectLinks(doc.root, doc.text).length
+  linkCounts.set(doc, n)
+  return n
+}
+
 /** A file's text, or `undefined` when it cannot be read. */
 function textOfFile(corpus: Corpus, path: string): string | undefined {
   try {
@@ -286,21 +297,22 @@ function unloadedVerdict(
 ): { readonly fragment?: FragmentVerdict } {
   const fragment = fragmentOf(link.url)
   if (fragment === undefined) return {}
-  if (reasons.includes('ignored'))
-    return { fragment: { kind: 'not-judged', fragment, reason: 'ignored' } }
+  const notJudged = (reason: NotJudgedReason): { readonly fragment: FragmentVerdict } => ({
+    fragment: { kind: 'not-judged', fragment, reason, file: path },
+  })
+  if (reasons.includes('ignored')) return notJudged('ignored')
   if (path.endsWith('.md')) {
     const doc = unloadedDocument(corpus, path)
-    if (doc === undefined)
-      return { fragment: { kind: 'not-judged', fragment, reason: 'unreadable' } }
+    if (doc === undefined) return notJudged('unreadable')
     return verdictOn(doc, link, options)
   }
-  if (!isLineFragment(fragment))
-    return { fragment: { kind: 'not-judged', fragment, reason: 'not-markdown' } }
   const text = textOfFile(corpus, path)
-  if (text === undefined)
-    return { fragment: { kind: 'not-judged', fragment, reason: 'unreadable' } }
+  if (text === undefined) return notJudged('unreadable')
+  // A file that is not text (a NUL byte is the cheap test) has no lines: `#L1` on an image or a
+  // PDF reaches nothing, and judging it as a line would pass it (bug 0575's enforcement review).
+  if (text.includes('\u0000')) return notJudged('not-text')
   const line = judgeLine(fragment, text)
-  return line === undefined ? {} : { fragment: line }
+  return line === undefined ? notJudged('not-markdown') : { fragment: line }
 }
 
 /**
@@ -316,19 +328,23 @@ function directoryVerdict(
   const fragment = fragmentOf(link.url)
   if (fragment === undefined) return {}
   const page = (options.anchorRule ?? githubAnchors).directoryPage
-  const pagePath = page === undefined ? undefined : posix.join(path, page)
-  if (pagePath === undefined || !corpus.fileIndex.has(pagePath))
-    return { fragment: { kind: 'not-judged', fragment, reason: 'no-directory-page' } }
+  if (page === undefined)
+    return { fragment: { kind: 'not-judged', fragment, reason: 'no-page-rule' } }
+  const pagePath = posix.join(path, page)
+  if (!corpus.fileIndex.has(pagePath))
+    return { fragment: { kind: 'not-judged', fragment, reason: 'no-directory-page', page } }
   const loaded = indexes(corpus).documents.get(pagePath)
   if (loaded !== undefined) return verdictOn(loaded, link, options)
   return unloadedVerdict(pagePath, notInCorpusReasons(corpus, pagePath), link, corpus, options)
 }
 
 function selfTarget(link: LinkToResolve, corpus: Corpus, options: LinkResolveOptions): LinkTarget {
-  return {
-    kind: 'self',
-    ...verdictOn(indexes(corpus).documents.get(link.doc.relPath), link, options),
-  }
+  const doc = indexes(corpus).documents.get(link.doc.relPath)
+  const fragment = fragmentOf(link.url)
+  // A hand-built link from a document the corpus did not load: its anchors are unknown here.
+  if (doc === undefined && fragment !== undefined)
+    return { kind: 'self', fragment: { kind: 'not-judged', fragment, reason: 'not-loaded' } }
+  return { kind: 'self', ...verdictOn(doc, link, options) }
 }
 
 function fileTarget(
@@ -478,8 +494,11 @@ export function movedLinkFix(
   if (target === undefined) return undefined
   const url = relativeLinkPath(link.doc.relPath, target) + rest
   if (url === link.url) return undefined
+  // The new URL must reach the file the fix names: a `?`, `%` or `%20` in a folder name is read as a
+  // query or an escape, and the fix would write a link the next run reports (the review of bug 0567).
+  const moved = resolveLink({ url, external: false, doc: link.doc }, corpus, options)
+  if (!('path' in moved) || moved.path !== target) return undefined
   if (fragmentOf(url) !== undefined) {
-    const moved = resolveLink({ url, external: false, doc: link.doc }, corpus, options)
     const verdict = 'fragment' in moved ? moved.fragment : undefined
     if (verdict?.kind !== 'found') return undefined
   }
@@ -487,10 +506,16 @@ export function movedLinkFix(
   const angle = text[urlStart - 1] === '<' && text[urlEnd] === '>'
   const replacement = writeDestination(url, angle)
   if (replacement === undefined) return undefined
+  // Read again with the fix applied: as many links as before, and one to the new URL where the
+  // rewritten span starts, so an unrelated link to the same file cannot vouch for it.
   const fixed = text.slice(0, urlStart) + replacement + text.slice(urlEnd)
-  const before = collectLinks(link.doc.root, text).length
+  const at = replacement.startsWith('<') && !angle ? urlStart + 1 : urlStart
   const after = collectLinks(parseUncached(fixed), fixed)
-  if (after.length !== before || !after.some((l) => l.url === url)) return undefined
+  if (
+    after.length !== linkCountOf(link.doc) ||
+    !after.some((l) => l.url === url && l.urlStart === at)
+  )
+    return undefined
   return {
     file: link.doc.file,
     start: urlStart,

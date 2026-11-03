@@ -55,6 +55,12 @@ many links as before and one to the new URL: the review's re-parse backstop, as
 `fixesThatKeepTheDocument` is for the mention fix. A `|` in a table row fails that check, so it gets
 no fix.
 
+The review round tightened it: the fix is kept only when `resolveLink` of the new URL reaches the
+file the fix names (a `?`, `%` or `%20` in a folder name wrote a link the next run reported, with no
+finding for `--fix --apply` to exit on), and the re-read document must hold the new URL at the
+rewritten span. Not checked: two moved-link fixes in one document applied together; each is checked
+alone, as `applyFixes` drops overlaps, and no input is known where two separately safe ones break.
+
 ## Verification
 
 - [x] Red test written first: the reproduction gets no fix, or a fix that keeps the link a link

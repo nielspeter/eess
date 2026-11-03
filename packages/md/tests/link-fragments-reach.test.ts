@@ -4,7 +4,7 @@ import os from 'node:os'
 import { join } from 'node:path'
 import { isArchRuleError } from '@nielspeter/eess'
 import { applyFixes } from '@nielspeter/eess/internal'
-import { corpus, corpusFromText, FRAGMENT_NOT_JUDGED, links } from '../src/index.js'
+import { corpus, corpusFromText, FRAGMENT_NOT_JUDGED, links, resolveLink } from '../src/index.js'
 import type { LinkResolveOptions, TextCorpusOptions } from '../src/index.js'
 
 // Bug 0575: a fragment on a file the corpus did not load, on a directory, or written as a line
@@ -84,7 +84,7 @@ describe('a fragment on a file the corpus did not load is judged (bug 0575)', ()
     )
     expect(v.map((x) => `${x.ruleId ?? ''} ${x.message}`)).toEqual([
       ' broken fragment: "./d/#gone" — "#gone" is no heading or anchor in the page of docs/d/ under the GitHub anchor rule',
-      `${FRAGMENT_NOT_JUDGED} the fragment of 1 link into docs/e is not judged: the directory has no page the anchor rule names for it, so this rule cannot judge whether it names a place there (docs/a.md:3)`,
+      `${FRAGMENT_NOT_JUDGED} the fragment of 1 link into docs/e is not judged: the directory has no README.md, the page the anchor rule shows for it, so this rule cannot judge whether it names a place there (docs/a.md:3)`,
     ])
   })
 
@@ -108,7 +108,8 @@ describe('a fragment this rule cannot judge is one unsuppressable finding per ta
   const files = {
     'docs/a.md': '# A\n\n[x](./f.pdf#page=2) [y](./f.pdf#x)\n\n[i](./ign.md#a)\n',
     'docs/b.md': '# B\n\n[z](./f.pdf#y)\n',
-    'docs/f.pdf': '%PDF',
+    // A real PDF holds NUL bytes; that is what marks a file as not text.
+    'docs/f.pdf': '%PDF-1.4\u0000\u0000binary',
     'docs/ign.md': '# I\n',
   }
   const c = () => corpusFromText(files, { roots: ['docs/**'], ignore: ['docs/ign.md'] })
@@ -116,7 +117,7 @@ describe('a fragment this rule cannot judge is one unsuppressable finding per ta
   it('a .pdf and an ignored file: one finding each, naming the links it covers', () => {
     const v = links(c()).that().areInternal().should().resolve().violations()
     expect(v.map((x) => `${x.ruleId ?? ''} ${x.message}`)).toEqual([
-      `${FRAGMENT_NOT_JUDGED} the fragment of 3 links into docs/f.pdf is not judged: it is not Markdown, and the fragment is not a line (\`#L5\`), so this rule cannot judge whether it names a place there (docs/a.md:3, docs/a.md:3, docs/b.md:3)`,
+      `${FRAGMENT_NOT_JUDGED} the fragment of 2 links into docs/f.pdf is not judged: it is not a text file, so it has neither anchors nor lines, so this rule cannot judge whether it names a place there (docs/a.md:3, docs/b.md:3)`,
       `${FRAGMENT_NOT_JUDGED} the fragment of 1 link into docs/ign.md is not judged: the corpus ignores the file, so this rule cannot judge whether it names a place there (docs/a.md:5)`,
     ])
   })
@@ -194,6 +195,60 @@ const resolveOnly = (c: ReturnType<typeof corpus>) => [
   links(c).that().areInternal().should().resolve().violations(),
 ]
 
+describe('what the review of bug 0575 found', () => {
+  it('a line fragment on a file that is not text is not judged, and its remedy offers no line', () => {
+    const v = violationsOf({
+      'docs/a.md': '# A\n\n[x](./i.png#L1)\n',
+      'docs/i.png': '\u0089PNG\u0000\u0000',
+    })
+    expect(v.map((x) => `${x.ruleId ?? ''} ${x.suggestion ?? ''}`)).toEqual([
+      `${FRAGMENT_NOT_JUDGED} Link the file without a fragment.`,
+    ])
+  })
+
+  it('an anchor on a text file that is not Markdown is not judged, and its remedy offers a line', () => {
+    const v = violationsOf({
+      'docs/a.md': '# A\n\n[x](./notes.txt#intro)\n',
+      'docs/notes.txt': 'intro\n',
+    })
+    expect(v.map((x) => x.suggestion)).toEqual([
+      'Link the file without a fragment, or link a line of it as `#L5`.',
+    ])
+  })
+
+  it('an ignored target names the step that clears it', () => {
+    const v = violationsOf(
+      { 'docs/a.md': '# A\n\n[x](./ign.json#a)\n', 'docs/ign.json': '{}\n' },
+      undefined,
+      { roots: ['docs/**'], ignore: ['docs/ign.json'] },
+    )
+    expect(v.map((x) => x.suggestion)).toEqual([
+      "Remove the file from the corpus's `ignore`, or link it without a fragment.",
+    ])
+  })
+
+  it('line 0, column 0 and a line on an empty file each say what is wrong', () => {
+    const v = violationsOf({
+      'docs/a.md': '# A\n\n[x](./a.ts#L0) [y](./a.ts#L1C0) [z](./e.ts#L1)\n',
+      'docs/a.ts': 'a\n',
+      'docs/e.ts': '',
+    })
+    expect(v.map((x) => `${x.message} || ${x.suggestion ?? ''}`)).toEqual([
+      'broken fragment: "./a.ts#L0" — "#L0" names line 0; lines are numbered from 1 || Point the fragment at a line the file has (1 to 1).',
+      'broken fragment: "./a.ts#L1C0" — "#L1C0" names column 0; columns are numbered from 1 || Point the fragment at a column line 1 has, or drop the column.',
+      'broken fragment: "./e.ts#L1" — "#L1" is past the end of docs/e.ts, which has 0 lines || The file is empty: link it without a line.',
+    ])
+  })
+
+  it('a hand-built link from a document the corpus did not load is not judged', () => {
+    const c = corpusFromText({ 'docs/a.md': '# A\n' })
+    expect(resolveLink({ url: '#x', external: false, doc: { relPath: 'other/b.md' } }, c)).toEqual({
+      kind: 'self',
+      fragment: { kind: 'not-judged', fragment: 'x', reason: 'not-loaded' },
+    })
+  })
+})
+
 describe('the moved-link fix carries a fragment only when the new target holds it (bug 0575)', () => {
   it('resolve() and beLinkedBack() fix a moved link whose fragment the new document holds', () => {
     const r = applied(
@@ -270,6 +325,16 @@ describe('the moved-link fix keeps the link a link (bug 0567)', () => {
       resolveOnly,
     )
     expect(r.text).toBe('# A\n\n[b](<./new dir/b.md>)\n')
+  })
+
+  it('a folder name holding ? or % gets no fix: the new URL would not reach the file', () => {
+    for (const dir of ['new?x', 'new%41', 'new%20dir']) {
+      const r = applied(
+        { 'docs/a.md': '# A\n\n[b](./old/b.md)\n', [`docs/${dir}/b.md`]: '# B\n' },
+        resolveOnly,
+      )
+      expect([dir, r.fixes]).toEqual([dir, 0])
+    }
   })
 
   it('a plain target still gets its plain fix', () => {
