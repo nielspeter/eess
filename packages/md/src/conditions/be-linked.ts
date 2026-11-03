@@ -11,6 +11,7 @@ import { mentionContext } from '../model/mention-context.js'
 import { fixesThatKeepTheDocument, linkKey, type CheckedFix } from '../model/fix-check.js'
 import { EXTERNAL_RE } from '../model/links.js'
 import { isRepoPath, relativeLinkPath } from '../model/resolve-link.js'
+import { writeDestination } from '../model/destination.js'
 import { mdViolation } from '../model/violation.js'
 
 const LINK_IT =
@@ -116,8 +117,11 @@ function destinationOf(
   if (!url && !isRepoPath(target)) {
     return { refused: `its target "${target}" is not a path inside the repository` }
   }
-  const dest = url ? target : relativeLinkPath(from, target)
-  return { dest: /[\s()]/.test(dest) ? `<${dest}>` : dest }
+  // The write rules are `writeDestination`'s, shared with the moved-link fix (bug 0567).
+  const dest = writeDestination(url ? target : relativeLinkPath(from, target))
+  return dest === undefined
+    ? { refused: `its target "${target}" cannot be written as a link destination` }
+    : { dest }
 }
 
 /**

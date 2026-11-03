@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — found by PR #283's architect review, re-measured 2026-10-30; no red test yet.
+- **State:** Fixed — the moved-link fix writes its destination through one writer and is kept only
+  when the document still holds the link (2026-11-04). Found by PR #283's architect review,
+  re-measured 2026-10-30.
 - **Severity:** High — a false green: `--fix --apply` rewrites a broken link into text that is no
   longer a link, the finding goes away, and the rule still examines other links, so no
   zero-examined finding fires.
@@ -44,13 +46,22 @@ span cannot take `<…>` without widening it; an angle span cannot take `>`). Po
 backstop for moved-link fixes, as `fixesThatKeepTheDocument`
 (`packages/md/src/model/fix-check.ts:204`) is for the mention fix.
 
+**Built 2026-11-04**, with [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md)
+(the same function): `writeDestination` (`packages/md/src/model/destination.ts:41`), beside the
+reader, is the one writer; the mention fix's `destinationOf` uses it for its last step. `movedLinkFix`
+writes through it, in `<…>` where a space or a parenthesis needs it and as it is inside a span
+already in `<…>`, and keeps the fix only when the document, read again with it applied, holds as
+many links as before and one to the new URL: the review's re-parse backstop, as
+`fixesThatKeepTheDocument` is for the mention fix. A `|` in a table row fails that check, so it gets
+no fix.
+
 ## Verification
 
-- [ ] Red test written first: the reproduction gets no fix, or a fix that keeps the link a link
-      (`<./new dir/b.md>`), and after applying it the rule still reports or resolves it.
-- [ ] A target with a parenthesis, and one with a `|` in a table row, likewise.
-- [ ] A plain target still gets its fix.
-- [ ] A changeset naming `@nielspeter/eess-md`.
-- [ ] `npm run validate` green.
+- [x] Red test written first: the reproduction gets no fix, or a fix that keeps the link a link
+      (`<./new dir/b.md>`), and after applying it the rule still reports or resolves it. `packages/md/tests/link-fragments-reach.test.ts` · `it('a target with a space is written in <…>, and after the fix the link resolves')`; with the old `movedLinkFix` it and three rows below red (measured).
+- [x] A target with a parenthesis, and one with a `|` in a table row, likewise. Pinned: `it('a target with a parenthesis is written in <…> too')` and `it('a target with a | in a table row gets no fix: it would split the cell')`; and a span already in `<…>`: `it('a destination already in <…> is rewritten inside it')`.
+- [x] A plain target still gets its fix. Pinned: `it('a plain target still gets its plain fix')`.
+- [x] A changeset naming `@nielspeter/eess-md`. : `.changeset/a-fragment-reaches-every-target.md`.
+- [x] `npm run validate` green.
 
 Deferred: none

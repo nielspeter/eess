@@ -3,6 +3,7 @@ import GithubSlugger from 'github-slugger'
 import { ArchConfigError } from '@nielspeter/eess'
 import type { MdDocument } from './document.js'
 import { attributeOf, readHtmlNode } from './html-attributes.js'
+import { lineCount } from './line-count.js'
 
 /**
  * How a renderer turns a document into the anchors a link's fragment can reach (bug 0136, spike
@@ -25,6 +26,11 @@ export interface AnchorRule {
   readonly aliases?: (id: string) => readonly string[]
   /** Whether the renderer keeps attribute `attribute` of HTML element `element` as an anchor. */
   readonly keepsHtmlAnchor: (element: string, attribute: string) => boolean
+  /**
+   * The page the host shows for a directory, by file name (GitHub's: `README.md`), against which a
+   * fragment on a directory link is judged (bug 0575). Absent: such a fragment is not judged.
+   */
+  readonly directoryPage?: string
 }
 
 /**
@@ -43,6 +49,7 @@ export const githubAnchors: AnchorRule = {
   aliases: (id) => [`user-content-${id}`],
   keepsHtmlAnchor: (element, attribute) =>
     element === 'a' && (attribute === 'id' || attribute === 'name'),
+  directoryPage: 'README.md',
 }
 
 /**
@@ -68,6 +75,24 @@ export type FragmentVerdict =
       readonly uncounted?: { readonly element: string; readonly attribute: string }
     }
   | { readonly kind: 'malformed'; readonly fragment: string }
+  /** A line fragment (`#L5`, `#L5-L9`, `#L5C3`) past the file's last line, or a column past its line. */
+  | {
+      readonly kind: 'out-of-range'
+      readonly fragment: string
+      /** How many lines the file has. */
+      readonly lines: number
+      /** The line, and the column with that line's length, that is out of range. */
+      readonly line: number
+      readonly column?: { readonly column: number; readonly length: number }
+    }
+  /** A fragment this rule cannot judge (bug 0575): ADR-021's class, an unsuppressable finding. */
+  | { readonly kind: 'not-judged'; readonly fragment: string; readonly reason: NotJudgedReason }
+
+/**
+ * Why a fragment is not judged: its target is a file the corpus ignores, a file that is neither
+ * Markdown nor read by line, a directory with no page the rule names, or a file that cannot be read.
+ */
+export type NotJudgedReason = 'ignored' | 'not-markdown' | 'no-directory-page' | 'unreadable'
 
 /**
  * A document's anchors under one rule: every form a fragment can reach, the ids alone, and the HTML
@@ -215,4 +240,42 @@ export function judgeFragment(
     ...(caseOnly === undefined ? {} : { caseOnly }),
     ...(uncounted === undefined ? {} : { uncounted }),
   }
+}
+
+/** `#L5`, `#L5-L9` and `#L5C3-L9C2`, GitHub's line fragments, or `undefined` for any other. */
+const LINE_FRAGMENT = /^L(\d+)(?:C(\d+))?(?:-L(\d+)(?:C(\d+))?)?$/
+
+/** Whether `fragment` (as written, without its `#`) is a line fragment. */
+export function isLineFragment(fragment: string): boolean {
+  return LINE_FRAGMENT.test(fragment)
+}
+
+/**
+ * Judge a line fragment against `text`, the file's source (bug 0575, spike 0574 decision 4): each
+ * line within the file, as `lineCount` counts lines for a pointer (bug 0561), and each column within
+ * its line. `undefined` when `fragment` is not a line fragment.
+ */
+export function judgeLine(fragment: string, text: string): FragmentVerdict | undefined {
+  const m = LINE_FRAGMENT.exec(fragment)
+  if (m === null) return undefined
+  const sourceLines = text.split('\n')
+  const lines = lineCount(text)
+  const points: { readonly line: number; readonly column?: number }[] = [
+    { line: Number(m[1]), ...(m[2] === undefined ? {} : { column: Number(m[2]) }) },
+  ]
+  if (m[3] !== undefined)
+    points.push({ line: Number(m[3]), ...(m[4] === undefined ? {} : { column: Number(m[4]) }) })
+  for (const p of points) {
+    if (p.line < 1 || p.line > lines) return { kind: 'out-of-range', fragment, lines, line: p.line }
+    const length = (sourceLines[p.line - 1] ?? '').replace(/\r$/, '').length
+    if (p.column !== undefined && (p.column < 1 || p.column > Math.max(length, 1)))
+      return {
+        kind: 'out-of-range',
+        fragment,
+        lines,
+        line: p.line,
+        column: { column: p.column, length },
+      }
+  }
+  return { kind: 'found' }
 }

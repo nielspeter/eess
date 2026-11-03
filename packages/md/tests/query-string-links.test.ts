@@ -69,11 +69,22 @@ describe('the path ends at the first `?` or `#`, whichever comes first (bug 0583
 })
 
 describe('a moved target linked with a query keeps the query and the fragment (bug 0583)', () => {
-  it('./old/logo.png?raw=true#x is rewritten to the new path with ?raw=true#x', () => {
-    const text = page('[q](./old/logo.png?raw=true#x)')
-    const v = resolveOf({ 'docs/readme.md': text, 'docs/new/logo.png': 'png' })
+  // Since bug 0575 a fragment is carried only when the new target holds it: here a line the moved
+  // file has, read after `?plain=1`.
+  it('./old/guide.md?plain=1#L1 is rewritten to the new path with ?plain=1#L1', () => {
+    const text = page('[q](./old/guide.md?plain=1#L1)')
+    const v = resolveOf({ 'docs/readme.md': text, 'docs/new/guide.md': '# Guide\n' })
     expect(v).toHaveLength(1)
-    expect(v[0]?.fix?.replacement).toBe('./new/logo.png?raw=true#x')
-    expect(text.slice(v[0]?.fix?.start, v[0]?.fix?.end)).toBe('./old/logo.png?raw=true#x')
+    expect(v[0]?.fix?.replacement).toBe('./new/guide.md?plain=1#L1')
+    expect(text.slice(v[0]?.fix?.start, v[0]?.fix?.end)).toBe('./old/guide.md?plain=1#L1')
+  })
+
+  it('./old/logo.png?raw=true#x gets no fix: the fragment cannot be judged on an image', () => {
+    const v = resolveOf({
+      'docs/readme.md': page('[q](./old/logo.png?raw=true#x)'),
+      'docs/new/logo.png': 'png',
+    })
+    expect(v).toHaveLength(1)
+    expect(v[0]?.fix).toBeUndefined()
   })
 })

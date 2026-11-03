@@ -16,7 +16,7 @@
   Fix's open questions are decided there. This record keeps the fragment check against loaded
   documents (Fix 1, 2 and the summary half of 3); a fragment on a file the corpus did not load or
   on a directory, the `#L` line form and the autofix (the rule half of Fix 3, Fix 4) moved to
-  [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md), so each closes whole.
+  [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md), so each closes whole.
 - **Origin:** self-found · probed the gate while adding an in-document anchor to
   [proposal 001](../../proposals/001-md-corpus-rule-coverage.md) during the
   proposal-003/004 review round
@@ -264,7 +264,7 @@ repository's `docs/` profile passes VitePress's rule (`scripts/check-corpus.mjs:
   makes it throw, and the docs say so.
 - The option is `anchorRule`, not `anchors`, which read as a set.
 - A line fragment after `?plain=1` (GitHub's source view) is not judged here: it names a line.
-  It belongs with the `#L` form in [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md).
+  It belongs with the `#L` form in [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md).
 - A fragment naming the `id` of an element the rule does not count is reported as that, not as a
   missing anchor.
 - Fragments in raw HTML links, which `links()` reads since
@@ -277,7 +277,7 @@ repository's `docs/` profile passes VitePress's rule (`scripts/check-corpus.mjs:
 
 Not measured, and not decided here: how GitHub slugs `## Notes[^1]` (the default reads `notes`; a
 footnote mark may render as `notes1`), [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)'s section 7 class. The gate's "not judged" count
-is printed, not gated, until [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md)
+is printed, not gated, until [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md)
 makes such a fragment a finding. Whether a fragment that equals an anchor after Unicode
 normalization should resolve is [bug 0560](../0560-a-link-that-differs-only-in-unicode-normalization-is-only-called-broken.md)'s.
 
@@ -307,13 +307,13 @@ normalization should resolve is [bug 0560](../0560-a-link-that-differs-only-in-u
 - [x] `#gr%E0` is a finding, not a thrown `URIError`: `it('a malformed percent-escape is a finding, not a thrown error')`.
 - [x] A heading inside a blockquote is reachable, and so is an `<a id>` anchor: `it('a heading inside a blockquote and an <a id> anchor are reached')`.
 - [x] A `#user-content-…` anchor reaches its heading: `it('a user-content- fragment reaches its heading under GitHub’s rule')`.
-- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
       on a code file (`./src/a.ts#L10`) is checked against the file's line count.
-- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): the rule's
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): the rule's
       own result says which fragments it did not judge, without a caller's summary.
-- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md):
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md):
       `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
-- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
+- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
       on a directory, or on a file the corpus did not load, is read or reported.
 - [x] Letter case: `[x](#Foo)` beside `## Foo` is red, and the finding names `#foo` as
       differing only in case. Pinned: `it('letter case counts, and the finding names the anchor that differs only in case')`.
@@ -353,12 +353,12 @@ normalization should resolve is [bug 0560](../0560-a-link-that-differs-only-in-u
 - [x] A changeset naming `@nielspeter/eess-md`, a minor marked
       `**Breaking (@nielspeter/eess-md):**` with a migration line, since `resolve()` newly reds
       on adopters' corpora; released together with
-      [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md)'s.: `.changeset/a-link-fragment-names-an-anchor.md`.
+      [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md)'s.: `.changeset/a-link-fragment-names-an-anchor.md`.
 - [x] `npm run validate` green.
 
 Deferred:
 
-- [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment on a file the
+- [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment on a file the
   corpus did not load or on a directory, the `#L` line form and the autofix (see Scope).
 - _(Stale 2026-10-30: `work/**` is in the roots now, and 0086 is fixed.)_
   **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on

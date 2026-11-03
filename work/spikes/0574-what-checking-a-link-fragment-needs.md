@@ -211,7 +211,7 @@ and passes others without a word. Each is a breaking minor of `@nielspeter/eess-
   for `self` and `document` targets, with a red test per break class, the
   [bug 0562](../bugs/fixed/0562-two-anchors-in-the-docs-site-are-dead.md) fixes in the same PR (the gate
   goes red on them first), and a non-vacuity row per routing region.
-- **[Bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md):** decisions 4 and 5:
+- **[Bug 0575](../bugs/fixed/0575-a-fragment-the-link-check-cannot-judge-passes.md):** decisions 4 and 5:
   the unloaded Markdown file, the line form, the directory, the not-judged finding, and the autofix.
 
 ## 7. Not measured: what GitHub does
