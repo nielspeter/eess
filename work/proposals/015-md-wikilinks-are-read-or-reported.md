@@ -177,7 +177,7 @@ the template learns from them.
   shape to follow is [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 1,
   decided and not yet built: a renderer's rule is a pure function the caller passes, and eess-md
   names no tool but GitHub's default. `[[Page#Heading]]` needs the anchor sets of
-  [bug 0136](../bugs/0136-link-fragments-are-never-checked.md). A `#^block` reference has no anchor
+  [bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md). A `#^block` reference has no anchor
   concept anywhere in the family.
 
 Everything lands in `@nielspeter/eess-md`. No other dialect reads Markdown links, and nothing moves
@@ -269,7 +269,7 @@ be overruled.
      [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md), never an arbitrary
      pick. `resolveLink` gains an "ambiguous" case (architect).
   3. A `#Heading` or `#^block` fragment is cannot-judge until the anchor sets of
-     [bug 0136](../bugs/0136-link-fragments-are-never-checked.md) exist, never a pass on the file
+     [bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md) exist, never a pass on the file
      part.
   4. Order, case and space rules belong to the declared reading.
 - **Behaviour, not a tool name.** "Obsidian's rules" puts a tool's name in the API. The reading

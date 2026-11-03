@@ -43,6 +43,7 @@ import {
   or,
   pointers,
   resideInFile,
+  resolveLink,
   resideInFolder,
   rows,
   sections,
@@ -59,6 +60,7 @@ import {
 } from '@nielspeter/eess'
 import { matchSelections } from '@nielspeter/eess/internal'
 import { isRepoNativeLink, siteOptsAreSafe, unclassifiedRoots } from './lib/corpus-link-routing.mjs'
+import { vitepressAnchors } from './lib/vitepress-anchors.mjs'
 import {
   declaredImplements,
   declaredImplementsLine,
@@ -252,7 +254,14 @@ const anon = { identify: () => ({ name: '' }) }
 // 0086's own record). `unclassifiedRoots` above closes the gap that let a
 // new root go unrouted at all; this closes which profile is the *default*
 // for a root that is routed.
-const SITE_OPTS = { tryExtensions: ['.md'], tryIndex: 'index.md', rootDir: 'docs' }
+// A link's `#fragment` is judged by the linking document's renderer (bug 0136): VitePress's rule for
+// the site, eess-md's default (GitHub's) for the repo-native roots.
+const SITE_OPTS = {
+  tryExtensions: ['.md'],
+  tryIndex: 'index.md',
+  rootDir: 'docs',
+  anchors: vitepressAnchors,
+}
 const REPO_OPTS = { tryExtensions: ['.md'], tryIndex: 'index.md', resolveDirectories: true }
 if (!siteOptsAreSafe(SITE_OPTS)) {
   console.error(
@@ -286,6 +295,30 @@ const linkVerdict = () => {
     .join(' · ')}`
 }
 const linksChecked = linkFindings.examined
+// Fragments, counted from the owner that judges them (bug 0136, spike 0574 decision 6): judged on a
+// loaded document or on the linking one, or not judged (a fragment on a file the corpus did not load,
+// or on a directory). Each link is resolved with its own region's profile, as `broken` is routed.
+const fragments = { checked: 0, notJudged: 0 }
+links(c)
+  .that()
+  .areInternal()
+  .should()
+  .satisfy({
+    description: 'count the fragments the link check judged',
+    evaluate: (all) => {
+      for (const link of all) {
+        if (!link.url.includes('#')) continue
+        const opts = isRepoNativeLink(link.doc.relPath) ? REPO_OPTS : SITE_OPTS
+        const target = resolveLink(link, c, opts)
+        if ((target.kind === 'self' || target.kind === 'document') && target.fragment)
+          fragments.checked++
+        else if (target.kind === 'not-in-corpus' || target.kind === 'directory')
+          fragments.notJudged++
+      }
+      return []
+    },
+  })
+  .violations()
 const broken = [
   ...linkFindings.filter((v) => !isRepoNativeLink(relTo(v.file))),
   ...repoLinkRule.violations().filter((v) => isRepoNativeLink(relTo(v.file))),
@@ -1693,7 +1726,11 @@ line(
   'documents',
   `${liveDocs.length} live · ${frozenCount} frozen (history — broken links still fail; pointers unchecked)`,
 )
-line('links', `${linksChecked} internal · ${linkVerdict()}`)
+line(
+  'links',
+  `${linksChecked} internal · ${fragments.checked} fragments checked, ` +
+    `${fragments.notJudged} not judged · ${linkVerdict()}`,
+)
 line(
   'pointers',
   // Split by what the violation actually says. Calling a *broken* pointer

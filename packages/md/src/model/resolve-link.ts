@@ -4,6 +4,7 @@ import type { Corpus } from '../corpus.js'
 import { corpusInternals } from './corpus-internals.js'
 import type { MdDocument } from './document.js'
 import type { MdLink } from './links.js'
+import { githubAnchors, judgeFragment, type AnchorRule, type FragmentVerdict } from './anchors.js'
 
 /**
  * Options for resolving a link URL against the repo tree. Covers static-site
@@ -50,6 +51,14 @@ export interface LinkResolveOptions {
    * option decides whether `resolve()` accepts that case.
    */
   readonly resolveDirectories?: boolean
+  /**
+   * The renderer's anchor rule, which judges a link's `#fragment` against the headings and HTML
+   * anchors of its target (bug 0136). The linking document's renderer's, since a reader stays in
+   * one. Default {@link githubAnchors}, github.com's renderer's; pass another for a corpus a
+   * different renderer publishes. A fragment is judged on a loaded corpus document, or on the
+   * linking document itself.
+   */
+  readonly anchors?: AnchorRule
 }
 
 /** The parts of a link that resolution reads. Narrower than `MdLink`, so a caller can build one. */
@@ -69,14 +78,24 @@ export type NotInCorpusReason = 'not-markdown' | 'ignored' | 'outside-roots'
  * - `external`: a URL with a scheme or `//`; not resolved against the repo.
  * - `self`: a pure `#anchor` or `?query`, or a path back to the linking document itself.
  * - `document`: an existing, loaded corpus document, whose links are parsed.
+ *
+ * On `self` and `document`, `fragment` is what the link's `#fragment` found (bug 0136): set when
+ * the URL has a `#` and the document is loaded, judged by `LinkResolveOptions.anchors`. Each rule
+ * decides what it means: `resolve()` reports one that is absent or malformed; `haveLiveTargets()`,
+ * `beLinkedBack()` and `mentions()` ask about the target and do not read it.
  * - `not-in-corpus`: an existing file the corpus did not load, with every reason.
  * - `directory`: no candidate is a file, but one names a real directory.
  * - `missing`: nothing exists; `tried` lists every candidate, in order.
  */
 export type LinkTarget =
   | { readonly kind: 'external' }
-  | { readonly kind: 'self' }
-  | { readonly kind: 'document'; readonly path: string; readonly doc: MdDocument }
+  | { readonly kind: 'self'; readonly fragment?: FragmentVerdict }
+  | {
+      readonly kind: 'document'
+      readonly path: string
+      readonly doc: MdDocument
+      readonly fragment?: FragmentVerdict
+    }
   | {
       readonly kind: 'not-in-corpus'
       readonly path: string
@@ -169,10 +188,40 @@ function candidates(target: string, options: LinkResolveOptions): string[] {
   return out
 }
 
-function fileTarget(path: string, link: LinkToResolve, corpus: Corpus): LinkTarget {
-  if (path === link.doc.relPath) return { kind: 'self' }
+/** The link's fragment as written, without its `#`, or `undefined` when the URL has none. */
+function fragmentOf(url: string): string | undefined {
+  const { rest } = splitPath(url)
+  const hash = rest.indexOf('#')
+  return hash === -1 ? undefined : rest.slice(hash + 1)
+}
+
+/** The fragment's verdict on `doc`, or nothing when there is no fragment or no loaded document. */
+function verdictOn(
+  doc: MdDocument | undefined,
+  link: LinkToResolve,
+  options: LinkResolveOptions,
+): { readonly fragment?: FragmentVerdict } {
+  const fragment = fragmentOf(link.url)
+  if (fragment === undefined || doc === undefined) return {}
+  return { fragment: judgeFragment(fragment, doc, options.anchors ?? githubAnchors) }
+}
+
+function selfTarget(link: LinkToResolve, corpus: Corpus, options: LinkResolveOptions): LinkTarget {
+  return {
+    kind: 'self',
+    ...verdictOn(indexes(corpus).documents.get(link.doc.relPath), link, options),
+  }
+}
+
+function fileTarget(
+  path: string,
+  link: LinkToResolve,
+  corpus: Corpus,
+  options: LinkResolveOptions,
+): LinkTarget {
+  if (path === link.doc.relPath) return selfTarget(link, corpus, options)
   const doc = indexes(corpus).documents.get(path)
-  if (doc !== undefined) return { kind: 'document', path, doc }
+  if (doc !== undefined) return { kind: 'document', path, doc, ...verdictOn(doc, link, options) }
   return { kind: 'not-in-corpus', path, reasons: notInCorpusReasons(corpus, path) }
 }
 
@@ -226,13 +275,13 @@ export function resolveLink(
     void error
     return { kind: 'missing', tried: [link.url] }
   }
-  if (targets.length === 0) return { kind: 'self' }
+  if (targets.length === 0) return selfTarget(link, corpus, options)
 
   const tried: string[] = []
   for (const target of targets) {
     for (const candidate of candidates(target, options)) {
       tried.push(candidate)
-      if (corpus.fileIndex.has(candidate)) return fileTarget(candidate, link, corpus)
+      if (corpus.fileIndex.has(candidate)) return fileTarget(candidate, link, corpus, options)
     }
   }
   const { directories } = indexes(corpus)

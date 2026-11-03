@@ -259,7 +259,7 @@ Architect, product, enforcement, method and testing reviewed the build (1501af5)
   other blind spots (a different spelling, the reverse direction). The rule's `because` no longer
   claims both directions.
 - **Pointers** (method). The first sweep skipped `corpus.ts`, which this plan also changed: [bug 0087](../../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md) and [proposal 001](../../proposals/001-md-corpus-rule-coverage.md) now cite `corpus.ts:77-80` again, and [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md) cites the `frozen` option
-  at `:32`. [Bug 0136](../../bugs/0136-link-fragments-are-never-checked.md)'s re-mapped pointers had cited the wrong code since [plan 0404](./0404-md-one-link-resolver-names-each-case.md); they now cite
+  at `:32`. [Bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md)'s re-mapped pointers had cited the wrong code since [plan 0404](./0404-md-one-link-resolver-names-each-case.md); they now cite
   `model/resolve-link.ts:152`, `:270` and `:278`, and its older references carry a dated note
   rather than a re-certification. Pointers already stale on `main` and not touched here ([proposal 002](../../proposals/002-comment-embedded-links.md)'s `corpus.ts:91` and `:50-67`) are left.
 - **The freeze history** this plan's State had dropped is restored.

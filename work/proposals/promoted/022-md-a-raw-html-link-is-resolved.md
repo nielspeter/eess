@@ -103,7 +103,7 @@ reports the inline one only. The reproduction is
 2. **Other attributes.** `<img src>` is an image: [proposal 024](../024-md-an-images-file-exists.md)'s
    Ask B, on this proposal's scan. _Corrected 2026-11-01 (review): the scan has a third consumer,
    [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)'s `id` and `name` anchor
-   sets for [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md), so one attribute reader
+   sets for [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md), so one attribute reader
    serves all three (the review's decision 2)._
 
 ## Out of scope
@@ -157,7 +157,7 @@ Each decision below can be overruled; its basis is stated so that it can be.
    inline `<a>` as unread, cause `html-link`. Three records are queued on the same reader: this
    proposal (`href`), [proposal 024](../024-md-an-images-file-exists.md) Ask B (`src`, and `srcset`
    per entry), and [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md) decision 2
-   for [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md), which reads `id` and `name`
+   for [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md), which reads `id` and `name`
    anchors "from `html` nodes with comments removed". The plan builds one model owner that reads
    `href`, `src` and `id`/`name`: given an `html` node and the source, it returns tag, attribute,
    decoded value, source span and line, with comments cut out. The architect suggests
@@ -227,7 +227,7 @@ Each decision below can be overruled; its basis is stated so that it can be.
   `<a><img></a>`, which is 13 of the 14 block-level links measured), `line`, `block` and
   `blockPath`.
 - **A fragment `href` is a link resolved as `self`**, its fragment left to
-  [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md). `href="#…"` is 1,346 of the 2,349
+  [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md). `href="#…"` is 1,346 of the 2,349
   hrefs measured (57%), and [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md) counted 1,124 more at this proposal's boundary.
 - **Pin what is honest but surprising:** `href=""` resolves as `self`; `javascript:` is external by
   `EXTERNAL_RE` (`packages/md/src/model/external.ts:6`); a templated `href` (`{{ site.baseurl }}`)
@@ -275,7 +275,7 @@ The submission above is kept as written. These are the defects the review found 
   a readable broken `href`, an unread `href` written in a construct the reader cannot read (so an
   emptied detector reds), and the unquoted text case. The cost per row is estimated at 1 s or
   less; the timing run was denied, so it is not measured.
-- **The survey misses a consumer:** [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)'s anchor sets for [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md) need the same attribute
+- **The survey misses a consumer:** [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)'s anchor sets for [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md) need the same attribute
   reader (decision 2), and open question 2 should name it.
 - **The external-`href` false-red case appears twice** in the criteria; it is one row.
 - **The Measured section rests only on [bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s synthetic reproduction.** The real-corpus figures

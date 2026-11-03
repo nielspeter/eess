@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — root cause read from the source and confirmed by probing the
-  live gate (see _Reproduction_). No red test yet.
+- **State:** Fixed — `resolve()` judges a fragment against its target's anchors under the linking
+  document's renderer's rule (2026-11-03). Root cause read from the source and confirmed by probing
+  the live gate (see _Reproduction_).
 - **Severity:** High, raised 2026-10-30 — `BUGS.md`'s High row is a gate that
   passes over drift it should catch, and a dead anchor is that drift whether or
   not this repository holds one. Re-measured on the v0.16.0 build:
@@ -11,17 +12,17 @@
   produce no finding. _Was Medium (2026-08-13): an honesty gap, not High because
   all five internal anchor links in the gated roots were correct; the argument
   for High was the autofix path in Symptom (4)._
-- **Scope (2026-11-01, [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md)):** the
+- **Scope (2026-11-01, [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)):** the
   Fix's open questions are decided there. This record keeps the fragment check against loaded
   documents (Fix 1, 2 and the summary half of 3); a fragment on a file the corpus did not load or
   on a directory, the `#L` line form and the autofix (the rule half of Fix 3, Fix 4) moved to
-  [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md), so each closes whole.
+  [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md), so each closes whole.
 - **Origin:** self-found · probed the gate while adding an in-document anchor to
-  [proposal 001](../proposals/001-md-corpus-rule-coverage.md) during the
+  [proposal 001](../../proposals/001-md-corpus-rule-coverage.md) during the
   proposal-003/004 review round
 - **Reported:** 2026-08-13
-- **Pointers (2026-10-09, [plan 0406](../plans/completed/0406-md-a-declared-link-is-answered.md)'s review):** the fragment split and the autofix moved to
-  `model/resolve-link.ts` in [plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md); the Symptom's pointers now cite them there. The other
+- **Pointers (2026-10-09, [plan 0406](../../plans/completed/0406-md-a-declared-link-is-answered.md)'s review):** the fragment split and the autofix moved to
+  `model/resolve-link.ts` in [plan 0404](../../plans/completed/0404-md-one-link-resolver-names-each-case.md); the Symptom's pointers now cite them there. The other
   `resolve.ts` and `corpus.ts` line references below (`resolveTargets` at `resolve.ts:39-51`, the
   bare `:41`, `:69-70`, `:83`, `:88`, and `corpus.ts:40`) predate that move and are kept as
   history, not re-certified.
@@ -50,12 +51,12 @@ Four consequences:
    cross-links in `work/`, `adr/` and `docs/` "must resolve". A reader concludes
    their anchors are covered. The condition's own `description` is honest —
    `'resolve to an existing file'` (`:83`) — but nothing surfaces that distinction
-   at the gate. [0138](./0138-pointer-resolve-proves-existence-not-truth.md)
+   at the gate. [0138](../0138-pointer-resolve-proves-existence-not-truth.md)
    measures the sibling condition, `pointerResolves`: same shape, a `path:line`
    citation instead of a `#fragment`.
 4. **The autofix carries a fragment it has never validated.** `movedLinkFix`
    deliberately preserves the fragment when rewriting a moved link
-   (`packages/md/src/model/resolve-link.ts:270`, `:278`; moved there from `conditions/resolve.ts` by [plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)):
+   (`packages/md/src/model/resolve-link.ts:270`, `:278`; moved there from `conditions/resolve.ts` by [plan 0404](../../plans/completed/0404-md-one-link-resolver-names-each-case.md)):
 
    ```ts
    const fragment = link.url.slice(path.length) // '' or '#anchor'
@@ -107,12 +108,12 @@ with sections, so the data exists for any target inside the corpus — but
 parsed at all, which is the real constraint: three of the five live anchor links
 point at `work/bugs/BUGS.md`, and `work/bugs/**` is outside `check:corpus`'s
 roots (`scripts/check-corpus.mjs:22-24`, blocked on
-[0086](./fixed/0086-links-to-directories-do-not-resolve.md)). So a complete fix has a
+[0086](./0086-links-to-directories-do-not-resolve.md)). So a complete fix has a
 scope question, not just an implementation.
 
 ## Why it matters
 
-It is the same class as [proposal 001](../proposals/001-md-corpus-rule-coverage.md)'s
+It is the same class as [proposal 001](../../proposals/001-md-corpus-rule-coverage.md)'s
 evidence item (6) — a reference shape that no rule can see, surviving every gate —
 one shape over. There it was inline-code file paths; here it is the fragment half
 of a link the gate otherwise checks.
@@ -154,7 +155,7 @@ does not.
 
 ## Fix
 
-Decided by [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md), section 5: the
+Decided by [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md), section 5: the
 linking document's renderer's anchor rule is a `LinkResolveOptions` member (heading texts in, ids
 out, plus the ids' alias forms), GitHub's (`github-slugger`) by default; the anchor set is every
 heading at any depth, read by eess-md's own text extraction, plus the HTML anchors the rule's
@@ -181,7 +182,7 @@ record of how the questions arose.
    malformed escape (`#gr%E0`) is a finding, never a `URIError`, since
    `resolveLink` promises not to throw (`packages/md/src/model/resolve-link.ts:188`).
    Whether a fragment and a heading are compared after NFC normalization is
-   [bug 0560](./0560-a-link-that-differs-only-in-unicode-normalization-is-only-called-broken.md)'s
+   [bug 0560](../0560-a-link-that-differs-only-in-unicode-normalization-is-only-called-broken.md)'s
    question. A slug that strips such letters would turn every correct anchor into
    a heading written in another language into a false red. The exact rule is
    GitHub's, read from its slugger and pinned by rows, not restated from memory.
@@ -195,7 +196,7 @@ record of how the questions arose.
    anchors, plus explicit HTML anchors (`<a name="x">`, `<a id="x">`) and GitHub's
    `#user-content-…` alias. A fragment on a code file (`#L10`) is a line, and is
    checked as a pointer's line is, with
-   [bug 0561](./fixed/0561-a-pointer-one-line-past-the-end-of-a-file-passes.md)'s count;
+   [bug 0561](./0561-a-pointer-one-line-past-the-end-of-a-file-passes.md)'s count;
    any other fragment on a target that is not a document is reported as not
    judged under (3), never passed.
 
@@ -230,9 +231,9 @@ record of how the questions arose.
    denominator the gate prints. **And in the rule itself (added 2026-10-30):** an
    adopter calling `links().should().resolve()` has no `check-corpus.mjs`, so the
    rule's own evidence says it did not judge the fragment, as a finding or as a
-   subject it cannot judge ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)),
-   per [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) and
-   [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). Today
+   subject it cannot judge ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)),
+   per [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) and
+   [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). Today
    `[y](#nowhere)` counts toward `examined` with nothing checked.
 4. **Make the autofix honest.** Either validate the fragment against the _new_
    target before emitting the rewrite in `movedLinkFix`, or drop the fix when the
@@ -242,79 +243,94 @@ record of how the questions arose.
 5. **Decide the out-of-roots scope.** _(Stale since `work/**` joined the roots;
    kept as history, 2026-10-30.)_ Three of five live anchors point into
    `work/bugs/**`, which `check:corpus` does not load. Either widen the roots
-   (blocked on [0086](./fixed/0086-links-to-directories-do-not-resolve.md)) or parse
+   (blocked on [0086](./0086-links-to-directories-do-not-resolve.md)) or parse
    link targets on demand for fragment checking only. This is the scope question
    the fix must answer, not an implementation detail.
 
+**Built 2026-11-03.** `judgeFragment` (`packages/md/src/model/anchors.ts:164`) judges a fragment
+against a document's anchor set under an `AnchorRule`, cached per rule and then per document;
+`githubAnchors` (`:36`) is the default. `resolveLink` sets the verdict on `self` and `document`
+targets (`verdictOn`, `packages/md/src/model/resolve-link.ts:199`), and `resolve()` reports one that
+is absent or malformed (`fragmentMessage`, `packages/md/src/conditions/resolve.ts:119`). This
+repository's `docs/` profile passes VitePress's rule (`scripts/check-corpus.mjs:263`,
+`scripts/lib/vitepress-anchors.mjs`).
+
 ## Verification
 
-- [ ] Red test written first: `[x](#no-such-heading)` in a fixture document
-      produces a violation. Green today.
-- [ ] Red test: `[x](./other.md#no-such-heading)` where `other.md` exists produces
-      a violation naming the fragment, not the file.
-- [ ] Both real forms still pass — `#close-out-2026-07-19` and
+- [x] Red test written first: `[x](#no-such-heading)` in a fixture document
+      produces a violation: `packages/md/tests/link-fragments.test.ts` · `it('a same-document fragment that names no heading is reported')`.
+      Ten of the file's rows red with the report switched off (measured).
+- [x] Red test: `[x](./other.md#no-such-heading)` where `other.md` exists produces
+      a violation naming the fragment, not the file: `it('a fragment on an existing document names the fragment, not the file')`.
+- [x] Both real forms still pass — `#close-out-2026-07-19` and
       `BUGS.md#when-is-a-bug-fixed` — so the fix does not invert into false reds
       on correct slugs (punctuation-stripping and duplicate-heading suffixes are
-      the two shapes most likely to).
-- [ ] A heading with letters outside ASCII (`## Größe der Datei`) is reachable by
+      the two shapes most likely to): `it('punctuation and a question mark are slugged away, as GitHub does')`
+      and `it('a repeated heading is numbered across containers')`; and the gate's 39 live
+      fragments are green but 0562's two.
+- [x] A heading with letters outside ASCII (`## Größe der Datei`) is reachable by
       its slug under each profile (GitHub, VitePress), written plain and
-      percent-encoded, and a near miss is red.
-- [ ] Dogfood red row: the two dead anchors in
-      [bug 0562](./0562-two-anchors-in-the-docs-site-are-dead.md) are reported, the
-      VitePress one under the VitePress profile only.
-- [ ] `#gr%E0` is a finding, not a thrown `URIError`.
-- [ ] A heading inside a blockquote is reachable, and so is an `<a id>` anchor.
-- [ ] A `#user-content-…` anchor reaches its heading.
-- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
+      percent-encoded, and a near miss is red: `it('a heading with letters outside ASCII is reached plain and percent-encoded, and a near miss is red')`,
+      and in `scripts/lib/vitepress-anchors.test.mjs` the test titled "a heading with letters outside ASCII under the VitePress rule:
+      plain and percent-encoded, and GitHub’s form is red".
+- [ ] done-otherwise: the two dead anchors in
+      [bug 0562](./0562-two-anchors-in-the-docs-site-are-dead.md) were reported by the gate
+      before they were fixed in this PR (measured: `✗ 2 broken`, both "under the VitePress anchor
+      rule"); the "VitePress only" half is the `corpus/links/fragment-site` non-vacuity row, whose
+      slug is GitHub-valid and VitePress-dead.
+- [x] `#gr%E0` is a finding, not a thrown `URIError`: `it('a malformed percent-escape is a finding, not a thrown error')`.
+- [x] A heading inside a blockquote is reachable, and so is an `<a id>` anchor: `it('a heading inside a blockquote and an <a id> anchor are reached')`.
+- [x] A `#user-content-…` anchor reaches its heading: `it('a user-content- fragment reaches its heading under GitHub’s rule')`.
+- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
       on a code file (`./src/a.ts#L10`) is checked against the file's line count.
-- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): the rule's
+- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): the rule's
       own result says which fragments it did not judge, without a caller's summary.
-- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md):
+- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md):
       `movedLinkFix` no longer emits a rewrite carrying an unvalidated fragment.
-- [ ] deferred→[bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
+- [ ] deferred→[bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment
       on a directory, or on a file the corpus did not load, is read or reported.
-- [ ] Letter case: `[x](#Foo)` beside `## Foo` is red, and the finding names `#foo` as
-      differing only in case.
-- [ ] The `user-content-` alias answers under GitHub's rule only: `#user-content-x` on a
-      `docs/` link is red under the VitePress rule.
-- [ ] Duplicate numbering counts headings in containers: with two `## Dup`, one in a
-      blockquote, `#dup-1` passes and `#dup-2` is red.
-- [ ] `{#install}` is the id under the VitePress rule (`#install` passes, the slug of the text
-      is red) and is heading text under GitHub's.
-- [ ] `./this.md#x` (a path back to the same document), `/page#x` under `rootDir`, and a
-      reference-style `[x][r]` with `[r]: ./other.md#x` are each checked.
-- [ ] Heading text: inline code counts, image alt and inline HTML do not;
+- [x] Letter case: `[x](#Foo)` beside `## Foo` is red, and the finding names `#foo` as
+      differing only in case. Pinned: `it('letter case counts, and the finding names the anchor that differs only in case')`.
+- [x] The `user-content-` alias answers under GitHub's rule only: `#user-content-x` on a
+      `docs/` link is red under the VitePress rule. Pinned: `scripts/lib/vitepress-anchors.test.mjs`, the test titled "no user-content- alias under the VitePress rule".
+- [x] Duplicate numbering counts headings in containers: with two `## Dup`, one in a
+      blockquote, `#dup-1` passes and `#dup-2` is red. Pinned: `it('a repeated heading is numbered across containers')`.
+- [x] `{#install}` is the id under the VitePress rule (`#install` passes, the slug of the text
+      is red) and is heading text under GitHub's. Pinned: `it('an explicit {#id} is heading text under GitHub’s rule')`, and in `scripts/lib/vitepress-anchors.test.mjs` the test titled "an explicit {#id} is the id under the VitePress rule, and its text is not".
+- [x] `./this.md#x` (a path back to the same document), `/page#x` under `rootDir`, and a
+      reference-style `[x][r]` with `[r]: ./other.md#x` are each checked. Pinned: `it('a path back to the same document, a site-absolute link and a reference-style link are each checked')`.
+- [x] Heading text: inline code counts, image alt and inline HTML do not;
       `## Setup <Badge/>` is `#setup` under the VitePress rule and what `github-slugger` gives
-      (`#setup-`) under the default, each pinned.
-- [ ] HTML anchors: an `<a id>` in a fenced block, an anchor inside an HTML comment and a
+      (`#setup-`) under the default, each pinned. Pinned: `it('inline code is heading text; an image’s alt and inline HTML are not')`, and in `scripts/lib/vitepress-anchors.test.mjs` the test titled "## Setup <Badge/> is #setup under the VitePress rule".
+- [x] HTML anchors: an `<a id>` in a fenced block, an anchor inside an HTML comment and a
       `<meta name>` are not anchors; under the default rule a `<div id>` is not one either, and
-      under the VitePress rule it is.
-- [ ] `#top`, `#TOP` and an empty `#` resolve.
-- [ ] The VitePress shapes of the spike's section 1 (an emoji shortcode, an entity, a
-      footnote mark) are pinned: each matches VitePress, or is recorded as a bug.
-- [ ] A test renders `docs/` with VitePress's `createMarkdownRenderer` and finds the gate's
-      anchor sets equal to its ids.
-- [ ] Anchor sets are cached per rule: one corpus checked under both profiles gives each its
-      own answer.
-- [ ] The `check:corpus` summary reports fragments checked and fragments it did not
-      verify.
-- [ ] Non-vacuity rows, one per routing region, each red on its own: a `docs/` probe with a
+      under the VitePress rule it is. Pinned: `it('an <a id> in a fence, one in an HTML comment, a <meta name> and a <div id> are no anchors under GitHub’s rule')`, and in `scripts/lib/vitepress-anchors.test.mjs` the test titled "a <div id> is an anchor under the VitePress rule".
+- [x] `#top`, `#TOP` and an empty `#` resolve. Pinned: `it('#top in any letter case and an empty # name the top of the page')`.
+- [x] The VitePress shapes of the spike's section 1 (an emoji shortcode, an entity, a
+      footnote mark) are pinned: each matches VitePress, or is recorded as a bug.: none matches VitePress; pinned in `scripts/lib/vitepress-anchors.test.mjs` and recorded as [bug 0614](../0614-four-heading-shapes-the-vitepress-rule-reads-differently.md).
+- [x] A test renders `docs/` with VitePress's `createMarkdownRenderer` and finds the gate's
+      anchor sets equal to its ids.: `scripts/lib/vitepress-anchors.test.mjs`, the test titled "every heading id VitePress renders for docs/ is an anchor under the gate’s rule" (about 2 s, in `check:corpus`'s test list, not in the gate); it reds when the rule's slug drifts (measured).
+- [x] Anchor sets are cached per rule: one corpus checked under both profiles gives each its
+      own answer. Pinned: `it('one corpus judged under two rules gives each its own answer')`.
+- [x] The `check:corpus` summary reports fragments checked and fragments it did not
+      verify.: `links N internal · F fragments checked, K not judged`, counted from `resolveLink` (`scripts/check-corpus.mjs`); 39 checked, 0 not judged today.
+- [x] Non-vacuity rows, one per routing region, each red on its own: a `docs/` probe with a
       GitHub-valid, VitePress-dead slug (red only if the site profile really passes the
       VitePress rule), and a `work/` probe with a dead fragment on an existing document. The
-      existing `corpus/links` rows cannot, since they cover missing files only.
-- [ ] A changeset naming `@nielspeter/eess-md`, a minor marked
+      existing `corpus/links` rows cannot, since they cover missing files only.: `corpus/links/fragment-site` and `corpus/links/fragment-repo` in `scripts/check-nonvacuity.mjs`, appended so no other row changes shard; the site row reports MISSING with the site's `anchors` removed (measured).
+- [x] A changeset naming `@nielspeter/eess-md`, a minor marked
       `**Breaking (@nielspeter/eess-md):**` with a migration line, since `resolve()` newly reds
       on adopters' corpora; released together with
-      [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md)'s.
-- [ ] `npm run validate` green.
+      [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md)'s.: `.changeset/a-link-fragment-names-an-anchor.md`.
+- [x] `npm run validate` green.
 
 Deferred:
 
-- [bug 0575](./0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment on a file the
+- [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md): a fragment on a file the
   corpus did not load or on a directory, the `#L` line form and the autofix (see Scope).
 - _(Stale 2026-10-30: `work/**` is in the roots now, and 0086 is fixed.)_
   **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
-  [0086](./fixed/0086-links-to-directories-do-not-resolve.md), which already owns that
+  [0086](./0086-links-to-directories-do-not-resolve.md), which already owns that
   scope decision. This record closes on fragment checking within whatever roots
   are loaded; if the answer to fix (5) is on-demand parsing, it closes without
   waiting on 0086 at all.

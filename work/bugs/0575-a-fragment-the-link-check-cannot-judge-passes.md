@@ -2,12 +2,12 @@
 
 ## Status
 
-- **State:** Draft — split from [bug 0136](./0136-link-fragments-are-never-checked.md) by
+- **State:** Draft — split from [bug 0136](./fixed/0136-link-fragments-are-never-checked.md) by
   [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md), 2026-11-01; no red test yet.
 - **Severity:** High — a false green: `resolve()` passes a link whose fragment it never looked at
-  (Symptom 1). Symptom 2 is a bad suggestion once [bug 0136](./0136-link-fragments-are-never-checked.md) lands, since the rewritten link is then
+  (Symptom 1). Symptom 2 is a bad suggestion once [bug 0136](./fixed/0136-link-fragments-are-never-checked.md) lands, since the rewritten link is then
   caught on the next run.
-- **Origin:** self-found · [bug 0136](./0136-link-fragments-are-never-checked.md)'s Symptom (4) and
+- **Origin:** self-found · [bug 0136](./fixed/0136-link-fragments-are-never-checked.md)'s Symptom (4) and
   Fix (3), (4), split out so each closes whole.
 - **Reported:** 2026-11-01
 
@@ -28,7 +28,7 @@
 ## Fix
 
 Decided in [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md), decisions 4 and 5,
-built on [bug 0136](./0136-link-fragments-are-never-checked.md)'s anchor sets and released with it:
+built on [bug 0136](./fixed/0136-link-fragments-are-never-checked.md)'s anchor sets and released with it:
 
 - A Markdown file the corpus did not load is read for its anchors alone through `readCorpusFile`
   (`packages/md/src/model/corpus-internals.ts:31`), as `pointerResolves` reads a file outside the
@@ -66,7 +66,7 @@ built on [bug 0136](./0136-link-fragments-are-never-checked.md)'s anchor sets an
       and the gate summary's
       not-judged count non-zero under a not-judged probe, so a denominator of 0 cannot pass.
 - [ ] A changeset naming `@nielspeter/eess-md`, a minor marked `**Breaking (@nielspeter/eess-md):**`
-      with a migration line, released with [bug 0136](./0136-link-fragments-are-never-checked.md)'s.
+      with a migration line, released with [bug 0136](./fixed/0136-link-fragments-are-never-checked.md)'s.
 - [ ] `npm run validate` green.
 
 Deferred: none

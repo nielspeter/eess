@@ -275,8 +275,29 @@ not link back"), each site once per rule (two sites on one line with the same re
 one finding). A label whose list holds only an
 unread link is not an empty declaration. `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
-`tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`
+`tryIndex`, `rootDir`, `resolveDirectories`, `anchors`) is what makes `.resolve()`
 understand a static site's routing instead of only a repo-hosted one.
+
+**A link's `#fragment` is checked.** On a loaded corpus document, or on the linking
+document itself (`#section`, `./this.md#section`), `.resolve()` reports a fragment that
+names no anchor, and one whose percent-encoding does not decode: `broken fragment:
+"./b.md#gone" — "#gone" is no heading or anchor in docs/b.md under the GitHub anchor
+rule; the nearest: #going`. A document's anchors are every heading at any depth (in a
+blockquote or a list item too) plus the HTML anchors its renderer keeps. They come from
+the **anchor rule** of the renderer that publishes the linking document, passed as
+`LinkResolveOptions.anchors`; the default, `githubAnchors`, is github.com's: heading ids
+from `github-slugger` (lowercased, punctuation removed, a repeated heading numbered
+`-1`, `-2`), each also reached as `user-content-…`, and `id` or `name` on an `<a>`. A
+heading's text is its text and inline code, without raw HTML, an image's alt or a break.
+The comparison is exact after percent-decoding, letter case included, and the finding
+names an anchor that differs only in case. `#top` in any case and an empty `#` name
+the top of the page. A site published by another renderer passes its own rule, an
+`AnchorRule`: a `name`, `ids(headings)` (every heading's text in document order, in;
+their ids, one each, out), optional `aliases(id)`, and `keepsHtmlAnchor(element,
+attribute)`. One corpus checked under two rules gives each its own answer. A fragment
+on a file the corpus did not load, or on a directory, is not judged yet. Only `.resolve()`
+reads the fragment: `haveLiveTargets()`, `beLinkedBack()` and `mentions()` ask about
+the target and ignore it.
 
 `pointers()`'s elements are `MdPointer` — every `path.ext:line[-end]` citation
 in prose (fenced/indented code is excluded, per "What it checks" above).
@@ -578,16 +599,19 @@ takes the same `LinkResolveOptions`, never throws, and returns one named case:
 
 | `kind`          | meaning                                                                                                           |
 | --------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `document`      | an existing, loaded corpus document (`path`, `doc`)                                                               |
+| `document`      | an existing, loaded corpus document (`path`, `doc`, and `fragment` when the URL has one)                          |
 | `not-in-corpus` | an existing file the corpus did not load; `reasons` lists every one of `not-markdown`, `ignored`, `outside-roots` |
 | `directory`     | no candidate is a file, but one names a real directory                                                            |
 | `missing`       | nothing exists; `tried` lists every candidate, in order                                                           |
-| `self`          | a pure `#anchor` or `?query`, an empty link, or a path back to the linking document                               |
+| `self`          | a pure `#anchor` or `?query`, an empty link, or a path back to the linking document (`fragment` as above)         |
 | `external`      | a URL with a scheme                                                                                               |
 
 A URL's path ends at its first `?` or `#`: `./logo.png?raw=true` and `./a.md?plain=1` resolve to
 `logo.png` and `a.md`, as GitHub reads them, and a moved target's fix carries the query and the
-fragment over. A `?` that is part of a file name is written `%3F`.
+fragment over. A `?` that is part of a file name is written `%3F`. On `document` and
+`self`, `fragment` is the `FragmentVerdict` of the link's `#fragment` under
+`options.anchors`: `found`, `absent` (with the rule's `name` and up to three `nearest`
+anchors) or `malformed`.
 
 Candidates are tried in a fixed order: the repo-root target, then the
 content-root one when `rootDir` is set, each as written, then with
@@ -950,7 +974,7 @@ are; two records sharing a file name share a group. A grouping by record, from t
   suppression on a green run; a rule run from your own script is not told
   ([bug 0537](../work/bugs/0537-eess-md-alone-has-no-run-level-services.md)).
 
-## A document's shape, built from blocks
+## The shape of a document, built from blocks
 
 A rule about what a kind of document must hold is written with the blocks above, in your own words.
 eess-md defines no plan, bug or page shape for you. For example, every page under `guides/` has a

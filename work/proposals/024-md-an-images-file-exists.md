@@ -198,7 +198,7 @@ Each of these is decided here so the work can move, and each can be overruled.
    later broken `<img>`. The tool's own advice would steer an adopter into a permanent false
    green. Decision 2 closes this: A and B ship together, in one release, as
    [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) §6 paired
-   [bug 0136](../bugs/0136-link-fragments-are-never-checked.md) and
+   [bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md) and
    [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md).
 2. **The link door's idea of "resolved" gives four false greens the proposal does not name**
    (measured). The image door needs its own accepted cases over the `LinkTarget` kinds, built on

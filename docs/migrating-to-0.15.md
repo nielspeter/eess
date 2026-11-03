@@ -394,7 +394,7 @@ Every block below is in [the Markdown dialect](./markdown.md).
   element with a `text` ([inSections](./markdown.md#inside-matching-sections-insections)).
 - **`docs().haveTitle(name?)`**, and on `sections()` **`haveContent()`**, **`haveCodeBlock()`**,
   **`haveListItem()`**, **`haveLink()`** and **`haveCodePointer()`**
-  ([a document's shape](./markdown.md#a-documents-shape-built-from-blocks)).
+  ([the shape of a document](./markdown.md#the-shape-of-a-document-built-from-blocks)).
 - **`region: { section, depth? }`**: a field read only inside a named section
   ([a labelled value](./markdown.md#a-labelled-value-fields)).
 - **`haveSection(name, { depth })`**: only a heading at that level counts.

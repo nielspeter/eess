@@ -55,7 +55,7 @@ Not chosen. At least: when the link's path and an indexed file are equal after N
 the message says so and names both forms. Whether such a link should resolve instead is the
 question to answer first, together with the same question for pointers in
 [bug 0559](./0559-a-code-pointer-is-matched-from-inside-its-path.md) and for fragments in
-[bug 0136](./0136-link-fragments-are-never-checked.md).
+[bug 0136](./fixed/0136-link-fragments-are-never-checked.md).
 
 "Resolve instead" is the direction that can make a false green: if GitHub serves such a link as a
 404, resolving it would pass a link that is broken for every reader. So it needs a measurement of

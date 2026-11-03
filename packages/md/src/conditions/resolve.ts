@@ -2,6 +2,7 @@ import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdLink } from '../model/links.js'
 import { mdViolation } from '../model/violation.js'
+import type { FragmentVerdict } from '../model/anchors.js'
 import {
   basenameIndex,
   linkTargets,
@@ -19,8 +20,10 @@ export type { LinkResolveOptions } from '../model/resolve-link.js'
 
 /**
  * Condition: every (internal) link resolves to a file in the corpus's repo tree.
- * Closes over the `Corpus` for the file index. External links and pure anchors
- * are skipped. `options` adds extensionless-link resolution (`tryExtensions`,
+ * Closes over the `Corpus` for the file index. External links are skipped. A
+ * `#fragment` on a loaded document, or on the linking document itself, is checked
+ * against its anchors under `options.anchors` (bug 0136); one that names no anchor,
+ * or does not decode, is reported. `options` adds extensionless-link resolution (`tryExtensions`,
  * `tryIndex`) for static-site corpora, and directory resolution
  * (`resolveDirectories`) for repo-hosted ones.
  *
@@ -57,13 +60,31 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
       const reported = new Set<string>()
       return links.flatMap((link) => {
         const target = resolveLink(link, corpus, options)
-        if (
-          target.kind === 'external' ||
-          target.kind === 'self' ||
-          target.kind === 'document' ||
-          target.kind === 'not-in-corpus'
-        )
-          return []
+        if (target.kind === 'self' || target.kind === 'document') {
+          const message = fragmentMessage(
+            link.url,
+            target.fragment,
+            target.kind === 'self' ? 'this document' : target.path,
+          )
+          if (message === undefined) return []
+          const def = link.definition
+          if (def !== undefined) {
+            const key = `${link.doc.relPath}:${String(def.line)}`
+            if (reported.has(key)) return []
+            reported.add(key)
+          }
+          return [
+            mdViolation({
+              element: `${link.doc.relPath} → ${link.url}`,
+              file: link.doc.file,
+              line: def?.line ?? link.line,
+              message: message + (def === undefined ? '' : ` (the definition of [${def.label}])`),
+              sourceText: link.doc.text,
+              context: ctx,
+            }),
+          ]
+        }
+        if (target.kind === 'external' || target.kind === 'not-in-corpus') return []
         if (target.kind === 'directory' && options.resolveDirectories === true) return []
         const hint = target.kind === 'directory' ? directoryHint(link, target.path) : ''
         const def = link.definition
@@ -88,4 +109,34 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
       })
     },
   }
+}
+
+/**
+ * The finding for a fragment that reached no anchor (bug 0136), naming the fragment as written, the
+ * target, the rule that judged it and the nearest anchors; one differing only in letter case is
+ * said to. `undefined` when there is no fragment or it was found.
+ */
+function fragmentMessage(
+  url: string,
+  verdict: FragmentVerdict | undefined,
+  where: string,
+): string | undefined {
+  if (verdict === undefined || verdict.kind === 'found') return undefined
+  // A pure `#fragment` is named once, not as its URL and again as its fragment.
+  const written = url === `#${verdict.fragment}` ? `"${url}"` : `"${url}" — "#${verdict.fragment}"`
+  if (verdict.kind === 'malformed') {
+    return `broken fragment: ${written} is not valid percent-encoding`
+  }
+  const caseOnly = verdict.nearest.find(
+    (id) => id.toLowerCase() === decodeURIComponent(verdict.fragment).toLowerCase(),
+  )
+  const nearest =
+    verdict.nearest.length === 0
+      ? ''
+      : `; the nearest: ${verdict.nearest.map((id) => `#${id}`).join(', ')}` +
+        (caseOnly === undefined ? '' : ` (#${caseOnly} differs only in letter case)`)
+  return (
+    `broken fragment: ${written} is no heading or anchor in ${where} ` +
+    `under the ${verdict.rule} anchor rule${nearest}`
+  )
 }

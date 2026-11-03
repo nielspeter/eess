@@ -53,7 +53,9 @@ describe('links() reads an href in raw HTML (R1)', () => {
     ])
   })
 
-  it('produces no broken link for an external href, "", a valueless href, "#x", <a name> or :href', () => {
+  // `#n` names the `<a name="n">` below: a pure fragment has no file part, and since bug 0136 its
+  // anchor is judged, so it names one that exists.
+  it('produces no broken link for an external href, "", a valueless href, "#n", <a name> or :href', () => {
     expect(
       resolved(
         [
@@ -61,7 +63,7 @@ describe('links() reads an href in raw HTML (R1)', () => {
           '<a href="https://example.com/x">e</a>',
           '<a href="">s</a>',
           '<a href>v</a>',
-          '<a href="#x">f</a>',
+          '<a href="#n">f</a>',
           '<a name="n">n</a>',
           '<a :href="foo">b</a>',
           '</div>',

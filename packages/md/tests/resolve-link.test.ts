@@ -67,7 +67,8 @@ describe('resolveLink() — the spelling table (plan 0404)', () => {
   it.each(['#x', './source.md', 'source.md#x', '../sub/source.md'])(
     '%s from the source itself is self',
     (url) => {
-      expect(resolve(url)).toEqual({ kind: 'self' })
+      // The kind, not the whole target: a `#x` also carries its fragment's verdict (bug 0136).
+      expect(resolve(url)).toMatchObject({ kind: 'self' })
     },
   )
 
@@ -206,19 +207,25 @@ describe('resolveLink() and linkResolves agree (plan 0404)', () => {
       .areInternal()
       .select({ label: 'link', identify: (l) => ({ name: `${l.doc.relPath} → ${l.url}` }) })
       .elements.filter((l) => {
-        const kind = resolveLink(l, c).kind
-        return kind === 'missing' || kind === 'directory'
+        const target = resolveLink(l, c)
+        // Since bug 0136, resolve() also flags a fragment that names no anchor on a loaded target.
+        if (target.kind === 'self' || target.kind === 'document')
+          return target.fragment !== undefined && target.fragment.kind !== 'found'
+        return target.kind === 'missing' || target.kind === 'directory'
       })
       .map((l) => `${l.doc.relPath} → ${l.url}`)
       .sort()
     // Without options, ./both names only the directory both/ (both.md needs
     // tryExtensions), so it is a directory here.
+    // The fixture's `#x` and `a.md#x` name no anchor, so since bug 0136 both are flagged too.
     expect(expected).toEqual([
+      'docs/sub/source.md → #x',
       'docs/sub/source.md → ./bad%E0.md',
       'docs/sub/source.md → ./both',
       'docs/sub/source.md → ./folder/',
       'docs/sub/source.md → ./guide',
       'docs/sub/source.md → ./nope',
+      'docs/sub/source.md → a.md#x',
     ])
     expect(flagged).toEqual(expected)
   })
