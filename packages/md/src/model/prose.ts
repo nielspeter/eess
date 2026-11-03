@@ -31,15 +31,17 @@ const WITH_FRONT_MATTER = {
 
 /**
  * The first Markdown a reader checks inside lines `from`–`to` of `whole`, the document parsed as
- * Markdown: a task box, or a link into the repository, inline or reference-style (bug 0558). The
- * whole document is the parse that decides (bug 0566), so a reference defined in the body, an
- * escape and a construct crossing the block's edge are read as the parser reads them; only what
- * starts in the block's lines counts, so a definition there that the body uses does not (bug 0572).
- * A link into the repository is one `EXTERNAL_RE` does not call external, the test
- * `MdLink.external` uses.
+ * Markdown: a task box, a link into the repository, inline or reference-style (bug 0558), or the
+ * definition a reference anywhere in the document uses for one (bug 0572). The whole document is
+ * the parse that decides (bug 0566), so a reference defined in the body, an escape and a construct
+ * crossing the block's edge are read as the parser reads them. A definition counts only when it is
+ * the one a reference uses, the first of its label, as `links()` reads it: an unused one is not
+ * examined by `links()`, so it is not something a reader checks. A link into the repository is one
+ * `EXTERNAL_RE` does not call external, the test `MdLink.external` uses.
  */
 function checkedMarkdownIn(whole: Root, from: number, to: number): string | undefined {
   const definitions = definitionsOf(whole, undefined)
+  const usedAt = referenceLines(whole)
   const inside = (node: Nodes): boolean => {
     const line = node.position?.start.line ?? 0
     return line >= from && line <= to
@@ -51,6 +53,19 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
     if (inside(node) && node.type === 'listItem' && typeof node.checked === 'boolean') {
       found = `it holds a task box at line ${line}`
       return
+    }
+    if (inside(node) && node.type === 'definition') {
+      const site = definitions.get(node.identifier)
+      const use = usedAt.get(node.identifier)
+      if (
+        site !== undefined &&
+        String(site.line) === line &&
+        use !== undefined &&
+        !EXTERNAL_RE.test(site.url)
+      ) {
+        found = `it holds the definition at line ${line} of a link into the repository at line ${String(use)}`
+        return
+      }
     }
     const url =
       node.type === 'link'
@@ -68,6 +83,19 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
   return found
 }
 
+/** The first line each reference label is used on in `root`, by the parser's `identifier`. */
+function referenceLines(root: Root): Map<string, number> {
+  const out = new Map<string, number>()
+  const visit = (node: Nodes): void => {
+    if (node.type === 'linkReference' && !out.has(node.identifier)) {
+      out.set(node.identifier, node.position?.start.line ?? 0)
+    }
+    if ('children' in node) for (const child of node.children) visit(child)
+  }
+  visit(root)
+  return out
+}
+
 /**
  * Why a line-1 `---` block is not front matter (bug 0087), or `undefined` when it is. It is front
  * matter only if it is a YAML mapping that parses with no error — the yaml library hands back a
@@ -75,8 +103,8 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
  * a task box or a link into the repository, which a YAML value can carry on an indented
  * continuation line and still parse. Anything else is read as Markdown, exactly as before front
  * matter was parsed; `whole` is that reading (bug 0566), and the block's own lines are what it
- * judges. A definition in the block that a reference in the body uses is not judged, so that link
- * stays hidden (bug 0572). The reason is kept for the finding that names it (bug 0410).
+ * judges; a definition in the block that a reference in the body uses counts (bug 0572). The reason
+ * is kept for the finding that names it (bug 0410).
  *
  * The same rule reads `tags: [adr]` as Markdown when the body defines `[adr]` with an internal URL:
  * to the whole document it is a reference. It fails closed, and the title finding says why.

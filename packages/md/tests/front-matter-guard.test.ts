@@ -107,3 +107,62 @@ describe('a title finding names why the front matter was read as Markdown (bug 0
     expect(titleOf('---\ntitle: Doc\ntags: [a, b]\n---\n\n# Doc\n')).toEqual([])
   })
 })
+
+// Bug 0572, the mirror of 0566: the block holds the definition and the body the reference. The
+// block's own lines then hold nothing a reader checks by itself, but a reader of the whole document
+// sees the body's link and its target, so a definition there that a reference uses counts.
+describe('a front-matter block holding a definition a body reference uses is read as Markdown (bug 0572)', () => {
+  it('the body reference is examined and its broken target reported', () => {
+    const v = resolveOf({
+      'docs/a.md': '---\na: |\n\n  [x]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [x].\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '4 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [x])',
+    ])
+    expect(v.examined).toBe(2)
+  })
+
+  it('a definition written as a YAML key is read as Markdown too', () => {
+    const v = resolveOf({ 'docs/a.md': '---\n[x]: ./gone.md\n---\n\n# A\n\nSee [x].\n' })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '2 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [x])',
+    ])
+    expect(v.examined).toBe(1)
+  })
+
+  it('the block’s definition wins over a later one in the body, as the first does for a reader', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [g]: ./gone.md\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: https://example.com\n',
+    })
+    expect(v.map((x) => x.message)).toEqual([
+      'broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
+    ])
+  })
+
+  it('the title finding names the definition and the reference that uses it', () => {
+    const text = '---\na: |\n\n  [adr]: ./adr.md\nb: c\n---\n\n# Doc\n\nSee [adr].\n'
+    // Line 4, not 5: mdast starts the setext heading at the definition it absorbed (bug 0609).
+    expect(titleOf(text)).toEqual([
+      'no title: the first heading, "b: c" at line 4, is at depth 2; it is in the line-1 `---` block, read as Markdown, not as front matter, because it holds the definition at line 4 of a link into the repository at line 10',
+    ])
+  })
+
+  it('a definition in the block that no reference uses leaves it front matter', () => {
+    const text = '---\na: |\n\n  [x]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n'
+    const v = resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n' })
+    expect(v.examined).toBe(1)
+    expect(titleOf(text)).toEqual([])
+  })
+
+  it('an external definition in the block that a body reference uses leaves it front matter', () => {
+    const text = '---\na: |\n\n  [x]: https://example.com\nb: c\n---\n\n# A\n\nSee [x].\n'
+    expect(titleOf(text)).toEqual([])
+  })
+
+  it('ordinary front matter beside a body reference and its body definition stays front matter', () => {
+    const text = '---\ntitle: Doc\ntags: [a, b]\n---\n\n# Doc\n\nSee [g].\n\n[g]: ./adr.md\n'
+    expect(titleOf(text)).toEqual([])
+  })
+})

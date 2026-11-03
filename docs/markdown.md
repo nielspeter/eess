@@ -564,8 +564,10 @@ matter with a YAML error still appears as a section. When the heading a `haveTit
 names starts inside that block, the finding says why: "it is in the line-1 `---` block, read as
 Markdown, not as front matter, because" its YAML does not parse (the error and its line), it is not
 a YAML mapping, it holds no key, or it holds a task box or a link into the repository (its line).
-A definition in the block that a reference in the body uses is not judged: the block stays front
-matter and that link is not read ([bug 0572](../work/bugs/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)).
+A definition in the block counts when a reference in the document uses it and its URL names a file
+in the repository: the block is read as Markdown, and the reason names the definition's line and the
+reference's ([bug 0572](../work/bugs/fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)).
+An unused definition there, or an external one, leaves the block front matter.
 `terms()`, `pointers()` and the ledger read front-matter lines in both cases. TOML (`+++`) front
 matter is not recognised and is read as Markdown.
 

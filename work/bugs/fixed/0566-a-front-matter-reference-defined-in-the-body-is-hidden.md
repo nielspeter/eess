@@ -55,7 +55,7 @@ link. So a `[label]` in a YAML value is a link when the whole document's Markdow
 as one: its definition, in the block or in the body, names a file in the repository. An external
 definition, or no definition, leaves the block front matter. What is judged is the block's own
 lines: a definition in the block that a reference in the body uses is not, so that link stays
-hidden, the mirror of this bug, recorded as [bug 0572](../0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md). The cost, accepted on 2026-10-31: a
+hidden, the mirror of this bug, recorded as [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md). The cost, accepted on 2026-10-31: a
 document whose front matter holds `tags: [adr]` and whose body defines `[adr]` with an internal
 URL shows the block as a section and has the link checked; [bug 0410](./0410-front-matter-read-as-markdown-says-nothing.md)'s fix makes the title
 finding say why.
