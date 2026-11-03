@@ -19,9 +19,23 @@ the reference:
 
 eess-md keeps the block front matter here ([bug 0572](./fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)'s fix counts a block definition only
 when the body does not also define its label), so it checks the body's definition and never the
-block's. The block's broken `./gone.md` passes. Reading the block as Markdown instead would hide the
-body's definition the same way: measured on the branch before the rule was narrowed, a body
-`[g]: ./gone.md` behind a block `[g]: ./b.md` passed.
+block's. The block's broken `./gone.md` passes.
+
+**The other direction is live on main** (measured by PR #302's re-check, identical on main and the
+branch). When the block is read as Markdown for another reason, the block's definition wins and a
+body `[g]: ./gone.md` is never examined, while a renderer that drops front matter shows that broken
+link. Each input below also holds `# A`, `[ok](./b.md)`, `See [g].` and `[g]: ./gone.md` in the
+body, with `docs/b.md` present; each is green:
+
+| Why the block is Markdown                            | The block's lines                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
+| a task box                                           | `a: \|`, `  - [ ] t`, `  [g]: ./b.md`, `b: c`                                  |
+| a YAML error                                         | `a: b`, `a: c`, `[g]: ./b.md`                                                  |
+| an inline internal link                              | `a: \|`, `  [t](./b.md)`, `  [g]: ./b.md`, `b: c`                              |
+| a reference to a body definition (the bug 0566 path) | `a: \|`, `  See [h].`, `  [g]: ./b.md`, `b: c`, with `[h]: ./b.md` in the body |
+
+[Bug 0572](./fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)'s fix refuses to read the block as Markdown on a definition while any used label
+straddles the block's edge, so it adds no case to this list; it does not remove these.
 
 ## Root cause
 
@@ -39,7 +53,7 @@ report the doubly defined label as a finding this rule cannot judge, naming both
 ## Verification
 
 - [ ] Red first: the block's broken `./gone.md` above is reported, or the label is reported as
-      doubly defined.
+      doubly defined; and each row of the table, in the other direction.
 - [ ] [Bug 0572](./fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)'s two rows for this shape (`packages/md/tests/front-matter-guard.test.ts`) are
       updated to the new verdict.
 - [ ] A changeset naming `@nielspeter/eess-md`.

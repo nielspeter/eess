@@ -55,16 +55,19 @@ first of its label, and that turned a red on main into a green: a body `[g]: ./g
 block `[g]: ./b.md` was hidden behind the block's, while a renderer that drops front matter uses
 the body's. With a label defined on both sides, each reading uses a different definition, so
 neither reading alone fails closed. Keeping the block front matter checks the body's definition,
-as main did; the block's target is then unchecked, as it was on main. That residual, and the
+as main did; the block's target is then unchecked, as it was on main. The re-check found the flip
+changes every label, not only the one that turns it: with `[x]` defined in the block alone and `[y]`
+on both sides, reading the block as Markdown hid the body's broken `[y]`. So no definition turns the
+block while any label the document uses straddles its edge. That residual, and the
 variant above (block `./gone.md`, body external), are
 [bug 0610](../0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md).
 
 ## Fix
 
-`checkedMarkdownIn` (`packages/md/src/model/prose.ts:43`) also names a `definition` inside the
+`checkedMarkdownIn` (`packages/md/src/model/prose.ts:44`) also names a `definition` inside the
 block's lines when a `linkReference` anywhere in the document uses its label (`referenceLines`,
-`:104`), no definition of the label lies outside the block (`definitionLines`, `:89`), and its URL
-is not external. The reason reads "it holds the
+`:109`), no used label is defined both in the block and outside it (`definitionLines`, `:94`), and
+its URL is not external. The reason reads "it holds the
 definition at line N of a link into the repository at line M", M being the first reference's
 line. `parseFresh`'s fast path is unchanged: a definition needs a `[`.
 
@@ -77,7 +80,8 @@ line. `parseFresh`'s fast path is unchanged: a definition needs a `[`.
       pinned. The YAML-key form by `it('a definition written as a YAML key is read as Markdown too')`.
       The variant was decided the other way after review (see Decision), and is pinned with its
       mirror by `it('a label the body also defines keeps the block front matter, so the body’s broken target is reported')`
-      and `it('a label the body also defines, externally, leaves the block front matter')`;
+      and `it('a label the body also defines, externally, leaves the block front matter')`, and
+      the re-check's two-label shape by `it('a second label the body also defines keeps the block front matter')`;
       the target it leaves unchecked is
       [bug 0610](../0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md).
       An unused definition and an external one, decided above, are pinned by
@@ -90,8 +94,7 @@ line. `parseFresh`'s fast path is unchanged: a definition needs a `[`.
 
 No non-vacuity row: the guard is a library behaviour this repository's gates do not exercise (no
 document here opens with such a block), as for [bug 0566](./0566-a-front-matter-reference-defined-in-the-body-is-hidden.md);
-the suite rows above are its guard; each of the two body-also-defines rows goes red with the
-`definitionLines` check removed (measured). Found while writing them:
+the suite rows above are its guard; the three body-also-defines rows go red with the straddle check removed (measured). Found while writing them:
 [bug 0609](../0609-a-setext-heading-after-a-definition-is-placed-on-the-definitions-line.md), a
 heading after a definition reported a line early. Found by PR #302's enforcement review:
 [bug 0610](../0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md)
