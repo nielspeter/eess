@@ -1,4 +1,5 @@
-import type { ArchViolation, CollectResult } from '@nielspeter/eess'
+import type { ArchViolation, CollectResult, ElementInfo, Selection } from '@nielspeter/eess'
+import { refuseUndecided } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import {
   findMentions,
@@ -136,6 +137,28 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
       undecided,
       this.buildConditionContext(),
     )
+  }
+
+  /**
+   * The mentions this rule selects, for a `correspondence()` side (bug 0600). A selection carries no
+   * findings, so one that reaches a mention this rule cannot read refuses, naming each, as
+   * `links().select()` does (plan 0580, R7); a selection that silently left it out would be short.
+   */
+  override select(opts: {
+    label: string
+    identify: (element: MdMention) => ElementInfo
+  }): Selection<MdMention> {
+    const { reached } = reachedUnread(this.unread(), this._predicates, asSeen)
+    refuseUndecided(
+      reached.map((u) => ({
+        file: u.doc.file,
+        line: u.line,
+        element: `${u.doc.relPath}:${String(u.line)}`,
+        message: `"${u.text.replace(/\s+/g, ' ')}" sits in ${WHERE[u.cause]}, which this rule does not read`,
+      })),
+      'select()',
+    )
+    return super.select(opts)
   }
 
   protected locate(m: MdMention): MdLocation {

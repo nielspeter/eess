@@ -547,7 +547,11 @@ describe("mentions(): where a mention's link points (plan 0549)", () => {
     const b = one('# A\n\nbug 0001, [bug 0002](./a.md).\n\n<div>bug 0003</div>\n')
       .that()
       .satisfy(areLinked())
-    expect(links(b)).toEqual(['bug 0002 [bug 0002] @0 self'])
+    // Since bug 0600 a selection that reaches the unread mention refuses rather than drop it.
+    expect(() => links(b)).toThrow(/\ba\.md:5\b/)
+    expect(
+      links(one('# A\n\nbug 0001, [bug 0002](./a.md).\n').that().satisfy(areLinked())),
+    ).toEqual(['bug 0002 [bug 0002] @0 self'])
     const v = b.should().beLinked().violations()
     expect(v.filter((x) => x.ruleId === 'md/unread-mention').map((x) => x.line)).toEqual([5])
   })

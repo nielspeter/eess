@@ -283,7 +283,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)): a side of
   `correspondence()` built from it would otherwise drop the link without a word. `mentions().select()`
   has the same gap today, recorded as
-  [bug 0600](../../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+  [bug 0600](../../bugs/fixed/0600-select-drops-an-unread-mention-without-a-word.md).
 - **R8. `block` and `blockPath` for an `href`:** an HTML node is not an `MdLinkBlock`
   (`packages/md/src/model/links.ts:73`). An `href` takes the paragraph or list item that holds an
   inline `html` node, and only its enclosing list item when it sits in an HTML block (`blockPath`
@@ -486,7 +486,7 @@ that changes one reds it (line 573's divergence included).
   [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md).
 - `mentions()` still reporting an `<a>`'s text as unread while `links()` resolves its `href`: recorded
   as [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md).
-- `mentions().select()` dropping an unread mention: [bug 0600](../../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+- `mentions().select()` dropping an unread mention: [bug 0600](../../bugs/fixed/0600-select-drops-an-unread-mention-without-a-word.md).
 - A local link with a query string never resolving: fixed by
   [bug 0583](../../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md).
 
@@ -509,7 +509,7 @@ Architect and enforcement, on the freeze at af342dec. Both said Not ready. What 
 - **Cut, as the review allowed:** no autofix for an `href` (D9; `writtenAt` takes no closing quote,
   architect I3, enforcement I6).
 - **`.select()` (architect I2):** refuses (R7); `mentions()`'s same gap is
-  [bug 0600](../../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+  [bug 0600](../../bugs/fixed/0600-select-drops-an-unread-mention-without-a-word.md).
 - **Raw text (architect I5):** read what parses; an unfinished tag start there is not reported (D5).
 - **Reuse (architect I6, I7, I8):** one unread helper (R5), one offset walk (D8), one comment test
   (D2), the arch rule's matcher and blind spots (D10), `blockPath` for an HTML block (R8).
