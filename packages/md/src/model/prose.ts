@@ -35,9 +35,10 @@ const WITH_FRONT_MATTER = {
  * definition a reference anywhere in the document uses for one (bug 0572). The whole document is
  * the parse that decides (bug 0566), so a reference defined in the body, an escape and a construct
  * crossing the block's edge are read as the parser reads them. A definition counts only when a
- * reference uses it and the body does not also define its label: an unused one is not examined by
- * `links()`, so it is not something a reader checks; and beside a body definition of the same
- * label, the front-matter reading already checks the reference against the body's. A link into the repository is one
+ * reference uses it, and no label the document uses is defined both in the block and outside it:
+ * an unused one is not examined by `links()`, so it is not something a reader checks; and while a
+ * label straddles the block's edge, the front-matter reading checks the body's definition, which
+ * reading the block as Markdown would hide. A link into the repository is one
  * `EXTERNAL_RE` does not call external, the test `MdLink.external` uses.
  */
 function checkedMarkdownIn(whole: Root, from: number, to: number): string | undefined {
@@ -48,6 +49,15 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
     const line = node.position?.start.line ?? 0
     return line >= from && line <= to
   }
+  // Reading the block as Markdown changes how every label resolves, not only the one that turns
+  // it: a label used in the document and defined both inside and outside the block would resolve
+  // to the block's definition and hide the body's, which a renderer that drops front matter uses.
+  // While one does, no definition turns the block (bug 0572's reviews; the residual is bug 0610).
+  const outside = (line: number): boolean => line < from || line > to
+  const straddles = [...usedAt.keys()].some((id) => {
+    const lines = definedAt.get(id) ?? []
+    return lines.some((l) => !outside(l)) && lines.some(outside)
+  })
   let found: string | undefined
   const visit = (node: Nodes): void => {
     if (found !== undefined) return
@@ -59,12 +69,7 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
     if (inside(node) && node.type === 'definition') {
       const site = definitions.get(node.identifier)
       const use = usedAt.get(node.identifier)
-      // Only a label the body does not also define: then the front-matter reading gives the
-      // reference the body's definition, which `links()` checks, and reading the block as Markdown
-      // would hide that target behind the block's (bug 0572's review). Kept as front matter, the
-      // block's target in that case is unchecked, as before (bug 0610).
-      const onlyInBlock = (definedAt.get(node.identifier) ?? []).every((l) => l >= from && l <= to)
-      if (site !== undefined && use !== undefined && onlyInBlock && !EXTERNAL_RE.test(site.url)) {
+      if (site !== undefined && use !== undefined && !straddles && !EXTERNAL_RE.test(site.url)) {
         found = `it holds the definition at line ${line} of a link into the repository at line ${String(use)}`
         return
       }

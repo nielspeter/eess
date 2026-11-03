@@ -147,6 +147,19 @@ describe('a front-matter block holding a definition a body reference uses is rea
     expect(v.examined).toBe(2)
   })
 
+  // The flip changes every label: `[x]`, defined in the block alone, must not turn the block while
+  // `[y]` is defined on both sides, or the body's broken `[y]` is hidden (PR #302's re-check).
+  it('a second label the body also defines keeps the block front matter', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [x]: ./b.md\n\n  [y]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [x] and [y].\n\n[y]: ./gone.md\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '16 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [y])',
+    ])
+  })
+
   it('a label the body also defines, externally, leaves the block front matter', () => {
     const text =
       '---\na: |\n\n  [g]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md) See [g].\n\n[g]: https://example.com\n'
