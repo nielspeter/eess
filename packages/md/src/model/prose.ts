@@ -34,14 +34,16 @@ const WITH_FRONT_MATTER = {
  * Markdown: a task box, a link into the repository, inline or reference-style (bug 0558), or the
  * definition a reference anywhere in the document uses for one (bug 0572). The whole document is
  * the parse that decides (bug 0566), so a reference defined in the body, an escape and a construct
- * crossing the block's edge are read as the parser reads them. A definition counts only when it is
- * the one a reference uses, the first of its label, as `links()` reads it: an unused one is not
- * examined by `links()`, so it is not something a reader checks. A link into the repository is one
+ * crossing the block's edge are read as the parser reads them. A definition counts only when a
+ * reference uses it and the body does not also define its label: an unused one is not examined by
+ * `links()`, so it is not something a reader checks; and beside a body definition of the same
+ * label, the front-matter reading already checks the reference against the body's. A link into the repository is one
  * `EXTERNAL_RE` does not call external, the test `MdLink.external` uses.
  */
 function checkedMarkdownIn(whole: Root, from: number, to: number): string | undefined {
   const definitions = definitionsOf(whole, undefined)
   const usedAt = referenceLines(whole)
+  const definedAt = definitionLines(whole)
   const inside = (node: Nodes): boolean => {
     const line = node.position?.start.line ?? 0
     return line >= from && line <= to
@@ -57,12 +59,12 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
     if (inside(node) && node.type === 'definition') {
       const site = definitions.get(node.identifier)
       const use = usedAt.get(node.identifier)
-      if (
-        site !== undefined &&
-        String(site.line) === line &&
-        use !== undefined &&
-        !EXTERNAL_RE.test(site.url)
-      ) {
+      // Only a label the body does not also define: then the front-matter reading gives the
+      // reference the body's definition, which `links()` checks, and reading the block as Markdown
+      // would hide that target behind the block's (bug 0572's review). Kept as front matter, the
+      // block's target in that case is unchecked, as before (bug 0610).
+      const onlyInBlock = (definedAt.get(node.identifier) ?? []).every((l) => l >= from && l <= to)
+      if (site !== undefined && use !== undefined && onlyInBlock && !EXTERNAL_RE.test(site.url)) {
         found = `it holds the definition at line ${line} of a link into the repository at line ${String(use)}`
         return
       }
@@ -81,6 +83,21 @@ function checkedMarkdownIn(whole: Root, from: number, to: number): string | unde
   }
   visit(whole)
   return found
+}
+
+/** Every line each definition label is defined on in `root`, by the parser's `identifier`. */
+function definitionLines(root: Root): Map<string, number[]> {
+  const out = new Map<string, number[]>()
+  const visit = (node: Nodes): void => {
+    if (node.type === 'definition') {
+      const lines = out.get(node.identifier) ?? []
+      lines.push(node.position?.start.line ?? 0)
+      out.set(node.identifier, lines)
+    }
+    if ('children' in node) for (const child of node.children) visit(child)
+  }
+  visit(root)
+  return out
 }
 
 /** The first line each reference label is used on in `root`, by the parser's `identifier`. */

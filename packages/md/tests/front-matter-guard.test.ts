@@ -131,14 +131,29 @@ describe('a front-matter block holding a definition a body reference uses is rea
     expect(v.examined).toBe(1)
   })
 
-  it('the block’s definition wins over a later one in the body, as the first does for a reader', () => {
+  // A label defined in the block and in the body: reading the block as Markdown would give the
+  // reference the block's definition and hide the body's, which a renderer that drops front matter
+  // uses. So the block stays front matter and the body's is checked, as on main. The block's own
+  // target is then unchecked (bug 0610).
+  it('a label the body also defines keeps the block front matter, so the body’s broken target is reported', () => {
     const v = resolveOf({
       'docs/a.md':
-        '---\na: |\n\n  [g]: ./gone.md\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: https://example.com\n',
+        '---\na: |\n\n  [g]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [g].\n\n[g]: ./gone.md\n',
+      'docs/b.md': '# B\n',
     })
-    expect(v.map((x) => x.message)).toEqual([
-      'broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '14 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
     ])
+    expect(v.examined).toBe(2)
+  })
+
+  it('a label the body also defines, externally, leaves the block front matter', () => {
+    const text =
+      '---\na: |\n\n  [g]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md) See [g].\n\n[g]: https://example.com\n'
+    const v = resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n' })
+    expect(v.map((x) => x.message)).toEqual([])
+    expect(v.examined).toBe(1)
+    expect(titleOf(text)).toEqual([])
   })
 
   it('the title finding names the definition and the reference that uses it', () => {

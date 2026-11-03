@@ -45,16 +45,26 @@ block's, wins for a reader.
 is front matter only when it holds nothing a Markdown reader checks. A definition is checked when a
 reference uses it: `links()` examines the reference and resolves the definition's URL. An unused
 definition is not examined by `links()` (it reads references only), so it leaves the block front
-matter. The definition that counts is the one a reference uses, the first of its label, as
-CommonMark and `definitionsOf` both read it; so in the variant, the block's internal definition
-wins over the body's external one, and the body's `[g]` is checked against `./gone.md`. An
-external definition leaves the block front matter, as an external link does.
+matter. An external definition leaves the block front matter, as an external link does, for the
+same reason: `links().that().areInternal()` does not judge it. A condition that one day judges
+external links must revisit both.
+
+**A label the body also defines leaves the block front matter** (decided 2026-11-03, after PR
+#302's enforcement review). The first version counted the block's definition there too, as the
+first of its label, and that turned a red on main into a green: a body `[g]: ./gone.md` behind a
+block `[g]: ./b.md` was hidden behind the block's, while a renderer that drops front matter uses
+the body's. With a label defined on both sides, each reading uses a different definition, so
+neither reading alone fails closed. Keeping the block front matter checks the body's definition,
+as main did; the block's target is then unchecked, as it was on main. That residual, and the
+variant above (block `./gone.md`, body external), are
+[bug 0610](../0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md).
 
 ## Fix
 
-`checkedMarkdownIn` (`packages/md/src/model/prose.ts:42`) also names a `definition` inside the
-block's lines when it is the first of its label, a `linkReference` anywhere in the document uses
-that label (`referenceLines`, `:87`), and its URL is not external. The reason reads "it holds the
+`checkedMarkdownIn` (`packages/md/src/model/prose.ts:43`) also names a `definition` inside the
+block's lines when a `linkReference` anywhere in the document uses its label (`referenceLines`,
+`:104`), no definition of the label lies outside the block (`definitionLines`, `:89`), and its URL
+is not external. The reason reads "it holds the
 definition at line N of a link into the repository at line M", M being the first reference's
 line. `parseFresh`'s fast path is unchanged: a definition needs a `[`.
 
@@ -63,9 +73,13 @@ line. `parseFresh`'s fast path is unchanged: a definition needs a `[`.
 - [x] Red test written first: the first reproduction is reported (examined 2, the broken link)
       (`packages/md/tests/front-matter-guard.test.ts` · `it('the body reference is examined and its broken target reported')`),
       red on main's `prose.ts` with three more rows of the same describe.
-- [x] The YAML-key form and the first-definition-wins variant, each decided and pinned:
-      `it('a definition written as a YAML key is read as Markdown too')` and
-      `it('the block’s definition wins over a later one in the body, as the first does for a reader')`.
+- [ ] done-otherwise: the YAML-key form and the first-definition-wins variant, each decided and
+      pinned. The YAML-key form by `it('a definition written as a YAML key is read as Markdown too')`.
+      The variant was decided the other way after review (see Decision), and is pinned with its
+      mirror by `it('a label the body also defines keeps the block front matter, so the body’s broken target is reported')`
+      and `it('a label the body also defines, externally, leaves the block front matter')`;
+      the target it leaves unchecked is
+      [bug 0610](../0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md).
       An unused definition and an external one, decided above, are pinned by
       `it('a definition in the block that no reference uses leaves it front matter')` and
       `it('an external definition in the block that a body reference uses leaves it front matter')`.
@@ -76,8 +90,12 @@ line. `parseFresh`'s fast path is unchanged: a definition needs a `[`.
 
 No non-vacuity row: the guard is a library behaviour this repository's gates do not exercise (no
 document here opens with such a block), as for [bug 0566](./0566-a-front-matter-reference-defined-in-the-body-is-hidden.md);
-the suite rows above are its guard. Found while writing them:
+the suite rows above are its guard; each of the two body-also-defines rows goes red with the
+`definitionLines` check removed (measured). Found while writing them:
 [bug 0609](../0609-a-setext-heading-after-a-definition-is-placed-on-the-definitions-line.md), a
-heading after a definition reported a line early.
+heading after a definition reported a line early. Found by PR #302's enforcement review:
+[bug 0610](../0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md)
+(above) and [bug 0611](../0611-an-html-link-in-front-matter-is-hidden.md), an `<a href>` in a
+YAML value, hidden on main as well.
 
 Deferred: none
