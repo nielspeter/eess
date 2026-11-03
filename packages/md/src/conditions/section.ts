@@ -5,7 +5,9 @@ import { contains, headingNotes, type MdSectionElement } from '../model/sections
 import { citesHeadings, declaresSections } from '../model/section-declarations.js'
 import { subsectionsOf, subsectionText, type SubsectionOptions } from '../predicates/section.js'
 import { columnsText, hasColumns } from './structure.js'
-import { holdingText, holds, type SectionHolding } from '../model/section-holds.js'
+import { holdingText, holds, undecidingLinks, type SectionHolding } from '../model/section-holds.js'
+import { unreadLinkFinding } from '../model/unread-link.js'
+import type { ArchViolation } from '../model/violation.js'
 
 /**
  * Plan 0496: the conditions over sections. Each finding is at the section's heading, named
@@ -102,10 +104,29 @@ export function sectionHolds(h: SectionHolding): Condition<MdSectionElement> {
   const what = holdingText(h)
   return {
     description: `hold ${what}`,
-    evaluate: (sections, ctx) =>
-      sections
-        .filter((s) => !holds(s, h))
-        .map((s) =>
+    evaluate: (sections, ctx) => {
+      // Plan 0580, R6: a section with no read link but an HTML link eess-md cannot read is not
+      // "holds no link": that link is reported instead, once per site per rule, however many nested
+      // sections contain it.
+      const reported = new Set<string>()
+      const unread: ArchViolation[] = []
+      const missing = sections.filter((s) => {
+        if (holds(s, h)) return false
+        const sites = undecidingLinks(s, h)
+        if (sites.length === 0) return true
+        for (const u of sites) {
+          const key = `${u.doc.file}:${String(u.line)}`
+          if (reported.has(key)) continue
+          reported.add(key)
+          unread.push(
+            unreadLinkFinding(u, 'so this rule cannot judge whether its section holds a link.'),
+          )
+        }
+        return false
+      })
+      return [
+        ...unread,
+        ...missing.map((s) =>
           mdViolation({
             element: where(s),
             file: s.doc.file,
@@ -118,5 +139,7 @@ export function sectionHolds(h: SectionHolding): Condition<MdSectionElement> {
             context: ctx,
           }),
         ),
+      ]
+    },
   }
 }

@@ -2,37 +2,37 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-11-01 after two re-checks (architect · enforcement), the second
+- **State:** Done — all three phases built (PRs #296, #297, #300) → completed/. Frozen 2026-11-01 after two re-checks (architect · enforcement), the second
   Ready with changes and its changes applied (Review below)
-- **Implements:** [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)
-- **Priority:** High, [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
+- **Implements:** [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)
+- **Priority:** High, [bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
   severity: this plan closes that bug's HTML half, a false green
   (`links().should().resolve()` passes over a broken `<a href>` today).
 - **Effort:** Medium. One owner for reading HTML attributes, and `links()` widened onto it.
 - **Created:** 2026-11-01
-- **Decided by:** [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (syntax that
+- **Decided by:** [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md) (syntax that
   Markdown or GFM defines is not a shape, so GFM's rendering is what is read),
-  [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (what the reader
-  cannot read is reported, never dropped), [ADR-009](../../adr/009-agent-first-failure-surfaces.md)
+  [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) (what the reader
+  cannot read is reported, never dropped), [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)
   rule 2 (every unsuppressable finding carries a remedy that clears it),
-  [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) (`examined` counts what was read).
+  [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) (`examined` counts what was read).
 - **Decided on the review (2026-11-01), each overrulable:**
   - **Resolve directly, not unread first.** The `href` is read and resolved in one build; what the
     reader cannot read is reported as unread in the same build. This settles the open decision in
-    [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2, so
-    no [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) amendment for
+    [bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2, so
+    no [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) amendment for
     suppressible unread findings is needed.
   - **One owner for reading HTML attributes** (`href`, `src`, `id`, `name`) in eess-md. `links()`
-    reads it, and so do a future `images()` ([proposal 024](../proposals/024-md-an-images-file-exists.md)'s
-    Ask B), [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md)'s anchor sets
-    ([bug 0136](../bugs/0136-link-fragments-are-never-checked.md)) and `mentions()`, whose use of
+    reads it, and so do a future `images()` ([proposal 024](../../proposals/024-md-an-images-file-exists.md)'s
+    Ask B), [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)'s anchor sets
+    ([bug 0136](../../bugs/0136-link-fragments-are-never-checked.md)) and `mentions()`, whose use of
     `OPENS_A` (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`) it replaces.
   - **Scope:** `<a>` and `<area>`, in any letter case, quoted or unquoted. A detector wider than the
     reader finds every `<a` or `<area` tag start; what it finds and the reader cannot extract is
     unread, under a named cause.
   - **One change marked Breaking** (`**Breaking (@nielspeter/eess-md):**`, a minor on 0.x). No other
     package moves.
-  - [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s HTML half
+  - [Bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s HTML half
     closes done-otherwise against this plan, in the same PR.
 
 ## Problem
@@ -40,7 +40,7 @@
 `links()` reads `link` nodes and defined `linkReference` nodes
 (`packages/md/src/model/links.ts:197`); an `html` node is never scanned, so a broken
 `<a href="./gone.md">` is not examined and the rule is green
-([bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)). The only
+([bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)). The only
 recogniser, `OPENS_A`, answers yes or no, pulls out no value, over-matches `data-href` and misses
 `<a title="a>b" href=…>` (the review's survey, measured). The review also found that a misread
 `href` is a false green as well as a false red: the link walk feeds `beLinkedBack()`'s index
@@ -126,14 +126,14 @@ A literal `href` on an HTML link element (`<a>`, `<area>`) is a link, read where
 An expression binding (`:href`, `v-bind:href`), a component's prop (`<VPButton href>`) and other
 attributes (`data-href`, `xlink:href`) are not links: they have no value to resolve, and a finding on
 them could only be cleared by deleting correct code
-([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2). What eess-md cannot read where a
+([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2). What eess-md cannot read where a
 renderer would make a link is reported, never dropped
-([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)).
+([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)).
 
 ### The attribute owner
 
 One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-md: not on the root
-([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1) and not on
+([ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1) and not on
 `/internal` until a second package needs it.
 
 - **D1. Inside an `html` node, it is an HTML tokenizer for tags**, following the WHATWG tokenizer's
@@ -193,11 +193,11 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   (`packages/md/src/model/destination.ts:28`), and a fix for an attribute value is new work that no
   one has asked for.
 - **D10. The owner's arch rule**, `md/one-html-attribute-reader`, in `arch.rules.ts` beside
-  [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)'s
+  [ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md)'s
   (`arch.rules.ts:361`). Outside `html-attributes.ts`, no file under `packages/md/src` holds a regular
   expression literal whose source text contains `href`, `src`, `<a` or `<\/a`. `OPENS_A` and
   `CLOSES_A` (`packages/md/src/model/phrasing.ts:64-65` on `6bcd35e6`) move into the owner. What the rule cannot
-  see is stated in its `because` ([ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
+  see is stated in its `because` ([ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
   rule 7): a pattern built from a string (`new RegExp('href')`), `includes('href')`, and a pattern
   that spells the word another way (`h\x72ef`). Like its precedent, it has a nonvacuity row (the
   Test inventory): once `OPENS_A` and `CLOSES_A` move, the rule matches nothing, and only a fixture
@@ -213,7 +213,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   the tokenizer does.
 - **R2. Not read, and not reported:** `:href`, `v-bind:href`, `data-href`, `xlink:href`, a component's
   `href` prop, and an `<a name>` or `<a id>` with no `href`, which is an anchor left to
-  [bug 0136](../bugs/0136-link-fragments-are-never-checked.md). The docs list each by name. _This
+  [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md). The docs list each by name. _This
   overrules the review's decision 3 for `:href` and `v-bind:href`, which listed them as reported
   unread (the principle above)._
 - **R3. Unread, with a cause.** The detector is the owner. Every `<a` or `<area` start the owner
@@ -223,7 +223,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   - **a named silence**, of which there are three: a start in an inline container that is not a §6.6
     tag (GitHub renders it as text, measured); a §6.6 tag in an inline container with no `href`
     (`<a name=a/b>`, Q7, an anchor left to
-    [bug 0136](../bugs/0136-link-fragments-are-never-checked.md), which this owner does not read for
+    [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md), which this owner does not read for
     it); and an unfinished start inside a tagfilter element (D5).
 
   A suite row pins the invariant over every Measured row and every P, Q and B probe. The causes,
@@ -247,9 +247,9 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   `areInternal()`, `areExternal()`, `haveLiveTargets()` and a `satisfy()` predicate that reads `.text`
   cannot decide it out. If no predicate decides it false, it is reported, whatever
   the conditions are (`resolve()`, `beLinkedBack()`, `satisfy()`, `notExist()`), as
-  [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 4 says. Rule id
+  [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 4 says. Rule id
   `md/unread-link`, one finding per site per rule, at its line, carrying `bypassFilters` (rule 5).
-  It is not counted in `examined` ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)).
+  It is not counted in `examined` ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)).
   When every reached site is unread and nothing is read, the rule reports the unread findings and no
   zero-examined finding beside them (rule 7).
 - **R5. One shared helper.** `reachedUnread` and `unreadFindings`
@@ -258,7 +258,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   unread finding in the receipt's `undecided`, so the terminal withholds the generic zero-examined
   finding and `declaredEmpty` beside them (`packages/core/src/terminal-builder.ts:290`).
   `mentions()` does not do this today, and that is
-  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md), which this
+  [bug 0602](../../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md), which this
   plan closes: the same root cause on the same code path.
 - **R6. Evidence side: an unread site in another subject's evidence.** The cause names the site,
   not the section or the target, so the kernel's deduplication (`undecidedViolations`,
@@ -273,14 +273,14 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
     read link and an unread site gets no unread finding.
   - `beLinkedBack()`: a target document with no read link back and an unread site is undecided for
     that pair. The unread finding replaces "does not link back", once per site per rule however many
-    links point at that document ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
+    links point at that document ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
     rule 5), at the site's line. A target with a read link back gets no unread finding.
 - **R7. `links().select()` refuses** when its predicates reach an unread site
-  ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 6,
-  [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)): a side of
+  ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 6,
+  [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)): a side of
   `correspondence()` built from it would otherwise drop the link without a word. `mentions().select()`
   has the same gap today, recorded as
-  [bug 0600](../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+  [bug 0600](../../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
 - **R8. `block` and `blockPath` for an `href`:** an HTML node is not an `MdLinkBlock`
   (`packages/md/src/model/links.ts:73`). An `href` takes the paragraph or list item that holds an
   inline `html` node, and only its enclosing list item when it sits in an HTML block (`blockPath`
@@ -293,7 +293,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
 ### What changes for each reader of `links()`
 
 The changeset marks `**Breaking (@nielspeter/eess-md):**`, a minor on 0.x, as
-[bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did. No
+[bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) part (a) did. No
 other package moves: eess-crossvalidate never calls `links()`. The changeset and `docs/markdown.md`
 state each change, and each has a suite row:
 
@@ -310,7 +310,7 @@ state each change, and each has a suite row:
   `<a><img></a>` (13 of the 14 block-level links the review measured).
 - Pinned because honest but surprising: `href=""` and a valueless `href` resolve as `self`;
   `href="#…"` resolves as `self`, its fragment left to
-  [bug 0136](../bugs/0136-link-fragments-are-never-checked.md); `javascript:` is external by
+  [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md); `javascript:` is external by
   `EXTERNAL_RE` (`packages/md/src/model/external.ts:6`); a templated `href` (`{{ site.baseurl }}`)
   is red as missing, as its Markdown twin is; JavaScript inside a `<script>` that builds a tag the
   tokenizer can finish (`"<a href=\"./x.md\">"`) is read and resolved (D5), and a broken one is an
@@ -332,14 +332,14 @@ draft said the changes would land in the proposal; that was this plan's mistake,
 dispositions below correct it.
 
 - [x] Record the corrections to the proposal's own text: `OPENS_A` is not a starting point for the
-      scan; Ask A narrowed [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
+      scan; Ask A narrowed [bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s
       measured scope without saying so; the entity example sat in a query string, where it cannot
       show decoding.
 - [ ] Rewrite the Priority line for "resolve directly" — done-otherwise: annotated in place in the
       proposal (its Priority line carries the correction), and this plan's Priority states it.
 - [ ] Scope — done-otherwise: R1 to R3, with `<area>` and the unquoted case measured on GitHub (the
       Measured section).
-- [ ] The detector/reader split, named causes, remedies, [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) precedence — done-otherwise: R3
+- [ ] The detector/reader split, named causes, remedies, [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) precedence — done-otherwise: R3
       and R4.
 - [ ] The false-green rows for `haveLink()` and `beLinkedBack()` — done-otherwise: the Test
       inventory, Phase 2.
@@ -350,7 +350,7 @@ dispositions below correct it.
 - [ ] The break statement and the impact on each reader — done-otherwise: "What changes for each
       reader of `links()`".
 - [ ] Suite rows and two or three nonvacuity scenarios — done-otherwise: the Test inventory.
-- [ ] [Bug 0136](../bugs/0136-link-fragments-are-never-checked.md) named as a consumer of the
+- [ ] [Bug 0136](../../bugs/0136-link-fragments-are-never-checked.md) named as a consumer of the
       owner — done-otherwise: the Status block's second decision.
 - [ ] Open question 1 — done-otherwise: D1 and D7, a tag tokenizer of the owner's own (HTML's in an
       `html` node, CommonMark's in a `text` node), with no parser dependency and no ADR.
@@ -360,14 +360,14 @@ dispositions below correct it.
 1. **The attribute owner.** `html-attributes.ts` as designed (D1 to D10), with its arch rule.
    `mentions()` recognises an `<a href>` through it, and `OPENS_A`, `CLOSES_A`, `ONE_COMMENT` and
    `HTML_COMMENT` are replaced. That closes
-   [bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)
+   [bug 0593](../../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)
    (`OPENS_A` matches `data-href` and misses `title="a>b"`), which moves to `fixed/` with this plan.
    The unread helper is shared (R5).
 2. **`links()` reads `href`.** `collectLinkBlocks` (`packages/md/src/model/links.ts:117`) yields an
    `MdLink` per `href` the owner reads (R1), the owner's causes become `md/unread-link` findings on the
    subject side (R3, R4), `.select()` refuses (R7), and `block`/`blockPath` follow R8. The docs and the
    changeset state each reader's change.
-   [Bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) is closed
+   [Bug 0558](../../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) is closed
    done-otherwise against this plan.
 3. **The evidence side (R6).** `sections().haveLink()` and `.beLinkedBack()` read an unread site as
    undecided, not as no link; and so does the declaration scan, which today says a label "stands
@@ -422,10 +422,10 @@ that changes one reds it (line 573's divergence included).
     (`<!DOCTYPE html>`, `<?x?>`) as they treat a comment, one row each, and the changeset says so;
   - `mentions()`'s existing `'html-link'` tests green, plus a `data-href` row that no longer matches
     and a `title="a>b"` row that now does
-    ([bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md));
+    ([bug 0593](../../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md));
     `mentions()`'s unread findings unchanged through the shared helper (R5), except that a rule over
     only unread mentions no longer adds the zero-examined finding or `declaredEmpty`
-    ([bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s rows).
+    ([bug 0602](../../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s rows).
 - **Phase 2, `links()`:**
   - read: a broken `href` red at its own line inside a multi-line block, inside a blockquote, and
     inside a `<details>` fence; `./R&amp;D.md` resolves against `R&D.md`, and the finding quotes the
@@ -464,21 +464,21 @@ that changes one reds it (line 573's divergence included).
   `html`-node detector reds it). Plus D10's gate row, as `arch/one-code-block-tag-comparison` has
   one (`scripts/check-nonvacuity.mjs:859`): a fixture writes `/href/` into a file under
   `packages/md/src` outside the owner and expects `md/one-html-attribute-reader`.
-  [Bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard is near its timeout,
+  [Bug 0552](../../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard is near its timeout,
   so the build measures the four rows' cost and says which shard takes them.
 
 ## Out of scope
 
 - Links built by script, and HTML outside the Markdown documents.
 - An autofix for an `href` (D9).
-- `<img src>`: [proposal 024](../proposals/024-md-an-images-file-exists.md) Ask B, on Phase 1's owner.
+- `<img src>`: [proposal 024](../../proposals/024-md-an-images-file-exists.md) Ask B, on Phase 1's owner.
 - A fragment in an `href`: resolved as `self` here, checked by
-  [bug 0136](../bugs/0136-link-fragments-are-never-checked.md).
+  [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md).
 - `mentions()` still reporting an `<a>`'s text as unread while `links()` resolves its `href`: recorded
-  as [bug 0601](../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md).
-- `mentions().select()` dropping an unread mention: [bug 0600](../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+  as [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md).
+- `mentions().select()` dropping an unread mention: [bug 0600](../../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
 - A local link with a query string never resolving: fixed by
-  [bug 0583](../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md).
+  [bug 0583](../../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md).
 
 ## Review — 2026-11-01 (the freeze re-check)
 
@@ -499,7 +499,7 @@ Architect and enforcement, on the freeze at af342dec. Both said Not ready. What 
 - **Cut, as the review allowed:** no autofix for an `href` (D9; `writtenAt` takes no closing quote,
   architect I3, enforcement I6).
 - **`.select()` (architect I2):** refuses (R7); `mentions()`'s same gap is
-  [bug 0600](../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
+  [bug 0600](../../bugs/0600-select-drops-an-unread-mention-without-a-word.md).
 - **Raw text (architect I5):** read what parses; an unfinished tag start there is not reported (D5).
 - **Reuse (architect I6, I7, I8):** one unread helper (R5), one offset walk (D8), one comment test
   (D2), the arch rule's matcher and blind spots (D10), `blockPath` for an HTML block (R8).
@@ -507,7 +507,7 @@ Architect and enforcement, on the freeze at af342dec. Both said Not ready. What 
   evidence side both ways, nonvacuity scenario 3 in a block, one row per reader change.
 - **Minor:** `title="a>b"` marked as a change (R1); `docs/markdown.md:701` restored; no `MdLink`
   marker (R9); the principle stated once; the follow-up given a home
-  ([bug 0601](../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md));
+  ([bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md));
   rule 7 stated; the owner kept internal; dogfooding stated (Measured).
 
 ### Second re-check — 2026-11-01
@@ -524,7 +524,7 @@ no further design round. What changed:
   `unquoted-slash` names every attribute holding a `/`.
 - **Rule 7 (architect I-new-2).** The shared helper counts unread findings in `undecided`, which
   fixes `mentions()` too:
-  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md) (measured,
+  [bug 0602](../../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md) (measured,
   same code path), closed by this plan.
 - **D10 (enforcement I3, M5).** A nonvacuity row, and a matcher on the words with its blind spots.
 - **Minor:** one finding per site per rule on both sides, and none twice (architect M1, M2); D5's
@@ -533,7 +533,7 @@ no further design round. What changed:
   (M6).
 
 A verification pass the same day (architect: applied, with
-[bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s root cause
+[bug 0602](../../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s root cause
 corrected; enforcement: D5's "inside" misapplied, and D7's start set too wide, A1 to A4) gave one
 clause and one row each: an unclosed tagfilter element has no inside, and a start's `<` lies in a
 `text` node.
@@ -558,7 +558,7 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   instead. One stepper each, in their own modules.
 - **R5, in part.** The shared helper (`packages/md/src/builders/unread.ts`) holds `reachedUnread`
   and the receipt (`withUnread`, which counts unread findings as undecided:
-  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)). Each
+  [bug 0602](../../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)). Each
   builder keeps its own finding text, since a mention's message and a link's differ.
 - **D10** is `md/one-html-attribute-reader`, as frozen. Its nonvacuity row,
   `arch/md-one-html-attribute-reader`, is one run of one probe, every alternative on its own line, the rule
@@ -568,9 +568,9 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   closes (`'<a href="' + u`) is what D5 silences. A `<textarea>` opens a type-1 HTML block, which a
   blank line does not end, so P15's split after an unclosed one needs a `<div>` around it.
 - **Sabotage, each red then green:** the old `OPENS_A` back (2 rows of
-  [bug 0593](../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)),
+  [bug 0593](../../bugs/fixed/0593-the-html-link-recogniser-matches-data-href-and-misses-a-quoted-angle-bracket.md)),
   the unread count removed (2 rows of
-  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s), the old one-comment pattern back (1 row), `src`
+  [bug 0602](../../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s), the old one-comment pattern back (1 row), `src`
   dropped from D10's matcher (its nonvacuity row).
 - **Code review (architect · enforcement, 2026-11-02), both Approve with changes; applied:**
   `mentions()` opened an HTML link on a void `<area>`, swallowing the rest of the paragraph (now `<a>`
@@ -604,9 +604,9 @@ Built as frozen, except where noted. Each difference is a decision on the build,
   `haveContent()` rows assert the finding, not a count; the HTML-link cause joins
   `corpus/record-mention/unread`'s probe in the same run (red with `isLinkStart` emptied); a note that
   D10's owner exclusion is not exercised; the changeset names four more verdict changes. Recorded, not
-  fixed here: [bug 0603](../bugs/0603-an-unread-box-stands-beside-a-zero-examined-finding.md),
+  fixed here: [bug 0603](../../bugs/0603-an-unread-box-stands-beside-a-zero-examined-finding.md),
   `taskItems()` with
-  [bug 0602](../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s shape.
+  [bug 0602](../../bugs/fixed/0602-an-unread-mention-stands-beside-a-zero-examined-finding.md)'s shape.
 - **Pointers.** Code pointers into `mentions.ts`, `phrasing.ts` and `section-holds.ts` that moved
   were renumbered; those naming code this phase removed (`OPENS_A`, `ONE_COMMENT`, `HTML_COMMENT`)
   are pinned "on `6bcd35e6`", the house form for code as it was.
@@ -658,16 +658,40 @@ Built as frozen, except where noted:
   so the compiler holds every caller to not writing them.
 - **Shards:** `corpus/links/html` runs in shard 4 and `arch/md-one-html-attribute-reader` in shard 2
   (position mod 4, read from a full run's order), not
-  [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard 3.
+  [bug 0552](../../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s shard 3.
 - **The baseline row** of the inventory is the `bypassFilters` assertion: a baseline keys on that
   field, and the kernel's own tests pin it, as for `mentions()`.
 - **`.warn()`** on a rule with an unread link throws, as a terminal escalates an unsuppressable
   finding; the row asserts the thrown violations. A baseline keys on `bypassFilters`, which the row
   asserts; the kernel's own tests pin a baseline's handling of it.
 
+### Phase 3 — 2026-11-03, PR #300
+
+Built as frozen (R6), with the declaration scan the Phase 2 review added to it:
+
+- **One home for the unread-link finding.** The conditions need it and may not import a builder, so
+  `UNREAD_LINK`, the cause texts, the remedies and `unreadFinding` (the one owner of
+  `bypassFilters`) moved to `model/unread-link.ts`; `builders/links.ts` and `builders/unread.ts`
+  import it.
+- **`sections().haveLink()`:** `undecidingLinks` (`model/section-holds.ts`) gives a section's
+  unread links when it holds no read one. After `.should()` each is `md/unread-link`, once per site
+  per rule however many nested sections hold it, in place of "holds no link"; after `.that()` the
+  predicate declares `undecided` and its `test` refuses, as `predicateHaveField` does, so the
+  kernel reports the site and `.select()` refuses.
+- **`beLinkedBack()`:** a live target with no read link back and an unread link is reported at that
+  link, once per site per rule, in place of "does not link back"; a frozen target keeps its own
+  finding. The subject side skips a site the condition already reported in the same rule.
+- **The declaration scan** counts an unread link's blocks as enclosed, so its label is not "empty".
+- **Rows:** `packages/md/tests/links-html-evidence.test.ts`, eleven, each position both ways.
+  `not(haveLink())` is the kernel's strong Kleene over `undecided` and has no row here, since
+  `sectionsHolding` is not on the root.
+- **Sabotage, each red then green:** the condition saying "holds no link", the predicate without
+  `undecided`, `beLinkedBack()` ignoring the unread link, the subject side duplicating a site, the
+  declaration scan ignoring unread links, and each of the two site dedups removed.
+
 ## Progress ledger
 
-- [x] Reviewed, as [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s Review
+- [x] Reviewed, as [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)'s Review
       (architect · product · enforcement), 2026-11-01
 - [x] Freeze written: the review's changes, the measurements, the open question answered (2026-11-01)
 - [x] Freeze re-checked (architect · enforcement), 2026-11-01: Not ready; revised (Review above)
@@ -676,7 +700,7 @@ Built as frozen, except where noted:
 - [x] Ready (2026-11-01)
 - [x] Phase 1 — the attribute owner (PR #296; Build notes below)
 - [x] Phase 2 — `links()` reads `href` (PR #297; Build notes below)
-- [ ] Phase 3 — the evidence side (R6)
-- [ ] Sabotage matrix, all red
+- [x] Phase 3 — the evidence side (R6) (PR #300; Build notes below)
+- [x] Sabotage matrix, all red (each phase's Build notes)
 
 Deferred: none

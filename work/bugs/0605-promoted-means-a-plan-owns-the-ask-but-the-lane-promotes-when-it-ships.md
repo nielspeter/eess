@@ -15,7 +15,7 @@
 `work/proposals/PROPOSALS.md:54` defines `Promoted` as "dispatched — a plan or bug owns it, **and
 the header names it**". Four proposals meet that definition and are `Draft`:
 [proposal 014](../proposals/014-crossvalidate-tests-in-any-language.md),
-[proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md),
+[proposal 022](../proposals/promoted/022-md-a-raw-html-link-is-resolved.md),
 [proposal 025](../proposals/025-md-a-field-written-empty-can-mean-absent.md) and
 [proposal 026](../proposals/026-md-a-document-has-a-section-that-satisfies-a-predicate.md), each owned
 by a plan that declares `**Implements:**`. The lane's practice is to promote when the plan ships:

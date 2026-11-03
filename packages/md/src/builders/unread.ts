@@ -8,6 +8,8 @@ import {
 } from '@nielspeter/eess'
 import { membership, undecidedViolations, type Membership } from '@nielspeter/eess/internal'
 
+export { unreadFinding } from '../model/unread-link.js'
+
 /**
  * The one helper for what a builder reads but cannot judge (plan 0580, R5): `mentions()` uses it for
  * an unread mention, and `links()` will use it for an unread HTML link. Each builder gives an
@@ -59,22 +61,6 @@ export function reachedUnread<E, U>(
     undecided.push(...causes)
   }
   return { reached, undecided }
-}
-
-/**
- * One unread finding (ADR-021 rule 5): it carries `bypassFilters`, so `.excluding()`, `.warn()`, an
- * exclusion comment and a baseline cannot hide it. The one constructor, so no builder writes the field
- * by hand and forgets it.
- */
-export function unreadFinding(f: {
-  readonly ruleId: string
-  readonly element: string
-  readonly file: string
-  readonly line: number
-  readonly message: string
-  readonly suggestion: string
-}): ArchViolation {
-  return { rule: f.ruleId, bypassFilters: true, ...f }
 }
 
 /**

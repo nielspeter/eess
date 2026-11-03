@@ -2,6 +2,7 @@ import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import { collectLinks, type MdLink } from '../model/links.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
+import { unreadLinkFinding, unreadLinksIn } from '../model/unread-link.js'
 import {
   basenameIndex,
   movedLinkFix,
@@ -119,10 +120,31 @@ export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Co
       // Bug 0558: every reference to one definition has its URL, so the definition's cause is
       // reported once, at the definition, naming it, with at most one fix over its URL.
       const reported = new Set<string>()
+      // Plan 0580, R6: a live target with no read link back but an HTML link eess-md cannot read may
+      // hold the link back there, so that link is reported instead of "does not link back", once per
+      // site per rule, however many links point at the target.
+      const unreadSites = new Set<string>()
       for (const link of links) {
         const target = resolveLink(link, corpus, options)
         if (target.kind === 'document' && index.get(target.path)?.has(link.doc.relPath) === true) {
           continue
+        }
+        if (target.kind === 'document' && !target.doc.frozen) {
+          const sites = unreadLinksIn(target.doc)
+          if (sites.length > 0) {
+            for (const u of sites) {
+              const key = `${u.doc.file}:${String(u.line)}`
+              if (unreadSites.has(key)) continue
+              unreadSites.add(key)
+              out.push(
+                unreadLinkFinding(
+                  u,
+                  `so whether ${target.path} links back to the records that declare it cannot be judged.`,
+                ),
+              )
+            }
+            continue
+          }
         }
         const def = link.definition
         if (def !== undefined) {

@@ -46,7 +46,7 @@ export function declarationFindings(
 ): ArchViolation[] {
   const out: ArchViolation[] = []
   for (const doc of corpus.documents()) {
-    const { links, blocks, unreadLabels } = collectLinkBlocks(doc.root, doc.text)
+    const { links, blocks, unreadLabels, unreadLinks } = collectLinkBlocks(doc.root, doc.text)
     // Each finding names its kind in its element, so one `.excluding()` sanctions one kind
     // (`→ label "Supersedes" (empty)`), and carries its own remedy as the suggestion.
     const report = (line: number, element: string, message: string, suggestion: string): void => {
@@ -97,6 +97,9 @@ export function declarationFindings(
         }
       }
       for (const l of links) classify(l.blockPath ?? [])
+      // Plan 0580, R6: an HTML link eess-md cannot read under the label is no "empty declaration": the
+      // link is there, and `links()` reports it as unread wherever the rule reaches it.
+      for (const u of unreadLinks) for (const b of u.blockPath ?? []) encloses.add(b.line)
 
       for (const [line, found] of taken) {
         report(

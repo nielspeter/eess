@@ -3,13 +3,13 @@
 ## Status
 
 - **State:** Fixed — `mentions()` reads an inline `<a>` through the one HTML reader,
-  `model/html-attributes.ts`, built by [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s Phase 1 (PR #296).
+  `model/html-attributes.ts`, built by [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s Phase 1 (PR #296).
 - **Severity:** Medium — no false green: every case measured is red. One is a false red: a linked
   mention is called "not a link", and the fix offered writes a Markdown link inside the HTML link.
   Two are red under the wrong finding, with a remedy for a link that is not there and no fix.
-- **Origin:** self-found · [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s
+- **Origin:** self-found · [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)'s
   review, 2026-11-01.
-  (That review's ruling is recorded with [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
+  (That review's ruling is recorded with [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)'s amended text and plan, in their own PR;
   until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
@@ -91,7 +91,7 @@ and a `>` inside one does not end the tag.
 matched: the text a reader sees there is in a link this rule cannot read. Decided here, to be
 overruled.
 
-[Proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md) needs an attribute reader that
+[Proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md) needs an attribute reader that
 pulls out the `href` value. If it lands first, this bug is closed by reusing it.
 
 ## Verification
@@ -104,7 +104,7 @@ pulls out the `href` value. If it lands first, this bug is closed by reusing it.
       the first two and `<a name>` are as written and tested; `<a href=./x.md>` is text to micromark
       (an unquoted `/`), and judging a mention in it needs the inline scan, which that bug's fix uses.
 - [ ] `<a :href="x">` stays a link — done-otherwise: it is not a link, by
-      [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s R2 (GitHub removes the
+      [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s R2 (GitHub removes the
       attribute, measured), so a mention in it is plain text; tested.
 - [x] A changeset naming `@nielspeter/eess-md` (`.changeset/one-html-reader.md`).
 - [x] `npm run validate` green.

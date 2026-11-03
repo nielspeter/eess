@@ -3,6 +3,7 @@ import { tagIsLanguage } from './code-block-tag.js'
 import { isOnlyComment } from './html-attributes.js'
 import { linksOf } from './links.js'
 import { extractPointers } from './pointers.js'
+import { unreadLinksIn, type MdUnreadLink } from './unread-link.js'
 import type { MdDocument } from './document.js'
 import { contains, type MdSectionElement } from './sections.js'
 
@@ -32,6 +33,7 @@ interface HeldLines {
   readonly listItems: readonly number[]
   readonly links: readonly number[]
   readonly pointers: readonly number[]
+  readonly unreadLinks: readonly MdUnreadLink[]
 }
 const HELD = new WeakMap<MdDocument, HeldLines>()
 
@@ -48,6 +50,7 @@ function heldLines(doc: MdDocument): HeldLines {
     listItems,
     links: linksOf(doc).map((l) => l.line),
     pointers: extractPointers(doc.text, doc.root).map((p) => p.line),
+    unreadLinks: unreadLinksIn(doc),
   }
   HELD.set(doc, fresh)
   return fresh
@@ -76,6 +79,16 @@ export function holds(s: MdSectionElement, h: SectionHolding): boolean {
     case 'code pointer':
       return heldLines(doc).pointers.some((line) => inBody(s, line))
   }
+}
+
+/**
+ * The HTML links eess-md cannot read that decide whether a section holds a link (plan 0580, R6): none
+ * when it holds a read link, since one is enough; else every unread one in it, each of which might be
+ * the link it holds. Only `link` is decided by them; every other holding ignores them.
+ */
+export function undecidingLinks(s: MdSectionElement, h: SectionHolding): readonly MdUnreadLink[] {
+  if (h.kind !== 'link' || holds(s, h)) return []
+  return heldLines(s.doc).unreadLinks.filter((u) => inBody(s, u.line))
 }
 
 /** How a finding or a description names it: `a code block tagged "mermaid"`. */
