@@ -108,34 +108,11 @@ describe('a title finding names why the front matter was read as Markdown (bug 0
   })
 })
 
-// Bug 0572, the mirror of 0566: the block holds the definition and the body the reference. The
-// block's own lines then hold nothing a reader checks by itself, but a reader of the whole document
-// sees the body's link and its target, so a definition there that a reference uses counts.
-describe('a front-matter block holding a definition a body reference uses is read as Markdown (bug 0572)', () => {
-  it('the body reference is examined and its broken target reported', () => {
-    const v = resolveOf({
-      'docs/a.md': '---\na: |\n\n  [x]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [x].\n',
-      'docs/b.md': '# B\n',
-    })
-    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
-      '4 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [x])',
-    ])
-    expect(v.examined).toBe(2)
-  })
-
-  it('a definition written as a YAML key is read as Markdown too', () => {
-    const v = resolveOf({ 'docs/a.md': '---\n[x]: ./gone.md\n---\n\n# A\n\nSee [x].\n' })
-    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
-      '2 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [x])',
-    ])
-    expect(v.examined).toBe(1)
-  })
-
-  // A label defined in the block and in the body: reading the block as Markdown would give the
-  // reference the block's definition and hide the body's, which a renderer that drops front matter
-  // uses. So the block stays front matter and the body's is checked, as on main. The block's own
-  // target is then unchecked (bug 0610).
-  it('a label the body also defines keeps the block front matter, so the body’s broken target is reported', () => {
+// Bug 0572's attempt (PR #302) read a block holding a definition a body reference uses as Markdown,
+// and three review rounds each found a shape where that hid a broken body link main reports. It was
+// withdrawn; these rows pin what holds on main, so the next design cannot turn one of them green.
+describe('a definition in a front-matter block, as main reads it (bug 0572)', () => {
+  it('a label the body also defines: the body’s broken target is reported', () => {
     const v = resolveOf({
       'docs/a.md':
         '---\na: |\n\n  [g]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [g].\n\n[g]: ./gone.md\n',
@@ -147,9 +124,7 @@ describe('a front-matter block holding a definition a body reference uses is rea
     expect(v.examined).toBe(2)
   })
 
-  // The flip changes every label: `[x]`, defined in the block alone, must not turn the block while
-  // `[y]` is defined on both sides, or the body's broken `[y]` is hidden (PR #302's re-check).
-  it('a second label the body also defines keeps the block front matter', () => {
+  it('a second label the body also defines: the body’s broken target is reported', () => {
     const v = resolveOf({
       'docs/a.md':
         '---\na: |\n\n  [x]: ./b.md\n\n  [y]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [x] and [y].\n\n[y]: ./gone.md\n',
@@ -160,33 +135,25 @@ describe('a front-matter block holding a definition a body reference uses is rea
     ])
   })
 
-  it('a label the body also defines, externally, leaves the block front matter', () => {
-    const text =
-      '---\na: |\n\n  [g]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md) See [g].\n\n[g]: https://example.com\n'
-    const v = resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n' })
-    expect(v.map((x) => x.message)).toEqual([])
-    expect(v.examined).toBe(1)
-    expect(titleOf(text)).toEqual([])
-  })
-
-  it('the title finding names the definition and the reference that uses it', () => {
-    const text = '---\na: |\n\n  [adr]: ./adr.md\nb: c\n---\n\n# Doc\n\nSee [adr].\n'
-    // Line 4, not 5: mdast starts the setext heading at the definition it absorbed (bug 0609).
-    expect(titleOf(text)).toEqual([
-      'no title: the first heading, "b: c" at line 4, is at depth 2; it is in the line-1 `---` block, read as Markdown, not as front matter, because it holds the definition at line 4 of a link into the repository at line 10',
+  it('a fence opened in the block does not swallow a broken body link', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [x]: ./b.md\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./gone.md)\n\n```\n\nSee [x].\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '12 broken link: "./gone.md" does not resolve to a file in the repo',
     ])
   })
 
-  it('a definition in the block that no reference uses leaves it front matter', () => {
-    const text = '---\na: |\n\n  [x]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n'
-    const v = resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n' })
-    expect(v.examined).toBe(1)
-    expect(titleOf(text)).toEqual([])
-  })
-
-  it('an external definition in the block that a body reference uses leaves it front matter', () => {
-    const text = '---\na: |\n\n  [x]: https://example.com\nb: c\n---\n\n# A\n\nSee [x].\n'
-    expect(titleOf(text)).toEqual([])
+  it('a link whose text holds a block-defined label is still a link', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  [x]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\n[see [x]](./gone.md)\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
+      '12 broken link: "./gone.md" does not resolve to a file in the repo',
+    ])
   })
 
   it('ordinary front matter beside a body reference and its body definition stays front matter', () => {

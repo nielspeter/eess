@@ -5,7 +5,7 @@
 - **State:** Draft — measured 2026-11-03 by PR #302's enforcement review, on main and on the
   branch (identical); no red test yet.
 - **Severity:** High — a false green: a broken `<a href>` a Markdown reader sees passes.
-- **Origin:** self-found · PR #302's enforcement review of [bug 0572](./fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md).
+- **Origin:** self-found · PR #302's enforcement review of [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md).
 - **Reported:** 2026-11-03
 
 ## Symptom
@@ -16,8 +16,8 @@ CommonMark with no front matter, the document holds 2 links and `./gone.md` is b
 
 ## Root cause
 
-The front-matter guard names a task box, an inline link, a reference and (since [bug 0572](./fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)) a used
-definition (`checkedMarkdownIn`, `packages/md/src/model/prose.ts:42`), but not an `html` node.
+The front-matter guard names a task box, an inline link and a reference
+(`checkedMarkdownIn`, `packages/md/src/model/prose.ts:41`), but not an `html` node.
 Since [plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md) Phase 2, `links()`
 reads the `href` of an `<a>` or `<area>` in raw HTML, so such a link in the block is something a
 reader checks, and the guard leaves the block front matter.
