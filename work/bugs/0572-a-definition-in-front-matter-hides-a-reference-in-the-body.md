@@ -67,8 +67,8 @@ body link a renderer that drops front matter (GitHub, VitePress) shows:
 
 Each narrowing closed one shape and left another, so per this repository's rule the attempt ended:
 what is proven is kept as rows that hold on main
-(`packages/md/tests/front-matter-guard.test.ts`, the "as main reads it" describe), each of which a
-withdrawn version turned green. What the attempt shows about the design:
+(`packages/md/tests/front-matter-guard.test.ts`, the "as main reads it" describe): four that a
+withdrawn version turned green, and one, ordinary front matter, that checks the other direction. What the attempt shows about the design:
 
 - Reading the block as Markdown is not additive. It can remove links the front-matter reading
   examines outside the block, not only add the block's own, so no rule about what the block holds
@@ -81,7 +81,17 @@ withdrawn version turned green. What the attempt shows about the design:
 - Checking it needs both parses' link lists, and `prose.ts` cannot import `links.ts`
   (`links` → `html-attributes` → `prose`), so it needs a layer above both.
 
-Next: a time-boxed spike measures that property as the guard's rule and brings the design back.
+**Two readers, never named (added 2026-11-03, PR #302's method review).** The records weigh a
+document against two readers and do not say which the guard answers to. This record's reproduction
+is a false green for a reader of the whole document as Markdown; a renderer that drops front matter
+(GitHub, VitePress) agrees with main there, since it shows no definition for `[x]`. [Bug 0610](./0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md) (its main-side inputs) and [bug 0612](./0612-a-construct-opened-in-front-matter-swallows-body-links.md) are false greens for that renderer only, and the whole-document reader is
+green on them too. On pinned rows 1 and 3 the withdrawn fix agreed with the reader
+[bug 0087](./fixed/0087-frontmatter-parsed-as-setext-heading.md)'s rule names. So the spike's first
+question is which readers the guard answers to; a design that answers to both checks what each
+sees.
+
+Next: a time-boxed spike answers that and measures the property above as the guard's rule, and
+brings the design back.
 Found along the way: [bug 0609](./0609-a-setext-heading-after-a-definition-is-placed-on-the-definitions-line.md),
 [bug 0610](./0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md),
 [bug 0611](./0611-an-html-link-in-front-matter-is-hidden.md) and

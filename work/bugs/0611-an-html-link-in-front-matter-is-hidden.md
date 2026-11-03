@@ -20,7 +20,10 @@ The front-matter guard names a task box, an inline link and a reference
 (`checkedMarkdownIn`, `packages/md/src/model/prose.ts:41`), but not an `html` node.
 Since [plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md) Phase 2, `links()`
 reads the `href` of an `<a>` or `<area>` in raw HTML, so such a link in the block is something a
-reader checks, and the guard leaves the block front matter.
+reader checks, and the guard leaves the block front matter. The reproduction does not reach the
+guard at all: `parseFresh` returns a block with no `[` and valid YAML as front matter before the
+whole-document parse (`packages/md/src/model/prose.ts:145`), so a fix in the guard alone leaves it
+green; that early return must also let a `<` through.
 
 ## Fix
 

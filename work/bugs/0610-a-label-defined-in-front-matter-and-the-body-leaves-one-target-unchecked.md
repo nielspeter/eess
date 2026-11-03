@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-11-03 on PR #302's branch, from its enforcement review; no red
-  test yet.
+- **State:** Draft — measured 2026-11-03 on main's front-matter guard, from PR #302's enforcement
+  and method reviews; no red test yet.
 - **Severity:** High — a false green, narrow: a broken target a reader can follow passes.
 - **Origin:** self-found · PR #302's enforcement review of [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md).
 - **Reported:** 2026-11-03
@@ -24,18 +24,25 @@ definition and never the block's. The block's broken `./gone.md` passes.
 **The other direction is live on main** (measured by PR #302's re-check, identical on main and the
 branch). When the block is read as Markdown for another reason, the block's definition wins and a
 body `[g]: ./gone.md` is never examined, while a renderer that drops front matter shows that broken
-link. Each input below also holds `# A`, `[ok](./b.md)`, `See [g].` and `[g]: ./gone.md` in the
-body, with `docs/b.md` present; each is green:
+link. With `docs/b.md` present, each input below is green under
+`links(c).that().areInternal().should().resolve()` (re-measured 2026-11-03):
 
-| Why the block is Markdown                                                                                                      | The block's lines                                                              |
-| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| a task box                                                                                                                     | `a: \|`, `  - [ ] t`, `  [g]: ./b.md`, `b: c`                                  |
-| a YAML error                                                                                                                   | `a: b`, `a: c`, `[g]: ./b.md`                                                  |
-| an inline internal link                                                                                                        | `a: \|`, `  [t](./b.md)`, `  [g]: ./b.md`, `b: c`                              |
-| a reference to a body definition (the [bug 0566](./fixed/0566-a-front-matter-reference-defined-in-the-body-is-hidden.md) path) | `a: \|`, `  See [h].`, `  [g]: ./b.md`, `b: c`, with `[h]: ./b.md` in the body |
+```text
+a task box               '---\na: |\n\n  - [ ] t\n\n  [g]: ./b.md\nb: c\n---\n' + BODY
+a YAML error             '---\na: b\na: c\n\n[g]: ./b.md\n---\n' + BODY
+an inline internal link  '---\na: |\n\n  [t](./b.md)\n\n  [g]: ./b.md\nb: c\n---\n' + BODY
+a reference to a body    '---\na: |\n\n  See [h].\n\n  [g]: ./b.md\nb: c\n---\n' + BODY + '\n[h]: ./b.md\n'
+definition (bug 0566's path)
 
-[Bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)'s withdrawn fix (PR #302) added cases to this list; the rows it left, which hold on
-main, are pinned in `packages/md/tests/front-matter-guard.test.ts` ("as main reads it").
+BODY = '\n# A\n\n[ok](./b.md)\n\nSee [g].\n\n[g]: ./gone.md\n'
+```
+
+The blank lines matter: written without them, each block reads differently and each input is red
+(PR #302's method review measured that).
+
+None of these is pinned yet. [Bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)'s withdrawn fix (PR #302) added cases like them; the
+rows that hold on main, in the other direction, are pinned in
+`packages/md/tests/front-matter-guard.test.ts` ("as main reads it").
 
 ## Root cause
 
@@ -48,7 +55,8 @@ definition, and one of them is never resolved.
 
 Not designed. Options: check both definitions when a label is defined on both sides of the edge; or
 report the doubly defined label as a finding this rule cannot judge, naming both lines
-([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s class).
+([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s class). Measured
+under the spike [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md) names as its next step (not yet run), with [bug 0612](./0612-a-construct-opened-in-front-matter-swallows-body-links.md).
 
 ## Verification
 

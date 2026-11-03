@@ -11,13 +11,20 @@
 
 ## Symptom
 
-`'---\na: |\n\n  [t](./b.md)\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./gone.md)\n\n```\n'`, with
-`docs/b.md` present: `links(c).that().areInternal().should().resolve()` examines 1 link and reports
+````text
+'---\na: |\n\n  [t](./b.md)\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./gone.md)\n\n```\n'
+````
+
+With `docs/b.md` present: `links(c).that().areInternal().should().resolve()` examines 1 link and reports
 nothing. The inline link `[t](./b.md)` makes the line-1 `---` block Markdown
 ([bug 0087](./fixed/0087-frontmatter-parsed-as-setext-heading.md)'s rule), and the fence the YAML
 value opens then runs past the block's closing `---` and swallows the body up to the next fence,
 `[bad](./gone.md)` included. GitHub and VitePress drop the front matter and show that broken link.
-The reviewer measured the same with `<!--` and `<pre>` in place of the fence.
+PR #302's method review measured the same, with this inline-link trigger on main, with `<!--` and
+`<pre>` in place of the fence. This is the shape [bug 0566](./fixed/0566-a-front-matter-reference-defined-in-the-body-is-hidden.md)
+and the comment at `packages/md/src/model/prose.ts:35-36` accepted on purpose ("a construct crossing
+the block's edge [is] read as the parser reads [it]"): it is a false green for a renderer that
+drops front matter, not for a reader of the whole document as Markdown.
 
 ## Root cause
 
@@ -27,8 +34,7 @@ The guard decides from what the block holds, not from what the body loses.
 
 ## Fix
 
-Not designed; [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)'s
-spike measures the shared property: every link the front-matter reading examines outside the block
+Not designed; the spike [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md) names as its next step (not yet run) measures the shared property: every link the front-matter reading examines outside the block
 is still examined after the block is read as Markdown, or the document is a finding the guard cannot
 judge.
 
