@@ -1,6 +1,8 @@
-import type { ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation, Undecided } from '@nielspeter/eess'
 import { describe, expect, it } from 'vitest'
 import { corpusFromText, links, sections, UNREAD_LINK } from '../src/index.js'
+import { sectionsOf } from '../src/model/sections.js'
+import { sectionsHolding } from '../src/predicates/section.js'
 
 // Plan 0580 Phase 3 (R6): an HTML link eess-md cannot read, standing in another subject's evidence,
 // makes that subject undecided, not "has no link": `sections().haveLink()` in either position,
@@ -56,7 +58,24 @@ describe('sections().haveLink() after .should(): an unread link is reported, not
   it('reports a site once per rule, however many nested sections contain it', () => {
     const c = corpusFromText({ 'docs/p.md': `# R\n\n## A\n\n### A1\n\n${UNREAD}\n` })
     const v = sections(c).should().haveLink().violations()
-    expect(v.filter((x) => x.ruleId === UNREAD_LINK).map((x) => x.line)).toEqual([7])
+    // The whole list: no "holds no link" beside the site for a section that also contains it.
+    expect(said(v)).toEqual([
+      `7: ${UNREAD_LINK} this rule cannot judge whether its section holds a link.`,
+    ])
+  })
+
+  it('every other holding ignores an unread link, in both positions', () => {
+    const v = sections(twoSections()).that().areNamed('A').should().haveListItem().violations()
+    // docs/a.md's own title is a section named "A" too, and holds no list item either.
+    expect(said(v)).toEqual([
+      '1: - section "A" holds no list item',
+      '3: - section "A" holds no list item',
+    ])
+    const picked = sections(twoSections())
+      .that()
+      .haveCodeBlock()
+      .select({ label: 's', identify: (x) => ({ name: x.name }) })
+    expect(picked.elements).toEqual([])
   })
 })
 
@@ -75,6 +94,29 @@ describe('sections().haveLink() after .that(): a section whose only link is unre
     const v = sections(twoSections()).that().haveLink().should().notExist().violations()
     expect(v.find((x) => x.line === 5)?.message).toMatch(
       /cannot be judged\. Quote `href`'s and `title`'s values: write each in double quotes\.$/,
+    )
+  })
+
+  it('a site in nested sections is one undecided finding, and two causes on one line are two', () => {
+    const one = corpusFromText({ 'docs/p.md': `# R\n\n## A\n\n### A1\n\n${UNREAD}\n` })
+    const v = sections(one).that().haveLink().should().notExist().violations()
+    expect(v.map((x) => x.line)).toEqual([7])
+    const two = corpusFromText({
+      'docs/p.md':
+        '# R\n\nsee <a href=./a.md title=a/b>x</a> and <a href=./b.md data-x=c/d>y</a>\n',
+    })
+    const w = sections(two).that().haveLink().should().notExist().violations()
+    expect(w.map((x) => x.line)).toEqual([3, 3])
+  })
+
+  it('test() refuses an undecided section, for a caller that skips undecided()', () => {
+    const doc = twoSections()
+      .documents()
+      .find((d) => d.relPath === 'docs/p.md')
+    const a = doc === undefined ? undefined : sectionsOf(doc).find((x) => x.name === 'A')
+    const p = sectionsHolding({ kind: 'link' })
+    expect(a === undefined ? undefined : () => p.test(a)).toThrow(
+      /haveLink cannot judge section "A"/,
     )
   })
 
@@ -152,6 +194,34 @@ describe('beLinkedBack(): a target whose only link back may be an unread one is 
     })
     const v = links(c).that().satisfy(inFile('docs/a.md')).should().beLinkedBack().violations()
     expect(said(v)).toEqual(['3: - docs/completed/b.md is frozen and cannot answer'])
+  })
+
+  it('a rule predicate’s own cause survives when the condition already reported the site', () => {
+    const cause: Undecided = { file: 'x', line: 1, element: 'custom', message: 'custom cause on b' }
+    const p = {
+      description: 'custom',
+      undecided: (l: { doc: { relPath: string } }) =>
+        l.doc.relPath === 'docs/b.md' ? [cause] : [],
+      test: () => true,
+    }
+    const v = links(declared()).that().satisfy(p).should().beLinkedBack().violations()
+    expect(v.some((x) => x.message.includes('custom cause on b'))).toBe(true)
+    expect(v.filter((x) => x.ruleId === UNREAD_LINK).map((x) => x.line)).toEqual([3])
+  })
+
+  it('the subject side drops only the site the condition reported, not another document’s', () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\nSee [b](./b.md).\n',
+      'docs/b.md': `# B\n\n${UNREAD}\n`,
+      'docs/c.md': `# C\n\n[a](./a.md)\n\n${UNREAD}\n`,
+    })
+    const v = links(c).should().beLinkedBack().violations()
+    expect(
+      v
+        .filter((x) => x.ruleId === UNREAD_LINK)
+        .map((x) => `${x.file.split('/').slice(-2).join('/')}:${String(x.line)}`)
+        .sort(),
+    ).toEqual(['docs/b.md:3', 'docs/c.md:5'])
   })
 
   it('a target with a read link back passes, whatever else it holds', () => {

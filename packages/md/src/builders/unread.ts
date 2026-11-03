@@ -74,7 +74,9 @@ export function withUnread(
   undecided: readonly Undecided[],
   context: ConditionContext,
 ): CollectResult {
-  if (findings.length === 0) return base
+  // Both empty, or the predicates' causes would go unreported: a reader that dedups its findings
+  // (plan 0580 R6, `links()` beside `beLinkedBack()`) may hand none and still have causes (ADR-021 rule 5).
+  if (findings.length === 0 && undecided.length === 0) return base
   const causes = undecidedViolations(undecided, context, base)
   return collectResult([...base, ...causes, ...findings], {
     examined: base.examined,

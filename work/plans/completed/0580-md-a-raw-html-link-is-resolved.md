@@ -717,7 +717,31 @@ Built as frozen (R6), with the declaration scan the Phase 2 review added to it:
   `tokenizeHtml`'s stays, correctly, since nothing under `src` imports it (`readHtmlNode` wraps it),
   so its exclusion is true and not stale. And two sites on one line with the same remedy (two
   `<a href=./x/y.md>`) share a key and give one finding until the first is fixed: the docstring says
-  the split is by cause and attributes, the remedy clears both, and nothing goes green.
+  the split is by cause and attributes, the remedy clears both, and nothing goes green. This departs from R4/R6's "one finding per site per rule" wording (the key
+  is the document, line and remedy, not the site itself); overrulable.
+
+- **The fresh testing review of PR #300 (Approve with changes), applied:** the subject-side dedup this
+  phase added could leave `withUnread` with no findings and drop the rule's own predicate causes
+  ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5); it now returns early only when both are empty, with a row driving a custom
+  predicate's cause through `beLinkedBack()`. Rows also for: the nested-section row asserting the
+  whole list (a "holds no link" beside the site reds it); every other holding ignoring an unread
+  link, in both positions; `test()` refusing an undecided section for a caller that skips
+  `undecided()`; one undecided finding per site across nested sections, and two for two causes on one
+  line, in predicate position; and the subject side keeping another document's site. `sectionsHolding`
+  declares `undecided` for `link` only, so the other holdings keep the kernel's two-valued fast path,
+  and `beLinkedBack()` reads a target's unread links once per target. The changeset and docs say that
+  after `.that().haveLink()` the finding is the rule's own undecided one, with the remedy in its
+  message, and name the same-remedy collapse; the `haveLink()` docstring names HTML links.
+- **No nonvacuity row for Phase 3, on purpose.** The one dogfood gate it reaches is `check:corpus`'s
+  `areLabelled('Extends').should().beLinkedBack()`; an emptied evidence side falls back to "does not
+  link back", still red, which the existing production rows keep asserting. The predicate-position
+  red is reached by no gate, and the suite imports `../src`, so it sees a source mutant with no rebuild.
+- **How the sabotage matrices ran:** each mutant was a one-string replacement in the source, asserted to
+  apply exactly once, run against the phase's test files from a green baseline, and the file restored
+  from a copy and compared byte for byte; the rows import `../src`, so no `dist` was involved. One
+  mutant in this round (dropping a site in any file the condition had reported) stayed green because it
+  was not the defect the row guards; the review's mutant (dropping every site once any is reported)
+  reds it.
 
 ## Progress ledger
 

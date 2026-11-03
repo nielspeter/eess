@@ -124,13 +124,15 @@ export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Co
       // hold the link back there, so that link is reported instead of "does not link back", once per
       // site per rule, however many links point at the target.
       const unreadSites = new Set<string>()
+      const unreadIn = new Map<string, ReturnType<typeof unreadLinksIn>>()
       for (const link of links) {
         const target = resolveLink(link, corpus, options)
         if (target.kind === 'document' && index.get(target.path)?.has(link.doc.relPath) === true) {
           continue
         }
         if (target.kind === 'document' && !target.doc.frozen) {
-          const sites = unreadLinksIn(target.doc)
+          const sites = unreadIn.get(target.path) ?? unreadLinksIn(target.doc)
+          unreadIn.set(target.path, sites)
           if (sites.length > 0) {
             for (const u of sites) {
               const key = unreadSiteKey(u)

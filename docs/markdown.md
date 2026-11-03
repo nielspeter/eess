@@ -268,9 +268,11 @@ is not counted in `examined`, and `.select()` refuses rather than drop it. Where
 an unread link is another subject's evidence, that subject is undecided, not
 "has none": a section whose only link is unread is `md/unread-link` under
 `.should().haveLink()` (not "holds no link"), is reported and never selected under
-`.that().haveLink()` (whose `.select()` refuses), and a target whose only link
+`.that().haveLink()` (as the rule's own undecided finding, under its rule id, with the
+remedy in its message; its `.select()` refuses), and a target whose only link
 back may be an unread one is `md/unread-link` under `.beLinkedBack()` (not "does
-not link back"), each site once per rule. A label whose list holds only an
+not link back"), each site once per rule (two sites on one line with the same remedy are
+one finding). A label whose list holds only an
 unread link is not an empty declaration. `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
 `tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`

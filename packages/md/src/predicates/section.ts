@@ -85,6 +85,9 @@ export function sectionsHolding(h: SectionHolding): Predicate<MdSectionElement> 
       element: `${u.doc.relPath}:${String(u.line)}`,
       message: `${unreadLinkReason(u)}, so whether its section holds a link cannot be judged. ${unreadLinkRemedy(u)}`,
     }))
+  // Only `link` can be undecided: declaring it for the others would turn off the kernel's two-valued
+  // fast path for every `haveContent()` and its siblings, for nothing.
+  if (h.kind !== 'link') return { description: `hold ${holdingText(h)}`, test: (s) => holds(s, h) }
   return {
     description: `hold ${holdingText(h)}`,
     undecided,
