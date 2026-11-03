@@ -5,15 +5,15 @@
 - **State:** Draft — measured 2026-11-03 on `main` at 1a2c1817 against `packages/core/dist`; no red
   test yet.
 - **Severity:** Medium — no false green. The id is what an author needs to act on a finding:
-  `// eess-exclude <id>`, a baseline entry, a preset's `overrides: { <id>: … }`, an ADR row citing
-  it. On the default output an author has to guess it from the rule's description.
+  `// eess-exclude <id>`, a preset's `overrides: { <id>: … }`, an ADR row citing it. (A baseline is
+  keyed by `rule`, the description, not by the id: `packages/core/src/baseline.ts:18`.) On the default output an author has to guess it from the rule's description.
 - **Origin:** inbound · a consuming project, 2026-11-03. It hand-prints `[ruleId ?? rule]` in five
   gates and found that moving them to `reportViolations` would drop the id from the terminal.
 - **Reported:** 2026-11-03
 
 ## Symptom
 
-For a violation `{ rule: 'long description', ruleId: 'status-folder/bugs/placement', … }`:
+For a violation `{ rule: 'long description', ruleId: 'records/placement', … }`:
 
 | Formatter                | prints `rule`            | prints `ruleId`            |
 | ------------------------ | ------------------------ | -------------------------- |
@@ -22,13 +22,15 @@ For a violation `{ rule: 'long description', ruleId: 'status-folder/bugs/placeme
 | `formatViolationsJson`   | yes                      | yes (`ruleId`)             |
 | `formatViolationsGitHub` | only without a `ruleId`  | yes (the annotation title) |
 
-`formatViolations` is the terminal output of `reportViolations` and `finishPreset`
-(`packages/core/src/report.ts:228`), of a builder's `.check()` (`packages/core/src/execute-rule.ts:400`),
-and so of every dialect CLI. A finding whose `rule` is its own id (the `emitter/*` findings) shows
+`formatViolations` is the terminal output of `reportViolations` (`packages/core/src/report.ts:228`),
+which a builder's `.check()` prints through; of `finishPreset` (`packages/core/src/report.ts:316`);
+and of `.warn()` (`executeWarn`, `packages/core/src/execute-rule.ts:400`). So it is the terminal
+output of every dialect CLI. A finding whose `rule` is its own id (the `emitter/*` findings) shows
 the id only because the two fields hold the same string.
 
-The family works around it itself: `eess-ts check --fix` prints `v.ruleId ?? v.rule` by hand
-(`packages/ts/src/cli/commands/check.ts:450`).
+The family has two hand printers of its own. `eess-ts check --fix` prints `v.ruleId ?? v.rule`
+(`packages/ts/src/cli/commands/check.ts:450`); `eess-ts baseline` prints `rule` only
+(`packages/ts/src/cli/commands/baseline.ts:125`).
 
 ## Root cause
 
@@ -47,8 +49,8 @@ an `emitter/*` finding from printing its id twice.
 - [ ] Red first: `formatViolations` and `formatViolationsPlain` print a violation's `ruleId`.
 - [ ] A violation without a `ruleId` reads as before; one whose `rule` equals its `ruleId` prints it
       once.
-- [ ] The `check --fix` hand printer is measured against the new output and kept or removed, said
-      either way.
+- [ ] The `check --fix` and `baseline` hand printers are measured against the new output and each
+      kept, changed or removed, said either way.
 - [ ] A changeset naming `@nielspeter/eess`, and every dialect whose terminal output changes.
 - [ ] `npm run validate` green.
 

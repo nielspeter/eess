@@ -23,9 +23,14 @@ The adopter read `hasEvidence: true` as the merge accepting the bare member.
 
 ## Root cause
 
-The code comment at `packages/core/src/collect-result.ts:135-139` records the change: the merge
+The code comment at `packages/core/src/collect-result.ts:135-139` says what the code does: the merge
 reports the bare member itself rather than returning an evidence-free value for the emitter to catch.
-The docstring above the function was not updated.
+The docstring above the function contradicts it, and has since the file was created: `git log -S`
+puts both texts in the same commit, 4fa5e846 (PR #108).
+
+The one test of a bare member (`packages/core/tests/emitter-refuses-without-evidence.test.ts:292`)
+asserts only after `finishPreset`, so it passes under either design: it never reads the merged value
+or its `examined`, and its comment repeats the stale "poisons" wording.
 
 ## Fix
 
@@ -35,7 +40,8 @@ Reword the bullet to what the merge does: a member with no evidence is reported 
 ## Verification
 
 - [ ] The docstring states the measured behaviour.
-- [ ] A test pins it, if none does: a bare member yields `emitter/no-receipt` and `examined: 0`.
+- [ ] The test at `emitter-refuses-without-evidence.test.ts:292` reads the merged value itself:
+      `emitter/no-receipt` and `examined: 0` before any emitter, and its comment is corrected.
 - [ ] A changeset naming `@nielspeter/eess` (`.d.ts` text changes).
 - [ ] `npm run validate` green.
 
