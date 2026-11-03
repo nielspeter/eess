@@ -2818,11 +2818,12 @@ function gateCorpusHtmlLinks() {
 
 // Bug 0136: a fragment judged under the linking document's renderer's rule. The probe's heading is
 // `A document's shape`: GitHub's slug `a-documents-shape`, VitePress's `a-document-s-shape`. The site
-// probe links GitHub's form, dead under VitePress's rule; the repo probe links a name no heading has.
+// probe links GitHub's form, dead under VitePress's rule; the repo probe links, across documents,
+// a name no heading of `work/bugs/BUGS.md` has.
 const CORPUS_PROBE_FRAGMENT_SITE_MD =
   "# Non-vacuity probe\n\n## A document's shape\n\nSee [it](#a-documents-shape).\n"
 const CORPUS_PROBE_FRAGMENT_REPO_MD =
-  '# Non-vacuity probe\n\n## Real heading\n\nSee [it](#__nonvacuity_no_such_anchor__).\n'
+  '# Non-vacuity probe\n\nSee [the board](./BUGS.md#__nonvacuity_no_such_anchor__).\n'
 
 function gateCorpusFragment(region) {
   const [path, content, file, payload] =
@@ -2837,7 +2838,7 @@ function gateCorpusFragment(region) {
           PROBE_CORPUS_LINK_REPO,
           CORPUS_PROBE_FRAGMENT_REPO_MD,
           '__nonvacuity_probe_repo__',
-          '"#__nonvacuity_no_such_anchor__" is no heading or anchor in this document under the GitHub anchor rule',
+          '"#__nonvacuity_no_such_anchor__" is no heading or anchor in work/bugs/BUGS.md under the GitHub anchor rule',
         ]
   const { json, terminal } = withProbe(path, content, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),

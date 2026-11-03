@@ -7,14 +7,17 @@ import type { LinkResolveOptions } from '../src/index.js'
 // and a same-document `#nowhere`, were green. A fragment is now judged against its target's anchors
 // under the linking document's renderer's rule (spike 0574), GitHub's by default.
 
+const violationsOf = (files: Record<string, string>, options?: LinkResolveOptions) =>
+  links(corpusFromText(files)).that().areInternal().should().resolve(options).violations()
+
 const findings = (files: Record<string, string>, options?: LinkResolveOptions): string[] =>
-  links(corpusFromText(files))
-    .that()
-    .areInternal()
-    .should()
-    .resolve(options)
-    .violations()
-    .map((v) => `${String(v.line)} ${v.message}`)
+  violationsOf(files, options).map((v) => `${String(v.line)} ${v.message}`)
+
+/** The `Fix:` line of each finding: the nearest anchors live there, so the message stays stable. */
+const remedies = (files: Record<string, string>): (string | undefined)[] =>
+  violationsOf(files).map((v) => v.suggestion)
+
+const RULE_HINT = 'If the target is published by another renderer, pass its rule as `anchorRule`.'
 
 const B = '# B\n\n## Real Heading\n'
 
@@ -52,7 +55,7 @@ describe('a fragment names an anchor in its target (bug 0136)', () => {
         'docs/b.md': b,
       }),
     ).toEqual([
-      '3 broken fragment: "./b.md#grosse-der-datei" — "#grosse-der-datei" is no heading or anchor in docs/b.md under the GitHub anchor rule; the nearest: #größe-der-datei',
+      '3 broken fragment: "./b.md#grosse-der-datei" — "#grosse-der-datei" is no heading or anchor in docs/b.md under the GitHub anchor rule',
     ])
   })
 
@@ -76,8 +79,58 @@ describe('a fragment names an anchor in its target (bug 0136)', () => {
   })
 
   it('letter case counts, and the finding names the anchor that differs only in case', () => {
-    expect(findings({ 'docs/a.md': '# A\n\n## Foo\n\n[x](#Foo)\n' })).toEqual([
-      '5 broken fragment: "#Foo" is no heading or anchor in this document under the GitHub anchor rule; the nearest: #foo (#foo differs only in letter case)',
+    const files = { 'docs/a.md': '# A\n\n## Foo\n\n[x](#Foo)\n' }
+    expect(findings(files)).toEqual([
+      '5 broken fragment: "#Foo" is no heading or anchor in this document under the GitHub anchor rule',
+    ])
+    expect(remedies(files)).toEqual([
+      `The nearest: #foo (#foo differs only in letter case). ${RULE_HINT}`,
+    ])
+  })
+
+  it('the message names no other heading, so a baseline entry holds when the target’s headings change', () => {
+    const one = findings({ 'docs/a.md': '# A\n\n## Going\n\n[x](#gone)\n' })
+    const two = findings({ 'docs/a.md': '# A\n\n## Goner\n\n[x](#gone)\n' })
+    expect(one).toEqual(two)
+    expect(remedies({ 'docs/a.md': '# A\n\n## Going\n\n[x](#gone)\n' })).toEqual([
+      `The nearest: #going. ${RULE_HINT}`,
+    ])
+  })
+
+  it('a fragment in a raw HTML link is checked too', () => {
+    expect(
+      findings({
+        'docs/a.md': '# A\n\n## Real\n\n<p><a href="#gone">x</a> <a href="#real">y</a></p>\n',
+      }),
+    ).toEqual([
+      '5 broken fragment: "#gone" is no heading or anchor in this document under the GitHub anchor rule',
+    ])
+  })
+
+  it('a line fragment after ?plain=1 names a line of the source, not an anchor', () => {
+    expect(
+      findings({
+        'docs/a.md': '# A\n\n[x](./b.md?plain=1#L2) [y](./b.md?plain=1#L1-L2) [z](./b.md#L2)\n',
+        'docs/b.md': B,
+      }),
+    ).toEqual([
+      '3 broken fragment: "./b.md#L2" — "#L2" is no heading or anchor in docs/b.md under the GitHub anchor rule',
+    ])
+  })
+
+  it('a fragment naming an id the rule does not count says so', () => {
+    const files = { 'docs/a.md': '# A\n\n<span id="here">x</span>\n\n[x](#here)\n' }
+    expect(findings(files)).toEqual([
+      '5 broken fragment: "#here" names the id of a <span> in this document, which the GitHub anchor rule does not count as an anchor',
+    ])
+    expect(remedies(files)).toEqual([
+      `Point the fragment at a heading or an anchor the GitHub rule counts. ${RULE_HINT}`,
+    ])
+  })
+
+  it('a near miss of a user-content- fragment names the anchor it nearly is', () => {
+    expect(remedies({ 'docs/a.md': '# A\n\n## Install\n\n[x](#user-content-instal)\n' })).toEqual([
+      `The nearest: #install. ${RULE_HINT}`,
     ])
   })
 
@@ -86,7 +139,7 @@ describe('a fragment names an anchor in its target (bug 0136)', () => {
     expect(
       findings({ 'docs/a.md': '# A\n\n[x](./b.md#dup-1) [y](./b.md#dup-2)\n', 'docs/b.md': b }),
     ).toEqual([
-      '3 broken fragment: "./b.md#dup-2" — "#dup-2" is no heading or anchor in docs/b.md under the GitHub anchor rule; the nearest: #dup-1, #dup',
+      '3 broken fragment: "./b.md#dup-2" — "#dup-2" is no heading or anchor in docs/b.md under the GitHub anchor rule',
     ])
   })
 
@@ -162,7 +215,7 @@ describe('the anchor rule is the caller’s to pass (spike 0574 decision 1)', ()
         .that()
         .areInternal()
         .should()
-        .resolve({ anchors })
+        .resolve({ anchorRule: anchors })
         .violations()
         .map((v) => v.message.split(' ')[2])
     expect(under(upper)).toEqual(['"#real-heading"'])
@@ -174,7 +227,7 @@ describe('the anchor rule is the caller’s to pass (spike 0574 decision 1)', ()
     const short: AnchorRule = { name: 'Short', ids: () => [], keepsHtmlAnchor: () => false }
     const c = corpusFromText({ 'docs/a.md': '# A\n\n[x](#a)\n' })
     expect(() =>
-      links(c).that().areInternal().should().resolve({ anchors: short }).violations(),
+      links(c).that().areInternal().should().resolve({ anchorRule: short }).violations(),
     ).toThrow(ArchConfigError)
   })
 })

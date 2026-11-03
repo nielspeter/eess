@@ -2,8 +2,10 @@
  * The pin for `vitepress-anchors.mjs` (bug 0136, spike 0574 decision 1): VitePress's own renderer
  * is the authority for the ids of the `docs/` site, so `docs/` is rendered with its
  * `createMarkdownRenderer` and every heading id it gives must be an anchor `check:corpus`'s rule
- * finds, one id per heading on both sides. A VitePress upgrade that changes ids reds this test,
- * not the gate's cost: rendering takes about 2.5 s, which every gate run would pay.
+ * finds, and as many ids as eess-md reads headings, so a rendered id the rule misses, or a heading
+ * one side does not count, reds it. A VitePress upgrade that changes ids reds this test, not the
+ * gate's cost: rendering takes about 2.5 s, so it runs under `check:docs-code`, not in
+ * `check:corpus` or `check:fast`.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -13,6 +15,10 @@ import { corpus, corpusFromText, links, resolveLink } from '@nielspeter/eess-md'
 import { vitepressAnchors } from './vitepress-anchors.mjs'
 
 const ROOT = new URL('../../', import.meta.url).pathname
+
+/** One renderer for the whole file: building it is most of the test's cost. */
+let renderer
+const rendererOf = () => (renderer ??= createMarkdownRenderer(`${ROOT}docs`, {}, '/'))
 
 /** The heading ids in rendered HTML, entities decoded as an attribute value is. */
 function renderedIds(html) {
@@ -35,7 +41,7 @@ const found = (c, relPath, id) => {
   const target = resolveLink(
     { url: `#${encodeURIComponent(id)}`, external: false, doc: { relPath } },
     c,
-    { anchors: vitepressAnchors },
+    { anchorRule: vitepressAnchors },
   )
   return target.kind === 'self' && target.fragment?.kind === 'found'
 }
@@ -48,7 +54,7 @@ function headingCount(node) {
 }
 
 test('every heading id VitePress renders for docs/ is an anchor under the gate’s rule', async () => {
-  const md = await createMarkdownRenderer(`${ROOT}docs`, {}, '/')
+  const md = await rendererOf()
   const c = corpus({ root: ROOT, roots: ['docs/**/*.md'] })
   const mismatches = []
   let total = 0
@@ -72,7 +78,7 @@ const under = (files) =>
     .that()
     .areInternal()
     .should()
-    .resolve({ anchors: vitepressAnchors })
+    .resolve({ anchorRule: vitepressAnchors })
     .violations()
     .map((v) => v.message.split(' ')[2])
 
@@ -101,7 +107,7 @@ test('## Setup <Badge/> is #setup under the VitePress rule', () => {
 // cannot recover (spike 0574 section 1); none occurs in docs/ today. Pinned as they are, so a change
 // either way is seen: bug 0614.
 test('four heading shapes the VitePress rule reads differently from VitePress (bug 0614)', async () => {
-  const md = await createMarkdownRenderer(`${ROOT}docs`, {}, '/')
+  const md = await rendererOf()
   const shapes = ['## :tada: Release', '## Foo &amp; Bar', '## Copy&copy;right', '## Notes[^1]']
   const vitepress = shapes.map((s) => renderedIds(md.render(`${s}\n`, {}))[0])
   assert.deepEqual(vitepress, ['release', 'foo-amp-bar', 'copy-copy-right', 'notes-1'])

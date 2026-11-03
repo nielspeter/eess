@@ -56,9 +56,10 @@ export interface LinkResolveOptions {
    * anchors of its target (bug 0136). The linking document's renderer's, since a reader stays in
    * one. Default {@link githubAnchors}, github.com's renderer's; pass another for a corpus a
    * different renderer publishes. A fragment is judged on a loaded corpus document, or on the
-   * linking document itself.
+   * linking document itself; a line fragment (`#L5`) after `?plain=1` is a line of the source,
+   * not an anchor, and is not judged here.
    */
-  readonly anchors?: AnchorRule
+  readonly anchorRule?: AnchorRule
 }
 
 /** The parts of a link that resolution reads. Narrower than `MdLink`, so a caller can build one. */
@@ -80,7 +81,7 @@ export type NotInCorpusReason = 'not-markdown' | 'ignored' | 'outside-roots'
  * - `document`: an existing, loaded corpus document, whose links are parsed.
  *
  * On `self` and `document`, `fragment` is what the link's `#fragment` found (bug 0136): set when
- * the URL has a `#` and the document is loaded, judged by `LinkResolveOptions.anchors`. Each rule
+ * the URL has a `#` and the document is loaded, judged by `LinkResolveOptions.anchorRule`. Each rule
  * decides what it means: `resolve()` reports one that is absent or malformed; `haveLiveTargets()`,
  * `beLinkedBack()` and `mentions()` ask about the target and do not read it.
  * - `not-in-corpus`: an existing file the corpus did not load, with every reason.
@@ -195,7 +196,11 @@ function fragmentOf(url: string): string | undefined {
   return hash === -1 ? undefined : rest.slice(hash + 1)
 }
 
-/** The fragment's verdict on `doc`, or nothing when there is no fragment or no loaded document. */
+/**
+ * The fragment's verdict on `doc`, or nothing when there is no fragment or no loaded document. On
+ * GitHub, `?plain=1` shows a Markdown file's source, where `#L5` and `#L5-L9` name lines, not
+ * anchors; a line is not judged here.
+ */
 function verdictOn(
   doc: MdDocument | undefined,
   link: LinkToResolve,
@@ -203,7 +208,11 @@ function verdictOn(
 ): { readonly fragment?: FragmentVerdict } {
   const fragment = fragmentOf(link.url)
   if (fragment === undefined || doc === undefined) return {}
-  return { fragment: judgeFragment(fragment, doc, options.anchors ?? githubAnchors) }
+  const { rest } = splitPath(link.url)
+  const query = rest.slice(0, rest.indexOf('#'))
+  if (/(?:^\?|&)plain=1(?:&|$)/.test(query) && /^L\d+(?:C\d+)?(?:-L\d+(?:C\d+)?)?$/.test(fragment))
+    return {}
+  return { fragment: judgeFragment(fragment, doc, options.anchorRule ?? githubAnchors) }
 }
 
 function selfTarget(link: LinkToResolve, corpus: Corpus, options: LinkResolveOptions): LinkTarget {
@@ -244,7 +253,9 @@ export function notInCorpusReasons(corpus: Corpus, path: string): NotInCorpusRea
 }
 
 /**
- * Resolve a link to the one case it is (plan 0404). Total: it never throws.
+ * Resolve a link to the one case it is (plan 0404). Total over links: no URL makes it throw. It
+ * throws `ArchConfigError` only when `options.anchorRule` breaks its contract (a number of ids that
+ * is not one per heading), and passes on an error the caller's rule throws.
  *
  * Candidates are tried in a fixed order — each target (repo-root, then
  * content-root when `rootDir` is set), and within it the URL as written, then

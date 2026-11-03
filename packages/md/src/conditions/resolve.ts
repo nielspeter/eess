@@ -22,7 +22,7 @@ export type { LinkResolveOptions } from '../model/resolve-link.js'
  * Condition: every (internal) link resolves to a file in the corpus's repo tree.
  * Closes over the `Corpus` for the file index. External links are skipped. A
  * `#fragment` on a loaded document, or on the linking document itself, is checked
- * against its anchors under `options.anchors` (bug 0136); one that names no anchor,
+ * against its anchors under `options.anchorRule` (bug 0136); one that names no anchor,
  * or does not decode, is reported. `options` adds extensionless-link resolution (`tryExtensions`,
  * `tryIndex`) for static-site corpora, and directory resolution
  * (`resolveDirectories`) for repo-hosted ones.
@@ -52,6 +52,8 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
   }
 
   return {
+    // Kept as it was when fragments were not judged: a baseline entry keys on a rule's description,
+    // so changing it would bring every baselined broken link back as new (bug 0136).
     description: 'resolve to an existing file',
     evaluate: (links, ctx) => {
       // Bug 0558: a reference-style link's URL is its definition's, so a broken one is the
@@ -73,6 +75,7 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
             if (reported.has(key)) return []
             reported.add(key)
           }
+          const remedy = fragmentRemedy(target.fragment)
           return [
             mdViolation({
               element: `${link.doc.relPath} → ${link.url}`,
@@ -80,7 +83,10 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
               line: def?.line ?? link.line,
               message: message + (def === undefined ? '' : ` (the definition of [${def.label}])`),
               sourceText: link.doc.text,
-              context: ctx,
+              context: {
+                ...ctx,
+                suggestion: [remedy, ctx.suggestion].filter((x) => x !== undefined).join(' '),
+              },
             }),
           ]
         }
@@ -112,9 +118,9 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
 }
 
 /**
- * The finding for a fragment that reached no anchor (bug 0136), naming the fragment as written, the
- * target, the rule that judged it and the nearest anchors; one differing only in letter case is
- * said to. `undefined` when there is no fragment or it was found.
+ * The finding for a fragment that reached no anchor (bug 0136): the fragment as written, the target
+ * and the rule that judged it, and nothing that changes when the target's other headings do, so a
+ * baseline entry for it holds. `undefined` when there is no fragment or it was found.
  */
 function fragmentMessage(
   url: string,
@@ -127,16 +133,28 @@ function fragmentMessage(
   if (verdict.kind === 'malformed') {
     return `broken fragment: ${written} is not valid percent-encoding`
   }
-  const caseOnly = verdict.nearest.find(
-    (id) => id.toLowerCase() === decodeURIComponent(verdict.fragment).toLowerCase(),
-  )
+  if (verdict.uncounted !== undefined) {
+    return (
+      `broken fragment: ${written} names the id of a <${verdict.uncounted}> in ${where}, which the ` +
+      `${verdict.rule} anchor rule does not count as an anchor`
+    )
+  }
+  return `broken fragment: ${written} is no heading or anchor in ${where} under the ${verdict.rule} anchor rule`
+}
+
+/** The remedy for a fragment finding: the anchors nearest to it, and the rule it was judged by. */
+function fragmentRemedy(verdict: FragmentVerdict | undefined): string | undefined {
+  if (verdict === undefined || verdict.kind !== 'absent') return undefined
+  const rule = 'If the target is published by another renderer, pass its rule as `anchorRule`.'
+  if (verdict.uncounted !== undefined) {
+    return `Point the fragment at a heading or an anchor the ${verdict.rule} rule counts. ${rule}`
+  }
   const nearest =
     verdict.nearest.length === 0
-      ? ''
-      : `; the nearest: ${verdict.nearest.map((id) => `#${id}`).join(', ')}` +
-        (caseOnly === undefined ? '' : ` (#${caseOnly} differs only in letter case)`)
-  return (
-    `broken fragment: ${written} is no heading or anchor in ${where} ` +
-    `under the ${verdict.rule} anchor rule${nearest}`
-  )
+      ? 'Point the fragment at a heading or anchor in the target.'
+      : `The nearest: ${verdict.nearest.map((id) => `#${id}`).join(', ')}` +
+        (verdict.caseOnly === undefined
+          ? '.'
+          : ` (#${verdict.caseOnly} differs only in letter case).`)
+  return `${nearest} ${rule}`
 }

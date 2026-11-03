@@ -54,8 +54,10 @@ a decision to state, not a fix to assume.
 Not chosen. At least: when the link's path and an indexed file are equal after NFC normalization,
 the message says so and names both forms. Whether such a link should resolve instead is the
 question to answer first, together with the same question for pointers in
-[bug 0559](./0559-a-code-pointer-is-matched-from-inside-its-path.md) and for fragments in
-[bug 0136](./fixed/0136-link-fragments-are-never-checked.md).
+[bug 0559](./0559-a-code-pointer-is-matched-from-inside-its-path.md) and for fragments, which
+[bug 0136](./fixed/0136-link-fragments-are-never-checked.md) left to this record (2026-11-03): a
+fragment that equals an anchor after NFC is reported today with a nearest anchor that looks
+identical to it.
 
 "Resolve instead" is the direction that can make a false green: if GitHub serves such a link as a
 404, resolving it would pass a link that is broken for every reader. So it needs a measurement of

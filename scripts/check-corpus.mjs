@@ -260,7 +260,7 @@ const SITE_OPTS = {
   tryExtensions: ['.md'],
   tryIndex: 'index.md',
   rootDir: 'docs',
-  anchors: vitepressAnchors,
+  anchorRule: vitepressAnchors,
 }
 const REPO_OPTS = { tryExtensions: ['.md'], tryIndex: 'index.md', resolveDirectories: true }
 if (!siteOptsAreSafe(SITE_OPTS)) {

@@ -255,6 +255,32 @@ is absent or malformed (`fragmentMessage`, `packages/md/src/conditions/resolve.t
 repository's `docs/` profile passes VitePress's rule (`scripts/check-corpus.mjs:263`,
 `scripts/lib/vitepress-anchors.mjs`).
 
+**Review round (2026-11-03).** The architect and enforcement reviews of the build changed it:
+
+- The nearest anchors moved from the message to the finding's `Fix:` line, with the `anchorRule`
+  hint, so a baseline entry (rule, element and message) holds when the target's other headings
+  change.
+- `resolveLink` throws `ArchConfigError` only for an `anchorRule` that breaks its contract; no URL
+  makes it throw, and the docs say so.
+- The option is `anchorRule`, not `anchors`, which read as a set.
+- A line fragment after `?plain=1` (GitHub's source view) is not judged here: it names a line.
+  It belongs with the `#L` form in [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md).
+- A fragment naming the `id` of an element the rule does not count is reported as that, not as a
+  missing anchor.
+- Fragments in raw HTML links, which `links()` reads since
+  [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md) Phase 2 and which
+  [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md) did not measure, are checked like any other. Measured over the 574 README files in this
+  repository's `node_modules` (`maxdepth 3`): 1,109 same-document HTML fragments, 30 dead under
+  the GitHub rule (2.7%), the sampled ones all-contributors badge anchors (`#ideas-…`) that name
+  nothing on GitHub either; and 3,931 Markdown ones, 48 dead, as the spike measured.
+- The VitePress pin moved from `check:corpus` (and so `check:fast`) to `check:docs-code`.
+
+Not measured, and not decided here: how GitHub slugs `## Notes[^1]` (the default reads `notes`; a
+footnote mark may render as `notes1`), [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)'s section 7 class. The gate's "not judged" count
+is printed, not gated, until [bug 0575](../0575-a-fragment-the-link-check-cannot-judge-passes.md)
+makes such a fragment a finding. Whether a fragment that equals an anchor after Unicode
+normalization should resolve is [bug 0560](../0560-a-link-that-differs-only-in-unicode-normalization-is-only-called-broken.md)'s.
+
 ## Verification
 
 - [x] Red test written first: `[x](#no-such-heading)` in a fixture document
@@ -308,8 +334,13 @@ repository's `docs/` profile passes VitePress's rule (`scripts/check-corpus.mjs:
 - [x] `#top`, `#TOP` and an empty `#` resolve. Pinned: `it('#top in any letter case and an empty # name the top of the page')`.
 - [x] The VitePress shapes of the spike's section 1 (an emoji shortcode, an entity, a
       footnote mark) are pinned: each matches VitePress, or is recorded as a bug.: none matches VitePress; pinned in `scripts/lib/vitepress-anchors.test.mjs` and recorded as [bug 0614](../0614-four-heading-shapes-the-vitepress-rule-reads-differently.md).
-- [x] A test renders `docs/` with VitePress's `createMarkdownRenderer` and finds the gate's
-      anchor sets equal to its ids.: `scripts/lib/vitepress-anchors.test.mjs`, the test titled "every heading id VitePress renders for docs/ is an anchor under the gate’s rule" (about 2 s, in `check:corpus`'s test list, not in the gate); it reds when the rule's slug drifts (measured).
+- [ ] done-otherwise: a test renders `docs/` with VitePress's `createMarkdownRenderer` and finds
+      the gate's anchor sets equal to its ids. Built as: every rendered heading id is an anchor the
+      gate's rule finds, and each document has as many ids as eess-md reads headings — a subset and
+      a count, not list equality, since eess-md does not export its heading text
+      (`scripts/lib/vitepress-anchors.test.mjs`, the test titled "every heading id VitePress renders
+      for docs/ is an anchor under the gate’s rule"; about 2.4 s, under `check:docs-code`, not the
+      gate or `check:fast`). It reds when the rule's slug drifts (measured).
 - [x] Anchor sets are cached per rule: one corpus checked under both profiles gives each its
       own answer. Pinned: `it('one corpus judged under two rules gives each its own answer')`.
 - [x] The `check:corpus` summary reports fragments checked and fragments it did not
@@ -317,7 +348,8 @@ repository's `docs/` profile passes VitePress's rule (`scripts/check-corpus.mjs:
 - [x] Non-vacuity rows, one per routing region, each red on its own: a `docs/` probe with a
       GitHub-valid, VitePress-dead slug (red only if the site profile really passes the
       VitePress rule), and a `work/` probe with a dead fragment on an existing document. The
-      existing `corpus/links` rows cannot, since they cover missing files only.: `corpus/links/fragment-site` and `corpus/links/fragment-repo` in `scripts/check-nonvacuity.mjs`, appended so no other row changes shard; the site row reports MISSING with the site's `anchors` removed (measured).
+      existing `corpus/links` rows cannot, since they cover missing files only.: `corpus/links/fragment-site` and `corpus/links/fragment-repo` in `scripts/check-nonvacuity.mjs`, appended so no other row changes shard; the site row reports MISSING with the site's `anchorRule` removed (measured); the repo row links
+      across documents, into `work/bugs/BUGS.md`.
 - [x] A changeset naming `@nielspeter/eess-md`, a minor marked
       `**Breaking (@nielspeter/eess-md):**` with a migration line, since `resolve()` newly reds
       on adopters' corpora; released together with

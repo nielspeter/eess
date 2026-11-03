@@ -33,6 +33,9 @@ built on [bug 0136](./fixed/0136-link-fragments-are-never-checked.md)'s anchor s
 - A Markdown file the corpus did not load is read for its anchors alone through `readCorpusFile`
   (`packages/md/src/model/corpus-internals.ts:31`), as `pointerResolves` reads a file outside the
   roots, unless the caller ignored it.
+- A line fragment after `?plain=1` on a Markdown file (`./a.md?plain=1#L5`, GitHub's source view)
+  is a line too, checked the same way; [bug 0136](./fixed/0136-link-fragments-are-never-checked.md)
+  leaves it unjudged (added 2026-11-03 by its enforcement review).
 - `#L10`, `#L10-L20` and `#L10C5` on a file that is not Markdown is a line, checked against
   `lineCount(readCorpusFile(…))` (`packages/md/src/conditions/pointer-resolve.ts:102`), and a
   column against its line's length. On a Markdown file it is an anchor like any other.
@@ -53,7 +56,8 @@ built on [bug 0136](./fixed/0136-link-fragments-are-never-checked.md)'s anchor s
       `outside/notes.md` with no such heading is red, and `#present` beside its heading passes.
 - [ ] `[x](./src/a.ts#L3)` passes on a three-line file; `#L4` and `#L2-L4` are red; `#L2C5`
       passes on a line of five or more characters and is red on a shorter one.
-- [ ] `[x](./notes.md#L3)` on a loaded Markdown file is checked as an anchor, and red.
+- [ ] `[x](./notes.md#L3)` on a loaded Markdown file is checked as an anchor, and red; and
+      `[x](./notes.md?plain=1#L3)` is checked as a line.
 - [ ] Under the default rule, a fragment on a directory holding a `README.md` is checked against
       it, loaded or not; on a directory with none, it is not judged.
 - [ ] A fragment on an ignored file and on a `.pdf` is not judged: one finding per target file,

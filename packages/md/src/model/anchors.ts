@@ -16,7 +16,8 @@ export interface AnchorRule {
   /**
    * Each heading's id, from every heading's text in document order, at any depth: list in, list
    * out, so the renderer's numbering of a repeated heading and an explicit `{#id}` live here. A
-   * result of another length is a configuration error. The text is eess-md's reading of the
+   * result of another length is a configuration error. It must give the same ids for the same
+   * headings: a document's anchors are cached per rule. The text is eess-md's reading of the
    * heading: its text and inline code, without raw HTML, an image's alt or a break.
    */
   readonly ids: (headings: readonly string[]) => readonly string[]
@@ -58,13 +59,24 @@ export type FragmentVerdict =
       readonly rule: string
       /** Up to three anchors nearest to the fragment, one differing only in letter case first. */
       readonly nearest: readonly string[]
+      /** An anchor that differs from the fragment only in letter case, if one does. */
+      readonly caseOnly?: string
+      /**
+       * The HTML element whose `id` or `name` the fragment names, when the rule does not count that
+       * element's attribute as an anchor: the rule's choice, not the author's slip.
+       */
+      readonly uncounted?: string
     }
   | { readonly kind: 'malformed'; readonly fragment: string }
 
-/** A document's anchors under one rule: every form a fragment can reach, and the ids alone. */
+/**
+ * A document's anchors under one rule: every form a fragment can reach, the ids alone, and the HTML
+ * ids and names the rule does not count, by the element that holds them.
+ */
 interface AnchorSet {
   readonly reachable: ReadonlySet<string>
   readonly ids: readonly string[]
+  readonly uncounted: ReadonlyMap<string, string>
 }
 
 /** Cached per rule, then per document, so two rules over one corpus never answer for each other. */
@@ -94,6 +106,7 @@ function anchorsOf(doc: MdDocument, rule: AnchorRule): AnchorSet {
   if (known !== undefined) return known
   const headings: string[] = []
   const html: string[] = []
+  const uncounted = new Map<string, string>()
   const walk = (node: Nodes): void => {
     if (node.type === 'heading') headings.push(node.children.map(headingText).join(''))
     if (node.type === 'html') {
@@ -101,8 +114,9 @@ function anchorsOf(doc: MdDocument, rule: AnchorRule): AnchorSet {
       for (const tag of readHtmlNode(node, 'no-source').starts) {
         for (const attribute of ['id', 'name']) {
           const value = attributeOf(tag, attribute)?.value
-          if (value !== undefined && value !== '' && rule.keepsHtmlAnchor(tag.name, attribute))
-            html.push(value)
+          if (value === undefined || value === '') continue
+          if (rule.keepsHtmlAnchor(tag.name, attribute)) html.push(value)
+          else if (!uncounted.has(value)) uncounted.set(value, tag.name)
         }
       }
     }
@@ -123,7 +137,7 @@ function anchorsOf(doc: MdDocument, rule: AnchorRule): AnchorSet {
     reachable.add(id)
     for (const alias of rule.aliases?.(id) ?? []) reachable.add(alias)
   }
-  const built: AnchorSet = { reachable, ids }
+  const built: AnchorSet = { reachable, ids, uncounted }
   byDoc.set(doc, built)
   return built
 }
@@ -142,10 +156,13 @@ function distance(a: string, b: string): number {
   return row[b.length] ?? 0
 }
 
-function nearestTo(fragment: string, ids: readonly string[]): string[] {
-  const lower = fragment.toLowerCase()
-  const caseOnly = ids.filter((id) => id !== fragment && id.toLowerCase() === lower)
-  const limit = Math.max(2, Math.floor(fragment.length / 3))
+function nearestTo(fragment: string, ids: readonly string[], rule: AnchorRule): string[] {
+  // A near miss of an alias (`#user-content-instal`) is compared as the id it aliases.
+  const bare = aliasBase(fragment, ids, rule)
+  const lower = bare.toLowerCase()
+  const caseOnly = ids.filter((id) => id !== bare && id.toLowerCase() === lower)
+  // A short fragment is near too much to name: at most one edit under four characters.
+  const limit = bare.length < 4 ? 1 : Math.max(2, Math.floor(bare.length / 3))
   const close = [...new Set(ids)]
     .filter((id) => !caseOnly.includes(id))
     .map((id) => ({ id, d: distance(lower, id.toLowerCase()) }))
@@ -153,6 +170,17 @@ function nearestTo(fragment: string, ids: readonly string[]): string[] {
     .sort((x, y) => x.d - y.d || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0))
     .map((x) => x.id)
   return [...new Set(caseOnly), ...close].slice(0, 3)
+}
+
+/** `fragment` without the prefix of an alias form the rule gives, or `fragment` as it is. */
+function aliasBase(fragment: string, ids: readonly string[], rule: AnchorRule): string {
+  const probe = ids[0] ?? 'x'
+  for (const alias of rule.aliases?.(probe) ?? []) {
+    const at = alias.indexOf(probe)
+    const prefix = at > 0 ? alias.slice(0, at) : ''
+    if (prefix !== '' && fragment.startsWith(prefix)) return fragment.slice(prefix.length)
+  }
+  return fragment
 }
 
 /**
@@ -176,5 +204,15 @@ export function judgeFragment(
   if (decoded === '' || decoded.toLowerCase() === 'top') return { kind: 'found' }
   const anchors = anchorsOf(doc, rule)
   if (anchors.reachable.has(decoded)) return { kind: 'found' }
-  return { kind: 'absent', fragment, rule: rule.name, nearest: nearestTo(decoded, anchors.ids) }
+  const nearest = nearestTo(decoded, anchors.ids, rule)
+  const caseOnly = nearest.find((id) => id.toLowerCase() === decoded.toLowerCase())
+  const uncounted = anchors.uncounted.get(decoded)
+  return {
+    kind: 'absent',
+    fragment,
+    rule: rule.name,
+    nearest,
+    ...(caseOnly === undefined ? {} : { caseOnly }),
+    ...(uncounted === undefined ? {} : { uncounted }),
+  }
 }
