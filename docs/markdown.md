@@ -301,11 +301,12 @@ names an anchor that differs only in case. `#top` in any case and an empty `#` n
 the top of the page. A site published by another renderer passes its own rule, an
 `AnchorRule`: a `name`, `ids(headings)` (every heading's text in document order, in;
 their ids, one each, out), optional `aliases(id)`, and `keepsHtmlAnchor(element,
-attribute)`, and optional `directoryPage`. One corpus checked under two rules gives each its own
+attribute)`, and optional `directoryPages`. One corpus checked under two rules gives each its own
 answer. A Markdown file the corpus did not load is read for its anchors alone, and a fragment on
 a directory link is judged against the page the rule names for a directory (GitHub's:
 `README.md`), loaded or not. Anything else — a fragment on a file the corpus ignores, on a file that is not text (a PDF, an
-image: a file holding a NUL byte has neither anchors nor lines), an anchor on a text file that is
+image: a file holding a NUL byte or bytes UTF-8 does not decode, or opening `%PDF-`, has neither
+anchors nor lines), an anchor on a text file that is
 not Markdown, a directory with no such page, a file that cannot be read, or a hand-built link from
 a document the corpus did not load — is not judged, and says so: one `md/fragment-not-judged` finding (`FRAGMENT_NOT_JUDGED`)
 per target file and cause, naming the links it covers, which `.excluding()`, `.warn()`, an

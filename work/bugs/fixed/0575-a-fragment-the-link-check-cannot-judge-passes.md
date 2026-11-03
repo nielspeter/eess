@@ -58,8 +58,8 @@ built on [bug 0136](./0136-link-fragments-are-never-checked.md)'s anchor sets an
 `unloadedVerdict` (`packages/md/src/model/resolve-link.ts:280`) reads an unloaded Markdown file for
 its anchors (`unloadedDocument`, `:240`, once per corpus), judges a line fragment on any other file
 (`judgeLine`, `packages/md/src/model/anchors.ts:258`, with `lineCount`), and marks the rest
-`not-judged`; `directoryVerdict` (`:310`) judges against `AnchorRule.directoryPage`, a new optional
-member (`README.md` under `githubAnchors`). `resolve()` reports a `not-judged` fragment as one
+`not-judged`; `directoryVerdict` (`:310`) judges against `AnchorRule.directoryPages`, a new optional
+member tried in order (`['README.md']` under `githubAnchors`). `resolve()` reports a `not-judged` fragment as one
 `md/fragment-not-judged` finding per target and cause (`notJudgedFinding`,
 `packages/md/src/conditions/resolve.ts:162`), through `unreadFinding`, so it carries
 `bypassFilters`. `movedLinkFix` (`resolve-link.ts:465`) carries a fragment only when `resolveLink`
@@ -68,7 +68,8 @@ judged as a line now, as [bug 0136](./0136-link-fragments-are-never-checked.md) 
 
 **Review round (2026-11-04).** The architect and enforcement reviews changed the build:
 
-- A file that is not text (one holding a NUL byte) is not judged: `#L1` on a PDF or an image passed
+- A file that is not text (one holding a NUL byte or bytes UTF-8 does not decode, or opening
+  `%PDF-`, which an ASCII-only PDF does) is not judged: `#L1` on a PDF or an image passed
   as a line, and the not-judged finding's own remedy ("link a line of it as `#L5`") led there. Its
   cause is `not-text`, whose remedy offers no line; `not-markdown` is now only a text file.
 - A hand-built self link from a document the corpus did not load is `not-loaded`, not a silent

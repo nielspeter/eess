@@ -14,7 +14,7 @@
 
 eess-md treats a file as Markdown when its path ends in `.md`. Everything else that is text is read
 by line. GitHub renders more than `.md`: `.markdown`, `.MD`, `.rst`, `.adoc`, `.ipynb`, among
-others, where `#L1` reaches nothing (the rendered page has no line anchors, as
+others, where `#L1` reaches nothing, and shows an `.svg` as an image, which has no lines either, (the rendered page has no line anchors, as
 [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4 says of Markdown) and
 a heading's anchor does. Measured: `[x](./a.markdown#L1)` and `[x](./a.rst#L1)` pass, and
 `[x](./a.markdown#section)` is reported as "not Markdown" with the remedy "link a line of it as

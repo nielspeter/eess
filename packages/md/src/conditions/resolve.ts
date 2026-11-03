@@ -70,6 +70,7 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
           readonly verdict: Extract<FragmentVerdict, { kind: 'not-judged' }>
           readonly links: MdLink[]
           readonly sites: Set<string>
+          readonly seen: Set<string>
         }
       >()
       const found = links.flatMap((link) => {
@@ -90,12 +91,22 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
             const verdict = target.fragment
             const path = verdict.file ?? (target.kind === 'self' ? link.doc.relPath : target.path)
             const key = `${path}\u0000${verdict.reason}`
-            const entry = unjudged.get(key) ?? { path, verdict, links: [], sites: new Set() }
+            const entry = unjudged.get(key) ?? {
+              path,
+              verdict,
+              links: [],
+              sites: new Set(),
+              seen: new Set(),
+            }
             // A reference-style link is its definition's, named once at the definition's line.
-            const site = `${link.doc.relPath}:${String(link.definition?.line ?? link.line)}`
-            if (!entry.sites.has(site)) {
-              entry.sites.add(site)
+            const where = `${link.doc.relPath}:${String(link.definition?.line ?? link.line)}`
+            // Each link once: two links on one line are two, the references of one definition one.
+            const key2 =
+              link.definition === undefined ? `${where}\u0000${String(link.urlStart)}` : where
+            if (!entry.seen.has(key2)) {
+              entry.seen.add(key2)
               entry.links.push(link)
+              entry.sites.add(where)
             }
             unjudged.set(key, entry)
             return []
@@ -165,7 +176,7 @@ function notJudgedWhy(v: NotJudged): string {
     case 'not-markdown':
       return 'it is not Markdown, and the fragment is not a line (`#L5`)'
     case 'not-text':
-      return 'it is not a text file, so it has neither anchors nor lines'
+      return 'it is not a text file and has neither anchors nor lines'
     case 'no-directory-page':
       return `the directory has no ${v.page ?? 'page'}, the page the anchor rule shows for it`
     case 'no-page-rule':
@@ -214,7 +225,7 @@ function notJudgedFinding(u: {
     file: first?.doc.file ?? '',
     line: first?.definition?.line ?? first?.line ?? 0,
     message:
-      `the fragment of ${count(sites.length, 'link')} into ${u.path} is not judged: ` +
+      `the fragment of ${count(u.links.length, 'link')} into ${u.path} is not judged: ` +
       `${notJudgedWhy(u.verdict)}, so this rule cannot judge whether it names a place there ` +
       `(${shown.join(', ')})`,
     suggestion: notJudgedRemedy(u.verdict),

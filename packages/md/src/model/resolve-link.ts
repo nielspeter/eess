@@ -3,7 +3,7 @@ import type { ArchFix } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import { corpusInternals, readCorpusFile } from './corpus-internals.js'
 import { buildDocument, type MdDocument } from './document.js'
-import { parseMarkdown, parseUncached } from './prose.js'
+import { parseUncached } from './prose.js'
 import { writeDestination } from './destination.js'
 import { collectLinks, type MdLink } from './links.js'
 import {
@@ -66,7 +66,7 @@ export interface LinkResolveOptions {
    * anchors of its target (bug 0136). The linking document's renderer's, since a reader stays in
    * one. Default {@link githubAnchors}, github.com's renderer's; pass another for a corpus a
    * different renderer publishes. A fragment is judged on any Markdown file (one the corpus did
-   * not load is read for its anchors alone), on a directory's page (`AnchorRule.directoryPage`),
+   * not load is read for its anchors alone), on a directory's page (`AnchorRule.directoryPages`),
    * and as a line (`#L5`, `#L5-L9`, `#L5C3`) on a file that is not Markdown or after `?plain=1`;
    * anything else is not judged, which `resolve()` reports (bug 0575).
    */
@@ -253,7 +253,8 @@ function unloadedDocument(corpus: Corpus, path: string): MdDocument | undefined 
       relPath: path,
       frozen: false,
       text,
-      root: parseMarkdown(text),
+      // Read once and kept here; not pushed into the shared parse memo the corpus's own texts use.
+      root: parseUncached(text),
     })
   } catch (error: unknown) {
     void error
@@ -308,9 +309,11 @@ function unloadedVerdict(
   }
   const text = textOfFile(corpus, path)
   if (text === undefined) return notJudged('unreadable')
-  // A file that is not text (a NUL byte is the cheap test) has no lines: `#L1` on an image or a
-  // PDF reaches nothing, and judging it as a line would pass it (bug 0575's enforcement review).
-  if (text.includes('\u0000')) return notJudged('not-text')
+  // A file that is not text has no lines: `#L1` on an image or a PDF reaches nothing, and judging it
+  // as a line would pass it (bug 0575's enforcement review). Not text: a NUL byte, a byte sequence
+  // UTF-8 does not decode (read as U+FFFD), or a PDF's `%PDF-` header, which an ASCII-only PDF has.
+  if (text.includes('\u0000') || text.includes('\uFFFD') || text.startsWith('%PDF-'))
+    return notJudged('not-text')
   const line = judgeLine(fragment, text)
   return line === undefined ? notJudged('not-markdown') : { fragment: line }
 }
@@ -327,12 +330,19 @@ function directoryVerdict(
 ): { readonly fragment?: FragmentVerdict } {
   const fragment = fragmentOf(link.url)
   if (fragment === undefined) return {}
-  const page = (options.anchorRule ?? githubAnchors).directoryPage
-  if (page === undefined)
+  const pages = (options.anchorRule ?? githubAnchors).directoryPages ?? []
+  if (pages.length === 0)
     return { fragment: { kind: 'not-judged', fragment, reason: 'no-page-rule' } }
-  const pagePath = posix.join(path, page)
-  if (!corpus.fileIndex.has(pagePath))
-    return { fragment: { kind: 'not-judged', fragment, reason: 'no-directory-page', page } }
+  const pagePath = pages.map((p) => posix.join(path, p)).find((p) => corpus.fileIndex.has(p))
+  if (pagePath === undefined)
+    return {
+      fragment: {
+        kind: 'not-judged',
+        fragment,
+        reason: 'no-directory-page',
+        page: pages.join(' or '),
+      },
+    }
   const loaded = indexes(corpus).documents.get(pagePath)
   if (loaded !== undefined) return verdictOn(loaded, link, options)
   return unloadedVerdict(pagePath, notInCorpusReasons(corpus, pagePath), link, corpus, options)

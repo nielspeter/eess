@@ -6,7 +6,7 @@
 
 - A Markdown file the corpus did not load is read for its anchors alone, so `[x](../outside/notes.md#gone)` is red when `notes.md` has no such heading.
 - A line fragment (`#L5`, `#L5-L9`, `#L5C3`) on a file that is not Markdown, or after `?plain=1` on a Markdown file, is judged against the file's lines and the line's columns: `broken fragment: … is past the end of src/a.ts, which has 31 lines`.
-- A fragment on a directory link is judged against the page the anchor rule names for a directory, a new optional `AnchorRule.directoryPage` (`README.md` under `githubAnchors`), loaded or not.
+- A fragment on a directory link is judged against the page the anchor rule names for a directory, a new optional `AnchorRule.directoryPages`, tried in order (`['README.md']` under `githubAnchors`), loaded or not.
 - Anything else (a fragment on a file the corpus ignores, on a file that is not text such as a PDF or an image, an anchor on a text file that is not Markdown, a directory with no such page, or a hand-built link from a document the corpus did not load) is one `md/fragment-not-judged` finding per target file and cause, naming the links it covers. It is unsuppressable: `.excluding()`, `.warn()`, an exclusion comment and a baseline do not hide it. The rule id is exported as `FRAGMENT_NOT_JUDGED`, and `NotJudgedReason` names its causes.
 - `FragmentVerdict` gains `out-of-range` and `not-judged`, and `resolveLink()` sets `fragment` on `not-in-corpus` and `directory` targets too.
 

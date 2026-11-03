@@ -27,10 +27,11 @@ export interface AnchorRule {
   /** Whether the renderer keeps attribute `attribute` of HTML element `element` as an anchor. */
   readonly keepsHtmlAnchor: (element: string, attribute: string) => boolean
   /**
-   * The page the host shows for a directory, by file name (GitHub's: `README.md`), against which a
-   * fragment on a directory link is judged (bug 0575). Absent: such a fragment is not judged.
+   * The pages the host shows for a directory, by file name, tried in order (GitHub's:
+   * `README.md`), against the first that exists of which a fragment on a directory link is judged
+   * (bug 0575). Absent or empty: such a fragment is not judged.
    */
-  readonly directoryPage?: string
+  readonly directoryPages?: readonly string[]
 }
 
 /**
@@ -49,7 +50,7 @@ export const githubAnchors: AnchorRule = {
   aliases: (id) => [`user-content-${id}`],
   keepsHtmlAnchor: (element, attribute) =>
     element === 'a' && (attribute === 'id' || attribute === 'name'),
-  directoryPage: 'README.md',
+  directoryPages: ['README.md'],
 }
 
 /**

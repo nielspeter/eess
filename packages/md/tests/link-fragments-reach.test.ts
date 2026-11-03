@@ -117,7 +117,7 @@ describe('a fragment this rule cannot judge is one unsuppressable finding per ta
   it('a .pdf and an ignored file: one finding each, naming the links it covers', () => {
     const v = links(c()).that().areInternal().should().resolve().violations()
     expect(v.map((x) => `${x.ruleId ?? ''} ${x.message}`)).toEqual([
-      `${FRAGMENT_NOT_JUDGED} the fragment of 2 links into docs/f.pdf is not judged: it is not a text file, so it has neither anchors nor lines, so this rule cannot judge whether it names a place there (docs/a.md:3, docs/b.md:3)`,
+      `${FRAGMENT_NOT_JUDGED} the fragment of 3 links into docs/f.pdf is not judged: it is not a text file and has neither anchors nor lines, so this rule cannot judge whether it names a place there (docs/a.md:3, docs/b.md:3)`,
       `${FRAGMENT_NOT_JUDGED} the fragment of 1 link into docs/ign.md is not judged: the corpus ignores the file, so this rule cannot judge whether it names a place there (docs/a.md:5)`,
     ])
   })
@@ -200,6 +200,16 @@ describe('what the review of bug 0575 found', () => {
     const v = violationsOf({
       'docs/a.md': '# A\n\n[x](./i.png#L1)\n',
       'docs/i.png': '\u0089PNG\u0000\u0000',
+    })
+    expect(v.map((x) => `${x.ruleId ?? ''} ${x.suggestion ?? ''}`)).toEqual([
+      `${FRAGMENT_NOT_JUDGED} Link the file without a fragment.`,
+    ])
+  })
+
+  it('a PDF with no NUL byte is not text either: its header says so', () => {
+    const v = violationsOf({
+      'docs/a.md': '# A\n\n[x](./plain.pdf#L1)\n',
+      'docs/plain.pdf': '%PDF-1.4\n1 0 obj\n<< >>\nendobj\n',
     })
     expect(v.map((x) => `${x.ruleId ?? ''} ${x.suggestion ?? ''}`)).toEqual([
       `${FRAGMENT_NOT_JUDGED} Link the file without a fragment.`,
