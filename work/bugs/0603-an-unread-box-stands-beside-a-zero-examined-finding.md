@@ -8,7 +8,7 @@
   `mentions()`: it reports a box mark the rule cannot read and, beside it, that the emptiness was
   declared or that nothing was examined. The build is red either way, but the generic finding sends
   an author to `.expectEmpty()` or to the selector.
-- **Origin:** self-found · the testing review of PR #296 ([plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md), Phase 1), which fixed the same
+- **Origin:** self-found · the testing review of PR #296 ([plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md), Phase 1), which fixed the same
   shape in `mentions()`.
 - **Reported:** 2026-11-02
 

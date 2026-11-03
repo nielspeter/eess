@@ -113,7 +113,11 @@ export class SectionRuleBuilder extends CorpusRuleBuilder<MdSectionElement> {
     return this.holding({ kind: 'list item' })
   }
 
-  /** Dual-use (plan 0522): the section holds a link, inline or reference-style, as `links()` reads one. */
+  /**
+   * Dual-use (plan 0522): the section holds a link, as `links()` reads one: inline, reference-style,
+   * or an `href` in raw HTML. A section whose only links are HTML links eess-md cannot read is
+   * undecided (plan 0580): reported, never "holds no link" and never silently selected.
+   */
   haveLink(): this {
     return this.holding({ kind: 'link' })
   }

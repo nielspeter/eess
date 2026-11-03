@@ -2,12 +2,12 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-11-01 from [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md);
+- **State:** Draft — recorded 2026-11-01 from [plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md);
   it can be fixed only on that plan's attribute owner (its Phase 1).
 - **Severity:** Low — fail-closed: an unsuppressable finding whose remedy (rewrite the link in
   Markdown) is real but should not be needed.
-- **Origin:** self-found · [proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md)'s
-  review, decision 2, which [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md) leaves out
+- **Origin:** self-found · [proposal 022](../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)'s
+  review, decision 2, which [plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md) leaves out
   of scope.
 - **Reported:** 2026-11-01
 
@@ -15,7 +15,7 @@
 
 `mentions()` reports a mention inside `<a href>…</a>` as `md/unread-mention`, cause `html-link`
 (`packages/md/src/builders/mentions.ts:44`), because it cannot read the link's target. Once
-[plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md) lands, `links()` reads that `href`, and
+[plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md) lands, `links()` reads that `href`, and
 the two builders disagree about the same element: one resolves it, and the other says it cannot be
 read. The review's decision 2 says that with one attribute owner, `mentions()` can judge such a
 mention as linked.
@@ -23,7 +23,7 @@ mention as linked.
 ## Fix
 
 Not designed. The direction: `mentions()` reads an `<a>`'s `href` through
-[plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md)'s owner, judges
+[plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s owner, judges
 a mention in its text as linked to that target, and keeps `html-link` only for an `<a>` the owner
 cannot read. It also takes an `<a>` micromark left as text (`<a href=./x.md>`, an unquoted `/`):
 the owner's inline scan finds it, and a mention in it is then judged like one in any HTML link.

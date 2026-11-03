@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Fixed — the HTML half (Fix 2) by [plan 0580](../../plans/0580-md-a-raw-html-link-is-resolved.md)'s Phase 2 (PR #297): `links()` reads an `href` in raw HTML and resolves it, and reports one it cannot read as `md/unread-link`. Before that: part (a), reference-style links read as links, fixed 2026-10-30 in PR #282
+- **State:** Fixed — the HTML half (Fix 2) by [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s Phase 2 (PR #297): `links()` reads an `href` in raw HTML and resolves it, and reports one it cannot read as `md/unread-link`. Before that: part (a), reference-style links read as links, fixed 2026-10-30 in PR #282
   (Fix 1's first two bullets); part (b), a dangling reference, done otherwise 2026-10-31 in PR
   #284: it is not a link, so it is found with the family's pattern for text of a named shape,
   `mentions()` and an absence rule, shown in `examples/md/a-reference-with-no-definition-is-reported.test.ts` (see "Part (b), decided"); a match in
@@ -163,23 +163,23 @@ Two parts, one root cause:
      inside the HTML block so it is parsed as Markdown (`<p align="center">`, a blank line,
      `[Guide](./guide.md)`, a blank line, `</p>`).
    - **Decided 2026-11-01 (overrulable): resolve the `href`, do not report it unread.** Reached in
-     the review of [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md), whose ruling
+     the review of [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md), whose ruling
      lands with its amended text and plan in their own PR; the reasoning is recorded here. An unread finding cannot be suppressed
      ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) rule 5), and for a
      sized logo or a `target` link its only remedy would be deleting a correct link, against
      [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2. Resolving gives a broken
      `href` the remedy "fix the path", and what the reader cannot parse is reported unread with the
      remedy "write it in a form eess-md reads". So this half is to close done-otherwise against the
-     plan that builds [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md), through one
+     plan that builds [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md), through one
      shared reader of HTML attributes. The decision as first recorded:
    - **Open, decided before the fix is built (superseded above):** some HTML has no Markdown remedy. A README logo
      sized with `width` (`<a href="./docs/"><img src="logo.svg" width="120"></a>`) cannot be
      written in Markdown, and `md/unread-mention`, the precedent, cannot be suppressed
      (`packages/md/src/builders/mentions.ts:201`). So either the unread finding can be suppressed
-     per cause, with a reason, or this fix resolves the `href` ([proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s ask) instead of
-     reporting it unread; and [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md)'s priority, which assumes "red with unread" is
+     per cause, with a reason, or this fix resolves the `href` ([proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)'s ask) instead of
+     reporting it unread; and [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md)'s priority, which assumes "red with unread" is
      acceptable, follows that decision.
-   - Resolving the `href` is a new capability, [proposal 022](../../proposals/022-md-a-raw-html-link-is-resolved.md).
+   - Resolving the `href` is a new capability, [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md).
 3. **The docs.** `docs/markdown.md:232` and `docs/markdown.md:690` state what `links()` reads, and
    change with it.
 

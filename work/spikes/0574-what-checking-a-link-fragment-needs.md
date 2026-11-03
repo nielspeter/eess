@@ -115,7 +115,7 @@ targets a file the corpus did not load. Of the 33 `.md` targets, 10 exist in the
 and 23 are missing, which `resolve()` reports already; of the 35 line targets, 27 exist (measured
 by the enforcement review). Raw HTML in the sample holds 1,124 more `href="#…"`
 fragments, which `links()` does not read at all; that is the raw-HTML link boundary
-[proposal 022](../proposals/022-md-a-raw-html-link-is-resolved.md) is about, and nothing here
+[proposal 022](../proposals/promoted/022-md-a-raw-html-link-is-resolved.md) is about, and nothing here
 changes it.
 
 ## 4. Cost

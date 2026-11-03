@@ -35,7 +35,7 @@ the inline link only. The three missing images produce nothing.
   link door's accepted cases are not the image door's. `![a]()`, `![a](#)`, a directory and a
   Markdown file all pass as links, so the image door needs accepted cases of its own._
 - **The reference form** shares [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s definition lookup, and `<img src>`
-  shares [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s HTML scan.
+  shares [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s HTML scan.
 
 ## Asks
 
@@ -44,7 +44,7 @@ the inline link only. The three missing images produce nothing.
   definition's line, as in [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)).
   _Corrected 2026-11-01 (review): ask A cannot ship alone. 66 of 73 local images in the README
   sample are `<img src>`, so A without B is a false green; the two ship together._
-- **B — `<img src>`.** The same for an `src` in raw HTML, on [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s scan.
+- **B — `<img src>`.** The same for an `src` in raw HTML, on [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s scan.
   _Corrected 2026-11-01 (review): ask B also covers `<img srcset>`, not only `<source srcset>`. An
   unquoted `<img src=./x.png>` is a text node to the parser, so a scan that reads only HTML nodes
   never sees it._
@@ -107,7 +107,7 @@ and placed correctly, and almost every part it needs exists already. But the pro
 separable things, and its central ask cannot ship in the form it is written. Ask A without ask B
 is a measured false green on the image form READMEs mostly use. So both asks are `Held`, on one
 condition: the shared reader of HTML attributes that
-[proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s review (2026-11-01) calls for, which 022's
+[proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s review (2026-11-01) calls for, which 022's
 plan will build; 022's ruling is recorded with its amended text and its plan, in their own PR. All measurement was done with
 throwaway scripts against `packages/md/dist`; each probe took 0.14–0.21 s, the README census 3.7 s
 and 4.8 s, and the repository census 6.3 s. No suite, validate or nonvacuity run was needed.
@@ -141,7 +141,7 @@ not-judged and zero-examined machinery the work needs is already in the kernel
 ([ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md),
 [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). There is one HTML
 attribute reader in eess-md's model layer, for `href`, `src` and `srcset` alike:
-[proposal 022](./022-md-a-raw-html-link-is-resolved.md), this proposal's ask B and
+[proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md), this proposal's ask B and
 [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 are one
 instrument with three consumers. The `srcset` split lives in the same module, never in a second
 copy. Image handling must not be put inside the link walk's output or inside `linkResolves`'
@@ -166,7 +166,7 @@ Each of these is decided here so the work can move, and each can be overruled.
    an eess-md minor.
 2. **Raw HTML is resolved directly**, through one shared reader of HTML attributes: the decision recorded in
    [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2
-   (2026-11-01), which [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan will build. So ask B does not wait
+   (2026-11-01), which [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s plan will build. So ask B does not wait
    on an "unread first" step, and ask A does not need a disclosure finding with no remedy. This
    settles, for images, the "unread, or resolve" choice that
    [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s Fix 2 left
@@ -247,7 +247,7 @@ Each of these is decided here so the work can move, and each can be overruled.
   - `<img srcset>` is in scope as well as `<source srcset>`;
   - comments inside a mixed HTML block are stripped, as
     [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 2 does;
-  - ask B inherits [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s rules by name: the
+  - ask B inherits [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s rules by name: the
     attribute's own line, and entity decoding.
 - **What the finding says.** An image finding opens with "missing image" and names the alt and the
   URL, never "broken link" (`packages/md/src/conditions/resolve.ts:81`). `[![b](./gone.png)](./gone.md)`
@@ -331,7 +331,9 @@ attribution already work through the existing walk. Those classes need only rows
 
 ### Disposition
 
-| Ask                                                           | Disposition | What would unhold it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A — inline and reference-style Markdown images resolve        | `Held`      | It ships together with ask B, never alone: 66 of 73 local README images are `<img src>`. Unheld when [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. Then A and B are planned together as one `images()` element with the accepted cases in critical item 2, the image fix policy, the fragment rule against [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md), the asset-root scope, and the rewritten non-vacuity criterion |
-| B — `<img src>`, `<img srcset>` and `<source srcset>` resolve | `Held`      | The same condition: [proposal 022](./022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. B reads `src` and `srcset` through it, with the srcset grammar in the same module                                                                                                                                                                                                                                                                                                 |
+| Ask                                                           | Disposition | What would unhold it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — inline and reference-style Markdown images resolve        | `Held`      | It ships together with ask B, never alone: 66 of 73 local README images are `<img src>`. Unheld when [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. Then A and B are planned together as one `images()` element with the accepted cases in critical item 2, the image fix policy, the fragment rule against [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md), the asset-root scope, and the rewritten non-vacuity criterion |
+| B — `<img src>`, `<img srcset>` and `<source srcset>` resolve | `Held`      | The same condition: [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. B reads `src` and `srcset` through it, with the srcset grammar in the same module                                                                                                                                                                                                                                                                                                 |
+
+_2026-11-03: the condition both rows wait on is met. [Plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md) built the shared HTML-attribute reader (`packages/md/src/model/html-attributes.ts`, PR #296). The rows stay `Held` until a review re-disposes them; that is a review's change, not this note's._

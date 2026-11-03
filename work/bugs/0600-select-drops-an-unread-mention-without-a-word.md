@@ -6,7 +6,7 @@
 - **Severity:** High — a false green: a `correspondence()` side built from `mentions().select()`
   misses every mention eess-md cannot read, and nothing says so.
 - **Origin:** self-found · the architect's re-check of
-  [plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md)'s freeze, which found that the plan's
+  [plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s freeze, which found that the plan's
   `links()` would copy the gap; that plan closes it for `links()` (its R7) and records `mentions()`'s
   here.
 - **Reported:** 2026-11-01
@@ -37,7 +37,7 @@ m().should().beLinked().violations() // line 7, and md/unread-mention at line 4
 
 Not designed. The direction: `mentions().select()` refuses, as a configuration finding naming each
 cause, when its predicates reach an unread mention, the way
-[plan 0580](../plans/0580-md-a-raw-html-link-is-resolved.md)'s R7 has `links().select()` refuse.
+[plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s R7 has `links().select()` refuse.
 Both use the unread helper that plan shares between the two builders (its R5), so the fix is best
 built on it.
 

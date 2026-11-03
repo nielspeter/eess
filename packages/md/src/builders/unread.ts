@@ -8,6 +8,8 @@ import {
 } from '@nielspeter/eess'
 import { membership, undecidedViolations, type Membership } from '@nielspeter/eess/internal'
 
+export { unreadFinding } from '../model/unread-finding.js'
+
 /**
  * The one helper for what a builder reads but cannot judge (plan 0580, R5): `mentions()` uses it for
  * an unread mention, and `links()` will use it for an unread HTML link. Each builder gives an
@@ -62,22 +64,6 @@ export function reachedUnread<E, U>(
 }
 
 /**
- * One unread finding (ADR-021 rule 5): it carries `bypassFilters`, so `.excluding()`, `.warn()`, an
- * exclusion comment and a baseline cannot hide it. The one constructor, so no builder writes the field
- * by hand and forgets it.
- */
-export function unreadFinding(f: {
-  readonly ruleId: string
-  readonly element: string
-  readonly file: string
-  readonly line: number
-  readonly message: string
-  readonly suggestion: string
-}): ArchViolation {
-  return { rule: f.ruleId, bypassFilters: true, ...f }
-}
-
-/**
  * The kernel's verdict with the unread findings added. Each reached item counts as undecided on the
  * receipt, so the terminal withholds the generic zero-examined finding and `declaredEmpty` beside them
  * (ADR-021 rule 7; bug 0602): the emptiness is theirs, not declared and not a dead selector.
@@ -88,7 +74,9 @@ export function withUnread(
   undecided: readonly Undecided[],
   context: ConditionContext,
 ): CollectResult {
-  if (findings.length === 0) return base
+  // Both empty, or the predicates' causes would go unreported: a reader that dedups its findings
+  // (plan 0580 R6, `links()` beside `beLinkedBack()`) may hand none and still have causes (ADR-021 rule 5).
+  if (findings.length === 0 && undecided.length === 0) return base
   const causes = undecidedViolations(undecided, context, base)
   return collectResult([...base, ...causes, ...findings], {
     examined: base.examined,

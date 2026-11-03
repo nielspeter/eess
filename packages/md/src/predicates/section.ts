@@ -1,8 +1,9 @@
-import type { Predicate } from '@nielspeter/eess'
+import { ArchConfigError, type Predicate, type Undecided } from '@nielspeter/eess'
 import { checkDepth, matchName } from '../model/name-match.js'
 import { contains, sectionsMatching, type MdSectionElement } from '../model/sections.js'
 import { declaresSections } from '../model/section-declarations.js'
-import { holdingText, holds, type SectionHolding } from '../model/section-holds.js'
+import { holdingText, holds, undecidingLinks, type SectionHolding } from '../model/section-holds.js'
+import { unreadLinkReason, unreadLinkRemedy } from '../model/unread-link.js'
 import { areInSectionPredicate } from './declared-block.js'
 
 /**
@@ -70,7 +71,36 @@ export function sectionsWithSubsection(
   )
 }
 
-/** Plan 0522: sections that hold what `h` names (`.that().haveLink()` and its siblings). */
+/**
+ * Plan 0522: sections that hold what `h` names (`.that().haveLink()` and its siblings). A section
+ * whose only links are HTML links eess-md cannot read is undecided for `link` (plan 0580, R6;
+ * ADR-021): the rule reports each site rather than drop the section, and `test` refuses it, so a
+ * wrapper written around `test` cannot drop it silently.
+ */
 export function sectionsHolding(h: SectionHolding): Predicate<MdSectionElement> {
-  return { description: `hold ${holdingText(h)}`, test: (s) => holds(s, h) }
+  const undecided = (s: MdSectionElement): readonly Undecided[] =>
+    undecidingLinks(s, h).map((u) => ({
+      file: u.doc.file,
+      line: u.line,
+      element: `${u.doc.relPath}:${String(u.line)}`,
+      message: `${unreadLinkReason(u)}, so whether its section holds a link cannot be judged. ${unreadLinkRemedy(u)}`,
+    }))
+  // Only `link` can be undecided: declaring it for the others would turn off the kernel's two-valued
+  // fast path for every `haveContent()` and its siblings, for nothing.
+  if (h.kind !== 'link') return { description: `hold ${holdingText(h)}`, test: (s) => holds(s, h) }
+  return {
+    description: `hold ${holdingText(h)}`,
+    undecided,
+    test: (s) => {
+      const [first] = undecided(s)
+      if (first !== undefined) {
+        throw new ArchConfigError(
+          first.element,
+          `haveLink cannot judge section "${s.name}": ${first.message}. Apply it through a rule, which ` +
+            'reports this, or forward its undecided() with its test() (ADR-021).',
+        )
+      }
+      return holds(s, h)
+    },
+  }
 }

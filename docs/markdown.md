@@ -264,10 +264,16 @@ in its block (`unterminated`: close it), and an `<a>` the Markdown parser reads
 as text because an unquoted value holds a `/` (`unquoted-slash`: quote it). A
 fourth cause, `refused-tag` (write the link in Markdown), reports a refusal no
 measurement explains; no input reaches it today. It
-is not counted in `examined`, and `.select()` refuses rather than drop it. Not
-yet: `sections().haveLink()` and `.beLinkedBack()` still read a section or a
-target whose only link is unread as having none, a red with the wrong words
-([plan 0580](../work/plans/0580-md-a-raw-html-link-is-resolved.md), Phase 3). `.areInternal()`/`.areExternal()` split on
+is not counted in `examined`, and `.select()` refuses rather than drop it. Where
+an unread link is another subject's evidence, that subject is undecided, not
+"has none": a section whose only link is unread is `md/unread-link` under
+`.should().haveLink()` (not "holds no link"), is reported and never selected under
+`.that().haveLink()` (as the rule's own undecided finding, under its rule id, with the
+remedy in its message; its `.select()` refuses), and a target whose only link
+back may be an unread one is `md/unread-link` under `.beLinkedBack()` (not "does
+not link back"), each site once per rule (two sites on one line with the same remedy are
+one finding). A label whose list holds only an
+unread link is not an empty declaration. `.areInternal()`/`.areExternal()` split on
 whether the URL carries a scheme; `LinkResolveOptions` (`tryExtensions`,
 `tryIndex`, `rootDir`, `resolveDirectories`) is what makes `.resolve()`
 understand a static site's routing instead of only a repo-hosted one.
@@ -1009,7 +1015,7 @@ docs(c)
 | `haveContent()`                    | both     | the section holds a block after its heading (not a heading, a rule or a comment)  |
 | `haveCodeBlock({ lang? })`         | both     | it holds a code block, tagged `lang` in any letter case when given                |
 | `haveListItem()`                   | both     | it holds a list item, at any depth                                                |
-| `haveLink()`                       | both     | it holds a link, inline or reference-style                                        |
+| `haveLink()`                       | both     | it holds a link: inline, reference-style or an HTML `href`                        |
 | `haveCodePointer()`                | both     | it holds a code pointer (that it is live is a `pointers()` rule)                  |
 | `notExist()`                       | assert   | each selected section reported at its heading                                     |
 
