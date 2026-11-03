@@ -62,10 +62,10 @@ export type FragmentVerdict =
       /** An anchor that differs from the fragment only in letter case, if one does. */
       readonly caseOnly?: string
       /**
-       * The HTML element whose `id` or `name` the fragment names, when the rule does not count that
-       * element's attribute as an anchor: the rule's choice, not the author's slip.
+       * The HTML element and attribute (`id` or `name`) the fragment names, when the rule does not
+       * count that attribute of that element as an anchor: the rule's choice, not the author's slip.
        */
-      readonly uncounted?: string
+      readonly uncounted?: { readonly element: string; readonly attribute: string }
     }
   | { readonly kind: 'malformed'; readonly fragment: string }
 
@@ -76,7 +76,7 @@ export type FragmentVerdict =
 interface AnchorSet {
   readonly reachable: ReadonlySet<string>
   readonly ids: readonly string[]
-  readonly uncounted: ReadonlyMap<string, string>
+  readonly uncounted: ReadonlyMap<string, { readonly element: string; readonly attribute: string }>
 }
 
 /** Cached per rule, then per document, so two rules over one corpus never answer for each other. */
@@ -106,7 +106,7 @@ function anchorsOf(doc: MdDocument, rule: AnchorRule): AnchorSet {
   if (known !== undefined) return known
   const headings: string[] = []
   const html: string[] = []
-  const uncounted = new Map<string, string>()
+  const uncounted = new Map<string, { readonly element: string; readonly attribute: string }>()
   const walk = (node: Nodes): void => {
     if (node.type === 'heading') headings.push(node.children.map(headingText).join(''))
     if (node.type === 'html') {
@@ -116,7 +116,7 @@ function anchorsOf(doc: MdDocument, rule: AnchorRule): AnchorSet {
           const value = attributeOf(tag, attribute)?.value
           if (value === undefined || value === '') continue
           if (rule.keepsHtmlAnchor(tag.name, attribute)) html.push(value)
-          else if (!uncounted.has(value)) uncounted.set(value, tag.name)
+          else if (!uncounted.has(value)) uncounted.set(value, { element: tag.name, attribute })
         }
       }
     }

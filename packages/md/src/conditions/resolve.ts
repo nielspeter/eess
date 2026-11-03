@@ -85,7 +85,9 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
               sourceText: link.doc.text,
               context: {
                 ...ctx,
-                suggestion: [remedy, ctx.suggestion].filter((x) => x !== undefined).join(' '),
+                // Absent, not empty, when neither the fragment nor the rule names a remedy.
+                suggestion:
+                  [remedy, ctx.suggestion].filter((x) => x !== undefined).join(' ') || undefined,
               },
             }),
           ]
@@ -134,9 +136,11 @@ function fragmentMessage(
     return `broken fragment: ${written} is not valid percent-encoding`
   }
   if (verdict.uncounted !== undefined) {
+    const { element, attribute } = verdict.uncounted
+    const article = /^[aeiou]/.test(element) ? 'an' : 'a'
     return (
-      `broken fragment: ${written} names the id of a <${verdict.uncounted}> in ${where}, which the ` +
-      `${verdict.rule} anchor rule does not count as an anchor`
+      `broken fragment: ${written} names the ${attribute} of ${article} <${element}> in ${where}, ` +
+      `which the ${verdict.rule} anchor rule does not count as an anchor`
     )
   }
   return `broken fragment: ${written} is no heading or anchor in ${where} under the ${verdict.rule} anchor rule`

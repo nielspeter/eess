@@ -244,3 +244,26 @@ describe('only resolve() judges a fragment (spike 0574 decision 3)', () => {
     expect(selected.examined).toBe(1)
   })
 })
+
+describe('what a fragment finding says about the rule (bug 0136 review)', () => {
+  it('a name the rule does not count names the attribute and the element', () => {
+    const rule: AnchorRule = {
+      name: 'Ids',
+      ids: (headings) => headings.map((h) => h.toLowerCase()),
+      keepsHtmlAnchor: (_element, attribute) => attribute === 'id',
+    }
+    const v = links(corpusFromText({ 'docs/a.md': '# A\n\n<a name="here"></a>\n\n[x](#here)\n' }))
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ anchorRule: rule })
+      .violations()
+    expect(v.map((x) => x.message)).toEqual([
+      'broken fragment: "#here" names the name of an <a> in this document, which the Ids anchor rule does not count as an anchor',
+    ])
+  })
+
+  it('a malformed fragment with no remedy carries no suggestion', () => {
+    expect(remedies({ 'docs/a.md': '# A\n\n[x](#gr%E0)\n' })).toEqual([undefined])
+  })
+})

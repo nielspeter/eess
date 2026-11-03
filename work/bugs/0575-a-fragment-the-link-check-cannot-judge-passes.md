@@ -39,7 +39,8 @@ built on [bug 0136](./fixed/0136-link-fragments-are-never-checked.md)'s anchor s
 - `#L10`, `#L10-L20` and `#L10C5` on a file that is not Markdown is a line, checked against
   `lineCount(readCorpusFile(…))` (`packages/md/src/conditions/pointer-resolve.ts:102`), and a
   column against its line's length. On a Markdown file it is an anchor like any other.
-- A fragment on a directory is checked against the page the anchor rule names for a directory
+- A fragment on a directory is checked against the page the anchor rule names for a directory (a
+  new optional `AnchorRule` member, so a caller's rule written for [bug 0136](./fixed/0136-link-fragments-are-never-checked.md) keeps compiling)
   (under the default, the directory's `README.md`), loaded or read on demand; a directory with no
   such page, or a rule that names none, leaves it not judged.
 - Anything else is not judged: a finding in the class

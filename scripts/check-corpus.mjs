@@ -310,10 +310,10 @@ links(c)
         if (!link.url.includes('#')) continue
         const opts = isRepoNativeLink(link.doc.relPath) ? REPO_OPTS : SITE_OPTS
         const target = resolveLink(link, c, opts)
+        // A `self` or `document` target with no verdict is a line after `?plain=1`: not judged.
         if ((target.kind === 'self' || target.kind === 'document') && target.fragment)
           fragments.checked++
-        else if (target.kind === 'not-in-corpus' || target.kind === 'directory')
-          fragments.notJudged++
+        else if (target.kind !== 'external' && target.kind !== 'missing') fragments.notJudged++
       }
       return []
     },
