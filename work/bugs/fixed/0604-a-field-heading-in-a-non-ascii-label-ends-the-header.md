@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-11-02 on `main` at 39ee7ebd; no red test yet. Revised the same day
-  after PR #298's method review, which measured the continuation case and the silent skip below.
+- **State:** Fixed — a label's letters are Unicode letters in both shape tests (2026-11-04).
+  Measured 2026-11-02 on `main` at 39ee7ebd.
 - **Severity:** High — a false green. A value rule over `region: 'header'` silently skips a record
   whose header holds a non-ASCII field heading, so its value is never judged and nothing says so; and
   a value continued over lines runs on into a non-ASCII plain label below it, so the rule judges a
@@ -55,27 +55,33 @@ that are ASCII.
 - `fields()`' header boundary (`headerEnd`, `fields.ts:145-156`), through `LABEL_HEADING`;
 - `fields()`' value continuation (`fields.ts:200`), through `PLAIN_LABEL` in `opensWithLabelShape`;
 - the ledger's state reading (`packages/md/src/rules/ledger.ts:325,341,385`), whose behaviour on a
-  non-ASCII label is not measured here. [Plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md)
+  non-ASCII label is not measured here. [Plan 0498](../../plans/0498-honestyatclose-places-a-record-with-block-5.md)
   moves that reading onto `fields()`, so after it the ledger rows below read through the first two.
 
 ## Fix
 
-Not designed. The direction: a label's letters are Unicode letters (`\p{L}`, with the `u` flag) in
-both shape tests, so `## Größe: F7` continues a header and `Größe: F7` ends a value above it, as
-their ASCII twins do. The fix measures the ledger's reading of a non-ASCII state label and every
-caller of `PLAIN_LABEL`, and says what each now does.
+`LABEL_HEADING` and `PLAIN_LABEL` (`packages/md/src/model/label.ts`) read a label's letters as
+`\p{L}`, with the `u` flag, so `## Größe: F7` continues a header and `Größe: F7` ends a value above
+it, as their ASCII twins do. Their callers, measured: `fields()`' header boundary (`headerEnd`) and
+value continuation (through `opensWithLabelShape`) now read a non-ASCII label as an ASCII one; the
+ledger's state reading (`packages/md/src/rules/ledger.ts`) already read `## Zustände: Done` and
+`**Zustände:** Done` before the fix (the wrapped form never used these shapes) and still does,
+pinned below. Nothing else builds on either regex's source.
 
 ## Verification
 
-- [ ] Red first: `## Größe: F7` continues a header; `**Owner:**` below it is read in
-      `region: 'header'`, and so is the heading's own value.
-- [ ] Red first: over two records, the value rule above judges `b.md`'s `Owner` (red, `Zed` is not
-      `Ann` or `Bob`), and `examined` is 2.
-- [ ] Red first: `**Owner:** Ann` above `Größe: F7` reads `Ann`.
-- [ ] `## Area: F7` and `Area: F7` read as before; a non-label heading (`## Background`) still ends
-      the header.
-- [ ] The ledger's reading of a non-ASCII state label is measured and pinned by a row.
-- [ ] A changeset naming `@nielspeter/eess-md`.
-- [ ] `npm run validate` green.
+- [x] Red first: `## Größe: F7` continues a header; `**Owner:**` below it is read in
+      `region: 'header'`, and so is the heading's own value: `packages/md/tests/builders/fields-non-ascii-label.test.ts` ·
+      `it('## Größe: F7 continues the header, its own value and the bold field below are read')`;
+      three of the file's rows red against main's `label.ts` (measured).
+- [x] Red first: over two records, the value rule above judges `b.md`'s `Owner` (red, `Zed` is not
+      `Ann` or `Bob`), and `examined` is 2: `it('a value rule over the header judges every record')`.
+- [x] Red first: `**Owner:** Ann` above `Größe: F7` reads `Ann`: `it('a continued value ends at a non-ASCII plain label')`.
+- [x] `## Area: F7` and `Area: F7` read as before; a non-label heading (`## Background`) still ends
+      the header: `it('ASCII labels read as before, and a heading that is no label still ends the header')`.
+- [x] The ledger's reading of a non-ASCII state label is measured and pinned by a row:
+      `it('the ledger reads a state under a non-ASCII heading label')` (green before the fix too).
+- [x] A changeset naming `@nielspeter/eess-md`: `.changeset/a-non-ascii-label-is-a-label.md`.
+- [x] `npm run validate` green.
 
 Deferred: none
