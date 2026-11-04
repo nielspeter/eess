@@ -45,9 +45,11 @@ function remedyOf(l: MdOneReadingLink): string {
     return l.definition === undefined
       ? 'Move the link out of the line-1 `---` block, so both readers agree.'
       : `Move the definition of [${l.definition.label}] (line ${String(l.definition.line)}) out of the line-1 \`---\` block, so both readers agree.`
-  return l.definition === undefined
-    ? 'Close in the line-1 `---` block what it opens (a fence, a comment, an HTML element), so both readers agree.'
-    : `Remove one of the two definitions of [${l.definition.label}], the one in the line-1 \`---\` block or the one at line ${String(l.definition.line)}, so both readers agree.`
+  // The shadowing remedy only where the block defines the label itself; otherwise what the block
+  // opens swallowed the reference and its definition, and closing it is the fix (the review).
+  return l.definition !== undefined && l.shadowedAt !== undefined
+    ? `Remove one of the two definitions of [${l.definition.label}], the one in the line-1 \`---\` block (line ${String(l.shadowedAt)}) or the one at line ${String(l.definition.line)}, so both readers agree.`
+    : 'Close in the line-1 `---` block what it opens (a fence, a comment, an HTML element), so both readers agree.'
 }
 
 /**

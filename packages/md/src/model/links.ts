@@ -419,6 +419,12 @@ export function linksOf(doc: MdDocument): MdLinkRef[] {
  */
 export interface MdOneReadingLinkRef extends MdLinkRef {
   readonly onlyWhere: 'markdown' | 'front-matter'
+  /**
+   * For a reference only the front-matter reading holds: the line of the block's own definition of
+   * its label, which the Markdown reading uses instead, when there is one. Absent when the block
+   * defines no such label (the reference and its definition were swallowed by what the block opens).
+   */
+  readonly shadowedAt?: number
 }
 
 /** A document's internal links only the reading `parseMarkdown` did not pick holds, once per document. */
@@ -429,13 +435,34 @@ export function oneReadingLinksOf(doc: MdDocument): MdOneReadingLinkRef[] {
   let found: MdOneReadingLinkRef[] = []
   if (other !== undefined) {
     const key = (l: MdLinkRef): string => `${String(l.line)}\u0000${l.url}`
-    const seen = new Set(collectLinks(doc.root, doc.text).map(key))
+    const pickedLinks = collectLinks(doc.root, doc.text)
+    const seen = new Set(pickedLinks.map(key))
+    // The block's last line, from the reading that reads it as front matter.
+    const fm = doc.root.children[0]?.type === 'yaml' ? doc.root.children[0] : other.children[0]
+    const blockEnd = fm?.type === 'yaml' ? (fm.position?.end.line ?? 0) : 0
+    const shadowedAt = (l: MdLinkRef): { readonly shadowedAt?: number } => {
+      if (l.definition === undefined) return {}
+      const label = l.definition.label.toLowerCase()
+      const shadow = pickedLinks.find(
+        (p) =>
+          p.line === l.line &&
+          p.definition !== undefined &&
+          p.definition.label.toLowerCase() === label &&
+          p.definition.line <= blockEnd,
+      )
+      return shadow?.definition === undefined ? {} : { shadowedAt: shadow.definition.line }
+    }
     const onlyWhere = doc.root.children[0]?.type === 'yaml' ? 'markdown' : 'front-matter'
     // Internal links only: a URL in a YAML value (`homepage: https://…`) is metadata to the reading
     // that drops the block, and reporting it would red ordinary front matter.
     found = collectLinks(other, doc.text)
       .filter((l) => !l.external && !seen.has(key(l)))
-      .map((l) => ({ ...l, onlyWhere, sectionPath: sectionPathAt(doc, l.line) }))
+      .map((l) => ({
+        ...l,
+        onlyWhere,
+        ...(onlyWhere === 'front-matter' ? shadowedAt(l) : {}),
+        sectionPath: sectionPathAt(doc, l.line),
+      }))
   }
   oneReadingOf.set(doc, found)
   return found

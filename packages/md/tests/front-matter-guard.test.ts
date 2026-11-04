@@ -293,6 +293,12 @@ describe('a link only one reading holds is reported, never judged (bugs 0572, 06
         '---\na: |\n\n  - [ ] t\n\n  [g]: ./b.md\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: ./c.md\n',
         '---\na: |\n\n  - [ ] t\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: ./c.md\n',
       ],
+      // A reference and its only definition swallowed: closing the fence clears it, and the remedy
+      // says so rather than to remove a definition the block does not hold.
+      [
+        '---\na: |\n\n  - [ ] t\n\n  ```\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: ./b.md\n\n```\n',
+        '---\na: |\n\n  - [ ] t\n\n  ```\n  x\n  ```\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: ./b.md\n\n```\n',
+      ],
       [
         '---\na: |\n\n  [t](./b.md)\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./b.md)\n',
         '---\na: |\n\n  [t](./b.md)\n\n  ```\n  x\n  ```\nb: c\n---\n\n# A\n\n[bad](./b.md)\n',
@@ -302,6 +308,28 @@ describe('a link only one reading holds is reported, never judged (bugs 0572, 06
       expect([before, oneReading(before).length]).toEqual([before, 1])
       expect([after, oneReading(after).length]).toEqual([after, 0])
     }
+  })
+
+  it('a swallowed reference is told to close what the block opens, not to remove a definition', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  - [ ] t\n\n  ```\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: ./b.md\n\n```\n',
+      'docs/b.md': '# B\n',
+    }).filter((x) => x.ruleId === ONE_READING_LINK)
+    expect(v.map((x) => x.suggestion)).toEqual([
+      'Close in the line-1 `---` block what it opens (a fence, a comment, an HTML element), so both readers agree.',
+    ])
+  })
+
+  it('a shadowed body definition is told which two definitions to choose between', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: |\n\n  - [ ] t\n\n  [g]: ./b.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [g].\n\n[g]: ./gone.md\n',
+      'docs/b.md': '# B\n',
+    }).filter((x) => x.ruleId === ONE_READING_LINK)
+    expect(v.map((x) => x.suggestion)).toEqual([
+      'Remove one of the two definitions of [g], the one in the line-1 `---` block (line 6) or the one at line 16, so both readers agree.',
+    ])
   })
 
   it('two links on one line to one URL are one finding', () => {
