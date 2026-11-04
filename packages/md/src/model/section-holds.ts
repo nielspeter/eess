@@ -48,7 +48,11 @@ function heldLines(doc: MdDocument): HeldLines {
   walk(doc.root)
   const fresh = {
     listItems,
-    links: linksOf(doc).map((l) => l.line),
+    // The picked reading's links only: a section's structure comes from that reading, and a link
+    // only the other one holds must not make a section hold a link its reader never sees (spike 0613).
+    links: linksOf(doc)
+      .filter((l) => l.onlyWhere === undefined)
+      .map((l) => l.line),
     pointers: extractPointers(doc.text, doc.root).map((p) => p.line),
     unreadLinks: unreadLinksIn(doc),
   }

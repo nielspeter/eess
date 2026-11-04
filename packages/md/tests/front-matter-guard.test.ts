@@ -121,7 +121,8 @@ describe('a definition in a front-matter block, as main reads it (bug 0572)', ()
     expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
       '14 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g])',
     ])
-    expect(v.examined).toBe(2)
+    // Since spike 0613 the block's own `[g]` (Markdown reading, to `./b.md`) is examined too.
+    expect(v.examined).toBe(3)
   })
 
   it('a second label the body also defines: the body’s broken target is reported', () => {
@@ -139,6 +140,7 @@ describe('a definition in a front-matter block, as main reads it (bug 0572)', ()
     const v = resolveOf({
       'docs/a.md':
         '---\na: |\n\n  [x]: ./b.md\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./gone.md)\n\n```\n\nSee [x].\n',
+      'docs/b.md': '# B\n',
     })
     expect(v.map((x) => `${String(x.line)} ${x.message}`)).toEqual([
       '12 broken link: "./gone.md" does not resolve to a file in the repo',
@@ -159,5 +161,103 @@ describe('a definition in a front-matter block, as main reads it (bug 0572)', ()
   it('ordinary front matter beside a body reference and its body definition stays front matter', () => {
     const text = '---\ntitle: Doc\ntags: [a, b]\n---\n\n# Doc\n\nSee [g].\n\n[g]: ./adr.md\n'
     expect(titleOf(text)).toEqual([])
+  })
+})
+
+// Spike 0613: a link either reader sees is examined. One reading drops a line-1 `---` block as front
+// matter (a renderer: GitHub, VitePress); the other reads the whole document as Markdown (bug 0087's
+// reader). `links()` examines the union, so a broken link a reader can follow is never hidden by
+// which reading eess-md picks for the document's structure.
+describe('a link either reader sees is examined (bugs 0572, 0610, 0611, 0612)', () => {
+  const BODY = '\n# A\n\n[ok](./b.md)\n\nSee [g].\n\n[g]: ./gone.md\n'
+  const broken = (text: string): string[] =>
+    resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n' }).map(
+      (x) => `${String(x.line)} ${x.message}`,
+    )
+
+  it('the 0572 case: a definition in the block that a body reference uses', () => {
+    expect(
+      broken('---\na: |\n\n  [x]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [x].\n'),
+    ).toEqual([
+      '4 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [x]) — a link only where the line-1 `---` block is read as Markdown',
+    ])
+  })
+
+  it('the 0572 case: the definition written as a YAML key', () => {
+    expect(broken('---\n[x]: ./gone.md\n---\n\n# A\n\nSee [x].\n')).toEqual([
+      '2 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [x]) — a link only where the line-1 `---` block is read as Markdown',
+    ])
+  })
+
+  it('the 0610 case: a block read as Markdown for another reason still has the body definition checked', () => {
+    for (const block of [
+      '---\na: |\n\n  - [ ] t\n\n  [g]: ./b.md\nb: c\n---\n',
+      '---\na: b\na: c\n\n[g]: ./b.md\n---\n',
+      '---\na: |\n\n  [t](./b.md)\n\n  [g]: ./b.md\nb: c\n---\n',
+    ])
+      expect(broken(block + BODY)).toEqual(
+        [
+          '14 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g]) — a link only where the line-1 `---` block is front matter',
+        ].map((s) =>
+          s.replace(/^14/, String((block + BODY).split('\n').indexOf('[g]: ./gone.md') + 1)),
+        ),
+      )
+  })
+
+  it('the 0611 case: an <a href> in a YAML value', () => {
+    expect(broken('---\na: <a href="./gone.md">x</a>\n---\n\n# A\n\n[ok](./b.md)\n')).toEqual([
+      '2 broken link: "./gone.md" does not resolve to a file in the repo — a link only where the line-1 `---` block is read as Markdown',
+    ])
+  })
+
+  it('the 0612 case: a fence opened in the block does not swallow a body link', () => {
+    expect(
+      broken('---\na: |\n\n  [t](./b.md)\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./gone.md)\n\n```\n'),
+    ).toEqual([
+      '12 broken link: "./gone.md" does not resolve to a file in the repo — a link only where the line-1 `---` block is front matter',
+    ])
+  })
+
+  it('the 0572 case: the block’s definition is checked though the body defines the label externally', () => {
+    expect(
+      broken(
+        '---\na: |\n\n  [g]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md) See [g].\n\n[g]: https://example.com\n',
+      ),
+    ).toEqual([
+      '4 broken link: "./gone.md" does not resolve to a file in the repo (the definition of [g]) — a link only where the line-1 `---` block is read as Markdown',
+    ])
+  })
+
+  it('the 0611 case: the reproduction examines both links; an external href in YAML adds none', () => {
+    const v = resolveOf({
+      'docs/a.md': '---\na: <a href="./gone.md">x</a>\n---\n\n# A\n\n[ok](./b.md)\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.examined).toBe(2)
+    const ext = resolveOf({
+      'docs/a.md': '---\na: <a href="https://example.com">x</a>\n---\n\n# A\n\n[ok](./b.md)\n',
+      'docs/b.md': '# B\n',
+    })
+    expect([ext.examined, ext.length]).toEqual([1, 0])
+  })
+
+  it('the 0612 case: a comment or a <pre> opened in the block does not swallow a body link', () => {
+    for (const opener of ['<!--', '<pre>'])
+      expect(
+        broken(
+          `---\na: |\n\n  [t](./b.md)\n\n  ${opener}\nb: c\n---\n\n# A\n\n[bad](./gone.md)\n`,
+        ).filter((f) => f.includes('./gone.md')),
+      ).toEqual([
+        '12 broken link: "./gone.md" does not resolve to a file in the repo — a link only where the line-1 `---` block is front matter',
+      ])
+  })
+
+  it('ordinary front matter adds no link', () => {
+    const v = resolveOf({
+      'docs/a.md': '---\ntitle: Doc\ntags: [a, b]\n---\n\n# Doc\n\nSee [g].\n\n[g]: ./b.md\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.examined).toBe(1)
+    expect(v.map((x) => x.message)).toEqual([])
   })
 })

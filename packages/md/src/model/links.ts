@@ -35,6 +35,12 @@ class ParserContractBroken extends Error {
 export interface MdLinkRef {
   /** Raw URL as written, e.g. `./other.md#section` or `https://example.com`. */
   readonly url: string
+  /**
+   * Set on a link only one reading of a line-1 `---` block holds (spike 0613): `markdown` when the
+   * block is read as Markdown, `front-matter` when it is dropped as front matter. `links()` examines
+   * both readings' links, and a finding about such a link says which reading holds it.
+   */
+  readonly onlyWhere?: 'markdown' | 'front-matter'
   /** Link text. */
   readonly text: string
   /** 1-based line in the source document. */
@@ -76,6 +82,7 @@ export interface MdLinkRef {
 // owner is `external.ts` (bug 0565).
 export { EXTERNAL_RE } from './external.js'
 import { EXTERNAL_RE } from './external.js'
+import { otherReading } from './prose.js'
 
 /**
  * A block that can hold a link (plan 0405): a paragraph or a list item.
@@ -404,11 +411,28 @@ export function collectLinks(root: Root, source?: string): readonly MdLinkRef[] 
  * link's `sectionPath`: the section index tables and sections read, not a second heading walk.
  */
 export function linksOf(doc: MdDocument): MdLinkRef[] {
-  return collectLinks(doc.root, doc.text).map((l) => ({
-    ...l,
-    sectionPath: sectionPathAt(doc, l.line),
-  }))
+  const known = unionOf.get(doc)
+  if (known !== undefined) return known
+  const picked = collectLinks(doc.root, doc.text)
+  const other = otherReading(doc.text, doc.root)
+  const key = (l: MdLinkRef): string => `${String(l.line)}\u0000${l.url}`
+  const seen = new Set(picked.map(key))
+  // The links only the reading not picked holds (spike 0613): a broken one is a link some reader
+  // follows, whichever reading the document's structure was taken from.
+  const onlyWhere = doc.root.children[0]?.type === 'yaml' ? 'markdown' : 'front-matter'
+  const extra =
+    other === undefined
+      ? []
+      : collectLinks(other, doc.text)
+          .filter((l) => !seen.has(key(l)))
+          .map((l): MdLinkRef => ({ ...l, onlyWhere }))
+  const all = [...picked, ...extra].map((l) => ({ ...l, sectionPath: sectionPathAt(doc, l.line) }))
+  unionOf.set(doc, all)
+  return all
 }
+
+/** Each document's links under both readings, built once per document. */
+const unionOf = new WeakMap<MdDocument, MdLinkRef[]>()
 
 /** A document's unread HTML links (plan 0580, R3), each with the sections that contain its line. */
 export function unreadLinksOf(doc: MdDocument): MdUnreadLinkRef[] {
