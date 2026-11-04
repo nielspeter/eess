@@ -313,7 +313,13 @@ be overruled.
 
 The kernel's zero-examined message offers `.expectEmpty()` and does not name "links written in a
 form this rule does not read" as a cause. That is a defect outside this proposal's scope, filed as
-[bug 0589](../bugs/0589-a-zero-examined-rule-names-expect-empty-but-not-an-unread-link-form.md).
+[bug 0589](../bugs/fixed/0589-a-zero-examined-rule-names-expect-empty-but-not-an-unread-link-form.md).
+
+_2026-11-04: [bug 0589](../bugs/fixed/0589-a-zero-examined-rule-names-expect-empty-but-not-an-unread-link-form.md) fixed the kernel's message, which no longer offers `.expectEmpty()` for this
+cause. It dropped the kernel slot its Fix proposed, so the false green it measured (a corpus of
+wikilinks plus `.expectEmpty()` passes) is this proposal's to close: a wikilink eess-md reports
+unread, as an unsuppressable finding like an unread HTML link, keeps the declaration from passing
+it. The kernel still does not move._
 
 ### Next step
 

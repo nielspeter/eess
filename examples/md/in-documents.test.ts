@@ -85,10 +85,12 @@ describe('a rule limited to the documents the caller chooses', () => {
     const [finding] = v
     // The kernel's zero-examined finding, whole: a corpus that failed to load says something else.
     expect(finding?.message).toBe(
-      'this rule examined zero units. If this is expected (the corpus is legitimately empty right ' +
-        'now), declare it explicitly with .expectEmpty() — otherwise this is a dead selector, an ' +
-        'empty project, or a rule that never reaches its own examining seam, and the fix is to ' +
-        'widen the selection, not to suppress this finding.',
+      'this rule examined zero units. Find the cause before acting, since each has its own fix: a dead ' +
+        'selector or an empty project (widen the selection, or load the source); subjects written in a ' +
+        'form this rule does not read, such as links in a syntax it does not parse (write them in a form ' +
+        'the rule reads); a rule that never reaches its own examining seam (fix the rule); or a source ' +
+        'that is legitimately empty right now, and only then declare it with .expectEmpty(). Do not ' +
+        'suppress this finding.',
     )
     expect(finding?.ruleId).toBe('in-documents/verification-guard')
     expect(finding?.bypassFilters).toBe(true)
