@@ -485,7 +485,7 @@ that changes one reds it (line 573's divergence included).
 - A fragment in an `href`: resolved as `self` here, checked by
   [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md).
 - `mentions()` still reporting an `<a>`'s text as unread while `links()` resolves its `href`: recorded
-  as [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md).
+  as [bug 0601](../../bugs/fixed/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md).
 - `mentions().select()` dropping an unread mention: [bug 0600](../../bugs/fixed/0600-select-drops-an-unread-mention-without-a-word.md).
 - A local link with a query string never resolving: fixed by
   [bug 0583](../../bugs/fixed/0583-a-local-link-with-a-query-string-never-resolves.md).
@@ -517,7 +517,7 @@ Architect and enforcement, on the freeze at af342dec. Both said Not ready. What 
   evidence side both ways, nonvacuity scenario 3 in a block, one row per reader change.
 - **Minor:** `title="a>b"` marked as a change (R1); `docs/markdown.md:701` restored; no `MdLink`
   marker (R9); the principle stated once; the follow-up given a home
-  ([bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md));
+  ([bug 0601](../../bugs/fixed/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md));
   rule 7 stated; the owner kept internal; dogfooding stated (Measured).
 
 ### Second re-check — 2026-11-01
@@ -709,7 +709,7 @@ Built as frozen (R6), with the declaration scan the Phase 2 review added to it:
   The close: the three Breaking changesets annotated on the decision, Files changed for Phase 3,
   [bug 0605](../../bugs/0605-promoted-means-a-plan-owns-the-ask-but-the-lane-promotes-when-it-ships.md)
   narrowed now that 022 left its scope, and [proposal 022](../../proposals/promoted/022-md-a-raw-html-link-is-resolved.md) naming
-  [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)
+  [bug 0601](../../bugs/fixed/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)
   for the part of its decision 2 this plan did not build.
 
 - **Two loose ends, closed in writing.** Of the three test-only `eess-exclude` comments Phase 1

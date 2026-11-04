@@ -180,7 +180,8 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
     '',
     '![bug 0005][img]',
     '',
-    'See <a href="./b.md">bug 0006</a> here.',
+    // Never closed, so where its link ends is unknown: unread (bug 0601 links a closed one).
+    'See <a href="./b.md">bug 0006 here.',
     '',
     '<!-- a --> bug 0007 <!-- b -->',
     '',
@@ -404,11 +405,7 @@ describe('mentions(): links written in HTML', () => {
       v.map(
         (x) => `${String(x.line)} ${x.ruleId ?? 'beLinked'}: ${x.message.split(' sits')[0] ?? ''}`,
       ),
-    ).toEqual([
-      '3 beLinked: "bug 0001" is not a link',
-      '9 beLinked: "bug 0004" is not a link',
-      '7 md/unread-mention: "bug 0003"',
-    ])
+    ).toEqual(['3 beLinked: "bug 0001" is not a link', '9 beLinked: "bug 0004" is not a link'])
   })
 })
 

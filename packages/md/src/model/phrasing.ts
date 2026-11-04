@@ -1,6 +1,6 @@
 import type { Nodes, Root } from 'mdast'
 import { headingName } from './document.js'
-import { isLinkStart, isOnlyComment, readHtmlNode } from './html-attributes.js'
+import { attributeOf, isLinkStart, isOnlyComment, readHtmlNode } from './html-attributes.js'
 
 /**
  * Phrasing runs (plan 0539): the inline text of each paragraph, heading and table cell, as segments
@@ -122,17 +122,29 @@ export function phrasingOf(
   const unread: UnreadText[] = []
   const lineOf = (node: Nodes): number => node.position?.start.line ?? 0
 
-  /** One block's inline walk. Text inside an HTML `<a>…</a>` goes to `htmlLink`, not the run. */
+  /**
+   * One block's inline walk. Text inside an HTML `<a href>…</a>` is held in `htmlLink` until its
+   * `</a>`, then joins the run linked to the tag's `href` (bug 0601), as text in a Markdown link is.
+   * An `<a>` the block never closes is reported unread: where its link ends is unknown.
+   */
   const run = (children: readonly Nodes[]): PhrasingRun[] => {
     const out: PhrasingSegment[] = []
     /** Link titles, each its own run, after the block's (document order). */
     const titles: PhrasingRun[] = []
-    let htmlLink: { text: string; line: number } | undefined
+    let htmlLink:
+      | { readonly url: string; readonly line: number; readonly segments: PhrasingSegment[] }
+      | undefined
 
     const push = (seg: PhrasingSegment): void => {
       if (htmlLink === undefined) out.push(seg)
-      else htmlLink.text += seg.text
+      else htmlLink.segments.push(seg)
     }
+    /** The `<a>`'s whole text, joined as a heading's is: inline code in backticks, ends trimmed. */
+    const textOfSegments = (segs: readonly PhrasingSegment[]): string =>
+      segs
+        .map((g) => (g.inCode ? '`' + g.text + '`' : g.text))
+        .join('')
+        .trim()
 
     const inline = (node: Nodes, link: PhrasingLink | undefined): void => {
       switch (node.type) {
@@ -198,17 +210,23 @@ export function phrasingOf(
           // An `<a>` inside a Markdown link is inside that link already.
           // The tag is read by the one HTML reader (plan 0580): `data-href` is not an `href`, and a
           // quoted `>` does not end the tag (bug 0593). Only an `<a>` holds text: an `<area>` is void.
-          if (
-            link === undefined &&
-            readHtmlNode(node, 'no-source').starts.some((t) => t.name === 'a' && isLinkStart(t))
-          )
-            htmlLink ??= { text: '', line: lineOf(node) }
-          else if (
-            htmlLink !== undefined &&
-            readHtmlNode(node, 'no-source').ends.some((e) => e.name === 'a')
-          ) {
-            unread.push({ text: htmlLink.text, line: htmlLink.line, cause: 'html-link' })
-            htmlLink = undefined
+          {
+            const read = readHtmlNode(node, 'no-source')
+            const start = read.starts.find((t) => t.name === 'a' && isLinkStart(t))
+            if (link === undefined && start !== undefined && htmlLink === undefined) {
+              htmlLink = {
+                url: attributeOf(start, 'href')?.value ?? '',
+                line: lineOf(node),
+                segments: [],
+              }
+            } else if (htmlLink !== undefined && read.ends.some((e) => e.name === 'a')) {
+              const held = htmlLink
+              htmlLink = undefined
+              const target = pointsNowhere(held.url)
+                ? undefined
+                : { url: held.url, text: textOfSegments(held.segments) }
+              for (const seg of held.segments) out.push(target ? { ...seg, link: target } : seg)
+            }
           }
           return
         default:
@@ -218,7 +236,8 @@ export function phrasingOf(
 
     for (const child of children) inline(child, undefined)
     if (htmlLink !== undefined) {
-      unread.push({ text: htmlLink.text, line: htmlLink.line, cause: 'html-link' })
+      const text = htmlLink.segments.map((g) => g.text).join('')
+      unread.push({ text, line: htmlLink.line, cause: 'html-link' })
     }
     return [{ segments: out }, ...titles]
   }

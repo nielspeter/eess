@@ -100,7 +100,7 @@ pulls out the `href` value. If it lands first, this bug is closed by reusing it.
       link" (`packages/md/tests/builders/mentions-html-reader.test.ts`; red with `OPENS_A` restored).
 - [x] Lines 3 and 11 keep today's findings.
 - [ ] `<A HREF="…">`, `<a href='…'>` and `<a href=./x.md>` are links; `<a name="x">` is not —
-      deferred→[bug 0601](../0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md):
+      deferred→[bug 0601](./0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md):
       the first two and `<a name>` are as written and tested; `<a href=./x.md>` is text to micromark
       (an unquoted `/`), and judging a mention in it needs the inline scan, which that bug's fix uses.
 - [ ] `<a :href="x">` stays a link — done-otherwise: it is not a link, by
@@ -109,4 +109,4 @@ pulls out the `href` value. If it lands first, this bug is closed by reusing it.
 - [x] A changeset naming `@nielspeter/eess-md` (`.changeset/one-html-reader.md`).
 - [x] `npm run validate` green.
 
-Deferred: [bug 0601](../0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)
+Deferred: [bug 0601](./0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)

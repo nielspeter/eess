@@ -778,7 +778,7 @@ bug [0338](…)       linked: the number alone in a link
   text is not read, because its target is a definition elsewhere, which `mentions()` does not
   join to it (`links()` reads the link itself). A mention in an HTML `<a>` is reported the same way,
   though `links()` now reads that `<a>`'s `href`: judging the mention by it is
-  [bug 0601](../work/bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)'s. Your rule's
+  [bug 0601](../work/bugs/fixed/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)'s. Your rule's
   predicates are asked about it as far as it is known (its document, line, text and captures): one
   that decides it out without its link, such as a path or section scope or
   `not(areSelfMentions(…))`, leaves it out; one that needs its link or whether it is in code cannot
