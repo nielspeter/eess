@@ -600,8 +600,15 @@ matter with a YAML error still appears as a section. When the heading a `haveTit
 names starts inside that block, the finding says why: "it is in the line-1 `---` block, read as
 Markdown, not as front matter, because" its YAML does not parse (the error and its line), it is not
 a YAML mapping, it holds no key, or it holds a task box or a link into the repository (its line).
-A definition in the block that a reference in the body uses is not judged: the block stays front
-matter and that link is not read ([bug 0572](../work/bugs/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md)).
+That decides the document's structure, and the links `links()` examines. A renderer such as
+GitHub or VitePress drops the block, while a reader of the whole document as Markdown does not
+([spike 0613](../work/spikes/0613-which-readers-the-front-matter-guard-answers-to.md)), and a link
+only one of them sees cannot be judged: the body reference a definition in the block resolves, or a
+body link a fence opened in a YAML value would swallow. Each such internal link a rule reaches is an
+unsuppressable `md/link-one-reading-holds` finding (`ONE_READING_LINK`) naming the link and which
+reading holds it, and `links().select()` refuses on it; an HTML link either reading cannot read is
+`md/unread-link`. Each finding names its remedy: move the link or its definition out of the block, remove one of two
+definitions of a label, or close in the block what it opens.
 `terms()`, `pointers()` and the ledger read front-matter lines in both cases. TOML (`+++`) front
 matter is not recognised and is read as Markdown.
 

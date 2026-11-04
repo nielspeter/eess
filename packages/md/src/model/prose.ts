@@ -118,6 +118,20 @@ export function frontMatterNotRead(
 }
 
 /**
+ * The reading of `text` that `parseMarkdown` did not pick, for a document opening with a line-1
+ * `---` block (spike 0613): the whole document as Markdown when the block was read as front matter,
+ * and the block as front matter when it was read as Markdown. `undefined` when the text opens with
+ * no such block. Parsed uncached: it is read for its links alone, which `links()` adds to the
+ * picked reading's, so a link either reader sees is examined.
+ */
+export function otherReading(text: string, picked: Root): Root | undefined {
+  if (!text.startsWith('---') && !text.startsWith('\uFEFF---')) return undefined
+  const asFrontMatter = fromMarkdown(text, WITH_FRONT_MATTER)
+  if (asFrontMatter.children[0]?.type !== 'yaml') return undefined
+  return picked.children[0]?.type === 'yaml' ? fromMarkdown(text, GFM_ONLY) : asFrontMatter
+}
+
+/**
  * Parse markdown — the one parser for eess-md: `corpus()` reads every document with it, and the
  * readers here default to it, so the two cannot disagree about where a code block or a section is.
  *

@@ -76,6 +76,7 @@ export interface MdLinkRef {
 // owner is `external.ts` (bug 0565).
 export { EXTERNAL_RE } from './external.js'
 import { EXTERNAL_RE } from './external.js'
+import { otherReading } from './prose.js'
 
 /**
  * A block that can hold a link (plan 0405): a paragraph or a list item.
@@ -410,12 +411,78 @@ export function linksOf(doc: MdDocument): MdLinkRef[] {
   }))
 }
 
+/**
+ * An internal link only one reading of a line-1 `---` block holds (spike 0613): `markdown` when the
+ * block is read as Markdown, `front-matter` when it is dropped as front matter. Not an element of
+ * `links()`: a renderer and a reader of the whole document disagree about it, so no condition can
+ * judge it, and each one a rule reaches is reported (ADR-021), as an unread link is.
+ */
+export interface MdOneReadingLinkRef extends MdLinkRef {
+  readonly onlyWhere: 'markdown' | 'front-matter'
+  /**
+   * For a reference only the front-matter reading holds: the line of the block's own definition of
+   * its label, which the Markdown reading uses instead, when there is one. Absent when the block
+   * defines no such label (the reference and its definition were swallowed by what the block opens).
+   */
+  readonly shadowedAt?: number
+}
+
+/** A document's internal links only the reading `parseMarkdown` did not pick holds, once per document. */
+export function oneReadingLinksOf(doc: MdDocument): MdOneReadingLinkRef[] {
+  const known = oneReadingOf.get(doc)
+  if (known !== undefined) return known
+  const other = otherReading(doc.text, doc.root)
+  let found: MdOneReadingLinkRef[] = []
+  if (other !== undefined) {
+    const key = (l: MdLinkRef): string => `${String(l.line)}\u0000${l.url}`
+    const pickedLinks = collectLinks(doc.root, doc.text)
+    const seen = new Set(pickedLinks.map(key))
+    // The block's last line, from the reading that reads it as front matter.
+    const fm = doc.root.children[0]?.type === 'yaml' ? doc.root.children[0] : other.children[0]
+    const blockEnd = fm?.type === 'yaml' ? (fm.position?.end.line ?? 0) : 0
+    const shadowedAt = (l: MdLinkRef): { readonly shadowedAt?: number } => {
+      if (l.definition === undefined) return {}
+      const label = l.definition.label.toLowerCase()
+      const shadow = pickedLinks.find(
+        (p) =>
+          p.line === l.line &&
+          p.definition !== undefined &&
+          p.definition.label.toLowerCase() === label &&
+          p.definition.line <= blockEnd,
+      )
+      return shadow?.definition === undefined ? {} : { shadowedAt: shadow.definition.line }
+    }
+    const onlyWhere = doc.root.children[0]?.type === 'yaml' ? 'markdown' : 'front-matter'
+    // Internal links only: a URL in a YAML value (`homepage: https://…`) is metadata to the reading
+    // that drops the block, and reporting it would red ordinary front matter.
+    found = collectLinks(other, doc.text)
+      .filter((l) => !l.external && !seen.has(key(l)))
+      .map((l) => ({
+        ...l,
+        onlyWhere,
+        ...(onlyWhere === 'front-matter' ? shadowedAt(l) : {}),
+        sectionPath: sectionPathAt(doc, l.line),
+      }))
+  }
+  oneReadingOf.set(doc, found)
+  return found
+}
+
+const oneReadingOf = new WeakMap<MdDocument, MdOneReadingLinkRef[]>()
+
 /** A document's unread HTML links (plan 0580, R3), each with the sections that contain its line. */
 export function unreadLinksOf(doc: MdDocument): MdUnreadLinkRef[] {
-  return collectLinkBlocks(doc.root, doc.text).unreadLinks.map((u) => ({
-    ...u,
-    sectionPath: sectionPathAt(doc, u.line),
-  }))
+  const picked = collectLinkBlocks(doc.root, doc.text).unreadLinks
+  // An HTML link either reading cannot read is reported, as a read one is examined (spike 0613):
+  // an unquoted `<a href=…/…>` in a YAML value, or in a body a fence opened in the block swallows.
+  const other = otherReading(doc.text, doc.root)
+  const key = (u: MdUnreadLinkRef): string => `${String(u.line)}\u0000${u.cause}`
+  const seen = new Set(picked.map(key))
+  const extra =
+    other === undefined
+      ? []
+      : collectLinkBlocks(other, doc.text).unreadLinks.filter((u) => !seen.has(key(u)))
+  return [...picked, ...extra].map((u) => ({ ...u, sectionPath: sectionPathAt(doc, u.line) }))
 }
 
 /** A link with its owning document attached — the element the builders and conditions operate on. */
