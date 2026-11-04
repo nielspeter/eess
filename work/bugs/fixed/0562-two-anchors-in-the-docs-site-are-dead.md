@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — found by PR #280's enforcement re-check, re-measured 2026-10-30; no fix yet.
+- **State:** Fixed — both links reach their sections (2026-11-03). Found by PR #280's enforcement
+  re-check, re-measured 2026-10-30.
 - **Severity:** Low — documentation drift: a reader following either link lands at the top of the
   page, not the section. The gate that should catch it is
   [bug 0136](./0136-link-fragments-are-never-checked.md)'s; this record is the drift itself.
@@ -32,11 +33,20 @@ from blocks` (`docs/markdown.md:897`). GitHub's slug is `a-documents-shape-built
 Point `/cli#doctor` at the section that documents `eess-ts doctor`, or add one if none exists; give
 the 0.15 migration link the anchor both renderers produce, or an explicit `{#id}` on the heading.
 
+**Built 2026-11-03.** `docs/cli.md` had no section about `eess-ts doctor`, so one was added
+(`### \`doctor\` — Diagnose Rules`, written from `packages/ts/src/cli/commands/doctor.ts`'s own
+account), and `/cli#doctor`now names its VitePress id,`/cli#doctor-—-diagnose-rules`; the site
+link is site-absolute, so GitHub's id does not apply. The heading the migration link names is now
+`## The shape of a document, built from blocks`, whose id is
+`the-shape-of-a-document-built-from-blocks`on both renderers, and the link and`packages/md/README.md`'s link to it name that id.
+
 ## Verification
 
-- [ ] `/cli#doctor` reaches a section about `eess-ts doctor`.
-- [ ] The migration link reaches its heading on the VitePress site and on GitHub.
-- [ ] `npm run validate` green.
+- [x] `/cli#doctor` reaches a section about `eess-ts doctor`: the gate, now judging fragments under
+      VitePress's rule for `docs/`, is green on it.
+- [x] The migration link reaches its heading on the VitePress site and on GitHub: both rules give
+      `the-shape-of-a-document-built-from-blocks` (measured with `slugify` and `github-slugger`).
+- [x] `npm run validate` green.
 
 Deferred: the gate that would have caught both →
 [bug 0136](./0136-link-fragments-are-never-checked.md).

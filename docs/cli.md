@@ -56,6 +56,19 @@ Records all existing violations so that `check --baseline` only fails on new one
 > silently; the fix is the array-export form above, or `report: 'builders'` on the
 > preset. See [Presets → `report`](./presets.md). See [Gradual Adoption](/core-concepts#baseline-mode) for details.
 
+### `doctor` — Diagnose Rules
+
+```bash
+npx eess-ts doctor arch.rules.ts
+npx eess-ts doctor arch.rules.ts --format json
+```
+
+Reports each rule that cannot enforce anything: a rule with no condition, a predicate written after
+`.should()` that leaves nothing to check, a selector glob that matches no file, and an exclusion that
+names no rule. It reads each rule's selection but does not evaluate its conditions, and exits 1 when
+it finds one. It diagnoses rule files the CLI can load; a rule hosted in a vitest or jest file is
+diagnosed by calling `diagnose()` from that file instead. It is not a build gate: `check` is.
+
 ### `explain` — Dump Rule Metadata
 
 ```bash

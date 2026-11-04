@@ -2816,6 +2816,41 @@ function gateCorpusHtmlLinks() {
   }
 }
 
+// Bug 0136: a fragment judged under the linking document's renderer's rule. The probe's heading is
+// `A document's shape`: GitHub's slug `a-documents-shape`, VitePress's `a-document-s-shape`. The site
+// probe links GitHub's form, dead under VitePress's rule; the repo probe links, across documents,
+// a name no heading of `work/bugs/BUGS.md` has.
+const CORPUS_PROBE_FRAGMENT_SITE_MD =
+  "# Non-vacuity probe\n\n## A document's shape\n\nSee [it](#a-documents-shape).\n"
+const CORPUS_PROBE_FRAGMENT_REPO_MD =
+  '# Non-vacuity probe\n\nSee [the board](./BUGS.md#__nonvacuity_no_such_anchor__).\n'
+
+function gateCorpusFragment(region) {
+  const [path, content, file, payload] =
+    region === 'site'
+      ? [
+          PROBE_CORPUS_LINK_SITE,
+          CORPUS_PROBE_FRAGMENT_SITE_MD,
+          '__nonvacuity_probe_site__',
+          '"#a-documents-shape" is no heading or anchor in this document under the VitePress anchor rule',
+        ]
+      : [
+          PROBE_CORPUS_LINK_REPO,
+          CORPUS_PROBE_FRAGMENT_REPO_MD,
+          '__nonvacuity_probe_repo__',
+          '"#__nonvacuity_no_such_anchor__" is no heading or anchor in work/bugs/BUGS.md under the GitHub anchor rule',
+        ]
+  const { json, terminal } = withProbe(path, content, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const fired = firedNamingPayload(json, 'corpus/broken-links', file, payload)
+  return {
+    ok: json.code === 1 && terminal.code === 1 && fired,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code}; ${region} fragment: ${fired ? 'fired' : 'MISSING'}`,
+  }
+}
+
 // The other half of the same split — `broken` unions two independently
 // filtered spreads (`scripts/check-corpus.mjs:115-118`), so a probe in only
 // one region cannot prove the other branch is wired. Two rows, not one,
@@ -5755,6 +5790,11 @@ const gates = [
         { dir: LANE_PROBE_DIR, relDir: LANE_PROBE_REL, id: 'corpus/record-number-in-title-lanes' },
       ),
   ],
+  // Bug 0136: a dead fragment, one row per routing region, appended so no other fixture changes
+  // shard. The site row's slug is GitHub-valid and VitePress-dead, so it reds only if the site's
+  // profile really passes VitePress's rule; the repo row's is dead under GitHub's, the default.
+  ['corpus/links/fragment-site', () => gateCorpusFragment('site')],
+  ['corpus/links/fragment-repo', () => gateCorpusFragment('repo')],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5893,6 +5933,8 @@ const GATE_FOR = {
     'corpus/adr',
     'corpus/links/site',
     'corpus/links/html',
+    'corpus/links/fragment-site',
+    'corpus/links/fragment-repo',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',

@@ -2,6 +2,7 @@ import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdLink } from '../model/links.js'
 import { mdViolation } from '../model/violation.js'
+import type { FragmentVerdict } from '../model/anchors.js'
 import {
   basenameIndex,
   linkTargets,
@@ -19,8 +20,10 @@ export type { LinkResolveOptions } from '../model/resolve-link.js'
 
 /**
  * Condition: every (internal) link resolves to a file in the corpus's repo tree.
- * Closes over the `Corpus` for the file index. External links and pure anchors
- * are skipped. `options` adds extensionless-link resolution (`tryExtensions`,
+ * Closes over the `Corpus` for the file index. External links are skipped. A
+ * `#fragment` on a loaded document, or on the linking document itself, is checked
+ * against its anchors under `options.anchorRule` (bug 0136); one that names no anchor,
+ * or does not decode, is reported. `options` adds extensionless-link resolution (`tryExtensions`,
  * `tryIndex`) for static-site corpora, and directory resolution
  * (`resolveDirectories`) for repo-hosted ones.
  *
@@ -49,6 +52,8 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
   }
 
   return {
+    // Kept as it was when fragments were not judged: a baseline entry keys on a rule's description,
+    // so changing it would bring every baselined broken link back as new (bug 0136).
     description: 'resolve to an existing file',
     evaluate: (links, ctx) => {
       // Bug 0558: a reference-style link's URL is its definition's, so a broken one is the
@@ -57,13 +62,37 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
       const reported = new Set<string>()
       return links.flatMap((link) => {
         const target = resolveLink(link, corpus, options)
-        if (
-          target.kind === 'external' ||
-          target.kind === 'self' ||
-          target.kind === 'document' ||
-          target.kind === 'not-in-corpus'
-        )
-          return []
+        if (target.kind === 'self' || target.kind === 'document') {
+          const message = fragmentMessage(
+            link.url,
+            target.fragment,
+            target.kind === 'self' ? 'this document' : target.path,
+          )
+          if (message === undefined) return []
+          const def = link.definition
+          if (def !== undefined) {
+            const key = `${link.doc.relPath}:${String(def.line)}`
+            if (reported.has(key)) return []
+            reported.add(key)
+          }
+          const remedy = fragmentRemedy(target.fragment)
+          return [
+            mdViolation({
+              element: `${link.doc.relPath} → ${link.url}`,
+              file: link.doc.file,
+              line: def?.line ?? link.line,
+              message: message + (def === undefined ? '' : ` (the definition of [${def.label}])`),
+              sourceText: link.doc.text,
+              context: {
+                ...ctx,
+                // Absent, not empty, when neither the fragment nor the rule names a remedy.
+                suggestion:
+                  [remedy, ctx.suggestion].filter((x) => x !== undefined).join(' ') || undefined,
+              },
+            }),
+          ]
+        }
+        if (target.kind === 'external' || target.kind === 'not-in-corpus') return []
         if (target.kind === 'directory' && options.resolveDirectories === true) return []
         const hint = target.kind === 'directory' ? directoryHint(link, target.path) : ''
         const def = link.definition
@@ -88,4 +117,48 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
       })
     },
   }
+}
+
+/**
+ * The finding for a fragment that reached no anchor (bug 0136): the fragment as written, the target
+ * and the rule that judged it, and nothing that changes when the target's other headings do, so a
+ * baseline entry for it holds. `undefined` when there is no fragment or it was found.
+ */
+function fragmentMessage(
+  url: string,
+  verdict: FragmentVerdict | undefined,
+  where: string,
+): string | undefined {
+  if (verdict === undefined || verdict.kind === 'found') return undefined
+  // A pure `#fragment` is named once, not as its URL and again as its fragment.
+  const written = url === `#${verdict.fragment}` ? `"${url}"` : `"${url}" — "#${verdict.fragment}"`
+  if (verdict.kind === 'malformed') {
+    return `broken fragment: ${written} is not valid percent-encoding`
+  }
+  if (verdict.uncounted !== undefined) {
+    const { element, attribute } = verdict.uncounted
+    const article = /^[aeiou]/.test(element) ? 'an' : 'a'
+    return (
+      `broken fragment: ${written} names the ${attribute} of ${article} <${element}> in ${where}, ` +
+      `which the ${verdict.rule} anchor rule does not count as an anchor`
+    )
+  }
+  return `broken fragment: ${written} is no heading or anchor in ${where} under the ${verdict.rule} anchor rule`
+}
+
+/** The remedy for a fragment finding: the anchors nearest to it, and the rule it was judged by. */
+function fragmentRemedy(verdict: FragmentVerdict | undefined): string | undefined {
+  if (verdict === undefined || verdict.kind !== 'absent') return undefined
+  const rule = 'If the target is published by another renderer, pass its rule as `anchorRule`.'
+  if (verdict.uncounted !== undefined) {
+    return `Point the fragment at a heading or an anchor the ${verdict.rule} rule counts. ${rule}`
+  }
+  const nearest =
+    verdict.nearest.length === 0
+      ? 'Point the fragment at a heading or anchor in the target.'
+      : `The nearest: ${verdict.nearest.map((id) => `#${id}`).join(', ')}` +
+        (verdict.caseOnly === undefined
+          ? '.'
+          : ` (#${verdict.caseOnly} differs only in letter case).`)
+  return `${nearest} ${rule}`
 }

@@ -1,7 +1,7 @@
 # Spike 0574: what checking a link's fragment needs
 
-Measured 2026-11-01 for [bug 0136](../bugs/0136-link-fragments-are-never-checked.md) and
-[bug 0562](../bugs/0562-two-anchors-in-the-docs-site-are-dead.md), time-boxed to about an hour,
+Measured 2026-11-01 for [bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md) and
+[bug 0562](../bugs/fixed/0562-two-anchors-in-the-docs-site-are-dead.md), time-boxed to about an hour,
 then corrected by PR #286's architect and enforcement reviews (see "Corrections"). It ran as
 throwaway scripts in a scratch directory against the built packages of `main` at 7ba8bbe3
 (eess-md 0.13.0), on Node 24.22.0 (Unicode 17.0), over this repository's `work/`, `adr/` and
@@ -10,7 +10,7 @@ throwaway scripts in a scratch directory against the built packages of `main` at
 
 ## The question
 
-[Bug 0136](../bugs/0136-link-fragments-are-never-checked.md)'s Fix grew open questions while it
+[Bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md)'s Fix grew open questions while it
 was a Draft. Each is a decision the build needs:
 
 1. Which rule turns a heading into its anchor, when renderers differ?
@@ -86,7 +86,7 @@ already routes, `scripts/check-corpus.mjs:278`), plus every `<a id>`/`<a name>`,
                                     GitHub's slug; VitePress's is a-document-s-shape-built-from-blocks
 ```
 
-These are [bug 0562](../bugs/0562-two-anchors-in-the-docs-site-are-dead.md)'s two, and no other. One
+These are [bug 0562](../bugs/fixed/0562-two-anchors-in-the-docs-site-are-dead.md)'s two, and no other. One
 link resolves on GitHub but would not on VitePress (`work/proposals/001-md-corpus-rule-coverage.md:115`);
 it lives in `work/`, which GitHub renders, so it is correct as written. A single rule for the whole
 repository would have called it dead, or missed the two above. No link crosses from one root to
@@ -207,9 +207,9 @@ both ship in one release: 0136 alone would give an adopter a `resolve()` that ch
 and passes others without a word. Each is a breaking minor of `@nielspeter/eess-md`, since
 `resolve()` newly reds on adopters' corpora.
 
-- **[Bug 0136](../bugs/0136-link-fragments-are-never-checked.md), narrowed:** decisions 1–3 and 6
+- **[Bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md), narrowed:** decisions 1–3 and 6
   for `self` and `document` targets, with a red test per break class, the
-  [bug 0562](../bugs/0562-two-anchors-in-the-docs-site-are-dead.md) fixes in the same PR (the gate
+  [bug 0562](../bugs/fixed/0562-two-anchors-in-the-docs-site-are-dead.md) fixes in the same PR (the gate
   goes red on them first), and a non-vacuity row per routing region.
 - **[Bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md):** decisions 4 and 5:
   the unloaded Markdown file, the line form, the directory, the not-judged finding, and the autofix.

@@ -740,7 +740,7 @@ any preset built on these blocks takes one `{ report }` option and merges throug
 5. **Blocks the walk is still missing**, added as asks: **14** what a section holds (non-empty, a
    code block, a table, a list item, a link); **15** sections in a given order; **16** a value
    agrees with the document's own path (a number in the filename and in the H1). A link's `#anchor`
-   resolving is a dependency, [bug 0136](../bugs/0136-link-fragments-are-never-checked.md), as wikilinks are [proposal 015](./015-md-wikilinks-are-read-or-reported.md). Freshness ("reviewed within
+   resolving is a dependency, [bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md), as wikilinks are [proposal 015](./015-md-wikilinks-are-read-or-reported.md). Freshness ("reviewed within
    N days") reads the clock, is Tier 3, and is out of scope.
 6. **Tiers.** Every block is Tier 1. Block 10 is Tier 1 because it proves a cited title exists, not
    that the test proves the claim.

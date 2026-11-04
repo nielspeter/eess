@@ -25,7 +25,7 @@
   - **One owner for reading HTML attributes** (`href`, `src`, `id`, `name`) in eess-md. `links()`
     reads it, and so do a future `images()` ([proposal 024](../../proposals/024-md-an-images-file-exists.md)'s
     Ask B), [spike 0574](../../spikes/0574-what-checking-a-link-fragment-needs.md)'s anchor sets
-    ([bug 0136](../../bugs/0136-link-fragments-are-never-checked.md)) and `mentions()`, whose use of
+    ([bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md)) and `mentions()`, whose use of
     `OPENS_A` (`packages/md/src/model/phrasing.ts:64` on `6bcd35e6`) it replaces.
   - **Scope:** `<a>` and `<area>`, in any letter case, quoted or unquoted. A detector wider than the
     reader finds every `<a` or `<area` tag start; what it finds and the reader cannot extract is
@@ -216,7 +216,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   the tokenizer does.
 - **R2. Not read, and not reported:** `:href`, `v-bind:href`, `data-href`, `xlink:href`, a component's
   `href` prop, and an `<a name>` or `<a id>` with no `href`, which is an anchor left to
-  [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md). The docs list each by name. _This
+  [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md). The docs list each by name. _This
   overrules the review's decision 3 for `:href` and `v-bind:href`, which listed them as reported
   unread (the principle above)._
 - **R3. Unread, with a cause.** The detector is the owner. Every `<a` or `<area` start the owner
@@ -226,7 +226,7 @@ One model module, `packages/md/src/model/html-attributes.ts`, internal to eess-m
   - **a named silence**, of which there are three: a start in an inline container that is not a §6.6
     tag (GitHub renders it as text, measured); a §6.6 tag in an inline container with no `href`
     (`<a name=a/b>`, Q7, an anchor left to
-    [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md), which this owner does not read for
+    [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md), which this owner does not read for
     it); and an unfinished start inside a tagfilter element (D5).
 
   A suite row pins the invariant over every Measured row and every P, Q and B probe. The causes,
@@ -313,7 +313,7 @@ state each change, and each has a suite row:
   `<a><img></a>` (13 of the 14 block-level links the review measured).
 - Pinned because honest but surprising: `href=""` and a valueless `href` resolve as `self`;
   `href="#…"` resolves as `self`, its fragment left to
-  [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md); `javascript:` is external by
+  [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md); `javascript:` is external by
   `EXTERNAL_RE` (`packages/md/src/model/external.ts:6`); a templated `href` (`{{ site.baseurl }}`)
   is red as missing, as its Markdown twin is; JavaScript inside a `<script>` that builds a tag the
   tokenizer can finish (`"<a href=\"./x.md\">"`) is read and resolved (D5), and a broken one is an
@@ -353,7 +353,7 @@ dispositions below correct it.
 - [ ] The break statement and the impact on each reader — done-otherwise: "What changes for each
       reader of `links()`".
 - [ ] Suite rows and two or three nonvacuity scenarios — done-otherwise: the Test inventory.
-- [ ] [Bug 0136](../../bugs/0136-link-fragments-are-never-checked.md) named as a consumer of the
+- [ ] [Bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md) named as a consumer of the
       owner — done-otherwise: the Status block's second decision.
 - [ ] Open question 1 — done-otherwise: D1 and D7, a tag tokenizer of the owner's own (HTML's in an
       `html` node, CommonMark's in a `text` node), with no parser dependency and no ADR.
@@ -483,7 +483,7 @@ that changes one reds it (line 573's divergence included).
 - An autofix for an `href` (D9).
 - `<img src>`: [proposal 024](../../proposals/024-md-an-images-file-exists.md) Ask B, on Phase 1's owner.
 - A fragment in an `href`: resolved as `self` here, checked by
-  [bug 0136](../../bugs/0136-link-fragments-are-never-checked.md).
+  [bug 0136](../../bugs/fixed/0136-link-fragments-are-never-checked.md).
 - `mentions()` still reporting an `<a>`'s text as unread while `links()` resolves its `href`: recorded
   as [bug 0601](../../bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md).
 - `mentions().select()` dropping an unread mention: [bug 0600](../../bugs/0600-select-drops-an-unread-mention-without-a-word.md).

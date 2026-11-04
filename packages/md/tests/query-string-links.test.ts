@@ -47,7 +47,11 @@ describe('a local link with a query string resolves to its file (bug 0583)', () 
 
 describe('the path ends at the first `?` or `#`, whichever comes first (bug 0583)', () => {
   it('a `?` after a `#` is part of the fragment, so the path is the file', () => {
-    const v = resolveOf({ 'docs/readme.md': page('[x](./a.md#x?y)'), 'docs/a.md': '# A\n' })
+    // The fragment `x?y` is judged since bug 0136, so `a.md` holds an anchor of that name.
+    const v = resolveOf({
+      'docs/readme.md': page('[x](./a.md#x?y)'),
+      'docs/a.md': '# A\n\n<a id="x?y"></a>\n',
+    })
     expect(v.map((x) => x.message)).toEqual([])
     expect(v.examined).toBe(1)
   })

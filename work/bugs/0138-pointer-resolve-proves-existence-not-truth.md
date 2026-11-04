@@ -126,7 +126,7 @@ says nothing about whether that file still contains what the linking prose
 describes — but this record's Reproduction and root cause are scoped to
 pointers, the case actually measured. Extending the claim to links without
 measuring it would repeat the exact failure this bug is about;
-[0136](./0136-link-fragments-are-never-checked.md) already measured one
+[0136](./fixed/0136-link-fragments-are-never-checked.md) already measured one
 instance of it (`linkResolves` discards the fragment, so a dead anchor is
 green) without generalizing to the claim made here.
 [0128](./0128-enforcement-status-is-the-cell-nothing-derives.md) is the same
