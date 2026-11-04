@@ -70,7 +70,7 @@ reading not picked is parsed uncached, as `parseUncached` does.
 
 ## 4. Decision
 
-1. **For links, the guard answers to both readers.** `links()` examines the union of the links
+1. **For links, the guard answers to both readers** (built as findings, not elements: see Corrections). `links()` examines the union of the links
    each reading holds, keyed by line and URL; a link only one reading holds is examined and, when
    it fails, its finding says which reading holds it. This closes
    [bug 0572](../bugs/fixed/0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md),
@@ -101,3 +101,16 @@ decision 3's claim that nothing is left unjudged was false:
 - **Unread HTML links.** An unquoted `<a href=…/…>` in a YAML value, or in a body a construct opened
   in the block swallows, was silently green: unread links were not in the union. They are now,
   keyed by line and cause, so either reading's unread link is reported.
+
+**A second correction: the union is replaced.** The review's re-check measured that a condition passed
+through `.should().satisfy()` received the links only one reading holds, so a condition asking
+whether some link exists ("a link to `./b.md`") passed where main was red: adding links is
+fail-closed for a rule that checks each link and fail-open for one that asks whether one exists, and
+each door patched leaves the next. So decision 1 is built in [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s
+shape instead: a link only one reading holds is **not an element**, and each one a rule's predicates
+reach is an unsuppressable finding, `md/link-one-reading-holds`, naming the link and the reading, as
+an unread link is. No condition sees it, `select()` refuses on it, and every reproduction of section
+2 is red. The cost: a link only one reading holds is red even where it resolves, because the two
+readers disagree whether it is there; section 1 found no such link in a real file. An external link
+a construct opened in the block swallows is still unseen, as on main, since only internal links
+count.

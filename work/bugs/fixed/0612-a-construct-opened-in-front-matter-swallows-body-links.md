@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Fixed — `links()` examines every link either reading of the block holds
+- **State:** Fixed — a link only one reading of the block holds is reported, never judged
   (2026-11-04, [spike 0613](../../spikes/0613-which-readers-the-front-matter-guard-answers-to.md)). Measured 2026-11-03 on main's front-matter guard.
 - **Severity:** High — a false green: a broken body link a renderer that drops front matter shows
   is never examined.
@@ -39,19 +39,22 @@ Not designed; the spike [bug 0572](./0572-a-definition-in-front-matter-hides-a-r
 is still examined after the block is read as Markdown, or the document is a finding the guard cannot
 judge.
 
-**Built 2026-11-04**, as [spike 0613](../../spikes/0613-which-readers-the-front-matter-guard-answers-to.md) decided: `links()` examines every link either reading of a line-1 `---`
-block holds. `linksOf` (`packages/md/src/model/links.ts`) adds to the picked reading's links those
-only the other reading holds (`otherReading`, `packages/md/src/model/prose.ts`), marked
-`onlyWhere`, and `resolve()`'s finding about one names the reading. The document's structure is
-unchanged, and `sections().haveLink()` and `beLinkedBack()`'s evidence keep the picked reading,
-where the union could only turn a finding green. One change closes [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md), [bug 0610](./0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md), [bug 0611](./0611-an-html-link-in-front-matter-is-hidden.md) and [bug 0612](./0612-a-construct-opened-in-front-matter-swallows-body-links.md),
-which share the root cause the spike names: a single reading chosen for links.
+**Built 2026-11-04**, from [spike 0613](../../spikes/0613-which-readers-the-front-matter-guard-answers-to.md) as corrected by its build's review: a link only one reading of a
+line-1 `---` block holds (`oneReadingLinksOf`, `packages/md/src/model/links.ts`, from
+`otherReading`, `packages/md/src/model/prose.ts`) is not an element of `links()`, so no condition or
+predicate can pass on it; each one a rule's predicates reach is an unsuppressable
+`md/link-one-reading-holds` finding (`packages/md/src/model/one-reading-link.ts`), naming the link and
+which reading holds it, as an unread link is ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)), and `select()` refuses on it. Only internal
+links count; an HTML link either reading cannot read is reported as `md/unread-link`. The first build
+added such links as elements, and the review measured that a `satisfy()` condition or a
+`correspondence()` could then pass on one, red on main, which is why they are findings instead.
+The document's structure is unchanged.
 
 ## Verification
 
 - [x] Red first: the reproduction reports `./gone.md`, or names why the document cannot be judged:
-      `packages/md/tests/front-matter-guard.test.ts` · `it('the 0612 case: a fence opened in the block does not swallow a body link')`, red on main.
-- [x] The `<!--` and `<pre>` forms, each pinned: `it('the 0612 case: a comment or a <pre> opened in the block does not swallow a body link')`.
+      `packages/md/tests/front-matter-guard.test.ts` · `it('the 0612 case: a fence, a comment or a <pre> opened in the block does not hide a body link')`, red on main.
+- [x] The `<!--` and `<pre>` forms, each pinned: the same row.
 - [x] A changeset naming `@nielspeter/eess-md`: `.changeset/a-link-either-reader-sees.md`.
 - [x] `npm run validate` green.
 

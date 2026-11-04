@@ -105,7 +105,7 @@ export type { ArchViolation } from './model/violation.js'
 
 // Entry points
 export { docs, DocsRuleBuilder } from './builders/docs.js'
-export { links, LinkRuleBuilder, UNREAD_LINK } from './builders/links.js'
+export { links, LinkRuleBuilder, ONE_READING_LINK, UNREAD_LINK } from './builders/links.js'
 export type { MdLink } from './builders/links.js'
 export type { MdLinkBlock, MdLinkDefinition } from './model/links.js'
 export type { LinkResolveOptions } from './conditions/resolve.js'

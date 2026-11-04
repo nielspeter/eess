@@ -35,12 +35,6 @@ class ParserContractBroken extends Error {
 export interface MdLinkRef {
   /** Raw URL as written, e.g. `./other.md#section` or `https://example.com`. */
   readonly url: string
-  /**
-   * Set on a link only one reading of a line-1 `---` block holds (spike 0613): `markdown` when the
-   * block is read as Markdown, `front-matter` when it is dropped as front matter. `links()` examines
-   * both readings' links, and a finding about such a link says which reading holds it.
-   */
-  readonly onlyWhere?: 'markdown' | 'front-matter'
   /** Link text. */
   readonly text: string
   /** 1-based line in the source document. */
@@ -411,31 +405,43 @@ export function collectLinks(root: Root, source?: string): readonly MdLinkRef[] 
  * link's `sectionPath`: the section index tables and sections read, not a second heading walk.
  */
 export function linksOf(doc: MdDocument): MdLinkRef[] {
-  const known = unionOf.get(doc)
-  if (known !== undefined) return known
-  const picked = collectLinks(doc.root, doc.text)
-  const other = otherReading(doc.text, doc.root)
-  const key = (l: MdLinkRef): string => `${String(l.line)}\u0000${l.url}`
-  const seen = new Set(picked.map(key))
-  // The links only the reading not picked holds (spike 0613): a broken one is a link some reader
-  // follows, whichever reading the document's structure was taken from.
-  const onlyWhere = doc.root.children[0]?.type === 'yaml' ? 'markdown' : 'front-matter'
-  // Internal links only: a URL in a YAML value (`homepage: https://…`) is metadata to the reading
-  // that drops the block, and adding it would red an external-link rule on ordinary front matter,
-  // and give a rule over all links a count where main reported it examined nothing (the review).
-  const extra =
-    other === undefined
-      ? []
-      : collectLinks(other, doc.text)
-          .filter((l) => !l.external && !seen.has(key(l)))
-          .map((l): MdLinkRef => ({ ...l, onlyWhere }))
-  const all = [...picked, ...extra].map((l) => ({ ...l, sectionPath: sectionPathAt(doc, l.line) }))
-  unionOf.set(doc, all)
-  return all
+  return collectLinks(doc.root, doc.text).map((l) => ({
+    ...l,
+    sectionPath: sectionPathAt(doc, l.line),
+  }))
 }
 
-/** Each document's links under both readings, built once per document. */
-const unionOf = new WeakMap<MdDocument, MdLinkRef[]>()
+/**
+ * An internal link only one reading of a line-1 `---` block holds (spike 0613): `markdown` when the
+ * block is read as Markdown, `front-matter` when it is dropped as front matter. Not an element of
+ * `links()`: a renderer and a reader of the whole document disagree about it, so no condition can
+ * judge it, and each one a rule reaches is reported (ADR-021), as an unread link is.
+ */
+export interface MdOneReadingLinkRef extends MdLinkRef {
+  readonly onlyWhere: 'markdown' | 'front-matter'
+}
+
+/** A document's internal links only the reading `parseMarkdown` did not pick holds, once per document. */
+export function oneReadingLinksOf(doc: MdDocument): MdOneReadingLinkRef[] {
+  const known = oneReadingOf.get(doc)
+  if (known !== undefined) return known
+  const other = otherReading(doc.text, doc.root)
+  let found: MdOneReadingLinkRef[] = []
+  if (other !== undefined) {
+    const key = (l: MdLinkRef): string => `${String(l.line)}\u0000${l.url}`
+    const seen = new Set(collectLinks(doc.root, doc.text).map(key))
+    const onlyWhere = doc.root.children[0]?.type === 'yaml' ? 'markdown' : 'front-matter'
+    // Internal links only: a URL in a YAML value (`homepage: https://…`) is metadata to the reading
+    // that drops the block, and reporting it would red ordinary front matter.
+    found = collectLinks(other, doc.text)
+      .filter((l) => !l.external && !seen.has(key(l)))
+      .map((l) => ({ ...l, onlyWhere, sectionPath: sectionPathAt(doc, l.line) }))
+  }
+  oneReadingOf.set(doc, found)
+  return found
+}
+
+const oneReadingOf = new WeakMap<MdDocument, MdOneReadingLinkRef[]>()
 
 /** A document's unread HTML links (plan 0580, R3), each with the sections that contain its line. */
 export function unreadLinksOf(doc: MdDocument): MdUnreadLinkRef[] {

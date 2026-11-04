@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Fixed — `links()` examines every link either reading of the block holds
+- **State:** Fixed — a link only one reading of the block holds is reported, never judged
   (2026-11-04, [spike 0613](../../spikes/0613-which-readers-the-front-matter-guard-answers-to.md)). Measured 2026-10-31 on PR #285's branch and on main. A first fix was withdrawn in PR #302 (Attempt
   1).
 - **Severity:** High — a false green: a broken reference-style link in the body passes when its
@@ -98,13 +98,16 @@ Found along the way: [bug 0609](../0609-a-setext-heading-after-a-definition-is-p
 [bug 0611](./0611-an-html-link-in-front-matter-is-hidden.md) and
 [bug 0612](./0612-a-construct-opened-in-front-matter-swallows-body-links.md).
 
-**Built 2026-11-04**, as [spike 0613](../../spikes/0613-which-readers-the-front-matter-guard-answers-to.md) decided: `links()` examines every link either reading of a line-1 `---`
-block holds. `linksOf` (`packages/md/src/model/links.ts`) adds to the picked reading's links those
-only the other reading holds (`otherReading`, `packages/md/src/model/prose.ts`), marked
-`onlyWhere`, and `resolve()`'s finding about one names the reading. The document's structure is
-unchanged, and `sections().haveLink()` and `beLinkedBack()`'s evidence keep the picked reading,
-where the union could only turn a finding green. One change closes [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md), [bug 0610](./0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md), [bug 0611](./0611-an-html-link-in-front-matter-is-hidden.md) and [bug 0612](./0612-a-construct-opened-in-front-matter-swallows-body-links.md),
-which share the root cause the spike names: a single reading chosen for links.
+**Built 2026-11-04**, from [spike 0613](../../spikes/0613-which-readers-the-front-matter-guard-answers-to.md) as corrected by its build's review: a link only one reading of a
+line-1 `---` block holds (`oneReadingLinksOf`, `packages/md/src/model/links.ts`, from
+`otherReading`, `packages/md/src/model/prose.ts`) is not an element of `links()`, so no condition or
+predicate can pass on it; each one a rule's predicates reach is an unsuppressable
+`md/link-one-reading-holds` finding (`packages/md/src/model/one-reading-link.ts`), naming the link and
+which reading holds it, as an unread link is ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)), and `select()` refuses on it. Only internal
+links count; an HTML link either reading cannot read is reported as `md/unread-link`. The first build
+added such links as elements, and the review measured that a `satisfy()` condition or a
+`correspondence()` could then pass on one, red on main, which is why they are findings instead.
+The document's structure is unchanged.
 
 ## Verification
 
@@ -112,9 +115,9 @@ which share the root cause the spike names: a single reading chosen for links.
       `packages/md/tests/front-matter-guard.test.ts` · `it('the 0572 case: a definition in the block that a body reference uses')`, red on main.
 - [x] The YAML-key form and the first-definition-wins variant, each decided and pinned:
       `it('the 0572 case: the definition written as a YAML key')` and
-      `it('the 0572 case: the block’s definition is checked though the body defines the label externally')`:
-      under the union each reader's definition is checked.
-- [x] Ordinary front matter beside body references stays front matter: `it('ordinary front matter adds no link')`,
+      `it('the 0572 case: the block’s definition behind an external body one')`:
+      each reader's definition is reported where only one reading holds it.
+- [x] Ordinary front matter beside body references stays front matter: `it('ordinary front matter adds nothing')`,
       and the "as main reads it" row for it.
 - [x] A changeset naming `@nielspeter/eess-md`: `.changeset/a-link-either-reader-sees.md`.
 - [x] `npm run validate` green.

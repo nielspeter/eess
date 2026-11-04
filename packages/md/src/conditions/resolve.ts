@@ -151,8 +151,7 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
             line: def?.line ?? link.line,
             message:
               `broken link: "${link.url}" does not resolve to a file in the repo${hint}` +
-              (def === undefined ? '' : ` (the definition of [${def.label}])`) +
-              onlyWhereNote(link.onlyWhere),
+              (def === undefined ? '' : ` (the definition of [${def.label}])`),
             sourceText: link.doc.text,
             fix: movedLinkFix(link, byBasename, corpus, options),
             context: ctx,
@@ -297,12 +296,4 @@ function fragmentRemedy(verdict: FragmentVerdict | undefined): string | undefine
           ? '.'
           : ` (#${verdict.caseOnly} differs only in letter case).`)
   return `${nearest} ${rule}`
-}
-
-/** For a link one reading of a line-1 `---` block alone holds (spike 0613), which reading it is. */
-function onlyWhereNote(where: 'markdown' | 'front-matter' | undefined): string {
-  if (where === undefined) return ''
-  return where === 'markdown'
-    ? ' — a link only where the line-1 `---` block is read as Markdown'
-    : ' — a link only where the line-1 `---` block is front matter'
 }

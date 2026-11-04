@@ -600,15 +600,15 @@ matter with a YAML error still appears as a section. When the heading a `haveTit
 names starts inside that block, the finding says why: "it is in the line-1 `---` block, read as
 Markdown, not as front matter, because" its YAML does not parse (the error and its line), it is not
 a YAML mapping, it holds no key, or it holds a task box or a link into the repository (its line).
-That decides the document's structure. Its links are read both ways
-([spike 0613](../work/spikes/0613-which-readers-the-front-matter-guard-answers-to.md)): a renderer
-such as GitHub or VitePress drops the block, a reader of the whole document as Markdown does not,
-and `links()` examines every internal link either reader sees, and reports every HTML link either reader cannot read. A link only one reading holds, such as the
-body reference a definition in the block resolves, or a body link a fence opened in a YAML value
-would swallow, is examined, and a finding about it ends "a link only where the line-1 `---` block is
-read as Markdown" (or "is front matter"); `MdLinkRef.onlyWhere` says which. `links().select()` refuses when it reaches such a
-link, as it does an unread one; `sections().haveLink()` and `beLinkedBack()`'s evidence read the
-reading the structure came from.
+That decides the document's structure, and the links `links()` examines. A renderer such as
+GitHub or VitePress drops the block, while a reader of the whole document as Markdown does not
+([spike 0613](../work/spikes/0613-which-readers-the-front-matter-guard-answers-to.md)), and a link
+only one of them sees cannot be judged: the body reference a definition in the block resolves, or a
+body link a fence opened in a YAML value would swallow. Each such internal link a rule reaches is an
+unsuppressable `md/link-one-reading-holds` finding (`ONE_READING_LINK`) naming the link and which
+reading holds it, and `links().select()` refuses on it; an HTML link either reading cannot read is
+`md/unread-link`. To clear one, move the link or its definition out of the block, or quote the YAML
+value that holds it.
 `terms()`, `pointers()` and the ledger read front-matter lines in both cases. TOML (`+++`) front
 matter is not recognised and is read as Markdown.
 

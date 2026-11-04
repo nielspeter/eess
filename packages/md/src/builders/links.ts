@@ -5,6 +5,13 @@ import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import type { Corpus } from '../corpus.js'
 import { linksOf, type MdLink, type MdLinkDefinition, type MdLinkRef } from '../model/links.js'
 import {
+  ONE_READING_LINK,
+  oneReadingFindings,
+  oneReadingLinksIn,
+  oneReadingReason,
+  type MdOneReadingLink,
+} from '../model/one-reading-link.js'
+import {
   UNREAD_LINK,
   unreadLinkFinding,
   unreadLinkReason,
@@ -31,7 +38,7 @@ export type { LinkResolveOptions } from '../conditions/resolve.js'
 export type { MdLink } from '../model/links.js'
 
 /** An HTML link this rule cannot read: one finding per site per rule, unsuppressable (plan 0580, R4). */
-export { UNREAD_LINK }
+export { ONE_READING_LINK, UNREAD_LINK }
 
 /** An unread link as a predicate sees it: where it sits is known; its URL, text and target are not. */
 function asSeen(u: MdUnreadLink): MdLink {
@@ -97,6 +104,12 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
     return stampedByDocument<MdLinkRef>(this.project, linksOf)
   }
 
+  /** The one-reading links (spike 0613) this rule's predicates reach: read in full, they are judged by them. */
+  private reachedOneReading(): ReturnType<typeof reachedUnread<MdLink, MdOneReadingLink>> {
+    const links = this.project.documents().flatMap((doc) => oneReadingLinksIn(doc))
+    return reachedUnread(links, this._predicates, (l: MdOneReadingLink): MdLink => l)
+  }
+
   /** The unread HTML links this rule's predicates reach (ADR-021 rule 4), and their causes. */
   private reachedUnread(): ReturnType<typeof reachedUnread<MdLink, MdUnreadLink>> {
     const unread = this.project.documents().flatMap((doc) => unreadLinksIn(doc))
@@ -115,10 +128,14 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
         .map((v) => `${v.file}:${String(v.line)}:${v.suggestion ?? ''}`),
     )
     const fresh = reached.filter((u) => !already.has(unreadSiteKey(u)))
+    const oneReading = this.reachedOneReading()
     return withUnread(
       base,
-      unreadLinkFindings(fresh, base.examined === 0),
-      undecided,
+      [
+        ...unreadLinkFindings(fresh, base.examined === 0),
+        ...oneReadingFindings(oneReading.reached),
+      ],
+      [...undecided, ...oneReading.undecided],
       this.buildConditionContext(),
     )
   }
@@ -142,24 +159,18 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
       })),
       'select()',
     )
-    const selection = super.select(opts)
     // A link only one reading of a line-1 `---` block holds (spike 0613): which links the selection
-    // holds depends on the reader, and a join over either set alone passes something the other
-    // reader breaks, so the selection refuses, naming each, as for an unread link.
+    // holds depends on the reader, so it refuses, naming each, as for an unread link.
     refuseUndecided(
-      selection.elements
-        .filter((l) => l.onlyWhere !== undefined)
-        .map((l) => ({
-          file: l.doc.file,
-          line: l.line,
-          element: `${l.doc.relPath}:${String(l.line)}`,
-          message:
-            `the link to "${l.url}" is a link only where the line-1 \`---\` block is ` +
-            (l.onlyWhere === 'markdown' ? 'read as Markdown' : 'front matter'),
-        })),
+      this.reachedOneReading().reached.map((l) => ({
+        file: l.doc.file,
+        line: l.line,
+        element: `${l.doc.relPath}:${String(l.line)}`,
+        message: oneReadingReason(l),
+      })),
       'select()',
     )
-    return selection
+    return super.select(opts)
   }
   protected locate(e: MdLink): MdLocation {
     return atLine(e)
