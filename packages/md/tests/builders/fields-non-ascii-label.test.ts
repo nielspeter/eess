@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { corpus, fields, vocabulary } from '../../src/index.js'
-import { findState } from '../../src/rules/ledger.js'
+import { findState, honestyAtClose } from '../../src/rules/ledger.js'
 import { tree } from '../helpers/tree.js'
 
 // Bug 0604: the label shapes read a label's letters as ASCII only, so `## Größe: F7` ended a record's
@@ -72,6 +72,40 @@ describe('a field heading in a non-ASCII label continues the header (bug 0604)',
     ).toEqual(['Owner=Ann @3'])
   })
 
+  it('a label with combining marks is a label: NFD Latin and Devanagari', () => {
+    for (const label of ['Gro\u0308ße', 'स्थिति']) {
+      const c = docs({
+        'b.md': ['# T', '', `## ${label}: F7`, '', '**Owner:** Ann', '', '## Body'],
+      })
+      expect([label, read(c, 'Owner', ['bold'], true)]).toEqual([label, ['Owner=Ann @5']])
+      const v = docs({ 'b.md': ['# T', '', '**Owner:** Ann', `${label}: F7`] })
+      expect([label, read(v, 'Owner', ['bold'])]).toEqual([label, ['Owner=Ann @3']])
+    }
+  })
+
+  it('honestyAtClose reads a state below a non-ASCII field heading, so a misplaced close reds', () => {
+    const c = docs({
+      'work/plans/a.md': ['# A', '', '- **State:** Open', '', '- [ ] x'],
+      'work/plans/b.md': [
+        '# B',
+        '',
+        '## Größe: F7',
+        '',
+        '## Status',
+        '',
+        '- **State:** Done',
+        '',
+        '- [x] x',
+      ],
+    })
+    const found = honestyAtClose(c, { report: 'return' })
+    expect(
+      found.map((v) => `${v.rule}@${String(v.line)} ${v.file.endsWith('b.md') ? 'b' : 'a'}`),
+    ).toContain('ledger/state-folder-mismatch@7 b')
+  })
+
+  // Not a pin of bug 0604: these two forms read through the ledger's own label matcher and the
+  // wrapped form, which never used the ASCII shapes. They were green before the fix too.
   it('the ledger reads a state under a non-ASCII heading label', () => {
     expect(findState('# T\n\n## Zustände: Done\n', ['Done'], undefined, ['Zustände'])?.state).toBe(
       'Done',

@@ -57,15 +57,15 @@ export const labelBody = (label: string): string =>
  * A `## Label: value` heading, at depth 2 to 6: its label and value. Such a heading continues a record's header
  * rather than ending it, as a run of field headings (`## Status: Open` then `## Severity: High`) is
  * one header (bug 0476). One definition, read by the ledger and by `fields()`. A label's letters are
- * Unicode letters (`\p{L}`), so `## Größe: F7` is a field heading as `## Area: F7` is (bug 0604).
+ * Unicode letters and their combining marks (`\p{L}`, `\p{M}`), so `## Größe: F7` is a field heading as `## Area: F7` is (bug 0604).
  */
-export const LABEL_HEADING = /^ {0,3}#{2,6}\s+(\p{L}[\p{L} ]{0,40}?)\s*:\s*(\S.*?)\s*$/u
+export const LABEL_HEADING = /^ {0,3}#{2,6}\s+(\p{L}[\p{L}\p{M} ]{0,40}?)\s*:\s*(\S.*?)\s*$/u
 
 /**
  * A plain `Label:` opening a line, after the prefix: the label's text. Label-shaped, not prose. Its
  * letters are Unicode letters, so a value continued over lines ends at `Größe: F7` (bug 0604).
  */
-export const PLAIN_LABEL = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(\p{L}[\p{L} ]{0,40}?)\s*:/u
+export const PLAIN_LABEL = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(\p{L}[\p{L}\p{M} ]{0,40}?)\s*:/u
 
 /**
  * Any label's body. A plain body may be anything up to a colon: it is read only

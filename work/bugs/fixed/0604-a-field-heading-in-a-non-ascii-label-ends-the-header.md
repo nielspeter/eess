@@ -62,11 +62,15 @@ that are ASCII.
 
 `LABEL_HEADING` and `PLAIN_LABEL` (`packages/md/src/model/label.ts`) read a label's letters as
 `\p{L}`, with the `u` flag, so `## Größe: F7` continues a header and `Größe: F7` ends a value above
-it, as their ASCII twins do. Their callers, measured: `fields()`' header boundary (`headerEnd`) and
-value continuation (through `opensWithLabelShape`) now read a non-ASCII label as an ASCII one; the
-ledger's state reading (`packages/md/src/rules/ledger.ts`) already read `## Zustände: Done` and
-`**Zustände:** Done` before the fix (the wrapped form never used these shapes) and still does,
-pinned below. Nothing else builds on either regex's source.
+it, as their ASCII twins do. A label's letters may carry combining marks (`\p{M}`), so an NFD-normalised `Größe` or a
+Devanagari label is one too (the review, measured). Their callers, measured: `fields()`' header
+boundary (`headerEnd`) and value continuation (through `opensWithLabelShape`) read a non-ASCII
+label as an ASCII one; and the ledger, which this record first said was unchanged, changed too
+(the review measured it): `findState` now reads a state below a non-ASCII field heading
+(`packages/md/src/rules/ledger.ts:385`), so `honestyAtClose`, which was green with examined 2 over a
+closed record outside its done folder, now reports `ledger/state-folder-mismatch`, and a plain
+non-ASCII state label (`:341`) is named as "a state under another label" rather than "no readable
+state". Nothing else builds on either regex's source.
 
 ## Verification
 
@@ -80,7 +84,10 @@ pinned below. Nothing else builds on either regex's source.
 - [x] `## Area: F7` and `Area: F7` read as before; a non-label heading (`## Background`) still ends
       the header: `it('ASCII labels read as before, and a heading that is no label still ends the header')`.
 - [x] The ledger's reading of a non-ASCII state label is measured and pinned by a row:
-      `it('the ledger reads a state under a non-ASCII heading label')` (green before the fix too).
+      `it('honestyAtClose reads a state below a non-ASCII field heading, so a misplaced close reds')`,
+      red on main (the review measured `[]`, examined 2); combining marks by
+      `it('a label with combining marks is a label: NFD Latin and Devanagari')`. Label shapes still
+      unread (a full-width colon, digits, apostrophes, hyphens) are [bug 0620](../0620-some-label-shapes-are-still-not-read-as-labels.md).
 - [x] A changeset naming `@nielspeter/eess-md`: `.changeset/a-non-ascii-label-is-a-label.md`.
 - [x] `npm run validate` green.
 

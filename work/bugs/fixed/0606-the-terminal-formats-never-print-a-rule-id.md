@@ -43,9 +43,13 @@ The family has two hand printers of its own. `eess-ts check --fix` prints `v.rul
 The terminal format prints `Rule: <ruleId> — <rule>` when the id is set and differs from the
 description (`namedRule`, `packages/core/src/format.ts`), so an `emitter/*` finding, whose
 description is its id, prints it once. The plain format prefixes `[<ruleId>] ` to a violation's
-line when it has an id, the shape this record's reporter printed by hand. Of the two hand
-printers, `eess-ts check --fix` (`ruleId ?? rule`) is kept, and `eess-ts baseline`, which printed
-the description alone, now prints `ruleId ?? rule` too, so the family has one convention.
+line when it has an id. It is not quite the reporter's hand printer (`[ruleId ?? rule]`): a finding
+that carries its id in `rule` and leaves `ruleId` unset, as eess-md's ledger findings do, gets no
+prefix; that gap is [bug 0619](../0619-ledger-findings-carry-no-rule-id.md). Of the two hand
+printers, `eess-ts check --fix` (`ruleId ?? rule`) is kept, and `eess-ts baseline` (the
+description) is kept too: a first change to it had no test that could fail, so it was taken back
+(the review). `docs/violation-reporting.md` showed the id as a header the terminal never printed;
+it now shows the `Rule:` line.
 
 ## Verification
 
@@ -58,7 +62,7 @@ the description alone, now prints `ruleId ?? rule` too, so the family has one co
 - [x] The `check --fix` and `baseline` hand printers are measured against the new output and each
       kept, changed or removed, said either way: see Fix.
 - [x] A changeset naming `@nielspeter/eess`, and every dialect whose terminal output changes:
-      `.changeset/the-text-formats-print-the-rule-id.md`, the kernel and eess-ts.
+      `.changeset/the-text-formats-print-the-rule-id.md`, the kernel. eess-ts prints through the kernel's formatter and takes the dependency bump; none of its own code changes.
 - [x] `npm run validate` green.
 
 Deferred: none
