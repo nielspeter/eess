@@ -82,3 +82,22 @@ reading not picked is parsed uncached, as `parseUncached` does.
    reading; whether they too answer to both readers is not measured here.
 3. **No "cannot judge" finding.** The review proposed one for a document whose readings disagree;
    the union makes it unnecessary for links, since nothing is left unjudged.
+
+## Corrections
+
+The build's enforcement review (2026-11-04) measured three holes in decision 1 as first written, and
+decision 3's claim that nothing is left unjudged was false:
+
+- **External links.** The union added every URL in ordinary front matter (`homepage: https://…`) as
+  an external link, which reddens a rule over external links on plain metadata, and gave a rule
+  over all links a count of 1 where main reported it examined nothing. The union adds **internal
+  links only**: the false greens this spike measured are internal links.
+- **`select()`.** It handed the union to `correspondence()`, so a link only one reading holds could
+  satisfy a join main reported missing. A selection carries no findings, and neither reading alone
+  is safe for a join in both directions, so `links().select()` **refuses** when it reaches such a
+  link, naming it, as it refuses an unread HTML link ([plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md), R7). In real corpora (section 1)
+  no document holds one. `sections().haveLink()` and `beLinkedBack()`'s evidence keep the picked
+  reading, where adding links could only turn a finding green.
+- **Unread HTML links.** An unquoted `<a href=…/…>` in a YAML value, or in a body a construct opened
+  in the block swallows, was silently green: unread links were not in the union. They are now,
+  keyed by line and cause, so either reading's unread link is reported.

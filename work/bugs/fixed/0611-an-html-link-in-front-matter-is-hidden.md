@@ -41,6 +41,10 @@ unchanged, and `sections().haveLink()` and `beLinkedBack()`'s evidence keep the 
 where the union could only turn a finding green. One change closes [bug 0572](./0572-a-definition-in-front-matter-hides-a-reference-in-the-body.md), [bug 0610](./0610-a-label-defined-in-front-matter-and-the-body-leaves-one-target-unchecked.md), [bug 0611](./0611-an-html-link-in-front-matter-is-hidden.md) and [bug 0612](./0612-a-construct-opened-in-front-matter-swallows-body-links.md),
 which share the root cause the spike names: a single reading chosen for links.
 
+The unread form this record's Fix names, an unquoted `<a href=…/…>` in a YAML value, is reported as
+`md/unread-link` since the build's review: unread links are in the union too
+(`packages/md/tests/front-matter-guard.test.ts` · `it('an unread HTML link in a YAML value, or in a swallowed body, is reported')`).
+
 ## Verification
 
 - [x] Red first: the reproduction reports `./gone.md` and examines 2: `packages/md/tests/front-matter-guard.test.ts` ·

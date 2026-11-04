@@ -252,6 +252,33 @@ describe('a link either reader sees is examined (bugs 0572, 0610, 0611, 0612)', 
       ])
   })
 
+  it('a URL in a YAML value adds no link: a rule over all links still examines nothing', () => {
+    const c = corpusFromText({ 'docs/a.md': '---\nhomepage: https://example.com\n---\n\n# A\n' })
+    const v = links(c).should().resolve().violations()
+    expect(v.examined).toBe(0)
+    expect(v.map((x) => x.message.slice(0, 30))).toEqual(['this rule examined zero units.'])
+  })
+
+  it('select() refuses a link only one reading holds, naming it', () => {
+    const c = corpusFromText({
+      'docs/a.md': '---\n[x]: ./b.md\n---\n\n# A\n\nSee [x].\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(() => links(c).select({ label: 'l', identify: (l) => ({ name: l.url }) })).toThrow(
+      /docs\/a\.md:7[\s\S]*only where the line-1 `---` block is read as Markdown/,
+    )
+  })
+
+  it('an unread HTML link in a YAML value, or in a swallowed body, is reported', () => {
+    for (const text of [
+      '---\na: <a href=./gone.md title=a/b>x</a>\n---\n\n# A\n\n[ok](./b.md)\n',
+      '---\na: |\n\n  [t](./b.md)\n\n  ```\nb: c\n---\n\n# A\n\n<a href=./gone.md title=a/b>x</a>\n',
+    ]) {
+      const v = resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n' })
+      expect(v.map((x) => x.ruleId)).toContain('md/unread-link')
+    }
+  })
+
   it('ordinary front matter adds no link', () => {
     const v = resolveOf({
       'docs/a.md': '---\ntitle: Doc\ntags: [a, b]\n---\n\n# Doc\n\nSee [g].\n\n[g]: ./b.md\n',

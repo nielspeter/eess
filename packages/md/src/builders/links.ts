@@ -142,7 +142,24 @@ export class LinkRuleBuilder extends CorpusRuleBuilder<MdLink> {
       })),
       'select()',
     )
-    return super.select(opts)
+    const selection = super.select(opts)
+    // A link only one reading of a line-1 `---` block holds (spike 0613): which links the selection
+    // holds depends on the reader, and a join over either set alone passes something the other
+    // reader breaks, so the selection refuses, naming each, as for an unread link.
+    refuseUndecided(
+      selection.elements
+        .filter((l) => l.onlyWhere !== undefined)
+        .map((l) => ({
+          file: l.doc.file,
+          line: l.line,
+          element: `${l.doc.relPath}:${String(l.line)}`,
+          message:
+            `the link to "${l.url}" is a link only where the line-1 \`---\` block is ` +
+            (l.onlyWhere === 'markdown' ? 'read as Markdown' : 'front matter'),
+        })),
+      'select()',
+    )
+    return selection
   }
   protected locate(e: MdLink): MdLocation {
     return atLine(e)

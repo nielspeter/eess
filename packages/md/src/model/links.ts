@@ -420,11 +420,14 @@ export function linksOf(doc: MdDocument): MdLinkRef[] {
   // The links only the reading not picked holds (spike 0613): a broken one is a link some reader
   // follows, whichever reading the document's structure was taken from.
   const onlyWhere = doc.root.children[0]?.type === 'yaml' ? 'markdown' : 'front-matter'
+  // Internal links only: a URL in a YAML value (`homepage: https://…`) is metadata to the reading
+  // that drops the block, and adding it would red an external-link rule on ordinary front matter,
+  // and give a rule over all links a count where main reported it examined nothing (the review).
   const extra =
     other === undefined
       ? []
       : collectLinks(other, doc.text)
-          .filter((l) => !seen.has(key(l)))
+          .filter((l) => !l.external && !seen.has(key(l)))
           .map((l): MdLinkRef => ({ ...l, onlyWhere }))
   const all = [...picked, ...extra].map((l) => ({ ...l, sectionPath: sectionPathAt(doc, l.line) }))
   unionOf.set(doc, all)
@@ -436,10 +439,17 @@ const unionOf = new WeakMap<MdDocument, MdLinkRef[]>()
 
 /** A document's unread HTML links (plan 0580, R3), each with the sections that contain its line. */
 export function unreadLinksOf(doc: MdDocument): MdUnreadLinkRef[] {
-  return collectLinkBlocks(doc.root, doc.text).unreadLinks.map((u) => ({
-    ...u,
-    sectionPath: sectionPathAt(doc, u.line),
-  }))
+  const picked = collectLinkBlocks(doc.root, doc.text).unreadLinks
+  // An HTML link either reading cannot read is reported, as a read one is examined (spike 0613):
+  // an unquoted `<a href=…/…>` in a YAML value, or in a body a fence opened in the block swallows.
+  const other = otherReading(doc.text, doc.root)
+  const key = (u: MdUnreadLinkRef): string => `${String(u.line)}\u0000${u.cause}`
+  const seen = new Set(picked.map(key))
+  const extra =
+    other === undefined
+      ? []
+      : collectLinkBlocks(other, doc.text).unreadLinks.filter((u) => !seen.has(key(u)))
+  return [...picked, ...extra].map((u) => ({ ...u, sectionPath: sectionPathAt(doc, u.line) }))
 }
 
 /** A link with its owning document attached — the element the builders and conditions operate on. */
