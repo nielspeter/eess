@@ -83,6 +83,20 @@ describe('another link inside a held <a> fails closed (bug 0601 review)', () => 
     ])
   })
 
+  it('a reference-style link inside an <a href>: unread, not linked to the outer href', () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\n<a href="./b.md">[x][r] bug 0001</a>\n\n[r]: ./c.md\n',
+      'docs/b.md': '# B\n',
+      'docs/c.md': '# C\n',
+    })
+    const ids = mentions(c, { pattern })
+      .should()
+      .beLinked()
+      .violations()
+      .map((x) => x.ruleId ?? 'beLinked')
+    expect(ids).toEqual(['md/unread-mention'])
+  })
+
   it('a mention in a Markdown link inside an <a href> is unread', () => {
     expect(ruleIds('<a href="./b.md">[bug 0001](./c.md)</a>')).toEqual(['md/unread-mention'])
   })
