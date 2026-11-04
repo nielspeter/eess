@@ -78,9 +78,9 @@ const ZERO =
   'this rule examined zero units. Find the cause before acting, since each has its own fix: a dead ' +
   'selector or an empty project (widen the selection, or load the source); subjects written in a ' +
   'form this rule does not read, such as links in a syntax it does not parse (write them in a form ' +
-  'the rule reads, or use a rule that reads that form); a rule that never reaches its own examining ' +
-  'seam (fix the rule); or a source that is legitimately empty right now, and only then declare it ' +
-  'with .expectEmpty(). Do not suppress this finding.'
+  'the rule reads); a rule that never reaches its own examining seam (fix the rule); or a source ' +
+  'that is legitimately empty right now, and only then declare it with .expectEmpty(). Do not ' +
+  'suppress this finding.'
 
 /** A parser stub: every block valid, one canary it rejects. */
 const parser: CodeBlockParser = {

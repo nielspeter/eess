@@ -17,8 +17,9 @@ export interface RuleFacts {
 
 /**
  * The configuration finding for a rule that examined zero units with no
- * declared exemption — ADR-009 rule 2: named as a distinct cause (dead
- * selector, empty corpus, or an unreachable examining seam), not folded
+ * declared exemption — ADR-009 rule 2: named as a distinct cause (a dead
+ * selector or an empty project, subjects in a form the rule does not read,
+ * an unreachable examining seam, or a source legitimately empty), not folded
  * into an ordinary violation message.
  */
 /**
@@ -64,9 +65,9 @@ export function zeroExaminedViolation(facts: RuleFacts): ArchViolation {
     `this rule examined zero units. Find the cause before acting, since each has its own fix: ` +
     `a dead selector or an empty project (widen the selection, or load the source); subjects ` +
     `written in a form this rule does not read, such as links in a syntax it does not parse ` +
-    `(write them in a form the rule reads, or use a rule that reads that form); a rule that ` +
-    `never reaches its own examining seam (fix the rule); or a source that is legitimately ` +
-    `empty right now, and only then declare it with .expectEmpty(). Do not suppress this finding.`
+    `(write them in a form the rule reads); a rule that never reaches its own examining seam ` +
+    `(fix the rule); or a source that is legitimately empty right now, and only then declare it ` +
+    `with .expectEmpty(). Do not suppress this finding.`
   return configFinding(facts, message)
 }
 

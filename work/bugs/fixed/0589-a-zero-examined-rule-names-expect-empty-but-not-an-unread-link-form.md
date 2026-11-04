@@ -4,6 +4,7 @@
 
 - **State:** Fixed — the zero-examined message names a form the rule does not read as a cause, with
   its own remedy, and offers `.expectEmpty()` only for a legitimately empty source (2026-11-04).
+  The false green itself remains for wikilinks until [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md) reports them (see Built).
   Reproduced 2026-11-01 on `bd78b962`.
 - **Severity:** High — a false green reached by following the finding's own remedy. A corpus whose
   links are all written as wikilinks reds with a message that offers `.expectEmpty()`. Declaring
@@ -110,18 +111,26 @@ dialect materialises, not the project):
   This bug must not decide either. It owns the kernel's message and the precedence slot both can use.
 
 **Built 2026-11-04.** `zeroExaminedViolation` (`packages/core/src/vacuity-findings.ts:62`) names
-five causes, each with its own remedy: a dead selector or an empty project, subjects written in a
-form the rule does not read (write them in a form it reads, or use a rule that reads that form), a
-rule that never reaches its examining seam, and a source that is legitimately empty, which alone
-is offered `.expectEmpty()`, last. eess-ts gives its own zero-subject advice and is unchanged.
+its causes, each with its own remedy: a dead selector or an empty project, subjects written in a
+form the rule does not read (write them in a form it reads), a rule that never reaches its examining
+seam, and a source that is legitimately empty, which alone is offered `.expectEmpty()`, last. The
+`configFinding` comment names them too. eess-ts gives its own zero-subject advice and is unchanged;
+mermaid, gherkin and crossvalidate show this message, and none of its causes misleads there (PR
+review, measured). The bug's reproduction above quotes the old message, as history.
 
-The Fix's second half, a precedence slot through which a dialect says its corpus holds a link form
-the rule does not read, so that the fact outranks `.expectEmpty()`, is not built: no dialect has
-that fact to give. eess-md now reads raw HTML links ([plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)), and the ones it cannot read
-are unsuppressable findings, which `.expectEmpty()` cannot quiet (pinned below); its one unread form
-left is wikilinks, which [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)
-decides how to recognise and this record must not. The slot is that proposal's to build with its
-first producer.
+**What is not fixed, and who owns it.** Measured on this branch: a corpus of wikilinks only with
+`.expectEmpty()` still passes, nothing examined. The message no longer offers `.expectEmpty()` as
+that cause's remedy ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2), but nothing stops the declaration. The Fix's second half
+proposed a kernel slot for a dialect fact that outranks it. That is dropped: eess-md already keeps
+an unread form out of `.expectEmpty()`'s reach by reporting each such link as an unsuppressable
+finding (an unread HTML link, `md/unread-link`, pinned below), and a wikilink reported the same way
+needs no kernel change. Recognising and reporting wikilinks is
+[proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)'s, which now says so. An
+undefined reference (`[x][nope]`) also examines nothing and passes under `.expectEmpty()`; it is
+documented as not a link, and the opt-in `mentions()` rule reports it.
+
+Residual: the remedy "fix the rule" for an unreached seam is not one an author can always act on;
+it is unchanged by this bug.
 
 ## Verification
 
@@ -135,7 +144,8 @@ first producer.
       examining the links, not by declaring them away. Pinned:
       `it('the remedy for that cause clears the finding by examining the links, not by declaring them away')`.
 - [x] Where a dialect reports an unread link form, `.expectEmpty()` on that rule still reds:
-      `it('a link this rule reports unread keeps the rule red under .expectEmpty()')`.
+      `it('a link this rule reports unread keeps the rule red under .expectEmpty()')`. It held before
+      this change ([plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s unread links are unsuppressable); the row pins it.
 - [x] A legitimately empty corpus (no links in any form) with `.expectEmpty()` stays green:
       `it('a corpus with no link in any form, declared empty, stays green')`.
 - [x] A changeset naming `@nielspeter/eess`, and `@nielspeter/eess-md` if it supplies the fact:
@@ -143,4 +153,4 @@ first producer.
       fact (see Built) and declares `none`.
 - [x] `npm run validate` green.
 
-Deferred: [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md) (the precedence slot, with its first producer; see Built)
+Deferred: [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md) (reporting a wikilink unread, which keeps `.expectEmpty()` from passing a wikilink corpus; see Built)
