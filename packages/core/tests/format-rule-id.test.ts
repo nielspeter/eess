@@ -5,7 +5,12 @@ import type { ArchViolation } from '../src/violation.js'
 // Bug 0606: the terminal and plain formats never printed a violation's `ruleId`, the handle an
 // author needs for `// eess-exclude <id>` or a preset's `overrides`; JSON and GitHub did.
 
-const strip = (s: string): string => s.replace(/\u001b\[[0-9;]*m/g, '')
+const ESC = String.fromCharCode(27)
+const strip = (s: string): string =>
+  s
+    .split(ESC)
+    .map((p, i) => (i === 0 ? p : p.replace(/^\[[0-9;]*m/, '')))
+    .join('')
 const v = (over: Partial<ArchViolation>): ArchViolation => ({
   rule: 'records sit in the folder their state names',
   element: 'e',
