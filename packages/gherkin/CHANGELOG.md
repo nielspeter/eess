@@ -1,5 +1,15 @@
 # @nielspeter/eess-gherkin
 
+## 0.8.1
+
+### Patch Changes
+
+- 1be9ca3: The text output carries the rule id (bug 0606, in the kernel). `eess-mermaid check` and eess-gherkin's rules print through the kernel's formatter, so their terminal output prints `Rule: <ruleId> — <description>` for a rule with an id, and the plain format prefixes `[<ruleId>] `. None of their own code changes. A caller that parses the text output must expect the id.
+- Updated dependencies [c7dbd2d]
+- Updated dependencies [4aabc59]
+- Updated dependencies [efd91e5]
+  - @nielspeter/eess@0.10.0
+
 ## 0.8.0
 
 ### Minor Changes

@@ -1,5 +1,20 @@
 # @nielspeter/eess-ts
 
+## 0.15.1
+
+### Patch Changes
+
+- c7dbd2d: A link's autofix rewrites its URL, and is applied once however many rules propose it (bugs 0563 and 0564).
+  - eess-md: an inline link's fix span starts where its destination does, after the `](` that closes its text. It used to be the last match of the decoded URL in the link, so a title holding the same text (`[x](./old.md "./old.md")`) got the fix and the URL stayed broken. A destination the source does not write as the parser reads it (an escape, an entity) now gets no fix rather than a guess, and an autolink (`<https://…>`) carries no URL span (`MdLink.urlStart`/`urlEnd` undefined), since no fix rewrites one.
+  - eess (kernel): `applyFixes` treats identical fixes (one file, one span, one replacement) as one edit, applied once. Two rules that find one broken link, such as `resolve()` and `beLinkedBack()`, used to cancel each other's fix, so `--fix --apply` skipped both. Fixes that overlap and differ are still all skipped. `ApplyResult.applied` counts distinct edits.
+  - eess-ts: `eess-ts check --fix --apply` applies such a fix, and reports it once.
+
+- 4aabc59: The terminal and plain formats print a violation's rule id (bug 0606). `formatViolations` (the terminal output of `reportViolations`, `finishPreset`, `.check()` and `.warn()`, and so of every dialect CLI) prints `Rule: <ruleId> — <description>` when the rule has an id, and `formatViolationsPlain` prefixes `[<ruleId>] ` to the violation's line. The id is the handle an `// eess-exclude` comment and a preset's `overrides` name, and only JSON and GitHub output carried it. A finding whose description is its id (the `emitter/*` findings) prints it once; a rule without an id reads as before. A caller that parses the text output must expect the id. `eess-ts check` prints through this formatter, so its terminal output carries the `Rule:` line too; none of eess-ts's own code changes.
+- Updated dependencies [c7dbd2d]
+- Updated dependencies [4aabc59]
+- Updated dependencies [efd91e5]
+  - @nielspeter/eess@0.10.0
+
 ## 0.15.0
 
 ### Minor Changes

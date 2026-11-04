@@ -1,5 +1,22 @@
 # @nielspeter/eess-crossvalidate
 
+## 0.12.0
+
+### Minor Changes
+
+- 1be9ca3: **Breaking (@nielspeter/eess-crossvalidate):** the peer floors rise to this release's dialects: `@nielspeter/eess-ts` >=0.15.1, `@nielspeter/eess-mermaid` >=0.9.1, `@nielspeter/eess-md` >=0.14.0 and `@nielspeter/eess-gherkin` >=0.8.1. Each of them depends on kernel `^0.10.0`, and an older dialect beside this version would install a second kernel. An older dialect installed beside eess-crossvalidate 0.12.0 is now a peer-dependency conflict at install (`ERESOLVE`).
+
+  To migrate: upgrade the dialects you use together with eess-crossvalidate.
+
+- 11ac1ce: `diagramMatchesCode` and `adrCitationsResolve` now finish as every other preset does, through `finishPreset` (bug 0097, ADR-008). Both return their findings (a `CollectResult`) and accept `PresetReportOptions`: `{ report: 'return' }` hands the findings back without printing or throwing, `report: 'warn'` prints them without throwing, `format: 'json'` or `'github'` chooses the output, `expectEmpty` declares that the preset's subject legitimately does not exist here, and `reason` sets the thrown error's reason. Without those options nothing changes: each still prints its findings once and throws `ArchRuleError` with the same message, the rule's reason included. A caller that wrapped either preset in `try`/`catch` to read `error.violations` can pass `{ report: 'return' }` instead. `adrCitationsResolve` refuses `expectEmpty` beside its own `expectNonEmpty`, which together could never pass. `ArchViolation` and `ArchConfigError` are re-exported where these presets live.
+
+### Patch Changes
+
+- Updated dependencies [c7dbd2d]
+- Updated dependencies [4aabc59]
+- Updated dependencies [efd91e5]
+  - @nielspeter/eess@0.10.0
+
 ## 0.11.0
 
 ### Minor Changes
