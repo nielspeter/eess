@@ -1,5 +1,129 @@
 # @nielspeter/eess-md
 
+## 0.14.0
+
+### Minor Changes
+
+- 2a818a9: **Breaking (@nielspeter/eess-md):** a link's `#fragment` is judged on every target, and a fragment `resolve()` cannot judge is reported (bug 0575). Released with the fragment check of bug 0136:
+  - A Markdown file the corpus did not load is read for its anchors alone, so `[x](../outside/notes.md#gone)` is red when `notes.md` has no such heading.
+  - A line fragment (`#L5`, `#L5-L9`, `#L5C3`) on a file that is not Markdown, or after `?plain=1` on a Markdown file, is judged against the file's lines and the line's columns: `broken fragment: … is past the end of src/a.ts, which has 31 lines`.
+  - A fragment on a directory link is judged against the page the anchor rule names for a directory, a new optional `AnchorRule.directoryPages`, tried in order (`['README.md']` under `githubAnchors`), loaded or not.
+  - Anything else (a fragment on a file the corpus ignores, on a file that is not text such as a PDF or an image, an anchor on a text file that is not Markdown, a directory with no such page, or a hand-built link from a document the corpus did not load) is one `md/fragment-not-judged` finding per target file and cause, naming the links it covers. It is unsuppressable: `.excluding()`, `.warn()`, an exclusion comment and a baseline do not hide it. The rule id is exported as `FRAGMENT_NOT_JUDGED`, and `NotJudgedReason` names its causes.
+  - `FragmentVerdict` gains `out-of-range` and `not-judged`, and `resolveLink()` sets `fragment` on `not-in-corpus` and `directory` targets too.
+
+  The moved-link fix (`resolve()` and `beLinkedBack()`) carries a fragment over only when the new target holds it, writes the new destination in `<…>` where a space or a parenthesis needs it, and offers no fix when the document, read again with it applied, would not hold the link (bug 0567: `[b](./new dir/b.md)` was text, not a link, and the run went green).
+
+  The fix is also kept only when the new URL resolves to the file it names, so a folder name holding `?` or `%` gets no fix.
+
+  Migration: a fragment on a PDF, an image or another file that is not text is now a finding; link the file without the fragment. An anchor on a text file that is not Markdown is one too; link it without the fragment, or as a line (`#L5`).
+
+- 1eec67d: **Breaking (@nielspeter/eess-md):** a link only one reading of a line-1 `---` block holds is reported (bugs 0572, 0610, 0611, 0612; spike 0613). eess-md reads the block either as front matter, as GitHub and VitePress render it, or as Markdown, and examined only that reading's links, so a broken link the other reader follows passed: a body reference whose definition sits in the block, a body definition behind a block one of the same label, an `<a href>` in a YAML value, and a body link a fence, comment or `<pre>` opened in a YAML value would swallow. Each internal link only the other reading holds is now an unsuppressable `md/link-one-reading-holds` finding (exported as `ONE_READING_LINK`) on every `links()` rule whose predicates reach it, naming the link and which reading holds it; it is not an element, so no condition or `correspondence()` can pass on it, and `links().select()` refuses when it reaches one. An HTML link the other reading cannot read is `md/unread-link`. Ordinary front matter adds nothing (a URL in a YAML value is metadata); across 2,177 Markdown files measured, only test fixtures hold such a link. A link in that position is reported even where it resolves, since the two readers disagree whether it is there; each finding names its remedy (move the link or its definition out of the block, remove one of two definitions of a label, or close in the block what it opens), and each is measured to clear it. An unquoted `<a href=…/…>` in an otherwise valid YAML value is now an unread-link finding; quoting the value clears it for an external `href`, and an internal one then needs moving out of the block. The document's structure is unchanged.
+- 7a6fecb: **Breaking (@nielspeter/eess-md):** a link's `#fragment` is checked (bug 0136). `links().should().resolve()` used to throw the fragment away, so `[x](./b.md#gone)` with `b.md` present, and `[y](#nowhere)`, passed. On a loaded corpus document, or on the linking document itself, a fragment that names no anchor is now reported (`broken fragment: … is no heading or anchor in docs/b.md under the GitHub anchor rule`, with the nearest anchors on the finding's `Fix:` line, so a baseline entry holds when the target's other headings change), and so is one whose percent-encoding does not decode. Every link form is judged, an `<a href="#…">` in raw HTML included. The comparison is exact after decoding, letter case included. A fragment naming the `id` of an element the rule does not count says so. A line fragment after `?plain=1` (GitHub's source view) is not judged.
+
+  A document's anchors are every heading at any depth plus the HTML anchors its renderer keeps, under the linking document's renderer's rule, a new `LinkResolveOptions.anchorRule` (type `AnchorRule`). The default is the new export `githubAnchors`, github.com's renderer's: `github-slugger`'s heading ids (a new dependency of eess-md), each also reached as `user-content-…`, and `id` or `name` on an `<a>`. `resolveLink()`'s `document` and `self` targets carry the verdict as a new optional `fragment` field (type `FragmentVerdict`). `haveLiveTargets()`, `beLinkedBack()` and `mentions()` do not read it. `resolveLink()` throws `ArchConfigError` when an `anchorRule` gives other than one id per heading; no URL makes it throw.
+
+  Migration: a corpus published by another renderer passes its rule as `anchorRule`; a static site whose ids differ from GitHub's would otherwise see false reds on correct links. Fix each reported fragment, or the heading it names. A fragment on a file the corpus did not load, or on a directory, is not judged yet; that ships in the same release (bug 0575).
+
+- a86c772: **Breaking (@nielspeter/eess-md):** a mention inside a readable `<a href>…</a>` is linked to the tag's target (bug 0601). `mentions()` used to report it `md/unread-mention`, cause `html-link`, though `links()` reads that `href` since plan 0580: an unsuppressable finding asking the author to rewrite a link that works. It is now linked, as text in a Markdown link is, so `beLinked()` passes it, `areLinked()` selects it, and its `link` carries the tag's URL, the `<a>`'s text and where `resolveLink` takes it. An `<a>` its paragraph never closes is still reported unread. A rule that counted those unread findings sees fewer.
+- 4aabc59: **Breaking (@nielspeter/eess-md):** a label's letters are Unicode letters (bug 0604). `## Größe: F7` used to end a record's header, because the field-heading shape read only ASCII letters, so a `fields()` rule over `region: 'header'` silently skipped every field below it, and a value continued over lines ran on into a plain `Größe: F7` below it. Both shapes now read Unicode letters and their combining marks (`\p{L}`, `\p{M}`), so a non-ASCII field heading continues the header and a non-ASCII plain label ends a value, as their ASCII twins do. `honestyAtClose` reads a record's state below such a heading too, so a closed record outside its done folder, which it passed, is now `ledger/state-folder-mismatch`. A rule over a corpus written in another language can newly go red: it now judges fields it used to skip.
+- 8696718: **Breaking (@nielspeter/eess-md):** `pointers().should().resolve()` counts a file's lines as a pointer numbers them (bug 0561). A final newline ends the last line rather than starting one, and an empty file has no lines. It used to count one more line for every file ending in a newline, so a pointer to the line after the last passed, and the stale message gave the wrong count: a two-line file "has 3 lines". Now such a pointer is reported stale, with the file's real count, for files in the repository and under `externalRoots` alike. To migrate: a pointer this reports cited a line the file does not have; point it at the line you meant.
+- fcb3951: **Breaking (@nielspeter/eess-md):** a reference-style link is a link (bug 0558). `links()` now reads `[text][label]`, `[label][]` and `[label]` wherever the label has a definition (`[label]: url`), with the definition's URL. A label matches its definition as the CommonMark spec says, by Unicode case fold, the first matching definition used. Each such link carries `.definition` (its label and line; a new optional field on `MdLinkRef`, with a new type `MdLinkDefinition`). Every `links()` rule sees them (its selectors, its conditions, `.select()` and so any `correspondence()` built on it, and `examined`), and four change visibly:
+  - `.resolve()` reports a broken one once, at the definition's line, however many references use it ("… (the definition of [label])"), with at most one fix over the definition's URL. It used to pass them unread, and `examined` left them out.
+  - `.beLinkedBack()` counts a link back written as a reference, which it used to report as missing; and a reference-style link in a declaration now needs its own link back, like an inline one.
+  - `.areLabelled()` selects a declaration's reference-style links, and the declaration finding "holds reference-style links, which eess-md does not read", with its `(reference links)` element, is gone.
+  - `sections().haveLink()` holds for a section whose only link is reference-style, in both its selector and condition form.
+
+  A `.resolve()` or `.beLinkedBack()` finding about a reference-style link sits at its definition's line, and an exclusion comment for it goes above the definition, not the reference; every other rule reports a reference-style link at its own line, as it reports an inline one.
+
+  To migrate: a broken reference this now reports was always broken; fix the definition's URL. An `.excluding()` that sanctioned a `(reference links)` declaration finding has nothing left to match; remove it.
+
+- 1a2c181: **Breaking (@nielspeter/eess-md):** an HTML link eess-md cannot read (`md/unread-link`) is undecided
+  evidence, not missing evidence (plan 0580, Phase 3). Where such a link is the only one that could
+  answer:
+  - `sections().should().haveLink()` reports the link as `md/unread-link` at its line, which nothing can
+    suppress, instead of "section … holds no link";
+  - `sections().that().haveLink()` reports it and neither selects nor drops the section, and its
+    `.select()` refuses, as a configuration error naming the site. In this position the finding is
+    the rule's own undecided finding (ADR-021), under the rule's id rather than `md/unread-link`, with
+    the remedy in its message;
+  - `links().should().beLinkedBack()` reports the target's unread link instead of "… does not link
+    back";
+  - `areLabelled()` no longer calls a label "empty" when its list holds only an unread link.
+
+  Each site is reported once per rule (two sites on one line with the same remedy are one finding,
+  cleared by the one remedy). To migrate: write the HTML link so eess-md can read it (the
+  finding's remedy says how), or in Markdown. A rule that suppressed a "holds no link" or "does not link
+  back" finding for such a section will now see an unsuppressable one.
+
+- 7ba8bbe: **Breaking (@nielspeter/eess-md):** a line-1 `---` block is judged by what its own lines hold in the whole document's Markdown parse (bugs 0566, 0410, 0565). Not yet judged: a definition in the block that a reference in the body uses (bug 0572). It is front matter only when it is a valid YAML mapping holding no task box and no link into the repository, as before; a reference-style link now counts when its definition sits in the body, not only in the block. A broken reference in front matter whose definition is in the body used to pass unread; it is now checked. The same rule reads `tags: [adr]` as Markdown when the body defines `[adr]` with an internal URL, so such a document shows the block as a section and its link is checked.
+
+  When the heading a `haveTitle()` finding names starts inside a block read as Markdown, the finding says why: "it is in the line-1 `---` block, read as Markdown, not as front matter, because" its YAML does not parse (the error and its line), it is not a YAML mapping, it holds no key, or it holds a task box or a link into the repository (its line). It used to name only the heading.
+
+  To migrate: a document now reported this way holds front matter a Markdown reader would read as Markdown; fix the YAML, or move the link out of the block, or rename the body definition so the block's value is not a reference to it.
+
+- 39ee7eb: **Breaking (@nielspeter/eess-md):** `links()` reads an `href` in raw HTML (plan 0580, Phase 2). Every
+  `<a>` and `<area>` with an `href`, in an HTML block or inline, any letter case and any quoting, is a
+  link at the line its `href` sits on, its value decoded: `.resolve()` checks it, `.beLinkedBack()`
+  counts it, `sections().haveLink()` sees it, and `examined` counts it. It is read as GitHub renders it;
+  `:href`, `v-bind:href`, `data-href` and `xlink:href` are not read. A broken one was green before and
+  is now red. To migrate: fix the target, or the `href`. Also new: its `.text` is the text a reader sees
+  in the element; an inline `href` is declared by `areLabelled()` and `areInSection()` as an inline link
+  is, so a label whose only link is an `href` now declares it; and an `<a>` inside a Markdown link's
+  text is a second link.
+
+  An HTML link eess-md cannot read is now reported as `md/unread-link` (exported as `UNREAD_LINK`),
+  which `.excluding()`, `.warn()` and a baseline cannot hide, wherever the rule's predicates reach it: a
+  tag a blank line cuts inside its block (remove the blank lines), a tag that never closes in its block
+  (close it), and an `<a>` the Markdown parser reads as text because an unquoted value holds a `/`
+  (quote it). `.select()` on a `links()` rule that reaches one refuses, as a configuration error naming
+  the site, rather than hand it to `correspondence()` without it.
+
+  `sections().haveLink()` and `.beLinkedBack()` still read a section or a target whose only link is
+  unread as having none; Phase 3 makes that undecided.
+
+- a86c772: **Breaking (@nielspeter/eess-md):** `mentions().select()` refuses when its predicates reach a mention it cannot read (bug 0600): one inside a raw HTML block, an HTML link, a reference-style link's text, a definition's title or an image's alt or title. It used to return the selection without it, so a `correspondence()` built on it was short and said nothing. It now throws the kernel's undecided-selection error, naming each mention's line and where it sits, as `links().select()` does for an unread HTML link. A selection that reaches none is unchanged. Migration: move the mention out of the construct the error names, or narrow the selection with a predicate that leaves it out.
+- 58b8f20: **Breaking (@nielspeter/eess-md):** eess-md reads HTML tags and attributes in one place now (plan
+  0580, Phase 1). Three fixes, each of which can change a rule's verdict:
+  - **`mentions()` decides which `<a>` is a link the way HTML does** (bug 0593). An `<a data-href>` or
+    `<a title="see href=…">` is no link, so a mention in it is plain text and is judged linked or not,
+    as any text is. An `<a title="a>b" href="…">` is a link, so a mention in it is reported as unread
+    (`md/unread-mention`) instead of being called "not a link". `<a :href>` is not a link either,
+    because GitHub removes the attribute.
+  - **A rule over only unread mentions reports them and nothing beside** (bug 0602). Before,
+    `.should().beLinked()` added the generic "this rule examined zero units" finding next to them, and
+    `.should().notExist()` marked its receipt `declaredEmpty`.
+  - **A block of only HTML comments is invisible to `mentions()` and to `sections().haveContent()`**,
+    including two comments on one line and the `<!…>` and `<?…>` forms HTML treats as comments, such as
+    `<!DOCTYPE html>`. Text between two comments is seen: before, `haveContent()` called
+    `<!-- a --> text <!-- b -->` empty.
+
+  To migrate, each of these can change a verdict:
+  - A section that holds only a doctype or a processing instruction now fails `.should().haveContent()`,
+    as a section of only comments did; text written between two comments now counts; a comment left
+    open to the end of the document hides what follows it, so a section holding only `<!-- a` is empty
+    and a mention in it is not read.
+  - A mention inside `<a data-href>`, `<a v-bind:href>` or `<a xlink:href>` is now judged as plain
+    text; one inside a bare `<a href>` (no value) or `<a title="a>b" href>` is now reported as unread.
+  - `<!-->`, `<!--->` and a comment closed by `--!>` are comments, as in HTML, so a block of only those
+    is invisible.
+
+  eess-md now depends directly on `decode-named-character-reference`, which micromark already
+  installed, to decode a reference in an attribute's value.
+
+### Patch Changes
+
+- d810227: A finding about a reference-style link names its definition's label as the source writes it, escapes and entities kept (`(the definition of [a\*b])`, not `[a*b]`), so an author can search for it (bug 0558). `MdLinkDefinition.label` holds that form.
+- c7dbd2d: A link's autofix rewrites its URL, and is applied once however many rules propose it (bugs 0563 and 0564).
+  - eess-md: an inline link's fix span starts where its destination does, after the `](` that closes its text. It used to be the last match of the decoded URL in the link, so a title holding the same text (`[x](./old.md "./old.md")`) got the fix and the URL stayed broken. A destination the source does not write as the parser reads it (an escape, an entity) now gets no fix rather than a guess, and an autolink (`<https://…>`) carries no URL span (`MdLink.urlStart`/`urlEnd` undefined), since no fix rewrites one.
+  - eess (kernel): `applyFixes` treats identical fixes (one file, one span, one replacement) as one edit, applied once. Two rules that find one broken link, such as `resolve()` and `beLinkedBack()`, used to cancel each other's fix, so `--fix --apply` skipped both. Fixes that overlap and differ are still all skipped. `ApplyResult.applied` counts distinct edits.
+  - eess-ts: `eess-ts check --fix --apply` applies such a fix, and reports it once.
+
+- 0676e17: A local link with a query string resolves to its file (bug 0583). `./logo.png?raw=true` and `./a.md?plain=1` were reported as broken links beside `logo.png` and `a.md`, because the resolver cut a URL at `#` only. A URL's path now ends at its first `?` or `#`, as GitHub reads it; a URL that is only a query names the document itself, as a pure `#anchor` does; and a moved target's fix keeps the query and the fragment. A `?` that is part of a file name is written `%3F` and still resolves.
+- Updated dependencies [c7dbd2d]
+- Updated dependencies [4aabc59]
+- Updated dependencies [efd91e5]
+  - @nielspeter/eess@0.10.0
+
 ## 0.13.0
 
 ### Minor Changes
