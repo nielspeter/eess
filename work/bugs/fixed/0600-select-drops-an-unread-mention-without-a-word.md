@@ -51,7 +51,11 @@ Measured by its validate: a probe holding an unread mention made the gate stop o
 gate now catches the refusal, skips the join, and reports in its place that the join did not run
 (`corpus/record-mention-target`), beside the unsuppressable `md/unread-mention` the `beLinked()`
 rule already reports; the `corpus/record-mention/unread` non-vacuity probe asserts both, and the
-`a-link-names-the-record-it-mentions` example now expects its join to refuse.
+`a-link-names-the-record-it-mentions` example now expects its join to refuse. The skipped-after-ts-archunit count
+is taken from its rule's receipt rather than a selection: the record-mention pattern skips such a
+mention, so no other rule reports it unread, and a refused selection there had become a silent zero
+on a green gate (the review's gate check, measured); the `corpus/record-mention/skipped-unread` row
+probes it, and both probes check that the remedy, written in, makes the gate green.
 
 ## Verification
 

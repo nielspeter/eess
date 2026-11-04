@@ -1675,10 +1675,18 @@ const leftOutRecords = new Set(LEFT_OUT.map((e) => recordKeyOfPath(e.path) ?? e.
 
 // What the lookbehind skips is counted, so a mention written after `ts-archunit` is visible even
 // though no rule judges it (plan 0542, Phase 1).
-const skippedAfterTsArchunit = selectOrRefusal(
-  mentions(c, { pattern: SKIPPED_AFTER_TS_ARCHUNIT }).that().satisfy(notLeftOut),
-  { label: 'skipped mention', ...anon },
-).elements.length
+// Counted from the rule's receipt, not a selection (bug 0600's gate check): a selection refuses on a
+// mention it cannot read, and the lookbehind keeps `beLinked()` from reporting that one, so a
+// refusal turned into a count of 0 would be a silent zero on a green gate. The receipt counts what it
+// read and reports what it cannot, unsuppressable, and that finding reds the gate below.
+const skippedReceipt = mentions(c, { pattern: SKIPPED_AFTER_TS_ARCHUNIT })
+  .that()
+  .satisfy(notLeftOut)
+  .should()
+  .satisfy({ description: 'be counted', evaluate: () => [] })
+  .violations()
+const skippedAfterTsArchunit = skippedReceipt.examined
+const skippedFindings = [...skippedReceipt]
 
 const proposalDocsCount = liveDocs.filter(isProposalDoc).length
 const planDocsCount = liveDocs.filter(isPlanDoc).length
@@ -1709,6 +1717,7 @@ const joinRefusalFindings = [...new Set(joinRefusals)].map((message) => ({
 // The join's findings, or, when its selection refused, the refusal in their place.
 const joinFindings = joinRan ? targetFindings : joinRefusalFindings
 const receipt = mergeCollectResults([
+  collectResult(skippedFindings, { examined: skippedReceipt.examined }),
   collectResult(broken, { examined: linksChecked }),
   collectResult(stale, { examined: pointersChecked }),
   collectResult(adrViolations, { examined: adrDocs.length }),
@@ -1878,8 +1887,11 @@ line(
   `${String(mentionViolations.examined)} record mention(s) examined · ${String(unlinkedMentions)} unlinked · ` +
     `${String(skippedAfterTsArchunit)} skipped after ts-archunit · ` +
     `${String(leftOutRecords)} fold-era records left out (${String(LEFT_OUT.length)} documents, ${String(LEFT_OUT.length - leftOut.length)} as pinned) · ` +
-    `${String(judgedLinks.elements.length)} link(s) to a record judged by their target, ` +
-    `${String(linkedMentionCount - judgedLinks.elements.length)} title link(s) not judged · ${
+    (joinRan
+      ? `${String(judgedLinks.elements.length)} link(s) to a record judged by their target, ` +
+        `${String(linkedMentionCount - judgedLinks.elements.length)} title link(s) not judged · `
+      : 'the record-mention join did not run · ') +
+    `${
       recordMentionFindings.length + joinFindings.length === 0
         ? '✓ every record mention is a link to the record it names'
         : `✗ ${recordMentionFindings.length + joinFindings.length} finding(s)`
@@ -1889,6 +1901,7 @@ line(
 const problems = [
   ...recordMentionFindings,
   ...joinFindings,
+  ...skippedFindings,
   ...statePresent,
   ...closedLive,
   ...recordNumbers,
