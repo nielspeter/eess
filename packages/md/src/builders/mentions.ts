@@ -1,4 +1,5 @@
-import type { ArchViolation, CollectResult } from '@nielspeter/eess'
+import type { ArchViolation, CollectResult, ElementInfo, Selection } from '@nielspeter/eess'
+import { refuseUndecided } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import {
   findMentions,
@@ -41,7 +42,7 @@ export const UNREAD_MENTION = 'md/unread-mention'
 
 const WHERE: Record<UnreadCause, string> = {
   'html-block': 'a raw HTML block',
-  'html-link': 'a link written in HTML',
+  'html-link': 'an HTML `<a>` its paragraph never closes, or one another link opens inside',
   'reference-link': "a reference-style link's text",
   'definition-title': "a link definition's title",
   'image-alt': "an image's alt text",
@@ -52,7 +53,8 @@ const WHERE: Record<UnreadCause, string> = {
 const REMEDY: Record<UnreadCause, string> = {
   'html-block':
     'Move the text out of the HTML block into Markdown, or put the HTML in a fenced code block if it is an example.',
-  'html-link': 'Write the link in Markdown, `[text](url)`, instead of an HTML `<a>`.',
+  'html-link':
+    'Close the `<a>` in the same paragraph and take any other link out of it, or write the link in Markdown, `[text](url)`.',
   'reference-link':
     "Write the link inline, `[text](url)`: a reference-style link's target is a definition elsewhere, which this rule does not read.",
   'definition-title': "Take the text out of the definition's title.",
@@ -136,6 +138,28 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
       undecided,
       this.buildConditionContext(),
     )
+  }
+
+  /**
+   * The mentions this rule selects, for a `correspondence()` side (bug 0600). A selection carries no
+   * findings, so one that reaches a mention this rule cannot read refuses, naming each, as
+   * `links().select()` does (plan 0580, R7); a selection that silently left it out would be short.
+   */
+  override select(opts: {
+    label: string
+    identify: (element: MdMention) => ElementInfo
+  }): Selection<MdMention> {
+    const { reached } = reachedUnread(this.unread(), this._predicates, asSeen)
+    refuseUndecided(
+      reached.map((u) => ({
+        file: u.doc.file,
+        line: u.line,
+        element: `${u.doc.relPath}:${String(u.line)}`,
+        message: `"${u.text.replace(/\s+/g, ' ')}" sits in ${WHERE[u.cause]}, which this rule does not read`,
+      })),
+      'select()',
+    )
+    return super.select(opts)
   }
 
   protected locate(m: MdMention): MdLocation {

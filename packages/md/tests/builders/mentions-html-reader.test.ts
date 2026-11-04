@@ -4,6 +4,8 @@ import { corpusFromText, mentions, sections } from '../../src/index.js'
 
 // Plan 0580 Phase 1: `mentions()` reads an HTML link through the one HTML reader, and an unread
 // mention is undecided on the receipt.
+// Since bug 0601 a mention in an `<a href>` the reader finishes is linked, not unread, so these rows
+// expect no finding for it.
 
 const record = (): RegExp => /\b(?<kind>bug)\s+(?<n>\d{4})\b/gi
 const one = (text: string) => mentions(corpusFromText({ 'a.md': text }), { pattern: record() })
@@ -31,8 +33,6 @@ describe('an HTML link is what the one reader says it is (bug 0593)', () => {
       '5: - "bug 0001" is not a link',
       '7: - "bug 0001" is not a link',
       '11: - "bug 0001" is not a link',
-      '3: md/unread-mention "bug 0001" sits in a link written in HTML, which this rule does not read, so it can be judged neither linked nor not.',
-      '9: md/unread-mention "bug 0001" sits in a link written in HTML, which this rule does not read, so it can be judged neither linked nor not.',
     ])
   })
 
@@ -57,8 +57,6 @@ describe('an HTML link is what the one reader says it is (bug 0593)', () => {
     expect(said(v).map((s) => s.slice(0, 40))).toEqual([
       '7: - "bug 0003" is not a link',
       '9: - "bug 0004" is not a link',
-      '3: md/unread-mention "bug 0001" sits in ',
-      '5: md/unread-mention "bug 0002" sits in ',
     ])
   })
 })
@@ -69,10 +67,7 @@ describe('only </a> closes an HTML link for mentions()', () => {
       .should()
       .beLinked()
       .violations()
-    expect(said(v).map((x) => x.slice(0, 34))).toEqual([
-      '3: - "bug 0002" is not a link',
-      '3: md/unread-mention "bug 0001" si',
-    ])
+    expect(said(v).map((x) => x.slice(0, 34))).toEqual(['3: - "bug 0002" is not a link'])
   })
 })
 

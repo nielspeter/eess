@@ -180,7 +180,8 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
     '',
     '![bug 0005][img]',
     '',
-    'See <a href="./b.md">bug 0006</a> here.',
+    // Never closed, so where its link ends is unknown: unread (bug 0601 links a closed one).
+    'See <a href="./b.md">bug 0006 here.',
     '',
     '<!-- a --> bug 0007 <!-- b -->',
     '',
@@ -201,7 +202,7 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
       '7: "bug 0003" sits in an image\'s alt text',
       '7: "bug 0004" sits in an image\'s title',
       '9: "bug 0005" sits in an image\'s alt text',
-      '11: "bug 0006" sits in a link written in HTML',
+      '11: "bug 0006" sits in an HTML `<a>` its paragraph never closes, or one another link opens inside',
       '13: "bug 0007" sits in a raw HTML block',
       '15: "bug 0008" sits in a link definition\'s title',
     ])
@@ -240,7 +241,7 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
     const by = (line: number): string =>
       v.find((x) => x.ruleId === 'md/unread-mention' && x.line === line)?.suggestion ?? ''
     expect(by(7)).toMatch(/^Take the text out of the alt text/)
-    expect(by(11)).toMatch(/^Write the link in Markdown/)
+    expect(by(11)).toMatch(/^Close the `<a>` in the same paragraph/)
     expect(by(15)).toMatch(/^Take the text out of the definition's title/)
   })
 
@@ -404,11 +405,7 @@ describe('mentions(): links written in HTML', () => {
       v.map(
         (x) => `${String(x.line)} ${x.ruleId ?? 'beLinked'}: ${x.message.split(' sits')[0] ?? ''}`,
       ),
-    ).toEqual([
-      '3 beLinked: "bug 0001" is not a link',
-      '9 beLinked: "bug 0004" is not a link',
-      '7 md/unread-mention: "bug 0003"',
-    ])
+    ).toEqual(['3 beLinked: "bug 0001" is not a link', '9 beLinked: "bug 0004" is not a link'])
   })
 })
 
@@ -547,7 +544,11 @@ describe("mentions(): where a mention's link points (plan 0549)", () => {
     const b = one('# A\n\nbug 0001, [bug 0002](./a.md).\n\n<div>bug 0003</div>\n')
       .that()
       .satisfy(areLinked())
-    expect(links(b)).toEqual(['bug 0002 [bug 0002] @0 self'])
+    // Since bug 0600 a selection that reaches the unread mention refuses rather than drop it.
+    expect(() => links(b)).toThrow(/\ba\.md:5\b/)
+    expect(
+      links(one('# A\n\nbug 0001, [bug 0002](./a.md).\n').that().satisfy(areLinked())),
+    ).toEqual(['bug 0002 [bug 0002] @0 self'])
     const v = b.should().beLinked().violations()
     expect(v.filter((x) => x.ruleId === 'md/unread-mention').map((x) => x.line)).toEqual([5])
   })

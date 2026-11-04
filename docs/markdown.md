@@ -769,20 +769,23 @@ bug [0338](…)       linked: the number alone in a link
   `<!-- eess-exclude <rule-id>: <reason> -->`, which needs the rule to carry an id
   (`.rule({ id: 'records/mention-is-a-link' })`).
 - **Linked** when the match's last character sits in a link that points somewhere, a link's own
-  title included.
+  title included. A link written in HTML counts: a mention inside an `<a href>…</a>` its paragraph
+  closes is linked to that `href`, as one in a Markdown link is.
 - **Not read, and never an element:** fenced and indented code, front matter, and a block that is
   only HTML comments (`<!-- … -->`, and the `<!…>` and `<?…>` forms HTML treats as comments).
 - **Reported as unread** (`md/unread-mention`, which nothing can suppress): a mention in a raw HTML
-  block, in a link written in HTML (`<a href>…</a>`), in a reference-style link's text, in a link
-  definition's title, or in an image's alt text or title. A mention in a reference-style link's
+  block, in an HTML `<a>` its paragraph never closes or that another link opens inside, in a
+  reference-style link's text, in a link definition's title, or in an image's alt text or title. A mention in a reference-style link's
   text is not read, because its target is a definition elsewhere, which `mentions()` does not
-  join to it (`links()` reads the link itself). A mention in an HTML `<a>` is reported the same way,
-  though `links()` now reads that `<a>`'s `href`: judging the mention by it is
-  [bug 0601](../work/bugs/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)'s. Your rule's
+  join to it (`links()` reads the link itself). A mention in an HTML `<a>` whose text holds another link is reported too: a browser ends
+  the first `<a>` at the second, and which link the mention sits in is not `mentions()`' to guess
+  ([bug 0601](../work/bugs/fixed/0601-a-mention-inside-an-html-link-is-reported-unread-though-the-link-is-read.md)). Your rule's
   predicates are asked about it as far as it is known (its document, line, text and captures): one
   that decides it out without its link, such as a path or section scope or
   `not(areSelfMentions(…))`, leaves it out; one that needs its link or whether it is in code cannot
-  judge it, so it is reported.
+  judge it, so it is reported. `mentions().select()` carries no findings, so a selection that
+  reaches an unread mention refuses, naming it, rather than return the others without it
+  ([bug 0600](../work/bugs/fixed/0600-select-drops-an-unread-mention-without-a-word.md)).
 
 Each element carries `doc`, `line`, `text`, `groups` (your pattern's named captures), `inCode`, and
 `link` when it has one. `collectMentions(root, pattern)` returns each match (`MdMentionMatch`, with
@@ -844,8 +847,9 @@ Three things a join needs that are easy to miss:
   nothing, or a filter that drops every mention, passes. A corpus that has not linked any mention yet
   reds too, as "examined zero units": the cause is that nothing is linked, not that the pattern is
   broken.
-- **Pair it with `beLinked()`.** The join reads the mentions it can read; a mention in text no rule
-  can read is `beLinked()`'s finding (`md/unread-mention`), as is a mention outside any link.
+- **Pair it with `beLinked()`.** The join's selection refuses when it reaches a mention no rule can
+  read, naming it ([bug 0600](../work/bugs/fixed/0600-select-drops-an-unread-mention-without-a-word.md)); `beLinked()` reports that mention as a finding (`md/unread-mention`), as it does a
+  mention outside any link.
 
 **A title link is not judged.** A board row quotes another record because the record it links to
 says so in its title:

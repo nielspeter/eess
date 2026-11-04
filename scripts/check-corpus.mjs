@@ -52,6 +52,7 @@ import {
 } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 import {
+  ArchConfigError,
   collectResult,
   definePredicate,
   finishPreset,
@@ -1571,21 +1572,32 @@ function pointsAt(m) {
   }
 }
 const namedMention = (m) => `${m.doc.relPath}:${String(m.line)} "${m.text}"`
-const judgedLinks = recordMentions(c)
-  .and()
-  .satisfy(areLinked())
-  .and()
-  .satisfy(not(TITLE_LINK))
-  .select({
+// Bug 0600: a mention selection refuses when it reaches a mention it cannot read. That mention is
+// already an unsuppressable `md/unread-mention` from the `beLinked()` rule, so the gate is red; the
+// join reports that it did not run, rather than the gate stopping on the error.
+const joinRefusals = []
+function selectOrRefusal(builder, opts) {
+  try {
+    return builder.select(opts)
+  } catch (error) {
+    if (!(error instanceof ArchConfigError)) throw error
+    joinRefusals.push(error.message)
+    return { elements: [], label: opts.label, identify: opts.identify }
+  }
+}
+const judgedLinks = selectOrRefusal(
+  recordMentions(c).and().satisfy(areLinked()).and().satisfy(not(TITLE_LINK)),
+  {
     label: 'linked record mention',
     identify: (m) => ({ name: namedMention(m), file: m.doc.file, line: m.line }),
-  })
+  },
+)
 const judgedByName = new Map(judgedLinks.elements.map((m) => [namedMention(m), m]))
 // Every linked mention, to say how many the title-link exemption took out of the join.
-const linkedMentionCount = recordMentions(c)
-  .and()
-  .satisfy(areLinked())
-  .select({ label: 'linked record mention', ...anon }).elements.length
+const linkedMentionCount = selectOrRefusal(recordMentions(c).and().satisfy(areLinked()), {
+  label: 'linked record mention',
+  ...anon,
+}).elements.length
 /**
  * The remedy for a linked mention the join reds, chosen by cause as `mentionRemedy` chooses: where
  * the link opens, whether any eess record has the number, and whether it is inside ts-archunit's
@@ -1618,29 +1630,38 @@ function targetRemedy(name) {
     " If the link's text quotes the target's title, write the title whole, or move the mention out of the link."
   )
 }
-const targetViolations = correspondence({
-  left: judgedLinks,
-  right: { elements: recordList, label: 'record', identify: (r) => ({ name: r.key }) },
-  keyBy: { left: (m) => `${pointsAt(m).source}|${mentionKey(m)}`, right: (r) => `local|${r.key}` },
-  suggest: {
-    // Link the record the mention names; a title is never what is wrong.
-    left: (info) => targetRemedy(info.name),
-  },
-})
-  .should()
-  .beComplete({ direction: 'left-to-right' })
-  .andShould()
-  .preserveRelations({
-    left: (m) => [pointsAt(m).at],
-    right: (r) => [r.target],
-    direction: 'left-to-right',
-  })
-  .expectNonEmpty()
-  .rule({
-    id: RECORD_TARGET_RULE,
-    because: 'a link that names one record and opens another sends its reader to the wrong place',
-  })
-  .violations()
+// A join whose selection refused does not run: its receipt is the refusal (below), not a second,
+// zero-examined finding about the same join.
+const joinRan = joinRefusals.length === 0
+const targetViolations = !joinRan
+  ? collectResult([], { examined: 0, notRun: true })
+  : correspondence({
+      left: judgedLinks,
+      right: { elements: recordList, label: 'record', identify: (r) => ({ name: r.key }) },
+      keyBy: {
+        left: (m) => `${pointsAt(m).source}|${mentionKey(m)}`,
+        right: (r) => `local|${r.key}`,
+      },
+      suggest: {
+        // Link the record the mention names; a title is never what is wrong.
+        left: (info) => targetRemedy(info.name),
+      },
+    })
+      .should()
+      .beComplete({ direction: 'left-to-right' })
+      .andShould()
+      .preserveRelations({
+        left: (m) => [pointsAt(m).at],
+        right: (r) => [r.target],
+        direction: 'left-to-right',
+      })
+      .expectNonEmpty()
+      .rule({
+        id: RECORD_TARGET_RULE,
+        because:
+          'a link that names one record and opens another sends its reader to the wrong place',
+      })
+      .violations()
 // `preserveRelations` takes no suggestion, so a crossed link gets the remedy here.
 const targetFindings = targetViolations.map((v) => ({
   ...v,
@@ -1654,10 +1675,18 @@ const leftOutRecords = new Set(LEFT_OUT.map((e) => recordKeyOfPath(e.path) ?? e.
 
 // What the lookbehind skips is counted, so a mention written after `ts-archunit` is visible even
 // though no rule judges it (plan 0542, Phase 1).
-const skippedAfterTsArchunit = mentions(c, { pattern: SKIPPED_AFTER_TS_ARCHUNIT })
+// Counted from the rule's receipt, not a selection (bug 0600's gate check): a selection refuses on a
+// mention it cannot read, and the lookbehind keeps `beLinked()` from reporting that one, so a
+// refusal turned into a count of 0 would be a silent zero on a green gate. The receipt counts what it
+// read and reports what it cannot, unsuppressable, and that finding reds the gate below.
+const skippedReceipt = mentions(c, { pattern: SKIPPED_AFTER_TS_ARCHUNIT })
   .that()
   .satisfy(notLeftOut)
-  .select({ label: 'skipped mention', ...anon }).elements.length
+  .should()
+  .satisfy({ description: 'be counted', evaluate: () => [] })
+  .violations()
+const skippedAfterTsArchunit = skippedReceipt.examined
+const skippedFindings = [...skippedReceipt]
 
 const proposalDocsCount = liveDocs.filter(isProposalDoc).length
 const planDocsCount = liveDocs.filter(isPlanDoc).length
@@ -1675,7 +1704,20 @@ const planDocsCount = liveDocs.filter(isPlanDoc).length
 // with no evidence, so on a CLEAN corpus the machine-readable path emitted a
 // fabricated finding with `"examined": 0` and then threw. Every fixture missed
 // it: they assert exit 1 on violating input, and an uncaught throw exits 1 too.
+const joinRefusalFindings = [...new Set(joinRefusals)].map((message) => ({
+  rule: 'corpus/record-mention-target',
+  ruleId: 'corpus/record-mention-target',
+  element: 'the record-mention join',
+  file: '',
+  line: 0,
+  message: `the record-mention join did not run: ${message}`,
+  suggestion: 'Clear each md/unread-mention finding, and the join runs again.',
+  bypassFilters: true,
+}))
+// The join's findings, or, when its selection refused, the refusal in their place.
+const joinFindings = joinRan ? targetFindings : joinRefusalFindings
 const receipt = mergeCollectResults([
+  collectResult(skippedFindings, { examined: skippedReceipt.examined }),
   collectResult(broken, { examined: linksChecked }),
   collectResult(stale, { examined: pointersChecked }),
   collectResult(adrViolations, { examined: adrDocs.length }),
@@ -1694,7 +1736,9 @@ const receipt = mergeCollectResults([
   // Plan 0541: the mentions the rule examined, its own denominator.
   collectResult(recordMentionFindings, { examined: mentionViolations.examined }),
   // Plan 0542, Phase 9: the links the target join judged, its own denominator.
-  collectResult(targetFindings, { examined: targetViolations.examined }),
+  joinRan
+    ? collectResult(targetFindings, { examined: targetViolations.examined })
+    : collectResult(joinRefusalFindings, { examined: 0 }),
   ...stateResults.map((r) => collectResult([...r], { examined: r.examined })),
   collectResult([...statePresent], { examined: statePresent.examined }),
   // Its own receipt (ADR-010): zero examined over `.notExist()` is a declaration, and an undecided
@@ -1843,17 +1887,21 @@ line(
   `${String(mentionViolations.examined)} record mention(s) examined · ${String(unlinkedMentions)} unlinked · ` +
     `${String(skippedAfterTsArchunit)} skipped after ts-archunit · ` +
     `${String(leftOutRecords)} fold-era records left out (${String(LEFT_OUT.length)} documents, ${String(LEFT_OUT.length - leftOut.length)} as pinned) · ` +
-    `${String(judgedLinks.elements.length)} link(s) to a record judged by their target, ` +
-    `${String(linkedMentionCount - judgedLinks.elements.length)} title link(s) not judged · ${
-      recordMentionFindings.length + targetFindings.length === 0
+    (joinRan
+      ? `${String(judgedLinks.elements.length)} link(s) to a record judged by their target, ` +
+        `${String(linkedMentionCount - judgedLinks.elements.length)} title link(s) not judged · `
+      : 'the record-mention join did not run · ') +
+    `${
+      recordMentionFindings.length + joinFindings.length === 0
         ? '✓ every record mention is a link to the record it names'
-        : `✗ ${recordMentionFindings.length + targetFindings.length} finding(s)`
+        : `✗ ${recordMentionFindings.length + joinFindings.length} finding(s)`
     }`,
 )
 
 const problems = [
   ...recordMentionFindings,
-  ...targetFindings,
+  ...joinFindings,
+  ...skippedFindings,
   ...statePresent,
   ...closedLive,
   ...recordNumbers,

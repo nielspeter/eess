@@ -2305,17 +2305,33 @@ function gateRecordMentionDoneFolder() {
 
 // Two causes in one run: a raw HTML block, and a link written in HTML, which the one HTML reader
 // (plan 0580) must recognise through a quoted `>` (bug 0593), so an emptied `isLinkStart` reddens it.
+// Its `<a>` is never closed in its paragraph: since bug 0601 a closed one is linked, not unread.
 function gateRecordMentionUnread() {
   return mentionRedThenGreen({
     files: {
       [PROBE_998]: probeRecord(
-        '<div>\nADR-016\n</div>\n\nSee <a title="a>b" href="./x.md">ADR-016</a> here.',
+        '<div>\nADR-016\n</div>\n\nSee <a title="a>b" href="./x.md">ADR-016 and no end.',
       ),
     },
     expected: [
       ['md/unread-mention', PROBE_998, 'raw HTML block'],
-      ['md/unread-mention', PROBE_998, 'link written in HTML'],
+      ['md/unread-mention', PROBE_998, 'its paragraph never closes'],
+      // The join's selection refuses on them (bug 0600); the gate reports that it did not run.
+      ['corpus/record-mention-target', undefined, 'the record-mention join did not run'],
     ],
+    // Cleared, the join runs again and the gate is green.
+    remedied: { [PROBE_998]: () => probeRecord(`See ${ADR_016_LIVE} here.`) },
+  })
+}
+
+// Bug 0600's gate check: a mention written after `ts-archunit` is skipped by the record-mention
+// pattern, so `beLinked()` never reports one it cannot read; the skipped count's own receipt must,
+// or a refusal would be a silent zero on a green gate.
+function gateRecordMentionSkippedUnread() {
+  return mentionRedThenGreen({
+    files: { [PROBE_998]: probeRecord('<div>\nts-archunit ADR-003\n</div>') },
+    expected: [['md/unread-mention', PROBE_998, 'raw HTML block']],
+    remedied: { [PROBE_998]: () => probeRecord('ts-archunit ADR-003 in prose.') },
   })
 }
 
@@ -5860,6 +5876,8 @@ const gates = [
   // fragment package.json cannot hold. Each payload, and the summary's "not judged" count, must fire,
   // so emptying any one reader reds the row; one probe keeps it to one gate run.
   ['corpus/links/fragment-reach', gateCorpusFragmentReach],
+  // Bug 0600's gate check, appended so no other fixture changes shard.
+  ['corpus/record-mention/skipped-unread', gateRecordMentionSkippedUnread],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5967,6 +5985,7 @@ const GATE_FOR = {
     'corpus/record-mention/committed',
     'corpus/record-mention/target-crossed',
     'corpus/record-mention/unread',
+    'corpus/record-mention/skipped-unread',
     'corpus/record-mention/waiver-line',
     'corpus/record-mention/waiver-block',
     'corpus/record-mention/waiver-html',
