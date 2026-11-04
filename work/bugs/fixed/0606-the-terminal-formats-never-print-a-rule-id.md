@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-11-03 on `main` at 1a2c1817 against `packages/core/dist`; no red
-  test yet.
+- **State:** Fixed — both text formats print a violation's rule id (2026-11-04). Measured 2026-11-03
+  on `main` at 1a2c1817.
 - **Severity:** Medium — no false green. The id is what an author needs to act on a finding:
   `// eess-exclude <id>`, a preset's `overrides: { <id>: … }`, an ADR row citing it. (A baseline is
   keyed by `rule`, the description, not by the id: `packages/core/src/baseline.ts:18`.) On the default output an author has to guess it from the rule's description.
@@ -40,18 +40,29 @@ The family has two hand printers of its own. `eess-ts check --fix` prints `v.rul
 
 ## Fix
 
-Not designed. The direction: when `ruleId` is set and differs from `rule`, both text formats print
-it, the terminal as `Rule: <ruleId> — <rule>`. The fix decides the plain format's shape and keeps
-an `emitter/*` finding from printing its id twice.
+The terminal format prints `Rule: <ruleId> — <rule>` when the id is set and differs from the
+description (`namedRule`, `packages/core/src/format.ts`), so an `emitter/*` finding, whose
+description is its id, prints it once. The plain format prefixes `[<ruleId>] ` to a violation's
+line when it has an id. It is not quite the reporter's hand printer (`[ruleId ?? rule]`): a finding
+that carries its id in `rule` and leaves `ruleId` unset, as eess-md's ledger findings do, gets no
+prefix; that gap is [bug 0619](../0619-ledger-findings-carry-no-rule-id.md). Of the two hand
+printers, `eess-ts check --fix` (`ruleId ?? rule`) is kept, and `eess-ts baseline` (the
+description) is kept too: a first change to it had no test that could fail, so it was taken back
+(the review). `docs/violation-reporting.md` showed the id as a header the terminal never printed;
+it now shows the `Rule:` line.
 
 ## Verification
 
-- [ ] Red first: `formatViolations` and `formatViolationsPlain` print a violation's `ruleId`.
-- [ ] A violation without a `ruleId` reads as before; one whose `rule` equals its `ruleId` prints it
-      once.
-- [ ] The `check --fix` and `baseline` hand printers are measured against the new output and each
-      kept, changed or removed, said either way.
-- [ ] A changeset naming `@nielspeter/eess`, and every dialect whose terminal output changes.
-- [ ] `npm run validate` green.
+- [x] Red first: `formatViolations` and `formatViolationsPlain` print a violation's `ruleId`: `packages/core/tests/format-rule-id.test.ts` ·
+      `it('the terminal format prints the id before the description')` and
+      `it('the plain format prints the id')`, red on main.
+- [x] A violation without a `ruleId` reads as before; one whose `rule` equals its `ruleId` prints it
+      once: `it('a violation without an id reads as before')` and
+      `it('a finding whose description is its id prints it once')`.
+- [x] The `check --fix` and `baseline` hand printers are measured against the new output and each
+      kept, changed or removed, said either way: see Fix.
+- [x] A changeset naming `@nielspeter/eess`, and every dialect whose terminal output changes:
+      `.changeset/the-text-formats-print-the-rule-id.md`, the kernel, and eess-ts as a patch: it prints through the kernel's formatter, so its CLI output changes though none of its own code does.
+- [x] `npm run validate` green.
 
 Deferred: none

@@ -17,10 +17,12 @@ A violation includes:
 Example output:
 
 ```
-Architecture Violation [repo/typed-errors]
+Architecture Violation [1 of 1]
+
+  Rule: repo/typed-errors — Classes extending 'BaseRepository' should not contain new 'Error'
 
   WebhookRepository.findById contains new 'Error' at line 42
-  at src/repositories/webhook.repository.ts:42
+  src/repositories/webhook.repository.ts:42 — WebhookRepository.findById
 
     41 |     if (!result) {
   > 42 |       throw new Error(`Webhook '${id}' not found`)
@@ -136,7 +138,7 @@ All fields are optional:
 
 | Field        | Description            | Shown in output as            |
 | ------------ | ---------------------- | ----------------------------- |
-| `id`         | Unique rule identifier | Header: `[repo/typed-errors]` |
+| `id`         | Unique rule identifier | `Rule: repo/typed-errors — …` |
 | `because`    | Why the rule exists    | `Why: ...`                    |
 | `suggestion` | How to fix a violation | `Fix: ...`                    |
 | `docs`       | Link to documentation  | `Docs: ...`                   |
