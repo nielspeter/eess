@@ -13,12 +13,13 @@
 
 `LABEL_HEADING` and `PLAIN_LABEL` (`packages/md/src/model/label.ts`) read a label as a letter
 followed by letters, combining marks and spaces, then an ASCII colon. These shapes are not read
-(the review's list, not each measured):
+(the review measured each of them except the hyphen):
 
 - a full-width colon (`Größe：F7`), as written in Chinese and Japanese text;
 - a digit (`Phase 2: Done`);
 - an apostrophe or a hyphen (`Owner's team: X`, `Go-live: May`);
-- a right-to-left mark before the colon, as some editors write in Arabic or Hebrew text.
+- a right-to-left mark (U+200F) at the start of the label (`## ‏מצב: גמור`), as some editors write
+  in Hebrew or Arabic text.
 
 ## Root cause
 
@@ -35,6 +36,8 @@ many continued values each one ends.
 
 - [ ] Each shape measured over this repository's corpus and recorded here.
 - [ ] A row per shape that is admitted, red first.
+- [ ] `PLAIN_LABEL`'s doc comment (`packages/md/src/model/label.ts:66`) names combining marks, as
+      `LABEL_HEADING`'s does (the review of [bug 0604](./fixed/0604-a-field-heading-in-a-non-ascii-label-ends-the-header.md)).
 - [ ] A changeset naming `@nielspeter/eess-md`.
 - [ ] `npm run validate` green.
 

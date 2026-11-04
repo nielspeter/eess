@@ -62,7 +62,7 @@ it now shows the `Rule:` line.
 - [x] The `check --fix` and `baseline` hand printers are measured against the new output and each
       kept, changed or removed, said either way: see Fix.
 - [x] A changeset naming `@nielspeter/eess`, and every dialect whose terminal output changes:
-      `.changeset/the-text-formats-print-the-rule-id.md`, the kernel. eess-ts prints through the kernel's formatter and takes the dependency bump; none of its own code changes.
+      `.changeset/the-text-formats-print-the-rule-id.md`, the kernel, and eess-ts as a patch: it prints through the kernel's formatter, so its CLI output changes though none of its own code does.
 - [x] `npm run validate` green.
 
 Deferred: none

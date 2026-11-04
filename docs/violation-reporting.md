@@ -19,7 +19,7 @@ Example output:
 ```
 Architecture Violation [1 of 1]
 
-  Rule: repo/typed-errors — classes should not contain new 'Error'
+  Rule: repo/typed-errors — Classes extending 'BaseRepository' should not contain new 'Error'
 
   WebhookRepository.findById contains new 'Error' at line 42
   src/repositories/webhook.repository.ts:42 — WebhookRepository.findById
