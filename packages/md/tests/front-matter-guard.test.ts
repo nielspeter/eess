@@ -182,18 +182,23 @@ describe('a link only one reading holds is reported, never judged (bugs 0572, 06
     resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n' }).map(
       (x) => `${String(x.line)} ${x.ruleId ?? '-'} ${x.message.split(':')[0] ?? ''}`,
     )
-  const one = (line: number, url: string, where: 'read as Markdown' | 'front matter') =>
-    `${String(line)} ${ONE_READING_LINK} the link to "${url}" is a link only where the line-1 \`---\` block is ${where}`
+  const one = (
+    line: number,
+    url: string,
+    where: 'read as Markdown' | 'front matter',
+    def?: string,
+  ) =>
+    `${String(line)} ${ONE_READING_LINK} the link to "${url}"${def === undefined ? '' : ` (the definition of ${def})`} is a link only where the line-1 \`---\` block is ${where}`
 
   it('the 0572 case: a definition in the block that a body reference uses', () => {
     expect(
       said('---\na: |\n\n  [x]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md)\n\nSee [x].\n'),
-    ).toEqual([one(12, './gone.md', 'read as Markdown')])
+    ).toEqual([one(12, './gone.md', 'read as Markdown', '[x] at line 4')])
   })
 
   it('the 0572 case: the definition written as a YAML key', () => {
     expect(said('---\n[x]: ./gone.md\n---\n\n# A\n\nSee [x].\n')).toEqual([
-      one(7, './gone.md', 'read as Markdown'),
+      one(7, './gone.md', 'read as Markdown', '[x] at line 2'),
     ])
   })
 
@@ -202,7 +207,7 @@ describe('a link only one reading holds is reported, never judged (bugs 0572, 06
       said(
         '---\na: |\n\n  [g]: ./gone.md\nb: c\n---\n\n# A\n\n[ok](./b.md) See [g].\n\n[g]: https://example.com\n',
       ),
-    ).toEqual([one(10, './gone.md', 'read as Markdown')])
+    ).toEqual([one(10, './gone.md', 'read as Markdown', '[g] at line 4')])
   })
 
   it('the 0610 case: a block read as Markdown for another reason, its body definition shadowed', () => {
@@ -211,8 +216,10 @@ describe('a link only one reading holds is reported, never judged (bugs 0572, 06
       '---\na: b\na: c\n\n[g]: ./b.md\n---\n',
       '---\na: |\n\n  [t](./b.md)\n\n  [g]: ./b.md\nb: c\n---\n',
     ]) {
-      const line = (block + BODY).split('\n').indexOf('See [g].') + 1
-      expect(said(block + BODY)).toEqual([one(line, './gone.md', 'front matter')])
+      const lines = (block + BODY).split('\n')
+      const line = lines.indexOf('See [g].') + 1
+      const def = `[g] at line ${String(lines.indexOf('[g]: ./gone.md') + 1)}`
+      expect(said(block + BODY)).toEqual([one(line, './gone.md', 'front matter', def)])
     }
   })
 
@@ -262,9 +269,48 @@ describe('a link only one reading holds is reported, never judged (bugs 0572, 06
     })
     const v = links(c).should().resolve().excluding(/.*/).violations()
     expect(v.map((x) => [x.ruleId, x.bypassFilters])).toEqual([[ONE_READING_LINK, true]])
-    expect(v[0]?.suggestion).toMatch(
-      /^Move the link or its definition out of the line-1 `---` block/,
+    expect(v[0]?.suggestion).toBe(
+      'Move the definition of [x] (line 2) out of the line-1 `---` block, so both readers agree.',
     )
+  })
+
+  // ADR-009 rule 2: each remedy, applied, clears its finding.
+  it('each remedy, applied, clears the finding', () => {
+    const oneReading = (text: string) =>
+      resolveOf({ 'docs/a.md': text, 'docs/b.md': '# B\n', 'docs/c.md': '# C\n' }).filter(
+        (x) => x.ruleId === ONE_READING_LINK,
+      )
+    const pairs: [string, string][] = [
+      [
+        '---\na: |\n\n  [x]: ./b.md\nb: c\n---\n\n# A\n\nSee [x].\n',
+        '---\na: c\nb: c\n---\n\n# A\n\nSee [x].\n\n[x]: ./b.md\n',
+      ],
+      [
+        '---\na: <a href="./b.md">x</a>\n---\n\n# A\n\n[ok](./b.md)\n',
+        '---\na: x\n---\n\n# A\n\n[ok](./b.md) <a href="./b.md">x</a>\n',
+      ],
+      [
+        '---\na: |\n\n  - [ ] t\n\n  [g]: ./b.md\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: ./c.md\n',
+        '---\na: |\n\n  - [ ] t\nb: c\n---\n\n# A\n\nSee [g].\n\n[g]: ./c.md\n',
+      ],
+      [
+        '---\na: |\n\n  [t](./b.md)\n\n  ```\nb: c\n---\n\n# A\n\n[bad](./b.md)\n',
+        '---\na: |\n\n  [t](./b.md)\n\n  ```\n  x\n  ```\nb: c\n---\n\n# A\n\n[bad](./b.md)\n',
+      ],
+    ]
+    for (const [before, after] of pairs) {
+      expect([before, oneReading(before).length]).toEqual([before, 1])
+      expect([after, oneReading(after).length]).toEqual([after, 0])
+    }
+  })
+
+  it('two links on one line to one URL are one finding', () => {
+    const v = resolveOf({
+      'docs/a.md':
+        '---\na: <a href="./b.md">x</a> <a href="./b.md">y</a>\n---\n\n# A\n\n[ok](./b.md)\n',
+      'docs/b.md': '# B\n',
+    })
+    expect(v.filter((x) => x.ruleId === ONE_READING_LINK)).toHaveLength(1)
   })
 
   it('a URL in a YAML value is no link: a rule over all links still examines nothing', () => {

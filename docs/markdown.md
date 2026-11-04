@@ -607,8 +607,8 @@ only one of them sees cannot be judged: the body reference a definition in the b
 body link a fence opened in a YAML value would swallow. Each such internal link a rule reaches is an
 unsuppressable `md/link-one-reading-holds` finding (`ONE_READING_LINK`) naming the link and which
 reading holds it, and `links().select()` refuses on it; an HTML link either reading cannot read is
-`md/unread-link`. To clear one, move the link or its definition out of the block, or quote the YAML
-value that holds it.
+`md/unread-link`. Each finding names its remedy: move the link or its definition out of the block, remove one of two
+definitions of a label, or close in the block what it opens.
 `terms()`, `pointers()` and the ledger read front-matter lines in both cases. TOML (`+++`) front
 matter is not recognised and is read as Markdown.
 
