@@ -23,7 +23,9 @@ function formatSingleViolation(
   reason: string | undefined,
 ): string {
   const counter = bold(red(`Architecture Violation [${String(index + 1)} of ${String(total)}]`))
-  const ruleLine = `  ${dim('Rule:')} ${v.rule}`
+  // The id first, when it is not the description itself (an `emitter/*` finding's is): it is the
+  // handle an exclusion comment, a preset's `overrides` and an ADR row name (bug 0606).
+  const ruleLine = `  ${dim('Rule:')} ${namedRule(v)}`
   // `message` is printed for BOTH shapes, and it used to be printed for neither
   // — a located violation rendered only `file:line — element`, so the one
   // sentence saying what is actually wrong was dropped from the default surface
@@ -61,6 +63,11 @@ function formatSingleViolation(
   if (docsLine) parts.push(docsLine)
 
   return parts.join('\n')
+}
+
+/** A violation's rule as the text formats name it: `<id> — <description>`, or one when they agree. */
+function namedRule(v: ArchViolation): string {
+  return v.ruleId !== undefined && v.ruleId !== v.rule ? `${v.ruleId} — ${v.rule}` : v.rule
 }
 
 /**
@@ -110,8 +117,10 @@ export function formatViolationsPlain(violations: ArchViolation[], reason?: stri
       // (`format-github.ts:58`) both already special-case this; plain and JSON
       // were the two that did not.
       const where = v.file === '' ? '' : ` (${v.file}:${String(v.line)})`
+      // The rule's id, when it has one (bug 0606): the handle an author acts on.
+      const id = v.ruleId === undefined ? '' : `[${v.ruleId}] `
       const parts = [
-        `  [${String(i + 1)}/${String(violations.length)}] ${v.element}: ${v.message}${where}`,
+        `  [${String(i + 1)}/${String(violations.length)}] ${id}${v.element}: ${v.message}${where}`,
       ]
       if (v.codeFrame) parts.push(v.codeFrame)
       // This format always renders `message`, so a remedy identical to it is

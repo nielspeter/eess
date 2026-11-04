@@ -122,7 +122,10 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
       // files holding the same vacuous rule the description alone is the same
       // sentence twice.
       const where = violation.file === '' ? '' : `${violation.file}: `
-      process.stdout.write(`  - ${where}${violation.rule}: ${violation.message}\n`)
+      // The id when the rule has one, as `check --fix` prints it (bug 0606).
+      process.stdout.write(
+        `  - ${where}${violation.ruleId ?? violation.rule}: ${violation.message}\n`,
+      )
     }
   }
 
