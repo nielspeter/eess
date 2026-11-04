@@ -71,7 +71,7 @@ the inline link only. The three missing images produce nothing.
   _Corrected 2026-11-01 (review): the fragment clause conflicts with
   [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4, which makes a
   fragment on a non-Markdown file a not-judged finding, and goes stale once
-  [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md) lands. The image door
+  [bug 0575](../bugs/fixed/0575-a-fragment-the-link-check-cannot-judge-passes.md) lands. The image door
   ignores the fragment verdict, and says so in its docs._
 - **Evidence:** `examined` counts each image read.
 - **Non-vacuity:** a fixture row per break class. _Corrected 2026-11-01 (review): as written this
@@ -199,7 +199,7 @@ Each of these is decided here so the work can move, and each can be overruled.
    green. Decision 2 closes this: A and B ship together, in one release, as
    [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) §6 paired
    [bug 0136](../bugs/fixed/0136-link-fragments-are-never-checked.md) and
-   [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md).
+   [bug 0575](../bugs/fixed/0575-a-fragment-the-link-check-cannot-judge-passes.md).
 2. **The link door's idea of "resolved" gives four false greens the proposal does not name**
    (measured). The image door needs its own accepted cases over the `LinkTarget` kinds, built on
    the one resolver ([plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md);
@@ -216,13 +216,13 @@ Each of these is decided here so the work can move, and each can be overruled.
 
 - **The fragment criterion conflicts with a decided spike.**
   [Spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4, to be built by
-  [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md), makes a fragment on a
+  [bug 0575](../bugs/fixed/0575-a-fragment-the-link-check-cannot-judge-passes.md), makes a fragment on a
   non-Markdown file an unsuppressable not-judged finding. This proposal wants
   `./logo.svg#gh-dark-mode-only` silent. An image's fragment is a renderer directive, not an
   anchor, so the image door ignores the fragment verdict, documented, as decision 3 allows. The fix
   must always carry an image's fragment, so decision 5's "carry it only if the target has it"
   check belongs in the link caller, not inside `movedLinkFix`. Whichever of this work and
-  [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md) is built second names
+  [bug 0575](../bugs/fixed/0575-a-fragment-the-link-check-cannot-judge-passes.md) is built second names
   the other.
 - **The moved-file fix is the wrong remedy for a generic image name** (measured). A deleted
   `./logo.png` is "fixed" to an unrelated `../logos/logo.png`, and a VitePress `/logo.png` is
@@ -297,7 +297,7 @@ Each of these is decided here so the work can move, and each can be overruled.
   by [bug 0558](../bugs/fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md)'s example.
 - Its fragment criterion, `./logo.svg#gh-dark-mode-only` resolving "as it does today", conflicts
   with [spike 0574](../spikes/0574-what-checking-a-link-fragment-needs.md) decision 4 and goes
-  stale once [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md) lands.
+  stale once [bug 0575](../bugs/fixed/0575-a-fragment-the-link-check-cannot-judge-passes.md) lands.
 - "No second resolver is needed" is true, but the link door's accepted cases are not the image
   door's: `![a]()`, `![a](#)`, a directory and a Markdown file all pass.
 - Open question 1 named only the new findings `links()` users would see. It missed the three other
@@ -331,9 +331,9 @@ attribution already work through the existing walk. Those classes need only rows
 
 ### Disposition
 
-| Ask                                                           | Disposition | What would unhold it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A — inline and reference-style Markdown images resolve        | `Held`      | It ships together with ask B, never alone: 66 of 73 local README images are `<img src>`. Unheld when [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. Then A and B are planned together as one `images()` element with the accepted cases in critical item 2, the image fix policy, the fragment rule against [bug 0575](../bugs/0575-a-fragment-the-link-check-cannot-judge-passes.md), the asset-root scope, and the rewritten non-vacuity criterion |
-| B — `<img src>`, `<img srcset>` and `<source srcset>` resolve | `Held`      | The same condition: [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. B reads `src` and `srcset` through it, with the srcset grammar in the same module                                                                                                                                                                                                                                                                                                 |
+| Ask                                                           | Disposition | What would unhold it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — inline and reference-style Markdown images resolve        | `Held`      | It ships together with ask B, never alone: 66 of 73 local README images are `<img src>`. Unheld when [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. Then A and B are planned together as one `images()` element with the accepted cases in critical item 2, the image fix policy, the fragment rule against [bug 0575](../bugs/fixed/0575-a-fragment-the-link-check-cannot-judge-passes.md), the asset-root scope, and the rewritten non-vacuity criterion |
+| B — `<img src>`, `<img srcset>` and `<source srcset>` resolve | `Held`      | The same condition: [proposal 022](./promoted/022-md-a-raw-html-link-is-resolved.md)'s plan has built the shared HTML-attribute reader. B reads `src` and `srcset` through it, with the srcset grammar in the same module                                                                                                                                                                                                                                                                                                       |
 
 _2026-11-03: the condition both rows wait on is met. [Plan 0580](../plans/completed/0580-md-a-raw-html-link-is-resolved.md) built the shared HTML-attribute reader (`packages/md/src/model/html-attributes.ts`, PR #296). The rows stay `Held` until a review re-disposes them; that is a review's change, not this note's._

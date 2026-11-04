@@ -2851,6 +2851,65 @@ function gateCorpusFragment(region) {
   }
 }
 
+const CORPUS_PROBE_FRAGMENT_REACH_MD = [
+  '# Non-vacuity probe',
+  '',
+  'See [the readme](../../README.md#__nonvacuity_no_such_anchor__).',
+  '',
+  'See [the manifest line](../../package.json#L999999).',
+  '',
+  'See [the dialect](../../packages/md/#__nonvacuity_no_such_page_anchor__).',
+  '',
+  'See [the manifest](../../package.json#__nonvacuity_section__).',
+  '',
+].join('\n')
+
+const FRAGMENT_REACH_PAYLOADS = [
+  [
+    'unloaded',
+    'corpus/broken-links',
+    '"#__nonvacuity_no_such_anchor__" is no heading or anchor in README.md under the GitHub anchor rule',
+  ],
+  ['line', 'corpus/broken-links', '"#L999999" is past the end of package.json'],
+  [
+    'directory',
+    'corpus/broken-links',
+    'is no heading or anchor in the page of packages/md/ under the GitHub anchor rule',
+  ],
+  [
+    'not-judged',
+    'md/fragment-not-judged',
+    'the fragment of 1 link into package.json is not judged',
+  ],
+]
+
+function gateCorpusFragmentReach() {
+  const { json, terminal } = withProbe(
+    PROBE_CORPUS_LINK_REPO,
+    CORPUS_PROBE_FRAGMENT_REACH_MD,
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const sites = Object.fromEntries(
+    FRAGMENT_REACH_PAYLOADS.map(([k, rule, payload]) => [
+      k,
+      firedNamingPayload(json, rule, '__nonvacuity_probe_repo__', payload),
+    ]),
+  )
+  sites.summary = terminal.stderr.includes('1 not judged')
+  const ok = json.code === 1 && terminal.code === 1 && Object.values(sites).every(Boolean)
+  return {
+    ok,
+    detail:
+      `bad → json exit ${json.code}, terminal exit ${terminal.code}; ` +
+      Object.entries(sites)
+        .map(([k, v]) => `${k}: ${v ? 'fired' : 'MISSING'}`)
+        .join(' · '),
+  }
+}
+
 // The other half of the same split — `broken` unions two independently
 // filtered spreads (`scripts/check-corpus.mjs:115-118`), so a probe in only
 // one region cannot prove the other branch is wired. Two rows, not one,
@@ -5795,6 +5854,12 @@ const gates = [
   // profile really passes VitePress's rule; the repo row's is dead under GitHub's, the default.
   ['corpus/links/fragment-site', () => gateCorpusFragment('site')],
   ['corpus/links/fragment-repo', () => gateCorpusFragment('repo')],
+  // Bug 0575: a fragment on what the corpus did not load, appended so no other fixture changes
+  // shard. One probe from the repo region, outside the gate's roots: the root README.md's anchors,
+  // a line past the end of package.json, the README.md of packages/md/ as a directory's page, and a
+  // fragment package.json cannot hold. Each payload, and the summary's "not judged" count, must fire,
+  // so emptying any one reader reds the row; one probe keeps it to one gate run.
+  ['corpus/links/fragment-reach', gateCorpusFragmentReach],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5935,6 +6000,7 @@ const GATE_FOR = {
     'corpus/links/html',
     'corpus/links/fragment-site',
     'corpus/links/fragment-repo',
+    'corpus/links/fragment-reach',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',

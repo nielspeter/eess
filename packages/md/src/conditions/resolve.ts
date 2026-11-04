@@ -3,6 +3,7 @@ import type { Corpus } from '../corpus.js'
 import type { MdLink } from '../model/links.js'
 import { mdViolation } from '../model/violation.js'
 import type { FragmentVerdict } from '../model/anchors.js'
+import { unreadFinding } from '../model/unread-finding.js'
 import {
   basenameIndex,
   linkTargets,
@@ -60,14 +61,57 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
       // definition's finding, reported once at the definition however many references use it,
       // with at most one fix over the definition's URL.
       const reported = new Set<string>()
-      return links.flatMap((link) => {
+      // Bug 0575: a fragment this rule cannot judge is one unsuppressable finding per target and
+      // cause (ADR-021 rule 5), naming the links it covers, never a pass.
+      const unjudged = new Map<
+        string,
+        {
+          readonly path: string
+          readonly verdict: Extract<FragmentVerdict, { kind: 'not-judged' }>
+          readonly links: MdLink[]
+          readonly sites: Set<string>
+          readonly seen: Set<string>
+        }
+      >()
+      const found = links.flatMap((link) => {
         const target = resolveLink(link, corpus, options)
-        if (target.kind === 'self' || target.kind === 'document') {
-          const message = fragmentMessage(
-            link.url,
-            target.fragment,
-            target.kind === 'self' ? 'this document' : target.path,
-          )
+        const reachable =
+          target.kind === 'self' ||
+          target.kind === 'document' ||
+          target.kind === 'not-in-corpus' ||
+          (target.kind === 'directory' && options.resolveDirectories === true)
+        if (reachable) {
+          const where =
+            target.kind === 'self'
+              ? 'this document'
+              : target.kind === 'directory'
+                ? `the page of ${target.path}/`
+                : target.path
+          if (target.fragment?.kind === 'not-judged') {
+            const verdict = target.fragment
+            const path = verdict.file ?? (target.kind === 'self' ? link.doc.relPath : target.path)
+            const key = `${path}\u0000${verdict.reason}`
+            const entry = unjudged.get(key) ?? {
+              path,
+              verdict,
+              links: [],
+              sites: new Set(),
+              seen: new Set(),
+            }
+            // A reference-style link is its definition's, named once at the definition's line.
+            const where = `${link.doc.relPath}:${String(link.definition?.line ?? link.line)}`
+            // Each link once: two links on one line are two, the references of one definition one.
+            const key2 =
+              link.definition === undefined ? `${where}\u0000${String(link.urlStart)}` : where
+            if (!entry.seen.has(key2)) {
+              entry.seen.add(key2)
+              entry.links.push(link)
+              entry.sites.add(where)
+            }
+            unjudged.set(key, entry)
+            return []
+          }
+          const message = fragmentMessage(link.url, target.fragment, where)
           if (message === undefined) return []
           const def = link.definition
           if (def !== undefined) {
@@ -92,8 +136,7 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
             }),
           ]
         }
-        if (target.kind === 'external' || target.kind === 'not-in-corpus') return []
-        if (target.kind === 'directory' && options.resolveDirectories === true) return []
+        if (target.kind === 'external') return []
         const hint = target.kind === 'directory' ? directoryHint(link, target.path) : ''
         const def = link.definition
         if (def !== undefined) {
@@ -110,13 +153,83 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
               `broken link: "${link.url}" does not resolve to a file in the repo${hint}` +
               (def === undefined ? '' : ` (the definition of [${def.label}])`),
             sourceText: link.doc.text,
-            fix: movedLinkFix(link, byBasename),
+            fix: movedLinkFix(link, byBasename, corpus, options),
             context: ctx,
           }),
         ]
       })
+      return [...found, ...[...unjudged.values()].map((u) => notJudgedFinding(u))]
     },
   }
+}
+
+/** The rule id of a fragment `resolve()` cannot judge (bug 0575), reported whatever filters apply. */
+export const FRAGMENT_NOT_JUDGED = 'md/fragment-not-judged'
+
+type NotJudged = Extract<FragmentVerdict, { kind: 'not-judged' }>
+
+/** Why a fragment is not judged, as the finding says it. */
+function notJudgedWhy(v: NotJudged): string {
+  switch (v.reason) {
+    case 'ignored':
+      return 'the corpus ignores the file'
+    case 'not-markdown':
+      return 'it is not Markdown, and the fragment is not a line (`#L5`)'
+    case 'not-text':
+      return 'it is not a text file and has neither anchors nor lines'
+    case 'no-directory-page':
+      return `the directory has no ${v.page ?? 'page'}, the page the anchor rule shows for it`
+    case 'no-page-rule':
+      return 'the anchor rule names no page for a directory'
+    case 'unreadable':
+      return 'the file cannot be read'
+    case 'not-loaded':
+      return 'the linking document is not one the corpus loaded, so its anchors are unknown'
+  }
+}
+
+/** What clears a not-judged finding: never a step that cannot be taken. */
+function notJudgedRemedy(v: NotJudged): string {
+  switch (v.reason) {
+    case 'ignored':
+      return "Remove the file from the corpus's `ignore`, or link it without a fragment."
+    case 'not-markdown':
+      return 'Link the file without a fragment, or link a line of it as `#L5`.'
+    case 'not-text':
+      return 'Link the file without a fragment.'
+    case 'no-directory-page':
+      return `Add a ${v.page ?? 'page'} to the directory, or link a file in it.`
+    case 'no-page-rule':
+      return 'Link a file in the directory, or pass an `anchorRule` that names a directory page.'
+    case 'unreadable':
+      return 'Make the file readable, or link it without a fragment.'
+    case 'not-loaded':
+      return 'Resolve the link against a corpus that loads its document.'
+  }
+}
+
+/** One finding per target and cause, at its first link, naming every link it covers. */
+function notJudgedFinding(u: {
+  readonly path: string
+  readonly verdict: NotJudged
+  readonly links: readonly MdLink[]
+  readonly sites: ReadonlySet<string>
+}) {
+  const first = u.links[0]
+  const sites = [...u.sites]
+  const shown =
+    sites.length > 5 ? [...sites.slice(0, 5), `${String(sites.length - 5)} more`] : sites
+  return unreadFinding({
+    ruleId: FRAGMENT_NOT_JUDGED,
+    element: `${u.path} (fragments)`,
+    file: first?.doc.file ?? '',
+    line: first?.definition?.line ?? first?.line ?? 0,
+    message:
+      `the fragment of ${count(u.links.length, 'link')} into ${u.path} is not judged: ` +
+      `${notJudgedWhy(u.verdict)}, so this rule cannot judge whether it names a place there ` +
+      `(${shown.join(', ')})`,
+    suggestion: notJudgedRemedy(u.verdict),
+  })
 }
 
 /**
@@ -135,6 +248,17 @@ function fragmentMessage(
   if (verdict.kind === 'malformed') {
     return `broken fragment: ${written} is not valid percent-encoding`
   }
+  if (verdict.kind === 'not-judged') return undefined
+  if (verdict.kind === 'out-of-range') {
+    if (verdict.line < 1)
+      return `broken fragment: ${written} names line 0; lines are numbered from 1`
+    if (verdict.column !== undefined && verdict.column.column < 1)
+      return `broken fragment: ${written} names column 0; columns are numbered from 1`
+    return verdict.column === undefined
+      ? `broken fragment: ${written} is past the end of ${where}, which has ${count(verdict.lines, 'line')}`
+      : `broken fragment: ${written} is past the end of line ${String(verdict.line)} of ${where}, ` +
+          `which has ${count(verdict.column.length, 'character')}`
+  }
   if (verdict.uncounted !== undefined) {
     const { element, attribute } = verdict.uncounted
     const article = /^[aeiou]/.test(element) ? 'an' : 'a'
@@ -146,8 +270,19 @@ function fragmentMessage(
   return `broken fragment: ${written} is no heading or anchor in ${where} under the ${verdict.rule} anchor rule`
 }
 
+/** `n` and its noun, singular for one. */
+function count(n: number, noun: string): string {
+  return `${String(n)} ${noun}${n === 1 ? '' : 's'}`
+}
+
 /** The remedy for a fragment finding: the anchors nearest to it, and the rule it was judged by. */
 function fragmentRemedy(verdict: FragmentVerdict | undefined): string | undefined {
+  if (verdict?.kind === 'out-of-range') {
+    if (verdict.lines === 0) return 'The file is empty: link it without a line.'
+    return verdict.column === undefined
+      ? `Point the fragment at a line the file has (1 to ${String(verdict.lines)}).`
+      : `Point the fragment at a column line ${String(verdict.line)} has, or drop the column.`
+  }
   if (verdict === undefined || verdict.kind !== 'absent') return undefined
   const rule = 'If the target is published by another renderer, pass its rule as `anchorRule`.'
   if (verdict.uncounted !== undefined) {

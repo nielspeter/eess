@@ -30,3 +30,16 @@ export function writtenAt(raw: string, at: number, url: string): boolean {
   const after = raw.charAt(at + url.length)
   return after === '' || /[\s>)]/.test(after)
 }
+
+/**
+ * `target` written as a link destination, or `undefined` when no destination form keeps it (bug
+ * 0567). The one writer beside the reader above, for every fix that writes a destination (the
+ * mention fix, the moved-link fix): an entity would be decoded, and `<`, `>`, `\\` or a line break
+ * would end or change it, so each is refused; a space or a parenthesis would end a bare destination,
+ * so the target goes in `<…>`, or, when `angle` says the span already sits inside `<…>`, as it is.
+ */
+export function writeDestination(target: string, angle = false): string | undefined {
+  if (/&[#A-Za-z0-9]+;/.test(target) || /[<>\\\n]/.test(target)) return undefined
+  if (angle) return target
+  return /[\s()]/.test(target) ? `<${target}>` : target
+}

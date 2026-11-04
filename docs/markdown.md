@@ -285,8 +285,11 @@ names no anchor, and one whose percent-encoding does not decode: `broken fragmen
 rule`, with the nearest anchors (`#going`) on its `Fix:` line, so a baseline entry for it holds
 when the target's other headings change. Every link form is checked, an `<a href="#…">` in raw
 HTML included. A fragment that names the `id` of an element the rule does not count (a `<span>`
-under GitHub's) is reported as that, not as a missing anchor. A line fragment (`#L5`, `#L5-L9`)
-after `?plain=1`, GitHub's source view, names a line, not an anchor, and is not judged here. A document's anchors are every heading at any depth (in a
+under GitHub's) is reported as that, not as a missing anchor. A line fragment (`#L5`, `#L5-L9`,
+`#L5C3`) names a line, not an anchor, on a file that is not Markdown and after `?plain=1`
+(GitHub's source view of a Markdown file): each line must be within the file and each column
+within its line (`broken fragment: "./a.ts#L40" — "#L40" is past the end of src/a.ts, which has
+31 lines`). A document's anchors are every heading at any depth (in a
 blockquote or a list item too) plus the HTML anchors its renderer keeps. They come from
 the **anchor rule** of the renderer that publishes the linking document, passed as
 `LinkResolveOptions.anchorRule`; the default, `githubAnchors`, is github.com's: heading ids
@@ -298,8 +301,16 @@ names an anchor that differs only in case. `#top` in any case and an empty `#` n
 the top of the page. A site published by another renderer passes its own rule, an
 `AnchorRule`: a `name`, `ids(headings)` (every heading's text in document order, in;
 their ids, one each, out), optional `aliases(id)`, and `keepsHtmlAnchor(element,
-attribute)`. One corpus checked under two rules gives each its own answer. A fragment
-on a file the corpus did not load, or on a directory, is not judged yet. Only `.resolve()`
+attribute)`, and optional `directoryPages`. One corpus checked under two rules gives each its own
+answer. A Markdown file the corpus did not load is read for its anchors alone, and a fragment on
+a directory link is judged against the page the rule names for a directory (GitHub's:
+`README.md`), loaded or not. Anything else — a fragment on a file the corpus ignores, on a file that is not text (a PDF, an
+image: a file holding a NUL byte or bytes UTF-8 does not decode, or opening `%PDF-`, has neither
+anchors nor lines), an anchor on a text file that is
+not Markdown, a directory with no such page, a file that cannot be read, or a hand-built link from
+a document the corpus did not load — is not judged, and says so: one `md/fragment-not-judged` finding (`FRAGMENT_NOT_JUDGED`)
+per target file and cause, naming the links it covers, which `.excluding()`, `.warn()`, an
+exclusion comment and a baseline cannot hide. Only `.resolve()`
 reads the fragment: `haveLiveTargets()`, `beLinkedBack()` and `mentions()` ask about
 the target and ignore it.
 
@@ -612,11 +623,15 @@ takes the same `LinkResolveOptions` and returns one named case. No URL makes it 
 | `external`      | a URL with a scheme                                                                                               |
 
 A URL's path ends at its first `?` or `#`: `./logo.png?raw=true` and `./a.md?plain=1` resolve to
-`logo.png` and `a.md`, as GitHub reads them, and a moved target's fix carries the query and the
-fragment over. A `?` that is part of a file name is written `%3F`. On `document` and
-`self`, `fragment` is the `FragmentVerdict` of the link's `#fragment` under
-`options.anchorRule`: `found`, `absent` (with the rule's `name` and up to three `nearest`
-anchors) or `malformed`.
+`logo.png` and `a.md`, as GitHub reads them. A moved target's fix carries the query over, and the
+fragment only when the new target holds it; it is offered only when the new URL resolves to the
+moved file; it writes the new destination in `<…>` when a space
+or a parenthesis needs it, and offers no fix when the document, read again with it applied, would
+not hold a link to the new URL (a `|` in a table row splits the cell). A `?` that is part of a
+file name is written `%3F`. On `document`, `self`, `not-in-corpus` and `directory`,
+`fragment` is the `FragmentVerdict` of the link's `#fragment` under `options.anchorRule`:
+`found`, `absent` (with the rule's `name` and up to three `nearest` anchors), `malformed`,
+`out-of-range` (a line or a column) or `not-judged` (with its `reason`).
 
 Candidates are tried in a fixed order: the repo-root target, then the
 content-root one when `rootDir` is set, each as written, then with

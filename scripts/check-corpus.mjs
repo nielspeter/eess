@@ -44,6 +44,7 @@ import {
   pointers,
   resideInFile,
   resolveLink,
+  FRAGMENT_NOT_JUDGED,
   resideInFolder,
   rows,
   sections,
@@ -289,8 +290,13 @@ const linkFindings = linkRule.violations()
 const linkVerdict = () => {
   if (broken.length === 0) return '✓ all resolve'
   const unread = broken.filter((v) => v.ruleId === 'md/unread-link').length
-  const missing = broken.length - unread
-  return `✗ ${[missing > 0 ? `${missing} broken` : '', unread > 0 ? `${unread} unread` : '']
+  const unjudged = broken.filter((v) => v.ruleId === FRAGMENT_NOT_JUDGED).length
+  const missing = broken.length - unread - unjudged
+  return `✗ ${[
+    missing > 0 ? `${missing} broken` : '',
+    unread > 0 ? `${unread} unread` : '',
+    unjudged > 0 ? `${unjudged} with a fragment not judged` : '',
+  ]
     .filter(Boolean)
     .join(' · ')}`
 }
@@ -310,10 +316,10 @@ links(c)
         if (!link.url.includes('#')) continue
         const opts = isRepoNativeLink(link.doc.relPath) ? REPO_OPTS : SITE_OPTS
         const target = resolveLink(link, c, opts)
-        // A `self` or `document` target with no verdict is a line after `?plain=1`: not judged.
-        if ((target.kind === 'self' || target.kind === 'document') && target.fragment)
-          fragments.checked++
-        else if (target.kind !== 'external' && target.kind !== 'missing') fragments.notJudged++
+        const verdict = 'fragment' in target ? target.fragment : undefined
+        if (verdict === undefined) continue
+        if (verdict.kind === 'not-judged') fragments.notJudged++
+        else fragments.checked++
       }
       return []
     },

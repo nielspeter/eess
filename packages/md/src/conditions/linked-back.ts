@@ -164,7 +164,10 @@ export function linkedBack(corpus: Corpus, options: LinkResolveOptions = {}): Co
             message:
               cause.message + (def === undefined ? '' : ` (the definition of [${def.label}])`),
             sourceText: link.doc.text,
-            fix: target.kind === 'missing' ? movedLinkFix(link, byBasename) : undefined,
+            fix:
+              target.kind === 'missing'
+                ? movedLinkFix(link, byBasename, corpus, options)
+                : undefined,
             context: { ...ctx, suggestion: cause.suggestion },
           }),
         )

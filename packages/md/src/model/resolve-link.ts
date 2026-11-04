@@ -1,10 +1,20 @@
-import { posix } from 'node:path'
+import { join, posix } from 'node:path'
 import type { ArchFix } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
-import { corpusInternals } from './corpus-internals.js'
-import type { MdDocument } from './document.js'
-import type { MdLink } from './links.js'
-import { githubAnchors, judgeFragment, type AnchorRule, type FragmentVerdict } from './anchors.js'
+import { corpusInternals, readCorpusFile } from './corpus-internals.js'
+import { buildDocument, type MdDocument } from './document.js'
+import { parseUncached } from './prose.js'
+import { writeDestination } from './destination.js'
+import { collectLinks, type MdLink } from './links.js'
+import {
+  githubAnchors,
+  isLineFragment,
+  judgeFragment,
+  judgeLine,
+  type AnchorRule,
+  type FragmentVerdict,
+  type NotJudgedReason,
+} from './anchors.js'
 
 /**
  * Options for resolving a link URL against the repo tree. Covers static-site
@@ -55,9 +65,10 @@ export interface LinkResolveOptions {
    * The renderer's anchor rule, which judges a link's `#fragment` against the headings and HTML
    * anchors of its target (bug 0136). The linking document's renderer's, since a reader stays in
    * one. Default {@link githubAnchors}, github.com's renderer's; pass another for a corpus a
-   * different renderer publishes. A fragment is judged on a loaded corpus document, or on the
-   * linking document itself; a line fragment (`#L5`) after `?plain=1` is a line of the source,
-   * not an anchor, and is not judged here.
+   * different renderer publishes. A fragment is judged on any Markdown file (one the corpus did
+   * not load is read for its anchors alone), on a directory's page (`AnchorRule.directoryPages`),
+   * and as a line (`#L5`, `#L5-L9`, `#L5C3`) on a file that is not Markdown or after `?plain=1`;
+   * anything else is not judged, which `resolve()` reports (bug 0575).
    */
   readonly anchorRule?: AnchorRule
 }
@@ -80,10 +91,11 @@ export type NotInCorpusReason = 'not-markdown' | 'ignored' | 'outside-roots'
  * - `self`: a pure `#anchor` or `?query`, or a path back to the linking document itself.
  * - `document`: an existing, loaded corpus document, whose links are parsed.
  *
- * On `self` and `document`, `fragment` is what the link's `#fragment` found (bug 0136): set when
- * the URL has a `#` and the document is loaded, judged by `LinkResolveOptions.anchorRule`. Each rule
- * decides what it means: `resolve()` reports one that is absent or malformed; `haveLiveTargets()`,
- * `beLinkedBack()` and `mentions()` ask about the target and do not read it.
+ * On `self`, `document`, `not-in-corpus` and `directory`, `fragment` is what the link's `#fragment`
+ * found (bugs 0136, 0575), judged by `LinkResolveOptions.anchorRule`: set whenever the URL has a
+ * `#`. Each rule decides what it means: `resolve()` reports one that is absent, malformed, out of
+ * range or not judged; `haveLiveTargets()`, `beLinkedBack()` and `mentions()` ask about the target
+ * and do not read it.
  * - `not-in-corpus`: an existing file the corpus did not load, with every reason.
  * - `directory`: no candidate is a file, but one names a real directory.
  * - `missing`: nothing exists; `tried` lists every candidate, in order.
@@ -101,8 +113,9 @@ export type LinkTarget =
       readonly kind: 'not-in-corpus'
       readonly path: string
       readonly reasons: readonly NotInCorpusReason[]
+      readonly fragment?: FragmentVerdict
     }
-  | { readonly kind: 'directory'; readonly path: string }
+  | { readonly kind: 'directory'; readonly path: string; readonly fragment?: FragmentVerdict }
   | { readonly kind: 'missing'; readonly tried: readonly string[] }
 
 interface CorpusIndexes {
@@ -208,18 +221,140 @@ function verdictOn(
 ): { readonly fragment?: FragmentVerdict } {
   const fragment = fragmentOf(link.url)
   if (fragment === undefined || doc === undefined) return {}
-  const { rest } = splitPath(link.url)
-  const query = rest.slice(0, rest.indexOf('#'))
-  if (/(?:^\?|&)plain=1(?:&|$)/.test(query) && /^L\d+(?:C\d+)?(?:-L\d+(?:C\d+)?)?$/.test(fragment))
-    return {}
+  if (plainSource(link.url) && isLineFragment(fragment)) {
+    const line = judgeLine(fragment, doc.text)
+    if (line !== undefined) return { fragment: line }
+  }
   return { fragment: judgeFragment(fragment, doc, options.anchorRule ?? githubAnchors) }
 }
 
-function selfTarget(link: LinkToResolve, corpus: Corpus, options: LinkResolveOptions): LinkTarget {
-  return {
-    kind: 'self',
-    ...verdictOn(indexes(corpus).documents.get(link.doc.relPath), link, options),
+/** Whether the URL's query asks for the source view (`?plain=1`), where `#L5` names a line. */
+function plainSource(url: string): boolean {
+  const { rest } = splitPath(url)
+  const hash = rest.indexOf('#')
+  return /(?:^\?|&)plain=1(?:&|$)/.test(hash === -1 ? rest : rest.slice(0, hash))
+}
+
+/** A Markdown file the corpus did not load, read for its anchors alone (bug 0575), once per corpus. */
+const unloaded = new WeakMap<Corpus, Map<string, MdDocument | undefined>>()
+
+function unloadedDocument(corpus: Corpus, path: string): MdDocument | undefined {
+  let byPath = unloaded.get(corpus)
+  if (byPath === undefined) {
+    byPath = new Map()
+    unloaded.set(corpus, byPath)
   }
+  if (byPath.has(path)) return byPath.get(path)
+  let doc: MdDocument | undefined
+  try {
+    const text = readCorpusFile(corpus, path)
+    doc = buildDocument({
+      file: join(corpus.root, path),
+      relPath: path,
+      frozen: false,
+      text,
+      // Read once and kept here; not pushed into the shared parse memo the corpus's own texts use.
+      root: parseUncached(text),
+    })
+  } catch (error: unknown) {
+    void error
+    doc = undefined
+  }
+  byPath.set(path, doc)
+  return doc
+}
+
+/** How many links a document holds, counted once per document for the moved-link fix's check. */
+const linkCounts = new WeakMap<MdDocument, number>()
+function linkCountOf(doc: MdDocument): number {
+  const known = linkCounts.get(doc)
+  if (known !== undefined) return known
+  const n = collectLinks(doc.root, doc.text).length
+  linkCounts.set(doc, n)
+  return n
+}
+
+/** A file's text, or `undefined` when it cannot be read. */
+function textOfFile(corpus: Corpus, path: string): string | undefined {
+  try {
+    return readCorpusFile(corpus, path)
+  } catch (error: unknown) {
+    void error
+    return undefined
+  }
+}
+
+/**
+ * The fragment's verdict on a file the corpus did not load (bug 0575, spike 0574 decision 4): a
+ * Markdown file is read for its anchors, a line fragment on any other file is judged against its
+ * lines, and anything else, or a file the corpus ignores, is not judged.
+ */
+function unloadedVerdict(
+  path: string,
+  reasons: readonly NotInCorpusReason[],
+  link: LinkToResolve,
+  corpus: Corpus,
+  options: LinkResolveOptions,
+): { readonly fragment?: FragmentVerdict } {
+  const fragment = fragmentOf(link.url)
+  if (fragment === undefined) return {}
+  const notJudged = (reason: NotJudgedReason): { readonly fragment: FragmentVerdict } => ({
+    fragment: { kind: 'not-judged', fragment, reason, file: path },
+  })
+  if (reasons.includes('ignored')) return notJudged('ignored')
+  if (path.endsWith('.md')) {
+    const doc = unloadedDocument(corpus, path)
+    if (doc === undefined) return notJudged('unreadable')
+    return verdictOn(doc, link, options)
+  }
+  const text = textOfFile(corpus, path)
+  if (text === undefined) return notJudged('unreadable')
+  // A file that is not text has no lines: `#L1` on an image or a PDF reaches nothing, and judging it
+  // as a line would pass it (bug 0575's enforcement review). Not text: a NUL byte, a byte sequence
+  // UTF-8 does not decode (read as U+FFFD), or a PDF's `%PDF-` header, which an ASCII-only PDF has.
+  if (text.includes('\u0000') || text.includes('\uFFFD') || text.startsWith('%PDF-'))
+    return notJudged('not-text')
+  const line = judgeLine(fragment, text)
+  return line === undefined ? notJudged('not-markdown') : { fragment: line }
+}
+
+/**
+ * The fragment's verdict on a directory (bug 0575): judged against the page the rule names for one,
+ * loaded or read on demand, and not judged when the rule names none or the directory has none.
+ */
+function directoryVerdict(
+  path: string,
+  link: LinkToResolve,
+  corpus: Corpus,
+  options: LinkResolveOptions,
+): { readonly fragment?: FragmentVerdict } {
+  const fragment = fragmentOf(link.url)
+  if (fragment === undefined) return {}
+  const pages = (options.anchorRule ?? githubAnchors).directoryPages ?? []
+  if (pages.length === 0)
+    return { fragment: { kind: 'not-judged', fragment, reason: 'no-page-rule' } }
+  const pagePath = pages.map((p) => posix.join(path, p)).find((p) => corpus.fileIndex.has(p))
+  if (pagePath === undefined)
+    return {
+      fragment: {
+        kind: 'not-judged',
+        fragment,
+        reason: 'no-directory-page',
+        page: pages.join(' or '),
+      },
+    }
+  const loaded = indexes(corpus).documents.get(pagePath)
+  if (loaded !== undefined) return verdictOn(loaded, link, options)
+  return unloadedVerdict(pagePath, notInCorpusReasons(corpus, pagePath), link, corpus, options)
+}
+
+function selfTarget(link: LinkToResolve, corpus: Corpus, options: LinkResolveOptions): LinkTarget {
+  const doc = indexes(corpus).documents.get(link.doc.relPath)
+  const fragment = fragmentOf(link.url)
+  // A hand-built link from a document the corpus did not load: its anchors are unknown here.
+  if (doc === undefined && fragment !== undefined)
+    return { kind: 'self', fragment: { kind: 'not-judged', fragment, reason: 'not-loaded' } }
+  return { kind: 'self', ...verdictOn(doc, link, options) }
 }
 
 function fileTarget(
@@ -231,7 +366,13 @@ function fileTarget(
   if (path === link.doc.relPath) return selfTarget(link, corpus, options)
   const doc = indexes(corpus).documents.get(path)
   if (doc !== undefined) return { kind: 'document', path, doc, ...verdictOn(doc, link, options) }
-  return { kind: 'not-in-corpus', path, reasons: notInCorpusReasons(corpus, path) }
+  const reasons = notInCorpusReasons(corpus, path)
+  return {
+    kind: 'not-in-corpus',
+    path,
+    reasons,
+    ...unloadedVerdict(path, reasons, link, corpus, options),
+  }
 }
 
 /**
@@ -298,7 +439,8 @@ export function resolveLink(
   const { directories } = indexes(corpus)
   for (const target of targets) {
     const bare = target.replace(/\/+$/, '')
-    if (directories.has(bare)) return { kind: 'directory', path: bare }
+    if (directories.has(bare))
+      return { kind: 'directory', path: bare, ...directoryVerdict(bare, link, corpus, options) }
   }
   return { kind: 'missing', tried }
 }
@@ -337,26 +479,57 @@ export function basenameIndex(corpus: Corpus): ReadonlyMap<string, readonly stri
  * relative to the linking document (plan 0066). Ambiguous basename, or a URL
  * whose exact span isn't known, → no fix.
  *
+ * The fix carries a query and a fragment over only when the new target holds the fragment, as
+ * `resolveLink` judges it under `options` (bug 0575); and the new destination is written by
+ * `writeDestination`, in `<…>` where a space or a parenthesis needs it, and kept only when the
+ * document, read again with the fix applied, still holds a link to the new URL and as many links as
+ * before (bug 0567: a bare `./new dir/b.md` is text, not a link, and the run went green).
+ *
  * Lives beside `resolveLink` so that path arithmetic stays in this one module
  * (plan 0404's structural rule keeps `node:path` out of the conditions).
  */
 export function movedLinkFix(
   link: MdLink,
   byBasename: ReadonlyMap<string, readonly string[]>,
+  corpus: Corpus,
+  options: LinkResolveOptions = {},
 ): ArchFix | undefined {
-  if (link.urlStart === undefined || link.urlEnd === undefined) return undefined
+  const { urlStart, urlEnd } = link
+  if (urlStart === undefined || urlEnd === undefined) return undefined
   const { path, rest } = splitPath(link.url) // rest: '', '?query', '#anchor' or both, carried over
   const base = path.slice(path.replace(/\/+$/, '').lastIndexOf('/') + 1)
   const matches = byBasename.get(base) ?? []
   if (matches.length !== 1) return undefined // renamed (no match) or ambiguous → no fix
   const target = matches[0]
   if (target === undefined) return undefined
-  const replacement = relativeLinkPath(link.doc.relPath, target) + rest
-  if (replacement === link.url) return undefined
+  const url = relativeLinkPath(link.doc.relPath, target) + rest
+  if (url === link.url) return undefined
+  // The new URL must reach the file the fix names: a `?`, `%` or `%20` in a folder name is read as a
+  // query or an escape, and the fix would write a link the next run reports (the review of bug 0567).
+  const moved = resolveLink({ url, external: false, doc: link.doc }, corpus, options)
+  if (!('path' in moved) || moved.path !== target) return undefined
+  if (fragmentOf(url) !== undefined) {
+    const verdict = 'fragment' in moved ? moved.fragment : undefined
+    if (verdict?.kind !== 'found') return undefined
+  }
+  const text = link.doc.text
+  const angle = text[urlStart - 1] === '<' && text[urlEnd] === '>'
+  const replacement = writeDestination(url, angle)
+  if (replacement === undefined) return undefined
+  // Read again with the fix applied: as many links as before, and one to the new URL where the
+  // rewritten span starts, so an unrelated link to the same file cannot vouch for it.
+  const fixed = text.slice(0, urlStart) + replacement + text.slice(urlEnd)
+  const at = replacement.startsWith('<') && !angle ? urlStart + 1 : urlStart
+  const after = collectLinks(parseUncached(fixed), fixed)
+  if (
+    after.length !== linkCountOf(link.doc) ||
+    !after.some((l) => l.url === url && l.urlStart === at)
+  )
+    return undefined
   return {
     file: link.doc.file,
-    start: link.urlStart,
-    end: link.urlEnd,
+    start: urlStart,
+    end: urlEnd,
     replacement,
     describe: `rewrite link "${link.url}" → "${replacement}"`,
   }
