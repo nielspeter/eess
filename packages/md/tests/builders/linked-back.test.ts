@@ -203,7 +203,7 @@ describe('haveLiveTargets() and an empty selection (plan 0406)', () => {
     const v = violations(at('all-frozen'), { live: true })
     expect(v.examined).toBe(0)
     expect(v.map((x) => x.message.split('\n')[0]?.slice(0, 32))).toEqual([
-      'this rule examined zero units. I',
+      'this rule examined zero units. F',
     ])
   })
 
@@ -224,7 +224,7 @@ describe('haveLiveTargets() and an empty selection (plan 0406)', () => {
     const v = violations(at('empty'))
     expect(v.examined).toBe(0)
     expect(v.map((x) => x.message.split('\n')[0]?.slice(0, 32))).toEqual([
-      'this rule examined zero units. I',
+      'this rule examined zero units. F',
     ])
   })
 })

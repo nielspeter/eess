@@ -52,12 +52,21 @@ function configFinding(facts: RuleFacts, message: string, suggestion = message):
   }
 }
 
+/**
+ * The generic zero-examined finding, when no dialect diagnosed a cause. It fires for several causes
+ * with different remedies, so it names each with its own and offers `.expectEmpty()` only for the
+ * one it clears (ADR-009 rule 2, ADR-010 §4): declaring a source empty when its subjects are
+ * written in a form the rule does not read, wikilinks to a link rule, turns the rule green with
+ * nothing checked (bug 0589).
+ */
 export function zeroExaminedViolation(facts: RuleFacts): ArchViolation {
   const message =
-    `this rule examined zero units. If this is expected (the corpus is legitimately ` +
-    `empty right now), declare it explicitly with .expectEmpty() — otherwise this is a ` +
-    `dead selector, an empty project, or a rule that never reaches its own examining ` +
-    `seam, and the fix is to widen the selection, not to suppress this finding.`
+    `this rule examined zero units. Find the cause before acting, since each has its own fix: ` +
+    `a dead selector or an empty project (widen the selection, or load the source); subjects ` +
+    `written in a form this rule does not read, such as links in a syntax it does not parse ` +
+    `(write them in a form the rule reads, or use a rule that reads that form); a rule that ` +
+    `never reaches its own examining seam (fix the rule); or a source that is legitimately ` +
+    `empty right now, and only then declare it with .expectEmpty(). Do not suppress this finding.`
   return configFinding(facts, message)
 }
 

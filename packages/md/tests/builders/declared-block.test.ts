@@ -351,7 +351,7 @@ describe('the builder override keeps the base evidence (plan 0405)', () => {
     expect(
       v.map((x) => `${x.line} ${(x.message.split('\n')[0] ?? '').slice(0, 41)}`).sort(),
     ).toEqual([
-      '0 this rule examined zero units. If this is',
+      '0 this rule examined zero units. Find the c',
       '3 the label "Related To" is not the declare',
     ])
   })

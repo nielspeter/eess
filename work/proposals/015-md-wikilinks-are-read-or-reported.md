@@ -313,7 +313,7 @@ be overruled.
 
 The kernel's zero-examined message offers `.expectEmpty()` and does not name "links written in a
 form this rule does not read" as a cause. That is a defect outside this proposal's scope, filed as
-[bug 0589](../bugs/0589-a-zero-examined-rule-names-expect-empty-but-not-an-unread-link-form.md).
+[bug 0589](../bugs/fixed/0589-a-zero-examined-rule-names-expect-empty-but-not-an-unread-link-form.md).
 
 ### Next step
 

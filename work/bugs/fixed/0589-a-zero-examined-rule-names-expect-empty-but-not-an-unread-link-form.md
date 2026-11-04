@@ -2,11 +2,13 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-11-01 on `bd78b962`; no red test yet.
+- **State:** Fixed — the zero-examined message names a form the rule does not read as a cause, with
+  its own remedy, and offers `.expectEmpty()` only for a legitimately empty source (2026-11-04).
+  Reproduced 2026-11-01 on `bd78b962`.
 - **Severity:** High — a false green reached by following the finding's own remedy. A corpus whose
   links are all written as wikilinks reds with a message that offers `.expectEmpty()`. Declaring
   it turns the rule green with 0 findings, and no link in the corpus is checked.
-- **Origin:** self-found · [proposal 015](../proposals/015-md-wikilinks-are-read-or-reported.md)'s
+- **Origin:** self-found · [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)'s
   review (synthesis C3, enforcement C2), which measured it and asked for a bug of its own: the
   kernel's message is not the proposal's to change.
 - **Reported:** 2026-11-01
@@ -21,12 +23,12 @@ an empty project, and a rule that never reaches its own examining seam. The true
 them: the corpus holds links, written in a form this rule does not read.
 
 So the one remedy the message makes concrete, `.expectEmpty()`, is the one an agent applies. It
-clears the finding and leaves every link unchecked. [ADR-009](../../adr/009-agent-first-failure-surfaces.md)
+clears the finding and leaves every link unchecked. [ADR-009](../../../adr/009-agent-first-failure-surfaces.md)
 rule 2: "The remedy must be **real**", and "if a check can fire for several causes, the message
-must not name one cause's remedy as if it were universal." [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)
+must not name one cause's remedy as if it were universal." [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)
 §4 says the same of this finding: each cause names its own remedy.
 
-The corpus that reaches this is the one [proposal 015](../proposals/015-md-wikilinks-are-read-or-reported.md)
+The corpus that reaches this is the one [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)
 exists for, a wiki or a notes vault written in wikilinks. A corpus that mixes wikilinks with
 ordinary links is not affected by this bug: its ordinary links are examined, so the zero-examined
 finding never fires (the wikilinks there are unread, which is the proposal's subject).
@@ -68,7 +70,7 @@ Output (0.15 s wall time):
 ```
 
 The same holds for a corpus whose only link is a raw HTML link, the other unread form
-([bug 0558](./fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md), Fix 2, still open).
+([bug 0558](./0558-a-reference-style-or-raw-html-link-is-never-examined.md), Fix 2, still open).
 `<p align="center"><a href="./gone.md">Guide</a></p>` (0.13 s):
 
 ```text
@@ -87,14 +89,14 @@ wikilink is plain text to the parser, so nothing is collected and nothing is rep
 passes that fact to the kernel, so the kernel falls through to the generic message and its
 `.expectEmpty()` remedy. The kernel already has a hook a dialect answers before `.expectEmpty()` is
 read: `cardinalitySelectorFault()`, for a broken selector
-([bug 0460](./fixed/0460-the-kernel-exempts-a-cardinality-rule-before-it-looks-for-a-dead-glob.md),
+([bug 0460](./0460-the-kernel-exempts-a-cardinality-rule-before-it-looks-for-a-dead-glob.md),
 `packages/core/src/terminal-builder.ts:338`). No such hook carries "this corpus holds text in a
 link form this rule does not read".
 
 ## Fix
 
 Not designed. The direction, within
-[ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the kernel takes the fact a
+[ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the kernel takes the fact a
 dialect materialises, not the project):
 
 - When a rule examined zero units, the message must not offer `.expectEmpty()` as the remedy for
@@ -103,21 +105,42 @@ dialect materialises, not the project):
 - Where the dialect knows the corpus holds an unread link form, it says so, and that fact outranks
   `.expectEmpty()` as an empty source and a selector fault already do, so the declaration cannot
   turn the corpus green. Which forms eess-md recognises as unread, and how, is
-  [proposal 015](../proposals/015-md-wikilinks-are-read-or-reported.md)'s question for wikilinks and
-  [bug 0558](./fixed/0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2's for raw HTML.
+  [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)'s question for wikilinks and
+  [bug 0558](./0558-a-reference-style-or-raw-html-link-is-never-examined.md) Fix 2's for raw HTML.
   This bug must not decide either. It owns the kernel's message and the precedence slot both can use.
+
+**Built 2026-11-04.** `zeroExaminedViolation` (`packages/core/src/vacuity-findings.ts:62`) names
+five causes, each with its own remedy: a dead selector or an empty project, subjects written in a
+form the rule does not read (write them in a form it reads, or use a rule that reads that form), a
+rule that never reaches its examining seam, and a source that is legitimately empty, which alone
+is offered `.expectEmpty()`, last. eess-ts gives its own zero-subject advice and is unchanged.
+
+The Fix's second half, a precedence slot through which a dialect says its corpus holds a link form
+the rule does not read, so that the fact outranks `.expectEmpty()`, is not built: no dialect has
+that fact to give. eess-md now reads raw HTML links ([plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)), and the ones it cannot read
+are unsuppressable findings, which `.expectEmpty()` cannot quiet (pinned below); its one unread form
+left is wikilinks, which [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md)
+decides how to recognise and this record must not. The slot is that proposal's to build with its
+first producer.
 
 ## Verification
 
-- [ ] Red test written first: over a corpus holding only wikilinks, the zero-examined finding's
+- [x] Red test written first: over a corpus holding only wikilinks, the zero-examined finding's
       message names a link form this rule does not read as a cause, and does not present
-      `.expectEmpty()` as the remedy for it.
-- [ ] Remedy-remediates test ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2's
+      `.expectEmpty()` as the remedy for it: `packages/md/tests/zero-examined-unread-form.test.ts` ·
+      `it('over wikilinks only, the message names the unread form and does not offer .expectEmpty() for it')`,
+      and the kernel's own `packages/core/tests/zero-examined-message.test.ts`; both red on main.
+- [x] Remedy-remediates test ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2's
       corollary): applying the remedy the message names for that cause clears the finding by
-      examining the links, not by declaring them away.
-- [ ] Where a dialect reports an unread link form, `.expectEmpty()` on that rule still reds.
-- [ ] A legitimately empty corpus (no links in any form) with `.expectEmpty()` stays green.
-- [ ] A changeset naming `@nielspeter/eess`, and `@nielspeter/eess-md` if it supplies the fact.
-- [ ] `npm run validate` green.
+      examining the links, not by declaring them away. Pinned:
+      `it('the remedy for that cause clears the finding by examining the links, not by declaring them away')`.
+- [x] Where a dialect reports an unread link form, `.expectEmpty()` on that rule still reds:
+      `it('a link this rule reports unread keeps the rule red under .expectEmpty()')`.
+- [x] A legitimately empty corpus (no links in any form) with `.expectEmpty()` stays green:
+      `it('a corpus with no link in any form, declared empty, stays green')`.
+- [x] A changeset naming `@nielspeter/eess`, and `@nielspeter/eess-md` if it supplies the fact:
+      `.changeset/zero-examined-names-each-cause.md`, a patch to the kernel; eess-md supplies no
+      fact (see Built) and declares `none`.
+- [x] `npm run validate` green.
 
-Deferred: none
+Deferred: [proposal 015](../../proposals/015-md-wikilinks-are-read-or-reported.md) (the precedence slot, with its first producer; see Built)
