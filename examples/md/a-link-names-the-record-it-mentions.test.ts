@@ -264,7 +264,9 @@ describe('a link names the record it mentions', () => {
   })
 
   it("violating-reference-link: a link the join cannot read is beLinked()'s finding", () => {
-    expect(only('violating-reference-link')).toEqual([])
+    // The join's selection refuses rather than drop the mention it cannot read (bug 0600), naming it;
+    // `beLinked()` reports it as a finding.
+    expect(() => only('violating-reference-link')).toThrow(/docs\/notes\.md:3/)
     const v = linked(fixture(NAME, 'violating-reference-link')).violations()
     expect(v.map((x) => `${x.ruleId ?? ''} ${x.element}`)).toEqual([
       'md/unread-mention docs/notes.md:3',

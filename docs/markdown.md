@@ -847,8 +847,9 @@ Three things a join needs that are easy to miss:
   nothing, or a filter that drops every mention, passes. A corpus that has not linked any mention yet
   reds too, as "examined zero units": the cause is that nothing is linked, not that the pattern is
   broken.
-- **Pair it with `beLinked()`.** The join reads the mentions it can read; a mention in text no rule
-  can read is `beLinked()`'s finding (`md/unread-mention`), as is a mention outside any link.
+- **Pair it with `beLinked()`.** The join's selection refuses when it reaches a mention no rule can
+  read, naming it ([bug 0600](../work/bugs/fixed/0600-select-drops-an-unread-mention-without-a-word.md)); `beLinked()` reports that mention as a finding (`md/unread-mention`), as it does a
+  mention outside any link.
 
 **A title link is not judged.** A board row quotes another record because the record it links to
 says so in its title:

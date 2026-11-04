@@ -2305,16 +2305,19 @@ function gateRecordMentionDoneFolder() {
 
 // Two causes in one run: a raw HTML block, and a link written in HTML, which the one HTML reader
 // (plan 0580) must recognise through a quoted `>` (bug 0593), so an emptied `isLinkStart` reddens it.
+// Its `<a>` is never closed in its paragraph: since bug 0601 a closed one is linked, not unread.
 function gateRecordMentionUnread() {
   return mentionRedThenGreen({
     files: {
       [PROBE_998]: probeRecord(
-        '<div>\nADR-016\n</div>\n\nSee <a title="a>b" href="./x.md">ADR-016</a> here.',
+        '<div>\nADR-016\n</div>\n\nSee <a title="a>b" href="./x.md">ADR-016 and no end.',
       ),
     },
     expected: [
       ['md/unread-mention', PROBE_998, 'raw HTML block'],
-      ['md/unread-mention', PROBE_998, 'link written in HTML'],
+      ['md/unread-mention', PROBE_998, 'its paragraph never closes'],
+      // The join's selection refuses on them (bug 0600); the gate reports that it did not run.
+      ['corpus/record-mention-target', undefined, 'the record-mention join did not run'],
     ],
   })
 }

@@ -45,8 +45,13 @@ built on it.
 **Built 2026-11-04.** `MentionRuleBuilder.select` (`packages/md/src/builders/mentions.ts:147`)
 takes the unread mentions its predicates reach (`reachedUnread`, the helper [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)'s R5 shares)
 and refuses through the kernel's `refuseUndecided`, one entry per mention naming its line and where
-it sits, before the kernel's selection; as `links().select()` does (R7). This repository's one
-caller, the gate's skipped-mention count (`scripts/check-corpus.mjs`), reaches none and is green.
+it sits, before the kernel's selection; as `links().select()` does (R7). This repository's gate
+(`scripts/check-corpus.mjs`) selects mentions three times: the record-mention join and two counts.
+Measured by its validate: a probe holding an unread mention made the gate stop on the refusal. The
+gate now catches the refusal, skips the join, and reports in its place that the join did not run
+(`corpus/record-mention-target`), beside the unsuppressable `md/unread-mention` the `beLinked()`
+rule already reports; the `corpus/record-mention/unread` non-vacuity probe asserts both, and the
+`a-link-names-the-record-it-mentions` example now expects its join to refuse.
 
 ## Verification
 
