@@ -125,14 +125,21 @@ export function phrasingOf(
   /**
    * One block's inline walk. Text inside an HTML `<a href>…</a>` is held in `htmlLink` until its
    * `</a>`, then joins the run linked to the tag's `href` (bug 0601), as text in a Markdown link is.
-   * An `<a>` the block never closes is reported unread: where its link ends is unknown.
+   * An `<a>` the block never closes, or one another link opens inside, is reported unread: where its
+   * link ends, or which link a reader follows, is not this walk's to say.
    */
   const run = (children: readonly Nodes[]): PhrasingRun[] => {
     const out: PhrasingSegment[] = []
     /** Link titles, each its own run, after the block's (document order). */
     const titles: PhrasingRun[] = []
     let htmlLink:
-      | { readonly url: string; readonly line: number; readonly segments: PhrasingSegment[] }
+      | {
+          readonly url: string
+          readonly line: number
+          readonly segments: PhrasingSegment[]
+          /** Another link opened inside it: where a reader is sent is not this walk's to say. */
+          mixed: boolean
+        }
       | undefined
 
     const push = (seg: PhrasingSegment): void => {
@@ -168,6 +175,7 @@ export function phrasingOf(
           push({ text: '\n', line: lineOf(node), inCode: false, ...(link ? { link } : {}) })
           return
         case 'link': {
+          if (htmlLink !== undefined) htmlLink.mixed = true
           const target = pointsNowhere(node.url)
             ? undefined
             : { url: node.url, text: headingName(node) }
@@ -189,6 +197,7 @@ export function phrasingOf(
           return
         }
         case 'linkReference':
+          if (htmlLink !== undefined) htmlLink.mixed = true
           // Its target is a definition elsewhere; the text is reported, not read as linked or not.
           unread.push({
             text: node.children.map(visibleTextOf).join(''),
@@ -218,10 +227,23 @@ export function phrasingOf(
                 url: attributeOf(start, 'href')?.value ?? '',
                 line: lineOf(node),
                 segments: [],
+                mixed: false,
               }
+            } else if (htmlLink !== undefined && read.starts.some((t) => t.name === 'a')) {
+              // A browser ends the first `<a>` at the second; this walk does not model that, so the
+              // text is reported unread, as before the `<a>` was read (bug 0601's review).
+              htmlLink.mixed = true
             } else if (htmlLink !== undefined && read.ends.some((e) => e.name === 'a')) {
               const held = htmlLink
               htmlLink = undefined
+              if (held.mixed) {
+                unread.push({
+                  text: held.segments.map((g) => g.text).join(''),
+                  line: held.line,
+                  cause: 'html-link',
+                })
+                return
+              }
               const target = pointsNowhere(held.url)
                 ? undefined
                 : { url: held.url, text: textOfSegments(held.segments) }

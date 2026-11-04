@@ -40,6 +40,15 @@ readable `<a>`'s mention to be unread were updated, titles kept (one is cited by
 [plan 0580](../../plans/completed/0580-md-a-raw-html-link-is-resolved.md)); the shared unread fixture's
 `<a>` is now unclosed, so the `html-link` cause stays covered.
 
+**Review round (2026-11-04).** The enforcement review found that a link opened inside a held `<a>`
+(a Markdown link, another `<a>`) was stamped with the outer `href`: two false greens and three wrong
+targets where main had reported the mention unread. Such an `<a>` now fails closed, as on main:
+its text is `md/unread-mention`, `html-link`, whose wording and remedy now name the real causes (an
+`<a>` its paragraph never closes, or one another link opens inside). The `href=""`/`#` guard has a
+row. Recorded from the same review: [bug 0617](../0617-a-select-refusal-names-no-remedy-its-caller-can-take.md)
+(the `select()` refusal's message) and [bug 0618](../0618-mentions-read-an-html-links-extent-by-paragraph.md)
+(two older HTML-extent shapes).
+
 ## Verification
 
 - [x] Red first: a mention inside a readable `<a href>` is judged linked, not unread:

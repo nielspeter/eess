@@ -202,7 +202,7 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
       '7: "bug 0003" sits in an image\'s alt text',
       '7: "bug 0004" sits in an image\'s title',
       '9: "bug 0005" sits in an image\'s alt text',
-      '11: "bug 0006" sits in a link written in HTML',
+      '11: "bug 0006" sits in an HTML `<a>` its paragraph never closes, or one another link opens inside',
       '13: "bug 0007" sits in a raw HTML block',
       '15: "bug 0008" sits in a link definition\'s title',
     ])
@@ -241,7 +241,7 @@ describe('mentions(): what cannot be read is reported, where the rule reaches it
     const by = (line: number): string =>
       v.find((x) => x.ruleId === 'md/unread-mention' && x.line === line)?.suggestion ?? ''
     expect(by(7)).toMatch(/^Take the text out of the alt text/)
-    expect(by(11)).toMatch(/^Write the link in Markdown/)
+    expect(by(11)).toMatch(/^Close the `<a>` in the same paragraph/)
     expect(by(15)).toMatch(/^Take the text out of the definition's title/)
   })
 

@@ -42,7 +42,7 @@ export const UNREAD_MENTION = 'md/unread-mention'
 
 const WHERE: Record<UnreadCause, string> = {
   'html-block': 'a raw HTML block',
-  'html-link': 'a link written in HTML',
+  'html-link': 'an HTML `<a>` its paragraph never closes, or one another link opens inside',
   'reference-link': "a reference-style link's text",
   'definition-title': "a link definition's title",
   'image-alt': "an image's alt text",
@@ -53,7 +53,8 @@ const WHERE: Record<UnreadCause, string> = {
 const REMEDY: Record<UnreadCause, string> = {
   'html-block':
     'Move the text out of the HTML block into Markdown, or put the HTML in a fenced code block if it is an example.',
-  'html-link': 'Write the link in Markdown, `[text](url)`, instead of an HTML `<a>`.',
+  'html-link':
+    'Close the `<a>` in the same paragraph and take any other link out of it, or write the link in Markdown, `[text](url)`.',
   'reference-link':
     "Write the link inline, `[text](url)`: a reference-style link's target is a definition elsewhere, which this rule does not read.",
   'definition-title': "Take the text out of the definition's title.",

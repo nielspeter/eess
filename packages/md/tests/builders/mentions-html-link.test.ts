@@ -58,3 +58,39 @@ describe('a mention inside an HTML link is judged linked (bug 0601)', () => {
     expect(v[0]?.message).toMatch(/^"bug 0001"/)
   })
 })
+
+describe('another link inside a held <a> fails closed (bug 0601 review)', () => {
+  const ruleIds = (body: string) =>
+    mentions(page(body), { pattern })
+      .should()
+      .beLinked()
+      .violations()
+      .map((x) => x.ruleId ?? 'beLinked')
+
+  it('a Markdown link inside an <a href>: unread, not linked to the outer href', () => {
+    expect(ruleIds('<a href="./b.md">see [y](./c.md) bug 0001</a>')).toEqual(['md/unread-mention'])
+  })
+
+  it('an <a name> inside an <a href>: unread, not linked', () => {
+    expect(ruleIds('<a href="./b.md">see <a name="x">bug 0001</a></a>')).toEqual([
+      'md/unread-mention',
+    ])
+  })
+
+  it('an <a href> inside an <a href>: unread, not linked to the outer one', () => {
+    expect(ruleIds('<a href="./b.md">see <a href="./c.md">bug 0001</a></a>')).toEqual([
+      'md/unread-mention',
+    ])
+  })
+
+  it('a mention in a Markdown link inside an <a href> is unread', () => {
+    expect(ruleIds('<a href="./b.md">[bug 0001](./c.md)</a>')).toEqual(['md/unread-mention'])
+  })
+
+  it('an <a> whose href points nowhere ("" or #) links nothing', () => {
+    expect(ruleIds('<a href="">bug 0001</a> and <a href="#">bug 0002</a>')).toEqual([
+      'beLinked',
+      'beLinked',
+    ])
+  })
+})
