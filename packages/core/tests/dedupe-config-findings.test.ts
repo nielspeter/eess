@@ -38,8 +38,20 @@ describe('dedupeConfigFindings', () => {
     const violations = [config(), config(), config()]
     const result = dedupeConfigFindings(violations)
     expect(result).toHaveLength(1)
-    expect(result[0]!.message).toContain('3 rules')
-    expect(result[0]!.suggestion).toContain('3 rules')
+    expect(result[0]!.message).toContain('Reported 3 times')
+    expect(result[0]!.suggestion).toContain('Reported 3 times')
+  })
+
+  // Bug 0461: the note is the collapse's, so it says only what the collapse knows. "This one option
+  // generated N rules that cannot enforce anything" was true of a preset's dead glob alone, and the
+  // collapse merges every configuration finding: an unread box mark, an undecided subject, an
+  // instrument that ran out, each reported by rules that enforce everything else.
+  it('the note says how many times the key was reported, never that they were generated, dead or one edit', () => {
+    const [only] = dedupeConfigFindings([config(), config()])
+    expect(only?.message).toBe(
+      'construct nothing Reported 2 times in this run under this rule id and subject; listed once.',
+    )
+    expect(only?.suggestion).toBe(only?.message)
   })
 
   it('keeps a single config finding unchanged — no note when there is nothing to affect', () => {
@@ -83,7 +95,8 @@ describe('dedupeConfigFindings', () => {
     const violations = [noReceiptViolation(), noReceiptViolation(), noReceiptViolation()]
     const result = dedupeConfigFindings(violations)
     expect(result).toHaveLength(3)
-    expect(result[0]!.message).not.toContain('one edit')
+    // Whole value, not the absence of one note's wording (bug 0461 reworded it).
+    expect(result[0]!.message).toBe(noReceiptViolation().message)
   })
 
   it('CONTROL: a non-emitter finding whose element repeats its id still collapses', () => {

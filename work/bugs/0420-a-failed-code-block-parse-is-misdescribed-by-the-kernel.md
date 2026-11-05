@@ -29,6 +29,12 @@ A parser that fails makes every rule over `parseCodeBlocks`' result report one i
    "This one option generated 2 rules that cannot enforce anything; they are not listed separately
    because they are one edit." They are two failures, not one edit.
 
+Note 2026-11-05: the note quoted in symptom 2 is reworded by
+[bug 0461](./fixed/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s fix; it now
+reads "Reported 2 times in this run under this rule id and subject; listed once." The lost second
+cause is unchanged, and is the class [bug 0621](./0621-the-collapse-merges-two-causes-reported-on-one-line.md)
+records for every producer whose element names a place.
+
 ## Reproduction
 
 Runs as pasted, from the repository root after `npm run build` (re-run 2026-10-15):

@@ -218,7 +218,7 @@ is `(file, ruleId, '<relPath> [<mark>]')` for an undeclared mark and `(file, rul
 '<relPath>:<line>')` for a malformed box, so the kernel's `dedupeConfigFindings`
 (`packages/core/src/dedupe-config-findings.ts:69`) collapses one cause reported by several rules to
 one. The note that function appends misdescribes this case, as it already misdescribes the code-block
-instrument finding: that wording is [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s,
+instrument finding: that wording is [bug 0461](../../bugs/fixed/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s,
 not this plan's, and this plan changes no kernel code.
 
 **`honestyAtClose` takes `marks`** and passes it to both of its box readers, the `taskItems()` rule
@@ -377,7 +377,7 @@ L3)}`.
   `md/undeclared-box-mark`.
 - **Dedupe:** two rules over one corpus, their violations passed to `dedupeConfigFindings` (from
   `@nielspeter/eess/internal`, which eess-md already depends on), give one finding per cause.
-  The appended wording is [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s to pin, not this plan's.
+  The appended wording is [bug 0461](../../bugs/fixed/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md)'s to pin, not this plan's.
 - `collectTaskItems` alone yields an undeclared box with `checked: false`, and `checked` equals
   `state === 'done'` for every element.
 - Each refusal of `validateMarks` throws `ArchConfigError` naming the key.
@@ -476,7 +476,7 @@ which packages the changeset must name; if it asks for eess-crossvalidate, it is
 - **`.select()` drops unread boxes silently.** A correspondence side built from `taskItems()` never
   runs `collectViolations`, so an undeclared box is absent from it without a finding. A documented
   limit, beside the blockquote one.
-- **The dedupe note's wording**: [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
+- **The dedupe note's wording**: [bug 0461](../../bugs/fixed/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
 - **`honestyAtClose`'s fixed `State:` label** ([bug 0444](../../bugs/fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md)) and its rebuild from public blocks (017's
   decision 1).
 - **Counting declared marks in `ledgerStats`.** It counts documents, not boxes.
@@ -491,7 +491,7 @@ Each Critical and Important finding of the 2026-10-17 reviews, and what changed:
 - **Architect I1, product I2 — corpus-wide findings broke locality; declaration scope mismatched.**
   Findings are scoped to boxes the rule's predicates reach (round two: under either reading). Declaration stays per call site,
   decided and reasoned in Design.
-- **Architect I2, product I4, method A1 — the dedupe note.** No kernel change; recorded as [bug 0461](../../bugs/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
+- **Architect I2, product I4, method A1 — the dedupe note.** No kernel change; recorded as [bug 0461](../../bugs/fixed/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md).
   Effort and Release say eess-md only, and that is now true.
 - **Product I1 — declared letters refused.** A declared letter or digit is a mark; undeclared ones are
   not, a documented blind spot.
