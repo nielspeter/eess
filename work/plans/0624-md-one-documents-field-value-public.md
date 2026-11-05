@@ -168,7 +168,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
   [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and a measurement.
 - `findState`'s reading and the ledger: [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md)
   and [bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md).
-- `fields()`' header boundary: [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
+- `fields()`' header boundary: [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
 - `agreeWithFolder`'s region check ([bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md))
   and moving its own three-way mapping (`packages/md/src/conditions/agree-with-folder.ts:356`) onto
   `fieldOutcome`: a no-behaviour refactor for a later change.

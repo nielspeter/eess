@@ -138,7 +138,13 @@ function formPattern(form: FieldForm, b: string): RegExp {
 const ORDER: readonly FieldForm[] = ['heading', 'bold-line', 'bold', 'plain']
 
 const HEADING = /^\s*#{1,6}\s/
-const DEEP_HEADING = /^\s*#{2,6}\s/
+/**
+ * A heading of depth 2 or more as CommonMark reads one: at most three spaces before the `#`. Four
+ * spaces or a tab make the line indented code (or a paragraph's lazy continuation), never a heading,
+ * so it does not end the header (bug 0622). `HEADING` and the `heading()` form keep `\s*`: both
+ * readers share them, so they do not make `fields()` and `haveField` disagree on where a header ends.
+ */
+const DEEP_HEADING = /^ {0,3}#{2,6}\s/
 const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s+/
 const THEMATIC_BREAK = /^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/
 

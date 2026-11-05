@@ -4,7 +4,7 @@
 reviewed 2026-11-05, Split and sequence (see "Review — 2026-11-05"): ask 1 accepted, owned by
 [plan 0624](../plans/0624-md-one-documents-field-value-public.md); ask 2 held.
 **Priority:** Medium — no false green in eess itself (the header case the adopter measured is
-[bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md)), but no public
+[bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md)), but no public
 reader returns one record's value as `haveField` decides it: on a conflict, on the header region and
 on what it cannot read. A tool that shows one record's value keeps its own copy of eess-md's label
 reader, or reads a different value than the gate.
@@ -47,14 +47,14 @@ On `main` at b2231b70 (eess-md 0.14.0), built packages, one record each, the opt
 shown without the leading space `value: (v) => v` keeps). `findState(text, vocabulary, undefined,
 ['Status'])` is the ledger's public reader (survey below), given a vocabulary that holds every value:
 
-| record                                              | `fields().select()`                                                                                                               | `haveField`                                                                | `findState`                        |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------- |
-| an indented `Status: fake`, then `**Status:** real` | `fake` (line 3) and `real` (line 5)                                                                                               | passes: reads `real`, the indented line is code                            | `real`, line 5                     |
-| a fence that never closes, then a field             | both, the one in the fence first                                                                                                  | `Status at line 4 follows a code fence that never closes; close the fence` | `null`, no cause                   |
-| an indented `## Notes`, then `**Status:**`          | nothing (the header ends at the indented line: [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md)) | passes                                                                     | the value, line 5                  |
-| `**Status:** a` and an `<!-- eess-exclude … -->`    | `corpusFromText` throws `ArchConfigError`                                                                                         | not reached                                                                | `a`, line 3                        |
-| `**Status:** a`, then `**Status:** b`               | both                                                                                                                              | `Status is given twice (line 3 'a', line 4 'b'); keep one`                 | `a`, the first                     |
-| a real `## Notes` heading, then `**Status:**`       | nothing (outside the header)                                                                                                      | outside the header                                                         | the value (its own, larger region) |
+| record                                              | `fields().select()`                                                                                                                     | `haveField`                                                                | `findState`                        |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------- |
+| an indented `Status: fake`, then `**Status:** real` | `fake` (line 3) and `real` (line 5)                                                                                                     | passes: reads `real`, the indented line is code                            | `real`, line 5                     |
+| a fence that never closes, then a field             | both, the one in the fence first                                                                                                        | `Status at line 4 follows a code fence that never closes; close the fence` | `null`, no cause                   |
+| an indented `## Notes`, then `**Status:**`          | nothing (the header ends at the indented line: [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md)) | passes                                                                     | the value, line 5                  |
+| `**Status:** a` and an `<!-- eess-exclude … -->`    | `corpusFromText` throws `ArchConfigError`                                                                                               | not reached                                                                | `a`, line 3                        |
+| `**Status:** a`, then `**Status:** b`               | both                                                                                                                                    | `Status is given twice (line 3 'a', line 4 'b'); keep one`                 | `a`, the first                     |
+| a real `## Notes` heading, then `**Status:**`       | nothing (outside the header)                                                                                                            | outside the header                                                         | the value (its own, larger region) |
 
 A value rule over the first two rows judges both occurrences and reds on each, as designed. Only a
 reader that picks one gets the wrong value or none. `findState` agrees with `haveField` on the first
@@ -93,7 +93,7 @@ rather than new API is the review's to decide.
 
 - **Break class (agreement):** for each record in the Measured table, the reader returns what
   `haveField` decides: row 1, `real`; row 2, cannot read, naming the unclosed fence; row 3 (once
-  [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md) is fixed), the
+  [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md) is fixed), the
   value below the indented line; row 4, `a` (through ask 2, below); row 5, a conflict (below); row 6,
   outside the header, as a cause.
 - **Break class (conflict):** two structured occurrences with different values are a conflict, never
@@ -122,7 +122,7 @@ disagreement is the evidence.
 - **`corpusFromText` accepting waivers**, which is [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md)'s (the kernel, in
   [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s shape). This proposal does
   not depend on it.
-- **The header boundary**, which is [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
+- **The header boundary**, which is [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
 
 ## Review — 2026-11-05
 
@@ -209,9 +209,9 @@ out for blocks; and on the root, because [plan 0498](../plans/0498-honestyatclos
 
 Kept as filed above; corrected here.
 
-- Acceptance row 3's "(once [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md) is fixed)" is wrong: `haveField` reads that record today,
+- Acceptance row 3's "(once [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md) is fixed)" is wrong: `haveField` reads that record today,
   because `'code-blocks'` blanks the indented line before `headerEnd` sees it (architect I-4,
-  measured). What exists is a coupling: [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md)'s
+  measured). What exists is a coupling: [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md)'s
   fix changes `headerEnd`, which both readings call, so its verification must keep `haveField`'s
   reading of row 3.
 - Open question 1's first option (publish `FieldResolution`) is unsound; the real question is
