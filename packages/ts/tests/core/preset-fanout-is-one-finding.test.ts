@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { ArchViolation } from '@nielspeter/eess'
 import { dedupeConfigFindings } from '@nielspeter/eess/internal'
-import { project, checkAll } from '../../src/index.js'
+import { project, checkAll, classes } from '../../src/index.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
 
@@ -45,7 +45,7 @@ describe('a preset fan-out collapses to the option (plan 0074)', () => {
   it('collapses identical findings and says how many rules they stood for', () => {
     const findings = dedupeConfigFindings([config(), config(), config()])
     expect(findings).toHaveLength(1)
-    expect(findings[0]?.message).toContain('3 rules reported this same finding')
+    expect(findings[0]?.message).toContain('Reported 3 times in this run')
   })
 
   it('keeps two DIFFERENT globs apart, because they are two edits', () => {
@@ -92,11 +92,31 @@ describe('a preset fan-out collapses to the option (plan 0074)', () => {
     expect(dedupeConfigFindings(many)).toHaveLength(3)
   })
 
+  it('an empty selector collapsed across rules still says it enforces nothing (bug 0461)', () => {
+    // The old note said "cannot enforce anything" for every collapse. It was true here, and now
+    // only the finding's own message says it, so this row keeps that meaning asserted.
+    const empty = () =>
+      classes(project('tsconfig.json'))
+        .that()
+        .haveNameMatching(/^NoSuchClassXyz$/)
+        .should()
+        .beExported()
+        .rule({ id: 'z/empty' })
+        .expectNonEmpty()
+        .violations()
+    const raw = [...empty(), ...empty()]
+    expect(raw).toHaveLength(2)
+    const [only] = dedupeConfigFindings(raw)
+    expect(dedupeConfigFindings(raw)).toHaveLength(1)
+    expect(only?.message).toContain('so it enforces nothing as written today')
+    expect(only?.message).toContain('Reported 2 times in this run')
+  })
+
   it('adds no note when there was no fan-out', () => {
     // "1 rules reported" would be both ungrammatical and a lie about a fan-out
     // that did not happen.
     const [only] = dedupeConfigFindings([config()])
-    expect(only?.message).not.toContain('rules reported')
+    expect(only?.message).toBe(config().message)
   })
 
   it('preserves declaration order, and keeps the first of each group', () => {
@@ -123,7 +143,7 @@ describe('a preset fan-out collapses to the option (plan 0074)', () => {
       config({ suggestion: 'fix it' }),
       config({ suggestion: 'fix it' }),
     ])
-    expect(f?.suggestion).toContain('2 rules reported this same finding')
+    expect(f?.suggestion).toContain('Reported 2 times in this run')
   })
 })
 
@@ -153,7 +173,7 @@ describe('the fan-out this was built for, end to end', () => {
     expect(isolation[0]?.message).toContain('shared: "**/src/not-built-yet/**"')
     expect(isolation[0]?.message).not.toContain('reside in file matching')
     expect(isolation[0]?.message).toContain(
-      `${String(rawConfig.length - 1)} rules reported this same finding`,
+      `Reported ${String(rawConfig.length - 1)} times in this run`,
     )
     // Bug 0461: the note no longer says the rules cannot enforce anything; for a dead selector the
     // finding's own message says it, so the case the old note was written for keeps its meaning.
@@ -182,7 +202,7 @@ describe('the fan-out this was built for, end to end', () => {
       (v) => v.bypassFilters === true && v.ruleId === 'preset/boundaries/shared-isolation',
     )
     expect(isolation).toHaveLength(1)
-    expect(isolation[0]?.message).toContain('rules reported this same finding')
+    expect(isolation[0]?.message).toContain('times in this run')
   })
 
   it('CONTROL: a correct configuration produces no configuration findings', () => {

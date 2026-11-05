@@ -66,9 +66,10 @@ describe('several evidence-free builders in one rule file', () => {
       // away and this test did not follow: three findings of some OTHER id would
       // have satisfied the headers alone.
       expect(report).toContain('emitter/no-receipt')
-      // The fan-out note belongs to a preset that generated N rules from one
-      // option. Three hand-rolled builders are not that, and telling their
-      // author it is one edit sends them to fix one of three places.
+      // No collapse note: three hand-rolled builders are three edits, and a note
+      // calling them one sends their author to fix one of three places. Matched on
+      // the note's own wording (bug 0461), which `affectedNote` owns.
+      expect(report).not.toContain('times in this run')
       expect(report).not.toContain('one edit')
     } finally {
       rmSync(dir, { recursive: true, force: true })

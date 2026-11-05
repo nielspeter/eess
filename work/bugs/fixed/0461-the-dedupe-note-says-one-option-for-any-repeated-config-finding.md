@@ -12,11 +12,11 @@
 
 ## Symptom
 
-`dedupeConfigFindings` (`packages/core/src/dedupe-config-findings.ts:69`) collapses repeated
-configuration findings and appends `affectedNote` (`dedupe-config-findings.ts:56`): "This one option
+`dedupeConfigFindings` (`packages/core/src/dedupe-config-findings.ts:79`) collapses repeated
+configuration findings and appends `affectedNote` (`packages/core/src/dedupe-config-findings.ts:69`): "This one option
 generated N rules that cannot enforce anything; they are not listed separately because they are one
 edit." That wording is written for a preset's fan-out. eess-md's code-block instrument finding
-(`packages/md/src/builders/code-blocks.ts:119`, `bypassFilters: true`) is deduplicated the same way
+(`packages/md/src/builders/code-blocks.ts:148`, `bypassFilters: true`) is deduplicated the same way
 when several rules read one failed parse, and so, read from the source and not yet reproduced, gets
 the same note, which then names an option nobody set. [Plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md)'s undeclared-box-mark finding would be the third case.
 
@@ -43,8 +43,8 @@ too, not only `eess-ts check`: `checkAll` (exported from the eess-ts root,
 threw `ArchRuleError`, whose `violations` hold, and whose stderr report prints, the finding ending
 "This one option generated 2 rules that cannot enforce anything".
 
-Measured: the box-mark class. Read from the source, not reproduced: the code-block instrument
-(above). Earlier encounters with this note, each kept out of the collapse instead of fixing it:
+Measured: the box-mark class, and with the fix the code-block instrument (its row in
+`packages/md/tests/code-block-parse.test.ts` now reads the note). Earlier encounters with this note, each kept out of the collapse instead of fixing it:
 
 - an expired declaration (`packages/ts/src/core/vacuity-diagnosis.ts:534`): ts-archunit's plan 0089's review
   measured 4 findings becoming 3, the survivor claiming two rules could not enforce;
@@ -57,15 +57,25 @@ N rules that cannot enforce are one edit. A fix keeps that case's meaning.
 
 ## Fix
 
-`affectedNote` (`packages/core/src/dedupe-config-findings.ts:65`) now says only what the collapse
-knows: " N rules reported this same finding; it is listed once because it is one edit." The key is
-one cause, so one edit holds for every class it merges. Whether the rules can enforce anything is the
-finding's own message to say, and for the case the old note was written for (a preset's dead
-selector) it already does: "can never match anything … so it has no subjects and cannot fail",
-pinned in the preset fan-out row. Kept out of [plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md), which stays eess-md only.
+`affectedNote` (`packages/core/src/dedupe-config-findings.ts:69`) now says only what the collapse
+knows: " Reported N times in this run under this rule id and subject; listed once." Not how many
+rules (one rule can report a key twice), not that the reports were one finding, and not that one edit
+clears them: where a producer's element names a place rather than a cause, two causes on one line
+share a key and the collapse keeps one of them. That is [bug 0621](../0621-the-collapse-merges-two-causes-reported-on-one-line.md),
+which this fix does not change, and [bug 0420](../0420-a-failed-code-block-parse-is-misdescribed-by-the-kernel.md)'s
+second symptom for code blocks. The note no longer claims they are one edit, so it is true there too.
 
-Sabotage: with the old note restored, seven rows red across the three packages (the kernel's note
-row, the box-mark row, the code-block row, and four preset fan-out rows); with the fix, all green.
+Whether the rules can enforce anything is the finding's own message to say. For the two cases the
+old note was true of, it does: a preset's dead selector ("can never match anything … so it has no
+subjects and cannot fail") and an empty selector under `.expectNonEmpty()` ("so it enforces nothing
+as written today"), each pinned by a row after the collapse. Kept out of
+[plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md), which stays eess-md only.
+
+Sabotage: with the old note restored, nine rows red across the three packages (two in the kernel,
+the box-mark and code-block rows, and five preset fan-out and dead-builder rows); with the fix, all
+green. Two rows that asserted the absence of the old note's words (in
+`false-declaration-reports-both.test.ts` and the preset row for a single finding) now compare whole
+values, so the next rewording cannot leave them unable to fail.
 
 ## Verification
 
@@ -82,10 +92,10 @@ row, the box-mark row, the code-block row, and four preset fan-out rows); with t
 - [x] The code-block row (`packages/md/tests/code-block-parse.test.ts:184`) states the new note
 - [x] The count survives the rewording: [ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s C3 row
       (`packages/ts/tests/core/a-walk-that-gave-up-says-so.test.ts:181` matches `/\b3\b/`)
-- [ ] done-otherwise — a dead selector's collapse no longer says it through the note; its own message
-      does ("can never match anything … cannot fail"), asserted in
-      `it('one wrong shared glob is one finding that names the option')`
+- [x] `zeroSubjectsViolation`'s collapse still says its rules cannot enforce anything, through its own
+      message: `it('an empty selector collapsed across rules still says it enforces nothing (bug 0461)')`;
+      a dead selector's likewise, in `it('one wrong shared glob is one finding that names the option')`
 - [x] A changeset naming `@nielspeter/eess`: `.changeset/the-collapse-note-says-only-what-it-knows.md`
-- [x] The kernel's own row: `it('the note says how many rules reported the finding, never that they were generated or are dead')`
+- [x] The kernel's own row: `it('the note says how many times the key was reported, never that they were generated, dead or one edit')`
 
 Deferred: none

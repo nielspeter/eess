@@ -1,5 +1,7 @@
 /**
- * One option, one finding — plan 0074, deciding 0069's appendix item 4.
+ * One option, one finding — ts-archunit's plan 0074, deciding 0069's appendix item 4. Built for a
+ * preset's fan-out, it collapses every configuration finding a run repeats (bug 0461), so the note
+ * it appends says only what holds for all of them.
  *
  * A preset generates rules combinatorially. `strictBoundaries` emits one
  * `shared-isolation` rule per (shared glob × boundary folder) pair, so one
@@ -55,15 +57,17 @@ import { EMITTER_IDS } from './emitter-findings.js'
 /**
  * How the surviving finding states the fan-out it stands for.
  *
- * Only what the collapse knows: how many rules reported this one finding, and that one edit clears
- * it (the key is one cause). Whether those rules can enforce anything is the finding's own message
- * to say. Bug 0461: this used to read "this one option generated N rules that cannot enforce
- * anything", true of a preset's dead glob (whose message says so itself) and false of every other
- * finding the key merges: an unread box mark, an undecided subject, an instrument that ran out,
- * each reported by hand-written rules that enforce everything else.
+ * Only what the collapse knows: how many times the key `(file, id, element)` was reported in this
+ * run. Not how many rules (one rule can report a key twice), not that the reports were one finding,
+ * and not that one edit clears them: where a producer's `element` is a location rather than a cause,
+ * two causes on one line share a key (bug 0622). Whether the rules can enforce anything is the
+ * finding's own message to say. Bug 0461: this used to read "this one option generated N rules that
+ * cannot enforce anything", true of a preset's dead glob or empty selector (whose messages say so
+ * themselves) and false of every other finding the key merges: an unread box mark, an undecided
+ * subject, an instrument that ran out, each reported by hand-written rules that enforce.
  */
 function affectedNote(count: number): string {
-  return ` ${String(count)} rules reported this same finding; it is listed once because it is one edit.`
+  return ` Reported ${String(count)} times in this run under this rule id and subject; listed once.`
 }
 
 /**

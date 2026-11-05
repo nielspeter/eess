@@ -353,9 +353,9 @@ describe('scope, volume, exclusion, dedupe (plan 0454)', () => {
     expect(merged.filter((v) => v.line === L + 1)).toHaveLength(3)
     const box = merged.filter((v) => v.ruleId === UNDECLARED_BOX_MARK)
     expect(box).toHaveLength(1)
-    expect(box[0]?.message).toContain('3 rules reported this same finding')
-    expect(box[0]?.message).not.toMatch(/option|cannot enforce/)
-    expect(box[0]?.suggestion).not.toMatch(/option|cannot enforce/)
+    expect(box[0]?.message).toContain('Reported 3 times in this run')
+    expect(box[0]?.message).not.toMatch(/option|cannot enforce|one edit/)
+    expect(box[0]?.suggestion).not.toMatch(/option|cannot enforce|one edit/)
   })
 })
 

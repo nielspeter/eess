@@ -111,11 +111,10 @@ describe('a false declaration does not swallow the findings under it', () => {
     }).flatMap((r) => r.violations())
     const deduped = dedupeConfigFindings(raw)
 
-    expect(deduped).toHaveLength(raw.length)
-    // And no collapse note appears on a declaration finding.
-    expect(deduped.map((v) => v.message ?? '').join('\n')).not.toContain(
-      'rules reported this same finding',
-    )
+    // Nothing collapsed and no note appended: the run passes through whole.
+    const said = (v: { rule: string; ruleId?: string; message: string }): string =>
+      `${v.ruleId ?? v.rule} ${v.message}`
+    expect(deduped.map(said)).toEqual(raw.map(said))
   })
 
   it('the declaration is reported FIRST — configuration before findings produced under it', () => {
