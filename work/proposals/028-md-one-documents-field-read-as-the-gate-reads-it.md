@@ -91,9 +91,10 @@ rather than new API is the review's to decide.
 ## Acceptance criteria
 
 - **Break class (agreement):** for each record in the Measured table, the reader returns what
-  `haveField` decides: `real`; cannot read, naming the unclosed fence; and (once
-  [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md) is fixed) the
-  value below the indented line.
+  `haveField` decides: row 1, `real`; row 2, cannot read, naming the unclosed fence; row 3 (once
+  [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md) is fixed), the
+  value below the indented line; row 4, `a` (through ask 2, below); row 5, a conflict (below); row 6,
+  outside the header, as a cause.
 - **Break class (conflict):** two structured occurrences with different values are a conflict, never
   the first of them.
 - **Break class (waiver):** a record holding a waiver directive reads its field through ask 2.

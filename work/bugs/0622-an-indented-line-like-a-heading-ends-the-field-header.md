@@ -60,9 +60,13 @@ Not designed. A heading ends the header only where CommonMark reads one: at most
 the `#`, and not inside code. Either `headerEnd` takes its headings from the parse tree, or it reads
 the lines with every code block set aside while the field scan keeps `'closed-fences'`. The fix
 measures the label-heading rule beside it (`LABEL_HEADING` allows at most three spaces already) and
-the two siblings with the same `^\s*` shape, which both readers share, so they do not make the two
-disagree: `HEADING` (`packages/md/src/model/fields.ts:140`), which ends a continued value, and the
-`heading()` form pattern (`packages/md/src/model/label.ts:39`). A `headerEnd` read from the parse tree
+the two siblings with the same `^\s*` shape. `HEADING` (`packages/md/src/model/fields.ts:140`), which
+ends a continued value, is shared by both readers and does not make them disagree: an indented line
+right after a value is a lazy continuation, which neither reading blanks. The `heading()` form pattern
+(`packages/md/src/model/label.ts:39`) does: measured, `fields()` reads an indented `    ## Status: fake`
+as a heading-form label and `haveField` sets it aside. That is the false-red direction, the same as
+[proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s first Measured
+row, not this bug's silent one. A `headerEnd` read from the parse tree
 must keep [bug 0471](./0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md)'s
 case reproducible.
 
@@ -70,7 +74,8 @@ case reproducible.
 
 - [ ] Red first: the two records above, the value rule reports `b.md`'s `bogus`.
 - [ ] The tab-indented line, likewise.
-- [ ] Sabotage: restoring `^\s*` in the header's end test reds the new rows.
+- [ ] Sabotage: reverting the fix in `headerEnd` (restoring `DEEP_HEADING`'s `^\s*`, or the pre-fix
+      function) reds the new rows.
 - [ ] The control holds: a real `## Notes` heading still ends the header, and `haveField` still says the
       field is outside it.
 - [ ] `haveField` and the value rule agree on where the header ends for every case above.
