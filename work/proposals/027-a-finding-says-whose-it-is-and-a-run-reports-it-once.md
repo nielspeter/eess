@@ -63,7 +63,7 @@ On `main` at 046afd0c (v0.17.0: eess 0.10.0, eess-md 0.14.0), built packages, on
 Deferred: none
 ```
 
-Two rules of the shape above (ids `p/a` and `p/b`, `because: 'grunden'`, marks `{ '~': 'open' }`) and
+Two rules of the shape above (ids `p/a` and `p/b`, `because: 'the reason'`, marks `{ '~': 'open' }`) and
 `honestyAtClose(c, { report: 'return', marks })`:
 
 | source                                   | findings | what                                                                                                                                                             |
@@ -73,8 +73,8 @@ Two rules of the shape above (ids `p/a` and `p/b`, `because: 'grunden'`, marks `
 | `honestyAtClose`                         | 1        | the same `[md/undeclared-box-mark]` at line 7                                                                                                                    |
 | all five, through `dedupeConfigFindings` | 3        | one box-mark finding (with a false note, [bug 0621](../bugs/0621-the-run-level-collapse-says-every-rule-it-merged-enforces-nothing.md)); both scan findings kept |
 
-Also measured: every finding carries `because: 'grunden'`, the `md/undeclared-box-mark` ones from
-the two rules included. A caller that shows `because` as the message for every finding under its
+Also measured: every finding from the two rules carries `because: 'the reason'`, their
+`md/undeclared-box-mark` findings included; `honestyAtClose`'s carries none. A caller that shows `because` as the message for every finding under its
 rule prints its own reason on eess's box-mark finding.
 
 ## Existing code survey
