@@ -1,5 +1,7 @@
 /**
- * One option, one finding — plan 0074, deciding 0069's appendix item 4.
+ * One option, one finding — ts-archunit's plan 0074, deciding 0069's appendix item 4. Built for a
+ * preset's fan-out, it collapses every configuration finding a run repeats (bug 0461), so the note
+ * it appends says only what holds for all of them.
  *
  * A preset generates rules combinatorially. `strictBoundaries` emits one
  * `shared-isolation` rule per (shared glob × boundary folder) pair, so one
@@ -22,7 +24,8 @@
  *
  * ## What the key is, and why each part is in it
  *
- * `(rule file, rule id, offending glob)`.
+ * `(rule file, rule id, element)`: for a preset's fan-out the element is the offending glob,
+ * for other producers whatever their finding names, a cause or, for some, only a place (bug 0621).
  *
  * - **The glob, not the message.** 0069's appendix is explicit: two different
  *   `shared` entries that both match nothing are **two findings, because they
@@ -52,16 +55,24 @@ import type { ArchViolation } from './violation.js'
 // silently stop covering a fifth id.
 import { EMITTER_IDS } from './emitter-findings.js'
 
-/** How the surviving finding states the fan-out it stands for. */
+/**
+ * How the surviving finding states the fan-out it stands for.
+ *
+ * Only what the collapse knows: how many times the key `(file, id, element)` was reported in this
+ * run. Not how many rules (one rule can report a key twice), not that the reports were one finding,
+ * and not that one edit clears them: where a producer's `element` is a location rather than a cause,
+ * two causes on one line share a key (bug 0621). Whether the rules can enforce anything is the
+ * finding's own message to say. Bug 0461: this used to read "this one option generated N rules that
+ * cannot enforce anything", true of a preset's dead glob or empty selector (whose messages say so
+ * themselves) and false of every other finding the key merges: an unread box mark, an undecided
+ * subject, an instrument that ran out, each reported by hand-written rules that enforce.
+ */
 function affectedNote(count: number): string {
-  return (
-    ` This one option generated ${String(count)} rules that cannot enforce anything; they are ` +
-    `not listed separately because they are one edit.`
-  )
+  return ` Reported ${String(count)} times in this run under this rule id and subject; listed once.`
 }
 
 /**
- * Collapse each configuration finding that a preset fanned out.
+ * Collapse each configuration finding a run repeats under one key, a preset's fan-out among them.
  *
  * Order-preserving, keeping the **first** occurrence, so the report reads in
  * the order the rules were declared rather than in hash order.

@@ -533,8 +533,9 @@ export function expiredDeclarationViolation(facts: RuleFacts, examined: number):
     //
     // `dedupeConfigFindings` keys on `(file, ruleId ?? rule, element)`. With
     // `file: ''` and the id in both remaining slots, every instance of a
-    // fanned-out preset id collapses to one and picks up `affectedNote`'s
-    // "this one option generated N rules that cannot enforce anything".
+    // fanned-out preset id collapses to one and picks up `affectedNote`'s note,
+    // which until bug 0461 read "this one option generated N rules that cannot
+    // enforce anything".
     //
     // For `zeroSubjectsViolation` that collapse is CORRECT: those N rules
     // genuinely cannot enforce, and they are one edit. Here it is false — a
