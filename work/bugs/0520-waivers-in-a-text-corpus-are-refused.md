@@ -12,6 +12,10 @@
   takes the lexer.
 - **Reported:** 2026-10-19
 
+Note 2026-11-05: a second asker. A consuming project reads one record's field from text through
+`corpusFromText`, and its valid record throws because it holds a waiver directive it never meant to
+apply ([proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)).
+
 ## Symptom
 
 `corpusFromText` ([plan 0455](../plans/completed/0455-a-corpus-built-from-text.md)) throws an `ArchConfigError` for any loaded document in which the
