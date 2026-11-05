@@ -52,12 +52,18 @@ import type { ArchViolation } from './violation.js'
 // silently stop covering a fifth id.
 import { EMITTER_IDS } from './emitter-findings.js'
 
-/** How the surviving finding states the fan-out it stands for. */
+/**
+ * How the surviving finding states the fan-out it stands for.
+ *
+ * Only what the collapse knows: how many rules reported this one finding, and that one edit clears
+ * it (the key is one cause). Whether those rules can enforce anything is the finding's own message
+ * to say. Bug 0461: this used to read "this one option generated N rules that cannot enforce
+ * anything", true of a preset's dead glob (whose message says so itself) and false of every other
+ * finding the key merges: an unread box mark, an undecided subject, an instrument that ran out,
+ * each reported by hand-written rules that enforce everything else.
+ */
 function affectedNote(count: number): string {
-  return (
-    ` This one option generated ${String(count)} rules that cannot enforce anything; they are ` +
-    `not listed separately because they are one edit.`
-  )
+  return ` ${String(count)} rules reported this same finding; it is listed once because it is one edit.`
 }
 
 /**

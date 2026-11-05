@@ -42,6 +42,18 @@ describe('dedupeConfigFindings', () => {
     expect(result[0]!.suggestion).toContain('3 rules')
   })
 
+  // Bug 0461: the note is the collapse's, so it says only what the collapse knows. "This one option
+  // generated N rules that cannot enforce anything" was true of a preset's dead glob alone, and the
+  // collapse merges every configuration finding: an unread box mark, an undecided subject, an
+  // instrument that ran out, each reported by rules that enforce everything else.
+  it('the note says how many rules reported the finding, never that they were generated or are dead', () => {
+    const [only] = dedupeConfigFindings([config(), config()])
+    expect(only?.message).toBe(
+      'construct nothing 2 rules reported this same finding; it is listed once because it is one edit.',
+    )
+    expect(only?.suggestion).toBe(only?.message)
+  })
+
   it('keeps a single config finding unchanged — no note when there is nothing to affect', () => {
     const result = dedupeConfigFindings([config()])
     expect(result).toHaveLength(1)

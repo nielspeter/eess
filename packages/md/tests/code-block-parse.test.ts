@@ -190,7 +190,10 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
       const parsed = await parseCodeBlocks(at('valid'), { language: 'mermaid', parser })
       const all = [...rule(parsed, 'a').violations(), ...rule(parsed, 'b').violations()]
       expect(all.filter((v) => v.ruleId === INSTRUMENT)).toHaveLength(2)
-      expect(dedupeConfigFindings(all).filter((v) => v.ruleId === INSTRUMENT)).toHaveLength(1)
+      const [merged] = dedupeConfigFindings(all).filter((v) => v.ruleId === INSTRUMENT)
+      // Bug 0461: two hand-written rules over one failed parse, not an option's fan-out.
+      expect(merged?.message).toContain('2 rules reported this same finding')
+      expect(merged?.message).not.toMatch(/option|cannot enforce/)
     })
 
     it('uses a structured failure remedy as the fix and maps its block index to a file and line', async () => {

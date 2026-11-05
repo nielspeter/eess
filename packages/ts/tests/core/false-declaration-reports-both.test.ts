@@ -93,8 +93,8 @@ describe('a false declaration does not swallow the findings under it', () => {
     // SKIPS dedupe. Both real consumers dedupe (`check-all.ts`, `cli/check.ts`),
     // and a one-word change to `element` routed this finding into the collapse:
     // with `file: ''` and the rule id in both remaining key slots, N fanned-out
-    // instances became one — and the survivor picked up `affectedNote`'s "this one
-    // option generated N rules that cannot enforce anything", which is FALSE here
+    // instances became one — and the survivor picked up `affectedNote`'s note (until
+    // bug 0461, "this one option generated N rules that cannot enforce anything"), FALSE here
     // and false precisely because of the no-swallow fix: those rules enforce, and
     // their violations print underneath. Measured 4 → 3 before the fix.
     const p = inMemory({
@@ -112,8 +112,10 @@ describe('a false declaration does not swallow the findings under it', () => {
     const deduped = dedupeConfigFindings(raw)
 
     expect(deduped).toHaveLength(raw.length)
-    // And the false note never appears on a declaration finding.
-    expect(deduped.map((v) => v.message ?? '').join('\n')).not.toContain('cannot enforce anything')
+    // And no collapse note appears on a declaration finding.
+    expect(deduped.map((v) => v.message ?? '').join('\n')).not.toContain(
+      'rules reported this same finding',
+    )
   })
 
   it('the declaration is reported FIRST — configuration before findings produced under it', () => {

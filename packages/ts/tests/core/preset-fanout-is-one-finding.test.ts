@@ -45,7 +45,7 @@ describe('a preset fan-out collapses to the option (plan 0074)', () => {
   it('collapses identical findings and says how many rules they stood for', () => {
     const findings = dedupeConfigFindings([config(), config(), config()])
     expect(findings).toHaveLength(1)
-    expect(findings[0]?.message).toContain('generated 3 rules')
+    expect(findings[0]?.message).toContain('3 rules reported this same finding')
   })
 
   it('keeps two DIFFERENT globs apart, because they are two edits', () => {
@@ -93,10 +93,10 @@ describe('a preset fan-out collapses to the option (plan 0074)', () => {
   })
 
   it('adds no note when there was no fan-out', () => {
-    // "generated 1 rules" would be both ungrammatical and a lie about a fan-out
+    // "1 rules reported" would be both ungrammatical and a lie about a fan-out
     // that did not happen.
     const [only] = dedupeConfigFindings([config()])
-    expect(only?.message).not.toContain('generated')
+    expect(only?.message).not.toContain('rules reported')
   })
 
   it('preserves declaration order, and keeps the first of each group', () => {
@@ -123,7 +123,7 @@ describe('a preset fan-out collapses to the option (plan 0074)', () => {
       config({ suggestion: 'fix it' }),
       config({ suggestion: 'fix it' }),
     ])
-    expect(f?.suggestion).toContain('generated 2 rules')
+    expect(f?.suggestion).toContain('2 rules reported this same finding')
   })
 })
 
@@ -152,7 +152,13 @@ describe('the fan-out this was built for, end to end', () => {
     // It names the option the user wrote, not the calls `atPath()` expanded into.
     expect(isolation[0]?.message).toContain('shared: "**/src/not-built-yet/**"')
     expect(isolation[0]?.message).not.toContain('reside in file matching')
-    expect(isolation[0]?.message).toContain(`generated ${String(rawConfig.length - 1)} rules`)
+    expect(isolation[0]?.message).toContain(
+      `${String(rawConfig.length - 1)} rules reported this same finding`,
+    )
+    // Bug 0461: the note no longer says the rules cannot enforce anything; for a dead selector the
+    // finding's own message says it, so the case the old note was written for keeps its meaning.
+    expect(isolation[0]?.message).toContain('can never match anything')
+    expect(isolation[0]?.message).toContain('cannot fail')
   })
 
   it('checkAll() applies it — the wiring, not just the function', () => {
@@ -176,7 +182,7 @@ describe('the fan-out this was built for, end to end', () => {
       (v) => v.bypassFilters === true && v.ruleId === 'preset/boundaries/shared-isolation',
     )
     expect(isolation).toHaveLength(1)
-    expect(isolation[0]?.message).toContain('generated')
+    expect(isolation[0]?.message).toContain('rules reported this same finding')
   })
 
   it('CONTROL: a correct configuration produces no configuration findings', () => {

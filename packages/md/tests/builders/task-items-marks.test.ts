@@ -339,6 +339,24 @@ describe('scope, volume, exclusion, dedupe (plan 0454)', () => {
     const ids = merged.filter((v) => v.ruleId === UNDECLARED_BOX_MARK || v.ruleId === MALFORMED_BOX)
     expect(ids.map((v) => v.ruleId).sort()).toEqual([MALFORMED_BOX, UNDECLARED_BOX_MARK])
   })
+
+  // Bug 0461: the collapse said "this one option generated 3 rules that cannot enforce anything",
+  // the wording of a preset's dead glob, while each rule here reports its own open box.
+  it('a collapsed box-mark finding says how many rules reported it, and nothing false about them', () => {
+    const c = at({ 'completed/b.md': DONE(['- [?] a', '- [ ] b']) })
+    const merged = dedupeConfigFindings([
+      ...rule(c).violations(),
+      ...rule(c).violations(),
+      ...honestyAtClose(c, { report: 'return' }),
+    ])
+    // Every rule enforces: each reports the readable open box at L + 1.
+    expect(merged.filter((v) => v.line === L + 1)).toHaveLength(3)
+    const box = merged.filter((v) => v.ruleId === UNDECLARED_BOX_MARK)
+    expect(box).toHaveLength(1)
+    expect(box[0]?.message).toContain('3 rules reported this same finding')
+    expect(box[0]?.message).not.toMatch(/option|cannot enforce/)
+    expect(box[0]?.suggestion).not.toMatch(/option|cannot enforce/)
+  })
 })
 
 describe('a rule cannot select an unread state (plan 0454)', () => {

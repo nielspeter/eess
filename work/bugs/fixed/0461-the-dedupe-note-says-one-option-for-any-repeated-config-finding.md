@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — recorded 2026-10-18 from PR #235's reviews (architect, product, enforcement).
+- **State:** Fixed — 2026-11-05: the note says how many rules reported the finding and nothing
+  else. Recorded 2026-10-18 from PR #235's reviews (architect, product, enforcement).
 - **Severity:** Medium — re-rated 2026-11-05 (was Low): the finding is right, but the sentence
   appended to it is runtime output that states something false about the reader's rules, an honesty
   gap between a claim and its mechanism on this board's scale, not documentation drift.
@@ -17,12 +18,12 @@ generated N rules that cannot enforce anything; they are not listed separately b
 edit." That wording is written for a preset's fan-out. eess-md's code-block instrument finding
 (`packages/md/src/builders/code-blocks.ts:119`, `bypassFilters: true`) is deduplicated the same way
 when several rules read one failed parse, and so, read from the source and not yet reproduced, gets
-the same note, which then names an option nobody set. [Plan 0454](../plans/completed/0454-box-marks-are-the-callers.md)'s undeclared-box-mark finding would be the third case.
+the same note, which then names an option nobody set. [Plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md)'s undeclared-box-mark finding would be the third case.
 
 ## Reproduced 2026-11-05
 
 Measured on `main` at 046afd0c (v0.17.0: eess 0.10.0, eess-md 0.14.0), built packages, from an
-adopter's question ([proposal 027](../proposals/027-a-finding-says-whose-it-is-and-a-run-reports-it-once.md)).
+adopter's question ([proposal 027](../../proposals/027-a-finding-says-whose-it-is-and-a-run-reports-it-once.md)).
 A closed record `work/plans/completed/0001-p.md` holds, under `## Acceptance`, `- [?] deferred→BUG-1`
 (line 7, `[?]` declared by no rule) and `- [ ] still open` (line 8). Two `taskItems(c, { marks: { '~': 'open' } })`
 rules (`areOpen()`, `inDocuments(resideInFolder('work/plans/completed/**'))`,
@@ -32,7 +33,7 @@ rules (`areOpen()`, `inDocuments(resideInFolder('work/plans/completed/**'))`,
 "Acceptance", line 5)`), and `honestyAtClose` reports `ledger/silent-open-box` at line 8: all three
   enforce;
 - each of the three also reports `md/undeclared-box-mark` at line 7, the identity
-  [plan 0454](../plans/completed/0454-box-marks-are-the-callers.md) intends to collapse across rules;
+  [plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md) intends to collapse across rules;
 - `dedupeConfigFindings` collapses those three to one, whose message ends: "This one option generated
   3 rules that cannot enforce anything; they are not listed separately because they are one edit."
 
@@ -56,24 +57,35 @@ N rules that cannot enforce are one edit. A fix keeps that case's meaning.
 
 ## Fix
 
-The note states what was collapsed in terms that hold for every caller (N rules reported this same
-finding), or takes its wording from the finding. Kept out of [plan 0454](../plans/completed/0454-box-marks-are-the-callers.md), which stays eess-md only.
+`affectedNote` (`packages/core/src/dedupe-config-findings.ts:65`) now says only what the collapse
+knows: " N rules reported this same finding; it is listed once because it is one edit." The key is
+one cause, so one edit holds for every class it merges. Whether the rules can enforce anything is the
+finding's own message to say, and for the case the old note was written for (a preset's dead
+selector) it already does: "can never match anything … so it has no subjects and cannot fail",
+pinned in the preset fan-out row. Kept out of [plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md), which stays eess-md only.
+
+Sabotage: with the old note restored, seven rows red across the three packages (the kernel's note
+row, the box-mark row, the code-block row, and four preset fan-out rows); with the fix, all green.
 
 ## Verification
 
-- [ ] Red first: two `codeBlocks()` rules over one failed parse, deduplicated, carry "This one option
+- [x] Red first: two `codeBlocks()` rules over one failed parse, deduplicated, carry "This one option
       generated 2 rules"
-- [ ] Green: the deduplicated finding's note names what was collapsed (two rules reporting one finding)
+- [x] Green: the deduplicated finding's note names what was collapsed (two rules reporting one finding)
       and no option
-- [ ] Red first, the box-mark class: two `taskItems()` rules and `honestyAtClose` over one undeclared
+- [x] Red first, the box-mark class: two `taskItems()` rules and `honestyAtClose` over one undeclared
       mark, with a readable open box each rule reports, in
       `packages/md/tests/builders/task-items-marks.test.ts` beside
       `it('two rules over one corpus give one finding per cause after dedupe')`, which runs this
-      collapse and asserts nothing about its message
-- [ ] The code-block row (`packages/md/tests/code-block-parse.test.ts:184`) states the new note
-- [ ] The count survives the rewording: [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s C3 row
+      collapse and asserts nothing about its message:
+      `it('a collapsed box-mark finding says how many rules reported it, and nothing false about them')`
+- [x] The code-block row (`packages/md/tests/code-block-parse.test.ts:184`) states the new note
+- [x] The count survives the rewording: [ADR-016](../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s C3 row
       (`packages/ts/tests/core/a-walk-that-gave-up-says-so.test.ts:181` matches `/\b3\b/`)
-- [ ] `zeroSubjectsViolation`'s collapse still says its rules cannot enforce anything
-- [ ] A changeset naming `@nielspeter/eess`
+- [ ] done-otherwise — a dead selector's collapse no longer says it through the note; its own message
+      does ("can never match anything … cannot fail"), asserted in
+      `it('one wrong shared glob is one finding that names the option')`
+- [x] A changeset naming `@nielspeter/eess`: `.changeset/the-collapse-note-says-only-what-it-knows.md`
+- [x] The kernel's own row: `it('the note says how many rules reported the finding, never that they were generated or are dead')`
 
 Deferred: none
