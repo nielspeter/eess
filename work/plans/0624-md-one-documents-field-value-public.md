@@ -4,21 +4,34 @@
 
 - **State:** Draft — written 2026-11-05 from the review of
   [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md), at the
-  maintainer's direction: to be built after the coming release.
+  maintainer's direction, and revised the same day after its own review (architect, product,
+  enforcement, method); to be built after the coming release.
 - **Implements:** [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
   (ask 1; ask 2 stays held)
-- **Priority:** Medium. No false green, but a tool that shows one record's value has no public reader
-  that agrees with `haveField`, and a consuming project's plan waits on one.
-- **Effort:** Small: Phase 1 about an hour, Phase 2 under an hour.
+- **Priority:** Medium. No false green in this plan's subject (the ledger's is
+  [bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md)), but a tool that shows one
+  record's value has no public reader that agrees with `haveField`, and a consuming project's plan
+  waits on one.
+- **Effort:** Medium in all, about half a day: Phase 1a Medium (the golden table and the projection),
+  Phase 1b Small, Phase 2 Small. Each phase is one review sitting.
 - **Created:** 2026-11-05
-- **Decided on the review (2026-11-05), each overrulable:**
-  - The name is `resolveFieldValue(doc, options)`, on `resolveLink`'s verb-plus-noun precedent. The
-    internal `resolveField` (`packages/md/src/model/field-resolve.ts:48`) is renamed so no public
-    name equals an internal one with another contract (the review's architect lens, M-6).
-  - The bundled fix of [bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md) is
-    **not** taken: option validation moves into the resolver only for the new public door, and
-    0588's `agreeWithFolder` keeps its own record. Bundling would widen this plan to a condition's
-    behaviour.
+- **Decided, each overrulable:**
+  - The public names are `resolveFieldValue(doc, options)`, on `resolveLink`'s verb-plus-noun
+    precedent, and `FieldReading` for its result. "Resolve" here means "decide the value", not
+    `fields().should().resolveAgainst()`'s "is in the vocabulary"; the docs say so. The internal
+    `resolveField` keeps its name and file: no public name equals it, so renaming it buys nothing.
+  - `haveField`'s **condition** stays on `fieldVerdict`'s internal causes, unchanged: it needs the
+    `cites` and `element` the section-name scan reads, which a public type should not carry. Only
+    the **predicate's** three-way decision moves onto the new internal projection, the one real
+    duplicate of it.
+  - Options are validated in `resolveFieldValue` only, not in the shared `fieldVerdict`, so
+    `haveField`'s behaviour does not change. That `haveField` accepts an empty label is
+    [bug 0625](../bugs/0625-a-field-rule-accepts-an-empty-label.md), on its own record.
+  - `resolveFieldValue` takes no `oneOf`: a spec carrying one is an `ArchConfigError`, since the
+    reader reports the value as written and `haveField` with `oneOf` judges it.
+  - [Bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md) (`agreeWithFolder`'s
+    region) is not bundled, and `agreeWithFolder` is not moved onto the projection: a no-behaviour
+    refactor left out of scope below, so this plan changes no condition.
   - `findState` is not touched: its future is
     [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md)'s question.
 
@@ -34,7 +47,8 @@ and none returns the value `haveField` decides:
   larger, and an unclosed fence gives `null` with no cause.
 - `predicateHaveField` gives the decision and the causes, and with `oneOf` the value of a
   single-valued field with a finite vocabulary, but not a free-text or split value, and it cannot
-  tell "no field" from "a value outside the candidates".
+  tell "no field" from "a value outside the candidates" (the caller-side form of
+  [bug 0120](../bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md)).
 
 The resolver that decides is `fieldVerdict` (`packages/md/src/model/field-verdict.ts:68`), shared by
 `haveField` and `agreeWithFolder` and exported nowhere.
@@ -42,74 +56,122 @@ The resolver that decides is `fieldVerdict` (`packages/md/src/model/field-verdic
 ## Design
 
 ```ts
-import { resolveFieldValue } from '@nielspeter/eess-md'
+import type { FieldForm, FieldOptions, MdDocument, Undecided } from '@nielspeter/eess-md'
 
-const r = resolveFieldValue(doc, { label: 'Status', forms: ['bold', 'plain'], region: 'header' })
-if (r.kind === 'value')
-  show(r.values, r.notes) // notes: decided, still reported (ADR-021 clause 4)
-else if (r.kind === 'absent')
-  show('—', r.hint) // the label it does write, when one is near
-else show('?', r.causes) // 'unreadable': each cause with its line and remedy
+export type FieldReading =
+  | {
+      readonly kind: 'value'
+      readonly values: readonly string[] // the split values of the one resolved occurrence
+      readonly line: number
+      readonly label: string // as written: the label or the alias that matched
+      readonly form: FieldForm
+      readonly notes: readonly Undecided[] // decided, still reported (ADR-021 clause 4)
+    }
+  | { readonly kind: 'absent'; readonly line: number; readonly message: string }
+  | { readonly kind: 'unreadable'; readonly causes: readonly Undecided[] }
+
+export function resolveFieldValue(doc: MdDocument, options: FieldOptions): FieldReading
 ```
 
-- **A discriminated union in which the causes replace the value** ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)):
-  - `value`: the split `values`, the occurrence's `line` and written `label`, and `notes` for
-    the causes the verdict does not depend on (disagreeing prose, a label in a form not read);
-  - `absent`: no field, with the hint `haveField` gives;
-  - `unreadable`: each cause (a conflict, two agreeing structured occurrences included; an empty
-    value; a value past an unclosed fence or in an indented block; a value outside the region; a
-    missing section), with its line and remedy.
+- **The arm is the predicate's rule**, so the reader and `predicateHaveField` share one mapping:
+  resolved → `value`; otherwise any `unreadable` cause → `unreadable`; otherwise `absent`. So:
+  - `value`: the one occurrence `haveField` resolves; its `notes` are the causes beside a resolved
+    value (prose that disagrees, a label in a form not read).
+  - `absent`: no field, **and a section region whose section the document lacks**
+    ([plan 0505](./completed/0505-a-field-read-inside-a-named-section.md)'s decided "no"), with
+    `haveField`'s own message (the labels it does find, or the missing section). One `message`, not
+    a hint cut out of it.
+  - `unreadable`: a conflict (two structured occurrences, agreeing or not), an empty value, a label
+    only in a form the rule does not read, a value past an unclosed fence or in an indented block, a
+    value outside the header or section. Each cause carries `haveField`'s message, whose tail is its
+    remedy where `haveField` gives one.
 
-  There is no `conflict` arm carrying occurrences and no value on a non-value arm, so first-wins is
-  not one `[0]` away.
+  No `conflict` arm carries occurrences and no value sits on a non-value arm, so first-wins is not one
+  `[0]` away. Causes use the kernel's public `Undecided`, already re-exported by eess-md, not the
+  internal `FieldCause` (whose `cites` and `disallowed` kind stay internal).
 
-- **A projection of `fieldVerdict`**, not a second reading. `haveField`'s predicate and condition are
-  rewritten to project the same result, so the three cannot drift.
-- **Options validated in the resolver**: a malformed region or an empty or whitespace-only label is
-  an `ArchConfigError` naming the option. A rule has an `examined` floor; a returned value does not.
-- **Occurrences as the public `MdTerm`**, not a new `FieldOccurrence` export.
-- **[Proposal 025](../proposals/025-md-a-field-written-empty-can-mean-absent.md)'s `empty: 'absent'`**,
-  if [plan 0581](./0581-md-a-field-written-empty-can-mean-absent.md) ships first, maps an empty value
-  to `absent`; otherwise the union is built so that member adds no arm.
+- **One internal projection**, `fieldOutcome(v: FieldVerdict)` in
+  `packages/md/src/model/field-verdict.ts`, returns the arm over the internal causes.
+  `predicateHaveField`'s decision (`packages/md/src/builders/have-field.ts:83`) reads through it, and
+  `resolveFieldValue` maps it to `FieldReading`, dropping `cites` and `kind`.
+- **Options refused in `resolveFieldValue`**, each an `ArchConfigError` naming the option: an empty
+  or whitespace-only label, `forms: []`, a malformed region (`checkRegion`,
+  `packages/md/src/model/fields.ts:63`), a `oneOf`. A reader returning `absent` for every record is a
+  plausible-looking wrong answer, so a misconfiguration must throw.
+- **Waivers do not apply.** The reader is not a rule: a cause a gate waives through an exclusion
+  comment is still returned. The docs say so.
+- If [plan 0581](./0581-md-a-field-written-empty-can-mean-absent.md) ships first, its
+  `empty: 'absent'` maps an empty value to `absent`, under the same arm rule; no arm is added.
 
 ## Phases
 
-1. **The public resolver.** `resolveFieldValue` on the eess-md root over `fieldVerdict`; the internal
-   `resolveField` renamed; `haveField`'s predicate and condition read through the same projection;
-   the union's types exported; a `docs/markdown.md` section beside `haveField` (when to use it, and
-   when `fields()` or `predicateHaveField` is the right door) and a line in `packages/md/README.md`.
-2. **One reader, held.** An architecture rule in `arch.rules.ts` on the precedent of
-   `eess/md-one-link-resolver`: only `packages/md/src/model/field-verdict.ts` imports the internal
-   occurrence resolver, and only the field modules import `field-verdict.ts`. A
-   `scripts/check-nonvacuity.mjs` row plants a second importer and reds it.
-
-## Files changed
-
-- Phase 1: `packages/md/src/model/field-verdict.ts`, `packages/md/src/model/field-resolve.ts`,
-  `packages/md/src/builders/have-field.ts`, `packages/md/src/index.ts`, `packages/md/tests/`,
-  `docs/markdown.md`, `packages/md/README.md`, `scripts/vacuity-matrix.mjs` (the new export's row),
-  `.changeset/` (`@nielspeter/eess-md` minor).
-- Phase 2: `arch.rules.ts`, `scripts/check-nonvacuity.mjs`.
+- [ ] **1a. The internal projection, pinned to today.** No public change.
+  - [ ] Before any rewire, capture a **golden table** from `main`: for every document of a fixture
+        corpus × a set of specs (header, a named section present and missing, aliases, `split`,
+        `value`, `oneOf`), `predicateHaveField(spec).test()` and `.undecided()` messages and the
+        `docs(c).should().haveField(spec)` messages. Commit it as data with its own row count.
+  - [ ] Add `fieldOutcome`; rewrite the predicate's decision onto it. The golden table is
+        unchanged, every row.
+  - [ ] Changeset: `'@nielspeter/eess-md': none` (no consumer-visible change, pinned by the table).
+- [ ] **1b. The public reader.**
+  - [ ] `resolveFieldValue` and `FieldReading` on the eess-md root, over `fieldOutcome`; the option
+        refusals.
+  - [ ] `docs/markdown.md`: a section "Reading a field yourself: `resolveFieldValue`", beside
+        `resolveLink`'s, with an example that shows where `doc` comes from
+        (`c.documents().find((d) => d.relPath === …)`), a "which reader" table (`fields()`,
+        `predicateHaveField`, `findState`, `resolveFieldValue`: what each returns and where it
+        differs, `findState`'s first-wins included), and one sentence in the `findState` paragraph
+        pointing to it. A line in `packages/md/README.md`.
+  - [ ] `scripts/vacuity-matrix.mjs`: the export's exemption row, its reason stating where
+        emptiness is proven ("model reader; outcome coverage is the agreement test's own count").
+  - [ ] Changeset: `'@nielspeter/eess-md': minor`, additive, no break; its body says `haveField`'s
+        output is unchanged (the golden table).
+- [ ] **2. The import edges, held.** In `arch.rules.ts`:
+  - [ ] `modules(p).that().resideInFile('**/packages/md/src/model/field-resolve.ts').should().onlyBeImportedVia('**/packages/md/src/model/field-verdict.ts')`.
+  - [ ] `field-verdict.ts` only imported via `builders/have-field.ts`,
+        `conditions/agree-with-folder.ts` and the file that re-exports `resolveFieldValue` (named
+        when built).
+  - [ ] Each rule's comment states what it cannot see, as `eess/md-one-link-resolver`'s does: a
+        second reading built on `readFields` that never imports `field-resolve.ts` (how `findState`
+        exists), and a resolver inlined into its only importer.
+  - [ ] One `scripts/check-nonvacuity.mjs` row: a planted module under `builders/` importing both
+        files, asserting both rule ids fire on it.
 
 ## Test inventory
 
-- **Agreement**, over a fixture corpus that asserts its own count and holds every outcome kind:
-  for each document, `resolveFieldValue` and `docs(c).should().haveField()` agree. The rows include
-  [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s Measured table: `real` for an indented example then a real value; `unreadable`
-  naming an unclosed fence; the value below an indented `## Notes`; `unreadable` for two
-  occurrences, agreeing or not; `unreadable` outside the header.
-- **The sabotages [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review lists**, each red under its own mutant: the first occurrence
-  returned on a conflict; disagreeing prose dropped from `notes`; an empty value read as `''`;
-  aliases, `value` or `split` ignored; a section region with no cause; absence without its hint;
-  a reading with `'closed-fences'`.
-- An empty label and a malformed region each throw `ArchConfigError` naming the option.
-- Phase 2's non-vacuity row red on a planted second importer.
+- [ ] **Agreement (Tier 2)**, over the fixture corpus, asserting its own document count and that each
+      cause class occurs, with its count: a conflict (disagreeing, and agreeing); an empty value; a
+      label only in an unread form; an unclosed fence; an indented block; outside the header; outside
+      a section; a missing section; no field with its label hint; no field with no labels; a value
+      with a prose note; a value with an unread-form note. Per document: - `value` ⇔ `test()` true; `unreadable` ⇔ `undecided()` non-empty, with equal messages;
+      `absent` ⇔ `test()` false and `undecided()` empty; - the condition's messages equal the arm's causes plus `notes` (with `absent`'s message).
+
+      Proposal 028's Measured rows are among them (row 4's waiver in a `corpus()` fixture).
+      Agreement is with `haveField` **without** `oneOf`.
+
+- [ ] **New tests on the projection**, each red under its own mutant: notes dropped (prose, and the
+      unread-form note); `absent` without its message; an occurrence leaking onto a non-value arm;
+      the arm mapping (a missing section mapped to `unreadable`).
+- [ ] **The review's other mutants** (first-wins on a conflict, an empty value read as `''`, aliases,
+      `value` or `split` ignored, a section region with no cause, `'closed-fences'`) mutate
+      `fieldVerdict` itself: each is shown red in `haveField`'s existing suite, or a test is added
+      there, never a second copy pinned on the reader.
+- [ ] The option refusals: an empty label, a whitespace label, `forms: []`, a malformed region and a
+      `oneOf` each throw `ArchConfigError` naming the option.
+- [ ] A sabotage matrix run in a worktree, each mutant mapped to the test title that reds, recorded
+      at close.
+- [ ] **Phase 2 (Tier 1)**: the non-vacuity row red on the planted importer, both ids.
 
 ## Out of scope
 
-- Ask 2 (the same over text): held on
+- Ask 2 (the same over text) and its own mutant, a second parse path: held on
   [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and a measurement.
 - `findState`'s reading and the ledger: [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md)
   and [bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md).
 - `fields()`' header boundary: [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
-- `agreeWithFolder`'s region check: [bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md).
+- `agreeWithFolder`'s region check ([bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md))
+  and moving its own three-way mapping (`packages/md/src/conditions/agree-with-folder.ts:356`) onto
+  `fieldOutcome`: a no-behaviour refactor for a later change.
+- `haveField` accepting an empty label: [bug 0625](../bugs/0625-a-field-rule-accepts-an-empty-label.md).
+- Whether "one resolver per concept" (links, fields) should become an ADR rather than one
+  architecture rule per concept: an open question carried from [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review.

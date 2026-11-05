@@ -29,8 +29,8 @@ A live plan, `work/plans/0009-x.md`, holding two states and an open box:
 `Draft`) it returns two: `ledger/state-folder-mismatch` and `ledger/silent-open-box`. With `Done`
 twice, the same two. `findState` returns the first line in each case.
 
-`haveField` reads the same record as a conflict ("Status is given twice (line 3 'a', line 4 'b');
-keep one", measured with the label `Status`). In this repository `check:corpus`'s
+`haveField` with the label `State` reads the same record as a conflict, measured: "State is given
+twice (line 3 'Draft', line 4 'Done'); keep one". In this repository `check:corpus`'s
 `corpus/state-present` (`scripts/check-corpus.mjs:434`) reads through `haveField` and so reports
 it, but only for live plans and bugs; a caller running `honestyAtClose` alone has no backstop.
 
@@ -55,7 +55,10 @@ disagreeing states are a finding, never the first of them, and the documentation
 ## Verification
 
 - [ ] Red first: the record above, `honestyAtClose` reports the two disagreeing states.
-- [ ] `Done` twice stays as today (two findings, no conflict).
+- [ ] `Done` twice: decided by the fix. Today the ledger reads it as `Done` (two findings) while
+      `haveField` calls it a conflict ("State is given twice (line 3 'Done', line 4 'Done')"); a fix
+      through [plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md) takes
+      `haveField`'s reading, and the row pins whichever the fix chooses, saying why.
 - [ ] `docs/markdown.md`'s `findState` paragraph says how its reading differs from `haveField`'s.
 - [ ] A changeset naming `@nielspeter/eess-md`.
 - [ ] `npm run validate` green.
