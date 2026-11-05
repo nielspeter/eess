@@ -72,7 +72,7 @@ as written today"), each pinned by a row after the collapse. Kept out of
 [plan 0454](../../plans/completed/0454-box-marks-are-the-callers.md), which stays eess-md only.
 
 Sabotage: with the old note restored, nine rows red across the three packages (two in the kernel,
-the box-mark and code-block rows, and five preset fan-out and dead-builder rows); with the fix, all
+the box-mark and code-block rows, and five rows in `preset-fanout-is-one-finding.test.ts`); with the fix, all
 green. Two rows that asserted the absence of the old note's words (in
 `false-declaration-reports-both.test.ts` and the preset row for a single finding) now compare whole
 values, so the next rewording cannot leave them unable to fail.

@@ -24,7 +24,8 @@
  *
  * ## What the key is, and why each part is in it
  *
- * `(rule file, rule id, offending glob)`.
+ * `(rule file, rule id, element)`: for a preset's fan-out the element is the offending glob,
+ * for other producers whatever their finding names, a cause or, for some, only a place (bug 0621).
  *
  * - **The glob, not the message.** 0069's appendix is explicit: two different
  *   `shared` entries that both match nothing are **two findings, because they
@@ -60,7 +61,7 @@ import { EMITTER_IDS } from './emitter-findings.js'
  * Only what the collapse knows: how many times the key `(file, id, element)` was reported in this
  * run. Not how many rules (one rule can report a key twice), not that the reports were one finding,
  * and not that one edit clears them: where a producer's `element` is a location rather than a cause,
- * two causes on one line share a key (bug 0622). Whether the rules can enforce anything is the
+ * two causes on one line share a key (bug 0621). Whether the rules can enforce anything is the
  * finding's own message to say. Bug 0461: this used to read "this one option generated N rules that
  * cannot enforce anything", true of a preset's dead glob or empty selector (whose messages say so
  * themselves) and false of every other finding the key merges: an unread box mark, an undecided
@@ -71,7 +72,7 @@ function affectedNote(count: number): string {
 }
 
 /**
- * Collapse each configuration finding that a preset fanned out.
+ * Collapse each configuration finding a run repeats under one key, a preset's fan-out among them.
  *
  * Order-preserving, keeping the **first** occurrence, so the report reads in
  * the order the rules were declared rather than in hash order.
