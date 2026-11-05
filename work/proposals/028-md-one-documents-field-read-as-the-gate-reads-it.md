@@ -1,7 +1,7 @@
 # Proposal 028 — md: one document's field, read as the gate reads it
 
-**State:** Draft — filed 2026-11-05 from an adopter's question, at the maintainer's request; not yet
-reviewed.
+**State:** Draft — filed 2026-11-05 from an adopter's question, at the maintainer's request;
+reviewed 2026-11-05, Split and sequence, both asks held (see "Review — 2026-11-05").
 **Priority:** Medium — no false green in eess itself (the header case the adopter measured is
 [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md)), but no public
 reader returns one record's value as `haveField` decides it: on a conflict, on the header region and
@@ -122,3 +122,123 @@ disagreement is the evidence.
   [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s shape). This proposal does
   not depend on it.
 - **The header boundary**, which is [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
+
+## Review — 2026-11-05
+
+**Ruling: Split and sequence**
+
+Reviewed by the architect, product and enforcement lenses, each against a survey written first and
+each with its own throwaway probes against the built eess-md 0.14.0 (each under 0.2 s); no gate,
+suite or `validate` was run for the review. All three found the capability generic and in the right
+package, and none found a duplicate that closes ask 1. The two asks are two shippable things on
+different timelines, so each is disposed of below; neither is planned here.
+
+### Existing code survey
+
+- **Ask 1 is narrowed by public API, not closed.** `predicateHaveField(spec)` gives `haveField`'s
+  decision (`.test(doc)`) and its causes (`.undecided(doc)`), and `spec.oneOf` tests the resolved
+  value: asked once per candidate, it returns `haveField`'s value for a **single-valued field with a
+  finite vocabulary** (measured: only `real` matches in row 1; rows 2 and 5 refuse with the cause).
+  It does not give it otherwise (architect I-3, enforcement I6, measured): it cannot tell "no field"
+  from "a value outside the candidates" (both all false, no cause, which is
+  [bug 0120](../bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md)'s case on the caller's
+  side), a split field reads all false even when every value is a candidate, disagreeing prose is
+  dropped, and candidates must be regex-escaped. Ask 1 stands for free-text and multi-valued fields
+  and for any view that must name a value it does not expect.
+- **The resolver to publish exists, and it is not `resolveField`.** `fieldVerdict`
+  (`packages/md/src/model/field-verdict.ts:68`) is the one `haveField` and `agreeWithFolder` share,
+  as `resolveLink` is shared by the link rules. `resolveField`
+  (`packages/md/src/model/field-resolve.ts:48`) answers `none` on an unclosed fence and on a value
+  outside the region (architect I-1, measured), so publishing it would fail the submission's own
+  rows 2 and 6.
+- **`findState` is a second public reading, and it fails open in a shipped gate.** Measured by the
+  enforcement lens and confirmed here: `honestyAtClose` passes a live plan holding `State: Draft`
+  then `State: Done` with an open box, and reds the reverse order. Recorded as
+  [bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md) (High), with the
+  documentation's "without a second opinion" claim. This contradicts the submission's Priority line,
+  "no false green in eess itself".
+- **The dogfood is already decided and has a second instance.** [Plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md)
+  moves the ledger's state reading onto the root's field blocks ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)'s "a preset needing what
+  the root lacks adds the block to the root first"), and `scripts/lib/finished-not-closed.mjs:151`
+  reads one record's state with `findState`, the adopter's use case in this repository.
+- **Ask 2 is unmeasured beyond [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md).**
+  One `corpusFromText` over N texts is its intended use; once [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) lands, the waiver throw goes
+  and the cost of assembling a corpus to read records has not been measured.
+
+### Placement
+
+The eess-md root (architect M-1): labelled values exist only in eess-md, so not the kernel ([ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md));
+not `/internal`, which [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) keeps from adopters; not a new subpath, which [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 4 rules
+out for blocks; and on the root, because [plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md)'s preset may import nothing else
+(`md/rules-import-only-the-root`). [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1 is satisfied: `label` and `forms` are required.
+
+### Dispositions
+
+| Ask                             | Disposition | Condition / shape                                                                                                                                                                                                        |
+| ------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1 — `haveField`'s value, public | `Held`      | Unholds when the maintainer decides to build it; the design below is ready for a plan. Not urgent: the asking adopter can use `predicateHaveField` (decision and causes) and, for a finite single-valued field, `oneOf`. |
+| 2 — the same over text          | `Held`      | Unholds when [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) is fixed and the cost of building a corpus over a board's texts is measured, or when a consumer is named that cannot wait for 0520.        |
+
+### The shape ask 1 is held to
+
+- **`fieldVerdict` made public as a resolver**, modelled on `resolveLink`: a free function over an
+  `MdDocument` and `FieldOptions`, the model layer the predicate and condition already consume
+  (architect M-2). Not a `.value()` member on the predicate (the kernel's `Predicate<T>` has no room
+  for it, and `not()`/`and()`/`or()` would drop it) and not a value in `.undecided()` (the cause
+  channel).
+- **A discriminated union in which the causes replace the value** (enforcement I1, [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)): no
+  reachable value on any arm but the value arm; a conflict and an empty value are causes, as
+  `haveField` classes them, never arms carrying occurrences, which would put first-wins one `[0]`
+  away; beside a value, only the causes [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 4 says the verdict does not depend on
+  (disagreeing prose, a label in a form not read). Not `FieldVerdict` as is: its `has: boolean`
+  is the `test()` collapse.
+- **The value arm carries the split `values` and each occurrence's own `label`**, not a joined string;
+  occurrences as the public `MdTerm`, not a new `FieldOccurrence` export (product).
+- **Option validation in the resolver**: a malformed region or an empty label is an
+  `ArchConfigError`, since a reader returning a value has no `examined` floor behind it (architect
+  I-5). Whether that same move closes [bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md)
+  is a bundling decision for the plan, stated here so it can be overruled.
+- **[Proposal 025](./025-md-a-field-written-empty-can-mean-absent.md)'s `empty: 'absent'`** must map
+  onto the union before it is public (architect I-7).
+- **"One reader" made structural**: the predicate, the condition and the public reader all project
+  `fieldVerdict`, with an architecture rule that only `field-verdict.ts` imports `resolveField`, on
+  the precedent of `md-one-link-resolver`, and its own non-vacuity row (enforcement I5).
+
+### Corrections to the submission
+
+Kept as filed above; corrected here.
+
+- Acceptance row 3's "(once [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md) is fixed)" is wrong: `haveField` reads that record today,
+  because `'code-blocks'` blanks the indented line before `headerEnd` sees it (architect I-4,
+  measured). What exists is a coupling: [bug 0622](../bugs/0622-an-indented-line-like-a-heading-ends-the-field-header.md)'s
+  fix changes `headerEnd`, which both readings call, so its verification must keep `haveField`'s
+  reading of row 3.
+- Open question 1's first option (publish `FieldResolution`) is unsound; the real question is
+  `fieldVerdict`'s content versus a smaller shape (architect I-1).
+- The conflict criterion is weaker than `haveField`: two **agreeing** structured occurrences are a
+  conflict too (enforcement I3, measured).
+- The criteria survive at least six sabotages (enforcement I7): dropping disagreeing prose, reading
+  an empty value as `''`, ignoring aliases, `value` or `split`, a section region with no cause,
+  absence without its hint, and a second parse path for ask 2. A plan's acceptance must add a row
+  for each, plus an agreement test over a fixture corpus that asserts its own count and covers every
+  outcome kind.
+- The waiver criterion pins no value (enforcement M4); no tier is named (Tier 2 for agreement, Tier 1
+  for the architecture rule); [bug 0120](../bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md)
+  and [proposal 025](./025-md-a-field-written-empty-can-mean-absent.md) are not linked.
+- The survey and Dogfooding missed [plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md) and `scripts/lib/finished-not-closed.mjs`.
+
+### Open questions, surfaced and not settled
+
+- What happens to `findState` once ask 1 ships: the ledger's own reading by design, rebased after
+  [plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md), or deprecated (a removal from a published subpath, so a break).
+- For ask 2, if it unholds: a private parse inside the reader (sound by construction, one document
+  constructor), a public parser (a new constructor under [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1's `frozen` rule), or
+  [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) plus documentation.
+- Whether "one resolver per concept" (links, fields) should become binding, in an ADR, rather than a
+  practice held by an architecture rule per concept (architect M-5).
+
+### Praise
+
+The submission measured both readers on the same records before arguing, refused the `setAside`
+option on `fields()` with the right reason, and kept the waiver refusal out of its own scope once
+[bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) was found. Its table is what let the review find the fail-open in the ledger.
