@@ -39,8 +39,8 @@ rules (`areOpen()`, `inDocuments(resideInFolder('work/plans/completed/**'))`,
 So the box-mark case is no longer "would be": it is measured. The note reaches a test-runner caller
 too, not only `eess-ts check`: `checkAll` (exported from the eess-ts root,
 `packages/ts/src/core/check-all.ts:95`) runs the same collapse, and `checkAll` over two such builders
-threw `ArchRuleError` with the finding ending "This one option generated 2 rules that cannot enforce
-anything".
+threw `ArchRuleError`, whose `violations` hold, and whose stderr report prints, the finding ending
+"This one option generated 2 rules that cannot enforce anything".
 
 Measured: the box-mark class. Read from the source, not reproduced: the code-block instrument
 (above). Earlier encounters with this note, each kept out of the collapse instead of fixing it:
