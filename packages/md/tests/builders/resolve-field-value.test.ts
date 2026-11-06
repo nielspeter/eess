@@ -120,7 +120,7 @@ describe('resolveFieldValue agrees with haveField, document by document (plan 06
       ['header', 'measured-indented-example', 'value', undefined],
       ['header', 'measured-indented-heading', 'value', undefined],
     ]
-    const got = classes.map(([name, path, kind, says]) => {
+    const got = classes.map(([name, path, , says]) => {
       const r = resolveFieldValue(at(`docs/${path}.md`), spec(name))
       const text = said(r).join(' | ')
       return [name, path, r.kind, says === undefined ? text === '' : says.test(text)]

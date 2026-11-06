@@ -8,9 +8,22 @@ import { goldenTable, FIELD_DOCS, FIELD_SPECS } from '../helpers/field-reading-f
 // projection cannot pass by moving both sides of a comparison together: it must leave every row as
 // it was, or change this file in the open.
 
-const golden: unknown = JSON.parse(
+const parsed: unknown = JSON.parse(
   readFileSync(new URL('../fixtures/field-reading-golden.json', import.meta.url), 'utf8'),
 )
+
+/** The committed file's shape: where it was captured, its row count, and the table. */
+function isGolden(x: unknown): x is { capturedFrom: string; rows: number; table: unknown } {
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    'capturedFrom' in x &&
+    typeof x.capturedFrom === 'string' &&
+    'rows' in x &&
+    typeof x.rows === 'number' &&
+    'table' in x
+  )
+}
 
 describe("haveField's decisions are unchanged (plan 0624 golden table)", () => {
   it('every row is as captured, in both directions: predicate test, undecided causes, condition messages', () => {
@@ -18,6 +31,7 @@ describe("haveField's decisions are unchanged (plan 0624 golden table)", () => {
     const rows = Object.values(table).reduce((n, r) => n + Object.keys(r).length, 0)
     // The fixture's own size, so a document or a spec dropped on either side reds here too.
     expect(rows).toBe(Object.keys(FIELD_DOCS).length * Object.keys(FIELD_SPECS).length)
-    expect(golden).toEqual({ capturedFrom: expect.any(String), rows, table })
+    if (!isGolden(parsed)) throw new Error('field-reading-golden.json is not a golden table')
+    expect({ rows: parsed.rows, table: parsed.table }).toEqual({ rows, table })
   })
 })
