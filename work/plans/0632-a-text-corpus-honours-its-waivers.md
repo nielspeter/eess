@@ -8,7 +8,10 @@
   Revised the same day after an architect review and an enforcement review of the first design. Both
   found its `WeakRef` lifetime unsound (measured: a text corpus is collected while its documents are
   still in use). The enforcement review also found its longest-prefix lookup a false green on
-  overlapping roots. The revision is below; the first design is recorded under _Corrections_.
+  overlapping roots. Revised again the same day after both re-checked the revision: a
+  registered reader function cannot be compared, so the kernel now takes the texts. Both re-checks
+  said the edit needs no further full round; the architect asked that D1 alone be checked once more.
+  Each revision is recorded under _Corrections_.
 - **Implements:** [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
   (ask 2; ask 1 is [plan 0624](./completed/0624-md-one-documents-field-value-public.md)'s)
 - **Fixes:** [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md)
@@ -34,16 +37,15 @@ file's waivers from disk, `fs.readFileSync(filePath)` in `applyFilters`
 (`packages/core/src/execute-rule.ts:150`), and a text corpus's files are not on disk. Without the
 refusal, a waiver in a text corpus would silently not apply.
 
-**Measured 2026-11-06.** The set is the 592 `.md` files `git ls-files 'work/**/*.md'` lists in this
-repository. Each was read with `corpusFromText` and then `resolveFieldValue`, under Node 24.22
-against `packages/md/dist`.
+**Measured 2026-11-06,** under Node 24.22 against `packages/md/dist` at v0.19.0. The set is the
+592 `.md` files `git ls-files 'work/**/*.md'` lists; that glob skips the four files at the top of
+`work/`, all tracked, one of which also holds a waiver.
 
-- **Refused:** 2 hold a waiver directive and are refused, though the reader is not a rule and applies
-  no waiver. One corpus over all 592 is refused for the same reason. The enforcement review counted
-  597 files on disk and 3 refused, untracked files included.
-- **Cost:** one corpus over the 590 others builds in 579–638 ms. Reading every record's field takes
-  150–388 ms, depending on the reader's options. A corpus per record costs about the same per
-  record.
+- **Refused:** 2 of the 592 hold a waiver directive and are refused, though the reader is not a rule
+  and applies no waiver. One corpus over all of them is refused for the same reason.
+- **Cost:** one corpus over the 590 others builds in 579–638 ms. Reading every record's field with
+  `resolveFieldValue`, `{ label: 'State', forms: ['bold', 'plain'], region: { section: 'Status' } }`,
+  takes 150–171 ms. A corpus per record costs about the same per record, 0.9–1.6 ms.
 
 So once the refusal goes, ask 2 needs no new parser and no new API: `corpusFromText` plus
 `resolveFieldValue`. Of the proposal review's three answers (a private parse, a public parser, or
@@ -52,58 +54,82 @@ third.
 
 ## Design
 
-### D1. The kernel reads a claimed path through its registered source, never the disk
+### D1. The kernel holds a claimed root's texts, and reads a claimed path only from them
 
 A new kernel function, on `@nielspeter/eess/internal` (family plumbing,
 [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)):
 
 ```ts
-/** Claim `root`: every file under it is read with `read`, and nowhere else. */
-registerSourceRoot(root: string, read: (file: string) => string | undefined): void
+/** Claim `root`: each file under it is these texts, keyed by path relative to `root`, and nothing else. */
+registerSourceText(root: string, files: Readonly<Record<string, string>>): void
 ```
+
+**The kernel takes the texts, not a reader.** The first revision passed a function. Both re-checks
+found that a function cannot be compared, so the kernel could not decide whether a second
+registration of a root held the same text. Comparing identity refuses equal maps; accepting any
+re-registration lets one corpus's waivers read another's text. With the texts, the kernel:
+
+- **copies the map when it registers,** so a caller who changes the map afterwards cannot change the
+  text a waiver is read from. The first revision's reader read the caller's live map, measured by the
+  enforcement re-check;
+- **owns the read,** so no dialect code runs inside the `try` that swallows a read failure
+  (`packages/core/src/execute-rule.ts:166-171`);
+- **decides a re-registration by content.**
 
 **Registering a root:**
 
 - **The root is normalised.** It must be absolute; its separators become POSIX; a trailing slash is
-  dropped.
-- **A root that exists on disk is refused** with an `ArchConfigError`, so a registered reader can
-  never shadow a real file. Without that, any importer of `/internal` could waive a real
-  repository's findings with no directive in it. The kernel owns this check; today it lives only in
-  eess-md (`packages/md/src/corpus.ts:238`).
+  dropped. A relative root is an `ArchConfigError`.
+- **A root that exists on disk is refused,** so the texts can never shadow a real file. Without that,
+  any importer of `/internal` could waive a real repository's findings with no directive in it. The
+  kernel owns this check; today it lives only in eess-md (`packages/md/src/corpus.ts:238`).
 - **A root that overlaps another is refused:** one equal to, containing, or contained by a registered
   root, compared by whole path segments (`/t/1` does not contain `/t/10`).
-- **The exception:** the same root registered again, with a reader that gives the same text for every
-  file, is accepted. A content-addressed root (D2) makes that the common case.
+- **The one exception is the same root with an exactly equal map:** the same keys, each with the same
+  text. A subset or a superset is different. A content-addressed root (D2) makes that the common
+  case.
+- **Each refusal names the root it collided with** and the remedy: leave `root` unset, or name a root
+  that is used for one map only. A root names one text per path for the process.
 
 **The lifetime is strong, for the process.**
 
 - **Why not the first design's `WeakRef`:** both reviews measured that a text corpus can be collected
   while its documents still reach a rule. The kernel's `correspondence()` builds violations from bare
   path strings (`packages/core/src/correspondence.ts:67-76`). `ParsedCodeBlocks` keeps documents, not
-  the corpus (`packages/md/src/model/code-block-parse.ts:95-107`). So a waiver would apply or not
-  depending on GC.
-- **Why strong is affordable:** the registry holds only text strings, this repository's whole `work/`
-  is 8.6 MB, and vitest isolates each test file.
+  the corpus (`packages/md/src/model/code-block-parse.ts:95-107`).
+- **The bound:** one entry per distinct map, for the life of the process. This repository's whole
+  `work/` is 8.6 MB, and vitest isolates each test file by default. Under `isolate: false` a worker
+  shares the registry across files, so a caller-set root reused with other text in another file is
+  refused, as it would be within one file. Nobody has asked whether a board that builds one corpus per
+  record version runs long enough for the growth to matter; releasing a root is out of scope below.
 
-**Every kernel copy shares the registry.** It is kept on `globalThis` under a `Symbol.for` key, so two
-copies of the kernel in one install tree (the split `RELEASING.md:284-290` records for module-level
-registries) see one registry.
+**Every kernel copy shares the registry,** through one object on `globalThis` under a `Symbol.for`
+key. Two copies of the kernel in one install tree (the module-state split `RELEASING.md:284-290`
+records) see the same texts.
 
-**The lookup.**
+- **The shape is versioned,** a `version` field on the shared object. A kernel that finds a shape it
+  does not know refuses loudly rather than reading it.
+- **It holds plain data,** roots and their copied maps; each kernel copy re-checks what it reads.
 
-- In `applyFilters`, a violating file under a registered root is read only through that root's
-  reader.
-- If the reader holds no such file, that is an unsuppressable configuration finding
-  (`bypassFilters`) naming the file and the root, never a silent disk read.
-- A file under no registered root is read from disk, as today.
+**The lookup, in `applyFilters`.**
+
+- **The violating file's path is normalised as the root is,** so a Windows `join(root, rel)` finds its
+  root.
+- **A path under a claimed root is read only from that root's texts.**
+- **A claimed path the texts do not hold is an unsuppressable configuration finding**
+  (`bypassFilters`) naming the file, the root and the cause: a rule reported a path the map does not
+  hold, or spelled it differently. The violation itself stays, unwaived. One finding per file and
+  root, keyed on the rule id when there is one.
+- **A claimed root that now exists on disk is a configuration finding too:** a file created after
+  registration would otherwise be shadowed silently.
+- **A path under no claimed root is read from disk,** as today.
 
 **The text is parsed unchanged.** It goes through `parseExclusionComments`, with whatever
-[ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) masking applies on disk: parity,
-not a new guarantee.
+[ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) masking applies on disk: parity, not a new guarantee.
 
 - [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s markdown row is `pending`.
-- The enforcement review measured a directive inside a `<div>`, a `<pre>`, or a fence in a blockquote
-  being read as a waiver, on disk and so here. That is
+- The enforcement review measured a directive inside a `<div>`, a `<pre>`, or a fence in a
+  blockquote being read as a waiver, on disk and so here. That is
   [bug 0291](../bugs/0291-the-markdown-masker-honours-a-directive-inside-code.md)'s class, inherited,
   not introduced.
 
@@ -116,33 +142,43 @@ not a new guarantee.
 - That eess-ts's copy skips an in-memory file is the same defect on another path, recorded as its own
   bug, not added here.
 
-**A departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md), stated.** Every seam so far hands the kernel a value: `PathUniverse`,
-`DiskSet`, `sourceEmpty`, [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s `mask`. This is the first process-wide capability the kernel
-looks up by path. Keying by path is still right: a reader on the rule context would never be set by a
-rule built outside eess-md's builders. The ADR says so.
+**A departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md), stated.** Every seam so far hands the kernel a value:
+`PathUniverse`, `DiskSet`, `sourceEmpty`, [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s `mask`. This one is still a value, the
+texts, but it is ambient: registered once and looked up by path, not passed with the rule. Keying by
+path is right, because a value on the rule context would never be set by a rule built outside
+eess-md's builders. The ADR says so.
+
+**The residual: an old kernel copy without the registry.** eess-crossvalidate allows eess-md
+`>=0.14.0` as a peer, so an install can hold this release's eess-md with an eess-crossvalidate
+still on kernel `^0.10.1`. A correspondence there reads a text corpus's file from disk, finds
+nothing, and the waived violation stays red. That is a false red, never a false green, with nothing
+explaining it. The ADR states it with its remedy, upgrade eess-crossvalidate, and the release raises
+crossvalidate's kernel range (`RELEASING.md` step 3a).
 
 ### D2. `corpusFromText` names its default root by its content
 
-The default root becomes `/__eess_text_corpus__/<hash>`, where `<hash>` is a short hash of the map's
-sorted keys and texts.
+The default root becomes `/__eess_text_corpus__/<hash>`.
 
+- **`<hash>` is a hash of a framed encoding,** at least 64 bits: the sorted entries as JSON,
+  `[[key, text], …]`. An unframed concatenation collides: the enforcement re-check showed two maps
+  `corpusFromText` accepts with one hash.
+- **The hash only names a root.** Equality is still decided by content, under D1.
 - **It is deterministic,** so `file` no longer depends on test order. `file` reaches stderr lines,
   annotations and the baseline's relative paths.
-- **Equal maps share a root safely,** under D1's same-content exception.
-- **Different maps never overlap:** their roots are siblings.
-- **The cost is small:** hashing all of `work/` takes 11–13 ms, about 2% of building the corpus.
+- **Equal maps share a root;** different maps get sibling roots, which never overlap.
+- **Cost:** hashing all of `work/` takes 11–13 ms, about 2% of building the corpus.
+- **The reserved prefix:** a caller-set root inside or containing `/__eess_text_corpus__` is refused
+  with its own message, since an adopter who set the old default spelling would otherwise meet an
+  overlap with no explanation.
 
-A caller-set root follows D1's rules: the same root with different text is refused, deterministically,
-when the second corpus registers.
+The docs tell callers to assert on `element` or `relPath`, or to set `root`, never on `file`
+(`docs/markdown.md`, the `corpusFromText` section). They will add that a caller who builds one corpus
+per record (ask 2) leaves `root` unset. Two tests in this repository build the old default path by
+hand (`packages/md/tests/corpus-from-text.test.ts:341`, `:433`); they move with it.
 
-The docs already tell callers to assert on `element` or `relPath`, or to set `root`, never on `file`
-(`docs/markdown.md`, the `corpusFromText` section). Two tests in this repository build the old default
-path by hand (`packages/md/tests/corpus-from-text.test.ts:341`, `:433`); they move with it.
+### D3. `corpusFromText` registers its texts and drops the refusal
 
-### D3. `corpusFromText` registers its reader and drops the refusal
-
-- **The reader:** eess-md's existing per-corpus reader (`packages/md/src/model/corpus-internals.ts`)
-  is registered, not a second one. Its `?? ''` default for an unknown file becomes `undefined`.
+- **It registers its map,** `registerSourceText(root, files)`. eess-md's internal reader stays as it is.
 - **The refusal goes:** `refuseWaivers` is removed.
 - **Waivers then behave as on disk:**
   - a waiver applies;
@@ -152,9 +188,9 @@ path by hand (`packages/md/tests/corpus-from-text.test.ts:341`, `:433`); they mo
 
 ### D4. Ask 2 is documentation
 
-`docs/markdown.md` gains "Reading one record's field from text": `corpusFromText` over the texts, then
-`resolveFieldValue` per document, with the measured cost and its method. There is no new reader, so
-there is no new `MdDocument` constructor to promise; the `frozen` rule of
+`docs/markdown.md` gains "Reading one record's field from text": `corpusFromText` over the texts,
+then `resolveFieldValue` per document, with the measured cost and its method. There is no new
+reader, so there is no new `MdDocument` constructor to promise; the `frozen` rule of
 [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1 is untouched.
 
 ## Phases
@@ -163,29 +199,32 @@ there is no new `MdDocument` constructor to promise; the `frozen` rule of
 
 - [ ] The new ADR, decided from D1 and D2:
   - it extends [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
-  - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md);
+  - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md), and the residual above with its remedy;
   - its Enforcement table uses Tier 2 rows against deterministic behaviour, with no GC-dependent row;
   - its row goes in `CLAUDE.md`'s ADR index.
+- [ ] The ADR commit is reviewed as a decision before any Phase 1 code is written.
 
-### Phase 1 — the kernel reads a claimed path through its source
+### Phase 1 — the kernel holds a claimed root's texts
 
-- [ ] `registerSourceRoot` in `packages/core/src/source-roots.ts`, kept on `globalThis` under a
-      `Symbol.for` key, exported from `@nielspeter/eess/internal`.
+- [ ] `registerSourceText` in `packages/core/src/source-roots.ts`, on a versioned object on
+      `globalThis` under a `Symbol.for` key, exported from `@nielspeter/eess/internal`.
 - [ ] The registration rules:
   - the root is normalised;
   - a root that exists on disk is refused;
-  - an overlapping root is refused, compared segment-wise;
-  - the same root with the same text is accepted.
-- [ ] `applyFilters` reads a claimed path only through its reader; a miss is a configuration finding.
-- [ ] Red first, through the kernel's public terminal, over a virtual file with a registered reader:
+  - an overlapping root is refused, segment-wise;
+  - only an exactly equal map is accepted again;
+  - the map is copied.
+- [ ] `applyFilters` normalises the violating path and reads a claimed path only from the texts. A
+      miss, and a claimed root that now exists on disk, are configuration findings.
+- [ ] Red first, through the kernel's public terminal, over a virtual file with registered texts:
   - the waived violation is gone, while the control text without the directive reports it, with
     `examined > 0`;
   - an undocumented directive gives the promoted finding, which proves the registered text was read.
 
 ### Phase 2 — `corpusFromText` registers and stops refusing
 
-- [ ] The content-hashed default root.
-- [ ] `corpusFromText` registers its reader, and `refuseWaivers` is removed.
+- [ ] The content-hashed default root, and the reserved prefix refused.
+- [ ] `corpusFromText` registers its map, and `refuseWaivers` is removed.
 - [ ] Its JSDoc and `docs/markdown.md`'s `corpusFromText` section are updated, and the refusal tests
       (`packages/md/tests/corpus-from-text.test.ts:330-345`, `:428-438`) are inverted.
 - [ ] Red first, over a text corpus, each with parity against `corpus()` over the same files on disk:
@@ -193,12 +232,14 @@ there is no new `MdDocument` constructor to promise; the `frozen` rule of
   - an undocumented one is the promoted finding;
   - an unused one warns, with stderr captured.
 - [ ] A crossvalidate binding that goes through `correspondence()` (`md-ts.ts:190` or
-      `md-mermaid.ts:131`) honours a waiver in a text corpus's document.
+      `md-mermaid.ts:131`) honours a waiver in a text corpus's document, against its control, with
+      `examined > 0`.
 - [ ] The eess-ts copy's in-memory-file gap is recorded as its own bug.
 
 ### Phase 3 — ask 2, documented
 
-- [ ] `docs/markdown.md`: reading one record's field from text, with the measured cost and its method.
+- [ ] `docs/markdown.md`: reading one record's field from text, with the measured cost and its
+      method, and "leave `root` unset".
 - [ ] A test of [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s
       waiver break class: a record holding a waiver directive reads its field through
       `corpusFromText` + `resolveFieldValue`.
@@ -207,41 +248,53 @@ there is no new `MdDocument` constructor to promise; the `frozen` rule of
 
 - **Kernel, registration:**
   - a relative root is refused;
-  - a trailing slash and Windows separators are normalised;
+  - a trailing slash and a backslash are normalised (as strings, since CI runs Linux only);
   - a root that exists on disk is refused;
   - equal, containing and contained roots are refused;
   - `/t/1` beside `/t/10` is accepted;
-  - the same root with the same text is accepted, and with different text refused.
+  - an exactly equal map under the same root is accepted, and a different one refused;
+  - a subset and a superset are refused;
+  - a caller's map changed after registering does not change the registered text;
+  - an unknown shape version on the shared object is refused.
 - **Kernel, lookup:**
-  - the reader is used for a claimed path;
-  - a miss under a claimed root is the configuration finding;
+  - the texts are used for a claimed path;
+  - a backslash-spelled violating path finds its root;
+  - a miss under a claimed root is the configuration finding, with the original violation still
+    reported;
+  - a claimed root created on disk after registration is the configuration finding;
   - an unclaimed path is read from disk;
-  - a second kernel instance (a fresh import of the module under another URL) sees the same
-    registry.
+  - a second kernel copy sees the registry: a physical copy of `packages/core/dist` registers, and the
+    original reads. A re-import of one module under another URL would share its imports and could not
+    fail.
 - **eess-md:**
   - a waiver applies, with its control;
   - an undocumented waiver gives its finding;
   - an unused waiver warns, with stderr captured;
   - a directive in a top-level fence is not one;
-  - two text corpora with different maps get different roots, and each one's waiver applies to its
-    own finding;
+  - maps that differ only in one key's text, and maps with the same texts under other keys, get
+    different roots, and each one's waiver applies to its own finding;
   - equal maps share one root;
   - a caller-set root reused with other text is refused;
+  - the reserved prefix is refused;
   - parity with `corpus()`.
-- **Crossvalidate:** a correspondence over a text corpus honours a waiver.
+- **Crossvalidate:** a correspondence over a text corpus honours a waiver, with its control and
+  `examined > 0`.
 - **Ask 2:** a record holding a waiver reads its field.
-- **Non-vacuity:**
-  - A fixture-script row, exit 1 meaning OK, as `bad-applyfilters-parity.mjs` does. It runs over a
-    text corpus with an undocumented waiver and asserts the promoted finding, which only reading the
-    registered text produces.
-  - A sabotage matrix in a worktree, one mutant each:
-    - the registered read skipped, falling to disk;
-    - the miss finding turned into a disk read;
-    - the overlap refusal removed;
-    - the segment comparison made a string prefix;
-    - the on-disk refusal removed;
-    - the refusal in `corpusFromText` kept;
-    - the default root made constant.
+- **Non-vacuity:** no repository gate reads a text corpus, so the row is the harness's own, a fixture
+  script that exits 1 to mean OK, as `bad-applyfilters-parity.mjs` does. Over a text corpus with an
+  undocumented waiver, it asserts the promoted finding, which only reading the registered text
+  produces. A sabotage matrix in a worktree has these mutants:
+  - the registered read skipped, so it falls to disk;
+  - the miss finding turned into a disk read;
+  - the overlap refusal removed;
+  - the segment comparison made a string prefix;
+  - the on-disk refusal removed, at registration and at lookup;
+  - a re-registration accepted without comparing;
+  - the map not copied;
+  - the registry kept as module state;
+  - the hash over keys only, and over texts only;
+  - the refusal in `corpusFromText` kept;
+  - the default root made constant.
 
 ## Out of scope
 
@@ -250,21 +303,24 @@ there is no new `MdDocument` constructor to promise; the `frozen` rule of
 - **Releasing a registered root in a long-running process:** not needed today. If it is, a released
   root leaves a marker, so a later violation under it is a finding, never a disk read.
 - **`apply-fixes` over a text corpus.** A dry run (`write: false`) would preview a fix there, which is
-  a real use; recorded as a follow-up, not built.
-- **Two kernel copies of which only one has the registry:** an adopter's own pre-registry kernel
-  running a correspondence over a text corpus. eess-md's kernel range excludes a pre-registry kernel
-  for its own use, and the ADR states the residual.
+  a real use. It is not built here and not yet recorded; it gets a bug in Phase 2, beside the eess-ts
+  one.
 
 ## Release
 
-- **`@nielspeter/eess` minor:** a new internal export.
-- **`@nielspeter/eess-md` minor:**
-  - `corpusFromText` accepts what it refused;
-  - its default root changes, which the docs already told callers not to rely on, and the changeset
-    says so;
-  - its kernel dependency rises to the release's kernel version.
-- **`@nielspeter/eess-crossvalidate`:** a changeset for its new test (none, or patch for the kernel
-  range).
+- **`@nielspeter/eess` minor:** a new internal export. The kernel minor leaves every dialect's
+  `^0.10.1`, so `changeset version` patch-bumps eess-ts, eess-mermaid and eess-gherkin too.
+- **`@nielspeter/eess-md` minor, marked `**Breaking**`:**
+  - `corpusFromText` accepts the waivers it refused;
+  - its default root changes, which the docs already told callers not to rely on;
+  - it newly refuses a caller-set root reused with other text, an overlapping root, and the reserved
+    prefix.
+
+  The changeset names eess-crossvalidate, which depends on it ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
+
+- **`@nielspeter/eess-crossvalidate`:** its kernel range and its dialect peer floors rise to this
+  release's versions (`RELEASING.md` step 3a). Its changeset says why, and names the residual's
+  remedy.
 
 ## Corrections
 
@@ -286,3 +342,14 @@ It also overclaimed three things:
 - that [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s masking guarantee holds, but [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s markdown row is `pending`;
 - "every terminal", but eess-ts has its own filters;
 - a per-record cost of 9.7 ms, which came from a cold run.
+
+**The first revision, replaced on its re-check (2026-11-06).** It registered a reader function,
+`registerSourceRoot(root, read)`, and accepted "the same root with a reader that gives the same text
+for every file". Both re-checks found that undecidable: a function cannot be listed or compared. So
+the kernel would have refused equal maps (identity), or accepted another corpus's text (any
+re-registration). Its reader also read the caller's live map, so text changed after construction
+reached waivers. It normalised the root but not the violating path, checked the disk only at
+registration, named the wrong two-kernel residual (it is an old eess-crossvalidate with a new
+eess-md: a false red), and planned a two-kernel test that could not fail (a re-import shares its
+imports). Its measurement note said the uncounted files were untracked; they are tracked, and outside
+the glob.
