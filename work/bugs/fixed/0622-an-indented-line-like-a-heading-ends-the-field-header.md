@@ -97,6 +97,6 @@ end the header first.
       field is outside it.
 - [x] `haveField` and the value rule agree on where the header ends for every case above.
 - [x] A changeset naming `@nielspeter/eess-md`: `.changeset/an-indented-line-is-not-a-heading.md`.
-- [ ] validation-owed — `npm run validate` on the final commit, before merge; ticked when it exits 0.
+- [x] `npm run validate` green: exit 0 in 37 min 32 s on 668e81aa, the final code.
 
 Deferred: none
