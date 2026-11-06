@@ -16,6 +16,10 @@ Note 2026-11-05: a second asker. A consuming project reads one record's field fr
 `corpusFromText`, and its valid record throws because it holds a waiver directive it never meant to
 apply ([proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)).
 
+Note 2026-11-06: owned by [plan 0632](../plans/0632-a-text-corpus-honours-its-waivers.md). The consuming project's plan
+125 waits on it. Measured over this repository's 592 records in `work/`: 2 hold a waiver directive,
+so one `corpusFromText` over all of them is refused.
+
 ## Symptom
 
 `corpusFromText` ([plan 0455](../plans/completed/0455-a-corpus-built-from-text.md)) throws an `ArchConfigError` for any loaded document in which the
