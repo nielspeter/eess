@@ -1,12 +1,15 @@
+import { ArchConfigError, type Undecided } from '@nielspeter/eess'
 import type { MdDocument } from './document.js'
 import { resolveField } from './field-resolve.js'
 import { unreadFieldMessage, unreadFields } from './field-unread.js'
 import {
+  checkRegion,
   readFields,
   regionSection,
   regionSections,
   scanFields,
   STRUCTURED_FORMS,
+  type FieldForm,
   type FieldOccurrence,
   type FieldOptions,
 } from './fields.js'
@@ -68,6 +71,85 @@ export function fieldOutcome(v: FieldVerdict): FieldOutcome {
     return { kind: 'value', occurrence: v.occurrence, notes: unreadable }
   if (unreadable.length > 0) return { kind: 'unreadable', causes: unreadable }
   return { kind: 'absent', cause: v.causes.find((c) => c.kind === 'absent') }
+}
+
+/**
+ * One document's labelled value as `haveField` decides it (plan 0624). The causes replace the value
+ * (ADR-021): only the `value` arm carries one, so a reader cannot take a value from a document whose
+ * value cannot be read.
+ */
+export type FieldReading =
+  | {
+      readonly kind: 'value'
+      /** The split values of the one occurrence `haveField` resolves. */
+      readonly values: readonly string[]
+      readonly line: number
+      /** The label as written: the label, or the alias that matched. */
+      readonly label: string
+      readonly form: FieldForm
+      /** Causes the value does not depend on: prose that disagrees, a label in a form not read. */
+      readonly notes: readonly Undecided[]
+    }
+  | {
+      readonly kind: 'absent'
+      readonly line: number
+      /** `haveField`'s message: the labels the document does carry, or the section it lacks. */
+      readonly message: string
+    }
+  | { readonly kind: 'unreadable'; readonly causes: readonly Undecided[] }
+
+const CALL = 'resolveFieldValue'
+
+/**
+ * A reader returning `absent` for every record looks like an answer, so a misconfiguration throws:
+ * an empty label, no forms, a malformed region, or a `oneOf` this reader does not judge.
+ */
+function checkReaderOptions(options: FieldOptions): void {
+  if (options.label.trim() === '')
+    throw new ArchConfigError(CALL, `${CALL}: label is empty; name the field's label`)
+  if (options.forms.length === 0)
+    throw new ArchConfigError(
+      CALL,
+      `${CALL}: forms is empty; name the forms the label is written in`,
+    )
+  if ('oneOf' in options)
+    throw new ArchConfigError(
+      CALL,
+      `${CALL}: oneOf is not read here; this reader reports the value as written. Judge it with ` +
+        'haveField({ oneOf }), or compare the values yourself',
+    )
+  checkRegion(options.region, CALL)
+}
+
+/**
+ * Read one document's field as `haveField` decides it (plan 0624): the value, absent with
+ * `haveField`'s message, or the causes it cannot be read. Not a rule: a waiver comment does not
+ * apply, and nothing is reported.
+ */
+export function resolveFieldValue(doc: MdDocument, options: FieldOptions): FieldReading {
+  checkReaderOptions(options)
+  const toUndecided = (c: FieldCause): Undecided => ({
+    file: doc.file,
+    line: c.line,
+    element: c.element,
+    message: c.message,
+  })
+  const o = fieldOutcome(fieldVerdict(doc, options))
+  switch (o.kind) {
+    case 'value':
+      return {
+        kind: 'value',
+        values: o.occurrence.values,
+        line: o.occurrence.line,
+        label: o.occurrence.label,
+        form: o.occurrence.form,
+        notes: o.notes.map(toUndecided),
+      }
+    case 'absent':
+      return { kind: 'absent', line: o.cause?.line ?? 1, message: o.cause?.message ?? '' }
+    case 'unreadable':
+      return { kind: 'unreadable', causes: o.causes.map(toUndecided) }
+  }
 }
 
 const valueAt = (o: FieldOccurrence): string => o.values.join(', ')

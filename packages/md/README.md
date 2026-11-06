@@ -631,6 +631,10 @@ is given, which applies to both.
 [The Markdown dialect's docs](../../docs/markdown.md#a-value-agrees-with-the-documents-own-path-agreewithpath)
 have every finding.
 
+To read one document's value as `haveField` decides it, for a board or a report, use
+`resolveFieldValue(doc, { label, forms })`: it returns `value`, `absent` or `unreadable` with the
+causes, never a value it could not read.
+
 ## Custom conventions (localization, project-specific lifecycle)
 
 Everything project-specific is configuration, not a fork — column headers match

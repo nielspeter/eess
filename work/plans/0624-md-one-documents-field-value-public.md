@@ -118,18 +118,18 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
         unchanged, every row: `packages/md/tests/builders/have-field-golden.test.ts`, red when
         `fieldOutcome` maps a missing section to `unreadable` (measured), green after.
   - [x] Changeset: `'@nielspeter/eess-md': none` (no consumer-visible change, pinned by the table).
-- [ ] **1b. The public reader.**
-  - [ ] `resolveFieldValue` and `FieldReading` on the eess-md root, over `fieldOutcome`; the option
+- [x] **1b. The public reader.**
+  - [x] `resolveFieldValue` and `FieldReading` on the eess-md root, over `fieldOutcome`; the option
         refusals.
-  - [ ] `docs/markdown.md`: a section "Reading a field yourself: `resolveFieldValue`", beside
+  - [x] `docs/markdown.md`: a section "Reading a field yourself: `resolveFieldValue`", beside
         `resolveLink`'s, with an example that shows where `doc` comes from
         (`c.documents().find((d) => d.relPath === …)`), a "which reader" table (`fields()`,
         `predicateHaveField`, `findState`, `resolveFieldValue`: what each returns and where it
         differs, `findState`'s first-wins included), and one sentence in the `findState` paragraph
         pointing to it. A line in `packages/md/README.md`.
-  - [ ] `scripts/vacuity-matrix.mjs`: the export's exemption row, its reason stating where
+  - [x] `scripts/vacuity-matrix.mjs`: the export's exemption row, its reason stating where
         emptiness is proven ("model reader; outcome coverage is the agreement test's own count").
-  - [ ] Changeset: `'@nielspeter/eess-md': minor`, additive, no break; its body says `haveField`'s
+  - [x] Changeset: `'@nielspeter/eess-md': minor`, additive, no break; its body says `haveField`'s
         output is unchanged (the golden table).
 - [ ] **2. The import edges, held.** In `arch.rules.ts`:
   - [ ] `modules(p).that().resideInFile('**/packages/md/src/model/field-resolve.ts').should().onlyBeImportedVia('**/packages/md/src/model/field-verdict.ts')`.
@@ -146,7 +146,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
 
 ## Test inventory
 
-- [ ] **Agreement (Tier 2)**, over the fixture corpus, asserting its own document count and that each
+- [x] **Agreement (Tier 2)**, over the fixture corpus, asserting its own document count and that each
       cause class occurs, with its count: a conflict (disagreeing, and agreeing); an empty value; a
       label only in an unread form; an unclosed fence; an indented block; outside the header; outside
       a section; a missing section; no field with its label hint; no field with no labels; a value
@@ -156,17 +156,34 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
       Proposal 028's Measured rows are among them (row 4's waiver in a `corpus()` fixture).
       Agreement is with `haveField` **without** `oneOf`.
 
-- [ ] **New tests on the projection**, each red under its own mutant: notes dropped (prose, and the
+- [x] **New tests on the projection**, each red under its own mutant: notes dropped (prose, and the
       unread-form note); `absent` without its message; an occurrence leaking onto a non-value arm;
       the arm mapping (a missing section mapped to `unreadable`).
-- [ ] **The review's other mutants** (first-wins on a conflict, an empty value read as `''`, aliases,
+- [x] **The review's other mutants** (first-wins on a conflict, an empty value read as `''`, aliases,
       `value` or `split` ignored, a section region with no cause, `'closed-fences'`) mutate
       `fieldVerdict` itself: each is shown red in `haveField`'s existing suite, or a test is added
       there, never a second copy pinned on the reader.
-- [ ] The option refusals: an empty label, a whitespace label, `forms: []`, a malformed region and a
+- [x] The option refusals: an empty label, a whitespace label, `forms: []`, a malformed region and a
       `oneOf` each throw `ArchConfigError` naming the option.
-- [ ] A sabotage matrix run in a worktree, each mutant mapped to the test title that reds, recorded
-      at close.
+- [x] A sabotage matrix run in a worktree, each mutant mapped to the test title that reds, recorded
+      at close. Run in place with each file restored after (measured 2026-11-06), every mutant red:
+
+      | mutant | red in |
+      | --- | --- |
+      | notes dropped | `it('the fixture holds 16 documents and 5 agreeing specs: 80 pairs, each judged')`, `it('the value arm carries the resolved occurrence and its notes')` |
+      | `absent` without its message | the 80 pairs; `it('a section the document lacks is absent, with haveField\'s message, not unreadable')` |
+      | an occurrence on the unreadable arm | `it('no arm but the value arm carries a value')` |
+      | a missing section mapped to `unreadable` | the golden table; the outcome-class row; `have-field.test.ts` |
+      | `oneOf` not refused | `it.each` row "a oneOf throws ArchConfigError" |
+      | the option checks removed | the five refusal rows |
+      | first-wins on a conflict | the golden table; the waiver row; `have-field.test.ts` |
+      | a `'closed-fences'` reading | `have-field.test.ts` (unclosed fence, indented block); the outcome-class row |
+      | a section region with no cause | the golden table; the missing-section row |
+      | an empty value read as a value | the golden table; `have-field.test.ts` |
+      | aliases ignored | the golden table; the value-arm row |
+      | `value` ignored | the golden table |
+      | `split` ignored | the golden table; the 80 pairs; the outcome-class row |
+
 - [ ] **Phase 2 (Tier 1)**: the non-vacuity row red on the planted importer, both ids.
 
 ## Out of scope
