@@ -1,5 +1,24 @@
 # @nielspeter/eess-md
 
+## 0.16.0
+
+### Minor Changes
+
+- e9d84f9: **Breaking:** `honestyAtClose` compares a state written under another label in a record's header with
+  the state it reads, and reports a disagreement as `ledger/states-disagree`, naming every such line.
+  `**State:** Draft` beside `## Status: Done`, `**Status:** Done` or `Status: Done` was green before
+  (the record also said it was done, under a label the preset does not read) and is red now. A record
+  in a done folder that was red as `ledger/state-folder-mismatch` can now be red as
+  `ledger/states-disagree` instead, at the other label's line: filters on the rule id see the move.
+
+  Only a whole value counts under another label: cleaned of markup, cut at the first `—` or `–`, a
+  trailing period dropped, it must be a state word. `**Phase 1:** Done (40/40 pages)`, a value that
+  agrees, and a plain label on a later line of a list item's paragraph (the history a record keeps in
+  its State bullet) stay quiet; `docs/markdown.md` lists the shapes that do. A record that writes a
+  second state under another label on purpose aliases that label or rewords the line. (Bug 0627.)
+
+- 101199d: New: `resolveFieldValue(doc, options)` reads one document's labelled value as `haveField` decides it (plan 0624, proposal 028's ask 1). It returns a `FieldReading`, one of: `value` (the split `values`, `line`, `label` as written, `form`, and `notes` for disagreeing prose or a label in a form not read); `absent` (with `haveField`'s message and no line, a section region whose section the document lacks included); or `unreadable` (the causes: a conflict, an empty value, a label only in a form not read, code, a value outside the region). Only `value` carries a value. Its values are the value as `haveField` reads it, before any `oneOf`. It is not a rule, so an exclusion comment does not apply. Its options type, `FieldReadingOptions`, refuses a `oneOf`, so a `haveField` spec that carries one does not compile as its options; an empty label or alias, `forms: []`, a malformed region or a `oneOf` that gets past the types is an `ArchConfigError`. `haveField`'s own output is unchanged, pinned by a golden table of its decisions. The docs gain a "which reader" table beside it: `fields()`, `predicateHaveField`, `findState` and `resolveFieldValue`.
+
 ## 0.15.0
 
 ### Minor Changes
