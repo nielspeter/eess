@@ -69,7 +69,7 @@ found that a function cannot be compared, so the kernel could not decide whether
 registration of a root held the same text. Comparing identity refuses equal maps; accepting any
 re-registration lets one corpus's waivers read another's text. With the texts, the kernel:
 
-- **copies the map into a `Map` when it registers,** checking that every value is a string (a `'__proto__'` key assigned into `{}` sets the prototype, measured), so a caller who changes the map afterwards cannot change the
+- **copies the map into a `Map` when it registers,** checking that every value is a string (a `'__proto__'` key assigned into `{}` sets the prototype; measured by the D1 check's probe script against `packages/md/dist`, 2026-11-06), so a caller who changes the map afterwards cannot change the
   text a waiver is read from. The first revision's reader read the caller's live map, measured by the
   enforcement re-check;
 - **owns the read,** so no dialect code runs inside the `try` that swallows a read failure (`packages/core/src/execute-rule.ts:149`, its `catch` at `:171-177`). The kernel's own lookup outcomes (a miss, a claimed root now on disk, an unknown shape version, a path under two roots) are decided outside that `try`, so none of them can be silenced;
@@ -88,13 +88,13 @@ re-registration lets one corpus's waivers read another's text. With the texts, t
   case.
 - **Each refusal is the kernel's `ArchConfigError` in its own words,** naming the root and the root it collides with: a root names one text per path for the realm. eess-md catches it in `corpusFromText` and adds its remedy (leave `root` unset, or name a root used for one map only), so the registration carries no wording and the shared shape stays plain data. _Revised by [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review, which found the signature could not carry the wording this bullet first said it passed._
 
-**The lifetime is strong, for the process.**
+**The lifetime is strong, for the realm.**
 
 - **Why not the first design's `WeakRef`:** both reviews measured that a text corpus can be collected
   while its documents still reach a rule. The kernel's `correspondence()` builds violations from bare
   path strings (`packages/core/src/correspondence.ts:67-76`). `ParsedCodeBlocks` keeps documents, not
   the corpus (`packages/md/src/model/code-block-parse.ts:95-107`).
-- **The bound:** one entry per distinct map, for the life of the process. This repository's whole
+- **The bound:** one entry per distinct root and map, for the life of the realm (a worker thread or a `vm` context has its own `globalThis`). This repository's whole
   `work/` is 8.6 MB on disk (`du -sb work`, non-`.md` files included; the 592 `.md` files are 8.51 MB), and vitest isolates each test file by default. Under `isolate: false` a worker
   shares the registry across files, so a caller-set root reused with other text in another file is
   refused, as it would be within one file. Nobody has asked whether a board that builds one corpus per
@@ -108,17 +108,22 @@ records) see the same texts.
   does not know refuses loudly rather than reading it.
 - **It holds plain data,** roots and their copied maps. Each kernel copy reads it as `unknown` through a type guard (also how [ADR-005](../../adr/005-no-any-no-type-assertions.md) is met); an unknown shape, or a path under two roots in it, is a finding, never a pick.
 
-**The lookup, in `applyFilters`.**
+**The lookup, in `applyFilters`, in [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's order,** decided outside the swallowing `try`.
 
 - **The violating file's path is normalised as the root is,** so a Windows `join(root, rel)` finds its
-  root.
-- **A path under a claimed root is read only from that root's texts.**
-- **A claimed path the texts do not hold is an unsuppressable configuration finding**
-  (`bypassFilters`) naming the file, the root and the cause: a rule reported a path the map does not
-  hold, or spelled it differently. The violation itself stays, unwaived. One finding per file and
-  root, keyed on the rule id when there is one.
-- **A claimed root that now exists on disk is a configuration finding too:** a file created after registration would otherwise be shadowed silently. The lookup then reads neither source; the violation stays unwaived, and the finding is de-duplicated as the miss is.
-- **A path under no claimed root is read from disk,** as today.
+  root. The text is parsed under the violation's own `file` as reported, because a directive applies
+  to a violation whose `file` equals its own.
+- **A path under no claimed root, or a relative path, is read from disk,** as today.
+- **For a path under a claimed root, the first that holds decides:** the registry cannot be read; the
+  path is under two roots; the root exists on disk; the reported path exists on disk; each is a
+  finding. Otherwise the texts are read, and a path they do not hold is a finding. Nothing claimed is
+  ever read from disk; a real file under a claimed root is a finding, never a disk read. _The decision
+  review's revision first said "a real file wins"; its diff check found that reading lets a root
+  created on disk after it was claimed waive a finding computed from the registered text, silently,
+  and the order above replaced it._
+- **Each finding is unsuppressable** (`bypassFilters`, an error even under `.warn()`), carries the
+  rule's id when there is one, names the file, the root, its cause and its remedy, and leaves the
+  violation unwaived. One finding per rule and file.
 
 **The text is parsed unchanged.** It goes through `parseExclusionComments`, with whatever
 [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) masking applies on disk: parity, not a new guarantee.
@@ -148,8 +153,7 @@ eess-md's builders. The ADR says so.
 `>=0.14.0` as a peer, so an install can hold this release's eess-md with an eess-crossvalidate
 still on kernel `^0.10.1`. A correspondence there reads a text corpus's file from disk, finds
 nothing, and the waived violation stays red. That is a false red, never a false green, with nothing
-explaining it. The ADR states it with its remedy, upgrade eess-crossvalidate, and the release raises
-crossvalidate's kernel range (`RELEASING.md` step 3a).
+explaining it. The ADR states it with its remedy, upgrade eess-crossvalidate. The release raises crossvalidate's kernel range through `changeset version` (`updateInternalDependencies: "patch"`), not through `RELEASING.md` step 3a, which raises its peer floors.
 
 ### D2. `corpusFromText` names its default root by its content
 
@@ -193,10 +197,10 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 ### Phase 0 — the ADR
 
-- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) (Proposed), written 2026-11-06 and revised the same day from its decision review (architect, enforcement, method). The review moved four points into it that this plan had not decided, and this plan follows it: a real file on disk wins at lookup, the trust boundary is the disk, the kernel words its own refusals, and the text is parsed under the violation's own `file`:
+- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) (Proposed), written 2026-11-06 and revised the same day from its decision review (architect, enforcement, method). The review moved points into it that this plan had not decided, and D1 and the Test inventory follow it: the lookup's order (in which, after the diff check, a real file under a claimed root is a finding, never a disk read), the disk bounding a forgery, the kernel wording its own refusals, and the text parsed under the violation's own `file`:
   - it extends [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
   - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the fact is [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s kind; only the ambient lookup is new), and the residual above with its remedy;
-  - its `pending` rows name the mutant each must catch; they cannot cite test files that do not exist yet (`check:corpus` requires a cited path to exist), so the closing box below cites them;
+  - its `pending` rows name the mutant each must catch (row 9 by the clause 5 row's tests); they cannot cite test files that do not exist yet (`check:corpus` requires a cited path to exist), so the closing box below cites them;
   - its Enforcement table uses Tier 2 rows against deterministic behaviour, with no GC-dependent row;
   - its row goes in `CLAUDE.md`'s ADR index.
 - [ ] The ADR is reviewed as a decision before any Phase 1 code is written: reviewed once, and its revision passes a check of the changed text.
@@ -212,7 +216,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - an overlapping root is refused, segment-wise, after normalising;
   - only an exactly equal map is accepted again;
   - the map is copied, refusing a non-string value and a non-canonical key.
-- [ ] `applyFilters` normalises the violating path to find a root and key, and parses under the reported `file`. A real file on disk is read from disk. A claimed path that is not on disk is read only from the texts. A miss, a claimed root that now exists on disk, an unknown shape and a path under two roots are findings, decided outside the swallowing `try`.
+- [ ] `applyFilters` normalises the violating path to find a root and key, and parses under the reported `file`. An unclaimed or relative path is read from disk. A claimed path follows [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's order: an unreadable registry, two roots, a root on disk, a reported path on disk, each a finding; then the texts; then a miss, a finding. All decided outside the swallowing `try`.
 - [ ] Red first, through the kernel's public terminal, over a virtual file with registered texts:
   - the waived violation is gone, while the control text without the directive reports it, with
     `examined > 0`;
@@ -222,7 +226,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 - [ ] The content-hashed default root, and the reserved prefix refused.
 - [ ] `corpusFromText` registers its map, and `refuseWaivers` is removed.
-- [ ] Its JSDoc and `docs/markdown.md`'s `corpusFromText` section are updated, and the refusal tests
+- [ ] Its JSDoc and `docs/markdown.md`'s `corpusFromText` section are updated (and the three correspondence recipes that identify a document by `relPath`, `docs/markdown.md:1308`, `:1942`, `:1954`, are named in [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md), not changed here), and the refusal tests
       (`packages/md/tests/corpus-from-text.test.ts:330`, `:337`) are inverted.
 - [ ] Red first, over a text corpus, each with parity against `corpus()` over the same files on disk:
   - a waiver applies, against its control;
@@ -255,14 +259,21 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - a caller's map changed after registering does not change the registered text;
   - an unknown shape version on the shared object is refused, at registration and at lookup;
   - a `'__proto__'` key and a non-string value are handled (kept as a key; refused).
-- **Kernel, lookup:**
-  - the texts are used for a claimed path;
-  - a backslash-spelled violating path finds its root;
-  - a miss under a claimed root is the configuration finding, with the original violation still
-    reported;
-  - a claimed root created on disk after registration is the configuration finding;
+- **Kernel, lookup,** one test per step of clause 5's order, each with the violation still reported:
   - an unclaimed path is read from disk;
-  - a second kernel copy sees the registry: `vi.resetModules()` gives a second module-state instance from `src` (measured in vitest 4), which registers while the first reads. A plain re-import under another URL would share its imports and could not fail.
+  - an unreadable store makes a lookup a finding, claimed or not, with its remedy;
+  - a store written directly with one path under two roots gives the finding;
+  - a root created on disk after registering, holding a file whose waiver differs from the
+    registered text, gives the finding, and no waiver from either source applies;
+  - a reported path on disk under a claimed root gives the finding;
+  - the texts are used for a claimed path, and the text is parsed under the reported `file`: a
+    backslash- or `//`-spelled violating path finds its root and its waiver applies, and an
+    undocumented waiver's finding lands on the reported `file`;
+  - a miss gives the finding, an error under `.warn()`, and its remedy clears it;
+  - each finding names its cause and remedy, and there is one per rule and file;
+  - a second kernel copy sees the registry: `vi.resetModules()` gives a second module-state
+    instance from `src` (measured by the D1 check in vitest 4.1, 2026-11-06), which registers while
+    the first reads. A plain re-import under another URL would share its imports and could not fail.
 - **eess-md:**
   - a waiver applies, with its control;
   - an undocumented waiver gives its finding;
@@ -272,8 +283,8 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
     different roots, and each one's waiver applies to its own finding;
   - equal maps share one root;
   - a caller-set root reused with other text is refused;
-  - the reserved prefix is refused;
-  - parity with `corpus()`.
+  - the reserved prefix is refused; - parity with `corpus()` over the same files on disk under a different root, compared by `relPath`, so the text corpus's root is never on disk;
+  - a malformed directive reaches stderr only on a document with a violation.
 - **Crossvalidate:** a correspondence over a text corpus honours a waiver, with its control and
   `examined > 0`.
 - **Ask 2:** a record holding a waiver reads its field.
@@ -283,15 +294,17 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   produces. A sabotage matrix in a worktree has these mutants:
   - the registered read skipped, so it falls to disk;
   - the miss finding turned into a disk read;
-  - the overlap refusal removed;
-  - the segment comparison made a string prefix;
-    - the root normalised without collapsing segments;
+  - the overlap refusal removed; - the segment comparison made a string prefix;
+  - the root normalised without collapsing segments;
   - the on-disk refusal removed, at registration and at lookup;
   - a re-registration accepted without comparing;
   - the map not copied;
   - the registry kept as module state;
-  - the hash over keys only, and over texts only;
-  - the refusal in `corpusFromText` kept;
+  - the hash over keys only, and over texts only; - the refusal in `corpusFromText` kept;
+  - parsed under the normalised path;
+  - a real file read before the root-on-disk check;
+  - the registry consulted before the disk for an unclaimed path;
+  - registered text parsed without the markdown mask;
   - the default root made constant.
 
 ## Out of scope
@@ -301,8 +314,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 - **Releasing a registered root in a long-running process:** not needed today. If it is, a released
   root leaves a marker, so a later violation under it is a finding, never a disk read.
 - **`apply-fixes` over a text corpus.** A dry run (`write: false`) would preview a fix there, which is
-  a real use. It is not built here and not yet recorded; it gets a bug in Phase 2, beside the eess-ts
-  one.
+  a real use. It is not built here; it is [bug 0635](../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md).
 
 ## Release
 
@@ -315,8 +327,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
   The changeset names eess-crossvalidate, which depends on it ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
 
-- **`@nielspeter/eess-crossvalidate`:** its kernel range and its dialect peer floors rise to this
-  release's versions (`RELEASING.md` step 3a). Its changeset says why, and names the residual's
+- **`@nielspeter/eess-crossvalidate`:** its kernel range rises through `changeset version`, and its dialect peer floors through `RELEASING.md` step 3a. Its changeset says why, and names the residual's
   remedy.
 
 ## Corrections

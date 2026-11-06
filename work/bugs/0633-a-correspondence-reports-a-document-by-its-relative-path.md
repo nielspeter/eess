@@ -22,6 +22,8 @@ Measured: a document in a text corpus with no directive, a `correspondence()` th
 `relPath`, and a real `doc.md` holding a waiver in the working directory. The violation is waived by
 the real file. The same check identifying by `doc.file` keeps the violation.
 
+`docs/markdown.md` teaches the same identity in three correspondence recipes (`docs/markdown.md:1308`, `:1942`, `:1954`), so adopters copy it.
+
 Over a disk corpus run from its own root, the relative path happens to name the right file; run from
 anywhere else, it names another file or none.
 
@@ -38,6 +40,7 @@ violating path outright is part of the design.
 ## Verification
 
 - [ ] Red first: the measured case, through `adrCitationsResolve`, waives nothing.
+- [ ] The three `docs/markdown.md` recipes identify by `doc.file`.
 - [ ] A changeset naming `@nielspeter/eess-crossvalidate`.
 
 Deferred: none
