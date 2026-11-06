@@ -56,17 +56,32 @@ disagreeing states are a finding, never the first of them, and the documentation
 
 `statesIn` (`packages/md/src/rules/ledger.ts`) collects every state line in the header region, and
 `stateIn`, which `findState` and the folder checks use, returns its first. `headerStateViolation`
-reports `ledger/states-disagree` when any state line differs from the first, at that line, before the
-record is placed, as an unreadable token is: a record whose state disagrees with itself cannot be
-classified as done or not. Two lines that agree read as before. This is fixed ahead of
-[plan 0498](../../plans/0498-honestyatclose-places-a-record-with-block-5.md), which may later move the
-reading onto `haveField`'s and decide whether agreeing duplicates are a conflict there too.
-`findState` is unchanged, and `docs/markdown.md` now says it is not `haveField`'s reading.
+reports `ledger/states-disagree` when any state line differs from the first (by the same case and
+apostrophe fold the vocabulary uses), at that line, before the state/folder check reads either, as it
+does an unreadable token. Any line that opens with the label counts, an out-of-vocabulary value
+included; when such a line may be prose (`State: kept in Redis`), the finding's remedy says to reword
+it rather than delete it. The box checks still read the first line (`isDoneItem`), so the order decides
+whether a box finding appears beside the conflict, pinned by
+`it('Done then Draft: reported the same way; the box check still reads the first line')`. Two lines
+that agree read as before.
+
+In this repository the same record is red twice, under `corpus/state-present` (`haveField`) and under
+`ledger/states-disagree`. The ledger's copy is the only one an adopter running `honestyAtClose` alone
+has, so it is not a duplicate to remove.
+
+This is fixed ahead of [plan 0498](../../plans/0498-honestyatclose-places-a-record-with-block-5.md),
+which may later move the reading onto `haveField`'s and decide whether agreeing duplicates are a
+conflict there too. `findState` is unchanged, and `docs/markdown.md` now says it is not `haveField`'s
+reading. A state written under another label beside a read one is never compared; that is
+[bug 0627](../0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md), which predates
+this fix.
 
 ## Verification
 
 - [x] Red first: the record above, `honestyAtClose` reports the two disagreeing states
-      (`packages/md/tests/rules/ledger-two-states.test.ts`, three rows red before the fix), and the
+      (`packages/md/tests/rules/ledger-two-states.test.ts`, three rows red before the fix; the
+      fold, an out-of-vocabulary second line, the heading form and the prose remedy pinned after the
+      review, the fold row red when the fold is removed), and the
       `bad-ledger` non-vacuity row now plants it (`scripts/nonvacuity/bad-ledger/0009-states-disagree.md`).
 - [x] `Done` twice: decided as unchanged, two findings and no conflict, because both lines say the
       same state; whether agreeing duplicates are a conflict is [plan 0498](../../plans/0498-honestyatclose-places-a-record-with-block-5.md)'s,

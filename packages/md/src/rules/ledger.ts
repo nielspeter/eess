@@ -506,20 +506,31 @@ function headerStateViolation(
   const [found] = all
   if (found === undefined) return null // no State line at all → this document is not an item
 
-  // Bug 0623: two state lines that disagree leave the record's state unknown, so it is reported
-  // before anything is judged from the first of them, as an unreadable token is.
+  // Bug 0623: two state lines that disagree leave the record's state unknown, so the state/folder
+  // check reports that before reading either, as it does an unreadable token. The box checks still
+  // read the first line (`isDoneItem`), so keeping one state can bring out a box finding.
   const said = (t: StateLine): string => foldState(t.state ?? t.raw)
   const differs = all.find((t) => said(t) !== said(found))
   if (differs !== undefined) {
     const times = all.length === 2 ? 'twice' : `${String(all.length)} times`
-    return v(
-      'ledger/states-disagree',
-      doc,
-      differs.line,
-      `${names.join(' or ')} is given ${times} (${all.map((t) => `line ${String(t.line)} '${t.raw}'`).join(', ')}); keep one.` +
-        ` A record whose state disagrees with itself cannot be placed.`,
-      'a record read by its first state passes whatever its second one says',
-    )
+    // A line whose value is no state word may be prose that opens with the label (`State: kept in
+    // Redis`), not a second state: say so, since "keep one" would delete the author's text.
+    const prose = all.filter((t) => t.state === undefined)
+    const suggestion =
+      prose.length === 0
+        ? 'Keep the one state the record means, and delete or correct the others.'
+        : `If ${prose.map((t) => `line ${String(t.line)}`).join(' and ')} ${prose.length === 1 ? 'is' : 'are'} not this record's state, reword ${prose.length === 1 ? 'it' : 'them'} so ${prose.length === 1 ? 'it does' : 'they do'} not open with ${labelsNamed(names)}; otherwise keep the one state the record means.`
+    return {
+      ...v(
+        'ledger/states-disagree',
+        doc,
+        differs.line,
+        `${names.join(' or ')} is given ${times} (${all.map((t) => `line ${String(t.line)} '${t.raw}'`).join(', ')}); keep one.` +
+          ` A record whose state disagrees with itself cannot be placed.`,
+        'a record read by its first state passes whatever its second one says',
+      ),
+      suggestion,
+    }
   }
 
   if (found.state === undefined) {
@@ -1024,7 +1035,10 @@ export function honestyAtClose(
 export interface LedgerStats {
   /** Documents considered (board files excluded). */
   readonly scanned: number
-  /** …of which carry a `State:` line the declared vocabulary can read. */
+  /**
+   * …of which carry a `State:` line the declared vocabulary can read: the first, so a record whose
+   * state lines disagree (`ledger/states-disagree`) is counted here too, by its first line.
+   */
   readonly withReadableState: number
   /** …of which carry a `State:` line whose value is not in the vocabulary. */
   readonly unreadableState: number

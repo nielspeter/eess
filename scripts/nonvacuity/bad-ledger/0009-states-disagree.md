@@ -1,7 +1,9 @@
 # Plan 9: two states that disagree
 
-**State:** Draft
-**State:** Done
+## Status
+
+- **State:** Draft
+- **State:** Done
 
 ## Tasks
 

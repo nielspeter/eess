@@ -1953,7 +1953,8 @@ open box carrying no disposition token (`ledger/silent-open-box`), a
 `Deferred: none` summary that contradicts a box disposed as
 `deferred→<home>` (`ledger/deferred-none-lie`), a `State:` value that
 doesn't match its folder (`ledger/state-folder-mismatch`), two `State:` lines that
-disagree, reported before either is believed (`ledger/states-disagree`), a `State:` value
+disagree, reported by the state/folder check before it reads either; the box checks still read the
+first (`ledger/states-disagree`), a `State:` value
 outside the declared vocabulary (`ledger/unknown-state`), a fenced code block that
 never closes (`ledger/unterminated-fence`), and a document whose header has a
 `State:` line only inside a code block (`ledger/state-in-code`). The last two are the
