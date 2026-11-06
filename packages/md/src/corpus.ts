@@ -1,6 +1,7 @@
-import { walkFiles } from '@nielspeter/eess/internal'
-import { ArchConfigError, parseExclusionComments } from '@nielspeter/eess'
-import { existsSync, readFileSync } from 'node:fs'
+import { registerSourceText, walkFiles } from '@nielspeter/eess/internal'
+import { ArchConfigError, isArchConfigError } from '@nielspeter/eess'
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { join, posix, sep } from 'node:path'
 import picomatch from 'picomatch'
 import { buildDocument, type MdDocument } from './model/document.js'
@@ -210,39 +211,37 @@ export interface TextCorpusOptions {
   /** As `corpus()`'s `expectEmptyFrozen` (bug 0499): frozen globs that may mark no document yet. */
   readonly expectEmptyFrozen?: readonly string[]
   /**
-   * The absolute root documents report in `file`. Must not exist on disk: the kernel reads a
-   * violating file from disk by that path, so a real directory would let a real file stand in for
-   * the text. Defaults to `/__eess_text_corpus__`.
+   * The absolute root documents report in `file`. It must not exist on disk, and it names one text
+   * per path for the process: the kernel reads a violating document's waivers from the texts this
+   * corpus registers under it (ADR-024). Defaults to `/__eess_text_corpus__/<hash>`, named by the
+   * map's content, so equal maps share a root and different maps never collide. Leave it unset unless
+   * a test asserts on `file`; a root under or above `/__eess_text_corpus__` is refused.
    */
   readonly root?: string
 }
 
 /**
- * A corpus built from text, for tests (plan 0455). `files` maps repo-relative POSIX paths to their
- * text: the documents, and any other file a link or pointer names. It is `corpus()` with the walk
- * swapped out, so links, pointers and every rule resolve as they would over the same files on disk.
+ * A corpus built from text, for tests and for reading records held as text (plan 0455, plan 0632).
+ * `files` maps repo-relative POSIX paths to their text: the documents, and any other file a link or
+ * pointer names. It is `corpus()` with the walk swapped out, so links, pointers and every rule resolve
+ * as they would over the same files on disk, and a waiver directive applies as it would on disk: the
+ * corpus registers its texts with the kernel, which reads a violating document's waivers from them
+ * (ADR-024).
  *
  * What cannot behave as on disk is refused with an `ArchConfigError`, never silently different:
- * a waiver directive in a loaded document (the kernel reads waivers from disk, so it would not
- * apply), a path that is not one canonical repo-relative path, a path that is also a directory of
- * another, two paths that differ only in letter case (a case-insensitive disk cannot hold both), a
- * path under a directory `corpus()` never walks, and a `root` that exists. A pointer rule over it
- * with `externalRoots` is refused too: those roots are read from the real disk, so the test would
- * depend on the checkout it runs in.
+ * a path that is not one canonical repo-relative path, a path that is also a directory of another,
+ * two paths that differ only in letter case (a case-insensitive disk cannot hold both), a path under a
+ * directory `corpus()` never walks, and a `root` that exists on disk, is relative, overlaps another
+ * text corpus's root, is already used for other texts, or lies under or above `/__eess_text_corpus__`.
+ * A pointer rule over it with `externalRoots` is refused too: those roots are read from the real disk,
+ * so the test would depend on the checkout it runs in.
  */
 export function corpusFromText(
   files: Readonly<Record<string, string>>,
   options: TextCorpusOptions = {},
 ): Corpus {
-  const root = options.root ?? join(sep, '__eess_text_corpus__')
-  if (existsSync(root)) {
-    throw new ArchConfigError(
-      'corpusFromText',
-      `corpusFromText: root '${root}' exists on disk — the kernel reads a violating document's ` +
-        `waivers from disk by its path, so a real file there would stand in for the text. ` +
-        `Name a root that does not exist, or use corpus() over a fixture.`,
-    )
-  }
+  if (options.root !== undefined) refuseReservedRoot(options.root)
+  const root = options.root ?? join(TEXT_ROOT, contentName(files))
   // Sorted, so the document order does not depend on how the caller built the map.
   const paths = Object.keys(files).sort()
   refuseUnlessCanonical(paths)
@@ -252,8 +251,55 @@ export function corpusFromText(
   // pointer into it a `stale` finding, never a pass.
   const read = (rel: string): string => files[rel] ?? ''
   const loaded = assembleCorpus(root, paths, read, { ...options, roots }, 'text')
-  for (const doc of loaded.documents()) refuseWaivers(doc)
+  register(root, files)
   return loaded
+}
+
+/** Where a text corpus's default roots live. A caller-set root may not lie under or above it. */
+const TEXT_ROOT = join(sep, '__eess_text_corpus__')
+
+/**
+ * A default root's name: 64 bits of a sha256 of the sorted entries as JSON, a framed encoding, so two
+ * different maps cannot spell one input (an unframed concatenation can: plan 0632, D2).
+ */
+function contentName(files: Readonly<Record<string, string>>): string {
+  const entries = Object.keys(files)
+    .sort()
+    .map((k) => [k, files[k] ?? ''])
+  return createHash('sha256').update(JSON.stringify(entries)).digest('hex').slice(0, 16)
+}
+
+/** Refuse a caller-set root under or above the default roots' home, `/__eess_text_corpus__`. */
+function refuseReservedRoot(root: string): void {
+  const normal = (p: string): string => posix.normalize(p.replace(/\\/g, '/')).replace(/\/$/, '')
+  const mine = normal(root)
+  const reserved = normal(TEXT_ROOT)
+  const under = (p: string, q: string): boolean => p === q || p.startsWith(`${q}/`)
+  if (under(mine, reserved) || under(reserved, mine)) {
+    throw new ArchConfigError(
+      'corpusFromText',
+      `corpusFromText: root '${root}' lies under or above '${TEXT_ROOT}', where default roots are ` +
+        `named by their content. Leave \`root\` unset, or name a root outside it.`,
+    )
+  }
+}
+
+/**
+ * Register the texts, so the kernel reads a violating document's waivers from them (ADR-024). The
+ * kernel words its refusal; this adds eess-md's remedy.
+ */
+function register(root: string, files: Readonly<Record<string, string>>): void {
+  try {
+    registerSourceText(root, files)
+  } catch (e) {
+    if (!isArchConfigError(e)) throw e
+    throw new ArchConfigError(
+      'corpusFromText',
+      `corpusFromText: ${e.message} Leave \`root\` unset, so the texts name their own root, or ` +
+        `name a root that does not exist and is used for one map only.`,
+      { cause: e },
+    )
+  }
 }
 
 /**
@@ -318,25 +364,6 @@ function notCanonical(p: string): string | undefined {
   if (p.startsWith('./')) return "starts with './'"
   if (posix.normalize(p) !== p || p.endsWith('/')) return 'is not normalised'
   return undefined
-}
-
-/**
- * Refuse a loaded document holding a waiver directive. The kernel reads waivers from the violating
- * file on disk, and a text corpus's files are not there, so the waiver would silently not apply.
- * This is the kernel's own call, `parseExclusionComments(text, file)` with no options, so what is
- * refused is exactly what the kernel would read (ADR-012): an exclusion, which would apply on disk,
- * or a warning, which would be reported there.
- */
-function refuseWaivers(doc: MdDocument): void {
-  const { exclusions, warnings } = parseExclusionComments(doc.text, doc.file)
-  const first = [...exclusions, ...warnings].sort((a, b) => a.line - b.line)[0]
-  if (first === undefined) return
-  throw new ArchConfigError(
-    'corpusFromText',
-    `corpusFromText: '${doc.relPath}' line ${String(first.line)} holds a waiver directive, which ` +
-      `the kernel reads from disk and would not find for a text corpus, so it would silently not ` +
-      `apply. Test waivers with corpus() over a fixture.`,
-  )
 }
 
 /**

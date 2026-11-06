@@ -5345,6 +5345,12 @@ const gates = [
     'engine/applyfilters-parity',
     () => gateNode('bad-applyfilters-parity.mjs', 'engine/applyfilters-parity'),
   ],
+  // ADR-024 (plan 0632): a text corpus's waivers are read from its registered text. The witness is
+  // the promoted undocumented-waiver finding, which only parsing the registered text produces.
+  [
+    'source-text/registered-waiver-read',
+    () => gateNode('bad-text-corpus-waiver.mjs', 'source-text/registered-waiver-read'),
+  ],
   // Bug 0249's review, I3: the `work/**` root probe above is a LINK probe, and
   // links are gated in frozen documents too — so it stays green through the one
   // mutation that stops examining the region's 445 pointers. A pointer probe in
@@ -6044,7 +6050,11 @@ const GATE_FOR = {
     // Plan 0214 — FIXTURE tier: no production rule calls tableErAgree.
     'crossval/md-mermaid-er',
   ],
+  // `source-text/registered-waiver-read` drives `corpusFromText` and the kernel's waiver scan
+  // directly and runs no `check:*` script. It is filed here, narrower than the gate, because
+  // `check:corpus` is the gate whose eess-md rules run through that scan (ADR-024).
   'check:corpus': [
+    'source-text/registered-waiver-read',
     'corpus/record-number-unique',
     'corpus/record-number-unique/directory-form',
     'corpus/record-mention/plain',

@@ -23,7 +23,7 @@ export { UNSUPPRESSABLE_MECHANISMS } from './unsuppressable.js'
 export { applyFilters } from './execute-rule.js'
 // ADR-024: a dialect whose files are not on disk registers a claimed root's texts, and the waiver
 // scan in `applyFilters` reads a claimed file's directives from them, never the disk.
-export { registerSourceText } from './source-roots.js'
+export { registerSourceText, resetSourceTextForTests } from './source-roots.js'
 export { applyFixes } from './apply-fixes.js'
 export { assertionLessViolation } from './terminal-builder.js'
 export { bold, red, dim, yellow, cyan, gray } from './ansi.js'

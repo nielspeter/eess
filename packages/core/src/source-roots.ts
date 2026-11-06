@@ -51,7 +51,7 @@ function readRegistry(): Read {
 }
 
 /** Separators become POSIX, `posix.normalize` collapses `//`, `.` and `..`, a trailing slash goes. */
-export function normalizeSourcePath(p: string): string {
+function normalizeSourcePath(p: string): string {
   const posix = path.posix.normalize(p.replace(/\\/g, '/'))
   return posix.length > 1 && posix.endsWith('/') ? posix.slice(0, -1) : posix
 }
@@ -153,7 +153,7 @@ export function registerSourceText(root: string, files: Readonly<Record<string, 
 }
 
 /** What the waiver scan reads for one violating file (ADR-024 clause 5). */
-export type SourceLookup =
+type SourceLookup =
   | { readonly kind: 'disk' }
   | { readonly kind: 'text'; readonly text: string }
   | {
