@@ -4,7 +4,7 @@
 
 **Accepted** — 2026-08-31.
 
-**Extended by:** [ADR-024](./024-the-kernel-reads-a-claimed-files-text-from-its-registration.md)
+**Extended by:** [ADR-024](./024-a-claimed-files-waivers-are-read-from-its-registered-text.md)
 
 Prerequisite for [plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.md),
 which names it as one of two decisions it "cannot settle by writing code".

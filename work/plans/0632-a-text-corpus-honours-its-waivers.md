@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-11-06 against `main` 2e071307 (eess-md 0.16.0, kernel 0.10.1), after the D1 check passed it. written 2026-11-06 at the maintainer's direction, for
+- **State:** Ready — frozen 2026-11-06 against `main` 2e071307 (eess-md 0.16.0, kernel 0.10.1), after the D1 check passed it. Written 2026-11-06 at the maintainer's direction, for
   [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and
   [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s ask 2.
   Revised the same day after an architect review and an enforcement review of the first design. Both
@@ -45,7 +45,7 @@ refusal, a waiver in a text corpus would silently not apply.
   and applies no waiver. One corpus over all of them is refused for the same reason.
 - **Cost:** one corpus over the 590 others builds in 579–638 ms. Reading every record's field with
   `resolveFieldValue`, `{ label: 'State', forms: ['bold', 'plain'], region: { section: 'Status' } }`,
-  takes 150–171 ms. A corpus per record costs about the same per record, 0.9–1.6 ms.
+  takes 150–171 ms. A corpus per record costs about the same per record, 0.9–1.6 ms. Method: the files are read before timing, and each figure is two warm runs here; the method review re-measured six warm runs (591–623 ms, 146–171 ms, 1.21–1.27 ms a record).
 
 So once the refusal goes, ask 2 needs no new parser and no new API: `corpusFromText` plus
 `resolveFieldValue`. Of the proposal review's three answers (a private parse, a public parser, or
@@ -86,7 +86,7 @@ re-registration lets one corpus's waivers read another's text. With the texts, t
 - **The one exception is the same root with an exactly equal map:** the same keys, each with the same
   text. A subset or a superset is different. A content-addressed root (D2) makes that the common
   case.
-- **Each refusal names the root it collided with**, as a fact: a root names one text per path for the process. The remedy wording is the dialect's, passed with the registration, as [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s `emptinessAdvice()` lets the dialect word its advice. eess-md's says to leave `root` unset or name a root used for one map only.
+- **Each refusal is the kernel's `ArchConfigError` in its own words,** naming the root and the root it collides with: a root names one text per path for the realm. eess-md catches it in `corpusFromText` and adds its remedy (leave `root` unset, or name a root used for one map only), so the registration carries no wording and the shared shape stays plain data. _Revised by [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review, which found the signature could not carry the wording this bullet first said it passed._
 
 **The lifetime is strong, for the process.**
 
@@ -95,7 +95,7 @@ re-registration lets one corpus's waivers read another's text. With the texts, t
   path strings (`packages/core/src/correspondence.ts:67-76`). `ParsedCodeBlocks` keeps documents, not
   the corpus (`packages/md/src/model/code-block-parse.ts:95-107`).
 - **The bound:** one entry per distinct map, for the life of the process. This repository's whole
-  `work/` is 8.6 MB, and vitest isolates each test file by default. Under `isolate: false` a worker
+  `work/` is 8.6 MB on disk (`du -sb work`, non-`.md` files included; the 592 `.md` files are 8.51 MB), and vitest isolates each test file by default. Under `isolate: false` a worker
   shares the registry across files, so a caller-set root reused with other text in another file is
   refused, as it would be within one file. Nobody has asked whether a board that builds one corpus per
   record version runs long enough for the growth to matter; releasing a root is out of scope below.
@@ -162,7 +162,7 @@ The default root becomes `/__eess_text_corpus__/<hash>`.
 - **It is deterministic,** so `file` no longer depends on test order. `file` reaches stderr lines,
   annotations and the baseline's relative paths.
 - **Equal maps share a root;** different maps get sibling roots, which never overlap.
-- **Cost:** hashing all of `work/` takes 11–13 ms, about 2% of building the corpus.
+- **Cost:** framing the map (sorted entries as JSON) and hashing it with sha256 takes 38–47 ms over all of `work/`, about 7% of building the corpus (measured by the method review; the 11–13 ms first quoted was the hash of an already-built string).
 - **The reserved prefix:** a caller-set root inside or containing `/__eess_text_corpus__` is refused
   with its own message, since an adopter who set the old default spelling would otherwise meet an
   overlap with no explanation.
@@ -193,13 +193,14 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 ### Phase 0 — the ADR
 
-- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-the-kernel-reads-a-claimed-files-text-from-its-registration.md) (Proposed):
+- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) (Proposed), written 2026-11-06 and revised the same day from its decision review (architect, enforcement, method). The review moved four points into it that this plan had not decided, and this plan follows it: a real file on disk wins at lookup, the trust boundary is the disk, the kernel words its own refusals, and the text is parsed under the violation's own `file`:
   - it extends [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
   - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the fact is [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s kind; only the ambient lookup is new), and the residual above with its remedy;
-  - its rows cite core and md tests by file, as [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) does, since `check:crossval` resolves titles only in `packages/ts`;
+  - its `pending` rows name the mutant each must catch; they cannot cite test files that do not exist yet (`check:corpus` requires a cited path to exist), so the closing box below cites them;
   - its Enforcement table uses Tier 2 rows against deterministic behaviour, with no GC-dependent row;
   - its row goes in `CLAUDE.md`'s ADR index.
-- [ ] The ADR commit is reviewed as a decision before any Phase 1 code is written.
+- [ ] The ADR is reviewed as a decision before any Phase 1 code is written: reviewed once, and its revision passes a check of the changed text.
+- [ ] On that pass, its Status becomes Accepted, in the ADR and in `CLAUDE.md`'s index row.
 
 ### Phase 1 — the kernel holds a claimed root's texts
 
@@ -210,9 +211,8 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - a root that exists on disk is refused;
   - an overlapping root is refused, segment-wise, after normalising;
   - only an exactly equal map is accepted again;
-  - the map is copied.
-- [ ] `applyFilters` normalises the violating path and reads a claimed path only from the texts. A
-      miss, and a claimed root that now exists on disk, are configuration findings.
+  - the map is copied, refusing a non-string value and a non-canonical key.
+- [ ] `applyFilters` normalises the violating path to find a root and key, and parses under the reported `file`. A real file on disk is read from disk. A claimed path that is not on disk is read only from the texts. A miss, a claimed root that now exists on disk, an unknown shape and a path under two roots are findings, decided outside the swallowing `try`.
 - [ ] Red first, through the kernel's public terminal, over a virtual file with registered texts:
   - the waived violation is gone, while the control text without the directive reports it, with
     `examined > 0`;
@@ -223,16 +223,15 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 - [ ] The content-hashed default root, and the reserved prefix refused.
 - [ ] `corpusFromText` registers its map, and `refuseWaivers` is removed.
 - [ ] Its JSDoc and `docs/markdown.md`'s `corpusFromText` section are updated, and the refusal tests
-      (`packages/md/tests/corpus-from-text.test.ts:330-345`, `:428-438`) are inverted.
+      (`packages/md/tests/corpus-from-text.test.ts:330`, `:337`) are inverted.
 - [ ] Red first, over a text corpus, each with parity against `corpus()` over the same files on disk:
   - a waiver applies, against its control;
   - an undocumented one is the promoted finding;
   - an unused one warns, with stderr captured.
-- [ ] A crossvalidate binding that goes through `correspondence()` (`md-ts.ts:190` or
-      `md-mermaid.ts:131`) honours a waiver in a text corpus's document, against its control, with
-      `examined > 0`.
-- [ ] The eess-ts copy's in-memory-file gap is recorded as its own bug.
-- [ ] `apply-fixes`' dry run over a text corpus is recorded as its own bug.
+- [ ] A crossvalidate binding that goes through `correspondence()` and reports the document's absolute file (`packages/crossvalidate/src/md-mermaid.ts:128`) honours a waiver in a text corpus's document, against its control, with `examined > 0`. Not `md-ts.ts`'s `adrCitationsResolve`, which reports a relative path ([bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md)).
+- [x] The eess-ts copy's in-memory-file gap is recorded as its own bug: [bug 0634](../bugs/0634-eess-ts-reads-no-waiver-in-an-in-memory-file.md), filed with [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review so its clause 8 names a record that exists.
+- [x] `apply-fixes`' dry run over a text corpus is recorded as its own bug: [bug 0635](../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md), likewise. A relative violating path, found by the same review, is [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md).
+- [ ] At close: [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s `pending` rows cite their test files by path and become `gated`, each with the mutant that reds it.
 
 ### Phase 3 — ask 2, documented
 
@@ -312,7 +311,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 - **`@nielspeter/eess-md` minor, marked `**Breaking**`:**
   - `corpusFromText` accepts the waivers it refused;
   - its default root changes, which the docs already told callers not to rely on;
-  - it newly refuses a caller-set root reused with other text, an overlapping root (including two spellings of one), a relative root (documented as absolute, never checked, `packages/md/src/corpus.ts:216`), and the reserved prefix.
+  - it newly refuses a caller-set root reused with other text, an overlapping root (including two spellings of one), a relative root (documented as absolute, never checked, `packages/md/src/corpus.ts:213`), and the reserved prefix.
 
   The changeset names eess-crossvalidate, which depends on it ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
 
@@ -351,3 +350,17 @@ registration, named the wrong two-kernel residual (it is an old eess-crossvalida
 eess-md: a false red), and planned a two-kernel test that could not fail (a re-import shares its
 imports). Its measurement note said the uncounted files were untracked; they are tracked, and outside
 the glob.
+
+**At the freeze, and from [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review (2026-11-06).** The freeze commit changed the
+design without an entry here:
+
+- the two-kernel test moved from a physical copy of `dist` to `vi.resetModules()`;
+- the try/catch pointer was corrected;
+- the remedy wording moved to the dialect, and the review then moved it again: the kernel words its
+  own refusals and eess-md adds its remedy;
+- the lookup reads neither source for a root now on disk;
+- the `__proto__` check and the patch-or-minor argument were added.
+
+A Draft's field-read figure, "150–388 ms, depending on the reader's options", became 150–171 ms for
+the one stated option set. The hash cost of 11–13 ms leaves out the framing, which brings it to
+38–47 ms. The ROADMAP row kept the first design's words until the decision review found it.
