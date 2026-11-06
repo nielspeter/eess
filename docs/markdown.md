@@ -104,7 +104,7 @@ Two things worth knowing:
 
 ## A corpus from text, for tests
 
-To test a rule without a directory on disk, build the corpus from text. `corpusFromText(files)`
+To test a rule without a directory on disk, or to read records you hold as text, build the corpus from text. `corpusFromText(files)`
 takes a map of repo-relative POSIX path → text: the documents, and any other file a link or
 pointer names. It returns an ordinary `Corpus`, so every builder, condition and preset takes it.
 
@@ -125,22 +125,29 @@ same files on disk; a parity test over this package's own fixture trees holds th
 options, `TextCorpusOptions`, are `corpus()`'s, with two differences: `roots` defaults to every `.md` key in the map, and
 there is no `cwd`. `frozen` keeps its default, so a document under `completed/` is frozen here too.
 A pointer's target is in the map or it is not there: the text corpus never reads your real code.
-`root` (what each document reports in `file`) defaults to `/__eess_text_corpus__`. So a test asserts
-on a finding's `element` or a document's `relPath`, or sets `root` itself, rather than on `file`,
-which carries that placeholder.
+`root` (what each document reports in `file`) defaults to `/__eess_text_corpus__/<hash>`, named by
+the map's content, so equal maps share a root and different maps never collide. So a test asserts on
+a finding's `element` or a document's `relPath`, or sets `root` itself, rather than on `file`, which
+carries that placeholder. Leave `root` unset otherwise: a root names one text per path for the
+process, so a fixed `root` reused with other texts is refused.
+
+A waiver directive (`<!-- eess-exclude … -->`) in a text corpus applies exactly as it would on disk:
+the corpus registers its texts with the kernel, which reads a violating document's waivers from them
+and never from the disk ([ADR-024](../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)). An undocumented waiver is promoted to its own finding,
+an unused one warns, and a directive inside a fenced block is text, all as on disk. A rule that
+reports a document by its `relPath` instead of its `file` is not covered: the kernel reads that
+relative path from the working directory ([bug 0633](../work/bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md)).
 
 What cannot behave as on disk is refused with an `ArchConfigError`, never silently different:
 
-- **a waiver directive in a loaded document** (`<!-- eess-exclude … -->`): the kernel reads waivers
-  from the file on disk, so here it would not apply. A directive inside a fenced code block, which
-  the kernel does not read as one, is accepted. Test waivers with `corpus()` over a fixture;
 - **a key that is not one repo-relative path**: absolute, with `..`, `./` or `\`, or not
   normalised (`a//b.md`);
 - **a key that is also the directory of another** (`a` beside `a/b.md`);
 - **two keys that differ only in letter case** (`docs/a.md` beside `docs/A.md`, or `Docs/` beside
   `docs/`): a case-insensitive disk, the macOS and Windows default, cannot hold both;
 - **a key under a directory `corpus()` never walks** (`node_modules/`, `.git/`, `dist/`, …);
-- **a `root` that exists on disk**;
+- **a `root` that exists on disk, is relative, overlaps another text corpus's root, is already used
+  for other texts, or lies under or above `/__eess_text_corpus__`**;
 - **`pointers(c).should().resolve({ externalRoots })` over it**: external roots are read from the
   real disk, so the test would ground on one checkout and skip on another. Test them with
   `corpus()` over a fixture.
@@ -149,6 +156,28 @@ An empty map loads no documents, as `corpus()` over an empty tree does, and a ru
 empty-source configuration finding, which outranks `.expectEmpty()`. A rule meant to pass on "no
 matching documents" needs at least one document in the map, so that the source is not empty and
 the selection is.
+
+### Reading one record's field from text
+
+A board or a report that holds records as text (read from another branch, say) reads a field the
+way `haveField` decides it with `corpusFromText` and `resolveFieldValue`
+([proposal 028](../work/proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md), ask 2):
+
+```typescript
+import { corpusFromText, resolveFieldValue } from '@nielspeter/eess-md'
+
+const c = corpusFromText(records) // { 'work/plans/0009-x.md': text, … }
+for (const doc of c.documents()) {
+  const r = resolveFieldValue(doc, { label: 'Status', forms: ['bold', 'plain'], region: 'header' })
+  // r.kind is 'value', 'absent' or 'unreadable', as haveField decides it
+}
+```
+
+Leave `root` unset. A record that holds a waiver directive reads like any other: the reader is not a
+rule, and the corpus no longer refuses the directive. Measured over this repository's 592 records:
+one corpus over all of them builds in about 0.6 s and reads every record's field in about 0.15 s; a
+corpus per record costs 0.9–1.6 ms a record, about the same
+([plan 0632](../work/plans/0632-a-text-corpus-honours-its-waivers.md)).
 
 ## What it checks
 

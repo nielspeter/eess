@@ -259,28 +259,67 @@ with no guardrails warning in the new or changed files.
 
 ### Phase 2 — `corpusFromText` registers and stops refusing
 
-- [ ] The content-hashed default root, and the reserved prefix refused.
-- [ ] `corpusFromText` registers its map, and `refuseWaivers` is removed.
-- [ ] Its JSDoc and `docs/markdown.md`'s `corpusFromText` section are updated (and the three correspondence recipes that identify a document by `relPath`, `docs/markdown.md:1308`, `:1942`, `:1954`, are named in [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md), not changed here), and the refusal tests
-      (`packages/md/tests/corpus-from-text.test.ts:330`, `:337`) are inverted.
-- [ ] Red first, over a text corpus, each with parity against `corpus()` over the same files on disk:
-  - a waiver applies, against its control;
-  - an undocumented one is the promoted finding;
-  - an unused one warns, with stderr captured;
-  - a malformed one reaches stderr only on a document with a violation;
-  - a directive in a fenced block applies on neither side.
-- [ ] A crossvalidate binding that goes through `correspondence()` and reports the document's absolute file (`packages/crossvalidate/src/md-mermaid.ts:128`) honours a waiver in a text corpus's document, against its control, with `examined > 0`. Not `md-ts.ts`'s `adrCitationsResolve`, which reports a relative path ([bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md)).
-- [x] The eess-ts copy's in-memory-file gap is recorded as its own bug: [bug 0634](../bugs/0634-eess-ts-reads-no-waiver-in-an-in-memory-file.md), filed with [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review so its clause 8 names a record that exists.
-- [x] `apply-fixes`' dry run over a text corpus is recorded as its own bug: [bug 0635](../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md), likewise. A relative violating path, found by the same review, is [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md).
-- [ ] At close: [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s `pending` rows cite their test files by path and become `gated`, each with the mutant that reds it.
+Built 2026-11-06 in 6766b8b0 and the commit after it: `packages/md/src/corpus.ts`,
+`packages/md/tests/text-corpus-waivers.test.ts` (13 tests),
+`packages/crossvalidate/tests/md-mermaid-text-corpus-waiver.test.ts` (2), the fixture row
+`source-text/registered-waiver-read` (`scripts/nonvacuity/bad-text-corpus-waiver.mjs`, claimed under
+`check:corpus`), and three changesets. The md suite (1,238 tests) and the crossvalidate suite (146)
+pass; typecheck, `check:arch`, `check:family`, `check:guardrails`, `check:release` and `check:corpus`
+are clean.
+
+- [x] The content-hashed default root, and the reserved prefix refused.
+- [x] `corpusFromText` registers its map, and `refuseWaivers` is removed. The kernel now owns the
+      root-on-disk check; eess-md rewords the kernel's refusals with its remedy.
+- [x] Its JSDoc and `docs/markdown.md`'s `corpusFromText` section are updated (the three
+      correspondence recipes that identify a document by `relPath`, `docs/markdown.md:1308`, `:1942`,
+      `:1954`, are named in [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md), not changed here). The two refusal tests are removed, and the new
+      file asserts the opposite, with parity.
+- [x] done-otherwise — over a text corpus, each with parity against `corpus()` over the same files on
+      disk under a different root, compared by `relPath`: a waiver applies against its control; an
+      undocumented one is the promoted finding; an unused one warns (stderr captured, equal on both
+      sides with the roots stripped); a malformed one reaches stderr only on a document with a
+      violation; a directive in a fenced block applies on neither side. Written after the code, so
+      "red first" is shown by the matrix below.
+- [x] A crossvalidate binding that goes through `correspondence()` and reports the document's
+      absolute file (`embeddedDiagramsMatchCode`) honours a waiver in a text corpus's document,
+      against its control, with `examined > 0`. Not `adrCitationsResolve`, which reports a relative
+      path ([bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md)).
+- [x] The eess-ts copy's in-memory-file gap is recorded as its own bug: [bug 0634](../bugs/0634-eess-ts-reads-no-waiver-in-an-in-memory-file.md), filed with
+      [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review so its clause 8 names a record that exists.
+- [x] `apply-fixes`' dry run over a text corpus is recorded as its own bug: [bug 0635](../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md), likewise. A
+      relative violating path, found by the same review, is [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md).
+- [x] The Phase 2 sabotage matrix, run in worktrees with their own install, rebuilding after each
+      mutant, against the md tests, the crossvalidate test and the fixture; the restored tree passed
+      38, 2, and exit 1. Every mutant red:
+
+      | mutant | md and crossvalidate tests red | fixture |
+      | --- | --- | --- |
+      | the refusal in `corpusFromText` kept | 12 | — |
+      | registration skipped | 9 | exit 0 (vacuous) |
+      | the default root made constant | 28 | — |
+      | the hash over keys only | 10 | — |
+      | the hash over texts only | 2 | — |
+      | registered text parsed without the markdown mask | 1 (the fenced directive) | — |
+
+      _The mask mutant first survived, twice. The fenced-directive test put a single-line directive
+      inside the fence, where it covers only the fence's closing line, so it passed masked or not.
+      Rewritten as a region opened inside the fence and closed after the pointer, it still survived,
+      because the region's end was written `<!-- eess-exclude-end <rule> -->` and the kernel reads
+      only `<!-- eess-exclude-end -->`: the region never closed. With the end fixed, the two parses
+      differ (masked: no exclusion; unmasked: lines 4–7 excluded) and the mutant goes red. Both were
+      the test's faults, not the code's._
+
+- [ ] At close: [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s `pending` rows cite their test files by path and become `gated`, each with
+      the mutant that reds it.
 
 ### Phase 3 — ask 2, documented
 
-- [ ] `docs/markdown.md`: reading one record's field from text, with the measured cost and its
-      method, and "leave `root` unset".
-- [ ] A test of [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s
-      waiver break class: a record holding a waiver directive reads its field through
-      `corpusFromText` + `resolveFieldValue`.
+- [x] `docs/markdown.md`, "Reading one record's field from text": `corpusFromText` +
+      `resolveFieldValue`, the measured cost and its source, and "leave `root` unset". The section
+      heading "A corpus from text, for tests" is kept, so `docs/migrating-to-0.15.md`'s anchor holds.
+- [x] A test of [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s waiver break class: a record holding a waiver directive reads its field
+      through `corpusFromText` + `resolveFieldValue`
+      (`packages/md/tests/text-corpus-waivers.test.ts`).
 
 ## Test inventory
 
