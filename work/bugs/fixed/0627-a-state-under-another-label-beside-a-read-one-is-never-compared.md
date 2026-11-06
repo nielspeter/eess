@@ -134,7 +134,6 @@ this position rule or lose it on purpose; that is noted in [plan 0498](../../pla
 
 - [x] A changeset naming `@nielspeter/eess-md`, the break marked. eess-md's only dependent is
       crossvalidate, an optional peer, so none is named.
-- [ ] validation-owed — `npm run validate` on the final code, recorded here with its exit code and
-      time in the PR's last commit.
+- [x] `npm run validate` green: exit 0 in 37m41s on 56b26bc3, the final code.
 
 Deferred: none
