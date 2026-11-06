@@ -13,8 +13,8 @@ const RULE = 'demo/pointers'
 /** A document whose line 4 points at a file the corpus does not hold, after `above` on line 3. */
 const doc = (above: string): string => `# A\n\n${above}\nSee \`src/missing.ts:1\`.\n`
 
-/** What the pointer rule reports, by relPath and message, and what it wrote to stderr. */
-function run(c: Corpus): { found: string[]; stderr: string; examined: number } {
+/** What the pointer rule reports, by relPath and line, and what it wrote to stderr, roots stripped. */
+function run(c: Corpus, root: string): { found: string[]; stderr: string; examined: number } {
   const lines: string[] = []
   const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
     lines.push(String(chunk))
@@ -28,7 +28,8 @@ function run(c: Corpus): { found: string[]; stderr: string; examined: number } {
     }
     return {
       found: v.map((x) => `${relOf(x.file)}:${String(x.line)} ${x.message.split('\n')[0] ?? ''}`),
-      stderr: lines.join(''),
+      // Each corpus's own root, stripped, so the two sides compare whatever the temp directory is.
+      stderr: lines.join('').split(root).join('<root>'),
       examined: v.examined,
     }
   } finally {
@@ -36,21 +37,19 @@ function run(c: Corpus): { found: string[]; stderr: string; examined: number } {
   }
 }
 
-/** The same files as a text corpus and as `corpus()` on disk. */
+/** The same files as a text corpus and as `corpus()` on disk, under a different root. */
 function both(files: Readonly<Record<string, string>>) {
-  const fromText = run(corpusFromText(files))
-  const onDisk = run(corpus({ cwd: tree(files), roots: ['docs/**'] }))
+  const text = corpusFromText(files)
+  const fromText = run(text, text.root)
+  const cwd = tree(files)
+  const onDisk = run(corpus({ cwd, roots: ['docs/**'] }), cwd)
   return { fromText, onDisk }
 }
-
-/** Stderr with each corpus's own root removed, so the two can be compared. */
-const rooted = (s: string): string =>
-  s.replace(/\/(?:__eess_text_corpus__\/[0-9a-f]+|tmp\/eess-md-tree-[^/]+)\//g, '<root>/')
 
 describe('a waiver in a text corpus applies as on disk (ADR-024)', () => {
   it('CONTROL: without a directive, the pointer is reported, the same on both', () => {
     const { fromText, onDisk } = both({ 'docs/a.md': doc('Plain text.') })
-    expect(fromText.found).toHaveLength(1)
+    expect(fromText.found).toEqual([expect.stringMatching(/^docs\/a\.md:4 /)])
     expect(fromText.found).toEqual(onDisk.found)
     expect(fromText.examined).toBeGreaterThan(0)
   })
@@ -73,17 +72,17 @@ describe('a waiver in a text corpus applies as on disk (ADR-024)', () => {
   it('an unused waiver warns on stderr, the same on both', () => {
     const text = `# A\n\n<!-- eess-exclude ${RULE}: covers a line with nothing on it -->\nPlain text.\n\nSee \`src/missing.ts:1\`.\n`
     const { fromText, onDisk } = both({ 'docs/a.md': text })
-    expect(fromText.found).toHaveLength(1)
+    expect(fromText.found).toEqual([expect.stringMatching(/^docs\/a\.md:6 /)])
     expect(fromText.stderr).toMatch(/suppressed nothing/)
-    expect(rooted(fromText.stderr)).toEqual(rooted(onDisk.stderr))
+    expect(fromText.stderr).toEqual(onDisk.stderr)
   })
 
   it('a malformed directive reaches stderr only on a document with a violation, the same on both', () => {
     const open = `<!-- eess-exclude-start ${RULE}: never ended -->`
     const withViolation = both({ 'docs/a.md': doc(open) })
-    expect(withViolation.fromText.found).toHaveLength(1)
+    expect(withViolation.fromText.found).toEqual([expect.stringMatching(/^docs\/a\.md:4 /)])
     expect(withViolation.fromText.stderr).not.toEqual('')
-    expect(rooted(withViolation.fromText.stderr)).toEqual(rooted(withViolation.onDisk.stderr))
+    expect(withViolation.fromText.stderr).toEqual(withViolation.onDisk.stderr)
     const without = both({ 'docs/a.md': `# A\n\n${open}\nPlain text.\n` })
     expect(without.fromText.stderr).toEqual('')
     expect(without.onDisk.stderr).toEqual('')
@@ -96,7 +95,7 @@ describe('a waiver in a text corpus applies as on disk (ADR-024)', () => {
     // so it would pass whether the fence were masked or not.)
     const fenced = `# A\n\n\`\`\`md\n<!-- eess-exclude-start ${RULE}: shown, not applied -->\n\`\`\`\nSee \`src/missing.ts:1\`.\n<!-- eess-exclude-end -->\n`
     const { fromText, onDisk } = both({ 'docs/a.md': fenced })
-    expect(fromText.found).toHaveLength(1)
+    expect(fromText.found).toEqual([expect.stringMatching(/^docs\/a\.md:6 /)])
     expect(fromText.found).toEqual(onDisk.found)
   })
 })
@@ -106,14 +105,17 @@ describe("a text corpus's root (ADR-024, plan 0632 D2)", () => {
     const waived = corpusFromText({ 'docs/a.md': doc(`<!-- eess-exclude ${RULE}: a reason -->`) })
     const plain = corpusFromText({ 'docs/a.md': doc('Plain text.') })
     expect(waived.root).not.toEqual(plain.root)
-    expect(run(waived).found).toEqual([])
-    expect(run(plain).found).toHaveLength(1)
+    expect(run(waived, waived.root).found).toEqual([])
+    expect(run(plain, plain.root).found).toHaveLength(1)
   })
 
-  it('maps with the same texts under other keys get different roots', () => {
-    const one = corpusFromText({ 'docs/a.md': '# A\n' })
-    const other = corpusFromText({ 'docs/b.md': '# A\n' })
+  it('maps with the same texts under other keys get different roots, each waiver its own finding', () => {
+    const text = doc(`<!-- eess-exclude ${RULE}: a reason -->`)
+    const one = corpusFromText({ 'docs/a.md': text, 'docs/b.md': doc('Plain text.') })
+    const other = corpusFromText({ 'docs/a.md': doc('Plain text.'), 'docs/b.md': text })
     expect(one.root).not.toEqual(other.root)
+    expect(run(one, one.root).found).toEqual([expect.stringMatching(/^docs\/b\.md:4 /)])
+    expect(run(other, other.root).found).toEqual([expect.stringMatching(/^docs\/a\.md:4 /)])
   })
 
   it('equal maps share one root', () => {
@@ -135,7 +137,7 @@ describe("a text corpus's root (ADR-024, plan 0632 D2)", () => {
     expect(refusal({ 'docs/a.md': '# A\n' }, root)).toBe('no refusal')
     const second = refusal({ 'docs/a.md': '# B\n' }, root)
     expect(second).toMatch(/already claimed with other texts/)
-    expect(second).toMatch(/Leave `root` unset/)
+    expect(second).toMatch(/If the cause is the root you set: leave `root` unset/)
   })
 
   it('a root under or above the default roots is refused with its own message', () => {
@@ -145,6 +147,24 @@ describe("a text corpus's root (ADR-024, plan 0632 D2)", () => {
     expect(refusal({ 'docs/a.md': '# A\n' }, '/__eess_text_corpus__/mine')).toMatch(
       /lies under or above/,
     )
+  })
+
+  it('with root unset, a kernel refusal the root cannot cause carries no root remedy', () => {
+    const key = Symbol.for('@nielspeter/eess/source-text')
+    const before: unknown = Reflect.get(globalThis, key)
+    Reflect.set(globalThis, key, { version: 99, roots: new Map() })
+    try {
+      let message = 'no refusal'
+      try {
+        corpusFromText({ 'docs/a.md': '# A, forged registry\n' })
+      } catch (e) {
+        message = isArchConfigError(e) ? e.message : String(e)
+      }
+      expect(message).toMatch(/holds shape 99/)
+      expect(message).not.toMatch(/leave `root` unset/i)
+    } finally {
+      Reflect.set(globalThis, key, before)
+    }
   })
 
   it('a relative root is refused', () => {

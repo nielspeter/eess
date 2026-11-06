@@ -251,7 +251,7 @@ export function corpusFromText(
   // pointer into it a `stale` finding, never a pass.
   const read = (rel: string): string => files[rel] ?? ''
   const loaded = assembleCorpus(root, paths, read, { ...options, roots }, 'text')
-  register(root, files)
+  register(root, files, options.root !== undefined)
   return loaded
 }
 
@@ -286,17 +286,20 @@ function refuseReservedRoot(root: string): void {
 
 /**
  * Register the texts, so the kernel reads a violating document's waivers from them (ADR-024). The
- * kernel words its refusal; this adds eess-md's remedy.
+ * kernel words its refusal. When the caller set `root`, eess-md adds its remedy for a root; when the
+ * root is a default one, no root remedy can apply (it is unset already), so the kernel's words stand.
  */
-function register(root: string, files: Readonly<Record<string, string>>): void {
+function register(root: string, files: Readonly<Record<string, string>>, rootSet: boolean): void {
   try {
     registerSourceText(root, files)
   } catch (e) {
     if (!isArchConfigError(e)) throw e
     throw new ArchConfigError(
       'corpusFromText',
-      `corpusFromText: ${e.message} Leave \`root\` unset, so the texts name their own root, or ` +
-        `name a root that does not exist and is used for one map only.`,
+      rootSet
+        ? `corpusFromText: ${e.message} If the cause is the root you set: leave \`root\` unset, so ` +
+            `the texts name their own root, or name a root that does not exist and is used for one map only.`
+        : `corpusFromText: ${e.message}`,
       { cause: e },
     )
   }

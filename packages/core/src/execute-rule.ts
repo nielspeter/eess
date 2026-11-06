@@ -15,7 +15,7 @@ import type { ExclusionWarning } from './exclusion-comments.js'
 import { UNSUPPRESSABLE } from './unsuppressable.js'
 import { writeStderr } from './stderr.js'
 import { activeNotice } from './diff-disclosure.js'
-import { lookupSource } from './source-roots.js'
+import { sourceLookup } from './source-roots.js'
 import { recordCommentSuppression } from './comment-suppression.js'
 
 /**
@@ -171,6 +171,8 @@ export function applyFilters(
       }
       return parseResult.exclusions
     }
+    // The registry is read once for this rule's run, not once per violating file.
+    const lookupSource = sourceLookup()
     const allComments = [...filePaths].flatMap((filePath) => {
       const source = lookupSource(filePath)
       if (source.kind === 'finding') {
@@ -340,13 +342,14 @@ export function applyFilters(
 
     // A claimed file whose waivers cannot be read from its registered text (ADR-024 clause 5): one
     // finding per rule and file, unsuppressable, beside the violation it leaves unwaived.
-    const described = ctx.describe?.()
-    const named = ruleId ?? (described === undefined || described === '' ? 'unnamed' : described)
+    const describedRule = ctx.describe?.()
+    const ruleName =
+      ruleId ?? (describedRule === undefined || describedRule === '' ? 'unnamed' : describedRule)
     for (const f of sourceFindings) {
       result.push({
-        rule: named,
+        rule: ruleName,
         ...(ruleId === undefined ? {} : { ruleId }),
-        element: `${named}@${f.file}`,
+        element: `${ruleName}@${f.file}`,
         file: f.file,
         line: 0,
         message: `This rule's waivers for '${f.file}' were not read: ${f.cause}.`,

@@ -24,8 +24,14 @@ interface Registry {
   readonly roots: Map<string, ReadonlyMap<string, string>>
 }
 
-/** No object is an empty registry; an object of another shape is unreadable (clause 6). */
-type Read = { kind: 'none' } | { kind: 'ok'; registry: Registry } | { kind: 'unreadable' }
+/**
+ * No object is an empty registry; an object of another shape is unreadable (clause 6), and the read
+ * says what it found, so a finding can name both shapes.
+ */
+type Read =
+  | { kind: 'none' }
+  | { kind: 'ok'; registry: Registry }
+  | { kind: 'unreadable'; found: string; malformed: boolean }
 
 function isRegistry(value: unknown): value is Registry {
   if (typeof value !== 'object' || value === null) return false
@@ -47,7 +53,34 @@ function isRegistry(value: unknown): value is Registry {
 function readRegistry(): Read {
   const value: unknown = Reflect.get(globalThis, KEY)
   if (value === undefined) return { kind: 'none' }
-  return isRegistry(value) ? { kind: 'ok', registry: value } : { kind: 'unreadable' }
+  if (isRegistry(value)) return { kind: 'ok', registry: value }
+  if (typeof value !== 'object' || value === null) {
+    return { kind: 'unreadable', found: `a ${typeof value}, not a registry`, malformed: false }
+  }
+  if (!('version' in value)) {
+    return { kind: 'unreadable', found: 'an object with no shape version', malformed: false }
+  }
+  const version: unknown = value.version
+  return version === SHAPE_VERSION
+    ? { kind: 'unreadable', found: `shape ${String(version)}, malformed`, malformed: true }
+    : { kind: 'unreadable', found: `shape ${String(version)}`, malformed: false }
+}
+
+/** What an unreadable registry is, and what clears it, in one sentence each. */
+function unreadable(read: { found: string; malformed: boolean }): {
+  cause: string
+  remedy: string
+} {
+  return read.malformed
+    ? {
+        cause: `the source-text registry on this realm is ${read.found}: written past \`registerSourceText\``,
+        remedy:
+          'remove the code that writes the registry directly; register through `registerSourceText`',
+      }
+    : {
+        cause: `the source-text registry on this realm holds ${read.found}, and this kernel reads shape ${String(SHAPE_VERSION)}: two kernel copies of different shapes share it`,
+        remedy: 'install one registry shape: upgrade the package that brings the older kernel',
+      }
 }
 
 /** Separators become POSIX, `posix.normalize` collapses `//`, `.` and `..`, a trailing slash goes. */
@@ -123,12 +156,8 @@ export function registerSourceText(root: string, files: Readonly<Record<string, 
 
   const read = readRegistry()
   if (read.kind === 'unreadable') {
-    throw new ArchConfigError(
-      CALL,
-      `${CALL}: the source-text registry on this realm has a shape this kernel (shape ${String(SHAPE_VERSION)}) ` +
-        `does not read; two kernel copies of different shapes share it. Install one shape: upgrade the ` +
-        `package that brings the older kernel.`,
-    )
+    const why = unreadable(read)
+    throw new ArchConfigError(CALL, `${CALL}: ${why.cause}. To fix: ${why.remedy}.`)
   }
   const registry: Registry =
     read.kind === 'ok' ? read.registry : { version: SHAPE_VERSION, roots: new Map() }
@@ -149,81 +178,74 @@ export function registerSourceText(root: string, files: Readonly<Record<string, 
     }
   }
   registry.roots.set(claimed, texts)
-  if (read.kind === 'none') Reflect.set(globalThis, KEY, registry)
+  if (read.kind === 'none' && !Reflect.set(globalThis, KEY, registry)) {
+    // A non-writable key or a frozen `globalThis`: the texts would not be registered, and every
+    // waiver in them would silently not apply.
+    throw new ArchConfigError(
+      CALL,
+      `${CALL}: the source-text registry could not be written to this realm's \`globalThis\`, so root '${claimed}' is not claimed.`,
+    )
+  }
 }
 
 /** What the waiver scan reads for one violating file (ADR-024 clause 5). */
 type SourceLookup =
   | { readonly kind: 'disk' }
   | { readonly kind: 'text'; readonly text: string }
-  | {
-      readonly kind: 'finding'
-      readonly root: string
-      readonly cause: string
-      readonly remedy: string
-    }
+  | { readonly kind: 'finding'; readonly cause: string; readonly remedy: string }
 
 /**
- * Where the waiver scan reads `file`'s directives from, in ADR-024 clause 5's order. Decided here,
- * outside the scan's swallowing `try`, so no outcome can be silenced.
+ * A lookup over the registry as it stands now, read once: where the waiver scan reads each violating
+ * file's directives from, in ADR-024 clause 5's order. Decided here, outside the scan's swallowing
+ * `try`, so no outcome can be silenced.
  */
-export function lookupSource(file: string): SourceLookup {
+export function sourceLookup(): (file: string) => SourceLookup {
   const read = readRegistry()
-  if (read.kind === 'none') return { kind: 'disk' }
-  if (read.kind === 'unreadable') {
+  return (file) => {
+    if (read.kind === 'none') return { kind: 'disk' }
+    if (read.kind === 'unreadable') {
+      const why = unreadable(read)
+      return {
+        kind: 'finding',
+        cause: `${why.cause}, so it cannot tell whether '${file}' is claimed`,
+        remedy: why.remedy,
+      }
+    }
+    if (file === '' || !isAbsolute(file)) return { kind: 'disk' }
+    const normal = normalizeSourcePath(file)
+    const roots = [...read.registry.roots.keys()].filter((r) => isUnder(normal, r))
+    const [root] = roots
+    if (root === undefined) return { kind: 'disk' }
+    if (roots.length > 1) {
+      return {
+        kind: 'finding',
+        cause: `'${file}' lies under ${String(roots.length)} claimed roots ('${roots.join("', '")}')`,
+        remedy: 'claim roots that do not overlap; the registry was written past its own refusals',
+      }
+    }
+    if (fs.existsSync(root)) {
+      return {
+        kind: 'finding',
+        cause: `the claimed root '${root}' exists on disk, created after it was claimed or never checked`,
+        remedy: `remove what was created at '${root}', or claim a root that does not exist`,
+      }
+    }
+    if (fs.existsSync(file)) {
+      return {
+        kind: 'finding',
+        cause: `'${file}' exists on disk, and its spelling folds under the claimed root '${root}'`,
+        remedy:
+          'claim a root no real path folds onto (in eess-md, leave `root` unset), rename the directory, ' +
+          'or report the file by its resolved path',
+      }
+    }
+    const key = normal === root ? '' : normal.slice(root.length + (root.endsWith('/') ? 0 : 1))
+    const text = read.registry.roots.get(root)?.get(key)
+    if (text !== undefined) return { kind: 'text', text }
     return {
       kind: 'finding',
-      root: '',
-      cause:
-        `the source-text registry on this realm has a shape this kernel (shape ${String(SHAPE_VERSION)}) ` +
-        `does not read, so it cannot tell whether '${file}' is claimed`,
-      remedy:
-        'install one registry shape: upgrade the package that brings the older kernel, so one kernel copy remains',
+      cause: `the rule reported '${file}', which the texts claimed at '${root}' do not hold (or spell differently)`,
+      remedy: "report the document's `file`, or add the file to the map",
     }
   }
-  if (file === '' || !isAbsolute(file)) return { kind: 'disk' }
-  const normal = normalizeSourcePath(file)
-  const roots = [...read.registry.roots.keys()].filter((r) => isUnder(normal, r))
-  const [root] = roots
-  if (root === undefined) return { kind: 'disk' }
-  if (roots.length > 1) {
-    return {
-      kind: 'finding',
-      root: roots.join("', '"),
-      cause: `'${file}' lies under ${String(roots.length)} claimed roots ('${roots.join("', '")}')`,
-      remedy: 'claim roots that do not overlap; the registry was written past its own refusals',
-    }
-  }
-  if (fs.existsSync(root)) {
-    return {
-      kind: 'finding',
-      root,
-      cause: `the claimed root '${root}' exists on disk, created after it was claimed or never checked`,
-      remedy: `remove what was created at '${root}', or claim a root that does not exist`,
-    }
-  }
-  if (fs.existsSync(file)) {
-    return {
-      kind: 'finding',
-      root,
-      cause: `'${file}' exists on disk, and its spelling folds under the claimed root '${root}'`,
-      remedy:
-        'claim a root no real path folds onto (in eess-md, leave `root` unset), rename the directory, ' +
-        'or report the file by its resolved path',
-    }
-  }
-  const key = normal === root ? '' : normal.slice(root.length + (root.endsWith('/') ? 0 : 1))
-  const text = read.registry.roots.get(root)?.get(key)
-  if (text !== undefined) return { kind: 'text', text }
-  return {
-    kind: 'finding',
-    root,
-    cause: `the rule reported '${file}', which the texts claimed at '${root}' do not hold (or spell differently)`,
-    remedy: "report the document's `file`, or add the file to the map",
-  }
-}
-
-/** Drop every registration. For tests only: the registry has no release (ADR-024 clause 6). */
-export function resetSourceTextForTests(): void {
-  Reflect.deleteProperty(globalThis, KEY)
 }

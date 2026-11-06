@@ -5345,12 +5345,6 @@ const gates = [
     'engine/applyfilters-parity',
     () => gateNode('bad-applyfilters-parity.mjs', 'engine/applyfilters-parity'),
   ],
-  // ADR-024 (plan 0632): a text corpus's waivers are read from its registered text. The witness is
-  // the promoted undocumented-waiver finding, which only parsing the registered text produces.
-  [
-    'source-text/registered-waiver-read',
-    () => gateNode('bad-text-corpus-waiver.mjs', 'source-text/registered-waiver-read'),
-  ],
   // Bug 0249's review, I3: the `work/**` root probe above is a LINK probe, and
   // links are gated in frozen documents too — so it stays green through the one
   // mutation that stops examining the region's 445 pointers. A pointer probe in
@@ -5952,6 +5946,13 @@ const gates = [
   ['corpus/record-mention/skipped-unread', gateRecordMentionSkippedUnread],
   // Plan 0624's import-edge rules, appended so no other fixture changes shard.
   ['arch/md-one-field-reading', gateArchOneFieldReading],
+  // ADR-024 (plan 0632): a text corpus's waivers are read from its registered text. The witness is
+  // the promoted undocumented-waiver finding, which only parsing the registered text produces.
+  // Appended so no other fixture changes shard.
+  [
+    'source-text/registered-waiver-read',
+    () => gateNode('bad-text-corpus-waiver.mjs', 'source-text/registered-waiver-read'),
+  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---

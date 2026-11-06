@@ -29,7 +29,9 @@ describe('a correspondence over a text corpus honours a waiver (ADR-024)', () =>
   })
 
   it('with the directive in the registered text, the finding is waived', () => {
-    const r = run('<!-- eess-exclude crossval/embedded-diagram: the class lands in a later step -->')
+    const r = run(
+      '<!-- eess-exclude crossval/embedded-diagram: the class lands in a later step -->',
+    )
     expect(r.map((v) => v.message)).toEqual([])
     expect(r.examined).toBeGreaterThan(0)
   })
