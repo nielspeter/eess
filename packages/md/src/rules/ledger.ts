@@ -322,7 +322,25 @@ function stateUnderAnotherLabel(
   doc: MdDocument,
   vocabulary: readonly string[],
   names: readonly string[],
-): { label: string; state: string; line: number } | null {
+): OtherLabelState | null {
+  return statesUnderAnotherLabel(doc, vocabulary, names)[0] ?? null
+}
+
+type OtherLabelState = {
+  label: string
+  state: string
+  line: number
+  /** A plain `Label:` on an indented line that is no list item: a continuation of the prose above. */
+  continuation: boolean
+}
+
+/** Every state word under another label in the header, in order (bug 0627 compares each). */
+function statesUnderAnotherLabel(
+  doc: MdDocument,
+  vocabulary: readonly string[],
+  names: readonly string[],
+): OtherLabelState[] {
+  const out: OtherLabelState[] = []
   const read = new Set(names.map((n) => n.toLowerCase()))
   const lines = proseText(doc.text, 'code-blocks', doc.root).split('\n')
   let seenHeading = 0
@@ -338,7 +356,7 @@ function stateUnderAnotherLabel(
         const fold = (t: string): string => t.toLowerCase().replace(/’/g, "'")
         const state = vocabulary.find((v) => fold(v) === fold(value))
         if (!read.has(label.trim().toLowerCase()) && state !== undefined)
-          return { label: label.trim(), state, line: i + 1 }
+          out.push({ label: label.trim(), state, line: i + 1, continuation: false })
         continue
       }
       seenHeading += 1
@@ -351,9 +369,13 @@ function stateUnderAnotherLabel(
     const found = (wrappedLabelOf(line) ?? PLAIN_LABEL.exec(line)?.[1])?.trim()
     if (found === undefined || found === '' || read.has(found.toLowerCase())) continue
     const hit = stateMatcher(vocabulary, stateLabel([found])).exec(line)
-    if (hit?.[1] !== undefined) return { label: found, state: hit[1], line: i + 1 }
+    if (hit?.[1] !== undefined) {
+      const plain = wrappedLabelOf(line) === undefined
+      const continued = plain && /^\s/.test(line) && !/^\s*(?:[-*+]|\d+[.)])\s/.test(line)
+      out.push({ label: found, state: hit[1], line: i + 1, continuation: continued })
+    }
   }
-  return null
+  return out
 }
 
 type StateLine = { state?: string; raw: string; line: number }
@@ -542,6 +564,28 @@ function headerStateViolation(
         ` An unreadable state cannot be checked against its folder, so it is reported rather than skipped.`,
       'a state nobody can read is a check that silently stops running',
     )
+  }
+
+  // Bug 0627: a state word under another label beside the read state that disagrees with it is the
+  // same conflict as two state lines, written under two labels. One that agrees, or a value that is
+  // no state word, is not a state this record contradicts, so it stays quiet. So is a plain label on
+  // an indented line continuing a list item: `  Previously read: Ready` inside the State bullet is
+  // the record's history, written as prose, not a second field.
+  const other = statesUnderAnotherLabel(doc, known, names).find(
+    (o) => !o.continuation && foldState(o.state) !== said(found),
+  )
+  if (other !== undefined) {
+    return {
+      ...v(
+        'ledger/states-disagree',
+        doc,
+        other.line,
+        `${names.join(' or ')} is '${found.raw}' (line ${String(found.line)}), but the header's \`${other.label}:\` holds '${other.state}' (line ${String(other.line)}), a state from the vocabulary.` +
+          ` A record whose state disagrees with itself cannot be placed.`,
+        'a record read by one label passes whatever another label in its header says',
+      ),
+      suggestion: `If \`${other.label}:\` is this record's state, keep one of the two lines (pass aliases: ['${other.label}'] to read it); if it is not, reword line ${String(other.line)} so its value is not a state word.`,
+    }
   }
 
   const terminal = hasTerminalState(doc, states, terminalStates, label)

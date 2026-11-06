@@ -73,7 +73,7 @@ This is fixed ahead of [plan 0498](../../plans/0498-honestyatclose-places-a-reco
 which may later move the reading onto `haveField`'s and decide whether agreeing duplicates are a
 conflict there too. `findState` is unchanged, and `docs/markdown.md` now says it is not `haveField`'s
 reading. A state written under another label beside a read one is never compared; that is
-[bug 0627](../0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md), which predates
+[bug 0627](./0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md), which predates
 this fix.
 
 ## Verification
