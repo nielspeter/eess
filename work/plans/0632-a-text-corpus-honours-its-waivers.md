@@ -72,7 +72,7 @@ re-registration lets one corpus's waivers read another's text. With the texts, t
 - **copies the map into a `Map` when it registers,** checking that every value is a string (a `'__proto__'` key assigned into `{}` sets the prototype; measured by the D1 check's probe script against `packages/md/dist`, 2026-11-06), so a caller who changes the map afterwards cannot change the
   text a waiver is read from. The first revision's reader read the caller's live map, measured by the
   enforcement re-check;
-- **owns the read,** so no dialect code runs inside the `try` that swallows a read failure (`packages/core/src/execute-rule.ts:149`, its `catch` at `:171-177`). The kernel's own lookup outcomes (a miss, a claimed root now on disk, an unknown shape version, a path under two roots) are decided outside that `try`, so none of them can be silenced;
+- **owns the read,** so no dialect code runs inside the `try` that swallows a read failure (`packages/core/src/execute-rule.ts:149`, its `catch` at `:171-177`). The kernel's own lookup outcomes (an unknown shape, a path under two roots, a claimed root now on disk, a reported path on disk, a miss) are decided outside that `try`, so none of them can be silenced;
 - **decides a re-registration by content.**
 
 **Registering a root:**
@@ -113,10 +113,9 @@ records) see the same texts.
 - **The violating file's path is normalised as the root is,** so a Windows `join(root, rel)` finds its
   root. The text is parsed under the violation's own `file` as reported, because a directive applies
   to a violation whose `file` equals its own.
-- **A path under no claimed root, or a relative path, is read from disk,** as today.
-- **For a path under a claimed root, the first that holds decides:** the registry cannot be read; the
-  path is under two roots; the root exists on disk; the reported path exists on disk; each is a
-  finding. Otherwise the texts are read, and a path they do not hold is a finding. Nothing claimed is
+- **If the registry cannot be read, every violating path is a finding,** claimed, unclaimed or relative: read as empty, it would send a claimed path to disk.
+- **Otherwise a path under no claimed root, or a relative path, is read from disk,** as today.
+- **For a path under a claimed root, the first that holds decides:** the path is under two roots; the root exists on disk; the reported path exists on disk (only a spelling that normalises under the root, a `\` in a directory name or `..` through a symlink, reaches this); each is a finding. Otherwise the texts are read, and a path they do not hold is a finding. Nothing claimed is
   ever read from disk; a real file under a claimed root is a finding, never a disk read. _The decision
   review's revision first said "a real file wins"; its diff check found that reading lets a root
   created on disk after it was claimed waive a finding computed from the registered text, silently,
@@ -203,8 +202,8 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - its `pending` rows name the mutant each must catch (row 9 by the clause 5 row's tests); they cannot cite test files that do not exist yet (`check:corpus` requires a cited path to exist), so the closing box below cites them;
   - its Enforcement table uses Tier 2 rows against deterministic behaviour, with no GC-dependent row;
   - its row goes in `CLAUDE.md`'s ADR index.
-- [ ] The ADR is reviewed as a decision before any Phase 1 code is written: reviewed once, and its revision passes a check of the changed text.
-- [ ] On that pass, its Status becomes Accepted, in the ADR and in `CLAUDE.md`'s index row.
+- [x] The ADR is reviewed as a decision before any Phase 1 code is written: reviewed by an architect, an enforcement and a method lens, revised, checked on the changed text by each, revised once more (the lookup's order fails closed: an unreadable registry first, for every path; a real file under a claimed root a finding), and passed by the last checks with those edits, 2026-11-06.
+- [x] On that pass, its Status became Accepted, in the ADR and in `CLAUDE.md`'s index row.
 
 ### Phase 1 — the kernel holds a claimed root's texts
 
@@ -216,7 +215,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - an overlapping root is refused, segment-wise, after normalising;
   - only an exactly equal map is accepted again;
   - the map is copied, refusing a non-string value and a non-canonical key.
-- [ ] `applyFilters` normalises the violating path to find a root and key, and parses under the reported `file`. An unclaimed or relative path is read from disk. A claimed path follows [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's order: an unreadable registry, two roots, a root on disk, a reported path on disk, each a finding; then the texts; then a miss, a finding. All decided outside the swallowing `try`.
+- [ ] `applyFilters` normalises the violating path to find a root and key, and parses under the reported `file`. An unreadable registry makes every violating path a finding. Otherwise an unclaimed or relative path is read from disk, and a claimed path follows [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's order: two roots, a root on disk, a reported path on disk, each a finding; then the texts; then a miss, a finding. All decided outside the swallowing `try`.
 - [ ] Red first, through the kernel's public terminal, over a virtual file with registered texts:
   - the waived violation is gone, while the control text without the directive reports it, with
     `examined > 0`;
@@ -257,20 +256,21 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - an exactly equal map under the same root is accepted, and a different one refused;
   - a subset and a superset are refused;
   - a caller's map changed after registering does not change the registered text;
-  - an unknown shape version on the shared object is refused, at registration and at lookup;
+  - an unknown shape version on the shared object is refused at registration, and is a finding at lookup;
   - a `'__proto__'` key and a non-string value are handled (kept as a key; refused).
 - **Kernel, lookup,** one test per step of clause 5's order, each with the violation still reported:
   - an unclaimed path is read from disk;
-  - an unreadable store makes a lookup a finding, claimed or not, with its remedy;
+  - an unreadable store makes a claimed, an unclaimed and a relative path each a finding, naming both shapes; one shape in the install clears it;
   - a store written directly with one path under two roots gives the finding;
-  - a root created on disk after registering, holding a file whose waiver differs from the
-    registered text, gives the finding, and no waiver from either source applies;
-  - a reported path on disk under a claimed root gives the finding;
+  - a root created on disk after registering, holding a file whose waiver differs from the registered text, gives the finding, and no waiver from either source applies; removing the created
+    directory clears it, and the registered waiver applies;
+  - a real file in a directory whose name holds a `\`, reported by a spelling that normalises under a
+    root whose parent is not on disk, gives the path-on-disk finding, asserted by its own cause;
   - the texts are used for a claimed path, and the text is parsed under the reported `file`: a
     backslash- or `//`-spelled violating path finds its root and its waiver applies, and an
     undocumented waiver's finding lands on the reported `file`;
   - a miss gives the finding, an error under `.warn()`, and its remedy clears it;
-  - each finding names its cause and remedy, and there is one per rule and file;
+  - each test asserts its own step's cause and remedy, and there is one finding per rule and file;
   - a second kernel copy sees the registry: `vi.resetModules()` gives a second module-state
     instance from `src` (measured by the D1 check in vitest 4.1, 2026-11-06), which registers while
     the first reads. A plain re-import under another URL would share its imports and could not fail.
@@ -283,7 +283,8 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
     different roots, and each one's waiver applies to its own finding;
   - equal maps share one root;
   - a caller-set root reused with other text is refused;
-  - the reserved prefix is refused; - parity with `corpus()` over the same files on disk under a different root, compared by `relPath`, so the text corpus's root is never on disk;
+  - the reserved prefix is refused;
+  - parity with `corpus()` over the same files on disk under a different root, compared by `relPath`, so the text corpus's root is never on disk, for a valid, an undocumented, an unused, a malformed and a fenced directive;
   - a malformed directive reaches stderr only on a document with a violation.
 - **Crossvalidate:** a correspondence over a text corpus honours a waiver, with its control and
   `examined > 0`.
@@ -294,16 +295,20 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   produces. A sabotage matrix in a worktree has these mutants:
   - the registered read skipped, so it falls to disk;
   - the miss finding turned into a disk read;
-  - the overlap refusal removed; - the segment comparison made a string prefix;
+  - the overlap refusal removed;
+  - the segment comparison made a string prefix;
   - the root normalised without collapsing segments;
-  - the on-disk refusal removed, at registration and at lookup;
+  - the on-disk refusal removed, at registration and at lookup (the root-on-disk step);
   - a re-registration accepted without comparing;
   - the map not copied;
   - the registry kept as module state;
-  - the hash over keys only, and over texts only; - the refusal in `corpusFromText` kept;
+  - the hash over keys only, and over texts only;
+  - the refusal in `corpusFromText` kept;
   - parsed under the normalised path;
   - a real file read before the root-on-disk check;
-  - the registry consulted before the disk for an unclaimed path;
+  - an unreadable store read as empty;
+  - a path under two roots resolved by a pick;
+  - the path-on-disk check removed;
   - registered text parsed without the markdown mask;
   - the default root made constant.
 
