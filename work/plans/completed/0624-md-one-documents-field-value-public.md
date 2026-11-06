@@ -58,7 +58,7 @@ and none returns the value `haveField` decides:
   tell "no field" from "a value outside the candidates" (the caller-side form of
   [bug 0120](../../bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md)).
 
-The resolver that decides is `fieldVerdict` (`packages/md/src/model/field-verdict.ts:196`), shared by
+The resolver that decides is `fieldVerdict` (`packages/md/src/model/field-verdict.ts:208`), shared by
 `haveField` and `agreeWithFolder` and exported nowhere.
 
 ## Design
@@ -155,7 +155,10 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
   - [ ] done-otherwise — one `scripts/check-nonvacuity.mjs` row, `arch/md-one-field-reading`, but it
         mutates the real `builders/docs.ts` (as the link-resolver row does) rather than planting a
         module: both rule ids fire on it, each naming the importer, and a second case orphans
-        `field-resolve.ts` and reds through `beImported()` (measured: exit 1, both cases). The row is
+        `field-resolve.ts` and reds through `beImported()` (measured: exit 1, both cases). A third
+        case, added after the re-check, points all three importers of `field-verdict.ts` elsewhere,
+        so only the verdict rule's `beImported()` can red it (measured: exit 1; with that clause
+        deleted, in a worktree, the row FAILS with `field-verdict.ts orphaned → exit 0`). The row is
         claimed by `check:arch` in the harness's gate coverage.
 
 ## Test inventory
@@ -164,14 +167,19 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
       5 specs without `oneOf`, 105 pairs. Per pair: `value` ⇔ `test()` true; `unreadable` ⇔
       `undecided()` equal to the arm's causes, whole (file, line, element, message); `absent` ⇔
       `test()` false and `undecided()` empty; the condition's findings (line and message) equal the
-      arm's causes, notes or message. Each class is asserted by its cause, with its count
-      (`it('each outcome class occurs, by its cause, with its count')`): a conflict, disagreeing and
+      arm's causes, notes or message; for `absent`, one finding carrying the arm's message. Each class
+      is asserted by its cause (`it('each outcome class occurs, by its cause, with its count')`); the
+      count line, `[18, 6, 3, 9]`, counts the test's own list of classes, so it guards that list and
+      measures nothing in the code. The classes: a conflict, disagreeing and
       agreeing; an empty value; a label only in an unread form, once and twice; an unclosed fence;
       an indented block; outside the header; outside a present section; a missing section; no field,
       with and without labels; a value with a prose note, with an unread-form note, and with both;
       [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s Measured rows 1 and 3. Row 4, the waiver, is a `corpus()` fixture of its own.
-      Agreement is with `haveField` without `oneOf`.
-- [x] **The reader's own rows**: the value arm and its notes; the `value` option; a missing section
+      Agreement is with `haveField` without `oneOf`. _Corrected 2026-11-06: an earlier tick of this
+      box said Measured rows 1 and 3 were among the classes before the fixture held them; the build
+      review found it, and the two documents were added._
+- [x] **The reader's own rows**: the value arm and its notes; the form a value was read in (a
+      plain-form value gives `form: 'plain'`); the `value` option; a missing section
       is absent with its message; no arm but `value` carries a value; a `haveField` spec carrying
       `oneOf` does not type-check (an `@ts-expect-error` held by `typecheck`); the six refusals.
 - [x] **The sabotage matrix (Tier 2)**, run 2026-11-06 in a worktree with its own install at
@@ -182,22 +190,22 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
       | mutant | exact edit | red in |
       | --- | --- | --- |
       | notes dropped | `notes: o.notes.map(toUndecided),` → `notes: [],` | each outcome class occurs, by its cause, with its count; the fixture holds 21 documents and 5 agreeing specs: 105 pairs, each judged; the value arm carries the resolved occurrence and its notes |
-      | notes truncated to the first | `return { kind: 'value', occurrence: v.occurrence, notes: unr` → `return { kind: 'value', occurrence: v.occurrence, notes: unr` | each outcome class occurs, by its cause, with its count; the fixture holds 21 documents and 5 agreeing specs: 105 pairs, each judged |
-      | causes truncated to the first | `return { kind: 'unreadable', causes: o.causes.map(toUndecide` → `return { kind: 'unreadable', causes: o.causes.slice(0, 1).ma` | each outcome class occurs, by its cause, with its count; the fixture holds 21 documents and 5 agreeing specs: 105 pairs, each judged |
+      | notes truncated to the first | `return { kind: 'value', occurrence: v.occurrence, notes: unreadable }` → `return { kind: 'value', occurrence: v.occurrence, notes: unreadable.slice(0, 1) }` | each outcome class occurs, by its cause, with its count; the fixture holds 21 documents and 5 agreeing specs: 105 pairs, each judged |
+      | causes truncated to the first | `return { kind: 'unreadable', causes: o.causes.map(toUndecided) }` → `return { kind: 'unreadable', causes: o.causes.slice(0, 1).map(toUndecided) }` | each outcome class occurs, by its cause, with its count; the fixture holds 21 documents and 5 agreeing specs: 105 pairs, each judged |
       | absent without its message | `return { kind: 'absent', message: o.cause.message }` → `return { kind: 'absent', message: '' }` | a section the document lacks is absent, with haveField's message, not unreadable; each outcome class occurs, by its cause, with its count; the fixture holds 21 documents and 5 agreeing specs: 105 pairs, each judged |
-      | a value on the unreadable arm | `return { kind: 'unreadable', causes: o.causes.map(toUndecide` → `return { kind: 'unreadable', causes: o.causes.map(toUndecide` | no arm but the value arm carries a value |
+      | a value on the unreadable arm | `return { kind: 'unreadable', causes: o.causes.map(toUndecided) }` → `return { kind: 'unreadable', causes: o.causes.map(toUndecided), values: [] } as never` | no arm but the value arm carries a value |
       | a cause's file mangled | `file: doc.file,` → `file: doc.relPath,` | the fixture holds 21 documents and 5 agreeing specs: 105 pairs, each judged |
       | values transformed again | `values: o.occurrence.values,` → `values: o.occurrence.values.map((x) => x.toLowerCase()),` | the value arm carries the values after the value option, as haveField reads them |
-      | a missing section mapped to unreadable | `const unreadable = v.causes.filter((c) => c.kind === 'unread` → `const unreadable = v.causes.filter((c) => c.kind !== 'disall` | a section the document lacks is absent, with haveField's message, not unreadable; each outcome class occurs, by its cause, with its count; every row is as captured, in both directions: predicate test, undecided causes, condition messages; no occurrence: no field, naming the labels the document does carry |
+      | a missing section mapped to unreadable | `const unreadable = v.causes.filter((c) => c.kind === 'unreadable')` → `const unreadable = v.causes.filter((c) => c.kind !== 'disallowed')` | a section the document lacks is absent, with haveField's message, not unreadable; each outcome class occurs, by its cause, with its count; every row is as captured, in both directions: predicate test, undecided causes, condition messages; no occurrence: no field, naming the labels the document does carry |
       | oneOf not refused | `if (loose.oneOf !== undefined)` → `if (loose.oneOf === Symbol.for('never'))` | a haveField spec carrying oneOf does not type-check as the reader's options; a oneOf throws ArchConfigError |
-      | the option checks removed | `checkReaderOptions(options)` → `` | a haveField spec carrying oneOf does not type-check as the reader's options; a malformed region throws ArchConfigError; a oneOf throws ArchConfigError; a whitespace label throws ArchConfigError; an empty alias throws ArchConfigError; an empty label throws ArchConfigError; no forms throws ArchConfigError |
+      | the option checks removed | `checkReaderOptions(options)` → (the line deleted) | a haveField spec carrying oneOf does not type-check as the reader's options; a malformed region throws ArchConfigError; a oneOf throws ArchConfigError; a whitespace label throws ArchConfigError; an empty alias throws ArchConfigError; an empty label throws ArchConfigError; no forms throws ArchConfigError |
       | first-wins on a conflict | `if (r.kind === 'conflict') {` → `if (r.kind === 'conflict' && r.occurrences.length < 0) {` | a waiver comment does not apply: the reader is not a rule; each outcome class occurs, by its cause, with its count; every row is as captured, in both directions: predicate test, undecided causes, condition messages; selects only the allowed documents; reports the unreadable ones; is silent on an open bug and on a README; several agreeing plain occurrences resolve; disagreeing ones conflict; the same spec in both positions gives one finding per cause; two rules forked from one base do not share their haveField specs; two structured occurrences conflict, agreeing or not; without the region the register is a conflict |
       | a 'closed-fences' reading | `const r = resolveField(doc, spec, 'code-blocks')` → `const r = resolveField(doc, spec, 'closed-fences')` | a value after a code fence that never closes is reported, in either position, not taken as absent; a value in an indented code block names the indented block, not a fence; each outcome class occurs, by its cause, with its count; every row is as captured, in both directions: predicate test, undecided causes, condition messages |
-      | a section region with no cause | `if (section !== undefined && regionSections(doc, section).le` → `if (section !== undefined && regionSections(doc, section).le` | a section the document lacks is absent, with haveField's message, not unreadable; each outcome class occurs, by its cause, with its count; every row is as captured, in both directions: predicate test, undecided causes, condition messages |
+      | a section region with no cause | `if (section !== undefined && regionSections(doc, section).length === 0) {` → `if (section !== undefined && regionSections(doc, section).length < 0) {` | a section the document lacks is absent, with haveField's message, not unreadable; each outcome class occurs, by its cause, with its count; every row is as captured, in both directions: predicate test, undecided causes, condition messages |
       | an empty value read as a value | `if (r.kind === 'empty') {` → `if (r.kind === 'empty' && r.occurrence.line < 0) {` | an empty value is unreadable, not present; each outcome class occurs, by its cause, with its count; every row is as captured, in both directions: predicate test, undecided causes, condition messages |
       | aliases ignored | `const labels = [options.label, ...(options.aliases ?? [])]` → `const labels = [options.label]` | every row is as captured, in both directions: predicate test, undecided causes, condition messages; the value arm carries the resolved occurrence and its notes |
       | the value option ignored | `const cut = options.value ?? cleanValue` → `const cut = cleanValue` | every row is as captured, in both directions: predicate test, undecided causes, condition messages; the value arm carries the values after the value option, as haveField reads them |
-      | split ignored | `value === '' || options.split === undefined ? [value] : opti` → `[value]` | the value arm carries the resolved occurrence and its notes; with split and oneOf, a field is allowed only when every value is |
+      | split ignored | `value === '' \|\| options.split === undefined ? [value] : options.split(value)` → `[value]` | the value arm carries the resolved occurrence and its notes; with split and oneOf, a field is allowed only when every value is |
 
       _Correction 2026-11-06 (the build review): an earlier matrix in this record was run in place,
       not in a worktree, named no edits, and its `split` row was wrong. Its edit made the expression
@@ -205,8 +213,14 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
       `split` option is caught by the two value rows above, not by the golden table, which cannot
       see a split (its `split.md` row has no message either way). This table replaces it._
 
-- [x] **Phase 2 (Tier 1)**: the non-vacuity row red on the mutated importer, both ids, and on the
-      orphaned resolver.
+      _Added 2026-11-06 after the enforcement re-check: no fixture held a plain-form value, so a
+      reader that always answered `form: 'bold'` passed every file. The new row,
+      `it('the value arm names the form the value was read in')`, reds alone under
+      `form: o.occurrence.form,` → `form: 'bold',` (run in a worktree with its own install; 1
+      failed, 14 passed, and 15 of 15 restored)._
+
+- [x] **Phase 2 (Tier 1)**: the non-vacuity row red on the mutated importer, both ids, on the
+      orphaned resolver, and on the orphaned verdict.
 
 ## Out of scope
 
@@ -219,9 +233,12 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
   mapping (`packages/md/src/conditions/agree-with-folder.ts:356`) onto `fieldOutcome`, a second copy
   of the projection that nothing yet holds to the first. The bug now names both.
 - `haveField` accepting an empty label, and malformed options from a plain-JavaScript caller (a made-up
-  form, a missing `forms`): [bug 0625](../../bugs/0625-a-field-rule-accepts-an-empty-label.md).
-- The non-vacuity harness's rule-id coverage audit reads only `check:corpus`'s ids, so an `eess/…`
-  arch rule's id is covered by its row's gate claim alone: [bug 0628](../../bugs/0628-the-nonvacuity-rule-id-audit-reads-only-corpus-ids.md).
+  form, a missing `forms`), in the builders and in `resolveFieldValue` alike:
+  [bug 0625](../../bugs/0625-a-field-rule-accepts-an-empty-label.md), whose note now names the reader.
+- The non-vacuity harness's rule-id coverage audit reads only `check:corpus`'s ids, and gate
+  coverage asks for a row per script, not per rule: ten rule ids in `arch.rules.ts` and
+  `spec.rules.ts` have no row today (measured):
+  [bug 0628](../../bugs/0628-the-nonvacuity-rule-id-audit-reads-only-corpus-ids.md).
 - Whether "one resolver per concept" (links, fields) should become an ADR rather than one
   architecture rule per concept: an open question that stays in
   [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review, its home; this plan builds two such rules and does not

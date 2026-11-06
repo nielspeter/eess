@@ -818,13 +818,29 @@ function gateArchOneFieldReading() {
   )
   const orphaned =
     orphan.code === 1 && firedOn(orphan, 'eess/md-one-field-resolver', 'field-resolve.ts')
+  // The verdict's orphan: its three importers point elsewhere, so field-verdict.ts has none, which
+  // `onlyBeImportedVia` alone would pass; the verdict rule's `beImported()` must red it.
+  const src = join(repoRoot, 'packages', 'md', 'src')
+  const verdictOrphan = withRewrittenFiles(
+    [
+      join(src, 'builders', 'have-field.ts'),
+      join(src, 'conditions', 'agree-with-folder.ts'),
+      join(src, 'index.ts'),
+    ],
+    (original) => original.replace("field-verdict.js'", "field-verdict-orphan-probe.js'"),
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const verdictOrphaned =
+    verdictOrphan.code === 1 &&
+    firedOn(verdictOrphan, 'eess/md-one-field-verdict', 'field-verdict.ts')
   return {
-    ok: bad.code === 1 && resolver && verdict && orphaned,
+    ok: bad.code === 1 && resolver && verdict && orphaned && verdictOrphaned,
     detail:
       `builders/docs.ts importing both → exit ${bad.code} · ` +
       `eess/md-one-field-resolver ${resolver ? 'fired, naming the importer' : 'did not fire'} · ` +
       `eess/md-one-field-verdict ${verdict ? 'fired, naming the importer' : 'did not fire'} · ` +
-      `field-resolve.ts orphaned → exit ${orphan.code}${orphaned ? '' : ' (did not fire)'}`,
+      `field-resolve.ts orphaned → exit ${orphan.code}${orphaned ? '' : ' (did not fire)'} · ` +
+      `field-verdict.ts orphaned → exit ${verdictOrphan.code}${verdictOrphaned ? '' : ' (did not fire)'}`,
   }
 }
 

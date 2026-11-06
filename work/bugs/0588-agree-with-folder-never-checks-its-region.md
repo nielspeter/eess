@@ -91,12 +91,19 @@ Call `checkRegion(o.field.region, 'agreeWithFolder')` from `refuse`, so a bad re
 field option cannot miss one of them. Whether this fix is that function, or is built inside that
 proposal's plan, is the plan's call to make.
 
+Move `judgeDocument`'s own three-way mapping of the field's verdict
+(`packages/md/src/conditions/agree-with-folder.ts:356`) onto `fieldOutcome`, deferred here by
+[plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md): the same function, so
+one change. `haveField`'s golden table and the agreement-with-folder suite hold it unchanged.
+
 ## Verification
 
 - [ ] Red test written first, through `docs().should().agreeWithFolder()`: a region of `'heder'`
       is an `ArchConfigError` naming `region`, not a `TypeError`.
 - [ ] A section region with a depth of 7 is one `ArchConfigError`, not a finding per document.
 - [ ] A valid `'header'` region and a valid `{ section, depth }` region still run as before.
+- [ ] `judgeDocument` reads through `fieldOutcome`; no second three-way mapping of a field's
+      verdict is left in `agree-with-folder.ts`, and its suite passes unchanged.
 - [ ] A changeset naming `@nielspeter/eess-md`.
 - [ ] `npm run validate` green.
 

@@ -28,7 +28,8 @@ Note 2026-11-06: an empty alias is accepted the same way, and a plain-JavaScript
 `ArchConfigError` for a made-up form (`forms: ['bld']` reads as "a form this rule does not read") or a
 missing `forms` (a `TypeError`). [Plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md)'s
 `resolveFieldValue` refuses an empty label or alias and `forms: []`; the existing builders are this
-bug's.
+bug's. So are the reader's own remaining gaps, the same two as the builders': a made-up form and a
+missing `forms` from a plain-JavaScript caller (its method re-check, 2026-11-06).
 
 ## Root cause
 
@@ -48,6 +49,8 @@ document now throws), so its changeset says so.
 
 - [ ] Red first: each row above throws `ArchConfigError` naming the option.
 - [ ] `forms: []`, likewise.
+- [ ] A made-up form and a missing `forms` throw `ArchConfigError`, in the builders and in
+      `resolveFieldValue`.
 - [ ] A changeset naming `@nielspeter/eess-md`, the break marked.
 - [ ] `npm run validate` green.
 

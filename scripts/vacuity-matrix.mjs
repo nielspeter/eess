@@ -468,7 +468,7 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::presentExternalRoots': 'option helper for pointers().resolve()',
   '@nielspeter/eess-md::resolveLink': 'model reader',
   '@nielspeter/eess-md::resolveFieldValue':
-    "model reader; outcome coverage is the agreement test's own count (plan 0624)",
+    "model reader; its outcomes are held to haveField's by the agreement test and the golden table (plan 0624)",
   '@nielspeter/eess-md::vocabulary': 'data builder, returns a term set',
   '@nielspeter/eess-md/rules/ledger::findState': 'model reader',
   '@nielspeter/eess-md/rules/ledger::ledgerStats': 'statistics, not a verdict',

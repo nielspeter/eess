@@ -1,8 +1,9 @@
 # Proposal 028 — md: one document's field, read as the gate reads it
 
 **State:** Draft — filed 2026-11-05 from an adopter's question, at the maintainer's request;
-reviewed 2026-11-05, Split and sequence (see "Review — 2026-11-05"): ask 1 accepted, owned by
-[plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md); ask 2 held.
+reviewed 2026-11-05, Split and sequence (see "Review — 2026-11-05"): ask 1 accepted and implemented
+by [plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md) (2026-11-06); ask 2
+held, so the proposal stays Draft.
 **Priority:** Medium — no false green in eess itself (the header case the adopter measured is
 [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md)), but no public
 reader returns one record's value as `haveField` decides it: on a conflict, on the header region and

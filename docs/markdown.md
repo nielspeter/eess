@@ -1712,12 +1712,12 @@ past the types is an `ArchConfigError`: an empty label or alias, `forms: []`, a 
 
 Which reader to use:
 
-| reader                     | use it for                              | returns                                                 | differs from `haveField`                                                                          |
-| -------------------------- | --------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `resolveFieldValue`        | a board, a report: one record's value   | one document's value, absent, or unreadable with causes | none, apart from `oneOf` (not read) and exclusion comments (a reader applies none)                |
-| `predicateHaveField`       | selecting documents in a rule           | has / has not (`test`), and the causes (`undecided`)    | none, but no value; `test` refuses a document it cannot judge                                     |
-| `fields()` + `.select()`   | a custom rule over every occurrence     | every occurrence, for a rule's selection                | reads indented and unclosed-fence code (a rule errs toward red); no single value                  |
-| `findState` (rules/ledger) | matching `honestyAtClose`'s own reading | the ledger's state: the first state line, or `null`     | first wins on two lines, the ledger's larger region, `null` with no cause after an unclosed fence |
+| reader                     | use it for                              | returns                                                 | differs from `haveField`                                                                                                                                            |
+| -------------------------- | --------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveFieldValue`        | a board, a report: one record's value   | one document's value, absent, or unreadable with causes | none, apart from `oneOf` (not read), exclusion comments (a reader applies none), and an empty label or alias or `forms: []` (refused here, accepted by `haveField`) |
+| `predicateHaveField`       | selecting documents in a rule           | has / has not (`test`), and the causes (`undecided`)    | none, but no value; `test` refuses a document it cannot judge                                                                                                       |
+| `fields()` + `.select()`   | a custom rule over every occurrence     | every occurrence, for a rule's selection                | reads indented and unclosed-fence code (a rule errs toward red); no single value                                                                                    |
+| `findState` (rules/ledger) | matching `honestyAtClose`'s own reading | the ledger's state: the first state line, or `null`     | first wins on two lines, the ledger's larger region, `null` with no cause after an unclosed fence                                                                   |
 
 ### A value agrees with its folder: `agreeWithFolder`
 

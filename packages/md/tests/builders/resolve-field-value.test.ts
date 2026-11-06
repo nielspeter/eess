@@ -73,15 +73,17 @@ describe('resolveFieldValue agrees with haveField, document by document (plan 06
         if (r.kind === 'absent') expect([where, test, undecided]).toEqual([where, false, []])
         if (r.kind === 'unreadable')
           expect([where, test, undecided]).toEqual([where, 'refuses', r.causes])
-        const lines =
-          r.kind === 'value'
-            ? r.notes.map((n) => `${String(n.line)}: ${n.message}`)
-            : r.kind === 'unreadable'
-              ? r.causes.map((u) => `${String(u.line)}: ${u.message}`)
-              : condition.length === 1 && condition[0]?.endsWith(`: ${r.message}`) === true
-                ? condition
-                : [`?: ${r.message}`]
-        expect([where, condition]).toEqual([where, lines])
+        if (r.kind === 'absent') {
+          // The absent arm carries no line: the condition reports its message once, at a line of
+          // its own choosing.
+          expect([where, condition.length]).toEqual([where, 1])
+          expect([where, condition[0]?.replace(/^\d+: /, '')]).toEqual([where, r.message])
+        } else {
+          const lines = (r.kind === 'value' ? r.notes : r.causes).map(
+            (u) => `${String(u.line)}: ${u.message}`,
+          )
+          expect([where, condition]).toEqual([where, lines])
+        }
         pairs += 1
       }
     }
@@ -109,7 +111,12 @@ describe('resolveFieldValue agrees with haveField, document by document (plan 06
       ['header', 'unclosed-fence', 'unreadable', /follows a code fence that never closes/],
       ['header', 'indented', 'unreadable', /sits in an indented code block/],
       ['header', 'outside-header', 'unreadable', /is outside the header/],
-      ['section', 'outside-section', 'unreadable', /outside/],
+      [
+        'section',
+        'outside-section',
+        'unreadable',
+        /^Status at line 9 is outside the "Meta" section/,
+      ],
       ['section', 'value', 'absent', /^no section "Meta" to read Status from \(region\)$/],
       ['header', 'absent-with-labels', 'absent', /its labels: Owner/],
       ['header', 'absent-no-labels', 'absent', /^no Status field/],
@@ -161,6 +168,18 @@ describe('resolveFieldValue agrees with haveField, document by document (plan 06
       kind: 'value',
       label: 'State',
       values: ['open'],
+    })
+  })
+
+  it('the value arm names the form the value was read in', () => {
+    const plain = corpusFromText({ 'docs/plain.md': '# A\n\nStatus: open\n' })
+    const [d] = plain.documents()
+    if (d === undefined) throw new Error('no document')
+    expect(resolveFieldValue(d, spec('header'))).toMatchObject({
+      kind: 'value',
+      values: ['open'],
+      line: 3,
+      form: 'plain',
     })
   })
 
