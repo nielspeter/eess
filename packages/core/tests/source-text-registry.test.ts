@@ -208,6 +208,26 @@ describe('the lookup, in ADR-024 clause 5 order', () => {
     ])
   })
 
+  it('5.1: a value no kernel writes is named as written past the call, never as another shape', () => {
+    const cases: ReadonlyArray<readonly [unknown, RegExp]> = [
+      [null, /is null, not a registry: written past/],
+      ['x', /is a string, not a registry: written past/],
+      [{}, /is an object with no shape version: written past/],
+      [{ version: '1', roots: new Map() }, /is an object with no shape version: written past/],
+    ]
+    for (const [value, found] of cases) {
+      forge(value)
+      const out = filter([violation(path.join(tmp, 'anything.md'))])
+      expect(findings(out).map((f) => [f.message, f.suggestion])).toEqual([
+        [
+          expect.stringMatching(found),
+          expect.stringMatching(/register through `registerSourceText`/),
+        ],
+      ])
+      expect(findings(out)[0]?.message).not.toMatch(/two kernel copies/)
+    }
+  })
+
   it('5.1, cleared: one shape in the install, and the waiver applies', () => {
     const root = freshRoot()
     forge({ version: 99, roots: new Map() })
@@ -272,13 +292,15 @@ describe('the lookup, in ADR-024 clause 5 order', () => {
     expect(filter([violation(reported)])).toEqual([])
   })
 
-  it('claimed 4: the texts are read, parsed under the reported file, for a backslash or // spelling', () => {
+  it('claimed 4: the texts are read, parsed under the reported file, for each spelling of its path', () => {
     const root = freshRoot()
     registerSourceText(root, { 'docs/a.md': WAIVED })
     for (const reported of [
       path.join(root, 'docs', 'a.md'),
       `${root}//docs/a.md`,
       `${root}/docs\\a.md`,
+      `${root}/./docs/a.md`,
+      `${root}/x/../docs/a.md`,
     ]) {
       expect([reported, filter([violation(reported)])]).toEqual([reported, []])
     }

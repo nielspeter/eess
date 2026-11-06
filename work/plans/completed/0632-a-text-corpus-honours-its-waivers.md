@@ -307,8 +307,7 @@ are clean.
       differ (masked: no exclusion; unmasked: lines 4–7 excluded) and the mutant goes red. Both were
       the test's faults, not the code's._
 
-- [x] The build review's matrix (2026-11-06, architect, enforcement, testing, method), run on
-      3cd461f8 in worktrees with their own install, rebuilding after each mutant, against the core,
+- [x] The matrix run after the build review, on its fixes (3cd461f8), in worktrees with their own install, rebuilding after each mutant, against the core,
       md and crossvalidate test files and the fixture. Every mutant red; the restored tree red 0 and
       the fixture exit 1:
 
@@ -337,6 +336,25 @@ are clean.
       so it holds whatever the temp directory is; vitest isolation is pinned in eess-md; the fixture
       row moved to the end of the list, so no other fixture changes shard; two old tests that could
       no longer fail were removed. The core suite is 427 tests, md 1,237, crossvalidate 146.
+
+- [x] The fix check (2026-11-06, enforcement and method) closed every finding above and found two
+      more, both fixed here. A value no kernel writes (`null`, a string, an object with no numeric
+      version) was blamed on two kernel copies, with a remedy that cannot clear it; it is now named
+      as written past `registerSourceText`, with that remedy. The lookup test tried only `//` and
+      `\` spellings of a reported path, while row 3 claimed `/./` and `/../` too; both are now in it.
+      Each fix's mutant went red, one test each (`malformed: false` restored for the three values;
+      the lookup reduced to separators and `//`, without `.` and `..`). The core suite is 428.
+
+- [x] The Phase 1 kernel matrix re-run on the code that ships (2026-11-06, the fix check's N3):
+      3cd461f8 restructured the lookup after that matrix ran, so its 16 mutants were applied again
+      to HEAD plus the fixes above, in a worktree with its own install, one at a time against
+      `packages/core/tests/source-text-registry.test.ts` (13 s in all). The restored tree red 0
+      before and after; every mutant red: the registered read skipped 7; an unreadable store read
+      as empty 4; a pick between two roots 1; the root-on-disk check at lookup 1; the path-on-disk
+      check 1; a real file read before the root check 2; the miss turned into a disk read 3; the
+      on-disk refusal at registration 2; the overlap refusal 1; a string-prefix comparison 1; a root
+      not collapsing segments 4; a re-registration not compared 3; the map not copied 2; module
+      state 8; an unknown shape overwritten 1; parsed under the normalised path 2.
 
 - [x] At close: [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s `pending` rows cite their test files by path and become `gated`, each with the mutants that red it; rows 8 and the residuals stay `manual`, the [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md) relation `n/a`.
 
@@ -501,7 +519,12 @@ another branch reads texts the process has not seen. The build review measured t
 corpus over 597 files builds in 4.5–4.8 s, not about 0.6 s, and a corpus per record costs about
 8.5 ms, not 0.9–1.6 ms. The first design's 9.7 ms, listed above as an overclaim from a cold run, was
 the honest first-read cost; the "correction" replaced it with a repeat-read figure. The docs now give
-both, with the example's own options. The review also found the unreadable registry naming only its
+both, with the example's own options (`Status`, the header region, over 597 files with boards and
+indexes; the repeat figures above used `State` in a `Status` section over 590 records, so the two
+per-record repeat figures, 0.9–1.6 ms and about 1.7 ms, differ by setup). Method for the docs'
+figures: the files read into memory before timing, one process, three runs, a new map and root per
+run, eess-md's `dist` at 819fbaf5. Reading every document's field took 0.41–0.48 s on the first
+read, and 412–500 ms on repeat in the fix check's own run: the memo holds parses, not field reads. The review also found the unreadable registry naming only its
 own shape ([ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 6 requires both), eess-md's root remedy added where the root was already
 unset, a parity test that failed under any temp directory but `/tmp`, an `/internal` reset that
 released every root against the ADR's lifetime, and this plan's Release section claiming the md

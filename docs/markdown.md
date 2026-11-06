@@ -180,11 +180,11 @@ parsed texts, and a board that reads another branch reads texts it has not seen.
 by [plan 0632](../work/plans/completed/0632-a-text-corpus-honours-its-waivers.md)'s build review, Node 24.22, over the 597 `.md` files under this repository's `work/`
 (records, boards and indexes), with the options in the example above:
 
-| what                                   | first read (texts new to the process) | repeat read (texts seen before) |
-| -------------------------------------- | ------------------------------------- | ------------------------------- |
-| one corpus over all 597                | 4.5–4.8 s to build                    | about 0.6 s to build            |
-| reading every document's field         | 0.41–0.48 s                           | —                               |
-| a corpus per record, reading one field | about 8.5 ms a record                 | about 1.7 ms a record           |
+| what                                   | first read (texts new to the process) | repeat read (texts seen before)     |
+| -------------------------------------- | ------------------------------------- | ----------------------------------- |
+| one corpus over all 597                | 4.5–4.8 s to build                    | about 0.6 s to build                |
+| reading every document's field         | 0.41–0.50 s                           | the same: the memo does not help it |
+| a corpus per record, reading one field | about 8.5 ms a record                 | about 1.7 ms a record               |
 
 So the first read of a large board costs seconds, not fractions of one; the parse is most of it
 ([plan 0632](../work/plans/completed/0632-a-text-corpus-honours-its-waivers.md)).

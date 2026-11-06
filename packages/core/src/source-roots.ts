@@ -54,16 +54,20 @@ function readRegistry(): Read {
   const value: unknown = Reflect.get(globalThis, KEY)
   if (value === undefined) return { kind: 'none' }
   if (isRegistry(value)) return { kind: 'ok', registry: value }
-  if (typeof value !== 'object' || value === null) {
-    return { kind: 'unreadable', found: `a ${typeof value}, not a registry`, malformed: false }
+  // Every kernel copy writes an object with a numeric version, so a value without one was written past
+  // `registerSourceText`, never by an older kernel: it is malformed, not another shape.
+  if (value === null) return { kind: 'unreadable', found: 'null, not a registry', malformed: true }
+  if (typeof value !== 'object') {
+    return { kind: 'unreadable', found: `a ${typeof value}, not a registry`, malformed: true }
   }
-  if (!('version' in value)) {
-    return { kind: 'unreadable', found: 'an object with no shape version', malformed: false }
+  if (!('version' in value) || typeof value.version !== 'number') {
+    return { kind: 'unreadable', found: 'an object with no shape version', malformed: true }
   }
   const version: unknown = value.version
   return version === SHAPE_VERSION
     ? { kind: 'unreadable', found: `shape ${String(version)}, malformed`, malformed: true }
-    : { kind: 'unreadable', found: `shape ${String(version)}`, malformed: false }
+    : // Another number: another kernel copy's shape.
+      { kind: 'unreadable', found: `shape ${String(version)}`, malformed: false }
 }
 
 /** What an unreadable registry is, and what clears it, in one sentence each. */

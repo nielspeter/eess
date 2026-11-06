@@ -190,7 +190,8 @@ directory above, and it was rejected for the reasons listed there.
 
 Each `gated` row cites its test files by path, and names the deliberately broken variants (mutants)
 that turn it red. Each mutant was run in a worktree with its own install, one at a time, and recorded
-in [plan 0632](../work/plans/completed/0632-a-text-corpus-honours-its-waivers.md)'s three sabotage matrices. Core and md test titles are not
+in [plan 0632](../work/plans/completed/0632-a-text-corpus-honours-its-waivers.md)'s sabotage matrices, each on the commit it names; the kernel's lookup
+mutants were re-run on the code that ships, after the build review's restructure. Core and md test titles are not
 resolved by `check:crossval`
 ([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md)), so citations here are by file.
 
