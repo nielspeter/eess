@@ -2,15 +2,13 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-11-06 on `main` at 8969ee6b (v0.18.0, which shipped [bug 0461](../bugs/fixed/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md), [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md) and [bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)). Written 2026-11-05 from the review of
-  [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md), at the
-  maintainer's direction, and revised the same day after its own review (architect, product,
-  enforcement, method). Everything the build depends on is in this file: the union, the arm rule,
-  the golden table's specs, the importer allowlists, the tests; the proposal's review is provenance.
-- **Implements:** [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
+- **State:** Done — built 2026-11-06 on `feat/0624-field-reader` in three phases (1a 8f824a0c, 1b
+  00b10d99, 2 20a119e2), from the Ready plan frozen on `main` at 8969ee6b; every box below ticked
+  with its evidence. [Proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s ask 2 stays held there.
+- **Implements:** [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
   (ask 1; ask 2 stays held)
 - **Priority:** Medium. No false green in this plan's subject (the ledger's is
-  [bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)), but a tool that shows one
+  [bug 0623](../../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)), but a tool that shows one
   record's value has no public reader that agrees with `haveField`, and a consuming project's plan
   waits on one.
 - **Effort:** Medium in all, about half a day: Phase 1a Medium (the golden table and the projection),
@@ -27,14 +25,14 @@
     duplicate of it.
   - Options are validated in `resolveFieldValue` only, not in the shared `fieldVerdict`, so
     `haveField`'s behaviour does not change. That `haveField` accepts an empty label is
-    [bug 0625](../bugs/0625-a-field-rule-accepts-an-empty-label.md), on its own record.
+    [bug 0625](../../bugs/0625-a-field-rule-accepts-an-empty-label.md), on its own record.
   - `resolveFieldValue` takes no `oneOf`: a spec carrying one is an `ArchConfigError`, since the
     reader reports the value as written and `haveField` with `oneOf` judges it.
-  - [Bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md) (`agreeWithFolder`'s
+  - [Bug 0588](../../bugs/0588-agree-with-folder-never-checks-its-region.md) (`agreeWithFolder`'s
     region) is not bundled, and `agreeWithFolder` is not moved onto the projection: a no-behaviour
     refactor left out of scope below, so this plan changes no condition.
   - `findState` is not touched: its future is
-    [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md)'s question.
+    [plan 0498](../0498-honestyatclose-places-a-record-with-block-5.md)'s question.
 
 ## Problem
 
@@ -44,12 +42,12 @@ and none returns the value `haveField` decides:
 - `fields().select()` hands back every occurrence and reads indented and unclosed-fence code, by
   design (`SetAside`, `packages/md/src/model/prose.ts:294`).
 - `findState` (`packages/md/src/rules/ledger.ts:274`) has the ledger's reading: the first of two
-  values wins ([bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)), its region is
+  values wins ([bug 0623](../../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)), its region is
   larger, and an unclosed fence gives `null` with no cause.
 - `predicateHaveField` gives the decision and the causes, and with `oneOf` the value of a
   single-valued field with a finite vocabulary, but not a free-text or split value, and it cannot
   tell "no field" from "a value outside the candidates" (the caller-side form of
-  [bug 0120](../bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md)).
+  [bug 0120](../../bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md)).
 
 The resolver that decides is `fieldVerdict` (`packages/md/src/model/field-verdict.ts:68`), shared by
 `haveField` and `agreeWithFolder` and exported nowhere.
@@ -79,7 +77,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
   - `value`: the one occurrence `haveField` resolves; its `notes` are the causes beside a resolved
     value (prose that disagrees, a label in a form not read).
   - `absent`: no field, **and a section region whose section the document lacks**
-    ([plan 0505](./completed/0505-a-field-read-inside-a-named-section.md)'s decided "no"), with
+    ([plan 0505](./0505-a-field-read-inside-a-named-section.md)'s decided "no"), with
     `haveField`'s own message (the labels it does find, or the missing section). One `message`, not
     a hint cut out of it.
   - `unreadable`: a conflict (two structured occurrences, agreeing or not), an empty value, a label
@@ -101,7 +99,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
   plausible-looking wrong answer, so a misconfiguration must throw.
 - **Waivers do not apply.** The reader is not a rule: a cause a gate waives through an exclusion
   comment is still returned. The docs say so.
-- If [plan 0581](./0581-md-a-field-written-empty-can-mean-absent.md) ships first, its
+- If [plan 0581](../0581-md-a-field-written-empty-can-mean-absent.md) ships first, its
   `empty: 'absent'` maps an empty value to `absent`, under the same arm rule; no arm is added.
 
 ## Phases
@@ -192,15 +190,17 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
 ## Out of scope
 
 - Ask 2 (the same over text) and its own mutant, a second parse path: held on
-  [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and a measurement.
-- `findState`'s reading and the ledger: [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md)
-  and [bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md).
-- `fields()`' header boundary: [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
-- `agreeWithFolder`'s region check ([bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md))
+  [bug 0520](../../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and a measurement.
+- `findState`'s reading and the ledger: [plan 0498](../0498-honestyatclose-places-a-record-with-block-5.md)
+  and [bug 0623](../../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md).
+- `fields()`' header boundary: [bug 0622](../../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
+- `agreeWithFolder`'s region check ([bug 0588](../../bugs/0588-agree-with-folder-never-checks-its-region.md))
   and moving its own three-way mapping (`packages/md/src/conditions/agree-with-folder.ts:356`) onto
   `fieldOutcome`: a no-behaviour refactor for a later change.
-- `haveField` accepting an empty label: [bug 0625](../bugs/0625-a-field-rule-accepts-an-empty-label.md).
+- `haveField` accepting an empty label: [bug 0625](../../bugs/0625-a-field-rule-accepts-an-empty-label.md).
 - Whether "one resolver per concept" (links, fields) should become an ADR rather than one
   architecture rule per concept: an open question that stays in
-  [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review, its
+  [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review, its
   home; this plan builds the rule and does not settle it.
+
+Deferred: none
