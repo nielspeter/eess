@@ -2,10 +2,11 @@
 
 ## Status
 
-- **State:** Draft — written 2026-11-05 from the review of
+- **State:** Ready — frozen 2026-11-06 on `main` at 8969ee6b (v0.18.0, which shipped [bug 0461](../bugs/fixed/0461-the-dedupe-note-says-one-option-for-any-repeated-config-finding.md), [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md) and [bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)). Written 2026-11-05 from the review of
   [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md), at the
   maintainer's direction, and revised the same day after its own review (architect, product,
-  enforcement, method); to be built after the coming release.
+  enforcement, method). Everything the build depends on is in this file: the union, the arm rule,
+  the golden table's specs, the importer allowlists, the tests; the proposal's review is provenance.
 - **Implements:** [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
   (ask 1; ask 2 stays held)
 - **Priority:** Medium. No false green in this plan's subject (the ledger's is
@@ -107,8 +108,8 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
 
 - [ ] **1a. The internal projection, pinned to today.** No public change.
   - [ ] Before any rewire, capture a **golden table** from `main`: for every document of a fixture
-        corpus × a set of specs (header, a named section present and missing, aliases, `split`,
-        `value`, `oneOf`), `predicateHaveField(spec).test()` and `.undecided()` messages and the
+        corpus × these specs: the header (`forms: ['bold', 'plain']`), the header with
+        `aliases`, a named section present and missing, `split`, `value`, and `oneOf`, `predicateHaveField(spec).test()` and `.undecided()` messages and the
         `docs(c).should().haveField(spec)` messages. Commit it as data with its own row count.
   - [ ] Add `fieldOutcome`; rewrite the predicate's decision onto it. The golden table is
         unchanged, every row.
@@ -129,8 +130,10 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
 - [ ] **2. The import edges, held.** In `arch.rules.ts`:
   - [ ] `modules(p).that().resideInFile('**/packages/md/src/model/field-resolve.ts').should().onlyBeImportedVia('**/packages/md/src/model/field-verdict.ts')`.
   - [ ] `field-verdict.ts` only imported via `builders/have-field.ts`,
-        `conditions/agree-with-folder.ts` and the file that re-exports `resolveFieldValue` (named
-        when built).
+        `conditions/agree-with-folder.ts` and `src/index.ts`, which re-exports
+        `resolveFieldValue` from the model as it does `resolveLink`. Measured 2026-11-06: today's
+        importers are exactly the first two, and `field-resolve.ts`'s only importer is
+        `field-verdict.ts`.
   - [ ] Each rule's comment states what it cannot see, as `eess/md-one-link-resolver`'s does: a
         second reading built on `readFields` that never imports `field-resolve.ts` (how `findState`
         exists), and a resolver inlined into its only importer.
@@ -174,4 +177,6 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
   `fieldOutcome`: a no-behaviour refactor for a later change.
 - `haveField` accepting an empty label: [bug 0625](../bugs/0625-a-field-rule-accepts-an-empty-label.md).
 - Whether "one resolver per concept" (links, fields) should become an ADR rather than one
-  architecture rule per concept: an open question carried from [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review.
+  architecture rule per concept: an open question that stays in
+  [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review, its
+  home; this plan builds the rule and does not settle it.
