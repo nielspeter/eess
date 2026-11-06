@@ -2027,14 +2027,13 @@ word under another label in the header that disagrees with the state read is the
 line is named, and the state/folder check reports it before it reads either; the box checks still
 read the first `State:` line. Under another label only a whole value counts: the text after the
 label, its markup cleaned as `cleanValue` does and cut at the first `—` or `–`, a trailing period
-dropped, must be a state word (`Done`, `**Done**`, `Done — merged`, `Done.`). `**Phase 1:** Done
+dropped, must be a state word (`Done`, `**Done**`, `Done — merged`, `Done.`), under a label or a heading alike. `**Phase 1:** Done
 (40/40 pages)` and `**Note:** Done with the spike` are not states, so they stay quiet; one that
 agrees stays quiet too. A plain `Label:` on a later line of a paragraph inside a list item is that
 item's prose, not a field, so the history a record keeps in its State bullet
 (`  Previously read: Ready — frozen …`) stays quiet. That position rule is a measured choice, not a
 reading of intent, and these shapes stay quiet with it: a conflicting plain label continuing the
-State bullet or any other bullet (`- **Owner:** Ann` then `  Status: Done`), a value in a
-blockquote, and a value that only starts with a state word. A nested list item
+State bullet or any other bullet (`- **Owner:** Ann` then `  Status: Done`), a value in a blockquote, a value that only starts with a state word, a `## Label: value` heading after the header's first plain heading, a whole bold line (`**Status: Done**`), a linked value (`[Done](x.md)`), and an ASCII `-` separator. A nested list item
 (`  - Previously: Draft`) is a field of its own and is compared; reword it if it is history.
 
 A corpus that writes its state under another label passes `label: 'Status'`, or adds it with

@@ -40,7 +40,7 @@ It predates [bug 0623](./0623-the-ledger-reads-the-first-of-two-states.md)'s fix
 ## Root cause
 
 `stateUnderAnotherLabel` runs only when no state line under the labels in force was read
-(`packages/md/src/rules/ledger.ts:846`, after the fix), so a record that has one is never checked for a state word
+(`packages/md/src/rules/ledger.ts:856`, after the fix), so a record that has one is never checked for a state word
 written under another label.
 
 ## Fix
@@ -57,18 +57,18 @@ whitespace test that missed a paragraph opened after a blank line. The design wa
 architect review before the second attempt was built.
 
 **The second attempt.** One scanner, `statesUnderAnotherLabel`
-(`packages/md/src/rules/ledger.ts:382`), returns facts for each header line under another label.
+(`packages/md/src/rules/ledger.ts:393`), returns facts for each header line under another label.
 The two paths read different facts:
 
 - **The no-state path ([bug 0444](./0444-honesty-at-close-reads-state-only-and-says-nothing.md))** keeps its reading unchanged: a value that _starts_ with a state
   word, on any line. There, reading wide errs toward a finding.
 - **The comparison** (`headerStateViolation`, the bug-0627 block at
-  `packages/md/src/rules/ledger.ts:622`) reads two facts.
+  `packages/md/src/rules/ledger.ts:631`) reads two facts.
   - `whole`: the value, through `cleanValue`, cut by `untilDelimiter(['—', '–'])`, its trailing
-    period dropped, must be a state word. These are the root's helpers, not a new cut.
+    period dropped, must be a state word, on a label line and a heading alike (the re-check found headings compared on their raw value, so `## Status: Done — merged` stayed quiet while the docs said it was red). These are the root's helpers, not a new cut. The no-state path still reads a heading strictly, as before.
   - `continuesItem`: a plain label on a later line of a paragraph inside a list item is that item's
     prose. A private walk over `doc.root`, memoised per tree (`continuesListItem`,
-    `packages/md/src/rules/ledger.ts:363`), decides it. It is modelled on `blockOf` in
+    `packages/md/src/rules/ledger.ts:369`), decides it. It is modelled on `blockOf` in
     `model/links.ts`, which [ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md)'s root-only rule keeps out of the ledger's reach.
 
   Wrapped labels and headings count on any line. The comparison runs after the unknown-state check
@@ -81,8 +81,8 @@ shapes stay quiet, and `docs/markdown.md` names them:
   (`- **Owner:** Ann` then `  Status: Done`);
 - a value in a blockquote;
 - a value that only starts with a state word;
-- an other-label heading after the first plain heading, which is compared only before it, as the
-  bug-0444 path reads it (`## State: Done` at that boundary is read, `## Status: Done` is not);
+- an other-label heading after the first plain heading, which is compared only before it, as the bug-0444 path reads it (`## State: Done` at that boundary is read, `## Status: Done` is not);
+- older shapes, not this fix's: a whole bold line (`**Status: Done**`, though the read side reads `**State: Done**`), a linked value (`[Done](x.md)`), and an ASCII `-` separator;
 - the read side still matches its own `State:` value by prefix, so the two sides differ on purpose.
 
 A nested list item (`  - Previously: Draft`) is a field of its own: it is compared, so it fails
@@ -90,7 +90,7 @@ closed.
 
 **Measured** with eess-md built from the second attempt:
 
-- **This repo** (559 records): 0 findings. The first attempt's three false reds are quiet. They are
+- **This repo**: 0 findings. The first attempt's three false reds are quiet. They are
   history lines in [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md), [plan 0237](../../plans/completed/0237-eess-runtime-use-only-in-rule-files.md) and [bug 0206](./0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) (`Previously read: Ready/Draft — …`).
 - **Two adopter corpora**, read-only, each with the same options against `main` (101199d4) and
   against this fix: identical findings, so no new red.
@@ -110,18 +110,16 @@ this position rule or lose it on purpose; that is noted in [plan 0498](../../pla
 
 - [x] Red first: the record above is reported
       (`packages/md/tests/rules/ledger-state-beside-another-label.test.ts`). Against `main`'s
-      `ledger.ts`, the shipped file gives 11 failed and 11 passed, of 22. The first attempt's file
+      `ledger.ts`, the shipped file gives 12 failed and 12 passed, of 24. The first attempt's file
       gave 6 failed and 7 passed, of 13.
 - [x] `**State:** Done` beside `## Status: Done` is not.
 - [x] A `Status:` value that is no state word is not, nor one that only starts with one
       (`Phase 1: Done (40/40 pages)`).
 - [x] A history line continuing the State bullet, indented or not, is not. A plain label opening a
       line, a paragraph or a list item is.
-- [x] The non-vacuity fixture `scripts/nonvacuity/bad-ledger.mjs` holds the new shape in
-      `0010-state-under-another-label.md`, judged at that file. Its clean `0002` holds a value that
+- [x] The non-vacuity fixture `scripts/nonvacuity/bad-ledger.mjs` holds the new shape twice, judged at each file: `0010-state-under-another-label.md`, a wrapped label, and `0011-state-under-a-heading.md`, the bug's own heading form with a dash. A dedicated `check-nonvacuity` row for `ledger/states-disagree` was not added: the fixture exits 0, vacuous, when either file stops firing, and the gate reads that as a failure. Its clean `0002` holds a value that
       only starts with a state word and a history line.
-- [x] A sabotage matrix of six mutants, each red, run in a worktree with its own install, the
-      restored tree 22 of 22 and the fixture exit 1:
+- [x] A sabotage matrix of eight mutants, each red, run in worktrees with their own install, the restored tree 24 of 24 (22 of 22 for the first six, before the heading change) and the fixture exit 1:
 
       | mutant | red in |
       | --- | --- |
@@ -131,6 +129,8 @@ this position rule or lose it on purpose; that is noted in [plan 0498](../../pla
       | only the first disagreeing line named | `it('every disagreeing line is named in the one finding, at the first')` |
       | the comparison removed | every reporting test; the fixture (exit 0, vacuous) |
       | a trailing period not dropped | `it('a state word cut at the dash, marked up, or with a period is a state')` |
+      | a heading compared on its raw value | `it('a state word cut at the dash, marked up, or with a period is a state')`; the fixture (exit 0, 0011 silent) |
+      | headings skipped by the comparison | `it('State: Draft beside ## Status: Done is reported, naming both lines')` and the cut test; the fixture (exit 0) |
 
 - [x] A changeset naming `@nielspeter/eess-md`, the break marked. eess-md's only dependent is
       crossvalidate, an optional peer, so none is named.

@@ -35,7 +35,7 @@ it one.
 ## Root cause
 
 The no-state path reads `statesUnderAnotherLabel`'s `state` fact
-(`packages/md/src/rules/ledger.ts:382`): a value that starts with a state word, on any line of the
+(`packages/md/src/rules/ledger.ts:393`): a value that starts with a state word, on any line of the
 header, indented or not (`PLAIN_LABEL` allows leading whitespace). The comparison that
 [bug 0627](./fixed/0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md) added reads the same scanner's `whole` and `continuesItem` facts and skips a
 plain label continuing a list item; this path does not.
