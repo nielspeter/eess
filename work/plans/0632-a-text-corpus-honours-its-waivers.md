@@ -193,7 +193,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 ### Phase 0 — the ADR
 
-- [ ] The new ADR, decided from D1 and D2:
+- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-the-kernel-reads-a-claimed-files-text-from-its-registration.md) (Proposed):
   - it extends [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
   - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the fact is [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s kind; only the ambient lookup is new), and the residual above with its remedy;
   - its rows cite core and md tests by file, as [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) does, since `check:crossval` resolves titles only in `packages/ts`;
