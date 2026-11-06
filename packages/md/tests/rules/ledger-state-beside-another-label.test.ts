@@ -154,6 +154,9 @@ describe('only a whole value that is a state word contradicts the record (bug 06
       '**Status:** `Done`',
       '**Status:** ✅ Done',
       '**Status:** Done.',
+      '## Status: Done — merged',
+      '## Status: **Done**',
+      '## Status: Done.',
     ])
       expect([line, found(record('**State:** Draft', line)).map((f) => f.split(': ')[0])]).toEqual([
         line,
@@ -242,5 +245,45 @@ describe('the no-state path keeps its wider reading (bug 0444), unchanged here',
         { report: 'return' },
       ).map((v) => `${v.rule}@${v.element}`),
     ).toEqual(['ledger/state-under-another-label@work/plans/0009-x.md'])
+  })
+})
+
+describe('a finding naming several lines (bug 0627, its re-check)', () => {
+  it('three lines are listed, and the remedy names each', () => {
+    const [v] = honestyAtClose(
+      corpusFromText({
+        'work/plans/0009-x.md': record(
+          '**State:** Draft',
+          '**Status:** Done',
+          'Phase: Open',
+          '**Step:** Ready',
+        ),
+      }),
+      { report: 'return' },
+    )
+    expect([v?.message, v?.suggestion]).toEqual([
+      "State is 'Draft' (line 3), but the header's `Status:` holds 'Done' (line 4), `Phase:` holds 'Open' (line 5), and `Step:` holds 'Ready' (line 6), states from the vocabulary. A record whose state disagrees with itself cannot be placed.",
+      "If one of these labels is this record's state, keep one state line (pass that label in aliases to read it); reword line 4, line 5, and line 6 where a value is not this record's state.",
+    ])
+  })
+
+  it('the no-state path still reads a heading strictly: Done — merged alone is not reported there', () => {
+    const text = [
+      '# Plan 9',
+      '',
+      '## Status: Done — merged',
+      '',
+      '## Tasks',
+      '',
+      '- [ ] open',
+      '',
+    ].join('\n')
+    const other = ['# Plan 8', '', '**State:** Draft', ''].join('\n')
+    expect(
+      honestyAtClose(
+        corpusFromText({ 'work/plans/0009-x.md': text, 'work/plans/0008-y.md': other }),
+        { report: 'return' },
+      ).map((v) => v.rule),
+    ).toEqual([])
   })
 })

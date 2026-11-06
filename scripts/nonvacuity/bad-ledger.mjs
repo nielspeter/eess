@@ -53,7 +53,9 @@ const ROOT = 'scripts/nonvacuity/bad-ledger'
 // `0002` now also carries the two shapes that path must not read as a second state: a value that only
 // starts with a state word (`Review: Draft notes …`) and a history line continuing the State bullet
 // (`Previously read: Ready — …`). A slide back to prefix matching, or to reading a list item's prose
-// as a field, reds 0002 and so this fixture.
+// as a field, reds 0002 and so this fixture. `0011` is the bug's own form, a heading,
+// `## Status: Done — merged`, judged at its file too: 0010's wrapped label alone would let the heading
+// path, or the dash cut, go missing with this fixture still exiting 1.
 const RULES = [
   'ledger/silent-open-box',
   'ledger/state-folder-mismatch',
@@ -76,9 +78,9 @@ try {
 // "no violation" would be trivially true and this gate would sit green forever
 // on a drifted root (bug 0110's class).
 const docs = c.documents().length
-if (docs !== 10) {
+if (docs !== 11) {
   console.error(
-    `bad-ledger: the corpus loaded ${docs} document(s), expected 10 — this fixture proves ` +
+    `bad-ledger: the corpus loaded ${docs} document(s), expected 11 — this fixture proves ` +
       `nothing against an empty corpus; check ${ROOT}`,
   )
   process.exit(2)
@@ -106,18 +108,18 @@ if (fromReconciled.length > 0) {
   process.exit(2)
 }
 
-// Bug 0627's path, judged at its own file: 0009 fires the same rule id by the older path.
-const atUnderAnotherLabel = violations.filter(
-  (v) =>
-    v.file.includes('0010-state-under-another-label') &&
-    (v.ruleId ?? v.rule) === 'ledger/states-disagree',
-)
-if (atUnderAnotherLabel.length === 0) {
-  console.error(
-    'bad-ledger: ledger/states-disagree did not fire on 0010-state-under-another-label.md — the ' +
-      'comparison with a state under another label is vacuous',
+// Bug 0627's path, judged at each of its own files: 0009 fires the same rule id by the older path.
+for (const file of ['0010-state-under-another-label', '0011-state-under-a-heading']) {
+  const at = violations.filter(
+    (v) => v.file.includes(file) && (v.ruleId ?? v.rule) === 'ledger/states-disagree',
   )
-  process.exit(0)
+  if (at.length === 0) {
+    console.error(
+      `bad-ledger: ledger/states-disagree did not fire on ${file}.md — the comparison with a state ` +
+        'under another label is vacuous',
+    )
+    process.exit(0)
+  }
 }
 
 const fired = new Set(violations.map((v) => v.ruleId ?? v.rule))

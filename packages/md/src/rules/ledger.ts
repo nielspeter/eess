@@ -324,8 +324,10 @@ function stateUnderAnotherLabel(
   doc: MdDocument,
   vocabulary: readonly string[],
   names: readonly string[],
-): OtherLabelState | null {
-  return statesUnderAnotherLabel(doc, vocabulary, names)[0] ?? null
+): { label: string; state: string; line: number } | null {
+  for (const o of statesUnderAnotherLabel(doc, vocabulary, names))
+    if (o.state !== undefined) return { label: o.label, state: o.state, line: o.line }
+  return null
 }
 
 /**
@@ -338,12 +340,16 @@ function stateUnderAnotherLabel(
 type OtherLabelState = {
   label: string
   line: number
-  /** The vocabulary's state word the value starts with (`stateMatcher`'s prefix reading). */
-  state: string
+  /**
+   * The state word the no-state path reads: for a label line, the one the value starts with
+   * (`stateMatcher`'s prefix reading); for a heading, its raw value when that is one (bug 0476).
+   * Undefined on a heading only the comparison reads (`## Status: Done — merged`).
+   */
+  state: string | undefined
   /**
    * The vocabulary's state word when the whole value is one: `cleanValue`, cut at the first `—` or
-   * `–`, a trailing period dropped (`**Status:** Done.`, as the read side accepts it). `Done (40/40
-   * pages)` and `Done with the spike` have none. A heading's value is compared whole, as before.
+   * `–`, a trailing period dropped (`**Status:** Done.`, as the read side accepts it), on a label
+   * line and a heading alike. `Done (40/40 pages)` and `Done with the spike` have none.
    */
   whole: string | undefined
   /**
@@ -377,6 +383,11 @@ function continuesListItem(root: Root): ReadonlySet<number> {
 }
 
 const wholeValue = untilDelimiter(['—', '–'])
+/** `A, and B`; `A, B, and C`: the lines a finding names, in a sentence. */
+const listed = (xs: readonly string[]): string =>
+  xs.length < 3 ? xs.join(', and ') : `${xs.slice(0, -1).join(', ')}, and ${xs.at(-1) ?? ''}`
+/** The value the comparison reads: markup cleaned, cut at the first dash, a trailing period dropped. */
+const comparable = (value: string): string => wholeValue(cleanValue(value)).replace(/\.$/, '')
 
 /** Every state word under another label in the header, in order, with what each path reads. */
 function statesUnderAnotherLabel(
@@ -399,8 +410,9 @@ function statesUnderAnotherLabel(
         const [, label = '', value = ''] = field
         const fold = (t: string): string => t.toLowerCase().replace(/’/g, "'")
         const state = vocabulary.find((v) => fold(v) === fold(value))
-        if (!read.has(label.trim().toLowerCase()) && state !== undefined)
-          out.push({ label: label.trim(), state, whole: state, line: i + 1, continuesItem: false })
+        const whole = vocabulary.find((v) => foldState(v) === foldState(comparable(value)))
+        if (!read.has(label.trim().toLowerCase()) && (state !== undefined || whole !== undefined))
+          out.push({ label: label.trim(), state, whole, line: i + 1, continuesItem: false })
         continue
       }
       seenHeading += 1
@@ -415,10 +427,7 @@ function statesUnderAnotherLabel(
     const hit = stateMatcher(vocabulary, stateLabel([found])).exec(line)
     if (hit?.[1] !== undefined) {
       const opened = new RegExp(labelPattern(found), 'i').exec(line)
-      const value = wholeValue(cleanValue(line.slice(opened?.[0].length ?? line.length))).replace(
-        /\.$/,
-        '',
-      )
+      const value = comparable(line.slice(opened?.[0].length ?? line.length))
       out.push({
         label: found,
         state: hit[1],
@@ -625,14 +634,15 @@ function headerStateViolation(
   // a plain label continuing a list item's paragraph is that item's prose. One that agrees stays
   // quiet. Every disagreeing line is named, as two state lines are.
   const others = statesUnderAnotherLabel(doc, known, names).filter(
-    (o) => o.whole !== undefined && !o.continuesItem && foldState(o.whole) !== said(found),
+    (o): o is OtherLabelState & { whole: string } =>
+      o.whole !== undefined && !o.continuesItem && foldState(o.whole) !== said(found),
   )
   const [other] = others
   if (other !== undefined) {
-    const held = others
-      .map((o) => `\`${o.label}:\` holds '${o.whole ?? o.state}' (line ${String(o.line)})`)
-      .join(', and ')
-    const lines = others.map((o) => `line ${String(o.line)}`).join(' and ')
+    const held = listed(
+      others.map((o) => `\`${o.label}:\` holds '${o.whole}' (line ${String(o.line)})`),
+    )
+    const lines = listed(others.map((o) => `line ${String(o.line)}`))
     return {
       ...v(
         'ledger/states-disagree',
