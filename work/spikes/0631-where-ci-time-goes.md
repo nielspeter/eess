@@ -95,6 +95,24 @@ Other measurements:
 - **C as a plan.** Nonvacuity is the bulk of every run, and [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md) already measures its growth.
 - **D only after C,** because finding 3 shows a naive filter is unsafe.
 
+## 6. Decided, 2026-11-06
+
+The maintainer chose these:
+
+- **A1 and A2:** in the working method.
+- **B1:** built.
+  - Ruleset 26704592, `main: a PR's CI passed on an up-to-date branch`, is active on the default
+    branch with no bypass actors. It requires `test`, `nonvacuity` (the shard merge, which waits on
+    all four shards) and `bun-load` from GitHub Actions, with `strict_required_status_checks_policy`.
+  - `push: main` left `.github/workflows/ci.yml` in the same change. Its concurrency group is now
+    one per PR.
+  - The release skill's preflight reads the merged PR's checks, since `main` has no runs of its own.
+  - The cost accepted: a PR behind `main` is updated and runs again before it can merge.
+
+Not decided: C (cheaper nonvacuity) and D (run only the rows a change can affect).
+[Bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md) keeps the nonvacuity cost
+measured.
+
 ## Corrections
 
 None yet.
