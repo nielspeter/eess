@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — written 2026-11-06 at the maintainer's direction, for
+- **State:** Ready — frozen 2026-11-06 against `main` 2e071307 (eess-md 0.16.0, kernel 0.10.1), after the D1 check passed it. written 2026-11-06 at the maintainer's direction, for
   [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and
   [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s ask 2.
   Revised the same day after an architect review and an enforcement review of the first design. Both
@@ -11,7 +11,7 @@
   overlapping roots. Revised again the same day after both re-checked the revision: a
   registered reader function cannot be compared, so the kernel now takes the texts. Both re-checks
   said the edit needs no further full round; the architect asked that D1 alone be checked once more.
-  Each revision is recorded under _Corrections_.
+  Each revision is recorded under _Corrections_. The D1 check passed it for the freeze once its one Important finding, segment collapsing in the normalisation, was written in; it is.
 - **Implements:** [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
   (ask 2; ask 1 is [plan 0624](./completed/0624-md-one-documents-field-value-public.md)'s)
 - **Fixes:** [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md)
@@ -69,17 +69,15 @@ found that a function cannot be compared, so the kernel could not decide whether
 registration of a root held the same text. Comparing identity refuses equal maps; accepting any
 re-registration lets one corpus's waivers read another's text. With the texts, the kernel:
 
-- **copies the map when it registers,** so a caller who changes the map afterwards cannot change the
+- **copies the map into a `Map` when it registers,** checking that every value is a string (a `'__proto__'` key assigned into `{}` sets the prototype, measured), so a caller who changes the map afterwards cannot change the
   text a waiver is read from. The first revision's reader read the caller's live map, measured by the
   enforcement re-check;
-- **owns the read,** so no dialect code runs inside the `try` that swallows a read failure
-  (`packages/core/src/execute-rule.ts:166-171`);
+- **owns the read,** so no dialect code runs inside the `try` that swallows a read failure (`packages/core/src/execute-rule.ts:149`, its `catch` at `:171-177`). The kernel's own lookup outcomes (a miss, a claimed root now on disk, an unknown shape version, a path under two roots) are decided outside that `try`, so none of them can be silenced;
 - **decides a re-registration by content.**
 
 **Registering a root:**
 
-- **The root is normalised.** It must be absolute; its separators become POSIX; a trailing slash is
-  dropped. A relative root is an `ArchConfigError`.
+- **The root is normalised, and so is every violating path, by one function:** separators become POSIX, then `posix.normalize` collapses `//`, `.` and `..`, then a trailing slash is dropped. eess-md builds `file` with `join(root, rel)` (`packages/md/src/corpus.ts:160`), which collapses them too. Normalising only separators would let `/v//x` and `/v/x` both register, and a violation under one be read from the other's text: a false green the D1 check measured. A relative root is an `ArchConfigError`.
 - **A root that exists on disk is refused,** so the texts can never shadow a real file. Without that,
   any importer of `/internal` could waive a real repository's findings with no directive in it. The
   kernel owns this check; today it lives only in eess-md (`packages/md/src/corpus.ts:238`).
@@ -88,8 +86,7 @@ re-registration lets one corpus's waivers read another's text. With the texts, t
 - **The one exception is the same root with an exactly equal map:** the same keys, each with the same
   text. A subset or a superset is different. A content-addressed root (D2) makes that the common
   case.
-- **Each refusal names the root it collided with** and the remedy: leave `root` unset, or name a root
-  that is used for one map only. A root names one text per path for the process.
+- **Each refusal names the root it collided with**, as a fact: a root names one text per path for the process. The remedy wording is the dialect's, passed with the registration, as [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s `emptinessAdvice()` lets the dialect word its advice. eess-md's says to leave `root` unset or name a root used for one map only.
 
 **The lifetime is strong, for the process.**
 
@@ -109,7 +106,7 @@ records) see the same texts.
 
 - **The shape is versioned,** a `version` field on the shared object. A kernel that finds a shape it
   does not know refuses loudly rather than reading it.
-- **It holds plain data,** roots and their copied maps; each kernel copy re-checks what it reads.
+- **It holds plain data,** roots and their copied maps. Each kernel copy reads it as `unknown` through a type guard (also how [ADR-005](../../adr/005-no-any-no-type-assertions.md) is met); an unknown shape, or a path under two roots in it, is a finding, never a pick.
 
 **The lookup, in `applyFilters`.**
 
@@ -120,8 +117,7 @@ records) see the same texts.
   (`bypassFilters`) naming the file, the root and the cause: a rule reported a path the map does not
   hold, or spelled it differently. The violation itself stays, unwaived. One finding per file and
   root, keyed on the rule id when there is one.
-- **A claimed root that now exists on disk is a configuration finding too:** a file created after
-  registration would otherwise be shadowed silently.
+- **A claimed root that now exists on disk is a configuration finding too:** a file created after registration would otherwise be shadowed silently. The lookup then reads neither source; the violation stays unwaived, and the finding is de-duplicated as the miss is.
 - **A path under no claimed root is read from disk,** as today.
 
 **The text is parsed unchanged.** It goes through `parseExclusionComments`, with whatever
@@ -199,7 +195,8 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 - [ ] The new ADR, decided from D1 and D2:
   - it extends [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
-  - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md), and the residual above with its remedy;
+  - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the fact is [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s kind; only the ambient lookup is new), and the residual above with its remedy;
+  - its rows cite core and md tests by file, as [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) does, since `check:crossval` resolves titles only in `packages/ts`;
   - its Enforcement table uses Tier 2 rows against deterministic behaviour, with no GC-dependent row;
   - its row goes in `CLAUDE.md`'s ADR index.
 - [ ] The ADR commit is reviewed as a decision before any Phase 1 code is written.
@@ -209,9 +206,9 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 - [ ] `registerSourceText` in `packages/core/src/source-roots.ts`, on a versioned object on
       `globalThis` under a `Symbol.for` key, exported from `@nielspeter/eess/internal`.
 - [ ] The registration rules:
-  - the root is normalised;
+  - the root is normalised, with `posix.normalize`;
   - a root that exists on disk is refused;
-  - an overlapping root is refused, segment-wise;
+  - an overlapping root is refused, segment-wise, after normalising;
   - only an exactly equal map is accepted again;
   - the map is copied.
 - [ ] `applyFilters` normalises the violating path and reads a claimed path only from the texts. A
@@ -235,6 +232,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
       `md-mermaid.ts:131`) honours a waiver in a text corpus's document, against its control, with
       `examined > 0`.
 - [ ] The eess-ts copy's in-memory-file gap is recorded as its own bug.
+- [ ] `apply-fixes`' dry run over a text corpus is recorded as its own bug.
 
 ### Phase 3 — ask 2, documented
 
@@ -248,14 +246,16 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 - **Kernel, registration:**
   - a relative root is refused;
-  - a trailing slash and a backslash are normalised (as strings, since CI runs Linux only);
+  - a trailing slash, a backslash, `//`, `/./` and `/../` are normalised (as strings, since CI runs Linux only);
+  - two spellings of one root (`/v//x` and `/v/x`) are refused as one;
   - a root that exists on disk is refused;
   - equal, containing and contained roots are refused;
   - `/t/1` beside `/t/10` is accepted;
   - an exactly equal map under the same root is accepted, and a different one refused;
   - a subset and a superset are refused;
   - a caller's map changed after registering does not change the registered text;
-  - an unknown shape version on the shared object is refused.
+  - an unknown shape version on the shared object is refused, at registration and at lookup;
+  - a `'__proto__'` key and a non-string value are handled (kept as a key; refused).
 - **Kernel, lookup:**
   - the texts are used for a claimed path;
   - a backslash-spelled violating path finds its root;
@@ -263,9 +263,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
     reported;
   - a claimed root created on disk after registration is the configuration finding;
   - an unclaimed path is read from disk;
-  - a second kernel copy sees the registry: a physical copy of `packages/core/dist` registers, and the
-    original reads. A re-import of one module under another URL would share its imports and could not
-    fail.
+  - a second kernel copy sees the registry: `vi.resetModules()` gives a second module-state instance from `src` (measured in vitest 4), which registers while the first reads. A plain re-import under another URL would share its imports and could not fail.
 - **eess-md:**
   - a waiver applies, with its control;
   - an undocumented waiver gives its finding;
@@ -288,6 +286,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - the miss finding turned into a disk read;
   - the overlap refusal removed;
   - the segment comparison made a string prefix;
+    - the root normalised without collapsing segments;
   - the on-disk refusal removed, at registration and at lookup;
   - a re-registration accepted without comparing;
   - the map not copied;
@@ -308,13 +307,12 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 ## Release
 
-- **`@nielspeter/eess` minor:** a new internal export. The kernel minor leaves every dialect's
+- **`@nielspeter/eess` minor:** a new internal export, on the precedent of 0.8.0's new `/internal` exports. A patch would satisfy every published `^0.10.1`, letting npm dedupe to one kernel and mostly removing the residual; the minor is chosen for the precedent, and the residual is its stated cost. The kernel minor leaves every dialect's
   `^0.10.1`, so `changeset version` patch-bumps eess-ts, eess-mermaid and eess-gherkin too.
 - **`@nielspeter/eess-md` minor, marked `**Breaking**`:**
   - `corpusFromText` accepts the waivers it refused;
   - its default root changes, which the docs already told callers not to rely on;
-  - it newly refuses a caller-set root reused with other text, an overlapping root, and the reserved
-    prefix.
+  - it newly refuses a caller-set root reused with other text, an overlapping root (including two spellings of one), a relative root (documented as absolute, never checked, `packages/md/src/corpus.ts:216`), and the reserved prefix.
 
   The changeset names eess-crossvalidate, which depends on it ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
 
