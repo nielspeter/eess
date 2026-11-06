@@ -207,19 +207,55 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 ### Phase 1 — the kernel holds a claimed root's texts
 
-- [ ] `registerSourceText` in `packages/core/src/source-roots.ts`, on a versioned object on
+Built 2026-11-06 in 25f46e74: `packages/core/src/source-roots.ts`, the lookup in
+`packages/core/src/execute-rule.ts`, and `packages/core/tests/source-text-registry.test.ts` (24 tests).
+The core suite passes (423 tests in 44 files, 1.9 s); typecheck, lint and `check:guardrails` are clean,
+with no guardrails warning in the new or changed files.
+
+- [x] `registerSourceText` in `packages/core/src/source-roots.ts`, on a versioned object on
       `globalThis` under a `Symbol.for` key, exported from `@nielspeter/eess/internal`.
-- [ ] The registration rules:
+- [x] The registration rules:
   - the root is normalised, with `posix.normalize`;
   - a root that exists on disk is refused;
   - an overlapping root is refused, segment-wise, after normalising;
   - only an exactly equal map is accepted again;
   - the map is copied, refusing a non-string value and a non-canonical key.
-- [ ] `applyFilters` normalises the violating path to find a root and key, and parses under the reported `file`. An unreadable registry makes every violating path a finding. Otherwise an unclaimed or relative path is read from disk, and a claimed path follows [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's order: two roots, a root on disk, a reported path on disk, each a finding; then the texts; then a miss, a finding. All decided outside the swallowing `try`.
-- [ ] Red first, through the kernel's public terminal, over a virtual file with registered texts:
-  - the waived violation is gone, while the control text without the directive reports it, with
-    `examined > 0`;
-  - an undocumented directive gives the promoted finding, which proves the registered text was read.
+- [x] `applyFilters` normalises the violating path to find a root and key, and parses under the
+      reported `file`. An unreadable registry makes every violating path a finding. Otherwise an
+      unclaimed or relative path is read from disk, and a claimed path follows [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's
+      order. All decided outside the swallowing `try`. Each finding carries the rule's id when it has
+      one, else the rule's description, else `unnamed`.
+- [x] done-otherwise — red first, through the kernel's public terminal, over a virtual file with
+      registered texts. The tests were written after the code, not before it. Their red against the
+      pre-change behaviour is shown by the mutant _the registered read skipped_, which is that
+      behaviour: 7 of the 24 go red, among them the `correspondence()` test ("with the directive in the
+      registered text, the finding is waived", against its control with `examined > 0`), and the
+      undocumented waiver's promoted finding.
+- [x] The kernel sabotage matrix, run in a worktree with its own install, one mutant at a time
+      against the new test file; the restored tree passed 24 of 24. Every mutant red:
+
+      | mutant | tests red |
+      | --- | --- |
+      | the registered read skipped, so it falls to disk | 7 |
+      | an unreadable store read as empty | 1 (step 1) |
+      | a path under two roots resolved by a pick | 1 (step 2) |
+      | the root-on-disk check removed, at lookup | 1 (step 3) |
+      | the path-on-disk check removed | 1 (step 4) |
+      | a real file read before the root-on-disk check | 2 (steps 3, 4) |
+      | the miss finding turned into a disk read | 2 (step 6, one per rule and file) |
+      | the on-disk refusal removed, at registration | 1 |
+      | the overlap refusal removed | 1 |
+      | the segment comparison made a string prefix | 1 (`/t/1` beside `/t/10`) |
+      | the root normalised without collapsing segments | 3 |
+      | a re-registration accepted without comparing | 3 |
+      | the map not copied (the caller's object read at lookup) | 1 |
+      | the registry kept as module state | 4 (the second kernel copy among them) |
+      | an unknown shape overwritten at registration | 1 |
+      | parsed under the normalised path | 2 |
+
+      _The first "map not copied" mutant built a new `Map` from the caller's object at registration,
+      which is still a copy, and survived; the mutant was wrong, not the test. Rerun as the caller's
+      object read at lookup, it went red._
 
 ### Phase 2 — `corpusFromText` registers and stops refusing
 
