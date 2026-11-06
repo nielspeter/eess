@@ -89,6 +89,6 @@ this fix.
 - [x] `docs/markdown.md`'s `findState` paragraph says how its reading differs from `haveField`'s,
       and the ledger's list of findings names `ledger/states-disagree`.
 - [x] A changeset naming `@nielspeter/eess-md`: `.changeset/two-states-that-disagree.md`.
-- [ ] validation-owed — `npm run validate` on the final commit, before merge; ticked when it exits 0.
+- [x] `npm run validate` green: exit 0 in 37 min 27 s on 935bdef5, the final code.
 
 Deferred: none
