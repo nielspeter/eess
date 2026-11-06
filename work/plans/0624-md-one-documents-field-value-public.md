@@ -131,18 +131,21 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
         emptiness is proven ("model reader; outcome coverage is the agreement test's own count").
   - [x] Changeset: `'@nielspeter/eess-md': minor`, additive, no break; its body says `haveField`'s
         output is unchanged (the golden table).
-- [ ] **2. The import edges, held.** In `arch.rules.ts`:
-  - [ ] `modules(p).that().resideInFile('**/packages/md/src/model/field-resolve.ts').should().onlyBeImportedVia('**/packages/md/src/model/field-verdict.ts')`.
-  - [ ] `field-verdict.ts` only imported via `builders/have-field.ts`,
+- [x] **2. The import edges, held.** In `arch.rules.ts`, as `eess/md-one-field-resolver` and
+      `eess/md-one-field-verdict`:
+  - [x] `modules(p).that().resideInFile('**/packages/md/src/model/field-resolve.ts').should().onlyBeImportedVia('**/packages/md/src/model/field-verdict.ts')`.
+  - [x] `field-verdict.ts` only imported via `builders/have-field.ts`,
         `conditions/agree-with-folder.ts` and `src/index.ts`, which re-exports
         `resolveFieldValue` from the model as it does `resolveLink`. Measured 2026-11-06: today's
         importers are exactly the first two, and `field-resolve.ts`'s only importer is
         `field-verdict.ts`.
-  - [ ] Each rule's comment states what it cannot see, as `eess/md-one-link-resolver`'s does: a
+  - [x] Each rule's comment states what it cannot see, as `eess/md-one-link-resolver`'s does: a
         second reading built on `readFields` that never imports `field-resolve.ts` (how `findState`
         exists), and a resolver inlined into its only importer.
-  - [ ] One `scripts/check-nonvacuity.mjs` row: a planted module under `builders/` importing both
-        files, asserting both rule ids fire on it.
+  - [x] One `scripts/check-nonvacuity.mjs` row: a planted module under `builders/` importing both
+        files, asserting both rule ids fire on it: `arch/md-one-field-reading`, which mutates
+        `builders/docs.ts` (the house shape, as the link-resolver row does) and fires both from one
+        check run (measured).
 
 ## Test inventory
 
@@ -184,7 +187,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
       | `value` ignored | the golden table |
       | `split` ignored | the golden table; the 80 pairs; the outcome-class row |
 
-- [ ] **Phase 2 (Tier 1)**: the non-vacuity row red on the planted importer, both ids.
+- [x] **Phase 2 (Tier 1)**: the non-vacuity row red on the planted importer, both ids.
 
 ## Out of scope
 

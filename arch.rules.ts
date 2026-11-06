@@ -322,6 +322,49 @@ export default [
         'resolve the link with resolveLink() from model/resolve-link.ts, and keep path arithmetic there',
     }),
 
+  // Plan 0624 — one reading of a document's field. `haveField`'s predicate and condition, the public
+  // `resolveFieldValue` (re-exported by src/index.ts) and `agreeWithFolder` all decide through
+  // `fieldVerdict` in model/field-verdict.ts, which alone reads occurrences through the resolver in
+  // model/field-resolve.ts. These two rules hold those import edges, so a second module that resolves
+  // a field cannot grow beside them unseen through either file.
+  //
+  // What they cannot see, stated rather than implied (ADR-016 rule 7):
+  //  - a second reading built on `readFields` that never imports either file; that is how the
+  //    ledger's `findState` exists, a different reading on purpose (plan 0498 decides its future);
+  //  - a resolver inlined into its only importer: `onlyBeImportedVia` passes a module nobody
+  //    imports, and the zero-examined finding is what says so.
+  // Tier 1, on imports; that the readings agree is Tier 2, the agreement test in
+  // packages/md/tests/builders/resolve-field-value.test.ts.
+  modules(p)
+    .that()
+    .resideInFile('**/packages/md/src/model/field-resolve.ts')
+    .should()
+    .onlyBeImportedVia('**/packages/md/src/model/field-verdict.ts')
+    .rule({
+      id: 'eess/md-one-field-resolver',
+      because:
+        "a second module resolving a field's occurrences is a second reading, and two readings disagree about a record's value",
+      suggestion:
+        'read the field through fieldVerdict() (or the public resolveFieldValue()) in model/field-verdict.ts',
+    }),
+
+  modules(p)
+    .that()
+    .resideInFile('**/packages/md/src/model/field-verdict.ts')
+    .should()
+    .onlyBeImportedVia(
+      '**/packages/md/src/builders/have-field.ts',
+      '**/packages/md/src/conditions/agree-with-folder.ts',
+      '**/packages/md/src/index.ts',
+    )
+    .rule({
+      id: 'eess/md-one-field-verdict',
+      because:
+        "every reader of a document's field decides through one verdict, so a view and the gate cannot disagree",
+      suggestion:
+        'import resolveFieldValue from the eess-md root, or decide inside haveField; add a new importer here only with a reason',
+    }),
+
   // PR #252's architect review — eess-md's layers run model → predicates → conditions → builders.
   // A model or predicate module that imports a condition or a builder inverts that, which is how a
   // predicate came to import `titleFault` from conditions/structure.ts before this rule existed.

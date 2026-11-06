@@ -23,6 +23,11 @@
  *                 packages/md/src/conditions/resolve.ts gains a bare `'path'`
  *                 import (the spelling a ban on `'node:path'` alone missed) →
  *                 eess/md-one-link-resolver, on that file.
+ *   arch/md-one-field-reading (plan 0624)
+ *                 packages/md/src/builders/docs.ts gains imports of model/field-resolve.js
+ *                 and model/field-verdict.js → eess/md-one-field-resolver on
+ *                 field-resolve.ts and eess/md-one-field-verdict on field-verdict.ts,
+ *                 both from one check run.
  *   arch/md-rules-import-only-the-root (ADR-022 clause 3)
  *                 packages/md/src/rules/adr.ts gains a `../model/label.js` import →
  *                 md/rules-import-only-the-root, on that file and naming the module;
@@ -775,6 +780,27 @@ function gateArchOneLinkResolver() {
   return {
     ok,
     detail: `${probeNote} (eess/md-one-link-resolver on conditions/resolve.ts) · ${cleanNote}`,
+  }
+}
+
+// --- Gate: arch/md-one-field-reading (plan 0624) ---
+// Mutates a real builder rather than planting a probe, as the link-resolver row does: one file
+// importing both guarded modules, so one check run proves both rules. Each rule reports on the
+// module it guards, naming the importer in its message.
+function gateArchOneFieldReading() {
+  const bad = withMutatedFile(
+    join(repoRoot, 'packages', 'md', 'src', 'builders', 'docs.ts'),
+    "import { resolveField as __probeA } from '../model/field-resolve.js'; import { fieldVerdict as __probeB } from '../model/field-verdict.js'",
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const resolver = firedOn(bad, 'eess/md-one-field-resolver', 'field-resolve.ts')
+  const verdict = firedOn(bad, 'eess/md-one-field-verdict', 'field-verdict.ts')
+  return {
+    ok: bad.code === 1 && resolver && verdict,
+    detail:
+      `builders/docs.ts importing both → exit ${bad.code} · ` +
+      `eess/md-one-field-resolver ${resolver ? 'fired' : 'did not fire'} · ` +
+      `eess/md-one-field-verdict ${verdict ? 'fired' : 'did not fire'}`,
   }
 }
 
@@ -5878,6 +5904,8 @@ const gates = [
   ['corpus/links/fragment-reach', gateCorpusFragmentReach],
   // Bug 0600's gate check, appended so no other fixture changes shard.
   ['corpus/record-mention/skipped-unread', gateRecordMentionSkippedUnread],
+  // Plan 0624's import-edge rules, appended so no other fixture changes shard.
+  ['arch/md-one-field-reading', gateArchOneFieldReading],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
