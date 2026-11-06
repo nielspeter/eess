@@ -7,9 +7,11 @@ import {
 import type { Condition, ConditionContext, Predicate } from '@nielspeter/eess'
 // ADR-022: a preset is built from the md root's public blocks, as an adopter's rule is.
 import {
+  cleanValue,
   collectTaskItems,
   docs,
   taskItems,
+  untilDelimiter,
   type ArchViolation,
   type Corpus,
   type MdDocument,
@@ -326,15 +328,57 @@ function stateUnderAnotherLabel(
   return statesUnderAnotherLabel(doc, vocabulary, names)[0] ?? null
 }
 
+/**
+ * One header line under a label the preset does not read, as facts: each path reads its own. The
+ * no-state path (bug 0444) reads `state`, a state word the value starts with, wherever the line is:
+ * there, reading wide errs toward a finding. The comparison with a read state (bug 0627) reads
+ * `whole` and skips `continuesItem`, so that only a value that is a state word, on a line that opens
+ * a field, can contradict the record.
+ */
 type OtherLabelState = {
   label: string
-  state: string
   line: number
-  /** A plain `Label:` on an indented line that is no list item: a continuation of the prose above. */
-  continuation: boolean
+  /** The vocabulary's state word the value starts with (`stateMatcher`'s prefix reading). */
+  state: string
+  /**
+   * The vocabulary's state word when the whole value is one: `cleanValue`, cut at the first `—` or
+   * `–`, a trailing period dropped (`**Status:** Done.`, as the read side accepts it). `Done (40/40
+   * pages)` and `Done with the spike` have none. A heading's value is compared whole, as before.
+   */
+  whole: string | undefined
+  /**
+   * A plain `Label:` on a later line of a paragraph inside a list item: the item's prose, such as
+   * the State bullet's history (`  Previously read: Ready — …`), not a field of its own.
+   */
+  continuesItem: boolean
 }
 
-/** Every state word under another label in the header, in order (bug 0627 compares each). */
+/**
+ * The lines that continue a paragraph inside a list item: every line of such a paragraph after its
+ * first. Modelled on `blockOf` in model/links.ts (a label counts only where its block starts, plan
+ * 0405), which ADR-022's root-only rule keeps out of this file's reach; a private walk over the
+ * public `doc.root`, memoised per tree. Read only to tell a field from a list item's prose.
+ */
+const itemContinuations = new WeakMap<Root, ReadonlySet<number>>()
+function continuesListItem(root: Root): ReadonlySet<number> {
+  const known = itemContinuations.get(root)
+  if (known !== undefined) return known
+  const lines = new Set<number>()
+  const visit = (node: Root['children'][number], inItem: boolean): void => {
+    if (inItem && node.type === 'paragraph' && node.position !== undefined) {
+      for (let l = node.position.start.line + 1; l <= node.position.end.line; l++) lines.add(l)
+    }
+    if ('children' in node)
+      for (const child of node.children) visit(child, inItem || node.type === 'listItem')
+  }
+  for (const child of root.children) visit(child, false)
+  itemContinuations.set(root, lines)
+  return lines
+}
+
+const wholeValue = untilDelimiter(['—', '–'])
+
+/** Every state word under another label in the header, in order, with what each path reads. */
 function statesUnderAnotherLabel(
   doc: MdDocument,
   vocabulary: readonly string[],
@@ -356,7 +400,7 @@ function statesUnderAnotherLabel(
         const fold = (t: string): string => t.toLowerCase().replace(/’/g, "'")
         const state = vocabulary.find((v) => fold(v) === fold(value))
         if (!read.has(label.trim().toLowerCase()) && state !== undefined)
-          out.push({ label: label.trim(), state, line: i + 1, continuation: false })
+          out.push({ label: label.trim(), state, whole: state, line: i + 1, continuesItem: false })
         continue
       }
       seenHeading += 1
@@ -370,9 +414,18 @@ function statesUnderAnotherLabel(
     if (found === undefined || found === '' || read.has(found.toLowerCase())) continue
     const hit = stateMatcher(vocabulary, stateLabel([found])).exec(line)
     if (hit?.[1] !== undefined) {
-      const plain = wrappedLabelOf(line) === undefined
-      const continued = plain && /^\s/.test(line) && !/^\s*(?:[-*+]|\d+[.)])\s/.test(line)
-      out.push({ label: found, state: hit[1], line: i + 1, continuation: continued })
+      const opened = new RegExp(labelPattern(found), 'i').exec(line)
+      const value = wholeValue(cleanValue(line.slice(opened?.[0].length ?? line.length))).replace(
+        /\.$/,
+        '',
+      )
+      out.push({
+        label: found,
+        state: hit[1],
+        whole: vocabulary.find((v) => foldState(v) === foldState(value)),
+        line: i + 1,
+        continuesItem: wrappedLabelOf(line) === undefined && continuesListItem(doc.root).has(i + 1),
+      })
     }
   }
   return out
@@ -567,24 +620,32 @@ function headerStateViolation(
   }
 
   // Bug 0627: a state word under another label beside the read state that disagrees with it is the
-  // same conflict as two state lines, written under two labels. One that agrees, or a value that is
-  // no state word, is not a state this record contradicts, so it stays quiet. So is a plain label on
-  // an indented line continuing a list item: `  Previously read: Ready` inside the State bullet is
-  // the record's history, written as prose, not a second field.
-  const other = statesUnderAnotherLabel(doc, known, names).find(
-    (o) => !o.continuation && foldState(o.state) !== said(found),
+  // same conflict as two state lines, written under two labels. Only a whole value that is a state
+  // word counts (`**Phase 1:** Done (40/40 pages)` is not one), and only on a line that opens a field:
+  // a plain label continuing a list item's paragraph is that item's prose. One that agrees stays
+  // quiet. Every disagreeing line is named, as two state lines are.
+  const others = statesUnderAnotherLabel(doc, known, names).filter(
+    (o) => o.whole !== undefined && !o.continuesItem && foldState(o.whole) !== said(found),
   )
+  const [other] = others
   if (other !== undefined) {
+    const held = others
+      .map((o) => `\`${o.label}:\` holds '${o.whole ?? o.state}' (line ${String(o.line)})`)
+      .join(', and ')
+    const lines = others.map((o) => `line ${String(o.line)}`).join(' and ')
     return {
       ...v(
         'ledger/states-disagree',
         doc,
         other.line,
-        `${names.join(' or ')} is '${found.raw}' (line ${String(found.line)}), but the header's \`${other.label}:\` holds '${other.state}' (line ${String(other.line)}), a state from the vocabulary.` +
+        `${names.join(' or ')} is '${found.raw}' (line ${String(found.line)}), but the header's ${held}, ${others.length === 1 ? 'a state' : 'states'} from the vocabulary.` +
           ` A record whose state disagrees with itself cannot be placed.`,
         'a record read by one label passes whatever another label in its header says',
       ),
-      suggestion: `If \`${other.label}:\` is this record's state, keep one of the two lines (pass aliases: ['${other.label}'] to read it); if it is not, reword line ${String(other.line)} so its value is not a state word.`,
+      suggestion:
+        others.length === 1
+          ? `If \`${other.label}:\` is this record's state, keep one of the two lines (pass aliases: ['${other.label}'] to read it); if it is not, reword line ${String(other.line)} so its value is not a state word.`
+          : `If one of these labels is this record's state, keep one state line (pass that label in aliases to read it); reword ${lines} where a value is not this record's state.`,
     }
   }
 

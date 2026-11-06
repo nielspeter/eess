@@ -134,3 +134,113 @@ describe('history inside the state bullet is prose, not a second field (bug 0627
     ])
   })
 })
+
+describe('only a whole value that is a state word contradicts the record (bug 0627, its review)', () => {
+  it('a value that only starts with a state word is not a state', () => {
+    for (const line of [
+      '- **Phase 1:** Done (40/40 pages)',
+      '**Note:** Done with the spike',
+      'Context: Open source adoption is slow.',
+      '- **Review:** Ready for Ann',
+    ])
+      expect([line, found(record('**State:** Draft', line))]).toEqual([line, []])
+  })
+
+  it('a state word cut at the dash, marked up, or with a period is a state', () => {
+    for (const line of [
+      '**Status:** Done — merged in #12',
+      '**Status:** Done – merged',
+      '**Status:** **Done**',
+      '**Status:** `Done`',
+      '**Status:** ✅ Done',
+      '**Status:** Done.',
+    ])
+      expect([line, found(record('**State:** Draft', line)).map((f) => f.split(': ')[0])]).toEqual([
+        line,
+        [`${DISAGREE}@4`],
+      ])
+  })
+
+  it('every disagreeing line is named in the one finding, at the first', () => {
+    expect(found(record('**State:** Draft', '**Status:** Done', 'Phase: Open'))).toEqual([
+      `${DISAGREE}@4: State is 'Draft' (line 3), but the header's \`Status:\` holds 'Done' (line 4), and \`Phase:\` holds 'Open' (line 5), states from the vocabulary. A record whose state disagrees with itself cannot be placed.`,
+    ])
+  })
+})
+
+describe('a field opens a line; a list item continued is its prose (bug 0627, its review)', () => {
+  it('after a blank line, an indented plain label opens a paragraph, so it is compared', () => {
+    expect(
+      found(record('**State:** Draft', '', '  Status: Done')).map((f) => f.split(': ')[0]),
+    ).toEqual([`${DISAGREE}@5`])
+  })
+
+  it('an unindented line continuing the State bullet is its history, not a field', () => {
+    const text = [
+      '# Plan 9',
+      '',
+      '- **State:** Done — closed.',
+      'Previously read: Draft — frozen.',
+      '',
+      '- [x] done',
+      '',
+    ].join('\n')
+    expect(found(text, 'work/plans/completed/0009-x.md')).toEqual([])
+  })
+
+  it('a nested item is a field of its own, so it is compared: it fails closed', () => {
+    const text = [
+      '# Plan 9',
+      '',
+      '- **State:** Done — closed.',
+      '  - Previously: Draft',
+      '',
+      '- [x] done',
+      '',
+    ].join('\n')
+    expect(found(text, 'work/plans/completed/0009-x.md').map((f) => f.split(': ')[0])).toEqual([
+      `${DISAGREE}@4`,
+    ])
+  })
+
+  it('a wrapped label continuing a list item is still a field', () => {
+    const text = [
+      '# Plan 9',
+      '',
+      '- **State:** Draft',
+      '  **Status:** Done',
+      '',
+      '- [ ] open',
+      '',
+    ].join('\n')
+    expect(found(text).map((f) => f.split(': ')[0])).toEqual([`${DISAGREE}@4`])
+  })
+
+  it('stated limit: a plain label continuing another bullet stays quiet', () => {
+    // Disclosed in the record: the position rule cannot tell this from history.
+    const text = [
+      '# Plan 9',
+      '',
+      '- **State:** Draft',
+      '- **Owner:** Ann',
+      '  Status: Done',
+      '',
+      '- [ ] open',
+      '',
+    ].join('\n')
+    expect(found(text)).toEqual([])
+  })
+})
+
+describe('the no-state path keeps its wider reading (bug 0444), unchanged here', () => {
+  it('with no State line, a value starting with a state word is still reported', () => {
+    const text = ['# Plan 9', '', '**Status:** Done (merged)', '', '- [ ] open', ''].join('\n')
+    const other = ['# Plan 8', '', '**State:** Draft', ''].join('\n')
+    expect(
+      honestyAtClose(
+        corpusFromText({ 'work/plans/0009-x.md': text, 'work/plans/0008-y.md': other }),
+        { report: 'return' },
+      ).map((v) => `${v.rule}@${v.element}`),
+    ).toEqual(['ledger/state-under-another-label@work/plans/0009-x.md'])
+  })
+})

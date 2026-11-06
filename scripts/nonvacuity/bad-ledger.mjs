@@ -46,6 +46,14 @@ const ROOT = 'scripts/nonvacuity/bad-ledger'
 //
 // `ledger/states-disagree` joined with bug 0623: `0009` holds `State: Draft` then `State: Done` with an
 // open box. Read by its first state it is a live draft and passes; the rule reports the two.
+//
+// Bug 0627 widened `ledger/states-disagree` to a state word under another label: `0010` holds
+// `State: Draft` beside `Status: Done` with an open box, and the rule must fire AT 0010, since 0009
+// already fires it and a membership check alone would pass whatever the new path did. The clean
+// `0002` now also carries the two shapes that path must not read as a second state: a value that only
+// starts with a state word (`Review: Draft notes …`) and a history line continuing the State bullet
+// (`Previously read: Ready — …`). A slide back to prefix matching, or to reading a list item's prose
+// as a field, reds 0002 and so this fixture.
 const RULES = [
   'ledger/silent-open-box',
   'ledger/state-folder-mismatch',
@@ -68,9 +76,9 @@ try {
 // "no violation" would be trivially true and this gate would sit green forever
 // on a drifted root (bug 0110's class).
 const docs = c.documents().length
-if (docs !== 9) {
+if (docs !== 10) {
   console.error(
-    `bad-ledger: the corpus loaded ${docs} document(s), expected 9 — this fixture proves ` +
+    `bad-ledger: the corpus loaded ${docs} document(s), expected 10 — this fixture proves ` +
       `nothing against an empty corpus; check ${ROOT}`,
   )
   process.exit(2)
@@ -96,6 +104,20 @@ if (fromReconciled.length > 0) {
       `fixture's premise is broken, not the gate proven: ${fromReconciled.map((v) => `${v.file}:${v.rule}`).join(', ')}`,
   )
   process.exit(2)
+}
+
+// Bug 0627's path, judged at its own file: 0009 fires the same rule id by the older path.
+const atUnderAnotherLabel = violations.filter(
+  (v) =>
+    v.file.includes('0010-state-under-another-label') &&
+    (v.ruleId ?? v.rule) === 'ledger/states-disagree',
+)
+if (atUnderAnotherLabel.length === 0) {
+  console.error(
+    'bad-ledger: ledger/states-disagree did not fire on 0010-state-under-another-label.md — the ' +
+      'comparison with a state under another label is vacuous',
+  )
+  process.exit(0)
 }
 
 const fired = new Set(violations.map((v) => v.ruleId ?? v.rule))
