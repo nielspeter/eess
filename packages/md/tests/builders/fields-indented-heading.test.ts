@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { corpus, docs, fields, vocabulary } from '../../src/index.js'
 import { tree } from '../helpers/tree.js'
 
-// Bug 0622: `fields()`' header ended at an indented `    ## Notes`, which CommonMark reads as code (or
-// a paragraph's lazy continuation), never a heading. A value rule over `region: 'header'` then passed
+// Bug 0622: `fields()`' header ended at an indented `    ## Notes`, which at the top level CommonMark
+// reads as code (or a paragraph's lazy continuation), never a heading. A value rule over `region: 'header'` then passed
 // without judging the record's field, while `haveField` read the same field as present in the header.
 
 const docsOf = (files: Record<string, readonly string[]>) =>
@@ -48,7 +48,25 @@ describe('an indented line like a heading does not end the field header (bug 062
     })
   })
 
-  it('a heading indented by three spaces still ends the header, as CommonMark reads it', () => {
+  it('a "## Notes" continuing a paragraph is not a heading, so the field below is judged', () => {
+    // A lazy continuation: setting aside every code block would not blank it, so this row tells the
+    // three-space pattern from a header read with code blocks set aside.
+    expect(judge(['# B', '', 'Intro.', '    ## Notes', '', '**Status:** bogus'])).toEqual({
+      examined: 2,
+      value: ['b.md:6'],
+      gate: [],
+    })
+  })
+
+  it('a space then a tab before "## Notes" is not a heading either', () => {
+    expect(judge(['# B', '', ' \t## Notes', '', '**Status:** bogus'])).toEqual({
+      examined: 2,
+      value: ['b.md:5'],
+      gate: [],
+    })
+  })
+
+  it('a heading indented by three spaces still ends the header, as at the top level', () => {
     const got = judge(['# B', '', '   ## Notes', '', '**Status:** bogus'])
     expect([got.examined, got.value]).toEqual([1, []])
     expect(got.gate).toEqual([

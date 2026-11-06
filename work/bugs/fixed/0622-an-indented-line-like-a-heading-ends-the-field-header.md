@@ -42,9 +42,9 @@ value, which any real corpus has.
 
 ## Root cause
 
-`headerEnd` (`packages/md/src/model/fields.ts:151`) ends the header at the first line matching
+`headerEnd` (`packages/md/src/model/fields.ts:158`) ends the header at the first line matching
 `DEEP_HEADING`, `^\s*#{2,6}\s`, which admits any leading whitespace. `fieldLines`
-(`packages/md/src/model/fields.ts:226`) hands it lines with only closed fences set aside
+(`packages/md/src/model/fields.ts:233`) hands it lines with only closed fences set aside
 (`'closed-fences'`, its default), so an indented code block is still there, and four spaces or a tab
 before `## Notes` match. CommonMark reads that line as code, not a heading. This is the third record
 about `headerEnd`: [bug 0604](./0604-a-field-heading-in-a-non-ascii-label-ends-the-header.md)
@@ -72,22 +72,31 @@ case reproducible.
 
 ## Fixed
 
-`DEEP_HEADING` (`packages/md/src/model/fields.ts:147`) is `^ {0,3}#{2,6}\s`, as CommonMark reads a
-heading. Four spaces or a tab make the line code or a lazy continuation, so it no longer ends the
-header, and `fields()` and `haveField` draw the header's end at the same line for every case below.
-`HEADING` and the `heading()` form keep `\s*`: both readers share them, so they make the two readers
-err the same way, not disagree.
+`DEEP_HEADING` (`packages/md/src/model/fields.ts:148`) is `^ {0,3}#{2,6}\s`, the top-level rule:
+four spaces or a tab make an indented-code or lazy-continuation line, which no longer ends the header,
+and `fields()` and `haveField` draw the header's end at the same line for every case below. A line
+pattern cannot see containers: a heading nested in a list item at four spaces no longer ends the header
+either (it did before this fix), and a setext heading, `- ## X` and an empty `##` never did. That, and
+a misattributed message after an unclosed fence, is [bug 0626](../0626-the-field-header-end-is-a-line-pattern-not-a-parse.md), with the parse-tree
+`headerEnd` this record's Fix names.
+
+`HEADING` keeps `\s*` and is shared, so the readers agree on where a value ends. The `heading()` form
+keeps `\s*` and still reads an indented `    ## Status: x` that `haveField` sets aside (the false-red
+direction, [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s
+first Measured row). This fix makes that reachable at a header's top, where the indented line used to
+end the header first.
 
 ## Verification
 
 - [x] Red first: the two records above, the value rule reports `b.md`'s `bogus`.
 - [x] The tab-indented line, likewise.
-- [x] Sabotage: reverting the fix in `headerEnd` (restoring `DEEP_HEADING`'s `^\s*`, or the pre-fix
-      function) reds the new rows.
+- [x] Sabotage: reverting the fix (restoring `DEEP_HEADING`'s `^\s*`) reds the four-space, tab,
+      space-then-tab and lazy-continuation rows (measured: 4 failed, 2 passed); the three-space and real-heading rows are
+      controls, red under `^#{2,6}` and under a depth drift (the review's matrix).
 - [x] The control holds: a real `## Notes` heading still ends the header, and `haveField` still says the
       field is outside it.
 - [x] `haveField` and the value rule agree on where the header ends for every case above.
 - [x] A changeset naming `@nielspeter/eess-md`: `.changeset/an-indented-line-is-not-a-heading.md`.
-- [x] `npm run validate` green.
+- [ ] validation-owed — `npm run validate` on the final commit, before merge; ticked when it exits 0.
 
 Deferred: none
