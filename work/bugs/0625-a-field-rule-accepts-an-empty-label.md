@@ -24,6 +24,12 @@ Over a document holding `**Status:** open`, measured:
 None names the cause, an empty label, and none is an `ArchConfigError`. `forms: []` is accepted too,
 and reports the field "in a form this rule does not read".
 
+Note 2026-11-06: an empty alias is accepted the same way, and a plain-JavaScript caller gets no
+`ArchConfigError` for a made-up form (`forms: ['bld']` reads as "a form this rule does not read") or a
+missing `forms` (a `TypeError`). [Plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md)'s
+`resolveFieldValue` refuses an empty label or alias and `forms: []`; the existing builders are this
+bug's.
+
 ## Root cause
 
 The field builders validate the region (`checkRegion`, `packages/md/src/model/fields.ts:63`, called by

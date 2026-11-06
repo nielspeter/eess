@@ -13,6 +13,13 @@
   until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
+Note 2026-11-06: [plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md) added
+`fieldOutcome` (`packages/md/src/model/field-verdict.ts`), the one three-way mapping of a field's
+verdict that `predicateHaveField` and the public `resolveFieldValue` read through. `agreeWithFolder`'s
+`judgeDocument` (`packages/md/src/conditions/agree-with-folder.ts:356`) still has its own copy. This
+bug's fix touches the same function, so it also moves `judgeDocument` onto `fieldOutcome`, which
+[plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md) deferred here.
+
 ## Symptom
 
 `checkRegion` (`packages/md/src/model/fields.ts:63`) refuses a region that is neither `'header'`
