@@ -32,7 +32,7 @@ A live plan with the default labels (`State`):
 Without the `State:` line, the same heading is reported as `ledger/state-under-another-label`
 ([bug 0444](./fixed/0444-honesty-at-close-reads-state-only-and-says-nothing.md),
 [bug 0476](./fixed/0476-honestyatclose-reads-no-heading-form-state-and-says-nothing-beside-readable-records.md)).
-It predates bug 0623's fix and is the same false-green class under another label.
+It predates [bug 0623](./fixed/0623-the-ledger-reads-the-first-of-two-states.md)'s fix and is the same false-green class under another label.
 
 ## Root cause
 
@@ -43,7 +43,7 @@ written under another label.
 ## Fix
 
 Not designed. A state word under another label beside a read state that disagrees with it is a
-finding, as two disagreeing lines under one label are since bug 0623; one that agrees, or a value
+finding, as two disagreeing lines under one label are since [bug 0623](./fixed/0623-the-ledger-reads-the-first-of-two-states.md); one that agrees, or a value
 that is not a state word, is not. The fix measures a corpus that writes `Status:` deliberately beside
 `State:` (two fields, two meanings), where this must stay quiet unless the values are state words that
 disagree.
