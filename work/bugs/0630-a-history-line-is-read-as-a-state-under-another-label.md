@@ -34,17 +34,18 @@ it one.
 
 ## Root cause
 
-`stateUnderAnotherLabel` (`packages/md/src/rules/ledger.ts:321`) reads a plain `Label:` on any line
-of the header, indented or not (`PLAIN_LABEL` allows leading whitespace). The fix of
-[bug 0627](./fixed/0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md) skips
-such a continuation line when it compares a second label with a read state; the path that runs when
-no state is read still takes it.
+The no-state path reads `statesUnderAnotherLabel`'s `state` fact
+(`packages/md/src/rules/ledger.ts:382`): a value that starts with a state word, on any line of the
+header, indented or not (`PLAIN_LABEL` allows leading whitespace). The comparison that
+[bug 0627](./fixed/0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md) added reads the same scanner's `whole` and `continuesItem` facts and skips a
+plain label continuing a list item; this path does not.
 
 ## Fix
 
-Not designed. Skip a plain label on an indented line that is no list item in this path too, as the
-comparison does, and say what the record lacks (no state line) without naming the prose line as its
-state.
+Not designed. Filter this path by the scanner's `continuesItem` too, as the comparison does, and say
+what the record lacks (no state line) without naming the prose line as its state. Keep this path's
+prefix reading: here a value read wide errs toward a finding (`**Status:** Done (merged)` on a record
+with no state line is reported today, and a whole-value reading would pass it).
 
 ## Verification
 

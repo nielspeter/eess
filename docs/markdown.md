@@ -1998,9 +1998,8 @@ document's `State:` header line, and reports nine things: a done item with an
 open box carrying no disposition token (`ledger/silent-open-box`), a
 `Deferred: none` summary that contradicts a box disposed as
 `deferred→<home>` (`ledger/deferred-none-lie`), a `State:` value that
-doesn't match its folder (`ledger/state-folder-mismatch`), two `State:` lines that
-disagree, reported by the state/folder check before it reads either; the box checks still read the
-first (`ledger/states-disagree`), a `State:` value
+doesn't match its folder (`ledger/state-folder-mismatch`), a state that disagrees with itself
+(`ledger/states-disagree`, described below), a `State:` value
 outside the declared vocabulary (`ledger/unknown-state`), a fenced code block that
 never closes (`ledger/unterminated-fence`), and a document whose header has a
 `State:` line only inside a code block (`ledger/state-in-code`). The last two are the
@@ -2019,6 +2018,24 @@ The last two are about a state the preset could not read at all ([bug 0444](../w
 - **`ledger/no-readable-state`**: a call in which no document carries a state line at all.
   Raised once per call. Its first remedy is to narrow the corpus you pass to the folders that hold
   records, because the preset has no lane list: each call is one lane.
+
+**`ledger/states-disagree`** is a record that says two states. Two `State:` lines that disagree are
+one form ([bug 0623](../work/bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)); a state
+word under another label in the header that disagrees with the state read is the other
+([bug 0627](../work/bugs/fixed/0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md)):
+`**State:** Draft` beside `## Status: Done`, `**Status:** Done` or `Status: Done`. Every disagreeing
+line is named, and the state/folder check reports it before it reads either; the box checks still
+read the first `State:` line. Under another label only a whole value counts: the text after the
+label, its markup cleaned as `cleanValue` does and cut at the first `—` or `–`, a trailing period
+dropped, must be a state word (`Done`, `**Done**`, `Done — merged`, `Done.`). `**Phase 1:** Done
+(40/40 pages)` and `**Note:** Done with the spike` are not states, so they stay quiet; one that
+agrees stays quiet too. A plain `Label:` on a later line of a paragraph inside a list item is that
+item's prose, not a field, so the history a record keeps in its State bullet
+(`  Previously read: Ready — frozen …`) stays quiet. That position rule is a measured choice, not a
+reading of intent, and these shapes stay quiet with it: a conflicting plain label continuing the
+State bullet or any other bullet (`- **Owner:** Ann` then `  Status: Done`), a value in a
+blockquote, and a value that only starts with a state word. A nested list item
+(`  - Previously: Draft`) is a field of its own and is compared; reword it if it is history.
 
 A corpus that writes its state under another label passes `label: 'Status'`, or adds it with
 `aliases: ['Status']`. A record whose header carries its state as a heading, `## Status: Done`, is read too, under the
