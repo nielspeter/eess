@@ -10,7 +10,6 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { parseExclusionComments } from '@nielspeter/eess'
 import {
   ArchConfigError,
   corpus,
