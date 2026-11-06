@@ -1690,31 +1690,34 @@ if (doc !== undefined) {
   const r = resolveFieldValue(doc, { label: 'Status', forms: ['bold', 'plain'], region: 'header' })
   if (r.kind === 'value') console.log(r.values.join(', '))
   else if (r.kind === 'absent') console.log('—', r.message)
-  else console.log('?', r.causes.map((c) => c.message).join('; '))
+  else console.log('?', r.causes.map((cause) => cause.message).join('; '))
 }
 ```
 
 It returns one of three cases, and only `value` carries a value, so a reader cannot take one from a
 document whose value cannot be read:
 
-| `kind`       | meaning                                                                                                                                                                                     |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`      | the one occurrence `haveField` resolves: its split `values`, `line`, `label` as written (or the alias that matched), `form`, and `notes` (prose that disagrees, a label in a form not read) |
-| `absent`     | no field, or a section region whose section the document lacks; `message` is `haveField`'s (the labels the document does carry, or the missing section)                                     |
-| `unreadable` | `causes`, each with its line and message: a conflict (two structured occurrences, agreeing or not), an empty value, a label only in a form not read, code, a value outside the region       |
+| `kind`       | meaning                                                                                                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `value`      | the one occurrence `haveField` resolves: its split `values`, `line`, `label` as written (or the alias that matched), `form`, and `notes` (prose that disagrees, a label in a form not read)            |
+| `absent`     | no field, or a section region whose section the document lacks; `message` is `haveField`'s (the labels the document does carry, or the missing section), with no line: the whole document is the cause |
+| `unreadable` | `causes`, each with its line and message: a conflict (two structured occurrences, agreeing or not), an empty value, a label only in a form not read, code, a value outside the region                  |
 
-It is not a rule: nothing is reported, and an exclusion comment does not apply. A misconfiguration
-is an `ArchConfigError`: an empty label, `forms: []`, a malformed region, or a `oneOf` (this reader
-reports the value as written; judge it with `haveField({ oneOf })`).
+It is not a rule: nothing is reported, and an exclusion comment does not apply. Its `values` are the
+value as `haveField` reads it (after `value` and `split`), before any `oneOf`; the options type
+refuses a `oneOf` (`FieldReadingOptions`), so a `haveField` spec that carries one does not compile as
+the reader's options: drop it (`const { oneOf: _, ...spec } = gate`). A misconfiguration that gets
+past the types is an `ArchConfigError`: an empty label or alias, `forms: []`, a malformed region, or a
+`oneOf`.
 
 Which reader to use:
 
-| reader                     | returns                                                 | differs from `haveField`                                                                          |
-| -------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `resolveFieldValue`        | one document's value, absent, or unreadable with causes | not at all: it is `haveField`'s decision                                                          |
-| `predicateHaveField`       | has / has not (`test`), and the causes (`undecided`)    | not at all, but no value; `test` refuses a document it cannot judge                               |
-| `fields()` + `.select()`   | every occurrence, for a rule's selection                | reads indented and unclosed-fence code (a rule errs toward red); no single value                  |
-| `findState` (rules/ledger) | the ledger's state: the first state line, or `null`     | first wins on two lines, the ledger's larger region, `null` with no cause after an unclosed fence |
+| reader                     | use it for                              | returns                                                 | differs from `haveField`                                                                          |
+| -------------------------- | --------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `resolveFieldValue`        | a board, a report: one record's value   | one document's value, absent, or unreadable with causes | none, apart from `oneOf` (not read) and exclusion comments (a reader applies none)                |
+| `predicateHaveField`       | selecting documents in a rule           | has / has not (`test`), and the causes (`undecided`)    | none, but no value; `test` refuses a document it cannot judge                                     |
+| `fields()` + `.select()`   | a custom rule over every occurrence     | every occurrence, for a rule's selection                | reads indented and unclosed-fence code (a rule errs toward red); no single value                  |
+| `findState` (rules/ledger) | matching `honestyAtClose`'s own reading | the ledger's state: the first state line, or `null`     | first wins on two lines, the ledger's larger region, `null` with no cause after an unclosed fence |
 
 ### A value agrees with its folder: `agreeWithFolder`
 
@@ -2035,7 +2038,7 @@ document's status, exported so a caller reads it as the preset does. It is not `
 reading: it returns the first state line (the preset itself also reports two that disagree,
 `ledger/states-disagree`, [bug 0623](../work/bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)),
 its region is the ledger's larger one, and a line after an unclosed fence gives `null` with no
-cause. To read a field as `haveField` decides it, use `resolveFieldValue` (above). It returns `{ state?, raw, line }` or `null`, and the three things it
+cause. `findState` returns `{ state?, raw, line }` or `null`, and the three things it
 gets right are the three a hand-rolled regex gets wrong: it reads the document's prose as
 CommonMark does, through the parser the task-box pass uses (so an example `**State:** Draft` in a
 code block — fenced with any run of backticks or tildes, or indented — is not the document's state;
@@ -2046,7 +2049,7 @@ apostrophe glyphs so a smart-quoted `Won’t-do` is the same token as `Won't-do`
 what was written, which is what `ledger/unknown-state` reports. `null` means no State line in
 prose: a record whose State line sits only in a code block, or after a fence that never closes, is
 `null` too — `honestyAtClose` reports those, and a caller of its own should not read `null` as "not an
-item" without the same check.
+item" without the same check. To read a field as `haveField` decides it, use `resolveFieldValue` (above).
 
 If you are writing your own ledger check, call this rather than re-deriving it.
 This repo learned that twice: once when `check-ledger.mjs` re-derived the scan and

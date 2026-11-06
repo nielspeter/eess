@@ -788,19 +788,43 @@ function gateArchOneLinkResolver() {
 // importing both guarded modules, so one check run proves both rules. Each rule reports on the
 // module it guards, naming the importer in its message.
 function gateArchOneFieldReading() {
+  // A builder importing both guarded modules: each rule must fire on its module, naming the importer.
   const bad = withMutatedFile(
     join(repoRoot, 'packages', 'md', 'src', 'builders', 'docs.ts'),
     "import { resolveField as __probeA } from '../model/field-resolve.js'; import { fieldVerdict as __probeB } from '../model/field-verdict.js'",
     () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
   )
-  const resolver = firedOn(bad, 'eess/md-one-field-resolver', 'field-resolve.ts')
-  const verdict = firedOn(bad, 'eess/md-one-field-verdict', 'field-verdict.ts')
+  const names = (ruleId) =>
+    violationsOf(bad).some(
+      (v) => v?.ruleId === ruleId && String(v?.message ?? '').includes('builders/docs.ts'),
+    )
+  const resolver =
+    firedOn(bad, 'eess/md-one-field-resolver', 'field-resolve.ts') &&
+    names('eess/md-one-field-resolver')
+  const verdict =
+    firedOn(bad, 'eess/md-one-field-verdict', 'field-verdict.ts') &&
+    names('eess/md-one-field-verdict')
+  // The orphan: field-verdict.ts stops importing field-resolve.ts, which `onlyBeImportedVia` alone
+  // would pass; `beImported()` must red it.
+  const verdictFile = join(repoRoot, 'packages', 'md', 'src', 'model', 'field-verdict.ts')
+  const orphan = withRewrittenFile(
+    verdictFile,
+    (original) =>
+      original.replace(
+        "import { resolveField } from './field-resolve.js'",
+        'declare const resolveField: (...args: never[]) => never',
+      ),
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const orphaned =
+    orphan.code === 1 && firedOn(orphan, 'eess/md-one-field-resolver', 'field-resolve.ts')
   return {
-    ok: bad.code === 1 && resolver && verdict,
+    ok: bad.code === 1 && resolver && verdict && orphaned,
     detail:
       `builders/docs.ts importing both → exit ${bad.code} · ` +
-      `eess/md-one-field-resolver ${resolver ? 'fired' : 'did not fire'} · ` +
-      `eess/md-one-field-verdict ${verdict ? 'fired' : 'did not fire'}`,
+      `eess/md-one-field-resolver ${resolver ? 'fired, naming the importer' : 'did not fire'} · ` +
+      `eess/md-one-field-verdict ${verdict ? 'fired, naming the importer' : 'did not fire'} · ` +
+      `field-resolve.ts orphaned → exit ${orphan.code}${orphaned ? '' : ' (did not fire)'}`,
   }
 }
 
@@ -5952,6 +5976,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'arch/md-one-link-resolver',
+    'arch/md-one-field-reading',
     'arch/md-layers-point-down',
     'arch/md-rules-import-only-the-root',
     'arch/one-code-block-tag-comparison',

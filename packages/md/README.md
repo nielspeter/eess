@@ -633,7 +633,8 @@ have every finding.
 
 To read one document's value as `haveField` decides it, for a board or a report, use
 `resolveFieldValue(doc, { label, forms })`: it returns `value`, `absent` or `unreadable` with the
-causes, never a value it could not read.
+causes, never a value it could not read
+([docs](../../docs/markdown.md#reading-a-field-yourself-resolvefieldvalue)).
 
 ## Custom conventions (localization, project-specific lifecycle)
 

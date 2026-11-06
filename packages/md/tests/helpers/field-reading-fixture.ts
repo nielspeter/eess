@@ -3,7 +3,7 @@
  * golden table (Phase 1a) and the agreement test (Phase 1b) read them under. The class each document
  * stands for is its name; the agreement test asserts that each occurs, with its count.
  */
-import { docs, predicateHaveField, type Corpus } from '../../src/index.js'
+import { docs, isArchConfigError, predicateHaveField, type Corpus } from '../../src/index.js'
 import type { HaveFieldOptions } from '../../src/builders/have-field.js'
 
 const doc = (...lines: readonly string[]): string => [...lines, ''].join('\n')
@@ -26,6 +26,45 @@ export const FIELD_DOCS: Readonly<Record<string, string>> = {
   'docs/section-present.md': doc('# A', '', '## Meta', '', '**Status:** open'),
   'docs/split.md': doc('# A', '', '**Tags:** red, blue'),
   'docs/disallowed.md': doc('# A', '', '**Status:** closed'),
+  'docs/outside-section.md': doc(
+    '# A',
+    '',
+    '## Meta',
+    '',
+    'text',
+    '',
+    '## Other',
+    '',
+    '**Status:** open',
+  ),
+  // Two causes, and two notes, so a reading that keeps only the first is seen.
+  'docs/unread-form-twice.md': doc(
+    '# A',
+    '',
+    '## Status: open',
+    '',
+    '## Status: closed',
+    '',
+    '## Body',
+  ),
+  'docs/value-two-notes.md': doc(
+    '# A',
+    '',
+    '**Status:** open',
+    'Status: closed',
+    '',
+    '## Status: shut',
+  ),
+  // Proposal 028's Measured rows 1 and 3: an indented example above the real value, and an indented
+  // line like a heading above it (bug 0622's shape).
+  'docs/measured-indented-example.md': doc(
+    'Intro.',
+    '',
+    '    Status: fake',
+    '',
+    '**Status:** real',
+  ),
+  'docs/measured-indented-heading.md': doc('# B', '', '    ## Notes', '', '**Status:** open'),
 }
 
 /** The specs, by name. Each reads every document above. */
@@ -72,7 +111,9 @@ export function goldenTable(
       let test: boolean | 'refuses'
       try {
         test = p.test(d)
-      } catch {
+      } catch (e) {
+        // Only the predicate's own refusal; any other throw is a defect and fails the run.
+        if (!isArchConfigError(e)) throw e
         test = 'refuses'
       }
       rows[d.relPath] = {

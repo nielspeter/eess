@@ -13,13 +13,11 @@ const golden: unknown = JSON.parse(
 )
 
 describe("haveField's decisions are unchanged (plan 0624 golden table)", () => {
-  it('the table covers every document under every spec', () => {
-    const expected = Object.keys(FIELD_DOCS).length * Object.keys(FIELD_SPECS).length
-    expect(expected).toBe(96)
-    expect(golden).toMatchObject({ rows: expected })
-  })
-
-  it('every row is as captured: predicate test, undecided causes and condition messages', () => {
-    expect(golden).toMatchObject({ table: goldenTable((files) => corpusFromText({ ...files })) })
+  it('every row is as captured, in both directions: predicate test, undecided causes, condition messages', () => {
+    const table = goldenTable((files) => corpusFromText({ ...files }))
+    const rows = Object.values(table).reduce((n, r) => n + Object.keys(r).length, 0)
+    // The fixture's own size, so a document or a spec dropped on either side reds here too.
+    expect(rows).toBe(Object.keys(FIELD_DOCS).length * Object.keys(FIELD_SPECS).length)
+    expect(golden).toEqual({ capturedFrom: expect.any(String), rows, table })
   })
 })

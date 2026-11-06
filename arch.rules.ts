@@ -328,11 +328,16 @@ export default [
   // model/field-resolve.ts. These two rules hold those import edges, so a second module that resolves
   // a field cannot grow beside them unseen through either file.
   //
+  // Each rule selects its guarded file by path, so it stays selected when every importer goes: a
+  // file nobody imports passes `onlyBeImportedVia` (bug 0015's disclosure, not a failure), so each
+  // also asserts `beImported()`, and an orphaned or bypassed copy reds. A renamed file empties the
+  // selection, and the zero-examined finding says so. A type-only import counts as an importer, so a
+  // new builder that only names `FieldVerdict` reds too: the safe direction.
+  //
   // What they cannot see, stated rather than implied (ADR-016 rule 7):
   //  - a second reading built on `readFields` that never imports either file; that is how the
   //    ledger's `findState` exists, a different reading on purpose (plan 0498 decides its future);
-  //  - a resolver inlined into its only importer: `onlyBeImportedVia` passes a module nobody
-  //    imports, and the zero-examined finding is what says so.
+  //  - an importer outside the build tsconfigs this workspace reads (tests, scripts).
   // Tier 1, on imports; that the readings agree is Tier 2, the agreement test in
   // packages/md/tests/builders/resolve-field-value.test.ts.
   modules(p)
@@ -340,6 +345,8 @@ export default [
     .resideInFile('**/packages/md/src/model/field-resolve.ts')
     .should()
     .onlyBeImportedVia('**/packages/md/src/model/field-verdict.ts')
+    .andShould()
+    .beImported()
     .rule({
       id: 'eess/md-one-field-resolver',
       because:
@@ -357,6 +364,8 @@ export default [
       '**/packages/md/src/conditions/agree-with-folder.ts',
       '**/packages/md/src/index.ts',
     )
+    .andShould()
+    .beImported()
     .rule({
       id: 'eess/md-one-field-verdict',
       because:

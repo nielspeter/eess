@@ -1,6 +1,6 @@
 {
-  "capturedFrom": "main at 8969ee6b (v0.18.0), before plan 0624",
-  "rows": 96,
+  "capturedFrom": "main at 8969ee6b (v0.18.0), before plan 0624; re-captured 2026-11-06 with 21 documents",
+  "rows": 126,
   "table": {
     "header": {
       "docs/absent-no-labels.md": {
@@ -65,6 +65,16 @@
           "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
         ]
       },
+      "docs/measured-indented-example.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/measured-indented-heading.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
       "docs/outside-header.md": {
         "test": "refuses",
         "undecided": [
@@ -72,6 +82,15 @@
         ],
         "condition": [
           "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/outside-section.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
         ]
       },
       "docs/section-present.md": {
@@ -99,6 +118,17 @@
           "Status at line 4 follows a code fence that never closes; close the fence"
         ]
       },
+      "docs/unread-form-twice.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
       "docs/unread-form.md": {
         "test": "refuses",
         "undecided": [
@@ -113,6 +143,14 @@
         "undecided": [],
         "condition": [
           "prose says Status 'closed', but the field at line 3 says 'open'"
+        ]
+      },
+      "docs/value-two-notes.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status 'closed', but the field at line 3 says 'open'",
+          "found `## Status: shut` at line 6, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
         ]
       },
       "docs/value-unread-form-note.md": {
@@ -189,6 +227,16 @@
           "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
         ]
       },
+      "docs/measured-indented-example.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/measured-indented-heading.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
       "docs/outside-header.md": {
         "test": "refuses",
         "undecided": [
@@ -196,6 +244,15 @@
         ],
         "condition": [
           "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/outside-section.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
         ]
       },
       "docs/section-present.md": {
@@ -223,6 +280,17 @@
           "Status at line 4 follows a code fence that never closes; close the fence"
         ]
       },
+      "docs/unread-form-twice.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
       "docs/unread-form.md": {
         "test": "refuses",
         "undecided": [
@@ -237,6 +305,14 @@
         "undecided": [],
         "condition": [
           "prose says Status 'closed', but the field at line 3 says 'open'"
+        ]
+      },
+      "docs/value-two-notes.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status 'closed', but the field at line 3 says 'open'",
+          "found `## Status: shut` at line 6, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
         ]
       },
       "docs/value-unread-form-note.md": {
@@ -309,11 +385,34 @@
           "no section \"Meta\" to read Status from (region)"
         ]
       },
+      "docs/measured-indented-example.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/measured-indented-heading.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
       "docs/outside-header.md": {
         "test": false,
         "undecided": [],
         "condition": [
           "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/outside-section.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 9 is outside the \"Meta\" section (region); move it into the section, or change the region"
+        ],
+        "condition": [
+          "Status at line 9 is outside the \"Meta\" section (region); move it into the section, or change the region"
         ]
       },
       "docs/section-present.md": {
@@ -335,6 +434,13 @@
           "no section \"Meta\" to read Status from (region)"
         ]
       },
+      "docs/unread-form-twice.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
       "docs/unread-form.md": {
         "test": false,
         "undecided": [],
@@ -343,6 +449,13 @@
         ]
       },
       "docs/value-prose-note.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/value-two-notes.md": {
         "test": false,
         "undecided": [],
         "condition": [
@@ -421,7 +534,28 @@
           "no Tags field (read as bold); it carries no wrapped label"
         ]
       },
+      "docs/measured-indented-example.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/measured-indented-heading.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
       "docs/outside-header.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/outside-section.md": {
         "test": false,
         "undecided": [],
         "condition": [
@@ -447,6 +581,13 @@
           "no Tags field (read as bold); it carries no wrapped label"
         ]
       },
+      "docs/unread-form-twice.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); it carries no wrapped label"
+        ]
+      },
       "docs/unread-form.md": {
         "test": false,
         "undecided": [],
@@ -455,6 +596,13 @@
         ]
       },
       "docs/value-prose-note.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/value-two-notes.md": {
         "test": false,
         "undecided": [],
         "condition": [
@@ -539,6 +687,16 @@
           "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
         ]
       },
+      "docs/measured-indented-example.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/measured-indented-heading.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
       "docs/outside-header.md": {
         "test": "refuses",
         "undecided": [
@@ -546,6 +704,15 @@
         ],
         "condition": [
           "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/outside-section.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
         ]
       },
       "docs/section-present.md": {
@@ -573,6 +740,17 @@
           "Status at line 4 follows a code fence that never closes; close the fence"
         ]
       },
+      "docs/unread-form-twice.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
       "docs/unread-form.md": {
         "test": "refuses",
         "undecided": [
@@ -587,6 +765,14 @@
         "undecided": [],
         "condition": [
           "prose says Status ' CLOSED', but the field at line 3 says ' OPEN'"
+        ]
+      },
+      "docs/value-two-notes.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status ' CLOSED', but the field at line 3 says ' OPEN'",
+          "found `## Status: shut` at line 6, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
         ]
       },
       "docs/value-unread-form-note.md": {
@@ -667,6 +853,18 @@
           "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
         ]
       },
+      "docs/measured-indented-example.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "'real' (Status, line 5) does not match /^open$/"
+        ]
+      },
+      "docs/measured-indented-heading.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
       "docs/outside-header.md": {
         "test": "refuses",
         "undecided": [
@@ -674,6 +872,15 @@
         ],
         "condition": [
           "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/outside-section.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 9 is outside the header (region: 'header'); move it into the header, or drop the region"
         ]
       },
       "docs/section-present.md": {
@@ -701,6 +908,17 @@
           "Status at line 4 follows a code fence that never closes; close the fence"
         ]
       },
+      "docs/unread-form-twice.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line",
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
       "docs/unread-form.md": {
         "test": "refuses",
         "undecided": [
@@ -715,6 +933,14 @@
         "undecided": [],
         "condition": [
           "prose says Status 'closed', but the field at line 3 says 'open'"
+        ]
+      },
+      "docs/value-two-notes.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status 'closed', but the field at line 3 says 'open'",
+          "found `## Status: shut` at line 6, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
         ]
       },
       "docs/value-unread-form-note.md": {

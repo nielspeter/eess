@@ -111,7 +111,11 @@ export type { MdLinkBlock, MdLinkDefinition } from './model/links.js'
 export type { LinkResolveOptions } from './conditions/resolve.js'
 export { resolveLink } from './model/resolve-link.js'
 // Plan 0624: one document's field value, as `haveField` decides it.
-export { resolveFieldValue, type FieldReading } from './model/field-verdict.js'
+export {
+  resolveFieldValue,
+  type FieldReading,
+  type FieldReadingOptions,
+} from './model/field-verdict.js'
 export type { LinkTarget, LinkToResolve, NotInCorpusReason } from './model/resolve-link.js'
 export { githubAnchors } from './model/anchors.js'
 export type { AnchorRule, FragmentVerdict, NotJudgedReason } from './model/anchors.js'
