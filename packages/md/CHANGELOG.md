@@ -1,5 +1,17 @@
 # @nielspeter/eess-md
 
+## 0.15.0
+
+### Minor Changes
+
+- 907173c: **Breaking (@nielspeter/eess-md):** an indented line that looks like a heading no longer ends a field header (bug 0622). `fields(c, { …, region: 'header' })` ended the header at the first line like `## Notes`, including one indented by four spaces or a tab, which CommonMark reads as code or as a paragraph's continuation, never a heading. A value rule over the header then passed without judging the field below it, while `haveField` read that field as present in the header. A line now ends the header only with at most three spaces before its `#`, as at the top level, so a header value rule can newly report a value it skipped. `haveField(…, { region: 'header' })` moves the header's end the same way: a field below such a line is no longer "outside the header", and a second value below it is now "given twice". To migrate: a finding this reports was a value never checked; correct it. To keep the old end, write the line as a heading with at most three spaces before its `#`.
+- 52ba2d4: **Breaking (@nielspeter/eess-md):** `honestyAtClose` reports two state lines that disagree (bug 0623). It judged a record by the first `State:` line in its header region, so a live plan holding `State: Draft` then `State: Done` and an open box passed, while the reverse order reported the record. Any line in the header region that opens with the label counts, an out-of-vocabulary value included, so two lines whose states differ are now `ledger/states-disagree`, at the first that disagrees (`State is given twice (line 3 'Draft', line 4 'Done'); keep one`), reported before the record is placed, as an unreadable state is. Two lines that agree read as before. A corpus with such a record can newly go red. The state/folder check reports it before reading either line; the box checks still read the first, so keeping one state can bring out a box finding. To migrate: keep the one state the record means; if the second line is prose that opens with the label (`State: kept in Redis`), reword it, as the finding's remedy says. `findState` is unchanged and still returns the first state line; its documentation now says how its reading differs from `haveField`'s.
+
+### Patch Changes
+
+- Updated dependencies [c9990ed]
+  - @nielspeter/eess@0.10.1
+
 ## 0.14.0
 
 ### Minor Changes
