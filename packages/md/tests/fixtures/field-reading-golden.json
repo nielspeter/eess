@@ -1,0 +1,734 @@
+{
+  "capturedFrom": "main at 8969ee6b (v0.18.0), before plan 0624",
+  "rows": 96,
+  "table": {
+    "header": {
+      "docs/absent-no-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); it carries no wrapped label"
+        ]
+      },
+      "docs/absent-with-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Owner"
+        ]
+      },
+      "docs/alias.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: State"
+        ]
+      },
+      "docs/conflict-agree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 'open', line 4 'open'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 'open', line 4 'open'); keep one"
+        ]
+      },
+      "docs/conflict-disagree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 'open', line 4 'closed'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 'open', line 4 'closed'); keep one"
+        ]
+      },
+      "docs/disallowed.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/empty.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 3 has no value this rule can read"
+        ],
+        "condition": [
+          "Status at line 3 has no value this rule can read"
+        ]
+      },
+      "docs/indented.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ],
+        "condition": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ]
+      },
+      "docs/outside-header.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/section-present.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/split.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Tags"
+        ]
+      },
+      "docs/unclosed-fence.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ],
+        "condition": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ]
+      },
+      "docs/unread-form.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value-prose-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status 'closed', but the field at line 3 says 'open'"
+        ]
+      },
+      "docs/value-unread-form-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      }
+    },
+    "header-aliases": {
+      "docs/absent-no-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); it carries no wrapped label"
+        ]
+      },
+      "docs/absent-with-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Owner"
+        ]
+      },
+      "docs/alias.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/conflict-agree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 'open', line 4 'open'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 'open', line 4 'open'); keep one"
+        ]
+      },
+      "docs/conflict-disagree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 'open', line 4 'closed'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 'open', line 4 'closed'); keep one"
+        ]
+      },
+      "docs/disallowed.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/empty.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 3 has no value this rule can read"
+        ],
+        "condition": [
+          "Status at line 3 has no value this rule can read"
+        ]
+      },
+      "docs/indented.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ],
+        "condition": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ]
+      },
+      "docs/outside-header.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/section-present.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/split.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Tags"
+        ]
+      },
+      "docs/unclosed-fence.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ],
+        "condition": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ]
+      },
+      "docs/unread-form.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value-prose-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status 'closed', but the field at line 3 says 'open'"
+        ]
+      },
+      "docs/value-unread-form-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      }
+    },
+    "section": {
+      "docs/absent-no-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/absent-with-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/alias.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/conflict-agree.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/conflict-disagree.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/disallowed.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/empty.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/indented.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/outside-header.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/section-present.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/split.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/unclosed-fence.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/unread-form.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/value-prose-note.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/value-unread-form-note.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      },
+      "docs/value.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no section \"Meta\" to read Status from (region)"
+        ]
+      }
+    },
+    "split": {
+      "docs/absent-no-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); it carries no wrapped label"
+        ]
+      },
+      "docs/absent-with-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Owner"
+        ]
+      },
+      "docs/alias.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: State"
+        ]
+      },
+      "docs/conflict-agree.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/conflict-disagree.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/disallowed.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/empty.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/indented.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); it carries no wrapped label"
+        ]
+      },
+      "docs/outside-header.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/section-present.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/split.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/unclosed-fence.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); it carries no wrapped label"
+        ]
+      },
+      "docs/unread-form.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); it carries no wrapped label"
+        ]
+      },
+      "docs/value-prose-note.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/value-unread-form-note.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      },
+      "docs/value.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Tags field (read as bold); its labels: Status"
+        ]
+      }
+    },
+    "value": {
+      "docs/absent-no-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); it carries no wrapped label"
+        ]
+      },
+      "docs/absent-with-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Owner"
+        ]
+      },
+      "docs/alias.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: State"
+        ]
+      },
+      "docs/conflict-agree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 ' OPEN', line 4 ' OPEN'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 ' OPEN', line 4 ' OPEN'); keep one"
+        ]
+      },
+      "docs/conflict-disagree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 ' OPEN', line 4 ' CLOSED'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 ' OPEN', line 4 ' CLOSED'); keep one"
+        ]
+      },
+      "docs/disallowed.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      },
+      "docs/empty.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 3 has no value this rule can read"
+        ],
+        "condition": [
+          "Status at line 3 has no value this rule can read"
+        ]
+      },
+      "docs/indented.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ],
+        "condition": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ]
+      },
+      "docs/outside-header.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/section-present.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/split.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Tags"
+        ]
+      },
+      "docs/unclosed-fence.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ],
+        "condition": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ]
+      },
+      "docs/unread-form.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value-prose-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status ' CLOSED', but the field at line 3 says ' OPEN'"
+        ]
+      },
+      "docs/value-unread-form-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      }
+    },
+    "one-of": {
+      "docs/absent-no-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); it carries no wrapped label"
+        ]
+      },
+      "docs/absent-with-labels.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Owner"
+        ]
+      },
+      "docs/alias.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: State"
+        ]
+      },
+      "docs/conflict-agree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 'open', line 4 'open'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 'open', line 4 'open'); keep one"
+        ]
+      },
+      "docs/conflict-disagree.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status is given twice (line 3 'open', line 4 'closed'); keep one"
+        ],
+        "condition": [
+          "Status is given twice (line 3 'open', line 4 'closed'); keep one"
+        ]
+      },
+      "docs/disallowed.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "'closed' (Status, line 3) does not match /^open$/"
+        ]
+      },
+      "docs/empty.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 3 has no value this rule can read"
+        ],
+        "condition": [
+          "Status at line 3 has no value this rule can read"
+        ]
+      },
+      "docs/indented.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ],
+        "condition": [
+          "Status at line 5 sits in an indented code block (four spaces or a tab); unindent it"
+        ]
+      },
+      "docs/outside-header.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/section-present.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ],
+        "condition": [
+          "Status at line 5 is outside the header (region: 'header'); move it into the header, or drop the region"
+        ]
+      },
+      "docs/split.md": {
+        "test": false,
+        "undecided": [],
+        "condition": [
+          "no Status field (read as bold, plain); its labels: Tags"
+        ]
+      },
+      "docs/unclosed-fence.md": {
+        "test": "refuses",
+        "undecided": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ],
+        "condition": [
+          "Status at line 4 follows a code fence that never closes; close the fence"
+        ]
+      },
+      "docs/unread-form.md": {
+        "test": "refuses",
+        "undecided": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ],
+        "condition": [
+          "found `## Status: open` at line 3, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value-prose-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "prose says Status 'closed', but the field at line 3 says 'open'"
+        ]
+      },
+      "docs/value-unread-form-note.md": {
+        "test": true,
+        "undecided": [],
+        "condition": [
+          "found `## Status: closed` at line 5, in a form this rule does not read (heading); add 'heading' to forms, or rewrite the line"
+        ]
+      },
+      "docs/value.md": {
+        "test": true,
+        "undecided": [],
+        "condition": []
+      }
+    }
+  }
+}

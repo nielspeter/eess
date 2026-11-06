@@ -44,6 +44,32 @@ export interface FieldVerdict {
   readonly causes: readonly FieldCause[]
 }
 
+/**
+ * A verdict's three-way outcome (plan 0624), the one rule the predicate decides by and the public
+ * reader returns: resolved → `value`; otherwise any unreadable cause → `unreadable`; otherwise
+ * `absent`. A section region whose section the document lacks is `absent`, a decided "no" (plan
+ * 0505). A `value` carries, as `notes`, the unreadable causes its verdict does not depend on (prose
+ * that disagrees, a label in a form not read: ADR-021 clause 4); a `disallowed` cause is a judgement of
+ * `oneOf`, not a note.
+ */
+type FieldOutcome =
+  | {
+      readonly kind: 'value'
+      readonly occurrence: FieldOccurrence
+      readonly notes: readonly FieldCause[]
+    }
+  | { readonly kind: 'absent'; readonly cause: FieldCause | undefined }
+  | { readonly kind: 'unreadable'; readonly causes: readonly FieldCause[] }
+
+/** The outcome of a verdict: see {@link FieldOutcome}. */
+export function fieldOutcome(v: FieldVerdict): FieldOutcome {
+  const unreadable = v.causes.filter((c) => c.kind === 'unreadable')
+  if (v.resolved && v.occurrence !== undefined)
+    return { kind: 'value', occurrence: v.occurrence, notes: unreadable }
+  if (unreadable.length > 0) return { kind: 'unreadable', causes: unreadable }
+  return { kind: 'absent', cause: v.causes.find((c) => c.kind === 'absent') }
+}
+
 const valueAt = (o: FieldOccurrence): string => o.values.join(', ')
 
 /** The wrapped labels a document carries, so "no Status" can point at the label it does write. */

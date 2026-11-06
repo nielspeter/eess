@@ -106,14 +106,18 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
 
 ## Phases
 
-- [ ] **1a. The internal projection, pinned to today.** No public change.
-  - [ ] Before any rewire, capture a **golden table** from `main`: for every document of a fixture
+- [x] **1a. The internal projection, pinned to today.** No public change.
+  - [x] Before any rewire, capture a **golden table** from `main`: for every document of a fixture
         corpus × these specs: the header (`forms: ['bold', 'plain']`), the header with
         `aliases`, a named section present and missing, `split`, `value`, and `oneOf`, `predicateHaveField(spec).test()` and `.undecided()` messages and the
         `docs(c).should().haveField(spec)` messages. Commit it as data with its own row count.
-  - [ ] Add `fieldOutcome`; rewrite the predicate's decision onto it. The golden table is
-        unchanged, every row.
-  - [ ] Changeset: `'@nielspeter/eess-md': none` (no consumer-visible change, pinned by the table).
+        Done: `packages/md/tests/fixtures/field-reading-golden.json`, 96 rows (16 documents × 6
+        specs) captured from `main` at 8969ee6b; the fixture is
+        `packages/md/tests/helpers/field-reading-fixture.ts`.
+  - [x] Add `fieldOutcome`; rewrite the predicate's decision onto it. The golden table is
+        unchanged, every row: `packages/md/tests/builders/have-field-golden.test.ts`, red when
+        `fieldOutcome` maps a missing section to `unreadable` (measured), green after.
+  - [x] Changeset: `'@nielspeter/eess-md': none` (no consumer-visible change, pinned by the table).
 - [ ] **1b. The public reader.**
   - [ ] `resolveFieldValue` and `FieldReading` on the eess-md root, over `fieldOutcome`; the option
         refusals.
