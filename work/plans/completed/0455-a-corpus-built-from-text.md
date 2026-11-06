@@ -331,7 +331,7 @@ parity test compares sets, not arrays.
 - A text corpus that reads part of its files from disk (Design: one source).
 - Reading waivers from memory. That is a kernel capability ([ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s shape: source text the kernel
   takes from its caller), refused here instead:
-  [bug 0520](../../bugs/0520-waivers-in-a-text-corpus-are-refused.md).
+  [bug 0520](../../bugs/fixed/0520-waivers-in-a-text-corpus-are-refused.md).
 - Git tracking ([bug 0446](../../bugs/0446-a-link-to-an-untracked-file-resolves.md)). A text corpus has no untracked files; whatever [bug 0446](../../bugs/0446-a-link-to-an-untracked-file-resolves.md) decides for
   `corpus()` either passes through `assembleCorpus` or is disk-only, and that bug says which.
 - `DEFAULT_FROZEN` (017's second Review, decision 2): this plan shares it and does not change it.

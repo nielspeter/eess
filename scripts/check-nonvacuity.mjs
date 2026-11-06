@@ -5946,6 +5946,13 @@ const gates = [
   ['corpus/record-mention/skipped-unread', gateRecordMentionSkippedUnread],
   // Plan 0624's import-edge rules, appended so no other fixture changes shard.
   ['arch/md-one-field-reading', gateArchOneFieldReading],
+  // ADR-024 (plan 0632): a text corpus's waivers are read from its registered text. The witness is
+  // the promoted undocumented-waiver finding, which only parsing the registered text produces.
+  // Appended so no other fixture changes shard.
+  [
+    'source-text/registered-waiver-read',
+    () => gateNode('bad-text-corpus-waiver.mjs', 'source-text/registered-waiver-read'),
+  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -6044,7 +6051,11 @@ const GATE_FOR = {
     // Plan 0214 — FIXTURE tier: no production rule calls tableErAgree.
     'crossval/md-mermaid-er',
   ],
+  // `source-text/registered-waiver-read` drives `corpusFromText` and the kernel's waiver scan
+  // directly and runs no `check:*` script. It is filed here, narrower than the gate, because
+  // `check:corpus` is the gate whose eess-md rules run through that scan (ADR-024).
   'check:corpus': [
+    'source-text/registered-waiver-read',
     'corpus/record-number-unique',
     'corpus/record-number-unique/directory-form',
     'corpus/record-mention/plain',

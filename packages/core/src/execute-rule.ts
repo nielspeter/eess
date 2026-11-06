@@ -15,6 +15,7 @@ import type { ExclusionWarning } from './exclusion-comments.js'
 import { UNSUPPRESSABLE } from './unsuppressable.js'
 import { writeStderr } from './stderr.js'
 import { activeNotice } from './diff-disclosure.js'
+import { sourceLookup } from './source-roots.js'
 import { recordCommentSuppression } from './comment-suppression.js'
 
 /**
@@ -145,29 +146,42 @@ export function applyFilters(
   if (result.length > 0) {
     const filePaths = new Set(result.map((v) => v.file))
     const undocumented: ExclusionWarning[] = []
-    const allComments = [...filePaths].flatMap((filePath) => {
-      try {
-        const sourceText = fs.readFileSync(filePath, 'utf-8')
-        const parseResult = parseExclusionComments(sourceText, filePath)
-        for (const warning of parseResult.warnings) {
-          // An undocumented exclusion is well-formed and APPLIES, so a stderr
-          // line would let a waiver nobody justified pass with exit 0. It
-          // becomes an unsuppressable finding below instead — ADR-009 rule 3's
-          // corollary, and bug 0039's design, which until ADR-012 only `eess-ts`
-          // implemented. The malformed shapes decline to create the exclusion at
-          // all, so the original violation still fires and the build is already
-          // red; stderr is the right weight for those.
-          if (warning.kind === 'undocumented' && ctx.metadata?.id !== undefined) {
-            // The promotion below builds an unsuppressable finding keyed on the
-            // rule id. Without one there is nothing to key it on — and the
-            // directive is inert anyway, which the inert report says with a
-            // remedy the author can act on. So it falls through to stderr.
-            undocumented.push(warning)
-            continue
-          }
-          writeStderr(`[eess] ${warning.message}`)
+    // A claimed file's waivers come from its registered text, never the disk (ADR-024). The lookup
+    // is decided here, outside the `try` below, so none of its findings can be swallowed.
+    const sourceFindings: { file: string; cause: string; remedy: string }[] = []
+    const scan = (sourceText: string, filePath: string): ExclusionComment[] => {
+      const parseResult = parseExclusionComments(sourceText, filePath)
+      for (const warning of parseResult.warnings) {
+        // An undocumented exclusion is well-formed and APPLIES, so a stderr
+        // line would let a waiver nobody justified pass with exit 0. It
+        // becomes an unsuppressable finding below instead — ADR-009 rule 3's
+        // corollary, and bug 0039's design, which until ADR-012 only `eess-ts`
+        // implemented. The malformed shapes decline to create the exclusion at
+        // all, so the original violation still fires and the build is already
+        // red; stderr is the right weight for those.
+        if (warning.kind === 'undocumented' && ctx.metadata?.id !== undefined) {
+          // The promotion below builds an unsuppressable finding keyed on the
+          // rule id. Without one there is nothing to key it on — and the
+          // directive is inert anyway, which the inert report says with a
+          // remedy the author can act on. So it falls through to stderr.
+          undocumented.push(warning)
+          continue
         }
-        return parseResult.exclusions
+        writeStderr(`[eess] ${warning.message}`)
+      }
+      return parseResult.exclusions
+    }
+    // The registry is read once for this rule's run, not once per violating file.
+    const lookupSource = sourceLookup()
+    const allComments = [...filePaths].flatMap((filePath) => {
+      const source = lookupSource(filePath)
+      if (source.kind === 'finding') {
+        sourceFindings.push({ file: filePath, cause: source.cause, remedy: source.remedy })
+        return []
+      }
+      if (source.kind === 'text') return scan(source.text, filePath)
+      try {
+        return scan(fs.readFileSync(filePath, 'utf-8'), filePath)
       } catch (err) {
         // Deliberate discard: violation paths may be virtual (synthetic
         // elements, fixtures) — an unreadable file simply has no exclusion
@@ -321,6 +335,25 @@ export function applyFilters(
           `suppression rather than preventing one — the audience is the reviewer ` +
           `reading the diff. If the exemption is not justifiable, delete it and fix ` +
           `the finding instead. ${UNSUPPRESSABLE}`,
+        severity: 'error',
+        bypassFilters: true,
+      })
+    }
+
+    // A claimed file whose waivers cannot be read from its registered text (ADR-024 clause 5): one
+    // finding per rule and file, unsuppressable, beside the violation it leaves unwaived.
+    const describedRule = ctx.describe?.()
+    const ruleName =
+      ruleId ?? (describedRule === undefined || describedRule === '' ? 'unnamed' : describedRule)
+    for (const f of sourceFindings) {
+      result.push({
+        rule: ruleName,
+        ...(ruleId === undefined ? {} : { ruleId }),
+        element: `${ruleName}@${f.file}`,
+        file: f.file,
+        line: 0,
+        message: `This rule's waivers for '${f.file}' were not read: ${f.cause}.`,
+        suggestion: `To fix: ${f.remedy}. ${UNSUPPRESSABLE}`,
         severity: 'error',
         bypassFilters: true,
       })

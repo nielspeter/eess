@@ -10,7 +10,6 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { parseExclusionComments } from '@nielspeter/eess'
 import {
   ArchConfigError,
   corpus,
@@ -327,33 +326,8 @@ describe('corpusFromText: what cannot behave as on disk is refused', () => {
     expect(caught instanceof Error ? caught.message : '').toContain(named)
   }
 
-  it('refuses a waiver in a loaded document, naming the document and line', () => {
-    refused(
-      { 'docs/a.md': '# A\n\n<!-- eess-exclude corpus/x: a reason -->\nText.\n' },
-      "'docs/a.md' line 3",
-    )
-  })
-
-  it('refuses a malformed waiver in a loaded document, which the kernel would report', () => {
-    // A block that never ends: the kernel's parse yields a warning and no exclusion, so only the
-    // warnings half of the refusal can refuse it.
-    const text = '# A\n\n<!-- eess-exclude-start corpus/x: a reason -->\nText.\n'
-    const parsed = parseExclusionComments(text, join(sep, '__eess_text_corpus__', 'docs/a.md'))
-    expect(parsed.exclusions).toEqual([])
-    expect(parsed.warnings).not.toEqual([])
-    refused({ 'docs/a.md': text }, "'docs/a.md' line 3")
-  })
-
-  it('accepts the same waiver in a file outside roots', () => {
-    const c = corpusFromText(
-      {
-        'docs/a.md': '# A\n',
-        'notes/w.md': '# W\n\n<!-- eess-exclude corpus/x: a reason -->\n',
-      },
-      { roots: ['docs/**'] },
-    )
-    expect(c.documents().map((d) => d.relPath)).toEqual(['docs/a.md'])
-  })
+  // Plan 0632 (ADR-024): a waiver in a loaded document is no longer refused; it applies as on disk.
+  // Its tests, against `corpus()` over the same files, are in text-corpus-waivers.test.ts.
 
   it('refuses a path that has no single repo-relative meaning, naming it and why', () => {
     const cases: readonly (readonly [string, string])[] = [
@@ -424,15 +398,5 @@ describe('corpusFromText: document order', () => {
     const order = (c: Corpus): string[] => c.documents().map((d) => d.relPath)
     expect(order(forward)).toEqual(['a.md', 'b.md', 'c/d.md'])
     expect(order(backward)).toEqual(order(forward))
-  })
-})
-
-describe("corpusFromText: the waiver refusal reads what the kernel's parse reads", () => {
-  it('a directive only inside a fenced code block is accepted exactly when the kernel reads none', () => {
-    const text = '# A\n\n```md\n<!-- eess-exclude corpus/x: shown, not applied -->\n```\n'
-    const parsed = parseExclusionComments(text, join(sep, '__eess_text_corpus__', 'docs/a.md'))
-    expect(parsed.exclusions).toEqual([])
-    expect(parsed.warnings).toEqual([])
-    expect(corpusFromText({ 'docs/a.md': text }).documents()).toHaveLength(1)
   })
 })
