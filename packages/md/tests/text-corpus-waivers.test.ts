@@ -90,7 +90,11 @@ describe('a waiver in a text corpus applies as on disk (ADR-024)', () => {
   })
 
   it('a directive in a fenced block applies on neither side', () => {
-    const fenced = `# A\n\n\`\`\`md\n<!-- eess-exclude ${RULE}: shown, not applied -->\n\`\`\`\nSee \`src/missing.ts:1\`.\n`
+    // A region opened inside the fence and closed after the pointer: read as prose, it would cover
+    // the pointer's line and waive it. The fence masks the opening, so it waives nothing, on either
+    // side. (A single-line directive inside the fence could only cover the fence's own closing line,
+    // so it would pass whether the fence were masked or not.)
+    const fenced = `# A\n\n\`\`\`md\n<!-- eess-exclude-start ${RULE}: shown, not applied -->\n\`\`\`\nSee \`src/missing.ts:1\`.\n<!-- eess-exclude-end -->\n`
     const { fromText, onDisk } = both({ 'docs/a.md': fenced })
     expect(fromText.found).toHaveLength(1)
     expect(fromText.found).toEqual(onDisk.found)
