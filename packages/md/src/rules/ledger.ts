@@ -7,9 +7,11 @@ import {
 import type { Condition, ConditionContext, Predicate } from '@nielspeter/eess'
 // ADR-022: a preset is built from the md root's public blocks, as an adopter's rule is.
 import {
+  cleanValue,
   collectTaskItems,
   docs,
   taskItems,
+  untilDelimiter,
   type ArchViolation,
   type Corpus,
   type MdDocument,
@@ -323,6 +325,77 @@ function stateUnderAnotherLabel(
   vocabulary: readonly string[],
   names: readonly string[],
 ): { label: string; state: string; line: number } | null {
+  for (const o of statesUnderAnotherLabel(doc, vocabulary, names))
+    if (o.state !== undefined) return { label: o.label, state: o.state, line: o.line }
+  return null
+}
+
+/**
+ * One header line under a label the preset does not read, as facts: each path reads its own. The
+ * no-state path (bug 0444) reads `state`, a state word the value starts with, wherever the line is:
+ * there, reading wide errs toward a finding. The comparison with a read state (bug 0627) reads
+ * `whole` and skips `continuesItem`, so that only a value that is a state word, on a line that opens
+ * a field, can contradict the record.
+ */
+type OtherLabelState = {
+  label: string
+  line: number
+  /**
+   * The state word the no-state path reads: for a label line, the one the value starts with
+   * (`stateMatcher`'s prefix reading); for a heading, its raw value when that is one (bug 0476).
+   * Undefined on a heading only the comparison reads (`## Status: Done — merged`).
+   */
+  state: string | undefined
+  /**
+   * The vocabulary's state word when the whole value is one: `cleanValue`, cut at the first `—` or
+   * `–`, a trailing period dropped (`**Status:** Done.`, as the read side accepts it), on a label
+   * line and a heading alike. `Done (40/40 pages)` and `Done with the spike` have none.
+   */
+  whole: string | undefined
+  /**
+   * A plain `Label:` on a later line of a paragraph inside a list item: the item's prose, such as
+   * the State bullet's history (`  Previously read: Ready — …`), not a field of its own.
+   */
+  continuesItem: boolean
+}
+
+/**
+ * The lines that continue a paragraph inside a list item: every line of such a paragraph after its
+ * first. Modelled on `blockOf` in model/links.ts (a label counts only where its block starts, plan
+ * 0405), which ADR-022's root-only rule keeps out of this file's reach; a private walk over the
+ * public `doc.root`, memoised per tree. Read only to tell a field from a list item's prose.
+ */
+const itemContinuations = new WeakMap<Root, ReadonlySet<number>>()
+function continuesListItem(root: Root): ReadonlySet<number> {
+  const known = itemContinuations.get(root)
+  if (known !== undefined) return known
+  const lines = new Set<number>()
+  const visit = (node: Root['children'][number], inItem: boolean): void => {
+    if (inItem && node.type === 'paragraph' && node.position !== undefined) {
+      for (let l = node.position.start.line + 1; l <= node.position.end.line; l++) lines.add(l)
+    }
+    if ('children' in node)
+      for (const child of node.children) visit(child, inItem || node.type === 'listItem')
+  }
+  for (const child of root.children) visit(child, false)
+  itemContinuations.set(root, lines)
+  return lines
+}
+
+const wholeValue = untilDelimiter(['—', '–'])
+/** `A, and B`; `A, B, and C`: the lines a finding names, in a sentence. */
+const listed = (xs: readonly string[]): string =>
+  xs.length < 3 ? xs.join(', and ') : `${xs.slice(0, -1).join(', ')}, and ${xs.at(-1) ?? ''}`
+/** The value the comparison reads: markup cleaned, cut at the first dash, a trailing period dropped. */
+const comparable = (value: string): string => wholeValue(cleanValue(value)).replace(/\.$/, '')
+
+/** Every state word under another label in the header, in order, with what each path reads. */
+function statesUnderAnotherLabel(
+  doc: MdDocument,
+  vocabulary: readonly string[],
+  names: readonly string[],
+): OtherLabelState[] {
+  const out: OtherLabelState[] = []
   const read = new Set(names.map((n) => n.toLowerCase()))
   const lines = proseText(doc.text, 'code-blocks', doc.root).split('\n')
   let seenHeading = 0
@@ -337,8 +410,9 @@ function stateUnderAnotherLabel(
         const [, label = '', value = ''] = field
         const fold = (t: string): string => t.toLowerCase().replace(/’/g, "'")
         const state = vocabulary.find((v) => fold(v) === fold(value))
-        if (!read.has(label.trim().toLowerCase()) && state !== undefined)
-          return { label: label.trim(), state, line: i + 1 }
+        const whole = vocabulary.find((v) => foldState(v) === foldState(comparable(value)))
+        if (!read.has(label.trim().toLowerCase()) && (state !== undefined || whole !== undefined))
+          out.push({ label: label.trim(), state, whole, line: i + 1, continuesItem: false })
         continue
       }
       seenHeading += 1
@@ -351,9 +425,19 @@ function stateUnderAnotherLabel(
     const found = (wrappedLabelOf(line) ?? PLAIN_LABEL.exec(line)?.[1])?.trim()
     if (found === undefined || found === '' || read.has(found.toLowerCase())) continue
     const hit = stateMatcher(vocabulary, stateLabel([found])).exec(line)
-    if (hit?.[1] !== undefined) return { label: found, state: hit[1], line: i + 1 }
+    if (hit?.[1] !== undefined) {
+      const opened = new RegExp(labelPattern(found), 'i').exec(line)
+      const value = comparable(line.slice(opened?.[0].length ?? line.length))
+      out.push({
+        label: found,
+        state: hit[1],
+        whole: vocabulary.find((v) => foldState(v) === foldState(value)),
+        line: i + 1,
+        continuesItem: wrappedLabelOf(line) === undefined && continuesListItem(doc.root).has(i + 1),
+      })
+    }
   }
-  return null
+  return out
 }
 
 type StateLine = { state?: string; raw: string; line: number }
@@ -542,6 +626,37 @@ function headerStateViolation(
         ` An unreadable state cannot be checked against its folder, so it is reported rather than skipped.`,
       'a state nobody can read is a check that silently stops running',
     )
+  }
+
+  // Bug 0627: a state word under another label beside the read state that disagrees with it is the
+  // same conflict as two state lines, written under two labels. Only a whole value that is a state
+  // word counts (`**Phase 1:** Done (40/40 pages)` is not one), and only on a line that opens a field:
+  // a plain label continuing a list item's paragraph is that item's prose. One that agrees stays
+  // quiet. Every disagreeing line is named, as two state lines are.
+  const others = statesUnderAnotherLabel(doc, known, names).filter(
+    (o): o is OtherLabelState & { whole: string } =>
+      o.whole !== undefined && !o.continuesItem && foldState(o.whole) !== said(found),
+  )
+  const [other] = others
+  if (other !== undefined) {
+    const held = listed(
+      others.map((o) => `\`${o.label}:\` holds '${o.whole}' (line ${String(o.line)})`),
+    )
+    const lines = listed(others.map((o) => `line ${String(o.line)}`))
+    return {
+      ...v(
+        'ledger/states-disagree',
+        doc,
+        other.line,
+        `${names.join(' or ')} is '${found.raw}' (line ${String(found.line)}), but the header's ${held}, ${others.length === 1 ? 'a state' : 'states'} from the vocabulary.` +
+          ` A record whose state disagrees with itself cannot be placed.`,
+        'a record read by one label passes whatever another label in its header says',
+      ),
+      suggestion:
+        others.length === 1
+          ? `If \`${other.label}:\` is this record's state, keep one of the two lines (pass aliases: ['${other.label}'] to read it); if it is not, reword line ${String(other.line)} so its value is not a state word.`
+          : `If one of these labels is this record's state, keep one state line (pass that label in aliases to read it); reword ${lines} where a value is not this record's state.`,
+    }
   }
 
   const terminal = hasTerminalState(doc, states, terminalStates, label)

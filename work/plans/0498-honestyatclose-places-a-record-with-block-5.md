@@ -17,6 +17,16 @@
   the caller's options by reference, so changing `groups` after the call changes the rule. It fails
   safe when the rule runs; this plan decides whether to check at declaration time and copy the
   options, as `taskItems()` does with its marks.
+- **Note 2026-11-06 ([bug 0627](../bugs/fixed/0627-a-state-under-another-label-beside-a-read-one-is-never-compared.md)'s fix, its architect review):** the ledger now compares a state
+  word under another label with the read state. That comparison counts a plain `Label:` only on a
+  line that opens a field: a later line of a paragraph inside a list item is that item's prose
+  (`continuesListItem`, a private walk over `doc.root` in `packages/md/src/rules/ledger.ts`). It
+  also reads a value whole, through `cleanValue` and `untilDelimiter`. `fields()` reads a
+  label-shaped line as a field on any line, so rebuilding the state reading on `fields()` drops that
+  position rule unless this plan keeps it, or drops it on purpose and says so. The same question,
+  where a field starts, now has four answers in eess-md: `fields()`, `blockOf` in `model/links.ts`,
+  the ledger's walk, and the heading-header rule. Whether that becomes one rule is a proposal or ADR
+  question, not this plan's.
 - **Implements:** [proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)
 - **Priority:** Medium. [Proposal 017](../proposals/017-md-blocks-to-check-a-documents-shape.md)'s block 5 row: "`honestyAtClose`'s placement half is then
   rebuilt on it, so there is one placement check". It also removes [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)'s `model/label.ts` edge.

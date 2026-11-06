@@ -3,6 +3,8 @@
 ## Status
 
 - **State:** Done
+  Previously read: Ready — frozen before the build.
+- **Review:** Draft notes kept in the appendix
 
 ## Verification
 
