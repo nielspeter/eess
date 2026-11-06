@@ -18,7 +18,7 @@ Run these and stop if any is wrong:
 - `git status --short` → must be **clean**. A dirty tree means uncommitted work would ride along or the release commit would be muddied.
 - `git pull --ff-only origin main` → local `main` must match origin.
 - `ls .changeset/*.md | grep -v README` → there must be **at least one pending changeset**. No changeset = nothing to release; if the user wants a release with no changeset, they first need `npm run changeset` to describe what changed.
-- Confirm CI on the current `main` is green (`gh run list --branch main --limit 1`). Don't cut a release on top of a red `main`.
+- Confirm the PR that produced the current `main` passed CI (`gh pr checks <its number>`, found with `gh pr list --state merged --limit 1`). CI runs on pull requests only (spike 0631): a ruleset requires a PR's `test`, `nonvacuity` and `bun-load` on a branch up to date with `main`, so that PR's run is the check of `main`'s tree, and `gh run list --branch main` finds nothing. Don't cut a release on top of a red one.
 
 ## Versioning — let changesets decide
 

@@ -1,8 +1,12 @@
 name: CI
 
+# Pull requests only (spike 0631). A push to `main` used to run the whole chain again after every
+# merge: 36% of CI's runner minutes, and 0 failures in 64 runs. A ruleset on the default branch now
+# requires this workflow's `test`, `nonvacuity` and `bun-load` to pass on a branch that is up to date
+# with `main`, with no bypass, so the tree a merge lands is the tree a PR run already passed, and a
+# direct push without those checks is refused. Release tags run `publish.yml`, which builds and tests
+# on its own.
 on:
-  push:
-    branches: [main]
   # No `branches:` filter, deliberately. It filters the PR's BASE ref, so with
   # `[main]` a stacked PR — one whose base is another open branch — matched
   # nothing and ran zero gates. Measured on this repo's own PR #49, the one
@@ -10,15 +14,11 @@ on:
   # Stacked branches are how this repo works, so every PR gets the chain.
   pull_request:
 
-# A PR run on a superseded commit is cancelled (plan 0509). Every other run gets a
-# group of its own, its commit: GitHub keeps one running and one pending run per
-# group and cancels the pending one when a third arrives, whatever
-# `cancel-in-progress` says, so a shared group for main would drop the middle
-# commit of three quick merges. On pull_request `github.ref` is
+# A PR run on a superseded commit is cancelled (plan 0509). `github.ref` is
 # `refs/pull/N/merge`, one group per PR, so stacked PRs do not cancel each other.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
