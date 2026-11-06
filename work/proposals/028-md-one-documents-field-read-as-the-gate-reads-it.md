@@ -1,8 +1,9 @@
 # Proposal 028 — md: one document's field, read as the gate reads it
 
 **State:** Draft — filed 2026-11-05 from an adopter's question, at the maintainer's request;
-reviewed 2026-11-05, Split and sequence (see "Review — 2026-11-05"): ask 1 accepted, owned by
-[plan 0624](../plans/0624-md-one-documents-field-value-public.md); ask 2 held.
+reviewed 2026-11-05, Split and sequence (see "Review — 2026-11-05"): ask 1 accepted and implemented
+by [plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md) (2026-11-06); ask 2
+held, so the proposal stays Draft.
 **Priority:** Medium — no false green in eess itself (the header case the adopter measured is
 [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md)), but no public
 reader returns one record's value as `haveField` decides it: on a conflict, on the header region and
@@ -175,10 +176,10 @@ out for blocks; and on the root, because [plan 0498](../plans/0498-honestyatclos
 
 ### Dispositions
 
-| Ask                             | Disposition          | Condition / shape                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 — `haveField`'s value, public | `Accepted, reshaped` | [plan 0624](../plans/0624-md-one-documents-field-value-public.md). Reshaped: not `FieldResolution` but `fieldVerdict`'s outcome, a union in which a conflict, an empty value and every cause the gate cannot read replace the value, a missing section reads as absent, and text input is left to ask 2. The ruling held it; the maintainer accepted it the same day. Built after the coming release. |
-| 2 — the same over text          | `Held`               | Unholds when [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) is fixed and the cost of building a corpus over a board's texts is measured, or when a consumer is named that cannot wait for [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md).                                                                                                                         |
+| Ask                             | Disposition          | Condition / shape                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — `haveField`'s value, public | `Accepted, reshaped` | [plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md). Reshaped: not `FieldResolution` but `fieldVerdict`'s outcome, a union in which a conflict, an empty value and every cause the gate cannot read replace the value, a missing section reads as absent, and text input is left to ask 2. The ruling held it; the maintainer accepted it the same day. Implemented by [plan 0624](../plans/completed/0624-md-one-documents-field-value-public.md), 2026-11-06 ✅ |
+| 2 — the same over text          | `Held`               | Unholds when [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) is fixed and the cost of building a corpus over a board's texts is measured, or when a consumer is named that cannot wait for [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md).                                                                                                                                                                                                             |
 
 ### The shape ask 1 is held to
 

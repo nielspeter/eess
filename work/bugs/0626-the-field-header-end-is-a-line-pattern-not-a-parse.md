@@ -30,7 +30,7 @@ supplying a header value:
 
 A related misattribution: with a `## Notes` inside a fence that never closes, above the field,
 `haveField` says "no Status field … it carries no wrapped label" while `**Status:**` is in the file.
-The `'closed-fences'` code probe (`packages/md/src/model/field-verdict.ts:153`) reads the header-cut
+The `'closed-fences'` code probe (`packages/md/src/model/field-verdict.ts:293`) reads the header-cut
 lines, so it never reaches the field.
 
 ## Root cause

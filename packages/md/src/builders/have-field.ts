@@ -8,7 +8,12 @@ import {
 import type { MdDocument } from '../model/document.js'
 import { checkRegion, regionSection, type FieldOptions } from '../model/fields.js'
 import { citesHeadings, declaresSections } from '../model/section-declarations.js'
-import { fieldVerdict, type FieldCause, type FieldVerdict } from '../model/field-verdict.js'
+import {
+  fieldOutcome,
+  fieldVerdict,
+  type FieldCause,
+  type FieldVerdict,
+} from '../model/field-verdict.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 import { judge, type Allowed } from './vocabulary.js'
 
@@ -76,15 +81,14 @@ export function predicateHaveField(spec: HaveFieldOptions): Predicate<MdDocument
     const known = verdicts.get(d)
     if (known !== undefined) return known
     const v = verdictOf(d, spec)
-    // Undecided only when the value itself cannot be read. A value that resolved, allowed or not, is
-    // decided even beside prose that disagrees or a label in an unread form: structured forms win
-    // (plan 0469), so the verdict does not depend on those causes (ADR-021 clause 4), and the
-    // condition form reports them.
-    const undecided = (v.resolved ? [] : v.causes)
-      .filter((c) => c.kind === 'unreadable')
-      .map(
-        (c): Undecided => ({ file: d.file, line: c.line, element: c.element, message: c.message }),
-      )
+    // Undecided only when the value itself cannot be read: the `unreadable` outcome (plan 0624). A
+    // value that resolved, allowed or not, is decided even beside prose that disagrees or a label in an
+    // unread form: structured forms win (plan 0469), so the verdict does not depend on those causes
+    // (ADR-021 clause 4), and the condition form reports them.
+    const outcome = fieldOutcome(v)
+    const undecided = (outcome.kind === 'unreadable' ? outcome.causes : []).map(
+      (c): Undecided => ({ file: d.file, line: c.line, element: c.element, message: c.message }),
+    )
     const fresh = { has: v.has, undecided }
     verdicts.set(d, fresh)
     return fresh

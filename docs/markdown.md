@@ -1673,6 +1673,52 @@ docs(c).that().satisfy(and(live, closed)).should().notExist().check()
 This repository's `check:corpus` states a version of the same rule over its plans and bugs
 (`corpus/closed-records-sit-in-done-folders`).
 
+### Reading a field yourself: `resolveFieldValue`
+
+A rule judges a value; a tool that shows one record's value (a board, a report) needs the value
+itself. Don't re-read it with `fields()`: `resolveFieldValue(doc, options)` returns what `haveField`
+decides for that document, through the same resolver, so a view and the gate cannot disagree about a
+record. "Resolve" here means "decide the value", not `fields().should().resolveAgainst()`'s "is in
+the vocabulary".
+
+```ts
+import { corpus, resolveFieldValue } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['work/**/*.md'] })
+const doc = c.documents().find((d) => d.relPath === 'work/bugs/0001-crash.md')
+if (doc !== undefined) {
+  const r = resolveFieldValue(doc, { label: 'Status', forms: ['bold', 'plain'], region: 'header' })
+  if (r.kind === 'value') console.log(r.values.join(', '))
+  else if (r.kind === 'absent') console.log('—', r.message)
+  else console.log('?', r.causes.map((cause) => cause.message).join('; '))
+}
+```
+
+It returns one of three cases, and only `value` carries a value, so a reader cannot take one from a
+document whose value cannot be read:
+
+| `kind`       | meaning                                                                                                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `value`      | the one occurrence `haveField` resolves: its split `values`, `line`, `label` as written (or the alias that matched), `form`, and `notes` (prose that disagrees, a label in a form not read)            |
+| `absent`     | no field, or a section region whose section the document lacks; `message` is `haveField`'s (the labels the document does carry, or the missing section), with no line: the whole document is the cause |
+| `unreadable` | `causes`, each with its line and message: a conflict (two structured occurrences, agreeing or not), an empty value, a label only in a form not read, code, a value outside the region                  |
+
+It is not a rule: nothing is reported, and an exclusion comment does not apply. Its `values` are the
+value as `haveField` reads it (after `value` and `split`), before any `oneOf`; the options type
+refuses a `oneOf` (`FieldReadingOptions`), so a `haveField` spec that carries one does not compile as
+the reader's options: drop it (`const { oneOf: _, ...spec } = gate`). A misconfiguration that gets
+past the types is an `ArchConfigError`: an empty label or alias, `forms: []`, a malformed region, or a
+`oneOf`.
+
+Which reader to use:
+
+| reader                     | use it for                              | returns                                                 | differs from `haveField`                                                                                                                                            |
+| -------------------------- | --------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveFieldValue`        | a board, a report: one record's value   | one document's value, absent, or unreadable with causes | none, apart from `oneOf` (not read), exclusion comments (a reader applies none), and an empty label or alias or `forms: []` (refused here, accepted by `haveField`) |
+| `predicateHaveField`       | selecting documents in a rule           | has / has not (`test`), and the causes (`undecided`)    | none, but no value; `test` refuses a document it cannot judge                                                                                                       |
+| `fields()` + `.select()`   | a custom rule over every occurrence     | every occurrence, for a rule's selection                | reads indented and unclosed-fence code (a rule errs toward red); no single value                                                                                    |
+| `findState` (rules/ledger) | matching `honestyAtClose`'s own reading | the ledger's state: the first state line, or `null`     | first wins on two lines, the ledger's larger region, `null` with no cause after an unclosed fence                                                                   |
+
 ### A value agrees with its folder: `agreeWithFolder`
 
 `docs(c).should().agreeWithFolder({ field, groups, direction, normalize? })` says that a document's
@@ -1992,7 +2038,7 @@ document's status, exported so a caller reads it as the preset does. It is not `
 reading: it returns the first state line (the preset itself also reports two that disagree,
 `ledger/states-disagree`, [bug 0623](../work/bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)),
 its region is the ledger's larger one, and a line after an unclosed fence gives `null` with no
-cause. It returns `{ state?, raw, line }` or `null`, and the three things it
+cause. `findState` returns `{ state?, raw, line }` or `null`, and the three things it
 gets right are the three a hand-rolled regex gets wrong: it reads the document's prose as
 CommonMark does, through the parser the task-box pass uses (so an example `**State:** Draft` in a
 code block — fenced with any run of backticks or tildes, or indented — is not the document's state;
@@ -2003,7 +2049,7 @@ apostrophe glyphs so a smart-quoted `Won’t-do` is the same token as `Won't-do`
 what was written, which is what `ledger/unknown-state` reports. `null` means no State line in
 prose: a record whose State line sits only in a code block, or after a fence that never closes, is
 `null` too — `honestyAtClose` reports those, and a caller of its own should not read `null` as "not an
-item" without the same check.
+item" without the same check. To read a field as `haveField` decides it, use `resolveFieldValue` (above).
 
 If you are writing your own ledger check, call this rather than re-deriving it.
 This repo learned that twice: once when `check-ledger.mjs` re-derived the scan and

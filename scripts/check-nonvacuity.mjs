@@ -23,6 +23,11 @@
  *                 packages/md/src/conditions/resolve.ts gains a bare `'path'`
  *                 import (the spelling a ban on `'node:path'` alone missed) →
  *                 eess/md-one-link-resolver, on that file.
+ *   arch/md-one-field-reading (plan 0624)
+ *                 packages/md/src/builders/docs.ts gains imports of model/field-resolve.js
+ *                 and model/field-verdict.js → eess/md-one-field-resolver on
+ *                 field-resolve.ts and eess/md-one-field-verdict on field-verdict.ts,
+ *                 both from one check run.
  *   arch/md-rules-import-only-the-root (ADR-022 clause 3)
  *                 packages/md/src/rules/adr.ts gains a `../model/label.js` import →
  *                 md/rules-import-only-the-root, on that file and naming the module;
@@ -775,6 +780,67 @@ function gateArchOneLinkResolver() {
   return {
     ok,
     detail: `${probeNote} (eess/md-one-link-resolver on conditions/resolve.ts) · ${cleanNote}`,
+  }
+}
+
+// --- Gate: arch/md-one-field-reading (plan 0624) ---
+// Mutates a real builder rather than planting a probe, as the link-resolver row does: one file
+// importing both guarded modules, so one check run proves both rules. Each rule reports on the
+// module it guards, naming the importer in its message.
+function gateArchOneFieldReading() {
+  // A builder importing both guarded modules: each rule must fire on its module, naming the importer.
+  const bad = withMutatedFile(
+    join(repoRoot, 'packages', 'md', 'src', 'builders', 'docs.ts'),
+    "import { resolveField as __probeA } from '../model/field-resolve.js'; import { fieldVerdict as __probeB } from '../model/field-verdict.js'",
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const names = (ruleId) =>
+    violationsOf(bad).some(
+      (v) => v?.ruleId === ruleId && String(v?.message ?? '').includes('builders/docs.ts'),
+    )
+  const resolver =
+    firedOn(bad, 'eess/md-one-field-resolver', 'field-resolve.ts') &&
+    names('eess/md-one-field-resolver')
+  const verdict =
+    firedOn(bad, 'eess/md-one-field-verdict', 'field-verdict.ts') &&
+    names('eess/md-one-field-verdict')
+  // The orphan: field-verdict.ts stops importing field-resolve.ts, which `onlyBeImportedVia` alone
+  // would pass; `beImported()` must red it.
+  const verdictFile = join(repoRoot, 'packages', 'md', 'src', 'model', 'field-verdict.ts')
+  const orphan = withRewrittenFile(
+    verdictFile,
+    (original) =>
+      original.replace(
+        "import { resolveField } from './field-resolve.js'",
+        'declare const resolveField: (...args: never[]) => never',
+      ),
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const orphaned =
+    orphan.code === 1 && firedOn(orphan, 'eess/md-one-field-resolver', 'field-resolve.ts')
+  // The verdict's orphan: its three importers point elsewhere, so field-verdict.ts has none, which
+  // `onlyBeImportedVia` alone would pass; the verdict rule's `beImported()` must red it.
+  const src = join(repoRoot, 'packages', 'md', 'src')
+  const verdictOrphan = withRewrittenFiles(
+    [
+      join(src, 'builders', 'have-field.ts'),
+      join(src, 'conditions', 'agree-with-folder.ts'),
+      join(src, 'index.ts'),
+    ],
+    (original) => original.replace("field-verdict.js'", "field-verdict-orphan-probe.js'"),
+    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+  )
+  const verdictOrphaned =
+    verdictOrphan.code === 1 &&
+    firedOn(verdictOrphan, 'eess/md-one-field-verdict', 'field-verdict.ts')
+  return {
+    ok: bad.code === 1 && resolver && verdict && orphaned && verdictOrphaned,
+    detail:
+      `builders/docs.ts importing both → exit ${bad.code} · ` +
+      `eess/md-one-field-resolver ${resolver ? 'fired, naming the importer' : 'did not fire'} · ` +
+      `eess/md-one-field-verdict ${verdict ? 'fired, naming the importer' : 'did not fire'} · ` +
+      `field-resolve.ts orphaned → exit ${orphan.code}${orphaned ? '' : ' (did not fire)'} · ` +
+      `field-verdict.ts orphaned → exit ${verdictOrphan.code}${verdictOrphaned ? '' : ' (did not fire)'}`,
   }
 }
 
@@ -5878,6 +5944,8 @@ const gates = [
   ['corpus/links/fragment-reach', gateCorpusFragmentReach],
   // Bug 0600's gate check, appended so no other fixture changes shard.
   ['corpus/record-mention/skipped-unread', gateRecordMentionSkippedUnread],
+  // Plan 0624's import-edge rules, appended so no other fixture changes shard.
+  ['arch/md-one-field-reading', gateArchOneFieldReading],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -5924,6 +5992,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'arch/md-one-link-resolver',
+    'arch/md-one-field-reading',
     'arch/md-layers-point-down',
     'arch/md-rules-import-only-the-root',
     'arch/one-code-block-tag-comparison',

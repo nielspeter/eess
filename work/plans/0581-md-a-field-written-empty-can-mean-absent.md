@@ -69,9 +69,9 @@ The review's recommended next step lists these. Each is closed when the proposal
 
 1. **The reading, classified once.** `readFields` marks an occurrence written empty, with an
    internal, unexported marker; `resolveField` (`packages/md/src/model/field-resolve.ts:48`),
-   `fieldVerdict` (`packages/md/src/model/field-verdict.ts:68`) and `fieldTerms`
+   `fieldVerdict` (`packages/md/src/model/field-verdict.ts:208`) and `fieldTerms`
    (`packages/md/src/builders/vocabulary.ts:260`) apply it, branching on `=== 'absent'`. The
-   existing `'absent'` cause kind (`packages/md/src/model/field-verdict.ts:29`) carries the verdict;
+   existing `'absent'` cause kind (`packages/md/src/model/field-verdict.ts:32`) carries the verdict;
    `predicateHaveField` already reads only `'unreadable'` as undecided
    (`packages/md/src/builders/have-field.ts:84`). `checkFieldOptions` refuses an unknown `empty`
    when the rule is built. The plan's Decisions say, in writing, how the option sits with

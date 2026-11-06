@@ -1,12 +1,15 @@
+import { ArchConfigError, type Undecided } from '@nielspeter/eess'
 import type { MdDocument } from './document.js'
 import { resolveField } from './field-resolve.js'
 import { unreadFieldMessage, unreadFields } from './field-unread.js'
 import {
+  checkRegion,
   readFields,
   regionSection,
   regionSections,
   scanFields,
   STRUCTURED_FORMS,
+  type FieldForm,
   type FieldOccurrence,
   type FieldOptions,
 } from './fields.js'
@@ -42,6 +45,143 @@ export interface FieldVerdict {
   /** The occurrence the value resolved to, set exactly when `resolved` (plan 0495). */
   readonly occurrence?: FieldOccurrence
   readonly causes: readonly FieldCause[]
+}
+
+/**
+ * `fieldVerdict` gives every unresolved document a cause (ADR-009 rule 2), so an absent reading with
+ * none breaks that contract. Never the rule author's fault, so not an `ArchConfigError`; reported as
+ * the defect it is, as `links.ts`'s `ParserContractBroken` is.
+ */
+class VerdictContractBroken extends Error {
+  constructor() {
+    super(
+      "eess-md: a field's verdict gave an unresolved document no cause, so its reading would have no " +
+        'evidence; please report it to eess.',
+    )
+    this.name = 'VerdictContractBroken'
+  }
+}
+
+/**
+ * A verdict's three-way outcome (plan 0624), the one rule the predicate decides by and the public
+ * reader returns: resolved → `value`; otherwise any unreadable cause → `unreadable`; otherwise
+ * `absent`. A section region whose section the document lacks is `absent`, a decided "no" (plan
+ * 0505). A `value` carries, as `notes`, the unreadable causes its verdict does not depend on (prose
+ * that disagrees, a label in a form not read: ADR-021 clause 4); a `disallowed` cause is a judgement of
+ * `oneOf`, not a note.
+ */
+type FieldOutcome =
+  | {
+      readonly kind: 'value'
+      readonly occurrence: FieldOccurrence
+      readonly notes: readonly FieldCause[]
+    }
+  | { readonly kind: 'absent'; readonly cause: FieldCause }
+  | { readonly kind: 'unreadable'; readonly causes: readonly FieldCause[] }
+
+/** The outcome of a verdict: see {@link FieldOutcome}. */
+export function fieldOutcome(v: FieldVerdict): FieldOutcome {
+  const unreadable = v.causes.filter((c) => c.kind === 'unreadable')
+  if (v.resolved && v.occurrence !== undefined)
+    return { kind: 'value', occurrence: v.occurrence, notes: unreadable }
+  if (unreadable.length > 0) return { kind: 'unreadable', causes: unreadable }
+  const cause = v.causes.find((c) => c.kind === 'absent')
+  // `fieldVerdict` gives every unresolved document one cause (ADR-009 rule 2); an absent reading with
+  // no message would be a verdict without evidence, so its absence is a defect, not an answer.
+  if (cause === undefined) throw new VerdictContractBroken()
+  return { kind: 'absent', cause }
+}
+
+/**
+ * One document's labelled value as `haveField` decides it (plan 0624). The causes replace the value
+ * (ADR-021): only the `value` arm carries one, so a reader cannot take a value from a document whose
+ * value cannot be read.
+ */
+export type FieldReading =
+  | {
+      readonly kind: 'value'
+      /** The split values of the one occurrence `haveField` resolves. */
+      readonly values: readonly string[]
+      readonly line: number
+      /** The label as written: the label, or the alias that matched. */
+      readonly label: string
+      readonly form: FieldForm
+      /**
+       * Findings beside a decided value: prose that disagrees, a label in a form not read. The value
+       * does not depend on them (ADR-021 clause 4), so do not forward them as a predicate's
+       * `undecided()`: that would make a decided document undecided.
+       */
+      readonly notes: readonly Undecided[]
+    }
+  | {
+      readonly kind: 'absent'
+      /**
+       * `haveField`'s message: the labels the document does carry, or the section it lacks. No line:
+       * the whole document is the cause.
+       */
+      readonly message: string
+    }
+  | { readonly kind: 'unreadable'; readonly causes: readonly Undecided[] }
+
+const CALL = 'resolveFieldValue'
+
+/** The options `resolveFieldValue` takes: a field's, without `haveField`'s `oneOf`. */
+export type FieldReadingOptions = FieldOptions & { readonly oneOf?: never }
+
+/**
+ * A reader returning `absent` for every record looks like an answer, so a misconfiguration throws:
+ * an empty label or alias, no forms, a malformed region, or a `oneOf` this reader does not judge.
+ */
+function checkReaderOptions(options: FieldReadingOptions): void {
+  for (const label of [options.label, ...(options.aliases ?? [])])
+    if (label.trim() === '')
+      throw new ArchConfigError(CALL, `${CALL}: a label or alias is empty; name the field's label`)
+  if (options.forms.length === 0)
+    throw new ArchConfigError(
+      CALL,
+      `${CALL}: forms is empty; name the forms the label is written in`,
+    )
+  // A plain-JavaScript caller, or a spec typed loosely, can still carry one; `undefined` is no oneOf.
+  const loose: { readonly oneOf?: unknown } = options
+  if (loose.oneOf !== undefined)
+    throw new ArchConfigError(
+      CALL,
+      `${CALL}: oneOf is not read here; this reader returns the value as haveField reads it, before ` +
+        'any oneOf. Drop oneOf from the options (`const { oneOf: _, ...spec } = options`), and ' +
+        'judge the value with haveField({ oneOf }) or yourself',
+    )
+  checkRegion(options.region, CALL)
+}
+
+/**
+ * Read one document's field as `haveField` decides it (plan 0624): the value, absent with
+ * `haveField`'s message, or the causes it cannot be read. Not a rule: a waiver comment does not
+ * apply, and nothing is reported.
+ */
+export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions): FieldReading {
+  checkReaderOptions(options)
+  const toUndecided = (c: FieldCause): Undecided => ({
+    file: doc.file,
+    line: c.line,
+    element: c.element,
+    message: c.message,
+  })
+  const o = fieldOutcome(fieldVerdict(doc, options))
+  switch (o.kind) {
+    case 'value':
+      return {
+        kind: 'value',
+        values: o.occurrence.values,
+        line: o.occurrence.line,
+        label: o.occurrence.label,
+        form: o.occurrence.form,
+        notes: o.notes.map(toUndecided),
+      }
+    case 'absent':
+      return { kind: 'absent', message: o.cause.message }
+    case 'unreadable':
+      return { kind: 'unreadable', causes: o.causes.map(toUndecided) }
+  }
 }
 
 const valueAt = (o: FieldOccurrence): string => o.values.join(', ')
