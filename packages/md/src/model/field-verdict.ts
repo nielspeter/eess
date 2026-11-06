@@ -48,6 +48,21 @@ export interface FieldVerdict {
 }
 
 /**
+ * `fieldVerdict` gives every unresolved document a cause (ADR-009 rule 2), so an absent reading with
+ * none breaks that contract. Never the rule author's fault, so not an `ArchConfigError`; reported as
+ * the defect it is, as `links.ts`'s `ParserContractBroken` is.
+ */
+class VerdictContractBroken extends Error {
+  constructor() {
+    super(
+      "eess-md: a field's verdict gave an unresolved document no cause, so its reading would have no " +
+        'evidence; please report it to eess.',
+    )
+    this.name = 'VerdictContractBroken'
+  }
+}
+
+/**
  * A verdict's three-way outcome (plan 0624), the one rule the predicate decides by and the public
  * reader returns: resolved → `value`; otherwise any unreadable cause → `unreadable`; otherwise
  * `absent`. A section region whose section the document lacks is `absent`, a decided "no" (plan
@@ -73,10 +88,7 @@ export function fieldOutcome(v: FieldVerdict): FieldOutcome {
   const cause = v.causes.find((c) => c.kind === 'absent')
   // `fieldVerdict` gives every unresolved document one cause (ADR-009 rule 2); an absent reading with
   // no message would be a verdict without evidence, so its absence is a defect, not an answer.
-  if (cause === undefined)
-    throw new Error(
-      `fieldVerdict gave ${v.resolved ? 'a resolved' : 'an'} unread document no cause`,
-    )
+  if (cause === undefined) throw new VerdictContractBroken()
   return { kind: 'absent', cause }
 }
 
