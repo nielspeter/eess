@@ -196,13 +196,13 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 
 ### Phase 0 — the ADR
 
-- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) (Proposed), written 2026-11-06 and revised the same day from its decision review (architect, enforcement, method). The review moved points into it that this plan had not decided, and D1 and the Test inventory follow it: the lookup's order (in which, after the diff check, a real file under a claimed root is a finding, never a disk read), the disk bounding a forgery, the kernel wording its own refusals, and the text parsed under the violation's own `file`:
+- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) (Accepted since), written 2026-11-06 and revised the same day from its decision review (architect, enforcement, method). The review moved points into it that this plan had not decided, and D1 and the Test inventory follow it: the lookup's order (in which, after the diff check, a real file under a claimed root is a finding, never a disk read), the disk bounding a forgery, the kernel wording its own refusals, and the text parsed under the violation's own `file`:
   - it extends [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
   - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the fact is [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s kind; only the ambient lookup is new), and the residual above with its remedy;
   - its `pending` rows name the mutant each must catch (row 9 by the clause 5 row's tests); they cannot cite test files that do not exist yet (`check:corpus` requires a cited path to exist), so the closing box below cites them;
   - its Enforcement table uses Tier 2 rows against deterministic behaviour, with no GC-dependent row;
   - its row goes in `CLAUDE.md`'s ADR index.
-- [x] The ADR is reviewed as a decision before any Phase 1 code is written: reviewed by an architect, an enforcement and a method lens, revised, checked on the changed text by each, revised once more (the lookup's order fails closed: an unreadable registry first, for every path; a real file under a claimed root a finding), and passed by the last checks with those edits, 2026-11-06.
+- [x] The ADR is reviewed as a decision before any Phase 1 code is written: reviewed by an architect, an enforcement and a method lens, revised, checked on the changed text by each, revised once more on those checks, and accepted with their edits, 2026-11-06. The edits the accepting commit added were the ones the last checks asked for: the unreadable registry first, for every path (enforcement's blocking finding); step 3's test built from a `\` in a directory name; three named mutants; the fenced case in row 7. Enforcement and method then confirmed that commit.
 - [x] On that pass, its Status became Accepted, in the ADR and in `CLAUDE.md`'s index row.
 
 ### Phase 1 — the kernel holds a claimed root's texts
@@ -230,7 +230,9 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
 - [ ] Red first, over a text corpus, each with parity against `corpus()` over the same files on disk:
   - a waiver applies, against its control;
   - an undocumented one is the promoted finding;
-  - an unused one warns, with stderr captured.
+  - an unused one warns, with stderr captured;
+  - a malformed one reaches stderr only on a document with a violation;
+  - a directive in a fenced block applies on neither side.
 - [ ] A crossvalidate binding that goes through `correspondence()` and reports the document's absolute file (`packages/crossvalidate/src/md-mermaid.ts:128`) honours a waiver in a text corpus's document, against its control, with `examined > 0`. Not `md-ts.ts`'s `adrCitationsResolve`, which reports a relative path ([bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md)).
 - [x] The eess-ts copy's in-memory-file gap is recorded as its own bug: [bug 0634](../bugs/0634-eess-ts-reads-no-waiver-in-an-in-memory-file.md), filed with [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review so its clause 8 names a record that exists.
 - [x] `apply-fixes`' dry run over a text corpus is recorded as its own bug: [bug 0635](../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md), likewise. A relative violating path, found by the same review, is [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md).
@@ -265,7 +267,7 @@ reader, so there is no new `MdDocument` constructor to promise; the `frozen` rul
   - a root created on disk after registering, holding a file whose waiver differs from the registered text, gives the finding, and no waiver from either source applies; removing the created
     directory clears it, and the registered waiver applies;
   - a real file in a directory whose name holds a `\`, reported by a spelling that normalises under a
-    root whose parent is not on disk, gives the path-on-disk finding, asserted by its own cause;
+    root whose parent is not on disk, gives the path-on-disk finding, asserted by its own cause, and registering the texts under another root clears it;
   - the texts are used for a claimed path, and the text is parsed under the reported `file`: a
     backslash- or `//`-spelled violating path finds its root and its waiver applies, and an
     undocumented waiver's finding lands on the reported `file`;
@@ -380,3 +382,12 @@ design without an entry here:
 A Draft's field-read figure, "150–388 ms, depending on the reader's options", became 150–171 ms for
 the one stated option set. The hash cost of 11–13 ms leaves out the framing, which brings it to
 38–47 ms. The ROADMAP row kept the first design's words until the decision review found it.
+
+**The decision review's diff checks and the acceptance (2026-11-06).** The diff checks found "a real
+file wins" (the revision's lookup) unsafe: a root created on disk after it was claimed could waive a
+finding computed from the registered text. The lookup became fail-closed in 573c54df. The next checks
+found the unreadable registry checked after the claimed/unclaimed split, a step-4 test that could not
+reach step 4, a mutant that described correct code, and list items merged by an edit helper that let
+an item's leading spaces swallow the newline before it. 4ccda21f fixed them and accepted [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md); both
+checks of that commit confirmed it, and found step 3's remedy unable to clear its own `\` case, now
+reworded.
