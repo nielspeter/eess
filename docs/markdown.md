@@ -1948,11 +1948,12 @@ primitive.
 `@nielspeter/eess-md/rules/ledger` ships a second opt-in preset,
 `honestyAtClose` — the working-method's "an item closes with nothing silently
 lost" gate. It reads GFM task boxes (via `collectTaskItems`, above) and a
-document's `State:` header line, and reports eight things: a done item with an
+document's `State:` header line, and reports nine things: a done item with an
 open box carrying no disposition token (`ledger/silent-open-box`), a
 `Deferred: none` summary that contradicts a box disposed as
 `deferred→<home>` (`ledger/deferred-none-lie`), a `State:` value that
-doesn't match its folder (`ledger/state-folder-mismatch`), a `State:` value
+doesn't match its folder (`ledger/state-folder-mismatch`), two `State:` lines that
+disagree, reported before either is believed (`ledger/states-disagree`), a `State:` value
 outside the declared vocabulary (`ledger/unknown-state`), a fenced code block that
 never closes (`ledger/unterminated-fence`), and a document whose header has a
 `State:` line only inside a code block (`ledger/state-in-code`). The last two are the
@@ -1986,8 +1987,11 @@ purpose — a record whose status nobody can parse is indistinguishable from one
 that has none, which is what [bug 0120](../work/bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md) is about.
 
 `findState(text, vocabulary, root?, labels?)` is the same scan the preset uses to read a
-document's status, exported so a caller can ask the question without a second
-opinion. It returns `{ state?, raw, line }` or `null`, and the three things it
+document's status, exported so a caller reads it as the preset does. It is not `haveField`'s
+reading: it returns the first state line (the preset itself also reports two that disagree,
+`ledger/states-disagree`, [bug 0623](../work/bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)),
+its region is the ledger's larger one, and a line after an unclosed fence gives `null` with no
+cause. It returns `{ state?, raw, line }` or `null`, and the three things it
 gets right are the three a hand-rolled regex gets wrong: it reads the document's prose as
 CommonMark does, through the parser the task-box pass uses (so an example `**State:** Draft` in a
 code block — fenced with any run of backticks or tildes, or indented — is not the document's state;

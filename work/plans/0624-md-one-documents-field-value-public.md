@@ -9,7 +9,7 @@
 - **Implements:** [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
   (ask 1; ask 2 stays held)
 - **Priority:** Medium. No false green in this plan's subject (the ledger's is
-  [bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md)), but a tool that shows one
+  [bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)), but a tool that shows one
   record's value has no public reader that agrees with `haveField`, and a consuming project's plan
   waits on one.
 - **Effort:** Medium in all, about half a day: Phase 1a Medium (the golden table and the projection),
@@ -43,7 +43,7 @@ and none returns the value `haveField` decides:
 - `fields().select()` hands back every occurrence and reads indented and unclosed-fence code, by
   design (`SetAside`, `packages/md/src/model/prose.ts:294`).
 - `findState` (`packages/md/src/rules/ledger.ts:274`) has the ledger's reading: the first of two
-  values wins ([bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md)), its region is
+  values wins ([bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)), its region is
   larger, and an unclosed fence gives `null` with no cause.
 - `predicateHaveField` gives the decision and the causes, and with `oneOf` the value of a
   single-valued field with a finite vocabulary, but not a free-text or split value, and it cannot
@@ -167,7 +167,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldOptions): Field
 - Ask 2 (the same over text) and its own mutant, a second parse path: held on
   [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and a measurement.
 - `findState`'s reading and the ledger: [plan 0498](./0498-honestyatclose-places-a-record-with-block-5.md)
-  and [bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md).
+  and [bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md).
 - `fields()`' header boundary: [bug 0622](../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
 - `agreeWithFolder`'s region check ([bug 0588](../bugs/0588-agree-with-folder-never-checks-its-region.md))
   and moving its own three-way mapping (`packages/md/src/conditions/agree-with-folder.ts:356`) onto

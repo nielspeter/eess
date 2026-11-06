@@ -155,7 +155,7 @@ different timelines, so each is disposed of below; neither is planned here.
 - **`findState` is a second public reading, and it fails open in a shipped gate.** Measured by the
   enforcement lens and confirmed here: `honestyAtClose` passes a live plan holding `State: Draft`
   then `State: Done` with an open box, and reds the reverse order. Recorded as
-  [bug 0623](../bugs/0623-the-ledger-reads-the-first-of-two-states.md) (High), with the
+  [bug 0623](../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md) (High), with the
   documentation's "without a second opinion" claim. This contradicts the submission's Priority line,
   "no false green in eess itself".
 - **The dogfood is already decided and has a second instance.** [Plan 0498](../plans/0498-honestyatclose-places-a-record-with-block-5.md)

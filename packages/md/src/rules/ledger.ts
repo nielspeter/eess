@@ -297,6 +297,16 @@ function findStateRe(
   return stateIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary, label)
 }
 
+/** Every state line in the document's header region, read as `findStateRe` reads the first. */
+function findStatesRe(
+  text: string,
+  vocabulary: readonly string[],
+  root: Root | undefined,
+  label: string,
+): StateLine[] {
+  return statesIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary, label)
+}
+
 /** A heading's text without its `##` marker, so `## Status: Done` reads as `Status: Done`. */
 const headingAsLabel = (line: string): string => line.replace(/^##\s+/, '')
 
@@ -346,12 +356,27 @@ function stateUnderAnotherLabel(
   return null
 }
 
+type StateLine = { state?: string; raw: string; line: number }
+
 /** The first `State:` token in the header region of these lines — `findState`'s scan. */
 function stateIn(
   lines: readonly string[],
   vocabulary: readonly string[],
   label: string,
-): { state?: string; raw: string; line: number } | null {
+): StateLine | null {
+  return statesIn(lines, vocabulary, label)[0] ?? null
+}
+
+/**
+ * Every `State:` token in the header region of these lines, in order. Two that disagree are a
+ * conflict, never the first of them (bug 0623).
+ */
+function statesIn(
+  lines: readonly string[],
+  vocabulary: readonly string[],
+  label: string,
+): StateLine[] {
+  const out: StateLine[] = []
   const known = stateMatcher(vocabulary, label)
   const unreadableLine = unreadableRe(label)
   const canonical = (m: string): string =>
@@ -372,12 +397,15 @@ function stateIn(
       // label line's is. `## Status at a glance` has no colon, so it is a heading, not a state.
       const asLabel = headingAsLabel(rawLine)
       const heading = known.exec(asLabel)
-      if (heading?.[1] !== undefined)
-        return { state: canonical(heading[1]), raw: heading[1], line: i + 1 }
+      if (heading?.[1] !== undefined) {
+        out.push({ state: canonical(heading[1]), raw: heading[1], line: i + 1 })
+        continue
+      }
       const unreadHeading = unreadableLine.exec(asLabel)
       if (unreadHeading?.[1] !== undefined) {
         const raw = unreadHeading[1]
-        return { raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 }
+        out.push({ raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 })
+        continue
       }
       // Any other `## Label: value` heading continues the header, but only while still in it: once a
       // plain section heading has been seen, a field-shaped heading (`## Option A: Keep`) is part of
@@ -389,14 +417,17 @@ function stateIn(
     }
     const line = lines[i] ?? ''
     const hit = known.exec(line)
-    if (hit?.[1] !== undefined) return { state: canonical(hit[1]), raw: hit[1], line: i + 1 }
+    if (hit?.[1] !== undefined) {
+      out.push({ state: canonical(hit[1]), raw: hit[1], line: i + 1 })
+      continue
+    }
     const unreadable = unreadableLine.exec(line)
     if (unreadable?.[1] !== undefined) {
       const raw = unreadable[1]
-      return { raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 }
+      out.push({ raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 })
     }
   }
-  return null
+  return out
 }
 
 /** A state token as compared for terminality: case and apostrophe glyph folded. */
@@ -468,10 +499,28 @@ function headerStateViolation(
   states: readonly string[],
   terminalStates: readonly string[],
   label: string,
+  names: readonly string[],
 ): ArchViolation | null {
   const known = [...new Set([...states, ...terminalStates])]
-  const found = findStateRe(doc.text, known, doc.root, label)
-  if (!found) return null // no State line at all → this document is not an item
+  const all = findStatesRe(doc.text, known, doc.root, label)
+  const [found] = all
+  if (found === undefined) return null // no State line at all → this document is not an item
+
+  // Bug 0623: two state lines that disagree leave the record's state unknown, so it is reported
+  // before anything is judged from the first of them, as an unreadable token is.
+  const said = (t: StateLine): string => foldState(t.state ?? t.raw)
+  const differs = all.find((t) => said(t) !== said(found))
+  if (differs !== undefined) {
+    const times = all.length === 2 ? 'twice' : `${String(all.length)} times`
+    return v(
+      'ledger/states-disagree',
+      doc,
+      differs.line,
+      `${names.join(' or ')} is given ${times} (${all.map((t) => `line ${String(t.line)} '${t.raw}'`).join(', ')}); keep one.` +
+        ` A record whose state disagrees with itself cannot be placed.`,
+      'a record read by its first state passes whatever its second one says',
+    )
+  }
 
   if (found.state === undefined) {
     return v(
@@ -710,6 +759,7 @@ function headerStateCondition(
           states,
           terminalStates,
           label,
+          names,
         )
         if (found) out.push(found)
       }
