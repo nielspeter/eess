@@ -43,6 +43,9 @@ const ROOT = 'scripts/nonvacuity/bad-ledger'
 // `md/undeclared-box-mark` and `md/malformed-box` joined with plan 0454: `completed/0007` carries a
 // `[?]` no one declared, and `completed/0008` a `[ x ]` GFM does not read. Before that plan both
 // were plain list items and the record passed.
+//
+// `ledger/states-disagree` joined with bug 0623: `0009` holds `State: Draft` then `State: Done` with an
+// open box. Read by its first state it is a live draft and passes; the rule reports the two.
 const RULES = [
   'ledger/silent-open-box',
   'ledger/state-folder-mismatch',
@@ -50,6 +53,7 @@ const RULES = [
   'ledger/deferred-none-lie',
   'md/undeclared-box-mark',
   'md/malformed-box',
+  'ledger/states-disagree',
 ]
 
 let c
@@ -64,9 +68,9 @@ try {
 // "no violation" would be trivially true and this gate would sit green forever
 // on a drifted root (bug 0110's class).
 const docs = c.documents().length
-if (docs !== 8) {
+if (docs !== 9) {
   console.error(
-    `bad-ledger: the corpus loaded ${docs} document(s), expected 8 — this fixture proves ` +
+    `bad-ledger: the corpus loaded ${docs} document(s), expected 9 — this fixture proves ` +
       `nothing against an empty corpus; check ${ROOT}`,
   )
   process.exit(2)
