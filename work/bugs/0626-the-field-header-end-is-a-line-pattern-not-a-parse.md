@@ -52,7 +52,7 @@ rows green.
 
 - [ ] Red first: each shape in the table ends the header where the parse has a heading, and only there.
 - [ ] The unclosed-fence case names the fence, not a missing label.
-- [ ] [Bug 0622](./fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md)'s four rows and [bug 0471](./0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md)'s reproduction unchanged.
+- [ ] [Bug 0622](./fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md)'s six rows and [bug 0471](./0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md)'s reproduction unchanged.
 - [ ] A changeset naming `@nielspeter/eess-md`.
 - [ ] `npm run validate` green.
 
