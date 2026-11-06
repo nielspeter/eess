@@ -5,10 +5,10 @@
 - **State:** Done — built 2026-11-06 on `feat/0624-field-reader` from the Ready plan frozen at
   3fb8ef97 against `main` 8969ee6b (v0.18.0): Phase 1a 8f824a0c, 1b 00b10d99, 2 20a119e2, then the
   build review's fixes (architect, product, enforcement, method) in b3e9ba7d and after. Written
-  2026-11-05 from the review of [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md), at the maintainer's
+  2026-11-05 from the review of [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md), at the maintainer's
   direction, and revised the same day after its own review (architect, product, enforcement, method).
   Every box below is ticked with its evidence, or disposed of with its reason.
-- **Implements:** [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
+- **Implements:** [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)
   (ask 1; ask 2 stays held)
 - **Priority:** Medium. No false green in this plan's subject (the ledger's is
   [bug 0623](../../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md)), but a tool that shows one
@@ -35,7 +35,7 @@
     region) is not bundled, and `agreeWithFolder` is not moved onto the projection: a no-behaviour
     refactor left out of scope below, so this plan changes no condition.
   - Decided in the build (the build review, overrulable): the value arm is flat (`values`, `line`,
-    `label`, `form`, `notes`), not the public `MdTerm` [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review named, since `MdTerm`
+    `label`, `form`, `notes`), not the public `MdTerm` [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review named, since `MdTerm`
     holds one value, a `doc`, and a `'pattern'` form; `absent` carries `haveField`'s `message` and no
     line, since the whole document is the cause; the options type `FieldReadingOptions` refuses
     `oneOf` at compile time, and the runtime check refuses one that gets past it; both import rules
@@ -123,7 +123,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
         Done: `packages/md/tests/fixtures/field-reading-golden.json`, 126 rows (21 documents × 6
         specs), captured from `main` at 8969ee6b in a worktree with its own install. The first
         capture held 16 documents; the build review asked for the five it lacked (a value outside a
-        present section, [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s Measured rows 1 and 3, two causes, two notes), and the table
+        present section, [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s Measured rows 1 and 3, two causes, two notes), and the table
         was re-captured from the same `main`. The fixture is
         `packages/md/tests/helpers/field-reading-fixture.ts`.
   - [x] Add `fieldOutcome`; rewrite the predicate's decision onto it. The golden table is
@@ -174,7 +174,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
       agreeing; an empty value; a label only in an unread form, once and twice; an unclosed fence;
       an indented block; outside the header; outside a present section; a missing section; no field,
       with and without labels; a value with a prose note, with an unread-form note, and with both;
-      [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s Measured rows 1 and 3. Row 4, the waiver, is a `corpus()` fixture of its own.
+      [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s Measured rows 1 and 3. Row 4, the waiver, is a `corpus()` fixture of its own.
       Agreement is with `haveField` without `oneOf`. _Corrected 2026-11-06: an earlier tick of this
       box said Measured rows 1 and 3 were among the classes before the fixture held them; the build
       review found it, and the two documents were added._
@@ -225,7 +225,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
 ## Out of scope
 
 - Ask 2 (the same over text) and its own mutant, a second parse path: held on
-  [bug 0520](../../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and a measurement.
+  [bug 0520](../../bugs/fixed/0520-waivers-in-a-text-corpus-are-refused.md) and a measurement.
 - `findState`'s reading and the ledger: [plan 0498](../0498-honestyatclose-places-a-record-with-block-5.md)
   and [bug 0623](../../bugs/fixed/0623-the-ledger-reads-the-first-of-two-states.md).
 - `fields()`' header boundary: [bug 0622](../../bugs/fixed/0622-an-indented-line-like-a-heading-ends-the-field-header.md).
@@ -241,7 +241,7 @@ export function resolveFieldValue(doc: MdDocument, options: FieldReadingOptions)
   [bug 0628](../../bugs/0628-the-nonvacuity-rule-id-audit-reads-only-corpus-ids.md).
 - Whether "one resolver per concept" (links, fields) should become an ADR rather than one
   architecture rule per concept: an open question that stays in
-  [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review, its home; this plan builds two such rules and does not
+  [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s review, its home; this plan builds two such rules and does not
   settle it.
 
 Deferred: [bug 0588](../../bugs/0588-agree-with-folder-never-checks-its-region.md)

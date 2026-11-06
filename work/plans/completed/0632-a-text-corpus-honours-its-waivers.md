@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-11-06 against `main` 2e071307 (eess-md 0.16.0, kernel 0.10.1), after the D1 check passed it. Written 2026-11-06 at the maintainer's direction, for
-  [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) and
-  [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s ask 2.
+- **State:** Done — built 2026-11-06 on `plan/0632-text-corpus-waivers`: Phase 0 accepted [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md), Phases 1–3 in 25f46e74, 6766b8b0 and 819fbaf5, then the build review's fixes (architect, enforcement, testing, method) in 3cd461f8. Every box below is ticked with its evidence. Frozen 2026-11-06 against `main` 2e071307 (eess-md 0.16.0, kernel 0.10.1), after the D1 check passed it. Written 2026-11-06 at the maintainer's direction, for
+  [bug 0520](../../bugs/fixed/0520-waivers-in-a-text-corpus-are-refused.md) and
+  [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s ask 2.
   Revised the same day after an architect review and an enforcement review of the first design. Both
   found its `WeakRef` lifetime unsound (measured: a text corpus is collected while its documents are
   still in use). The enforcement review also found its longest-prefix lookup a false green on
@@ -12,9 +12,9 @@
   registered reader function cannot be compared, so the kernel now takes the texts. Both re-checks
   said the edit needs no further full round; the architect asked that D1 alone be checked once more.
   Each revision is recorded under _Corrections_. The D1 check passed it for the freeze once its one Important finding, segment collapsing in the normalisation, was written in; it is.
-- **Implements:** [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)
-  (ask 2; ask 1 is [plan 0624](./completed/0624-md-one-documents-field-value-public.md)'s)
-- **Fixes:** [bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md)
+- **Implements:** [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)
+  (ask 2; ask 1 is [plan 0624](./0624-md-one-documents-field-value-public.md)'s)
+- **Fixes:** [bug 0520](../../bugs/fixed/0520-waivers-in-a-text-corpus-are-refused.md)
 - **Priority:** Medium. Nothing passes that should fail today: the refusal is loud. But a named
   consumer waits on it: a consuming project's plan 125 reads one record's field from text, and a
   valid record that holds a waiver directive throws.
@@ -24,10 +24,10 @@
 - **Decided, each overrulable:**
   - **One plan and one PR, a commit per phase.** The architect review proposed three PRs: the ADR,
     the kernel, then eess-md. They share one root cause and each step needs the one before it, and
-    each extra PR is a full CI run ([spike 0631](../spikes/0631-where-ci-time-goes.md)).
+    each extra PR is a full CI run ([spike 0631](../../spikes/0631-where-ci-time-goes.md)).
   - The binding decision is a new ADR, written in Phase 0 before any code. It extends
-    [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) and records its departure
-    from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md).
+    [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) and records its departure
+    from [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md).
 
 ## Problem
 
@@ -43,13 +43,13 @@ refusal, a waiver in a text corpus would silently not apply.
 
 - **Refused:** 2 of the 592 hold a waiver directive and are refused, though the reader is not a rule
   and applies no waiver. One corpus over all of them is refused for the same reason.
-- **Cost:** one corpus over the 590 others builds in 579–638 ms. Reading every record's field with
+- **Cost** (repeat reads; see the build review's correction below for the first read): one corpus over the 590 others builds in 579–638 ms. Reading every record's field with
   `resolveFieldValue`, `{ label: 'State', forms: ['bold', 'plain'], region: { section: 'Status' } }`,
   takes 150–171 ms. A corpus per record costs about the same per record, 0.9–1.6 ms. Method: the files are read before timing, and each figure is two warm runs here; the method review re-measured six warm runs (591–623 ms, 146–171 ms, 1.21–1.27 ms a record).
 
 So once the refusal goes, ask 2 needs no new parser and no new API: `corpusFromText` plus
 `resolveFieldValue`. Of the proposal review's three answers (a private parse, a public parser, or
-[bug 0520](../bugs/0520-waivers-in-a-text-corpus-are-refused.md) plus documentation), that is the
+[bug 0520](../../bugs/fixed/0520-waivers-in-a-text-corpus-are-refused.md) plus documentation), that is the
 third.
 
 ## Design
@@ -57,7 +57,7 @@ third.
 ### D1. The kernel holds a claimed root's texts, and reads a claimed path only from them
 
 A new kernel function, on `@nielspeter/eess/internal` (family plumbing,
-[ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md)):
+[ADR-011](../../../adr/011-the-kernels-public-api-is-explicit.md)):
 
 ```ts
 /** Claim `root`: each file under it is these texts, keyed by path relative to `root`, and nothing else. */
@@ -86,7 +86,7 @@ re-registration lets one corpus's waivers read another's text. With the texts, t
 - **The one exception is the same root with an exactly equal map:** the same keys, each with the same
   text. A subset or a superset is different. A content-addressed root (D2) makes that the common
   case.
-- **Each refusal is the kernel's `ArchConfigError` in its own words,** naming the root and the root it collides with: a root names one text per path for the realm. eess-md catches it in `corpusFromText` and adds its remedy (leave `root` unset, or name a root used for one map only), so the registration carries no wording and the shared shape stays plain data. _Revised by [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review, which found the signature could not carry the wording this bullet first said it passed._
+- **Each refusal is the kernel's `ArchConfigError` in its own words,** naming the root and the root it collides with: a root names one text per path for the realm. eess-md catches it in `corpusFromText` and adds its remedy (leave `root` unset, or name a root used for one map only), so the registration carries no wording and the shared shape stays plain data. _Revised by [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review, which found the signature could not carry the wording this bullet first said it passed._
 
 **The lifetime is strong, for the realm.**
 
@@ -106,9 +106,9 @@ records) see the same texts.
 
 - **The shape is versioned,** a `version` field on the shared object. A kernel that finds a shape it
   does not know refuses loudly rather than reading it.
-- **It holds plain data,** roots and their copied maps. Each kernel copy reads it as `unknown` through a type guard (also how [ADR-005](../../adr/005-no-any-no-type-assertions.md) is met); an unknown shape, or a path under two roots in it, is a finding, never a pick.
+- **It holds plain data,** roots and their copied maps. Each kernel copy reads it as `unknown` through a type guard (also how [ADR-005](../../../adr/005-no-any-no-type-assertions.md) is met); an unknown shape, or a path under two roots in it, is a finding, never a pick.
 
-**The lookup, in `applyFilters`, in [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's order,** decided outside the swallowing `try`.
+**The lookup, in `applyFilters`, in [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's order,** decided outside the swallowing `try`.
 
 - **The violating file's path is normalised as the root is,** so a Windows `join(root, rel)` finds its
   root. The text is parsed under the violation's own `file` as reported, because a directive applies
@@ -125,12 +125,12 @@ records) see the same texts.
   violation unwaived. One finding per rule and file.
 
 **The text is parsed unchanged.** It goes through `parseExclusionComments`, with whatever
-[ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) masking applies on disk: parity, not a new guarantee.
+[ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) masking applies on disk: parity, not a new guarantee.
 
-- [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s markdown row is `pending`.
+- [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s markdown row is `pending`.
 - The enforcement review measured a directive inside a `<div>`, a `<pre>`, or a fence in a
   blockquote being read as a waiver, on disk and so here. That is
-  [bug 0291](../bugs/0291-the-markdown-masker-honours-a-directive-inside-code.md)'s class, inherited,
+  [bug 0291](../../bugs/0291-the-markdown-masker-honours-a-directive-inside-code.md)'s class, inherited,
   not introduced.
 
 **The scope is every kernel terminal, not every terminal.**
@@ -138,12 +138,12 @@ records) see the same texts.
 - eess-ts has its own `applyFilters` (`packages/ts/src/core/execute-rule.ts:282`, behind an
   `existsSync` at `:280`), which no md violation reaches.
 - Crossvalidate's `md-mermaid-er.ts:191` and `md-gherkin.ts:154` call no `applyFilters`
-  ([bug 0422](../bugs/0422-a-waiver-does-not-silence-an-md-mermaid-finding.md)).
+  ([bug 0422](../../bugs/0422-a-waiver-does-not-silence-an-md-mermaid-finding.md)).
 - That eess-ts's copy skips an in-memory file is the same defect on another path, recorded as its own
   bug, not added here.
 
-**A departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md), stated.** Every seam so far hands the kernel a value:
-`PathUniverse`, `DiskSet`, `sourceEmpty`, [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s `mask`. This one is still a value, the
+**A departure from [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md), stated.** Every seam so far hands the kernel a value:
+`PathUniverse`, `DiskSet`, `sourceEmpty`, [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s `mask`. This one is still a value, the
 texts, but it is ambient: registered once and looked up by path, not passed with the rule. Keying by
 path is right, because a value on the rule context would never be set by a rule built outside
 eess-md's builders. The ADR says so.
@@ -190,15 +190,15 @@ hand (`packages/md/tests/corpus-from-text.test.ts:341`, `:433`); they move with 
 `docs/markdown.md` gains "Reading one record's field from text": `corpusFromText` over the texts,
 then `resolveFieldValue` per document, with the measured cost and its method. There is no new
 reader, so there is no new `MdDocument` constructor to promise; the `frozen` rule of
-[ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1 is untouched.
+[ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md) clause 1 is untouched.
 
 ## Phases
 
 ### Phase 0 — the ADR
 
-- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) (Accepted since), written 2026-11-06 and revised the same day from its decision review (architect, enforcement, method). The review moved points into it that this plan had not decided, and D1 and the Test inventory follow it: the lookup's order (in which, after the diff check, a real file under a claimed root is a finding, never a disk read), the disk bounding a forgery, the kernel wording its own refusals, and the text parsed under the violation's own `file`:
-  - it extends [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
-  - it states its departure from [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the fact is [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s kind; only the ambient lookup is new), and the residual above with its remedy;
+- [x] The new ADR, decided from D1 and D2, is [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) (Accepted since), written 2026-11-06 and revised the same day from its decision review (architect, enforcement, method). The review moved points into it that this plan had not decided, and D1 and the Test inventory follow it: the lookup's order (in which, after the diff check, a real file under a claimed root is a finding, never a disk read), the disk bounding a forgery, the kernel wording its own refusals, and the text parsed under the violation's own `file`:
+  - it extends [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (`**Extends:**`, with the link back);
+  - it states its departure from [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the fact is [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s kind; only the ambient lookup is new), and the residual above with its remedy;
   - its `pending` rows name the mutant each must catch (row 9 by the clause 5 row's tests); they cannot cite test files that do not exist yet (`check:corpus` requires a cited path to exist), so the closing box below cites them;
   - its Enforcement table uses Tier 2 rows against deterministic behaviour, with no GC-dependent row;
   - its row goes in `CLAUDE.md`'s ADR index.
@@ -222,13 +222,12 @@ with no guardrails warning in the new or changed files.
   - the map is copied, refusing a non-string value and a non-canonical key.
 - [x] `applyFilters` normalises the violating path to find a root and key, and parses under the
       reported `file`. An unreadable registry makes every violating path a finding. Otherwise an
-      unclaimed or relative path is read from disk, and a claimed path follows [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's
+      unclaimed or relative path is read from disk, and a claimed path follows [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 5's
       order. All decided outside the swallowing `try`. Each finding carries the rule's id when it has
       one, else the rule's description, else `unnamed`.
 - [x] done-otherwise — red first, through the kernel's public terminal, over a virtual file with
       registered texts. The tests were written after the code, not before it. Their red against the
-      pre-change behaviour is shown by the mutant _the registered read skipped_, which is that
-      behaviour: 7 of the 24 go red, among them the `correspondence()` test ("with the directive in the
+      pre-change behaviour is shown by _the registered read skipped_, the nearest mutant to that behaviour (the pre-change kernel had no `registerSourceText` at all, so every test would fail at import, and none of the lookup's findings): 7 of the 24 go red, among them the `correspondence()` test ("with the directive in the
       registered text, the finding is waived", against its control with `examined > 0`), and the
       undocumented waiver's promoted finding.
 - [x] The kernel sabotage matrix, run in a worktree with its own install, one mutant at a time
@@ -271,8 +270,8 @@ are clean.
 - [x] `corpusFromText` registers its map, and `refuseWaivers` is removed. The kernel now owns the
       root-on-disk check; eess-md rewords the kernel's refusals with its remedy.
 - [x] Its JSDoc and `docs/markdown.md`'s `corpusFromText` section are updated (the three
-      correspondence recipes that identify a document by `relPath`, `docs/markdown.md:1308`, `:1942`,
-      `:1954`, are named in [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md), not changed here). The two refusal tests are removed, and the new
+      correspondence recipes that identify a document by `relPath`, `docs/markdown.md:1347`, `:1981`,
+      `:1993`, are named in [bug 0633](../../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md), not changed here). The two refusal tests are removed, and the new
       file asserts the opposite, with parity.
 - [x] done-otherwise — over a text corpus, each with parity against `corpus()` over the same files on
       disk under a different root, compared by `relPath`: a waiver applies against its control; an
@@ -283,14 +282,13 @@ are clean.
 - [x] A crossvalidate binding that goes through `correspondence()` and reports the document's
       absolute file (`embeddedDiagramsMatchCode`) honours a waiver in a text corpus's document,
       against its control, with `examined > 0`. Not `adrCitationsResolve`, which reports a relative
-      path ([bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md)).
-- [x] The eess-ts copy's in-memory-file gap is recorded as its own bug: [bug 0634](../bugs/0634-eess-ts-reads-no-waiver-in-an-in-memory-file.md), filed with
-      [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review so its clause 8 names a record that exists.
-- [x] `apply-fixes`' dry run over a text corpus is recorded as its own bug: [bug 0635](../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md), likewise. A
-      relative violating path, found by the same review, is [bug 0633](../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md).
+      path ([bug 0633](../../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md)).
+- [x] The eess-ts copy's in-memory-file gap is recorded as its own bug: [bug 0634](../../bugs/0634-eess-ts-reads-no-waiver-in-an-in-memory-file.md), filed with
+      [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review so its clause 8 names a record that exists.
+- [x] `apply-fixes`' dry run over a text corpus is recorded as its own bug: [bug 0635](../../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md), likewise. A
+      relative violating path, found by the same review, is [bug 0633](../../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md).
 - [x] The Phase 2 sabotage matrix, run in worktrees with their own install, rebuilding after each
-      mutant, against the md tests, the crossvalidate test and the fixture; the restored tree passed
-      38, 2, and exit 1. Every mutant red:
+      mutant, against `packages/md/tests/text-corpus-waivers.test.ts` and `packages/md/tests/corpus-from-text.test.ts` (38 tests together then), the crossvalidate test (2) and the fixture; the restored tree passed 38, 2, and the fixture exit 1. Every mutant red. A fixture cell of — means the fixture was run and kept its exit 1; it was sabotaged by registration skipped (exit 0) here, and by _the registered read skipped_ in the build review's matrix below:
 
       | mutant | md and crossvalidate tests red | fixture |
       | --- | --- | --- |
@@ -309,15 +307,45 @@ are clean.
       differ (masked: no exclusion; unmasked: lines 4–7 excluded) and the mutant goes red. Both were
       the test's faults, not the code's._
 
-- [ ] At close: [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s `pending` rows cite their test files by path and become `gated`, each with
-      the mutant that reds it.
+- [x] The build review's matrix (2026-11-06, architect, enforcement, testing, method), run on
+      3cd461f8 in worktrees with their own install, rebuilding after each mutant, against the core,
+      md and crossvalidate test files and the fixture. Every mutant red; the restored tree red 0 and
+      the fixture exit 1:
+
+      | mutant | tests red | fixture |
+      | --- | --- | --- |
+      | the found shape not named | 3 | exit 1 |
+      | the malformed case not told apart | 1 | exit 1 |
+      | the per-entry shape checks removed | 1 | exit 1 |
+      | a failed `globalThis` write ignored | 1 | exit 1 |
+      | the root-exists check, the as-written half removed | 1 | exit 1 |
+      | the root-exists check, the normalised half removed | 1 | exit 1 |
+      | `bypassFilters` dropped from the source finding | 9 | exit 1 |
+      | the registered read skipped | 14 | exit 0 (vacuous) |
+      | the reserved-prefix refusal removed | 1 | exit 1 |
+      | eess-md's root remedy never added | 1 | exit 1 |
+      | eess-md's root remedy always added | 1 | exit 1 |
+
+      _The two remedy mutants first failed to build: the literal `false` and `true` left a parameter
+      unused, which TypeScript refuses. Rerun as `(rootSet && Date.now() < 0)` and
+      `(rootSet || Date.now() > 0)`, each went red. The mutant's fault, not the code's._
+
+      The review's fixes: the unreadable registry names both shapes and tells a malformed one apart;
+      the registry is read once per rule run; a failed write to `globalThis` is refused; the test-only
+      reset left `/internal` (a test drops the key itself, so no export releases a root); eess-md adds
+      its root remedy only to a root the caller set; the md stderr parity strips the roots it knows,
+      so it holds whatever the temp directory is; vitest isolation is pinned in eess-md; the fixture
+      row moved to the end of the list, so no other fixture changes shard; two old tests that could
+      no longer fail were removed. The core suite is 427 tests, md 1,237, crossvalidate 146.
+
+- [x] At close: [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s `pending` rows cite their test files by path and become `gated`, each with the mutants that red it; rows 8 and the residuals stay `manual`, the [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md) relation `n/a`.
 
 ### Phase 3 — ask 2, documented
 
 - [x] `docs/markdown.md`, "Reading one record's field from text": `corpusFromText` +
       `resolveFieldValue`, the measured cost and its source, and "leave `root` unset". The section
       heading "A corpus from text, for tests" is kept, so `docs/migrating-to-0.15.md`'s anchor holds.
-- [x] A test of [proposal 028](../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s waiver break class: a record holding a waiver directive reads its field
+- [x] A test of [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s waiver break class: a record holding a waiver directive reads its field
       through `corpusFromText` + `resolveFieldValue`
       (`packages/md/tests/text-corpus-waivers.test.ts`).
 
@@ -396,7 +424,7 @@ are clean.
 - **Releasing a registered root in a long-running process:** not needed today. If it is, a released
   root leaves a marker, so a later violation under it is a finding, never a disk read.
 - **`apply-fixes` over a text corpus.** A dry run (`write: false`) would preview a fix there, which is
-  a real use. It is not built here; it is [bug 0635](../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md).
+  a real use. It is not built here; it is [bug 0635](../../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md).
 
 ## Release
 
@@ -407,7 +435,7 @@ are clean.
   - its default root changes, which the docs already told callers not to rely on;
   - it newly refuses a caller-set root reused with other text, an overlapping root (including two spellings of one), a relative root (documented as absolute, never checked, `packages/md/src/corpus.ts:213`), and the reserved prefix.
 
-  The changeset names eess-crossvalidate, which depends on it ([bug 0185](../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
+  The changeset names eess-crossvalidate, which depends on it ([bug 0185](../../bugs/fixed/0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)).
 
 - **`@nielspeter/eess-crossvalidate`:** its kernel range rises through `changeset version`, and its dialect peer floors through `RELEASING.md` step 3a. Its changeset says why, and names the residual's
   remedy.
@@ -429,7 +457,7 @@ Two reviews measured why that design failed:
 
 It also overclaimed three things:
 
-- that [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s masking guarantee holds, but [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s markdown row is `pending`;
+- that [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s masking guarantee holds, but [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)'s markdown row is `pending`;
 - "every terminal", but eess-ts has its own filters;
 - a per-record cost of 9.7 ms, which came from a cold run.
 
@@ -444,7 +472,7 @@ eess-md: a false red), and planned a two-kernel test that could not fail (a re-i
 imports). Its measurement note said the uncounted files were untracked; they are tracked, and outside
 the glob.
 
-**At the freeze, and from [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review (2026-11-06).** The freeze commit changed the
+**At the freeze, and from [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s decision review (2026-11-06).** The freeze commit changed the
 design without an entry here:
 
 - the two-kernel test moved from a physical copy of `dist` to `vi.resetModules()`;
@@ -463,6 +491,20 @@ file wins" (the revision's lookup) unsafe: a root created on disk after it was c
 finding computed from the registered text. The lookup became fail-closed in 573c54df. The next checks
 found the unreadable registry checked after the claimed/unclaimed split, a step-4 test that could not
 reach step 4, a mutant that described correct code, and list items merged by an edit helper that let
-an item's leading spaces swallow the newline before it. 4ccda21f fixed them and accepted [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md); both
+an item's leading spaces swallow the newline before it. 4ccda21f fixed them and accepted [ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md); both
 checks of that commit confirmed it, and found step 3's remedy unable to clear its own `\` case, now
 reworded.
+
+**The build review (2026-11-06).** The docs' cost figures, and this plan's, were repeat reads: eess-md
+memoises parsed texts per process, and the texts measured were already in that memo. A board reading
+another branch reads texts the process has not seen. The build review measured the first read: one
+corpus over 597 files builds in 4.5–4.8 s, not about 0.6 s, and a corpus per record costs about
+8.5 ms, not 0.9–1.6 ms. The first design's 9.7 ms, listed above as an overclaim from a cold run, was
+the honest first-read cost; the "correction" replaced it with a repeat-read figure. The docs now give
+both, with the example's own options. The review also found the unreadable registry naming only its
+own shape ([ADR-024](../../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) clause 6 requires both), eess-md's root remedy added where the root was already
+unset, a parity test that failed under any temp directory but `/tmp`, an `/internal` reset that
+released every root against the ADR's lifetime, and this plan's Release section claiming the md
+changeset named eess-crossvalidate before it did. Each is fixed above.
+
+Deferred: none. Found along the way and recorded, not built: [bug 0633](../../bugs/0633-a-correspondence-reports-a-document-by-its-relative-path.md), [bug 0634](../../bugs/0634-eess-ts-reads-no-waiver-in-an-in-memory-file.md), [bug 0635](../../bugs/0635-apply-fixes-cannot-preview-a-fix-in-a-text-corpus.md).

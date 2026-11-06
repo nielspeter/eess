@@ -3,9 +3,9 @@
 ## Status
 
 - **State:** Draft — read from the source 2026-11-06 by the architect review of
-  [plan 0632](../plans/0632-a-text-corpus-honours-its-waivers.md); no red test yet.
+  [plan 0632](../plans/completed/0632-a-text-corpus-honours-its-waivers.md); no red test yet.
 - **Severity:** Low — fails loudly: a fix for a text corpus's document throws `ENOENT`.
-- **Origin:** self-found · the architect review of [plan 0632](../plans/0632-a-text-corpus-honours-its-waivers.md), 2026-11-06.
+- **Origin:** self-found · the architect review of [plan 0632](../plans/completed/0632-a-text-corpus-honours-its-waivers.md), 2026-11-06.
 - **Reported:** 2026-11-06
 
 ## Symptom

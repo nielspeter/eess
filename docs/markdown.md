@@ -128,8 +128,7 @@ A pointer's target is in the map or it is not there: the text corpus never reads
 `root` (what each document reports in `file`) defaults to `/__eess_text_corpus__/<hash>`, named by
 the map's content, so equal maps share a root and different maps never collide. So a test asserts on
 a finding's `element` or a document's `relPath`, or sets `root` itself, rather than on `file`, which
-carries that placeholder. Leave `root` unset otherwise: a root names one text per path for the
-process, so a fixed `root` reused with other texts is refused.
+carries that placeholder. Leave `root` unset otherwise: a root names one text per path for the realm (the process, or one worker thread), so a fixed `root` reused with other texts is refused.
 
 A waiver directive (`<!-- eess-exclude … -->`) in a text corpus applies exactly as it would on disk:
 the corpus registers its texts with the kernel, which reads a violating document's waivers from them
@@ -161,7 +160,7 @@ the selection is.
 
 A board or a report that holds records as text (read from another branch, say) reads a field the
 way `haveField` decides it with `corpusFromText` and `resolveFieldValue`
-([proposal 028](../work/proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md), ask 2):
+([proposal 028](../work/proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md), ask 2):
 
 ```typescript
 import { corpusFromText, resolveFieldValue } from '@nielspeter/eess-md'
@@ -174,10 +173,21 @@ for (const doc of c.documents()) {
 ```
 
 Leave `root` unset. A record that holds a waiver directive reads like any other: the reader is not a
-rule, and the corpus no longer refuses the directive. Measured over this repository's 592 records:
-one corpus over all of them builds in about 0.6 s and reads every record's field in about 0.15 s; a
-corpus per record costs 0.9–1.6 ms a record, about the same
-([plan 0632](../work/plans/0632-a-text-corpus-honours-its-waivers.md)).
+rule, and the corpus no longer refuses the directive.
+
+The cost depends on whether the texts are new to the process. eess-md keeps a per-process memo of
+parsed texts, and a board that reads another branch reads texts it has not seen. Measured 2026-11-06
+by [plan 0632](../work/plans/completed/0632-a-text-corpus-honours-its-waivers.md)'s build review, Node 24.22, over the 597 `.md` files under this repository's `work/`
+(records, boards and indexes), with the options in the example above:
+
+| what                                   | first read (texts new to the process) | repeat read (texts seen before) |
+| -------------------------------------- | ------------------------------------- | ------------------------------- |
+| one corpus over all 597                | 4.5–4.8 s to build                    | about 0.6 s to build            |
+| reading every document's field         | 0.41–0.48 s                           | —                               |
+| a corpus per record, reading one field | about 8.5 ms a record                 | about 1.7 ms a record           |
+
+So the first read of a large board costs seconds, not fractions of one; the parse is most of it
+([plan 0632](../work/plans/completed/0632-a-text-corpus-honours-its-waivers.md)).
 
 ## What it checks
 

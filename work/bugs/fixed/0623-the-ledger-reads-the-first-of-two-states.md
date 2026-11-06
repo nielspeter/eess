@@ -7,7 +7,7 @@
 - **Severity:** High — a false green: `honestyAtClose` passes a record that also says it is done,
   depending only on which of its two `State:` lines comes first.
 - **Origin:** self-found · the enforcement review of
-  [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md), 2026-11-05.
+  [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md), 2026-11-05.
 - **Reported:** 2026-11-05
 
 ## Symptom

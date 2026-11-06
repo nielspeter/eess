@@ -8,7 +8,7 @@
   record's field, while `haveField` reads the same field as present in the header, so a corpus that
   pairs the two passes with the value unchecked.
 - **Origin:** inbound · a consuming project, 2026-11-05, measuring why `fields()` and `haveField`
-  read one record differently ([proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)).
+  read one record differently ([proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)).
 - **Reported:** 2026-11-05
 
 ## Symptom
@@ -65,7 +65,7 @@ ends a continued value, is shared by both readers and does not make them disagre
 right after a value is a lazy continuation, which neither reading blanks. The `heading()` form pattern
 (`packages/md/src/model/label.ts:39`) does: measured, `fields()` reads an indented `    ## Status: fake`
 as a heading-form label and `haveField` sets it aside. That is the false-red direction, the same as
-[proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s first Measured
+[proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s first Measured
 row, not this bug's silent one. A `headerEnd` read from the parse tree
 must keep [bug 0471](../0471-the-header-region-reads-a-body-value-past-a-label-shaped-section.md)'s
 case reproducible.
@@ -82,7 +82,7 @@ a misattributed message after an unclosed fence, is [bug 0626](../0626-the-field
 
 `HEADING` keeps `\s*` and is shared, so the readers agree on where a value ends. The `heading()` form
 keeps `\s*` and still reads an indented `    ## Status: x` that `haveField` sets aside (the false-red
-direction, [proposal 028](../../proposals/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s
+direction, [proposal 028](../../proposals/promoted/028-md-one-documents-field-read-as-the-gate-reads-it.md)'s
 first Measured row). This fix makes that reachable at a header's top, where the indented line used to
 end the header first.
 
