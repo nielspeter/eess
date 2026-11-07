@@ -44,20 +44,24 @@ HTML links eess-md cannot read (`packages/md/src/predicates/section.ts:80-106`).
 
 ## Phase 1 — the five factories
 
-- [ ] `packages/md/src/predicates/section.ts`: the five factories, each a one-line call to
+- [x] `packages/md/src/predicates/section.ts`: the five factories, each a one-line call to
       `sectionsHolding`, each with JSDoc naming its builder twin and, for `sectionsWithLink`, the
-      undecided case.
-- [ ] `packages/md/src/index.ts`: export them beside `sectionsWithSubsection`.
-- [ ] `scripts/vacuity-matrix.mjs`: one `SIBLING_NOT_CONSTRUCTORS` row per export, "predicate
+      undecided case. `SectionCodeBlockOptions` moved here from `builders/sections.ts`, which
+      re-exports it, so a predicate imports no builder; the root export is unchanged.
+- [x] `packages/md/src/index.ts`: export them beside `sectionsWithSubsection`.
+- [x] `scripts/vacuity-matrix.mjs`: one `SIBLING_NOT_CONSTRUCTORS` row per export, "predicate
       factory, used inside inSections (plan 0636)", as its siblings read; `check:vacuity` fails an
       export with no row.
-- [ ] `docs/markdown.md` and `packages/md/README.md`: the root section predicates' sentence under
-      "Inside matching sections: `inSections`" names the five, with one example that composes one.
-- [ ] `.changeset/`: `@nielspeter/eess-md` minor, additive.
+- [x] `docs/markdown.md` and `packages/md/README.md`: the root section predicates' sentence under
+      "Inside matching sections: `inSections`" names the five, with one example that composes one,
+      and says why it is narrowed by depth (a title section holds what every section under it
+      holds). `check:surface` lists none of the five as undocumented.
+- [x] `.changeset/`: `@nielspeter/eess-md` minor, additive (`md-section-holding-predicates.md`).
 
 ## Files changed
 
-`packages/md/src/predicates/section.ts`, `packages/md/src/index.ts`,
+`packages/md/src/predicates/section.ts`, `packages/md/src/builders/sections.ts` (the option type's
+re-export), `packages/md/src/index.ts`,
 `packages/md/tests/section-holding-predicates.test.ts` (new), `scripts/vacuity-matrix.mjs`,
 `docs/markdown.md`, `packages/md/README.md`, `.changeset/`.
 
@@ -65,22 +69,31 @@ HTML links eess-md cannot read (`packages/md/src/predicates/section.ts:80-106`).
 
 Through the public root, as an adopter calls them:
 
-- [ ] Each factory, through `docs(c).that().satisfy(inSections(<factory>()))` over a corpus where
-      one section holds that kind and another holds every other kind but it, selects only the
-      document element on the first section's lines: each export selects its own kind. A
-      `sections(c).that().satisfy(<factory>())` case shows it selects the same sections as the
-      builder twin.
-- [ ] `sectionsWithCodeBlock({ lang: 'TS' })` selects a block tagged `ts` (any letter case) and not
-      one tagged `js`.
-- [ ] `sectionsWithLink()` over a section whose only link is an HTML link eess-md cannot read: the
+- [x] done-otherwise — `inSections` lifts onto line elements (boxes, links, pointers), not onto
+      documents, so the plan's `docs(c)…inSections(…)` form does not exist. Each factory is driven
+      through `sections(c).that().satisfy(<factory>())` over one document with a section per kind,
+      each holding nothing the others hold but content, and selects exactly its kind's sections;
+      one test shows each selects what its builder twin selects; a second drives one through
+      `taskItems(c).that().satisfy(inSections(and(sectionsAtDepth(2), sectionsWithCodePointer())))`,
+      where the depth keeps the title section (which holds every kind) out.
+- [x] done-otherwise — the case is the mirror: `sectionsWithCodeBlock({ lang: 'ts' })` selects a
+      block tagged `TS` and not one tagged `js`.
+- [x] `sectionsWithLink()` over a section whose only link is an HTML link eess-md cannot read: the
       rule reports the undecided site at its own line rather than drop or select the section
       ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)).
-- [ ] The sabotage matrix, run in a worktree with its own install, one mutant at a time against the
-      new test file, recorded here:
-  1. an export wired to the wrong kind (`sectionsWithCodePointer` to `link`, the review's mutant 5:
-     a false green);
-  2. `sectionsWithCodeBlock` dropping `lang`;
-  3. `sectionsWithLink` built without its `undecided` (a plain `test` over `holds`).
+- [x] The sabotage matrix, run 2026-11-07 on 88900567 in a worktree with its own install and build,
+      one mutant at a time against the new test file (about 1 s each). The restored tree red 0
+      before and after; every mutant red:
+
+      | mutant | tests red |
+      | --- | --- |
+      | an export wired to the wrong kind (`sectionsWithCodePointer` to `link`, the review's mutant 5: a false green) | 3 |
+      | `sectionsWithCodeBlock` dropping `lang` | 2 |
+      | `sectionsWithLink` built without its `undecided` (a plain `test` over `holds`) | 1 |
+
+      _The first run read 1 red on the restored tree: the worktree had no kernel `dist`, so the
+      `and` import from `@nielspeter/eess` did not resolve. Built once, it read 0. The `lang` mutant
+      first did not apply: its text was written before prettier split the line._
 
 ## Out of scope
 
