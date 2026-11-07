@@ -2,9 +2,10 @@
 
 ## Status
 
-- **State:** Draft — Phase 0 settled 2026-11-07 (below); its Phase 1 is now
-  [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md), and this plan is frozen after
-  that one ships, against the exports it builds on
+- **State:** Ready — frozen 2026-11-07 against `main` 971e9d5f, which holds
+  [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md)'s exports (PR #323).
+  Phase 0 settled the same day; the API's words are fixed below ("At the freeze"), each checked
+  against the code it names
 - **Implements:** [proposal 026](../proposals/026-md-a-document-has-a-section-that-satisfies-a-predicate.md)
 - **Priority:** Medium. No false green, but "every record has at least one relation section that
   cites code" cannot be written without a hand step, and both forms an adopter reaches for red
@@ -28,6 +29,33 @@
     review's guard, as in [plan 0503](./completed/0503-in-sections-boxes-by-section.md), is for an
     absence-rule spelling (`notExist()`), which is green over nothing; the docs say an absence
     spelling needs it.
+
+- **At the freeze (2026-11-07), each overrulable:**
+  - **The option** is `satisfying?: Predicate<MdSectionElement>` on the published
+    `HaveSectionOptions` (`packages/md/src/model/sections.ts:29`), additive. `docs().haveSection()`
+    dispatches both phases (`packages/md/src/builders/docs.ts:85`); the condition is
+    `packages/md/src/conditions/structure.ts:16`, the predicate
+    `packages/md/src/predicates/document.ts:53`.
+  - **The description** with the option is `have a section "G"[ at depth N] satisfying "<p's
+description>"`, so `sectionsWithCodePointer()` reads `… satisfying "hold a code pointer"`; the
+    article carries "at least one". Without the option both descriptions stay byte-identical.
+  - **The condition's findings**, per document: no section matches `G` is today's
+    `missing section "G"` at line 1 with its notes, unchanged; sections match and none satisfies
+    `p` is one finding per such section, at its heading's line, `section "<name>" does not satisfy
+"<p's description>", and no section "G" in this document does`, its line cited with
+    `citesHeadings`; sections match, none satisfies and some cannot be judged is only the causes,
+    through the kernel's `undecidedViolations`, as `haveField` reports them
+    (`packages/md/src/builders/field-findings.ts:54`), since the verdict depends on them.
+  - **The predicate form** is strong Kleene over the sections matching `G`: selected when one
+    satisfies `p`, undecided when none does and one cannot be judged, otherwise not. It declares
+    `undecided` only when `p` does, and its `test()` refuses an undecided document
+    (`refuseUndecided`), as `inSections`' does.
+  - **One fold.** The strong Kleene "any" over sections in `inSections`
+    (`packages/md/src/predicates/in-documents.ts:141-164`, written twice there) moves to one model
+    helper, which `inSections` and the option both call.
+  - **Section names** `p` reads are recorded for the section-name scan (`sectionDeclarationsOf`), as
+    `inSections` records them; `G` is recorded as `haveSection` records it today, by the predicate
+    always and by the condition with a depth.
 
 ## Problem
 
