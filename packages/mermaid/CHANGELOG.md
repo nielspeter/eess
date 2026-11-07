@@ -1,5 +1,13 @@
 # @nielspeter/eess-mermaid
 
+## 0.9.3
+
+### Patch Changes
+
+- 4451727: Depends on `@nielspeter/eess` 0.11.0, whose waiver scan reads a file that a dialect registered as text (ADR-024) from that text, never from the disk. A file on disk is read as before. None of this package's own code changes.
+- Updated dependencies [a55b355]
+  - @nielspeter/eess@0.11.0
+
 ## 0.9.2
 
 ### Patch Changes
