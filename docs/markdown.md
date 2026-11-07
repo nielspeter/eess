@@ -1151,6 +1151,33 @@ pointers(c)
   .check()
 ```
 
+The second rule says **every** section of the name holds a pointer. When a document may hold several
+and one may only link elsewhere, say **at least one** with `haveSection`'s `satisfying` option, which
+takes any section predicate, such as the root's `sectionsWithCodePointer()`:
+
+```ts
+import { corpus, docs, sectionsWithCodePointer } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['records/**/*.md'] })
+const RELATIONS = 'Relations'
+const CITES_CODE = { satisfying: sectionsWithCodePointer() }
+
+// Conditional: a record that has the section has one that cites code. Its selection is its guard: a
+// misspelt const selects nothing, and the rule reds with the zero-examined finding.
+docs(c).that().haveSection(RELATIONS).should().haveSection(RELATIONS, CITES_CODE).check()
+// Strict: every record has one, so a record with none is "missing section".
+docs(c).should().haveSection(RELATIONS, CITES_CODE).check()
+```
+
+A record whose sections of the name all fail the predicate gets one finding per section, at its
+heading: `section "Relations" does not satisfy "hold a code pointer", and no section "Relations" in
+this document does`. A section the predicate cannot judge (for `sectionsWithLink()`, one whose only
+links are HTML links eess-md cannot read) leaves the record undecided: the cause is reported at its
+own line, unsuppressably, and only where no other section of the name decides the record. The
+predicate form, `predicateHaveSection(name, { satisfying })`, goes inside `satisfy()`, `not()` and
+`inDocuments()`; an absence rule built on it, `satisfy(not(…)).should().notExist()`, is green over
+nothing, so it needs a guard rule, and its `examined` counts only the offenders. Prefer the condition.
+
 **What is not a section.** A heading inside a list item, a blockquote or a footnote definition does
 not start one: it cannot govern anything after its container closes. Neither does an `<h2>` in an HTML
 block, nor a `#` line in a fence. A rule does not read past such a heading silently: a condition's

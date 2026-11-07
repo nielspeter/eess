@@ -2,6 +2,7 @@ import type { Predicate, Undecided } from '@nielspeter/eess'
 import { membership, partition, refuseUndecided, type Membership } from '@nielspeter/eess/internal'
 import type { MdDocument } from '../model/document.js'
 import { contains, sectionsOf, type MdSectionElement } from '../model/sections.js'
+import { anyMembership, sectionVerdicts } from '../model/section-any.js'
 import {
   declaresSections,
   readsSections,
@@ -133,22 +134,19 @@ export function inSections<T extends OnALine>(p: Predicate<MdSectionElement>): P
     const known = memo.get(doc)
     if (known !== undefined) return known
     const sections = sectionsOf(doc)
-    const fresh = { sections, verdicts: sections.map((s) => membership([p], 'all', s)) }
+    const fresh = { sections, verdicts: sectionVerdicts(sections, p) }
     memo.set(doc, fresh)
     return fresh
   }
   // Strong Kleene `any` over the enclosing sections, decided once per element.
   const elementMembership = (e: T): Membership => {
     const { sections, verdicts } = verdictsOf(e.doc)
-    const causes: Undecided[] = []
-    for (let i = 0; i < sections.length; i++) {
-      const s = sections[i]
-      if (s === undefined || !contains(s, e.line)) continue
-      const m = verdicts[i]
-      if (m === true) return true
-      if (m !== undefined && m !== false) causes.push(...m)
-    }
-    return causes.length > 0 ? causes : false
+    return anyMembership(
+      verdicts.filter((_, i) => {
+        const s = sections[i]
+        return s !== undefined && contains(s, e.line)
+      }),
+    )
   }
   const test = (e: T): boolean => {
     const m = elementMembership(e)
@@ -156,12 +154,7 @@ export function inSections<T extends OnALine>(p: Predicate<MdSectionElement>): P
     refuseUndecided(m, 'test()')
     return false
   }
-  const docMembership = (doc: MdDocument): Membership => {
-    const { verdicts } = verdictsOf(doc)
-    if (verdicts.some((m) => m === true)) return true
-    const causes = verdicts.flatMap((m) => (m === true || m === false ? [] : m))
-    return causes.length > 0 ? causes : false
-  }
+  const docMembership = (doc: MdDocument): Membership => anyMembership(verdictsOf(doc).verdicts)
   const lifted: Predicate<T> = {
     description: `are in sections that ${p.description}`,
     test,
