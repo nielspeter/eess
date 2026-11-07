@@ -320,9 +320,11 @@ export function finishPreset(
   // §5 again: `warn` prints without failing for ordinary violations, but an
   // unsuppressable configuration finding printed above a zero exit is exactly
   // the silent green this ADR closes. Every finding `severityFor` escalates
-  // fails here, as it fails a builder's `.warn()` (`executeWarn`), so the two
-  // warn doors cannot disagree (bug 0577); the emitter's own findings among them.
-  const escalated = gated.filter((v) => severityFor(v, 'warn') === 'error' || isEmitterFinding(v))
+  // fails here, as it fails a builder's `.warn()` (`executeWarn`): one rule for
+  // both warn doors (bug 0577). The emitter's own findings are among them, since
+  // each carries `bypassFilters`. Only the escalated ones ride the throw; the
+  // ordinary ones were printed above, which is where they are reported.
+  const escalated = gated.filter((v) => severityFor(v, 'warn') === 'error')
   if (escalated.length > 0) throw new ArchRuleError(escalated, options.reason)
   return gated
 }

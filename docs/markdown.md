@@ -2159,7 +2159,7 @@ regexes and got all four of the above wrong.
 
 Like every preset, `honestyAtClose` throws by default: `HonestyAtCloseOptions`
 extends `PresetReportOptions`, so `report: 'return'` hands you the
-`ArchViolation[]` instead and `report: 'warn'` prints without failing ([ADR-008](../adr/008-caller-owns-reporting.md) —
+`ArchViolation[]` instead and `report: 'warn'` prints without failing, except on a configuration finding ([ADR-008](../adr/008-caller-owns-reporting.md) —
 the caller owns emission). The same is true of `adrEnforcement`.
 
 ```typescript

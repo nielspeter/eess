@@ -190,6 +190,15 @@ export function withBaseline(baselinePath: string): Baseline {
 /**
  * Generate a baseline file from a list of violations.
  *
+ * A configuration finding (`bypassFilters`) is never baselined: it reports that a rule's instrument
+ * is broken. The baseline is written for every other finding, then each configuration finding is
+ * printed to stderr and the call throws an `ArchRuleError` carrying them (bug 0595), as
+ * `eess-ts baseline` prints them and exits 1. Over findings that are all configuration findings this
+ * still overwrites `outputPath`, with `count: 0`: what it accepted before then reads as new, which
+ * fails the next `check`, not passes it.
+ *
+ * @throws ArchRuleError when `violations` holds a configuration finding, after writing the file.
+ *
  * Call this to create/update the baseline:
  * ```typescript
  * const violations = collectAllViolations(rules)
@@ -234,6 +243,14 @@ export function generateBaseline(violations: ArchViolation[], outputPath: string
   // be accepted, prints what it refused and exits 1. A run whose instrument is broken does not end
   // as if its rules had passed.
   if (refused.length > 0) {
+    for (const v of refused) {
+      writeStderr(
+        `not baselined, ${v.file === '' ? '(no file)' : `${v.file}:${String(v.line)}`} ` +
+          `[${v.ruleId ?? v.rule}]: ${v.message}` +
+          (v.suggestion === undefined ? '' : `\n  Fix: ${v.suggestion}`) +
+          '\n',
+      )
+    }
     throw new ArchRuleError(
       refused,
       `${String(refused.length)} configuration finding(s) not baselined: each reports that a rule's ` +

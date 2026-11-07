@@ -10,6 +10,7 @@ import {
   finishPreset,
   generateBaseline,
   isArchRuleError,
+  RuleBuilder,
   type ArchViolation,
 } from '../src/index.js'
 
@@ -27,18 +28,24 @@ const finding = (over: Partial<ArchViolation>): ArchViolation => ({
   ...over,
 })
 const CONFIG = finding({
+  suggestion: 'widen the scope',
   ruleId: 'demo/dead-scope',
   message: 'the scope selects nothing',
   bypassFilters: true,
 })
 const ORDINARY = finding({ message: 'an ordinary violation' })
 
-const quiet = <T>(fn: () => T): { value?: T; thrown?: unknown } => {
-  const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+/** Runs `fn` with stderr captured: what it returned or threw, and what it printed. */
+const quiet = <T>(fn: () => T): { value?: T; thrown?: unknown; printed: string } => {
+  const chunks: string[] = []
+  const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+    chunks.push(String(chunk))
+    return true
+  })
   try {
-    return { value: fn() }
+    return { value: fn(), printed: chunks.join('') }
   } catch (e) {
-    return { thrown: e }
+    return { thrown: e, printed: chunks.join('') }
   } finally {
     spy.mockRestore()
   }
@@ -60,6 +67,8 @@ describe("finishPreset's report: 'warn' (bug 0577)", () => {
     expect(isArchRuleError(r.thrown)).toBe(true)
     if (!isArchRuleError(r.thrown)) return
     expect(r.thrown.violations.map((v) => v.message)).toEqual(['the scope selects nothing'])
+    // The ordinary one rides no throw, so it is reported only by the print: it must be printed.
+    expect(r.printed).toContain('an ordinary violation')
   })
 })
 
@@ -109,6 +118,9 @@ describe('generateBaseline (bug 0595)', () => {
     if (!isArchRuleError(r.thrown)) return
     expect(r.thrown.violations.map((v) => v.message)).toEqual(['the scope selects nothing'])
     expect(r.thrown.message).toMatch(/not baselined/)
+    // Each refused finding is named where the author reads it, with its remedy.
+    expect(r.printed).toContain('the scope selects nothing')
+    expect(r.printed).toContain('Fix: widen the scope')
     expect(existsSync(out)).toBe(true)
     const written: unknown = JSON.parse(readFileSync(out, 'utf-8'))
     expect(written).toMatchObject({ count: 1 })
@@ -118,5 +130,30 @@ describe('generateBaseline (bug 0595)', () => {
     const out = join(dir, 'clean.json')
     expect(() => generateBaseline([ORDINARY], out)).not.toThrow()
     expect(existsSync(out)).toBe(true)
+  })
+})
+
+describe('the composed path: a rule that examined nothing, collected and baselined (bugs 0586, 0595)', () => {
+  interface Item {
+    readonly name: string
+  }
+  class ItemRules extends RuleBuilder<Item, { readonly items: readonly Item[] }> {
+    protected getElements(): Item[] {
+      return [...this.project.items]
+    }
+  }
+  const dir = mkdtempSync(join(tmpdir(), 'eess-0586-'))
+  afterAll(() => rmSync(dir, { recursive: true, force: true }))
+
+  it("collectViolations keeps the rule's configuration finding, and generateBaseline refuses it by name", () => {
+    const dead = new ItemRules({ items: [] })
+      .should()
+      .satisfy({ description: 'be fine', evaluate: () => [] })
+      .rule({ id: 'demo/dead' })
+    const collected = collectViolations(dead)
+    expect(collected.map((v) => v.bypassFilters)).toEqual([true])
+    const r = quiet(() => generateBaseline(collected, join(dir, 'b.json')))
+    expect(isArchRuleError(r.thrown)).toBe(true)
+    expect(r.printed).toMatch(/examined zero/)
   })
 })

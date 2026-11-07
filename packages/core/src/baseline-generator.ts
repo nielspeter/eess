@@ -2,7 +2,8 @@ import type { ArchViolation } from './violation.js'
 import { isArchRuleError } from './errors.js'
 
 /**
- * Collect violations from rules WITHOUT throwing.
+ * Collect the violations rules report, for a baseline. A rule's violations do not throw out of it;
+ * anything else its `check()` throws does (bug 0586).
  *
  * Used to generate a baseline: run all rules, collect violations,
  * write them to a baseline file.
@@ -12,8 +13,8 @@ import { isArchRuleError } from './errors.js'
  * rule file and refuses a builder that certified nothing.
  *
  * It harvests only the violations a rule's `check()` throws as an
- * `ArchRuleError`, recognised by its structure so a second kernel copy's counts
- * (`isArchRuleError`). Anything else a `check()` throws, a configuration error
+ * `ArchRuleError`, recognised by its structure (`isArchRuleError`), so one a
+ * second kernel copy throws is harvested too. Anything else a `check()` throws, a configuration error
  * or a bug in the rule, is rethrown: a rule that refused to run is not a rule
  * with no violations (bug 0586).
  *
