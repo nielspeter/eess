@@ -371,3 +371,15 @@ no longer arise. C is restated against its three sinks: core's `collectViolation
 builder's evidence. It keeps each builder's receipt and gives each sink a falsifier. Then C alone
 is re-reviewed. [Bug 0586](../bugs/fixed/0586-the-kernels-collect-violations-swallows-a-configuration-error.md) and [bug 0595](../bugs/fixed/0595-generate-baseline-drops-a-configuration-finding-without-a-word.md) can be fixed before that, since neither depends on the restated
 ask.
+
+## Note — 2026-11-07
+
+[Bug 0586](../bugs/fixed/0586-the-kernels-collect-violations-swallows-a-configuration-error.md) and [bug 0595](../bugs/fixed/0595-generate-baseline-drops-a-configuration-finding-without-a-word.md), two of ask C's sinks, are fixed. The kernel's
+`collectViolations` rethrows what is not an `ArchRuleError`. The kernel's `generateBaseline` does
+not refuse and write nothing, as the restated ask C's break class said: it writes the baseline for
+every finding it can accept, prints each configuration finding and throws, following
+`eess-ts baseline` (`packages/ts/src/cli/commands/baseline.ts`). That sink's falsifier is restated:
+"a configuration finding reaches `generateBaseline` and the call does not throw". Ask C's remaining
+sinks are eess-ts's `collectViolations`, which its records already name, and eess-ts's own
+`generateBaseline`, recorded as [bug 0638](../bugs/0638-eess-ts-generate-baseline-drops-a-configuration-finding-without-a-word.md). Ask C stays held; this note changes no
+ruling.
