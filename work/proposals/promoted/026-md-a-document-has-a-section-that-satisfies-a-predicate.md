@@ -1,7 +1,10 @@
 # Proposal 026 — md: a document has a section that satisfies a predicate
 
-**State:** Draft — filed 2026-11-01 from an adopter's request, at the maintainer's request;
-reviewed 2026-11-01, Ship with changes (see "Review — 2026-11-01").
+**State:** Promoted — → [plan 0636](../../plans/completed/0636-md-the-section-holding-predicates-public.md) (ask B) and
+[plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md) (ask A), each of
+which declares `**Implements:** proposal 026` and built its ask. Promoted 2026-11-07. Filed
+2026-11-01 from an adopter's request, at the maintainer's request; reviewed 2026-11-01, Ship with
+changes (see "Review — 2026-11-01").
 **Priority:** Medium — no false green, but a rule a corpus states naturally ("every record has at
 least one relation section that cites code") cannot be written without a hand step, and both
 forms an adopter reaches for red documents that satisfy it.
@@ -48,16 +51,16 @@ correspondence(records, group sections citing code)
 
 ## Existing code survey
 
-- **`inSections(p)`** ([plan 0503](../plans/completed/0503-in-sections-boxes-by-section.md)) lifts a section predicate onto any
+- **`inSections(p)`** ([plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md)) lifts a section predicate onto any
   element that sits on a line (`packages/md/src/predicates/in-documents.ts:130`), with strong Kleene
-  membership over the enclosing sections ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). It already computes, per document, whether any
+  membership over the enclosing sections ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). It already computes, per document, whether any
   section satisfies `p` (`docMembership`), but only for its scope statistics.
-- **`inDocuments(p)`** ([plan 0470](../plans/completed/0470-a-lifted-predicate-carries-its-findings.md))
+- **`inDocuments(p)`** ([plan 0470](../../plans/completed/0470-a-lifted-predicate-carries-its-findings.md))
   lifts a document predicate onto elements in it: the other direction of the same family.
 - **`predicateHaveSection(name, { depth })`** (`packages/md/src/predicates/document.ts:53`) asks
   whether a document has a section by **name** only, not by what the section holds.
 - **The dual-use section methods** (`haveCodePointer()` and its siblings,
-  [plan 0522](../plans/completed/0522-the-rest-of-blocks-3-and-14-on-sections.md)) select or assert on
+  [plan 0522](../../plans/completed/0522-the-rest-of-blocks-3-and-14-on-sections.md)) select or assert on
   `sections()`, so the hand step per pattern is
   `sections(c).that().areNamed(re).and().haveCodePointer()` and a set of the paths it yields.
 - **The section predicates** `sectionsNamed`, `sectionsAtDepth` and `sectionsWithSubsection` are
@@ -96,9 +99,9 @@ docs(c)
 - **Break class (false red):** a document with two qualifying sections is green; one with one
   qualifying and one link-only section is green.
 - **Break class:** a misspelt group name reports the name it read, not every document silently, and
-  not green. _Corrected 2026-11-01 (review): this cannot be met in the example's shape, and fixing [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md) would not be enough. The inner `and()` and the outer `not()` each hide the group name from the scan, and a `RegExp` name never gets a near miss. It holds for a string name held directly; a misspelt `RegExp` group is caught by a guard rule._
+  not green. _Corrected 2026-11-01 (review): this cannot be met in the example's shape, and fixing [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md) would not be enough. The inner `and()` and the outer `not()` each hide the group name from the scan, and a `RegExp` name never gets a near miss. It holds for a string name held directly; a misspelt `RegExp` group is caught by a guard rule._
 - **Undecided:** a section the inner predicate cannot judge leaves its document undecided and
-  reported ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)), at the section's line.
+  reported ([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)), at the section's line.
 - **Evidence:** `examined` counts the documents in scope. _Corrected 2026-11-01 (review): this is false for the example. Under `satisfy(not(…)).should().notExist()`, `examined` counts the offenders, so a wrong folder glob is green with `examined=0`. Only the condition form on `docs().should()` counts the documents in scope._
 - **Non-vacuity:** a fixture row per break class.
 
@@ -110,7 +113,7 @@ review's to measure. _Corrected 2026-11-01 (review): the plans' "Files changed" 
 
 ## Open questions
 
-1. **Names.** The predicate's name in the family's vocabulary ([ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)
+1. **Names.** The predicate's name in the family's vocabulary ([ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)
    for a twin), and whether a condition form on `docs().should()` is wanted beside the predicate.
 
 ## Out of scope
@@ -135,7 +138,7 @@ record states two different rules. The fix is to the shape and the record, not t
 
 The reviews asked for one revision pass of the submission before a plan. The coordinator records the
 corrections here instead, keeps the submission as filed, and writes
-[plan 0582](../plans/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md) to them. The
+[plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md) to them. The
 coordinator made the decisions below; each is recorded with its basis so it can be overruled.
 
 ### Existing code survey
@@ -149,7 +152,7 @@ coordinator made the decisions below; each is recorded with its basis so it can 
   eess-ts's `haveMethodNamed`/`havePropertyNamed` and eess-mermaid's `haveMemberNamed` select by
   name only, as `predicateHaveSection` does (`packages/md/src/predicates/document.ts:53`). The word
   that ships becomes the family's precedent for a later `have<Member>(name, { … })`, under
-  [ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)'s "one word means
+  [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)'s "one word means
   one thing". This ruling builds nothing for that.
 - **Ask B exists, unexported.** `sectionsHolding(h)` (`packages/md/src/predicates/section.ts:74`)
   sits behind the dual-use methods (`packages/md/src/builders/sections.ts:88-92`). It is useful
@@ -164,13 +167,13 @@ coordinator made the decisions below; each is recorded with its basis so it can 
 
 Both asks go in `@nielspeter/eess-md`, as one minor release. Both are additive. Nothing goes in the
 kernel: it has no containment relation
-([ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md): it takes the fact a dialect
+([ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md): it takes the fact a dialect
 materialises), and the value is in md's own registries (the section-name scan, scope diagnosis,
 attribution), not in the quantifier. eess-crossvalidate's peer range `>=0.13.0` still covers the
 release, and no other package moves. No new ADR: taking the member's name as its own argument
-works around [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)
+works around [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)
 (a section name inside a kernel combinator is not scanned).
-[Bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md) stays open
+[Bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md) stays open
 and owns the general fix. The plan cross-references it and does not fix it.
 
 ### Decisions
@@ -181,18 +184,18 @@ and owns the general fix. The plan cross-references it and does not fix it.
    (`packages/md/src/predicates/document.ts:53-68`), so the section-name scan sees it, and a
    misspelt string name is reported as a near miss. The dual-use dispatch already exists
    (`packages/md/src/builders/docs.ts:85-90`). The
-   [ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) twins already exist,
+   [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) twins already exist,
    so no new name is published. **The condition form on `docs().should()` is required, not
    optional** (the submission's open question treats it as optional). It is the only form with no
    `not()`, the only one whose `examined` counts the documents in scope, and the only one with a
    finding per document.
    _Basis:_ the architect and product lenses both chose this shape over a new name-free lift (whose
    name has to travel through `and()`, which is
-   [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)) and over
+   [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)) and over
    a quantifier on `sections()` (a second join engine, whose `examined` would count sections). The
    enforcement lens measured that only the condition form fails closed (Corrections, items 2 and 3).
 2. **The rule the submission states is the conditional one,** shipped with a guard rule as
-   [plan 0503](../plans/completed/0503-in-sections-boxes-by-section.md) did. The conditional rule:
+   [plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md) did. The conditional rule:
    documents in scope that have a section of the group must have one that cites code. Its guard
    reads the same `const G`, in 0503's shape: some document in scope has the group section
    (`.that()…haveSection(G).should().haveSection(G)`), which fails only when nothing is selected.
@@ -200,17 +203,17 @@ and owns the general fix. The plan cross-references it and does not fix it.
    condition with the selecting `haveSection(G)` dropped. It needs no guard: a misspelt group reds
    every document in scope.
    _Basis:_ the submission's Problem (`:30-32`) and Measured block (`:40-41`) both say so, and
-   leave `none.md` to "a second rule". [Plan 0503](../plans/completed/0503-in-sections-boxes-by-section.md)'s break-class row reads "the ratchet green, **the
+   leave `none.md` to "a second rule". [Plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md)'s break-class row reads "the ratchet green, **the
    guard rule red**" (`work/plans/completed/0503-in-sections-boxes-by-section.md:330`). Measured
    here: the conditional absence rule is fully green on a misspelt group, with `examined=0` and
    `.check()` passing.
 3. **B first.** Exporting the section-holding predicates, all five kinds, is phase 1 of
-   [plan 0582](../plans/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md), closable
+   [plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md), closable
    on its own. A follows.
    _Basis:_ B promotes code that already exists (about an hour), is useful without A, and A's
    acceptance rule needs it. Product would split them; the architect would keep them together only
    by that relationship. Either way B closes by itself.
-4. **Naming detail follows [ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)
+4. **Naming detail follows [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)
    in the plan:** the option's key and B's factory names. The reviewers' arguments go to the plan as
    input. For the key, `that` reads like the `.that()` phase word inside a `should()` call, and
    `satisfying` mirrors `satisfy()` (product). For B, five noun-first factories that mirror the
@@ -219,11 +222,11 @@ and owns the general fix. The plan cross-references it and does not fix it.
    `haveSubsection` maps to `sectionsWithSubsection`, rather than one `sectionsHolding` over an
    exported union whose `kind` strings carry spaces (product; the architect left it to product).
    Either way `lang` stays routed through `tagIsLanguage`
-   ([ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md),
-   `packages/md/src/model/section-holds.ts:71`), and the plan runs `check:surface` ([ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) clause
+   ([ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md),
+   `packages/md/src/model/section-holds.ts:71`), and the plan runs `check:surface` ([ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) clause
    2).
    _Basis:_ this is the submission's own open question, and
-   [ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) is the rule that decides
+   [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) is the rule that decides
    it. The ruling fixes the shape; the plan fixes the words.
 5. **Dogfooding: this repository does not adopt the rule.** Measured by the enforcement and
    product lenses (1.9–2.0 s each): of 63 completed plans, 32 have a `## Files changed` section,
@@ -254,9 +257,9 @@ and owns the general fix. The plan cross-references it and does not fix it.
     `citesHeadings` so the scan does not report the heading again.
 
   Each remedy has a test that applies it and shows the finding clears
-  ([ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 2).
+  ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 2).
 
-- **Undecided, as [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
+- **Undecided, as [ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
   says.** Under strong Kleene `any`, one decided-true section decides the document, so a cause is
   reported only where the verdict depends on it. A cause carries its own `file` and `line`
   (`packages/core/src/predicate.ts:7-13`) and is forwarded, never re-keyed to line 1 of the
@@ -266,7 +269,7 @@ and owns the general fix. The plan cross-references it and does not fix it.
 - **Non-vacuity has a named mechanism.** `scripts/vacuity-matrix.mjs` exempts md's section
   predicates and lifts as "used inside a builder" (`:451-459`), so new exports would be exempted
   too. The mechanism that worked for
-  [plan 0503](../plans/completed/0503-in-sections-boxes-by-section.md) is `examples/md/` with
+  [plan 0503](../../plans/completed/0503-in-sections-boxes-by-section.md) is `examples/md/` with
   `clean/` and `violating-<x>/` fixtures, made load-bearing by `check:nonvacuity`
   (`scripts/check-nonvacuity.mjs:5506`), plus a recorded sabotage matrix. The mutants, committed up
   front:
@@ -274,7 +277,7 @@ and owns the general fix. The plan cross-references it and does not fix it.
   2. every group section is required instead of one;
   3. undecided is treated as false;
   4. the name is not recorded (run on the name-argument form, or the row is as unfalsifiable as
-     [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)'s);
+     [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)'s);
   5. an exported holding predicate wired to the wrong kind (pointer to link): a real false green, so
      it must red a test of the export itself, not only of the dual-use method that shares the
      function;
@@ -287,7 +290,7 @@ and owns the general fix. The plan cross-references it and does not fix it.
 - **The description reads as "at least one"** section. The every-section and some-section forms
   are documented side by side in `docs/markdown.md` and `packages/md/README.md`, beside the "three
   rules reading one `const`" block. The adopter's heading vocabulary stays out of API docs, the
-  README and JSDoc ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md): the caller
+  README and JSDoc ([ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md): the caller
   names the section).
 - **Frozen folders.** The second rule, `pointers().…resolve()`, examines nothing in a frozen folder
   under the default `areLive()`. The docs tell an adopter whose records have a `completed/`
@@ -303,9 +306,9 @@ and owns the general fix. The plan cross-references it and does not fix it.
    or red on every document) and differ on a dead scope. Decision 2 settles which one the adopter's
    is; the plan gives one acceptance row per rule.
 2. **The misspelling criterion (`:98-99`) cannot be met as written,** and fixing
-   [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md) would not be
+   [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md) would not be
    enough. The example hides the group name three ways. The inner `and()` hides `sectionsNamed(G)`
-   from the lift ([bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md), re-measured on dist). The outer `not()` hides the lift's own
+   from the lift ([bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md), re-measured on dist). The outer `not()` hides the lift's own
    registration from the `docs()` rule's scan, whatever the lift registers
    (`packages/md/src/model/section-declarations.ts:21`, read in
    `packages/md/src/builders/corpus-rule-builder.ts:77-90`). And a `RegExp` name never gets a near
@@ -315,14 +318,14 @@ and owns the general fix. The plan cross-references it and does not fix it.
    held directly. A misspelt `RegExp` group is caught by the guard (decision 2), or by the strict
    form's red on every document. Accepting several names natively would be a widening of published
    `haveSection`; if the plan takes it, it is its own listed item. `or(sectionsNamed…)` is not an
-   escape: it is [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)
+   escape: it is [bug 0512](../../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)
    again.
 3. **The evidence criterion (`:102`) is false for the example.** Under
    `satisfy(not(…)).should().notExist()`, `examined` counts the offenders, not the documents in
    scope: 3 against 5, and 0 on a clean corpus. A wrong folder glob gives `examined=0` and green,
    exactly like a clean run. The condition form counts every document in scope (5 of 5), and on a
    dead scope it reds with the kernel's zero-examined finding
-   ([ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)). The criterion holds for the
+   ([ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md)). The criterion holds for the
    condition form only, which is why decision 1 makes it required.
 4. **The dogfooding claim (`:107`) is false.** The plans' "Files changed" sections do not cite code
    in the sense the rule reads: 0 of 32 hold a `path:line` pointer (decision 5).
@@ -332,14 +335,14 @@ and owns the general fix. The plan cross-references it and does not fix it.
 
 ### Disposition, per ask
 
-| ask                                                 | disposition            | owner or condition                                                                                                                                                                                                                                                                                                                                  |
-| --------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A** — a document has a section that satisfies `p` | **Accepted, reshaped** | [plan 0582](../plans/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md), after phase 1: an option on `haveSection`/`predicateHaveSection` (decision 1), the condition form required, the conditional rule and its guard in the example (decision 2)                                                                                    |
-| **B** — the holding predicates public               | **Accepted**           | [plan 0636](../plans/completed/0636-md-the-section-holding-predicates-public.md) (split out of [plan 0582](../plans/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s phase 1, 2026-11-07), closable on its own: all five kinds, names under [ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) (decision 4) |
+| ask                                                 | disposition            | owner or condition                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** — a document has a section that satisfies `p` | **Accepted, reshaped** | [plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md), after phase 1: an option on `haveSection`/`predicateHaveSection` (decision 1), the condition form required, the conditional rule and its guard in the example (decision 2)                                                                                          |
+| **B** — the holding predicates public               | **Accepted**           | [plan 0636](../../plans/completed/0636-md-the-section-holding-predicates-public.md) (split out of [plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s phase 1, 2026-11-07), closable on its own: all five kinds, names under [ADR-023](../../../adr/023-a-predicate-and-a-condition-that-share-a-word.md) (decision 4) |
 
-_Note, 2026-11-07, at the build of [plan 0636](../plans/completed/0636-md-the-section-holding-predicates-public.md):
-ask B's owner is now [plan 0636](../plans/completed/0636-md-the-section-holding-predicates-public.md), split out of [plan 0582](../plans/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s phase 1, so decision 3's owner for it is history, and ask A follows [plan 0636](../plans/completed/0636-md-the-section-holding-predicates-public.md). The build review's enforcement lens measured that, in
+_Note, 2026-11-07, at the build of [plan 0636](../../plans/completed/0636-md-the-section-holding-predicates-public.md):
+ask B's owner is now [plan 0636](../../plans/completed/0636-md-the-section-holding-predicates-public.md), split out of [plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s phase 1, so decision 3's owner for it is history, and ask A follows [plan 0636](../../plans/completed/0636-md-the-section-holding-predicates-public.md). The build review's enforcement lens measured that, in
 the condition form decision 1 requires, the conditional rule reds a misspelt group by itself (the
-kernel's zero-examined finding), so [plan 0582](../plans/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s example drops decision 2's guard; the guard stays
-the remedy for an absence-rule spelling. Recorded in [plan 0582](../plans/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s Phase 0; the cells above are kept
+kernel's zero-examined finding), so [plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s example drops decision 2's guard; the guard stays
+the remedy for an absence-rule spelling. Recorded in [plan 0582](../../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s Phase 0; the cells above are kept
 as ruled._
