@@ -188,6 +188,6 @@ Built as the three bugs' fix, on one branch, with the matrix's `KNOWN_FAIL_OPEN`
   two) and dropped decisions 2 and 4 without a review between; the coordinator reports that to the
   maintainer with this PR.
 - Other doors that still pass over an empty input are
-  [bug 0642](../bugs/0642-other-doors-pass-over-an-input-that-loaded-nothing.md).
+  [bug 0642](../bugs/fixed/0642-other-doors-pass-over-an-input-that-loaded-nothing.md).
 - The fix's own records: [bug 0477](../bugs/fixed/0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md), [bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md) and
   [bug 0594](../bugs/fixed/0594-a-stale-exemption-passes-on-a-project-with-no-source-files.md).
