@@ -2,27 +2,32 @@
 
 ## Status
 
-- **State:** Draft — awaiting the review's changes (see the proposal's Review, 2026-11-01); not ready to build
+- **State:** Draft — Phase 0 settled 2026-11-07 (below); its Phase 1 is now
+  [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md), and this plan is frozen after
+  that one ships, against the exports it builds on
 - **Implements:** [proposal 026](../proposals/026-md-a-document-has-a-section-that-satisfies-a-predicate.md)
 - **Priority:** Medium. No false green, but "every record has at least one relation section that
   cites code" cannot be written without a hand step, and both forms an adopter reaches for red
   documents that satisfy it.
-- **Effort:** Small for Phase 1 (about an hour); Medium for Phase 2.
+- **Effort:** Medium (the former Phase 2; the former Phase 1 is
+  [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md)).
 - **Created:** 2026-11-01
-- **Decided on the review (2026-11-01), each overrulable:**
-  - **Phase 1 exports the five section-holding predicate forms** (content, code block, list item,
-    link, code pointer: `packages/md/src/model/section-holds.ts:14`). Whether Phase 1 closes on its
-    own, as a plan of its own, or this stays one plan in two phases, is decided before Ready
-    (Phase 0); the review left it to the author.
+- **Decided on the review (2026-11-01) and in Phase 0 (2026-11-07), each overrulable:**
+  - **The five section-holding predicate forms** (content, code block, list item, link, code
+    pointer: `packages/md/src/model/section-holds.ts:15`) are exported first, by
+    [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md) (Phase 0, below).
   - **Phase 2 is an option on `haveSection` / `predicateHaveSection`** that takes a section
     predicate (the review's layering (b)), not a new name-free lift. The group's name stays the
     argument the API records itself (`packages/md/src/predicates/document.ts:53`), never read
     through the predicate, so `and()` and `not()` cannot hide it.
   - **A condition form on `docs().should()`** ships with it: the only form with no `not()`, with
     per-document findings and with `examined` counting the documents in scope.
-  - **The conditional rule ships with its guard rule**, as in
-    [plan 0503](./completed/0503-in-sections-boxes-by-section.md): one `const` per name, read by the
-    rule and its guard, so a misspelt name leaves the rule green and the guard red.
+  - **The conditional rule is its own guard** in the condition form (Phase 0, corrected
+    2026-11-07): `.that().haveSection(G).should().haveSection(G, { satisfying })` selects exactly
+    what a guard would, and a misspelt `G` reds it with the kernel's zero-examined finding. The
+    review's guard, as in [plan 0503](./completed/0503-in-sections-boxes-by-section.md), is for an
+    absence-rule spelling (`notExist()`), which is green over nothing; the docs say an absence
+    spelling needs it.
 
 ## Problem
 
@@ -30,7 +35,7 @@
 (`packages/md/src/predicates/in-documents.ts:159`), and publishes it only for scope diagnosis. No
 public form lets a `docs()` rule say "has a section named G that satisfies p": `haveSection` selects
 by name only, and the holding predicates behind `haveCodePointer()` and the rest are unexported
-(`sectionsHolding`, `packages/md/src/predicates/section.ts:74`). The review measured the
+(`sectionsHolding`, `packages/md/src/predicates/section.ts:80`). The review measured the
 proposal's own rule shape, `satisfy(not(<lift>(and(sectionsNamed(G), <holds>)))).should().notExist()`:
 the inner `and()` hides the name
 ([bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)), the outer
@@ -39,40 +44,70 @@ on a misspelt group with `examined` at 0 (its Critical 1 and 2).
 
 ## Phase 0: the proposal's changes, before this plan can be promoted
 
-The review's recommended next step lists these, recorded in the proposal itself.
+The review's recommended next step lists these, recorded in the proposal itself. Settled
+2026-11-07, each overrulable; the proposal's submission is kept as filed, its corrections recorded
+in its Review.
 
-- [ ] Settle which rule the adopter's is, the conditional or the strict one, and name both in words
-      (Critical 3). Rewrite the example as the conditional rule plus its existence guard, and give
-      the Acceptance one row per rule.
-- [ ] Restate the criteria for the condition form: a misspelt string name held directly is
-      reported; a `RegExp` group's typo is caught by the guard only (Critical 1d); `examined`
-      counts documents in scope in the condition form only (Critical 2); an undecided section is
-      reported only where the verdict depends on it.
-- [ ] Add the mutant list and name the non-vacuity mechanism: `examples/md/` with `clean/` and
-      `violating-<x>/` fixtures made load-bearing (`scripts/check-nonvacuity.mjs:5506`), plus a
-      recorded sabotage matrix.
-- [ ] Replace the Dogfooding question with the measured answer: no dogfood gate, because 0 of the 32
-      completed plans with a "Files changed" section hold a code pointer in it.
-- [ ] Ask B lists five kinds, adding `content`.
-- [ ] The author's naming calls, the review's open question 1: the option's key (`that` or
-      `satisfying`), and Phase 1's names (five noun-first factories, such as
-      `sectionsWithCodePointer()`, or one exported union).
-- [ ] Whether `haveSection` accepts several names natively for the `RegExp` residual. If it does,
-      that widening is its own listed item.
+- [x] **The rules, in words** (Critical 3). The adopter's is the **conditional** rule: documents in
+      scope that have a section of the group must have one that satisfies `p`, written in the
+      condition form, `.that().haveSection(G).should().haveSection(G, { satisfying: p })`. The
+      **strict** rule, every document in scope has a group section that satisfies `p`, is the same
+      condition without the selecting `haveSection(G)`: a misspelt group reds every document. The
+      example under `examples/md/` shows both, reading one `const G`; the Acceptance section below
+      has one row per rule.
 
-- [ ] One plan in two phases, or Phase 1 split into a plan of its own: decided before Ready.
+      _Corrected 2026-11-07, on the build review's enforcement lens, which measured it on `dist`:
+      this box first shipped the conditional rule with a guard,
+      `.that()…haveSection(G).should().haveSection(G)`, as the proposal review's decision 2 said.
+      In the condition form the guard adds nothing. The conditional rule selects exactly the
+      documents the guard selects, so whenever the guard is red the rule is red, with the kernel's
+      zero-examined finding. Plan 0503's guard exists because its ratchet is an absence rule, which
+      is green over nothing. The guard is load-bearing only for an absence spelling of this rule or
+      one that declares `.expectEmpty()`; the docs say so. The box also said "the acceptance
+      below" before the plan had an Acceptance section._
+
+- [x] **The condition form's criteria.** A misspelt name held directly reds the conditional rule
+      (zero examined) and every document under the strict rule. A case or spacing drift of a string
+      name also gets `headingNotes`' near miss (`packages/md/src/model/sections.ts:187-191`); a letter
+      typo does not, and a `RegExp` never does (Critical 1d), so those red without naming the
+      heading meant: the strict form's "missing section", the conditional form's generic
+      zero-examined finding. A test pins each message. `examined` counts the
+      documents in scope in the condition form only (Critical 2), and a dead scope reds with the
+      kernel's zero-examined finding. An undecided section is reported only where the verdict
+      depends on it: one decided-true section decides the document.
+- [x] **Mutants and the non-vacuity mechanism.** The seven mutants are the Test inventory's below.
+      The mechanism is an `examples/md/<name>.test.ts` with `clean/` and `violating-<x>/` folders,
+      made load-bearing by `check:nonvacuity`'s example swap (`scripts/check-nonvacuity.mjs:1155`),
+      plus the recorded sabotage matrix. `scripts/vacuity-matrix.mjs` lists the predicates this
+      option is added to, `haveSection` and `predicateHaveSection`, as "condition factory, used
+      inside a builder" and "predicate factory, used inside a builder", so it probes
+      neither and is not the mechanism.
+- [x] **Dogfooding, measured:** no dogfood gate. Of 63 completed plans, 32 have a `## Files changed`
+      section, and 0 of those 32 hold a `path:line` pointer (the review, as of 2026-11-01, 1.9–2.0 s;
+      re-counted 2026-11-07 by the build review's method lens: 66, 33, 0); `completed/` is
+      frozen, so the gate would red every plan with no remedy.
+- [x] **Ask B has five kinds**, `content` included: built by
+      [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md).
+- [x] **Names** (the review's open question 1). The option's key is **`satisfying`**:
+      `haveSection(G, { satisfying: sectionsWithCodePointer() })`. It mirrors the kernel's
+      `satisfy()`, while `that` would read as the phase word inside a `should()` call. Phase 1's
+      names are five noun-first factories (`sectionsWithCodePointer()` and its siblings), decided in
+      [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md).
+- [x] **Several names in `haveSection` natively: not taken.** A `RegExp` already names a group, the
+      guard catches its typo, and widening a published method's argument is a change of its own;
+      nothing here needs it. Out of scope, below.
+- [x] **Split.** Phase 1 is its own plan,
+      [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md): about an hour, additive,
+      useful without ask A, and closable by itself. This plan keeps ask A and is frozen after 0636
+      ships, so it builds against the exports as published.
 
 ## Phases
 
-1. **The holding predicates, public.** Five predicate forms on the eess-md root, one per
-   `SectionHolding` kind, over the existing `sectionsHolding`. `lang` stays routed through
-   `tagIsLanguage` ([ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md),
-   `packages/md/src/model/section-holds.ts:71`). Each export is tested itself, not only through the
-   dual-use method that shares its function. `scripts/vacuity-matrix.mjs` gains a row per export,
-   and `check:surface` runs ([ADR-023](../../adr/023-a-predicate-and-a-condition-that-share-a-word.md)
-   clause 2).
+1. **The holding predicates, public:** moved to
+   [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md) (Phase 0).
 2. **A section that satisfies a predicate.** An option on `haveSection` / `predicateHaveSection`
-   (dispatched at `packages/md/src/builders/docs.ts:85`) taking a `Predicate<MdSectionElement>`:
+   (dispatched at `packages/md/src/builders/docs.ts:85`), under the key `satisfying`, taking a
+   `Predicate<MdSectionElement>`:
    - without it, the description and message (`packages/md/src/conditions/structure.ts:23`, `:34`)
      stay byte-identical, pinned by a test;
    - it reuses `inSections`' fold, writes no third Kleene `any`, stays two-valued unless the
@@ -87,26 +122,55 @@ The review's recommended next step lists these, recorded in the proposal itself.
    the every-section one. [Bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)
    gains a cross-reference to this workaround and keeps the general fix.
 
+Phase 2's ledger:
+
+- [ ] The `satisfying` option on `haveSection` / `predicateHaveSection` and its condition form on
+      `docs().should()`, with the absent-safe pin on the description and message.
+- [ ] The example under `examples/md/`, the conditional and the strict rule reading one `const`,
+      with `clean/` and `violating-<x>/` folders, and the docs' note that an absence spelling needs
+      a guard.
+- [ ] The docs and README lines, [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)'s
+      cross-reference, and the `@nielspeter/eess-md` changeset.
+- [ ] The sabotage matrix over the Test inventory's mutants, recorded here.
+
+## Acceptance
+
+- **The conditional rule** (the adopter's): over documents in scope, one with no group section is
+  not selected; one whose only group section links records but cites no code is red at that
+  section's line; one with two qualifying sections, or one qualifying and one link-only, is green; a
+  misspelt `G` is red with the zero-examined finding; `examined` counts the documents that have a
+  group section.
+- **The strict rule:** the same, except that a document in scope with no group section is red at
+  line 1 ("missing section", with the near miss where `headingNotes` gives one), a misspelt `G` reds
+  every document in scope, and `examined` counts every document in scope.
+
 ## Files changed
 
-- Phase 1: `packages/md/src/predicates/section.ts`, `packages/md/src/index.ts`,
-  `packages/md/tests/`, `scripts/vacuity-matrix.mjs`, `.changeset/` (`@nielspeter/eess-md` minor).
+- Phase 1: [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md)'s.
 - Phase 2: `packages/md/src/predicates/document.ts`, `packages/md/src/conditions/structure.ts`,
   `packages/md/src/builders/docs.ts`, `packages/md/tests/`, `examples/md/`, `docs/markdown.md`,
   `packages/md/README.md`, `.changeset/` (`@nielspeter/eess-md` minor).
 
 ## Test inventory
 
-- Phase 1: each export selects its kind; mutant 5 below reds a test of the export itself.
-- Phase 2, the mutants the review lists, each red under its own sabotage:
+- Phase 1: [plan 0636](./completed/0636-md-the-section-holding-predicates-public.md)'s. Its mutant 1 is
+  the review's mutant 5, red there on a test of the export itself.
+- Phase 2, each red under its own sabotage (the review's list, with 5 run again against the option
+  and 7 and 8 restated on the build review, 2026-11-07):
   1. only the first group section tested (a record with one qualifying and one link-only section
      reds: a false red);
   2. every section required instead of any;
   3. undecided treated as false;
   4. the name not recorded, run on the direct name-argument form;
-  5. an exported holding predicate wired to the wrong kind (pointer to link): a false green;
+  5. the option reading the wrong holding kind (`sectionsWithCodePointer()` passed, a link
+     accepted): a false green, now through the option;
   6. the condition form over a dead scope;
-  7. the guard over a misspelt `const G`.
+  7. a misspelt `const G` leaving the conditional rule green (its zero-examined finding removed);
+  8. undecided treated as true, or dropped: the fail-open direction
+     ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)). Mutants 3 and 8
+     are driven through the public `sectionsWithLink()` over an unread
+     `<a href=./a.md title=a/b>`, not a hand-built stand-in, and killed by asserting the site's
+     finding at its own line with `bypassFilters`.
 - Each remedy a finding names, applied by a test that shows the finding clears.
 
 ## Out of scope
@@ -115,5 +179,6 @@ The review's recommended next step lists these, recorded in the proposal itself.
 - Whether the cited code exists: a second rule, `pointers(c)…resolve()`.
 - The general fix for a name inside a kernel combinator:
   [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md).
+- Accepting several names in `haveSection` natively (Phase 0): a `RegExp` names a group.
 - A container-member form for eess-ts or eess-mermaid: this word becomes the family precedent, and
   nothing is built for it here.

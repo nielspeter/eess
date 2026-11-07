@@ -1113,6 +1113,11 @@ docs(c)
 | `haveCodePointer()`                | both     | it holds a code pointer (that it is live is a `pointers()` rule)                  |
 | `notExist()`                       | assert   | each selected section reported at its heading                                     |
 
+Each `both` method's selector is also a predicate on the root, for `inSections()` and `satisfy()`:
+`haveSubsection` is `sectionsWithSubsection`, `haveContent` is `sectionsWithContent`,
+`haveCodeBlock` is `sectionsWithCodeBlock`, `haveListItem` is `sectionsWithListItem`, `haveLink` is
+`sectionsWithLink` and `haveCodePointer` is `sectionsWithCodePointer`.
+
 `docs().haveTable({ section, columns })` passes when any table under a heading of the name has the
 columns; `sections().haveTable({ columns })` asserts it of every selected section, and refuses a
 `section` option. `haveSection(name, { depth })` (the condition, `docs().haveSection()` and
@@ -1179,7 +1184,18 @@ a pointer, a row, a term, a field), through `satisfy()`, the way `inDocuments` l
 predicate. An element is under every section that contains its line, so a box under `### Detail`
 inside `## Acceptance criteria` is under both. The section predicates for it are on the root:
 `sectionsNamed(name)`, `sectionsAtDepth(depth)`, `sectionsInSection(name)` and
-`sectionsWithSubsection(name, { depth? })`, the `sections()` methods of the same meaning.
+`sectionsWithSubsection(name, { depth? })`, the `sections()` methods of the same meaning. So are
+the predicates behind the methods for what a section holds: `sectionsWithContent()`,
+`sectionsWithCodeBlock({ lang? })`, `sectionsWithListItem()`, `sectionsWithLink()` and
+`sectionsWithCodePointer()`, which compose with `and()`, `or()` and `not()`, as in
+`inSections(and(sectionsAtDepth(2), sectionsWithCodePointer()))`: the elements in a level-2 section
+that cites code.
+
+**Narrow a holding predicate by depth.** A section's lines include its subsections', so a document's
+title section holds whatever any section in it holds. Without `sectionsAtDepth()`, the negative
+form `taskItems(c).that().satisfy(not(inSections(sectionsWithCodePointer()))).should().notExist()`
+("every box sits in a section that cites code") passes every box of a document that cites code once,
+anywhere.
 `predicateHaveTextMatching(re)` selects the elements whose `text` matches your pattern; on `taskItems()`,
 `haveTextMatching(re)` is the method, and it is
 also a condition, every selected box's text must match. A box's text is all of its own content, its
