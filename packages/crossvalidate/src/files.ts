@@ -75,5 +75,8 @@ export function files(opts: FilesOptions): Selection<FileEntry> {
     .sort()
     .map((rel) => ({ path: rel, absPath: join(root, rel) }))
 
-  return { elements, label: opts.label, identify: opts.identify }
+  // Bug 0642: a tree that held no file at all (a wrong `cwd`) is an empty source, carried with the
+  // side. A glob that matches nothing in a loaded tree is an empty selection, which can be right.
+  const evidence: { readonly sourceEmpty?: true } = all.length === 0 ? { sourceEmpty: true } : {}
+  return { elements, label: opts.label, identify: opts.identify, ...evidence }
 }

@@ -117,3 +117,13 @@ describe('scenarios() rule builder', () => {
     ).toHaveLength(2)
   })
 })
+
+describe('select() over a feature set that loaded nothing (bug 0642)', () => {
+  it('carries sourceEmpty, and only then', () => {
+    const empty = features({ cwd: FIXTURES, roots: ['no-such-folder/**/*.feature'] })
+    expect(empty.features()).toHaveLength(0)
+    expect(
+      scenarios(empty).select({ label: 's', identify: (s) => ({ name: s.title }) }).sourceEmpty,
+    ).toBe(true)
+  })
+})

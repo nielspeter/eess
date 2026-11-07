@@ -1,6 +1,12 @@
 import picomatch from 'picomatch'
 import type { CollectResult } from '@nielspeter/eess'
-import { featurePaths, violationsFor } from './shared.js'
+import {
+  corpusLoadedNothing,
+  featurePaths,
+  featuresLoadedNothing,
+  violationsFor,
+  withEmptySource,
+} from './shared.js'
 import {
   finishPreset,
   type ArchViolation,
@@ -151,7 +157,14 @@ export function scenarioCitationsResolve(
     }
   }
 
-  return finishPreset(collectResult(violations, { examined }), options)
+  // Bug 0642: a corpus or a feature set that loaded nothing is reported, not resolved over nothing.
+  return finishPreset(
+    withEmptySource(
+      corpusLoadedNothing(corpus) || featuresLoadedNothing(set),
+      collectResult(violations, { examined }),
+    ),
+    options,
+  )
 }
 
 /** Count citations/scenarios for a caller's non-vacuity summary line. */

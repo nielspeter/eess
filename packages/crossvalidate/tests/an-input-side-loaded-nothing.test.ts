@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { features } from '@nielspeter/eess-gherkin'
 import { corpus, corpusFromText } from '@nielspeter/eess-md'
 import { diagram } from '@nielspeter/eess-mermaid'
@@ -8,6 +10,9 @@ import { project } from '@nielspeter/eess-ts'
 import { adrCitationsResolve } from '../src/md-ts.js'
 import { diagramMatchesCode } from '../src/mermaid-ts.js'
 import { embeddedDiagramsMatchCode } from '../src/md-mermaid.js'
+import { scenarioCitationsResolve } from '../src/md-gherkin.js'
+import { tableErAgree } from '../src/md-mermaid-er.js'
+import { files } from '../src/files.js'
 import {
   scenarioExemptionsCurrent,
   scenariosCovered,
@@ -115,5 +120,82 @@ describe('the gherkin↔ts presets over a project that loaded no source file (bu
       isExempt: (s) => s.tags.includes('wip'),
     })
     expect(ids(r)).not.toContain('emitter/source-empty')
+  })
+})
+
+describe('the other doors over an input that loaded nothing (bug 0642)', () => {
+  const emptyCorpus = () => corpus({ cwd: EMPTY, roots: ['**/*.md'] })
+  const emptyFeatures = () => features({ cwd: EMPTY, roots: ['**/*.feature'] })
+  // A project that loads files, none of which cites a scenario.
+  const loaded = () => project(join(here, 'fixtures/citations/tsconfig.json'))
+
+  it('CONTROL: the empty inputs are empty, and the loaded project loads', () => {
+    expect(emptyCorpus().documents()).toHaveLength(0)
+    expect(emptyFeatures().features()).toHaveLength(0)
+    expect(loaded().getSourceFiles().length).toBeGreaterThan(0)
+  })
+
+  it('scenarioCitationsResolve over an empty corpus and feature set, under expectEmpty, reports it', () => {
+    const r = scenarioCitationsResolve(emptyCorpus(), emptyFeatures(), {
+      report: 'return',
+      expectEmpty: true,
+    })
+    expect(r.map((v) => v.message)).toEqual([
+      expect.stringMatching(/source that loaded zero units/),
+    ])
+  })
+
+  it('scenariosCovered and scenarioTestsResolve over an empty feature set, under expectEmpty, report it', () => {
+    const covered = scenariosCovered(loaded(), emptyFeatures(), {
+      report: 'return',
+      expectEmpty: true,
+    })
+    expect(covered.map((v) => v.message)).toEqual([
+      expect.stringMatching(/source that loaded zero units/),
+    ])
+    const resolved = scenarioTestsResolve(loaded(), emptyFeatures(), {
+      report: 'return',
+      expectEmpty: true,
+    })
+    expect(resolved.map((v) => v.message)).toEqual([
+      expect.stringMatching(/source that loaded zero units/),
+    ])
+  })
+
+  it('tableErAgree over an empty corpus, under expectEmpty, reports it', () => {
+    const r = tableErAgree(emptyCorpus(), {
+      table: { section: /Properties/, name: /Name/ },
+      entity: () => undefined,
+      report: 'return',
+      expectEmpty: true,
+    })
+    expect(r.map((v) => v.message)).toEqual([
+      expect.stringMatching(/source that loaded zero units/),
+    ])
+  })
+
+  it('embeddedDiagramsMatchCode over an empty corpus, under expectEmpty, reports it', () => {
+    const r = embeddedDiagramsMatchCode(emptyCorpus(), loaded(), {
+      report: 'return',
+      expectEmpty: true,
+    })
+    expect(r.map((v) => v.message)).toEqual([
+      expect.stringMatching(/source that loaded zero units/),
+    ])
+  })
+
+  it('files() over a tree with no file says its source is empty; a dead glob over a loaded tree does not', () => {
+    const tree = mkdtempSync(join(tmpdir(), 'eess-0642-'))
+    const none = files({ cwd: tree, glob: '**/*', label: 'f', identify: (f) => ({ name: f.path }) })
+    rmSync(tree, { recursive: true, force: true })
+    expect(none.sourceEmpty).toBe(true)
+    const dead = files({
+      cwd: here,
+      glob: 'no-such/**',
+      label: 'f',
+      identify: (f) => ({ name: f.path }),
+    })
+    expect(dead.elements).toHaveLength(0)
+    expect('sourceEmpty' in dead).toBe(false)
   })
 })

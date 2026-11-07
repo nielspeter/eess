@@ -16,6 +16,7 @@ import {
   grammarGapRemedy,
   asClause,
   withEmptySource,
+  corpusLoadedNothing,
 } from './shared.js'
 import { isMermaidTag } from './mermaid-tag.js'
 
@@ -148,7 +149,10 @@ export function embeddedDiagramsMatchCode(
     }
   }
   return finishPreset(
-    withEmptySource(projectEmpty === true, collectResult(violations, { examined })),
+    withEmptySource(
+      projectEmpty === true || corpusLoadedNothing(corpus),
+      collectResult(violations, { examined }),
+    ),
     options,
   )
 }
