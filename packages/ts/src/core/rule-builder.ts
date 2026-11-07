@@ -1,4 +1,5 @@
 import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
+import { loadedNothing } from './empty-project-advice.js'
 import { TS_RULE, TS_SELECT } from './undecided-door.js'
 import { conditionContextFrom } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
@@ -145,7 +146,14 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
     // The kernel's — this was byte-identical, and the hierarchies differ, so a
     // free function is the only way the two builders can share it.
-    return selectMatching(this.getElements(), this._predicates, opts, TS_SELECT)
+    // Spike 0640: a project that loaded no source file is an empty source, carried with the side.
+    return selectMatching(
+      this.getElements(),
+      this._predicates,
+      opts,
+      TS_SELECT,
+      loadedNothing(this.project),
+    )
   }
 
   /** This rule as declared — the input every description and advice reads. */

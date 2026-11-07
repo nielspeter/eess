@@ -527,24 +527,8 @@ const siblingExports = Object.entries(SIBLING_MODULES).flatMap(([pkg, mod]) =>
  * fresh reason if it's still real and still accepted.
  */
 const KNOWN_FAIL_OPEN = [
-  {
-    name: '@nielspeter/eess::correspondence',
-    reason: 'bug 0477: a join of two empty selections passes',
-    expires: '2026-12-31',
-  },
-  // Both found the day the matrix first probed the sibling dialects (bug 0403), and both for one
-  // reason: `correspondence().beComplete()` carries the cardinality mark, so a join of two empty
-  // sides examines nothing and passes. Recorded as bug 0477.
-  {
-    name: '@nielspeter/eess-crossvalidate/mermaid-ts::diagramMatchesCode',
-    reason: 'bug 0477: an empty diagram against a zero-file project passes',
-    expires: '2026-12-31',
-  },
-  {
-    name: '@nielspeter/eess-crossvalidate/md-ts::adrCitationsResolve',
-    reason: 'bug 0477: an empty corpus against a zero-file project passes',
-    expires: '2026-12-31',
-  },
+  // Bug 0477's three entries (`correspondence()`, `diagramMatchesCode`, `adrCitationsResolve`) were
+  // removed by spike 0640's fix: each side now carries whether its source loaded anything.
 ]
 
 function checkExpiry(entry, today) {

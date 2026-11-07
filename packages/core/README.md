@@ -71,6 +71,7 @@ Both are interfaces so a host can supply its own; the kernel ships implementatio
 
 `correspondence()` binds two `Selection`s and checks they agree in both directions.
 
+- **`Selection`** — one side: `{ elements, label, identify }`, and `sourceEmpty: true` when the source it was read from loaded nothing at all. A dialect's `select()` sets it; set it on a selection you build yourself when your loader found nothing to read, and the correspondence reports the empty source instead of passing. Leave it off a loaded source that selects nothing: an empty selection can be the right answer.
 - **`CorrespondenceOptions`** — its argument: the `left` and `right` selections, a join strategy, and optional per-side `suggest` callbacks for the two-sided message.
 - **`KeyBy`** — the fast join: a key extracted per element, giving an O(n+m) match. Prefer it. The fallback `matchBy` predicate is O(n×m).
 - **`RelationSpec`** — what `preserveRelations()` takes: how to read edges from each side, so the check covers relationships and not just membership.

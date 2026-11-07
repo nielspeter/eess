@@ -6,7 +6,7 @@ product · enforcement), ruling `Ship with changes`; see `## Review — 2026-11-
 the TypeScript form is green on exemptions alone, since `scenarioExemptionsCurrent` with exempt
 scenarios and no citations passes (`packages/crossvalidate/src/gherkin-ts.ts:314-315`), and green
 with `expectEmpty` on a zero-file project, recorded as
-[bug 0584](../bugs/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md)._
+[bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md)._
 A project whose tests are not
 TypeScript cannot use the scenario presets at all, and the composition it must write instead is
 green on an empty binding unless the author declares otherwise, and red on an ordinary suite where
@@ -440,7 +440,7 @@ What the survey found per part:
    `scenariosCovered` when nothing is in scope. The presets never materialise the test source's
    emptiness fact, against [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) §3.
    Recorded as its own record,
-   [bug 0584](../bugs/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md),
+   [bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md),
    outside this proposal's scope. The supplied form's acceptance criteria state that it does not
    inherit this.
 
@@ -482,7 +482,7 @@ Recorded here, not fixed in the text above:
   malformed site is a finding (Important 3).
 - **The Priority line's "no shipped preset is falsely green on this"** does not cover the TypeScript
   form's exemption-alone green or its `expectEmpty` green on a zero-file project (Critical 2,
-  [bug 0584](../bugs/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md)).
+  [bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md)).
 - **The first cost bullet's one-way clause** is history since
   [bug 0400](../bugs/fixed/0400-a-one-way-becomplete-counts-the-side-it-never-reads.md) was fixed,
   and the Consumer evidence's `packages/crossvalidate/src/gherkin-ts.ts:107` citation now points at

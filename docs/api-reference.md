@@ -60,7 +60,7 @@ exactly as before.
 | Property        | Type      | Meaning                                                         |
 | --------------- | --------- | --------------------------------------------------------------- |
 | `examined`      | `number`  | Units this rule reached its assertion over. The denominator.    |
-| `sourceEmpty`   | `boolean` | The source loaded nothing at all, before any selection ran.     |
+| `sourceEmpty`   | `true`    | The source loaded nothing at all, before any selection ran.     |
 | `declaredEmpty` | `boolean` | A caller declared this set legitimately empty — and it expires. |
 
 | Export                | Signature                                 | What it does                                                          |
