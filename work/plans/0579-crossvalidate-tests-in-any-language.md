@@ -110,7 +110,7 @@ is closed when the proposal says it, not when this plan does.
 - Reading Python, or any other language, inside eess.
 - Any change to the TypeScript form's verdicts.
 - The TypeScript form's green on a zero-file project under `expectEmpty`, found by the review
-  (Important 8): recorded as [bug 0584](../bugs/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md).
+  (Important 8): recorded as [bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md).
 - Folding md-gherkin's twin resolve loop into the core (Important 6): recorded as a note, not
   bundled.
 - [Proposal 016](../proposals/016-eess-py-a-python-dialect.md)'s Ask D disposition, which that

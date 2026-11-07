@@ -182,7 +182,7 @@ A minor changeset covers the package's surface change (one package, two presets)
       build dropped the reason from the thrown message; PR #288's review caught
       it.) The empty
       case is unchanged too: the vacuity matrix still reports both as
-      [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md)'s known fail-open.
+      [bug 0477](./0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md)'s known fail-open.
 - [x] No exported preset in any package returns `void` — the family has one
       preset contract (grep of every `export function … : void` in
       `packages/*/src`, 2026-11-01: the rest are utilities and terminals).

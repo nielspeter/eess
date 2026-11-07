@@ -2,21 +2,22 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-11-01 on `bd78b962`; no red test yet.
+- **State:** Fixed — 2026-11-07, on `fix/an-input-side-loaded-nothing`, by [spike 0640](../../spikes/0640-an-input-side-loaded-nothing.md)'s design. First
+  measured as the Symptom says; its code pointers are as at that measurement.
 - **Severity:** High — a false green: a TypeScript project that loaded no source files, so no
   test could ever be read, passes once the caller declares `expectEmpty: true`. That is the
-  precedence [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) §3 says no
+  precedence [ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3 says no
   declaration may beat.
-- **Origin:** self-found · [proposal 014](../proposals/014-crossvalidate-tests-in-any-language.md)'s
+- **Origin:** self-found · [proposal 014](../../proposals/014-crossvalidate-tests-in-any-language.md)'s
   review (enforcement lens, Critical 2), which measured it in today's TS form and asked for a
   bug of its own, outside the proposal's scope.
-  (That review's ruling is recorded with [proposal 014](../proposals/014-crossvalidate-tests-in-any-language.md)'s amended text and plan, in their own PR;
+  (That review's ruling is recorded with [proposal 014](../../proposals/014-crossvalidate-tests-in-any-language.md)'s amended text and plan, in their own PR;
   until then it lives in this record's reproduction.)
 - **Reported:** 2026-11-01
 
 ## Symptom
 
-[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) §3: "Zero loaded source files is a
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) §3: "Zero loaded source files is a
 configuration finding under any declaration". eess-ts's own terminal honours it: a rule over a
 zero-file project with `.expectEmpty()` reports "The project loaded 0 source files".
 
@@ -88,7 +89,7 @@ project loaded any source files, so `sourceEmpty` stays `undefined`. `finishPres
 `declaredEmpty` from the caller's `expectEmpty` (`packages/core/src/report.ts:296`). The kernel's
 precedence branch for an empty source (`packages/core/src/report.ts:174`) is already in place and
 is checked before the declaration, but it reads `sourceEmpty`, which the preset never supplied.
-Under [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) the kernel takes the
+Under [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md) the kernel takes the
 emptiness fact and does not look at the project, so the dialect side must supply it. Here it does not.
 
 ## Fix
@@ -110,17 +111,51 @@ review (its enforcement lens's Critical 2), recorded as
 beside `examined > 0` would also be refused as `emitter/contradictory-evidence`, which names the
 wrong remedy for it.
 
+**Fixed 2026-11-07, by [spike 0640](../../spikes/0640-an-input-side-loaded-nothing.md)'s design.** A `Selection` carries `sourceEmpty: true` when the
+source it was selected from loaded nothing; the kernel's and eess-ts's `select()` set it, and
+`adrCitationsResolve` sets it on its two hand-built sides. `correspondence()` over such a side reports
+the empty source once: under the rule when the join examined nothing, as `emitter/source-empty`
+beside what it did examine. The gherkin↔ts presets merge an empty test side the same way. Two loaded
+sides that select nothing still pass.
+
+Built together with [bug 0477](./0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md) and [bug 0594](./0594-a-stale-exemption-passes-on-a-project-with-no-source-files.md), one root: a check whose input loaded nothing.
+
 ## Verification
 
-- [ ] Red test written first: `scenarioTestsResolve` over a zero-file project with
-      `expectEmpty: true` reports `emitter/source-empty` under `report: 'return'`, and throws
-      under the default mode.
-- [ ] `scenariosCovered` with `include: () => false` over a zero-file project with
+- [x] done-otherwise — written after the fix, red under the matrix's mutants:
+      `scenarioTestsResolve` over a zero-file project with `expectEmpty: true` reports
+      `emitter/source-empty` under `report: 'return'`, and throws under the default mode
+      (`packages/crossvalidate/tests/an-input-side-loaded-nothing.test.ts`).
+- [x] `scenariosCovered` with `include: () => false` over a zero-file project with
       `expectEmpty: true` reports `emitter/source-empty`.
-- [ ] The same two calls over a project that loads a file keep today's behaviour: the
-      declaration expires when citations exist, and passes when nothing is in scope.
-- [ ] A sabotage row: dropping `sourceEmpty` from either receipt turns its test red.
-- [ ] A changeset naming `@nielspeter/eess-crossvalidate`.
-- [ ] `npm run validate` green.
+- [x] The same two calls over a project that loads a file keep today's behaviour: the
+      declaration expires when citations exist, and passes when nothing is in scope (the CONTROL
+      case in the same file).
+- [x] done-otherwise — the sabotage row is "the gherkin↔ts presets ignore an empty project", which
+      drops the fact from every receipt at once, 3 red; the receipts share one helper, so no row
+      can drop it from one alone.
+- [x] A changeset naming `@nielspeter/eess-crossvalidate` (`.changeset/an-input-side-loaded-nothing.md`, kernel `minor` marked `**Breaking**`, the five dialects named at `minor`).
+- [x] The sabotage matrix, run 2026-11-07 on `fix/an-input-side-loaded-nothing`'s fix commit in a worktree with its own
+      install and build (15 s), the touched package rebuilt after each mutant, against
+      `packages/core/tests/correspondence-source-empty.test.ts`,
+      `packages/ts/tests/select-source-empty.test.ts` and
+      `packages/crossvalidate/tests/an-input-side-loaded-nothing.test.ts` (50 s). The restored tree red
+      0 before and after; every mutant red:
+
+      | mutant | core | ts | crossvalidate |
+      | --- | --- | --- | --- |
+      | the join ignores the sides' fact | 2 | 0 | 2 |
+      | the join reports it twice (always merges) | 1 | 0 | 2 |
+      | the kernel `select()` drops the fact | 3 | 0 | 0 |
+      | eess-ts's `select()` drops the fact | 0 | 1 | 1 |
+      | `adrCitationsResolve` stamps neither side | 0 | 0 | 1 |
+      | the gherkin↔ts presets ignore an empty project | 0 | 0 | 3 |
+      | the fact stamped on the one receipt beside `examined > 0` (0594's dead end) | 0 | 0 | 1 |
+
+      _The kernel `select()` mutant first did not apply (its text was written before prettier split
+      the call); rerun, it went red. The tests were written after the fix, not before it: their red
+      against the defect is the matrix's rows that restore each part of it._
+
+- [x] done-otherwise — `npm run validate` is CI's since [spike 0631](../../spikes/0631-where-ci-time-goes.md) (ruleset 26704592 requires `test`, `nonvacuity` and `bun-load`): this PR merges only green. Locally: typecheck, lint, format, `check:arch`, `check:family`, `check:vacuity` (the three `KNOWN_FAIL_OPEN` entries removed, each probe now `config-finding`), `check:surface`, `check:docs-code`, `check:release` and `check:corpus` green; core 441, crossvalidate 155, md 1,266, mermaid 173 and gherkin 13 green, with eess-ts's two test files that call `.select()` (38 s).
 
 Deferred: none

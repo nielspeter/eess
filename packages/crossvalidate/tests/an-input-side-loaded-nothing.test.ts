@@ -52,6 +52,22 @@ describe('the gherkin↔ts presets over a project that loaded no source file (bu
     expect(r.examined).toBe(0)
   })
 
+  it('under the default mode, it throws', () => {
+    expect(() => scenarioTestsResolve(empty(), set(), { expectEmpty: true })).toThrow()
+  })
+
+  it('CONTROL: over a project that loads files, the declaration expires on citations and holds over none', () => {
+    const covered = project(join(ghk, 'covered', 'tsconfig.json'))
+    const cited = scenarioTestsResolve(covered, set(), { report: 'return', expectEmpty: true })
+    expect(ids(cited)).toEqual(['emitter/expired-declaration'])
+    const none = scenariosCovered(covered, set(), {
+      report: 'return',
+      include: () => false,
+      expectEmpty: true,
+    })
+    expect(none).toHaveLength(0)
+  })
+
   it('scenariosCovered under expectEmpty, with nothing in scope, reports the empty source', () => {
     const r = scenariosCovered(empty(), set(), {
       report: 'return',

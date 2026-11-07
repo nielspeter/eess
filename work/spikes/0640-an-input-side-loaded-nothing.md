@@ -8,13 +8,13 @@ brings a design back, decided below so it can be overruled.
 
 Three High bugs pass a check whose input never loaded:
 
-- [bug 0477](../bugs/0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md):
+- [bug 0477](../bugs/fixed/0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md):
   `correspondence().beComplete()` over two empty sides passes, so `diagramMatchesCode()` and
   `adrCitationsResolve()` pass on nothing;
-- [bug 0584](../bugs/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md):
+- [bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md):
   `scenarioTestsResolve` and `scenariosCovered` with `expectEmpty: true` are green on a project
   with no source files;
-- [bug 0594](../bugs/0594-a-stale-exemption-passes-on-a-project-with-no-source-files.md):
+- [bug 0594](../bugs/fixed/0594-a-stale-exemption-passes-on-a-project-with-no-source-files.md):
   `scenarioExemptionsCurrent` passes on such a project, its `examined` counted from the feature side.
 
 0477's record leaves the fix undesigned, and 0594's records that the fix 0584 suggests (set
@@ -90,4 +90,19 @@ Built as the three bugs' fix, on one branch, with the matrix's `KNOWN_FAIL_OPEN`
 
 ## Corrections
 
-None yet.
+**At the build, 2026-11-07.**
+
+- **One finding, not two.** Merging the empty side as a member on every path reported the cause
+  twice when the join examined nothing: the merge's `emitter/source-empty` and the terminal's own
+  rule-attributed finding (measured on `diagramMatchesCode`). The build reports it once: over nothing
+  examined, the receipt itself carries `sourceEmpty` and the terminal or gate reports it under the
+  rule; only beside a non-zero `examined` is the side a member of its own. A mutant that always
+  merges is a matrix row.
+- **eess-mermaid's `select()` is unchanged.** A diagram with no class is not shown to be an empty
+  source (a diagram may hold other declarations), and no case here needs it: an empty diagram
+  against a loaded project already reports each TS class without a counterpart.
+- **Decision 4, the finding naming its source**, is not built: the finding is the kernel's generic
+  one, named under the rule where the join examined nothing. Recorded as
+  [bug 0641](../bugs/0641-the-empty-source-finding-names-no-source.md).
+- The fix's own records: [bug 0477](../bugs/fixed/0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md), [bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md) and
+  [bug 0594](../bugs/fixed/0594-a-stale-exemption-passes-on-a-project-with-no-source-files.md).

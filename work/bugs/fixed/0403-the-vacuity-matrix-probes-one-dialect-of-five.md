@@ -75,7 +75,7 @@ The matrix probes the sibling dialects too (`scripts/vacuity-matrix.mjs`, "Sibli
 
 Its first run found real fail-opens with one cause: `correspondence()` over two empty selections, and
 the two presets that end in it, `diagramMatchesCode()` and `adrCitationsResolve()`. They are recorded
-as [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md),
+as [bug 0477](./0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md),
 with dated `KNOWN_FAIL_OPEN` entries. `codeBlocks()` is listed, not probed: it needs a parser to
 construct, and its zero-blocks case is `check:nonvacuity`'s `corpus/code-block-parse/zero-blocks`.
 
@@ -84,6 +84,6 @@ construct, and its zero-blocks case is `check:nonvacuity`'s `corpus/code-block-p
 - [x] done-otherwise: the red proof is a non-vacuity row, not a unit test. `vacuity-matrix/sibling-fail-open` replaces eess-md's `docs` probe with one that passes silently, and the matrix fails naming it.
 - [x] The matrix's own non-vacuity proof covers the sibling half: `vacuity-matrix/{sibling-fail-open,unaccounted-export,stale-entry,probe-crash}`. The kernel's `setCorrespondence()` is not probed: it returns data, not a check.
 - [x] `npm run validate` green.
-- [ ] deferred→[bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md) — `correspondence()` and two crossvalidate presets pass over two empty inputs
+- [ ] deferred→[bug 0477](./0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md) — `correspondence()` and two crossvalidate presets pass over two empty inputs
 
-Deferred: [bug 0477](../0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md)
+Deferred: [bug 0477](./0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md)
