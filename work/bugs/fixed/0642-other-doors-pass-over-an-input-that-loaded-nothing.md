@@ -59,31 +59,33 @@ only on `RuleBuilder`, not on a correspondence._
       the family already treats a dead loader glob as an empty source (eess-gherkin's
       `features({ roots })`, eess-md's `corpus({ roots })`). Whether a `files()` glob is a loader's or
       a selector's is a decision: [bug 0644](../0644-whether-a-files-glob-is-a-loader-or-a-selector.md)._
-- [x] The sabotage matrix, run 2026-11-07 on `fix/0642-other-doors`'s final code in a worktree with
-      its own install and build (12 s), eess-gherkin rebuilt for its row, against the two test files
-      above (33 s). The restored tree red 0 before and after; every mutant red:
+- [x] The sabotage matrix, run 2026-11-07 on `fix/0642-other-doors`'s final code, after the build
+      review, in a worktree with its own install (7 s) and build (7 s), eess-gherkin rebuilt for its
+      rows, against the two test files above (47 s for the matrix). The restored tree red 0 before
+      and after; every mutant red:
 
       | mutant | gherkin | crossvalidate |
       | --- | --- | --- |
-      | the gherkin↔ts presets ignore the feature side | 0 | 1 |
+      | the gherkin↔ts presets ignore the feature side | 0 | 2 |
       | `scenarioCitationsResolve` ignores its inputs | 0 | 2 |
       | `scenarioCitationsResolve` ignores the feature side | 0 | 1 |
       | `tableErAgree` ignores its corpus | 0 | 1 |
       | `embeddedDiagramsMatchCode` ignores its corpus | 0 | 1 |
-      | `files()` never stamps | 0 | 1 |
+      | `files()` never stamps | 0 | 2 |
       | `files()` stamps a dead glob too | 0 | 1 |
-      | eess-gherkin's builder never says its source is empty | 1 | 0 |
-      | eess-gherkin's builder always says its source is empty (false red; added at review) | 2 | 0 |
+      | eess-gherkin's builder never says its source is empty | 2 | 0 |
+      | eess-gherkin's builder always says its source is empty (false red; added at review) | 1 | 0 |
       | `featuresLoadedNothing` reads scenarios, not feature files (false red; added at review) | 0 | 1 |
       | `scenarioCitationsResolve` treats nothing examined as an empty source (false red; added at review) | 0 | 1 |
       | the exemption preset's own call ignores the feature side (added at review) | 0 | 1 |
 
-      _The rows marked "added at review" ran in a second matrix, after the build review (below): the
-      first tested only the fail-open direction. The first run's third row survived: the test emptied the corpus and the feature set together,
-      so the corpus alone carried it. A test over a loaded corpus and an empty feature set pins it._
+      _A first matrix (the first eight rows, before the review, 33 s) tested only the fail-open
+      direction; the review's enforcement lens found three false-red mutants green on every suite,
+      and its method lens a call site no test reached. Its third row first survived: the test
+      emptied the corpus and the feature set together, so the corpus alone carried it. A test over a
+      loaded corpus and an empty feature set pins it._
 
-- [x] done-otherwise — `npm run validate` is CI's (ruleset 26704592); locally: crossvalidate 166,
-      gherkin 14, md 1,266, core 442 and the cross-dialect examples 116 green (`npx vitest run` per
+- [x] done-otherwise — `npm run validate` is CI's (ruleset 26704592); locally, after the build review: crossvalidate 170, gherkin 16, md 1,266, core 442 and the cross-dialect examples 116 green (`npx vitest run` per
       package and `--root examples`), with `check:crossval`, `check:vacuity`, `check:family`,
       `check:arch`, `check:docs-code`, `check:surface`, `check:release`, typecheck and format
       (91 s for all of them).
