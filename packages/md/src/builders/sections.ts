@@ -14,12 +14,13 @@ import {
   sectionsHolding,
   sectionsNamed,
   sectionsWithSubsection,
+  type SectionCodeBlockOptions,
   type SubsectionOptions,
 } from '../predicates/section.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 
 export type { MdSectionElement } from '../model/sections.js'
-export type { SubsectionOptions } from '../predicates/section.js'
+export type { SectionCodeBlockOptions, SubsectionOptions } from '../predicates/section.js'
 export type { SectionTableOptions } from '../conditions/section.js'
 
 /**
@@ -129,11 +130,6 @@ export class SectionRuleBuilder extends CorpusRuleBuilder<MdSectionElement> {
   haveCodePointer(): this {
     return this.holding({ kind: 'code pointer' })
   }
-}
-
-/** Options for `haveCodeBlock`: the language its tag must name, compared as ADR-019 says. */
-export interface SectionCodeBlockOptions {
-  readonly lang?: string
 }
 
 /** Entry point: build rules over the corpus's sections (plan 0496). */

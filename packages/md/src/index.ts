@@ -72,6 +72,14 @@ export { inDocuments } from './predicates/in-documents.js'
 export { inSections } from './predicates/in-documents.js'
 export { sectionsNamed, sectionsAtDepth, sectionsWithSubsection } from './predicates/section.js'
 export { sectionsInSection } from './predicates/section.js'
+// Plan 0636: the predicates behind the sections() holding methods, for inSections() and satisfy().
+export {
+  sectionsWithContent,
+  sectionsWithCodeBlock,
+  sectionsWithListItem,
+  sectionsWithLink,
+  sectionsWithCodePointer,
+} from './predicates/section.js'
 export { predicateHaveTextMatching } from './predicates/text.js'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —

@@ -104,3 +104,55 @@ export function sectionsHolding(h: SectionHolding): Predicate<MdSectionElement> 
     },
   }
 }
+
+/** Options for a code block a section holds: the language its tag must name, compared as ADR-019 says. */
+export interface SectionCodeBlockOptions {
+  readonly lang?: string
+}
+
+/**
+ * Sections that hold something after their heading, subsections included: a block other than a
+ * heading, a thematic break or an HTML comment. The predicate behind `sections().haveContent()`, for
+ * `inSections()` and `satisfy()` (plan 0636).
+ */
+export function sectionsWithContent(): Predicate<MdSectionElement> {
+  return sectionsHolding({ kind: 'content' })
+}
+
+/**
+ * Sections that hold a code block, tagged `lang` when given, in any letter case (ADR-019). The
+ * predicate behind `sections().haveCodeBlock()` (plan 0636).
+ */
+export function sectionsWithCodeBlock(
+  options: SectionCodeBlockOptions = {},
+): Predicate<MdSectionElement> {
+  return sectionsHolding(
+    options.lang === undefined
+      ? { kind: 'code block' }
+      : { kind: 'code block', lang: options.lang },
+  )
+}
+
+/** Sections that hold a list item, at any depth. The predicate behind `sections().haveListItem()` (plan 0636). */
+export function sectionsWithListItem(): Predicate<MdSectionElement> {
+  return sectionsHolding({ kind: 'list item' })
+}
+
+/**
+ * Sections that hold a link, as `links()` reads one: inline, reference-style, or an `href` in raw
+ * HTML. A section whose only links are HTML links eess-md cannot read is undecided (ADR-021): a rule
+ * reports each such site at its own line, and never selects or drops the section silently. The
+ * predicate behind `sections().haveLink()` (plan 0636).
+ */
+export function sectionsWithLink(): Predicate<MdSectionElement> {
+  return sectionsHolding({ kind: 'link' })
+}
+
+/**
+ * Sections that hold a code pointer (`path.ext:line`), as `pointers()` reads one, in a subsection
+ * too. Whether it is live is a second rule, `pointers(c)…resolve()`. The predicate behind
+ * `sections().haveCodePointer()` (plan 0636).
+ */
+export function sectionsWithCodePointer(): Predicate<MdSectionElement> {
+  return sectionsHolding({ kind: 'code pointer' })
+}

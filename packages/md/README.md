@@ -273,7 +273,13 @@ a pointer, a row, a term, a field), through `satisfy()`, the way `inDocuments` l
 predicate. An element is under every section that contains its line, so a box under `### Detail`
 inside `## Acceptance criteria` is under both. The section predicates for it are on the root:
 `sectionsNamed(name)`, `sectionsAtDepth(depth)`, `sectionsInSection(name)` and
-`sectionsWithSubsection(name, { depth? })`, the `sections()` methods of the same meaning.
+`sectionsWithSubsection(name, { depth? })`, the `sections()` methods of the same meaning. So are
+the predicates behind the methods for what a section holds: `sectionsWithContent()`,
+`sectionsWithCodeBlock({ lang? })`, `sectionsWithListItem()`, `sectionsWithLink()` and
+`sectionsWithCodePointer()`, which compose with `and()`, `or()` and `not()`, as in
+`inSections(and(sectionsAtDepth(2), sectionsWithCodePointer()))`: the elements in a level-2 section
+that cites code. A section's lines include its subsections', so a title section holds what every
+section under it holds; the depth narrows it.
 `predicateHaveTextMatching(re)` selects the elements whose `text` matches your pattern; on `taskItems()`,
 `haveTextMatching(re)` is the method, and it is
 also a condition, every selected box's text must match. A box's text is all of its own content, its
