@@ -1,5 +1,5 @@
 import type { ArchViolation } from './violation.js'
-import { collectResult } from './collect-result.js'
+import { collectResult, mergeCollectResults } from './collect-result.js'
 import type { Predicate } from './predicate.js'
 import { partition, refuseUndecided, type Door } from './undecided.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
@@ -24,6 +24,13 @@ export interface Selection<T> {
   readonly elements: readonly T[]
   readonly label: string
   readonly identify: (element: T) => ElementInfo
+  /**
+   * The source this side was selected from loaded nothing at all: an empty project or corpus, as the
+   * dialect that built the selection knows it (ADR-013). Not an empty selection: two loaded sides
+   * that select nothing can be the right answer (a release gate's empty diff). A correspondence over
+   * a side that carries it reports `emitter/source-empty`, whatever else it examined (spike 0640).
+   */
+  readonly sourceEmpty?: true
 }
 
 export type Direction = 'left-to-right' | 'right-to-left' | 'both'
@@ -146,10 +153,21 @@ export class CorrespondenceBuilder<L, R> extends TerminalBuilder {
     // ADR-010 §1: the unit is what each check read — the side(s) a `beComplete()` checks, the pairs
     // a `preserveRelations()` compared — summed over the chain. No check chained reads nothing.
     const examined = results.reduce((sum, r) => sum + r.examined, 0)
-    return collectResult(
+    const joined = collectResult(
       results.flatMap((r) => r.violations),
       { examined },
     )
+    // Spike 0640 (bug 0477): a side whose source loaded nothing outranks everything the join
+    // examined (ADR-014 §4), reported once. Over nothing examined, the receipt says so itself and the
+    // terminal reports it under this rule; beside a non-zero `examined` that flag would contradict,
+    // so the side is a member of its own and the merge reports it.
+    const empty = [this.opts.left, this.opts.right].filter((side) => side.sourceEmpty === true)
+    if (empty.length === 0) return joined
+    if (examined === 0) return collectResult(joined, { examined: 0, sourceEmpty: true })
+    return mergeCollectResults([
+      ...empty.map(() => collectResult([], { examined: 0, sourceEmpty: true })),
+      joined,
+    ])
   }
 
   /**
@@ -306,13 +324,16 @@ export function selectMatching<T>(
   predicates: readonly Predicate<T>[],
   opts: { label: string; identify: (element: T) => ElementInfo },
   door: string | Door = 'select()',
+  sourceEmpty = false,
 ): Selection<T> {
   const { elements: admitted, undecided } = partition(elements, predicates)
   refuseUndecided(undecided, door)
+  const evidence: { readonly sourceEmpty?: true } = sourceEmpty ? { sourceEmpty: true } : {}
   return {
     elements: admitted,
     label: opts.label,
     identify: opts.identify,
+    ...evidence,
   }
 }
 

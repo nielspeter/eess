@@ -176,15 +176,23 @@ export function adrCitationsResolve(
   const citations = extractCitations({ corpus, dir, section, mechanismColumn })
   const testDefs = extractTestDefs(project)
 
+  // Spike 0640 (bug 0477): each side says whether its source loaded anything, so a corpus or a
+  // project that loaded nothing is the kernel's `emitter/source-empty`, not a join over nothing.
+  const corpusEmpty: { readonly sourceEmpty?: true } =
+    corpus.documents().length === 0 ? { sourceEmpty: true } : {}
+  const projectEmpty: { readonly sourceEmpty?: true } =
+    project.getSourceFiles().length === 0 ? { sourceEmpty: true } : {}
   const left: Selection<Citation> = {
     elements: citations,
     label: 'cited it()',
     identify: (c) => ({ name: `it('${c.title}')`, file: c.adr, line: c.line }),
+    ...corpusEmpty,
   }
   const right: Selection<TestDef> = {
     elements: testDefs,
     label: 'test',
     identify: (d) => ({ name: `it('${d.title}')`, file: d.file }),
+    ...projectEmpty,
   }
 
   const rule = correspondence({

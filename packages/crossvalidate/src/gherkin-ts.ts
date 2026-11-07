@@ -3,6 +3,7 @@ import {
   type ArchViolation,
   type PresetReportOptions,
   collectResult,
+  mergeCollectResults,
   type CollectResult,
 } from '@nielspeter/eess'
 import { featurePaths, violationsFor } from './shared.js'
@@ -12,7 +13,7 @@ import path from 'node:path'
 import { itOrTestTitleOf } from './it-title.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { finishPreset, collectResult } from '@nielspeter/eess'
+export { finishPreset, collectResult, mergeCollectResults } from '@nielspeter/eess'
 // The receipt type is this module's public return type, so a standalone
 // consumer must be able to name it without a second kernel install (plan 0089).
 export type { CollectResult } from '@nielspeter/eess'
@@ -181,7 +182,20 @@ export function scenarioTestsResolve(
     }
   }
 
-  return finishPreset(collectResult(violations, { examined }), options)
+  return finishPreset(withTestSide(project, collectResult(violations, { examined })), options)
+}
+
+/**
+ * Spike 0640 (bugs 0584, 0594): a project that loaded no source file is an empty test side. It is
+ * merged as a member of its own, so the kernel's merge reports `emitter/source-empty` whatever the
+ * feature side counted, and before any `expectEmpty` declaration (ADR-014 §4). Stamping
+ * `sourceEmpty` on the one receipt instead contradicts a feature-side `examined` (bug 0594).
+ */
+function withTestSide(project: ArchProject, receipt: CollectResult): CollectResult {
+  if (project.getSourceFiles().length > 0) return receipt
+  // Reported once: over nothing examined, the receipt says so and the gate reports it.
+  if (receipt.examined === 0) return collectResult(receipt, { examined: 0, sourceEmpty: true })
+  return mergeCollectResults([collectResult([], { examined: 0, sourceEmpty: true }), receipt])
 }
 
 const COVER_RULE = 'every scenario should be proven by a citing test'
@@ -264,7 +278,7 @@ export function scenariosCovered(
         'an unproven use-case flow is a spec with no gate behind it',
       ),
     )
-  return finishPreset(collectResult(violations, { examined }), options)
+  return finishPreset(withTestSide(project, collectResult(violations, { examined })), options)
 }
 
 export interface ScenarioExemptionsCurrentOptions extends PresetReportOptions {
@@ -332,7 +346,7 @@ export function scenarioExemptionsCurrent(
       },
     ]
   })
-  return finishPreset(collectResult(violations, { examined }), options)
+  return finishPreset(withTestSide(project, collectResult(violations, { examined })), options)
 }
 
 /** Count citing tests / scenarios for a caller's non-vacuity summary line. */

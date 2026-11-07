@@ -145,7 +145,14 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
     // The kernel's — this was byte-identical, and the hierarchies differ, so a
     // free function is the only way the two builders can share it.
-    return selectMatching(this.getElements(), this._predicates, opts, TS_SELECT)
+    // Spike 0640: a project that loaded no source file is an empty source, carried with the side.
+    return selectMatching(
+      this.getElements(),
+      this._predicates,
+      opts,
+      TS_SELECT,
+      this.project.getSourceFiles().length === 0,
+    )
   }
 
   /** This rule as declared — the input every description and advice reads. */

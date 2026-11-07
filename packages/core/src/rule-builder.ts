@@ -194,7 +194,14 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * @param opts.identify - map an element to its message metadata (name/file/line)
    */
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
-    return selectMatching(this.getElements(), this._predicates, opts)
+    // Spike 0640: the side carries what this builder knows of its source.
+    return selectMatching(
+      this.getElements(),
+      this._predicates,
+      opts,
+      'select()',
+      this.sourceEmpty(),
+    )
   }
 
   /**
