@@ -54,13 +54,12 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading to 0.17?** Nearly all of it is `eess-md`'s links: reference-style links, `href`s in raw
-HTML and `#fragments` are checked, a line-1 `---` block is judged as both GitHub and a Markdown
-reader see it, and a non-ASCII field label is a label. Expect findings on documents you did not
-change; they were broken before. A `select()` can refuse a link or mention it cannot read, the text
-output prints each rule's id, and `eess-crossvalidate` 0.12.0 needs this release's dialects.
-[Migrating to 0.17](./docs/migrating-to-0.17.md) covers all of it;
-[Migrating to 0.15](./docs/migrating-to-0.15.md) is the page for the releases before.
+**Upgrading to 0.22?** It adds no feature and closes seven false greens, so runs that passed can
+fail: a check over an input that loaded nothing (an empty project, corpus, feature set or `files()`
+tree) now reports it even under `expectEmpty`, a preset under `report: 'warn'` fails on a
+configuration finding, and the kernel's `collectViolations` and `generateBaseline` throw on one. All
+six packages move together. [Migrating to 0.22](./docs/migrating-to-0.22.md) covers all of it;
+[Migrating to 0.17](./docs/migrating-to-0.17.md) and the pages before it cover older releases.
 
 ## Packages
 
