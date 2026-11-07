@@ -65,12 +65,12 @@ six packages move together. [Migrating to 0.22](./docs/migrating-to-0.22.md) cov
 
 | Package                                                      | What it validates                                                        | Status |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------ |
-| [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.11.x |
-| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.15.x |
-| [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.9.x  |
-| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.18.x |
-| [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.8.x  |
-| [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.13.x |
+| [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.12.x |
+| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.16.x |
+| [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.10.x |
+| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.19.x |
+| [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.9.x  |
+| [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.14.x |
 
 Each dialect depends only on the kernel and its own parser (ts-morph for TS, Langium for Mermaid, mdast for Markdown, a line grammar for Gherkin). The Markdown dialect ([plan 0058](./work/plans/completed/0058-markdown-dialect-eess-md.md)) and cross-validation between dialects ([plan 0059](./work/plans/completed/0059-cross-validation-eess-crossvalidate.md)) are sibling packages on the same kernel — new dialects land without restructuring.
 
