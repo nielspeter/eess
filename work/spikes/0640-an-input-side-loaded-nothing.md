@@ -1,8 +1,9 @@
 # Spike 0640: an input side loaded nothing
 
 Measured 2026-11-07, for the second bundle of High false greens the maintainer asked for ("lets
-bundle High bugs [that] make eess report green when it shouldn't"). Time-boxed to about an hour; it
-brings a design back, decided below so it can be overruled.
+bundle High bugs [that] make eess report green when it shouldn't"). Time-boxed to about an hour (not timed; the measurement below ran in 32 ms, and reading the code
+was most of it); it brings a design back, decided below so it can be overruled. Its code pointers
+are as at `main` e651544e.
 
 ## The question
 
@@ -36,6 +37,68 @@ and a corpus root holding no document:
 | `mergeCollectResults([{ examined: 0, sourceEmpty }, { examined: 0, declaredEmpty }])` | `emitter/source-empty`             |
 | one loaded, legitimately empty, declared set                                          | green                              |
 
+The probe, as run (`<scratchpad>` is the session's scratch directory, holding the three inputs):
+
+```js
+import {
+  collectResult,
+  mergeCollectResults,
+  finishPreset,
+} from '/home/nps/Documents/Projects/NielsPeter/eess/packages/core/dist/index.js'
+import { project } from '/home/nps/Documents/Projects/NielsPeter/eess/packages/ts/dist/index.js'
+import { diagram } from '/home/nps/Documents/Projects/NielsPeter/eess/packages/mermaid/dist/index.js'
+import { corpus } from '/home/nps/Documents/Projects/NielsPeter/eess/packages/md/dist/index.js'
+import { diagramMatchesCode } from '/home/nps/Documents/Projects/NielsPeter/eess/packages/crossvalidate/dist/mermaid-ts.js'
+import { adrCitationsResolve } from '/home/nps/Documents/Projects/NielsPeter/eess/packages/crossvalidate/dist/md-ts.js'
+const show = (label, r) =>
+  console.log(
+    label.padEnd(58),
+    'examined',
+    r.examined,
+    '->',
+    r.length === 0 ? 'GREEN' : r.map((v) => v.ruleId ?? v.rule).join(', '),
+  )
+const P = '<scratchpad>/spike0640'
+const t0 = Date.now()
+const p = project(P + '/empty/tsconfig.json')
+console.log('empty project loads', p.getSourceFiles().length, 'source files')
+show(
+  '1a diagramMatchesCode(empty diagram, empty project)',
+  diagramMatchesCode(diagram(P + '/empty.mmd'), p, { report: 'return' }),
+)
+show(
+  '1b adrCitationsResolve(empty corpus, empty project)',
+  adrCitationsResolve(corpus({ cwd: P, roots: ['docs/**'] }), p, { report: 'return' }),
+)
+const empty = collectResult([], { examined: 0, sourceEmpty: true })
+show(
+  '2a single receipt: sourceEmpty beside examined 2',
+  finishPreset(collectResult([], { examined: 2, sourceEmpty: true }), { report: 'return' }),
+)
+show(
+  '2b merge: empty-source member + member examined 2',
+  finishPreset(mergeCollectResults([empty, collectResult([], { examined: 2 })]), {
+    report: 'return',
+  }),
+)
+show(
+  '2c merge: empty-source member + expectEmpty member',
+  finishPreset(
+    mergeCollectResults([empty, collectResult([], { examined: 0, declaredEmpty: true })]),
+    { report: 'return' },
+  ),
+)
+show(
+  '2d merge: two loaded members, both examined 0 (absence)',
+  finishPreset(mergeCollectResults([collectResult([], { examined: 0, declaredEmpty: true })]), {
+    report: 'return',
+  }),
+)
+console.log('took', Date.now() - t0, 'ms')
+```
+
+The 32 ms is the probe's own `Date.now()` span, from loading the project to the last line.
+
 The merge already holds the rule all three bugs need. [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §4's "an empty source outranks any
 declaration" is checked per member (`packages/core/src/collect-result.ts:186`), so a member that
 says "my source loaded nothing" reds the merged receipt whatever its siblings examined, and without
@@ -59,8 +122,9 @@ What carries the fact today:
   `{ examined: 0, sourceEmpty: true }` per such side into its receipt. The gherkin↔ts presets do
   the same for their test side by hand. A hand-built selection stays as it is, so the release gate
   and every adopter's own join are unchanged.
-- **B. Each preset checks its inputs and reports an empty one.** Local and small, but four presets
-  write the same check, the kernel's join stays fail-open for every adopter's own join, and the
+- **B. Each preset checks its inputs and reports an empty one.** Local and small, but five presets
+  (`diagramMatchesCode`, `adrCitationsResolve`, `scenarioTestsResolve`, `scenariosCovered`,
+  `scenarioExemptionsCurrent`) write the same check, the kernel's join stays fail-open for every adopter's own join, and the
   vacuity matrix's `KNOWN_FAIL_OPEN` entry for `correspondence()` stays (0477 says it should go red).
 - **C. `correspondence()` over two empty selections is a finding unless declared.** Breaks the
   release gate's legitimate empty diff and every absence join an adopter built, and cannot tell an
@@ -104,5 +168,26 @@ Built as the three bugs' fix, on one branch, with the matrix's `KNOWN_FAIL_OPEN`
 - **Decision 4, the finding naming its source**, is not built: the finding is the kernel's generic
   one, named under the rule where the join examined nothing. Recorded as
   [bug 0641](../bugs/0641-the-empty-source-finding-names-no-source.md).
+- **A hand-built selection is stamped where eess builds it.** Option A says a hand-built selection
+  stays as it is; that holds for an adopter's. `adrCitationsResolve` builds both its sides by hand,
+  so it stamps them itself, a matrix row each.
+- **An empty diagram against a loaded project** reports each TS class without a counterpart only
+  when the project has classes in the preset's `scope`: against one that has none, it passes. That
+  is an empty selection over a loaded source, which option A leaves green on purpose.
+
+**At the build review, 2026-11-07** (enforcement, product, method):
+
+- **The left side was unpinned.** Every test and the matrix's probe put the empty source on the
+  right or on both sides, so a join reading only its right side, and `adrCitationsResolve` leaving
+  its corpus side unstamped, stayed green on every suite and on `check:vacuity`. Two tests and two
+  matrix rows pin them now.
+- **`embeddedDiagramsMatchCode` reported the empty project once per diagram block**: the TS side
+  joins every block. The side's flag is taken off before the joins and reported once beside the
+  preset's receipt, by one helper (`withEmptySource`) the gherkin↔ts presets share.
+- **This review was the one point to overrule the design.** The build changed it (one finding, not
+  two) and dropped decisions 2 and 4 without a review between; the coordinator reports that to the
+  maintainer with this PR.
+- Other doors that still pass over an empty input are
+  [bug 0642](../bugs/0642-other-doors-pass-over-an-input-that-loaded-nothing.md).
 - The fix's own records: [bug 0477](../bugs/fixed/0477-a-correspondence-of-two-empty-sides-passes-so-two-crossvalidate-presets-pass-on-nothing.md), [bug 0584](../bugs/fixed/0584-scenario-tests-resolve-with-expect-empty-is-green-on-a-zero-file-project.md) and
   [bug 0594](../bugs/fixed/0594-a-stale-exemption-passes-on-a-project-with-no-source-files.md).
