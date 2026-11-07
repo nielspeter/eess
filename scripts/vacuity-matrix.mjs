@@ -458,14 +458,15 @@ const SIBLING_NOT_CONSTRUCTORS = {
   '@nielspeter/eess-md::sectionsWithSubsection':
     'predicate factory, used inside inSections (plan 0503)',
   '@nielspeter/eess-md::sectionsWithContent':
-    'predicate factory, used inside inSections (plan 0636)',
+    "predicate factory for inSections() and satisfy(); a dead one is the consuming rule's zero-examined finding (plan 0636)",
   '@nielspeter/eess-md::sectionsWithCodeBlock':
-    'predicate factory, used inside inSections (plan 0636)',
+    "predicate factory for inSections() and satisfy(); a dead one is the consuming rule's zero-examined finding (plan 0636)",
   '@nielspeter/eess-md::sectionsWithListItem':
-    'predicate factory, used inside inSections (plan 0636)',
-  '@nielspeter/eess-md::sectionsWithLink': 'predicate factory, used inside inSections (plan 0636)',
+    "predicate factory for inSections() and satisfy(); a dead one is the consuming rule's zero-examined finding (plan 0636)",
+  '@nielspeter/eess-md::sectionsWithLink':
+    "predicate factory for inSections() and satisfy(); a dead one is the consuming rule's zero-examined finding (plan 0636)",
   '@nielspeter/eess-md::sectionsWithCodePointer':
-    'predicate factory, used inside inSections (plan 0636)',
+    "predicate factory for inSections() and satisfy(); a dead one is the consuming rule's zero-examined finding (plan 0636)",
   '@nielspeter/eess-md::predicateHaveTextMatching':
     'predicate factory, used inside a builder (plan 0503)',
   '@nielspeter/eess-md::inDocuments':

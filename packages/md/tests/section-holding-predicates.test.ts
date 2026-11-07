@@ -3,8 +3,9 @@
  * Each is driven as an adopter calls it: through `satisfy()`, and composed into `inSections()`.
  */
 import { describe, expect, it } from 'vitest'
-import { and, type Predicate } from '@nielspeter/eess'
+import type { Predicate } from '@nielspeter/eess'
 import {
+  and,
   corpusFromText,
   inSections,
   sections,
@@ -151,5 +152,25 @@ describe('sectionsWithLink cannot judge a section whose only link is unread (ADR
       expect.stringMatching(/should not exist/),
     ])
     expect(v.some((x) => x.line === 3)).toBe(false)
+  })
+
+  it('lifted through inSections, an unread link is reported at its site, never dropped', () => {
+    const c = corpusFromText({
+      'docs/p.md': '# R\n\n## A\n\n- [ ] box\n\nsee <a href=./a.md title=a/b>x</a>\n',
+      'docs/a.md': '# A\n',
+    })
+    const v = taskItems(c)
+      .that()
+      .satisfy(inSections(and(sectionsAtDepth(2), sectionsWithLink())))
+      .should()
+      .notExist()
+      .violations()
+    const site = v.filter((x) => x.file.endsWith('docs/p.md') && x.line === 7)
+    expect(site.map((x) => x.message)).toEqual([
+      expect.stringMatching(/whether its section holds a link cannot be judged/),
+    ])
+    expect(site[0]?.bypassFilters).toBe(true)
+    // The box is neither selected (no "should not exist" at line 5) nor silently dropped.
+    expect(v.some((x) => x.line === 5)).toBe(false)
   })
 })

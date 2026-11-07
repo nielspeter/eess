@@ -114,6 +114,10 @@ export interface SectionCodeBlockOptions {
  * Sections that hold something after their heading, subsections included: a block other than a
  * heading, a thematic break or an HTML comment. The predicate behind `sections().haveContent()`, for
  * `inSections()` and `satisfy()` (plan 0636).
+ *
+ * A section's lines include its subsections', so a document's title section holds whatever any
+ * section in the document holds: inside `inSections`, narrow with `sectionsAtDepth()`, or
+ * `not(inSections(…))` passes every element of a document that holds it once, anywhere.
  */
 export function sectionsWithContent(): Predicate<MdSectionElement> {
   return sectionsHolding({ kind: 'content' })
@@ -122,6 +126,10 @@ export function sectionsWithContent(): Predicate<MdSectionElement> {
 /**
  * Sections that hold a code block, tagged `lang` when given, in any letter case (ADR-019). The
  * predicate behind `sections().haveCodeBlock()` (plan 0636).
+ *
+ * A section's lines include its subsections', so a document's title section holds whatever any
+ * section in the document holds: inside `inSections`, narrow with `sectionsAtDepth()`, or
+ * `not(inSections(…))` passes every element of a document that holds it once, anywhere.
  */
 export function sectionsWithCodeBlock(
   options: SectionCodeBlockOptions = {},
@@ -133,7 +141,14 @@ export function sectionsWithCodeBlock(
   )
 }
 
-/** Sections that hold a list item, at any depth. The predicate behind `sections().haveListItem()` (plan 0636). */
+/**
+ * Sections that hold a list item, at any depth. The predicate behind `sections().haveListItem()`
+ * (plan 0636).
+ *
+ * A section's lines include its subsections', so a document's title section holds whatever any
+ * section in the document holds: inside `inSections`, narrow with `sectionsAtDepth()`, or
+ * `not(inSections(…))` passes every element of a document that holds it once, anywhere.
+ */
 export function sectionsWithListItem(): Predicate<MdSectionElement> {
   return sectionsHolding({ kind: 'list item' })
 }
@@ -141,8 +156,14 @@ export function sectionsWithListItem(): Predicate<MdSectionElement> {
 /**
  * Sections that hold a link, as `links()` reads one: inline, reference-style, or an `href` in raw
  * HTML. A section whose only links are HTML links eess-md cannot read is undecided (ADR-021): a rule
- * reports each such site at its own line, and never selects or drops the section silently. The
- * predicate behind `sections().haveLink()` (plan 0636).
+ * reports each such site at its own line, and never selects or drops the section silently. Its
+ * `test()` called directly on such a section throws an `ArchConfigError`: apply it through a rule,
+ * or forward its `undecided()` with its `test()`. The predicate behind `sections().haveLink()` (plan
+ * 0636).
+ *
+ * A section's lines include its subsections', so a document's title section holds whatever any
+ * section in the document holds: inside `inSections`, narrow with `sectionsAtDepth()`, or
+ * `not(inSections(…))` passes every element of a document that holds it once, anywhere.
  */
 export function sectionsWithLink(): Predicate<MdSectionElement> {
   return sectionsHolding({ kind: 'link' })
@@ -152,6 +173,10 @@ export function sectionsWithLink(): Predicate<MdSectionElement> {
  * Sections that hold a code pointer (`path.ext:line`), as `pointers()` reads one, in a subsection
  * too. Whether it is live is a second rule, `pointers(c)…resolve()`. The predicate behind
  * `sections().haveCodePointer()` (plan 0636).
+ *
+ * A section's lines include its subsections', so a document's title section holds whatever any
+ * section in the document holds: inside `inSections`, narrow with `sectionsAtDepth()`, or
+ * `not(inSections(…))` passes every element of a document that holds it once, anywhere.
  */
 export function sectionsWithCodePointer(): Predicate<MdSectionElement> {
   return sectionsHolding({ kind: 'code pointer' })
