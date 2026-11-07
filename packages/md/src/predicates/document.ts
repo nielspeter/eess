@@ -1,10 +1,12 @@
 import { basename } from 'node:path'
-import { globNode, type Predicate } from '@nielspeter/eess'
+import { globNode, type Predicate, type Undecided } from '@nielspeter/eess'
+import { refuseUndecided } from '@nielspeter/eess/internal'
 import picomatch from 'picomatch'
 import type { MdDocument } from '../model/document.js'
 import { hasSection } from '../model/query.js'
 import { checkDepth } from '../model/name-match.js'
-import { declaresSections } from '../model/section-declarations.js'
+import { satisfyingReader, satisfyingText } from '../model/section-any.js'
+import { declaresSections, sectionDeclarationsOf } from '../model/section-declarations.js'
 import type { HaveSectionOptions } from '../model/sections.js'
 import { titleFault } from '../model/sections.js'
 
@@ -56,15 +58,38 @@ export function predicateHaveSection(
 ): Predicate<MdDocument> {
   checkDepth(options.depth, 'haveSection')
   const at = options.depth === undefined ? '' : ` at depth ${String(options.depth)}`
-  const predicate: Predicate<MdDocument> = {
-    description: `have section "${String(name)}"${at}`,
-    test: (d) => hasSection(d, name, options.depth),
+  const declared = [{ name, ...(options.depth === undefined ? {} : { depth: options.depth }) }]
+  const p = options.satisfying
+  if (p === undefined) {
+    const predicate: Predicate<MdDocument> = {
+      description: `have section "${String(name)}"${at}`,
+      test: (d) => hasSection(d, name, options.depth),
+    }
+    // Recorded with or without a depth (PR #252's verify round), so an absence rule over a drifted
+    // heading names it.
+    return declaresSections(predicate, declared)
   }
-  // Recorded with or without a depth (PR #252's verify round), so an absence rule over a drifted
-  // heading names it.
-  return declaresSections(predicate, [
-    { name, ...(options.depth === undefined ? {} : { depth: options.depth }) },
-  ])
+  // Plan 0582: at least one section of the name satisfies `p`, by strong Kleene (ADR-021). A
+  // document none decides and one cannot judge is undecided, and `test()` refuses it.
+  const read = satisfyingReader(name, options.depth, p)
+  const predicate: Predicate<MdDocument> = {
+    description: `have a section "${String(name)}"${at}${satisfyingText(p)}`,
+    test: (d) => {
+      const m = read(d).membership
+      if (m === true || m === false) return m
+      refuseUndecided(m, 'test()')
+      return false
+    },
+    ...(p.undecided === undefined
+      ? {}
+      : {
+          undecided: (d: MdDocument): readonly Undecided[] => {
+            const m = read(d).membership
+            return m === true || m === false ? [] : m
+          },
+        }),
+  }
+  return declaresSections(predicate, sectionDeclarationsOf([p], declared))
 }
 
 /** Documents `corpus()` marked frozen: matched by its `frozen` globs (plan 0457). */

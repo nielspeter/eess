@@ -1,3 +1,4 @@
+import type { Predicate } from '@nielspeter/eess'
 import type { Nodes } from 'mdast'
 import { headingName, type MdDocument, type MdSection } from './document.js'
 import { matchName } from './name-match.js'
@@ -29,6 +30,12 @@ export interface MdSectionElement extends MdSection {
 export interface HaveSectionOptions {
   /** The heading level the section must have (1 to 6). Without it, any level counts. */
   readonly depth?: number
+  /**
+   * A section predicate at least one of the matching sections must satisfy (plan 0582), such as
+   * `sectionsWithCodePointer()`. A section it cannot judge leaves the document undecided (ADR-021):
+   * reported where the verdict depends on it, never a pass and never dropped.
+   */
+  readonly satisfying?: Predicate<MdSectionElement>
 }
 
 const INDEX = new WeakMap<MdDocument, readonly MdSectionElement[]>()

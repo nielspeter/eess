@@ -1151,6 +1151,35 @@ pointers(c)
   .check()
 ```
 
+The second rule says **every** section of the name holds a pointer. When a document may hold several
+and one may only link elsewhere, say **at least one** with `haveSection`'s `satisfying` option, which
+takes any section predicate, such as the root's `sectionsWithCodePointer()`:
+
+```ts
+import { corpus, docs, sectionsWithCodePointer } from '@nielspeter/eess-md'
+
+const c = corpus({ cwd: process.cwd(), roots: ['records/**/*.md'] })
+const RELATIONS = 'Relations'
+const CITES_CODE = { satisfying: sectionsWithCodePointer() }
+
+// Conditional: a record that has the section has one that cites code. Its selection is its guard: a
+// misspelt const selects nothing, and the rule reds with the zero-examined finding.
+docs(c).that().haveSection(RELATIONS).should().haveSection(RELATIONS, CITES_CODE).check()
+// Strict: every record has one, so a record with none is "missing section".
+docs(c).should().haveSection(RELATIONS, CITES_CODE).check()
+```
+
+A record whose sections of the name all fail the predicate gets one finding, at the first of them,
+naming each: `no section "Relations" satisfies "hold a code pointer" (the sections at lines 3, 7)`.
+Fixing any one of them clears it; renaming the heading only takes the record out of the conditional
+rule. A pointer under another heading does not count. Present is not live: pair the rule with the
+`pointers(c)…resolve()` rule above. A section the predicate cannot judge (for `sectionsWithLink()`, one whose only
+links are HTML links eess-md cannot read) leaves the record undecided: the cause is reported at its
+own line, unsuppressably, and only where no other section of the name decides the record. The
+predicate form, `predicateHaveSection(name, { satisfying })`, goes inside `satisfy()`, `not()` and
+`inDocuments()`; an absence rule built on it, `satisfy(not(…)).should().notExist()`, is green over
+nothing, so it needs a guard rule, and its `examined` counts only the offenders. Prefer the condition.
+
 **What is not a section.** A heading inside a list item, a blockquote or a footnote definition does
 not start one: it cannot govern anything after its container closes. Neither does an `<h2>` in an HTML
 block, nor a `#` line in a fence. A rule does not read past such a heading silently: a condition's
@@ -1158,7 +1187,8 @@ finding names it (`section "Phase 1" has no subsection "Files changed"; the head
 line 15 is inside a list item, which does not start a section`), and so does the section-name scan.
 
 **The section-name scan.** Every section name a rule reads (`areNamed`, `areInSection`,
-`haveSubsection`, and `haveSection` with a `depth`) is scanned whatever the rule examined: a heading
+`haveSubsection`, `haveSection` with a `depth`, and the section predicate `haveSection`'s
+`satisfying` option takes) is scanned whatever the rule examined: a heading
 that misses a string name only by case or spacing, a heading of the name inside a container, and, for a
 name read at a depth, a document that has it only at other depths, each in the documents the rule can
 see: those its `inDocuments` scopes admit (for `docs()`, those its own predicates select). A heading in

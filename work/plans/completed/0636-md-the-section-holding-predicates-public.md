@@ -4,23 +4,23 @@
 
 - **State:** Done — built 2026-11-07 on `plan/0582-section-satisfies-predicate` in 88900567, the
   ledger and matrix in 95b1defc, the build review's fixes (product, enforcement, method) after
-  them. Split out of [plan 0582](../0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)
+  them. Split out of [plan 0582](./0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)
   as its Phase 1, on that plan's Phase 0 decision, and frozen the same day against `main` 27086083
   (v0.20.0) **without a separate review**: the build then departed from the frozen plan three
   times, each recorded below as `done-otherwise` or as added at build: the test form
   `docs(c)…inSections(…)` does not exist, the `lang` case ran the other way round, and the Files
   changed list left out `builders/sections.ts`.
-- **Implements:** [proposal 026](../../proposals/026-md-a-document-has-a-section-that-satisfies-a-predicate.md)
-  (ask B; ask A is [plan 0582](../0582-md-a-document-has-a-section-that-satisfies-a-predicate.md))
+- **Implements:** [proposal 026](../../proposals/promoted/026-md-a-document-has-a-section-that-satisfies-a-predicate.md)
+  (ask B; ask A is [plan 0582](./0582-md-a-document-has-a-section-that-satisfies-a-predicate.md))
 - **Priority:** Medium. No false green. A section predicate that composes, such as
   `inSections(<a section that holds a code pointer>)`, cannot be written today without a hand step,
-  and [plan 0582](../0582-md-a-document-has-a-section-that-satisfies-a-predicate.md) needs these
+  and [plan 0582](./0582-md-a-document-has-a-section-that-satisfies-a-predicate.md) needs these
   exports for its option.
 - **Effort:** Small, about an hour.
 - **Created:** 2026-11-07
 - **Decided, each overrulable:**
   - **Five noun-first factories**, one per `SectionHolding` kind, as the
-    [proposal 026](../../proposals/026-md-a-document-has-a-section-that-satisfies-a-predicate.md)
+    [proposal 026](../../proposals/promoted/026-md-a-document-has-a-section-that-satisfies-a-predicate.md)
     review's product lens recommended: `sectionsWithContent()`,
     `sectionsWithCodeBlock({ lang? })`, `sectionsWithListItem()`, `sectionsWithLink()`,
     `sectionsWithCodePointer()`. They mirror the builder words, as `haveSubsection` maps to the
@@ -40,7 +40,7 @@
 only as builder methods. The predicate behind them, `sectionsHolding(h)`
 (`packages/md/src/predicates/section.ts:80`), is not on the root, so it cannot be passed to
 `inSections()`, to `satisfy()` with `and()`/`not()`, or to
-[plan 0582](../0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s option.
+[plan 0582](./0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s option.
 `SectionHolding` has five kinds (`packages/md/src/model/section-holds.ts:15`): `content`,
 `code block` (with an optional `lang`, matched through `tagIsLanguage` in any letter case,
 [ADR-019](../../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md), `:73`),
@@ -126,16 +126,16 @@ Through the public root, as an adopter calls them:
   - the vacuity rows say where a dead predicate is caught, "a dead one is the consuming rule's
     zero-examined finding" (enforcement).
 
-  The review's findings on [plan 0582](../0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s
+  The review's findings on [plan 0582](./0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s
   Phase 0 are fixed there.
 
 Deferred: none.
 
 ## Out of scope
 
-- [Plan 0582](../0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s option on
+- [Plan 0582](./0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s option on
   `haveSection` (ask A).
 - Exporting `SectionHolding` or `sectionsHolding`: the five factories are the public form.
 - Accepting several names in `haveSection` natively (decided in
-  [plan 0582](../0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s Phase 0: not
+  [plan 0582](./0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s Phase 0: not
   taken).

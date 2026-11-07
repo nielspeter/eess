@@ -54,6 +54,13 @@ Not designed. Two shapes, each with a cost:
   their inputs' section names: the same word with two behaviours depending on the import, which
   [ADR-017](../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)'s "one word means one thing across the family" argues against.
 
+**A workaround for one case (2026-11-07).** [Plan 0582](../plans/completed/0582-md-a-document-has-a-section-that-satisfies-a-predicate.md)'s
+`haveSection(name, { satisfying: p })` takes the section's name as its own argument, so a rule that
+says "a document has a section of the name that satisfies `p`" records the name whatever `p` is
+built from, `and()` and `not()` included. It does not fix this bug: `inSections(and(…))` and
+`satisfy(not(predicateHaveSection(…)))` still hide what they wrap, and this bug keeps the general
+fix.
+
 ## Verification
 
 - [ ] Red first: the second and third rows above report the near miss
