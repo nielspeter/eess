@@ -5,7 +5,13 @@ import {
   collectResult,
   type CollectResult,
 } from '@nielspeter/eess'
-import { featurePaths, violationsFor, withEmptySource } from './shared.js'
+import {
+  featurePaths,
+  featuresLoadedNothing,
+  projectLoadedNothing,
+  violationsFor,
+  withEmptySource,
+} from './shared.js'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
 import path from 'node:path'
@@ -181,16 +187,15 @@ export function scenarioTestsResolve(
     }
   }
 
-  return finishPreset(withTestSide(project, collectResult(violations, { examined })), options)
+  return finishPreset(withInputs(project, set, collectResult(violations, { examined })), options)
 }
 
 /**
- * Spike 0640 (bugs 0584, 0594): a project that loaded no source file is an empty test side,
- * reported once beside the receipt by `withEmptySource`. eess-ts's own `loadedNothing` is not on its
- * root, so the test reads the project as that helper does.
+ * Spike 0640 (bugs 0584, 0594) and bug 0642: a project that loaded no source file, or a feature set
+ * that loaded no feature file, is an empty input, reported once beside the receipt.
  */
-const withTestSide = (project: ArchProject, receipt: CollectResult): CollectResult =>
-  withEmptySource(project.getSourceFiles().length === 0, receipt)
+const withInputs = (project: ArchProject, set: FeatureSet, receipt: CollectResult): CollectResult =>
+  withEmptySource(projectLoadedNothing(project) || featuresLoadedNothing(set), receipt)
 
 const COVER_RULE = 'every scenario should be proven by a citing test'
 
@@ -272,7 +277,7 @@ export function scenariosCovered(
         'an unproven use-case flow is a spec with no gate behind it',
       ),
     )
-  return finishPreset(withTestSide(project, collectResult(violations, { examined })), options)
+  return finishPreset(withInputs(project, set, collectResult(violations, { examined })), options)
 }
 
 export interface ScenarioExemptionsCurrentOptions extends PresetReportOptions {
@@ -340,7 +345,7 @@ export function scenarioExemptionsCurrent(
       },
     ]
   })
-  return finishPreset(withTestSide(project, collectResult(violations, { examined })), options)
+  return finishPreset(withInputs(project, set, collectResult(violations, { examined })), options)
 }
 
 /** Count citing tests / scenarios for a caller's non-vacuity summary line. */

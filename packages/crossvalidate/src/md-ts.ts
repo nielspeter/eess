@@ -10,6 +10,7 @@ import { correspondence } from '@nielspeter/eess'
 import type { Corpus } from '@nielspeter/eess-md'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import { citedItTitles, itTitleOf } from './it-title.js'
+import { corpusLoadedNothing, projectLoadedNothing } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { ArchConfigError, correspondence, finishPreset } from '@nielspeter/eess'
@@ -180,10 +181,12 @@ export function adrCitationsResolve(
   // project that loaded nothing is reported, not joined over nothing. Both sides are built here by
   // hand, so no `select()` stamps them; eess-ts's `loadedNothing` is not on its root, so the project
   // is read as that helper reads it.
-  const corpusEmpty: { readonly sourceEmpty?: true } =
-    corpus.documents().length === 0 ? { sourceEmpty: true } : {}
-  const projectEmpty: { readonly sourceEmpty?: true } =
-    project.getSourceFiles().length === 0 ? { sourceEmpty: true } : {}
+  const corpusEmpty: { readonly sourceEmpty?: true } = corpusLoadedNothing(corpus)
+    ? { sourceEmpty: true }
+    : {}
+  const projectEmpty: { readonly sourceEmpty?: true } = projectLoadedNothing(project)
+    ? { sourceEmpty: true }
+    : {}
   const left: Selection<Citation> = {
     elements: citations,
     label: 'cited it()',

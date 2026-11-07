@@ -8,6 +8,8 @@ import {
 } from '@nielspeter/eess'
 import { pathSuffixIndex, type PathSuffixIndex } from '@nielspeter/eess/internal'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
+import type { Corpus } from '@nielspeter/eess-md'
+import type { ArchProject } from '@nielspeter/eess-ts'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 // Every source file in this package re-exports what it imports from the kernel,
@@ -126,3 +128,13 @@ export function withEmptySource(loadedNothing: boolean, receipt: CollectResult):
   if (receipt.examined === 0) return collectResult(receipt, { examined: 0, sourceEmpty: true })
   return mergeCollectResults([collectResult([], { examined: 0, sourceEmpty: true }), receipt])
 }
+
+/**
+ * Bug 0642: whether each kind of input a preset reads loaded nothing, one owner each. A corpus with
+ * no document, a feature set with no feature file, a project with no source file (eess-ts's own
+ * `loadedNothing` is not on its root, so it is read the same way here).
+ */
+export const corpusLoadedNothing = (corpus: Corpus): boolean => corpus.documents().length === 0
+export const featuresLoadedNothing = (set: FeatureSet): boolean => set.features().length === 0
+export const projectLoadedNothing = (project: ArchProject): boolean =>
+  project.getSourceFiles().length === 0

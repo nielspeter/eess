@@ -6,7 +6,14 @@ import {
   type PresetReportOptions,
   collectResult,
 } from '@nielspeter/eess'
-import { violationsFor, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
+import {
+  violationsFor,
+  GRAMMAR_GAP,
+  grammarGapRemedy,
+  asClause,
+  corpusLoadedNothing,
+  withEmptySource,
+} from './shared.js'
 import { isMermaidTag } from './mermaid-tag.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import {
@@ -188,7 +195,11 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Coll
     }
   }
 
-  return finishPreset(collectResult(violations, { examined }), options)
+  // Bug 0642: a corpus that loaded nothing is reported, not compared over nothing.
+  return finishPreset(
+    withEmptySource(corpusLoadedNothing(corpus), collectResult(violations, { examined })),
+    options,
+  )
 }
 
 /** Count compared docs/entities/attributes for a caller's non-vacuity summary. */

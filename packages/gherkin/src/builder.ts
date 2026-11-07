@@ -59,6 +59,11 @@ export class ScenarioRuleBuilder extends RuleBuilder<GherkinScenario, FeatureSet
     return this.project.scenarios()
   }
 
+  /** Bug 0642: a feature set that loaded no feature file is an empty source (ADR-010 §3). */
+  protected override sourceEmpty(): boolean {
+    return this.project.features().length === 0
+  }
+
   /** Filter to scenarios carrying the tag (without `@`). */
   haveTag(tag: string): this {
     return this.addPredicate(haveTag(tag))

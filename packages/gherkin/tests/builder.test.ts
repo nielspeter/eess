@@ -117,3 +117,29 @@ describe('scenarios() rule builder', () => {
     ).toHaveLength(2)
   })
 })
+
+describe('select() over a feature set that loaded nothing (bug 0642)', () => {
+  it('carries sourceEmpty, and only then', () => {
+    const empty = features({ cwd: FIXTURES, roots: ['no-such-folder/**/*.feature'] })
+    expect(empty.features()).toHaveLength(0)
+    expect(
+      scenarios(empty).select({ label: 's', identify: (s) => ({ name: s.title }) }).sourceEmpty,
+    ).toBe(true)
+  })
+
+  it('CONTROL: over a loaded feature set, select() carries no sourceEmpty', () => {
+    const loaded = features({ cwd: FIXTURES, roots: ['duplicate-titles.feature'] })
+    expect(loaded.features().length).toBeGreaterThan(0)
+    const side = scenarios(loaded).select({ label: 's', identify: (s) => ({ name: s.title }) })
+    expect('sourceEmpty' in side).toBe(false)
+  })
+
+  it('a rule over a feature set that loaded nothing is red, even declared empty', () => {
+    const empty = features({ cwd: FIXTURES, roots: ['no-such-folder/**/*.feature'] })
+    const v = scenarios(empty).should().haveUniqueTitles().expectEmpty().violations()
+    expect(v.map((x) => [x.message, x.bypassFilters])).toEqual([
+      [expect.stringMatching(/source loaded zero units/), true],
+    ])
+    expect(() => scenarios(empty).should().haveUniqueTitles().expectEmpty().check()).toThrow()
+  })
+})
