@@ -39,9 +39,11 @@ case needs a decision first: a diagram with no class is not shown to be an empty
 `withEmptySource`: `scenarioCitationsResolve` (corpus, feature set), the gherkin↔ts presets (the
 feature set beside the project), `tableErAgree` and `embeddedDiagramsMatchCode` (corpus). eess-gherkin's
 builder says a feature set with no feature file is an empty source, so its `select()` carries it.
-`files()` carries it when the tree it walked held no file at all; a glob that matches nothing in a
-loaded tree stays an empty selection, by [spike 0640](../../spikes/0640-an-input-side-loaded-nothing.md)'s design (it can be the right answer, and the
-kernel's dead-glob fact is a separate mechanism).
+`files()` carries it when the tree it walked held no file at all (an empty or missing `cwd`); a glob
+that matches nothing in a loaded tree is undecided, [bug 0644](../0644-whether-a-files-glob-is-a-loader-or-a-selector.md). _Corrected at the build review: this
+paragraph first called that case an empty selection by [spike 0640](../../spikes/0640-an-input-side-loaded-nothing.md)'s design, covered by "the
+kernel's dead-glob fact". Neither holds: the spike never decided `files()`, and that fact exists
+only on `RuleBuilder`, not on a correspondence._
 
 ## Verification
 
@@ -51,9 +53,12 @@ kernel's dead-glob fact is a separate mechanism).
       `packages/gherkin/tests/builder.test.ts`).
 - [ ] deferred→[bug 0643](../0643-whether-a-class-diagram-with-no-class-is-an-empty-source.md) — eess-mermaid's `classes(...).select()` and `fromDiagram`: what
       "a diagram loaded nothing" means is a decision, not yet made.
-- [ ] dropped-on-purpose — `files()` with a glob that matches nothing in a loaded tree: an empty
-      selection, which [spike 0640](../../spikes/0640-an-input-side-loaded-nothing.md) keeps green on purpose; only a tree with no file at all is an
-      empty source.
+- [ ] deferred→[bug 0644](../0644-whether-a-files-glob-is-a-loader-or-a-selector.md) — `files()` with a glob that matches nothing in a loaded tree. _Corrected at
+      the build review, 2026-11-07 (enforcement lens): this box first read `dropped-on-purpose`, on
+      [spike 0640](../../spikes/0640-an-input-side-loaded-nothing.md)'s "an empty selection can be right". The spike never decided `files()`, and
+      the family already treats a dead loader glob as an empty source (eess-gherkin's
+      `features({ roots })`, eess-md's `corpus({ roots })`). Whether a `files()` glob is a loader's or
+      a selector's is a decision: [bug 0644](../0644-whether-a-files-glob-is-a-loader-or-a-selector.md)._
 - [x] The sabotage matrix, run 2026-11-07 on `fix/0642-other-doors`'s final code in a worktree with
       its own install and build (12 s), eess-gherkin rebuilt for its row, against the two test files
       above (33 s). The restored tree red 0 before and after; every mutant red:
@@ -68,8 +73,13 @@ kernel's dead-glob fact is a separate mechanism).
       | `files()` never stamps | 0 | 1 |
       | `files()` stamps a dead glob too | 0 | 1 |
       | eess-gherkin's builder never says its source is empty | 1 | 0 |
+      | eess-gherkin's builder always says its source is empty (false red; added at review) | 2 | 0 |
+      | `featuresLoadedNothing` reads scenarios, not feature files (false red; added at review) | 0 | 1 |
+      | `scenarioCitationsResolve` treats nothing examined as an empty source (false red; added at review) | 0 | 1 |
+      | the exemption preset's own call ignores the feature side (added at review) | 0 | 1 |
 
-      _The first run's third row survived: the test emptied the corpus and the feature set together,
+      _The rows marked "added at review" ran in a second matrix, after the build review (below): the
+      first tested only the fail-open direction. The first run's third row survived: the test emptied the corpus and the feature set together,
       so the corpus alone carried it. A test over a loaded corpus and an empty feature set pins it._
 
 - [x] done-otherwise — `npm run validate` is CI's (ruleset 26704592); locally: crossvalidate 166,
@@ -78,4 +88,16 @@ kernel's dead-glob fact is a separate mechanism).
       `check:arch`, `check:docs-code`, `check:surface`, `check:release`, typecheck and format
       (91 s for all of them).
 
-Deferred: 1 — [bug 0643](../0643-whether-a-class-diagram-with-no-class-is-an-empty-source.md).
+- [x] The build review (2026-11-07, enforcement and method). Fixed from it: three false-red controls
+      (a loaded feature set's `select()` carries no `sourceEmpty`; a feature file with no scenario is
+      a loaded source; a loaded corpus with no citation holds under `expectEmpty`) and the
+      exemption preset over an empty feature set, each a matrix row; eess-gherkin's rule over an
+      empty feature set (`.check()` and `.violations()` under `.expectEmpty()`), now red, tested and
+      named in the changeset as an eess-gherkin break; `files()` over a missing `cwd`. Recorded:
+      [bug 0644](../0644-whether-a-files-glob-is-a-loader-or-a-selector.md) (the `files()` glob, a decision) and [bug 0645](../0645-the-vacuity-matrix-probes-no-preset-under-expect-empty.md) (the vacuity matrix probes no preset under
+      `expectEmpty`, so it saw none of this change). **Owed before the next release:** three
+      breaking changesets are pending (`configuration-findings-not-lost`, `an-input-side-loaded-nothing`,
+      `other-doors-report-an-empty-input`), so `RELEASING.md`'s migration page, README banner and
+      VitePress entry are owed before the cut.
+
+Deferred: 2 — [bug 0643](../0643-whether-a-class-diagram-with-no-class-is-an-empty-source.md), [bug 0644](../0644-whether-a-files-glob-is-a-loader-or-a-selector.md).

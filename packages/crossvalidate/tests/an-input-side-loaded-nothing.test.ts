@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { features } from '@nielspeter/eess-gherkin'
 import { corpus, corpusFromText } from '@nielspeter/eess-md'
@@ -208,5 +208,54 @@ describe('the other doors over an input that loaded nothing (bug 0642)', () => {
     })
     expect(dead.elements).toHaveLength(0)
     expect('sourceEmpty' in dead).toBe(false)
+  })
+})
+
+describe('a loaded input that selects nothing is not an empty source (bug 0642, the false-red side)', () => {
+  const loadedFeatures = () => set()
+  const loaded = () => project(join(here, 'fixtures/citations/tsconfig.json'))
+  const emptyFeatures = () => features({ cwd: EMPTY, roots: ['**/*.feature'] })
+
+  it('scenarioExemptionsCurrent over an empty feature set, under expectEmpty, reports it', () => {
+    const r = scenarioExemptionsCurrent(loaded(), emptyFeatures(), {
+      report: 'return',
+      isExempt: (s) => s.tags.includes('wip'),
+      expectEmpty: true,
+    })
+    expect(r.map((v) => v.message)).toEqual([
+      expect.stringMatching(/source that loaded zero units/),
+    ])
+  })
+
+  it('a feature file with no scenario yet is a loaded source: the declaration holds', () => {
+    const tree = mkdtempSync(join(tmpdir(), 'eess-0642-feature-'))
+    writeFileSync(join(tree, 'draft.feature'), 'Feature: A draft\n')
+    const draft = features({ cwd: tree, roots: ['**/*.feature'] })
+    expect(draft.features()).toHaveLength(1)
+    expect(draft.scenarios()).toHaveLength(0)
+    const covered = scenariosCovered(loaded(), draft, { report: 'return', expectEmpty: true })
+    const resolved = scenarioTestsResolve(loaded(), draft, { report: 'return', expectEmpty: true })
+    rmSync(tree, { recursive: true, force: true })
+    expect(covered).toHaveLength(0)
+    expect(resolved).toHaveLength(0)
+  })
+
+  it('scenarioCitationsResolve over a loaded corpus with no citation and a loaded feature set holds under expectEmpty', () => {
+    const stories = corpusFromText({ 'docs/story.md': '# A story\n\nNo citation yet.\n' })
+    const r = scenarioCitationsResolve(stories, loadedFeatures(), {
+      report: 'return',
+      expectEmpty: true,
+    })
+    expect(r).toHaveLength(0)
+  })
+
+  it('files() with a cwd that does not exist says its source is empty', () => {
+    const missing = files({
+      cwd: join(EMPTY, 'no-such-dir'),
+      glob: '**/*',
+      label: 'f',
+      identify: (f) => ({ name: f.path }),
+    })
+    expect(missing.sourceEmpty).toBe(true)
   })
 })
