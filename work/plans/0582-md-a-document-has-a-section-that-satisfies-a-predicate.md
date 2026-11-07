@@ -152,14 +152,47 @@ in its Review.
 
 Phase 2's ledger:
 
-- [ ] The `satisfying` option on `haveSection` / `predicateHaveSection` and its condition form on
-      `docs().should()`, with the absent-safe pin on the description and message.
-- [ ] The example under `examples/md/`, the conditional and the strict rule reading one `const`,
-      with `clean/` and `violating-<x>/` folders, and the docs' note that an absence spelling needs
-      a guard.
-- [ ] The docs and README lines, [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)'s
-      cross-reference, and the `@nielspeter/eess-md` changeset.
-- [ ] The sabotage matrix over the Test inventory's mutants, recorded here.
+- [x] The `satisfying` option on `haveSection` / `predicateHaveSection` and its condition form on
+      `docs().should()`, with the absent-safe pin on the description and message (e039dd9a):
+      `packages/md/src/model/section-any.ts` holds the one fold (`anyMembership`), which
+      `inSections` now calls too; the md suite was 1,246 of 1,246 green after that refactor (12 s).
+      `packages/md/tests/have-section-satisfying.test.ts`, 15 tests, drives both rules, both phases,
+      the predicate inside `satisfy()` and `not()`, the undecided paths, the name scan and each
+      remedy.
+- [x] The example under `examples/md/`, `a-relations-section-cites-code.test.ts`, the conditional and
+      the strict rule reading one `const`, with `clean/`, `violating-links-only/` and
+      `violating-no-section/`, and the docs' note that an absence spelling needs a guard. Its swaps,
+      run by hand as `check:nonvacuity` runs them (`EESS_EXAMPLE_SWAP`, about 2 s each): each
+      `violating-<j>=clean` fails only its `violating-<j>:` test, each `clean=violating-<j>` fails
+      the first `clean:` test and no `violating-*:` test.
+- [x] The docs and README lines, [bug 0512](../bugs/0512-a-section-name-inside-a-kernel-combinator-is-not-scanned.md)'s
+      cross-reference, and the `@nielspeter/eess-md` changeset (`md-have-section-satisfying.md`).
+      `check:docs-code` compiles the new fence (117 fences).
+- [x] The sabotage matrix, run 2026-11-07 on e039dd9a in a worktree with its own install and build,
+      one mutant at a time, md rebuilt after each (the example imports `dist`) and the kernel for
+      its row (43 s in all). The restored tree red 0 before and after; every mutant red:
+
+      | mutant | option tests red | example tests red |
+      | --- | --- | --- |
+      | 1 only the first group section tested | 6 | 3 |
+      | 2 every section required instead of any | 8 | 3 |
+      | 3 undecided treated as false | 2 | 0 |
+      | 4 the name not recorded (predicate form) | 1 | 0 |
+      | 5 the option ignoring `p` (every matching section accepted) | 5 | 1 |
+      | 6 and 7 the kernel's zero-examined and dead-glob findings removed | 2 | 1 |
+      | 8 undecided treated as true | 2 | 0 |
+      | 9 the predicate's `test()` not refusing undecided (added at build) | 1 | 0 |
+
+      Mutant 5 is restated: it ignores `p`, the false green "a link accepted for a pointer" reaches,
+      since the option passes `p` through and has no kind of its own. Mutants 6 and 7 are the
+      kernel's: the dead scope and the misspelt `const` are caught by its zero-examined finding,
+      which no md mutant can remove, so the row removes it in the kernel.
+
+      _Two first runs were discarded. In the first, the kernel mutant did not compile (code after an
+      early `return`), and the md mutants read 0 on the example, which imports `dist` and was not
+      rebuilt. In the second, the failed kernel build had emitted the mutated `dist`, so the
+      restored tree read 2 red and every row was inflated until the kernel row rebuilt it. The
+      third run, above, started from a clean build._
 
 ## Acceptance
 
