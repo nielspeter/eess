@@ -1,4 +1,5 @@
 import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
+import { loadedNothing } from './empty-project-advice.js'
 import { TS_RULE, TS_SELECT } from './undecided-door.js'
 import { conditionContextFrom } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
@@ -151,7 +152,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
       this._predicates,
       opts,
       TS_SELECT,
-      this.project.getSourceFiles().length === 0,
+      loadedNothing(this.project),
     )
   }
 

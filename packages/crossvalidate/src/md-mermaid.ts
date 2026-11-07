@@ -10,7 +10,13 @@ import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses, diagramKind } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
-import { identifyTsClass, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
+import {
+  identifyTsClass,
+  GRAMMAR_GAP,
+  grammarGapRemedy,
+  asClause,
+  withEmptySource,
+} from './shared.js'
 import { isMermaidTag } from './mermaid-tag.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
@@ -77,10 +83,15 @@ export function embeddedDiagramsMatchCode(
   const scope = options.scope ?? '**/src/**'
   const direction = options.completeness ?? 'left-to-right'
 
-  const right = tsClasses(project).that().resideInFolder(scope).select({
-    label: 'TS class',
-    identify: identifyTsClass,
-  })
+  // Spike 0640: the project side's "loaded nothing" is reported once, beside the preset's receipt,
+  // not once per diagram block the side is joined against.
+  const { sourceEmpty: projectEmpty, ...right } = tsClasses(project)
+    .that()
+    .resideInFolder(scope)
+    .select({
+      label: 'TS class',
+      identify: identifyTsClass,
+    })
 
   const violations: ArchViolation[] = []
   // Diagram BLOCKS compared, never documents scanned — counting one layer too
@@ -136,7 +147,10 @@ export function embeddedDiagramsMatchCode(
       )
     }
   }
-  return finishPreset(collectResult(violations, { examined }), options)
+  return finishPreset(
+    withEmptySource(projectEmpty === true, collectResult(violations, { examined })),
+    options,
+  )
 }
 
 /** The declared kind of a fence, for phrasing a finding: "diagram" when it declares none. */

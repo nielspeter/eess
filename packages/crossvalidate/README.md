@@ -8,6 +8,11 @@ Every preset here reports the same way: by default it prints its findings and th
 `ArchRuleError`. Pass `{ report: 'return' }` to get the findings back as a list instead, or
 `{ format: 'json' }` for a machine-readable stream.
 
+A preset over an input that loaded nothing (a project with no source file, an empty corpus or
+diagram) reports it as an unsuppressable finding rather than passing over nothing, and
+`expectEmpty: true` does not excuse it: the declaration is about a loaded input that selects
+nothing, not about an input that never loaded.
+
 ## Mermaid ↔ TypeScript
 
 ```typescript

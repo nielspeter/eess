@@ -1,5 +1,11 @@
 import type { ClassDeclaration } from 'ts-morph'
-import type { ArchViolation, ElementInfo } from '@nielspeter/eess'
+import {
+  collectResult,
+  mergeCollectResults,
+  type ArchViolation,
+  type CollectResult,
+  type ElementInfo,
+} from '@nielspeter/eess'
 import { pathSuffixIndex, type PathSuffixIndex } from '@nielspeter/eess/internal'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
 
@@ -7,7 +13,8 @@ import type { FeatureSet } from '@nielspeter/eess-gherkin'
 // Every source file in this package re-exports what it imports from the kernel,
 // so installing eess-crossvalidate alone never requires a second, direct
 // @nielspeter/eess install.
-export type { ArchViolation, ElementInfo }
+export type { ArchViolation, CollectResult, ElementInfo }
+export { collectResult, mergeCollectResults }
 
 /**
  * Conventions every binding in this package shares.
@@ -106,4 +113,16 @@ export function grammarGapRemedy(exclude: string): string {
 /** A parser's detail as the end of a sentence: trailing `.`, `:` and spaces trimmed, so a join reads. */
 export function asClause(detail: string): string {
   return detail.replace(/[\s.:]+$/, '')
+}
+
+/**
+ * Spike 0640: an input that loaded nothing, reported once beside a preset's receipt. Over nothing
+ * examined, the receipt says so itself and the gate reports it; beside a non-zero `examined` that
+ * flag would contradict (bug 0594), so the input is a member of its own and the kernel's merge
+ * reports `emitter/source-empty` (ADR-014 §4).
+ */
+export function withEmptySource(loadedNothing: boolean, receipt: CollectResult): CollectResult {
+  if (!loadedNothing) return receipt
+  if (receipt.examined === 0) return collectResult(receipt, { examined: 0, sourceEmpty: true })
+  return mergeCollectResults([collectResult([], { examined: 0, sourceEmpty: true }), receipt])
 }

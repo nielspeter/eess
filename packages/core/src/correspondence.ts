@@ -28,7 +28,8 @@ export interface Selection<T> {
    * The source this side was selected from loaded nothing at all: an empty project or corpus, as the
    * dialect that built the selection knows it (ADR-013). Not an empty selection: two loaded sides
    * that select nothing can be the right answer (a release gate's empty diff). A correspondence over
-   * a side that carries it reports `emitter/source-empty`, whatever else it examined (spike 0640).
+   * a side that carries it reports the empty source once (spike 0640): under the rule when the join
+   * examined nothing, as `emitter/source-empty` beside what it did examine.
    */
   readonly sourceEmpty?: true
 }

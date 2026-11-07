@@ -47,4 +47,18 @@ describe('a correspondence over a side whose source loaded nothing (spike 0640)'
     expect(v.map((x) => x.ruleId)).toContain('emitter/source-empty')
     expect(v.examined).toBeGreaterThan(0)
   })
+
+  it('the LEFT side empty from an empty source, read one way, is reported under the rule', () => {
+    const v = correspondence({
+      left: side([], 'l', true),
+      right: side([{ name: 'a' }], 'r'),
+      keyBy: (i: Item) => i.name,
+    })
+      .should()
+      .beComplete({ direction: 'left-to-right' })
+      .rule({ id: 'demo/one-way' })
+      .violations()
+    expect(v.map((x) => [x.ruleId, x.bypassFilters])).toEqual([['demo/one-way', true]])
+    expect(v[0]?.message).toMatch(/source loaded zero units/)
+  })
 })

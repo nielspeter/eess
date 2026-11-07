@@ -177,7 +177,9 @@ export function adrCitationsResolve(
   const testDefs = extractTestDefs(project)
 
   // Spike 0640 (bug 0477): each side says whether its source loaded anything, so a corpus or a
-  // project that loaded nothing is the kernel's `emitter/source-empty`, not a join over nothing.
+  // project that loaded nothing is reported, not joined over nothing. Both sides are built here by
+  // hand, so no `select()` stamps them; eess-ts's `loadedNothing` is not on its root, so the project
+  // is read as that helper reads it.
   const corpusEmpty: { readonly sourceEmpty?: true } =
     corpus.documents().length === 0 ? { sourceEmpty: true } : {}
   const projectEmpty: { readonly sourceEmpty?: true } =

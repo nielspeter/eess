@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { features } from '@nielspeter/eess-gherkin'
-import { corpus } from '@nielspeter/eess-md'
+import { corpus, corpusFromText } from '@nielspeter/eess-md'
 import { diagram } from '@nielspeter/eess-mermaid'
 import { project } from '@nielspeter/eess-ts'
 import { adrCitationsResolve } from '../src/md-ts.js'
 import { diagramMatchesCode } from '../src/mermaid-ts.js'
+import { embeddedDiagramsMatchCode } from '../src/md-mermaid.js'
 import {
   scenarioExemptionsCurrent,
   scenariosCovered,
@@ -40,6 +41,24 @@ describe('a correspondence preset over an input that loaded nothing (bug 0477)',
       report: 'return',
     })
     expect(r.map((v) => v.message)).toEqual([expect.stringMatching(SOURCE_EMPTY)])
+  })
+})
+
+describe('one input that loaded nothing beside one that loaded (bug 0477)', () => {
+  it('adrCitationsResolve over an empty corpus and a project that loads reports the empty corpus', () => {
+    const loaded = project(join(here, 'fixtures/citations/tsconfig.json'))
+    expect(loaded.getSourceFiles().length).toBeGreaterThan(0)
+    const r = adrCitationsResolve(corpus({ cwd: EMPTY, roots: ['**/*.md'] }), loaded, {
+      report: 'return',
+    })
+    expect(r.map((v) => v.message)).toEqual([expect.stringMatching(SOURCE_EMPTY)])
+  })
+
+  it('embeddedDiagramsMatchCode reports an empty project once, however many diagram blocks', () => {
+    const block = '```mermaid\nclassDiagram\nclass Calculator\n```\n'
+    const c = corpusFromText({ 'docs/a.md': `# A\n\n${block}\n${block}` })
+    const r = embeddedDiagramsMatchCode(c, empty(), { report: 'return' })
+    expect(r.filter((v) => /source that loaded zero units/.test(v.message))).toHaveLength(1)
   })
 })
 

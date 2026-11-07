@@ -104,6 +104,7 @@ const packageRows = rows(c, {
 })
 
 // `workspacePackages` is a plain Selection you build from the filesystem —
+// add `sourceEmpty: true` when the read found nothing, so the join reports it rather than passing;
 // keyBy omitted: it defaults to each side's own identify().name
 const workspacePackages = {
   elements: [] as { name: string }[],

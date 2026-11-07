@@ -93,16 +93,23 @@ The right-to-left half is coverage: run it and "every exported class is named in
 
 ### Coverage against several specs at once
 
-A `Selection` is a plain object (`{ elements, label, identify }`), so a code artifact can be considered "claimed" if it appears in **any** of several specs — just concatenate their selections before the correspondence:
+A `Selection` is a plain object (`{ elements, label, identify, sourceEmpty? }`), so a code artifact can be considered "claimed" if it appears in **any** of several specs — just concatenate their selections before the correspondence:
 
 ```typescript
 const claimedAnywhere = {
   label: 'spec artifact',
-  identify: (e) => e.identify(e),
-  elements: [...diagramClasses.elements, ...specTableRows.elements],
+  // Each element as its own side identified it.
+  elements: [
+    ...diagramClasses.elements.map(diagramClasses.identify),
+    ...specTableRows.elements.map(specTableRows.identify),
+  ],
+  identify: (info) => info,
+  // Carry the inputs' evidence: if either loaded nothing, the merge did too.
+  ...(diagramClasses.sourceEmpty || specTableRows.sourceEmpty ? { sourceEmpty: true } : {}),
 }
 ```
 
-No kernel change — the merge is ordinary code. Bind `claimedAnywhere` right-to-left against the code selection and a class claimed by neither the diagram nor a spec table fails the gate.
+No kernel change — the merge is ordinary code. Carry `sourceEmpty` across it: a diagram that loaded
+nothing, merged with a spec table that did, must still report its empty source rather than pass. Bind `claimedAnywhere` right-to-left against the code selection and a class claimed by neither the diagram nor a spec table fails the gate.
 
 See the [package README](https://github.com/NielsPeter/eess/tree/main/packages/crossvalidate) for both presets and the underlying `correspondence()` primitive.

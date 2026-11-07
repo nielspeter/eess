@@ -3,17 +3,16 @@ import {
   type ArchViolation,
   type PresetReportOptions,
   collectResult,
-  mergeCollectResults,
   type CollectResult,
 } from '@nielspeter/eess'
-import { featurePaths, violationsFor } from './shared.js'
+import { featurePaths, violationsFor, withEmptySource } from './shared.js'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
 import path from 'node:path'
 import { itOrTestTitleOf } from './it-title.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { finishPreset, collectResult, mergeCollectResults } from '@nielspeter/eess'
+export { finishPreset, collectResult } from '@nielspeter/eess'
 // The receipt type is this module's public return type, so a standalone
 // consumer must be able to name it without a second kernel install (plan 0089).
 export type { CollectResult } from '@nielspeter/eess'
@@ -186,17 +185,12 @@ export function scenarioTestsResolve(
 }
 
 /**
- * Spike 0640 (bugs 0584, 0594): a project that loaded no source file is an empty test side. It is
- * merged as a member of its own, so the kernel's merge reports `emitter/source-empty` whatever the
- * feature side counted, and before any `expectEmpty` declaration (ADR-014 §4). Stamping
- * `sourceEmpty` on the one receipt instead contradicts a feature-side `examined` (bug 0594).
+ * Spike 0640 (bugs 0584, 0594): a project that loaded no source file is an empty test side,
+ * reported once beside the receipt by `withEmptySource`. eess-ts's own `loadedNothing` is not on its
+ * root, so the test reads the project as that helper does.
  */
-function withTestSide(project: ArchProject, receipt: CollectResult): CollectResult {
-  if (project.getSourceFiles().length > 0) return receipt
-  // Reported once: over nothing examined, the receipt says so and the gate reports it.
-  if (receipt.examined === 0) return collectResult(receipt, { examined: 0, sourceEmpty: true })
-  return mergeCollectResults([collectResult([], { examined: 0, sourceEmpty: true }), receipt])
-}
+const withTestSide = (project: ArchProject, receipt: CollectResult): CollectResult =>
+  withEmptySource(project.getSourceFiles().length === 0, receipt)
 
 const COVER_RULE = 'every scenario should be proven by a citing test'
 
