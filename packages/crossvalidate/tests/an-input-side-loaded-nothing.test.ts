@@ -145,6 +145,17 @@ describe('the other doors over an input that loaded nothing (bug 0642)', () => {
     ])
   })
 
+  it('scenarioCitationsResolve over a loaded corpus and an empty feature set reports the feature side', () => {
+    const stories = corpusFromText({ 'docs/story.md': '# A story\n\nNo citation yet.\n' })
+    const r = scenarioCitationsResolve(stories, emptyFeatures(), {
+      report: 'return',
+      expectEmpty: true,
+    })
+    expect(r.map((v) => v.message)).toEqual([
+      expect.stringMatching(/source that loaded zero units/),
+    ])
+  })
+
   it('scenariosCovered and scenarioTestsResolve over an empty feature set, under expectEmpty, report it', () => {
     const covered = scenariosCovered(loaded(), emptyFeatures(), {
       report: 'return',
