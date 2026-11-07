@@ -1169,9 +1169,11 @@ docs(c).that().haveSection(RELATIONS).should().haveSection(RELATIONS, CITES_CODE
 docs(c).should().haveSection(RELATIONS, CITES_CODE).check()
 ```
 
-A record whose sections of the name all fail the predicate gets one finding per section, at its
-heading: `section "Relations" does not satisfy "hold a code pointer", and no section "Relations" in
-this document does`. A section the predicate cannot judge (for `sectionsWithLink()`, one whose only
+A record whose sections of the name all fail the predicate gets one finding, at the first of them,
+naming each: `no section "Relations" satisfies "hold a code pointer" (the sections at lines 3, 7)`.
+Fixing any one of them clears it; renaming the heading only takes the record out of the conditional
+rule. A pointer under another heading does not count. Present is not live: pair the rule with the
+`pointers(c)…resolve()` rule above. A section the predicate cannot judge (for `sectionsWithLink()`, one whose only
 links are HTML links eess-md cannot read) leaves the record undecided: the cause is reported at its
 own line, unsuppressably, and only where no other section of the name decides the record. The
 predicate form, `predicateHaveSection(name, { satisfying })`, goes inside `satisfy()`, `not()` and
@@ -1185,7 +1187,8 @@ finding names it (`section "Phase 1" has no subsection "Files changed"; the head
 line 15 is inside a list item, which does not start a section`), and so does the section-name scan.
 
 **The section-name scan.** Every section name a rule reads (`areNamed`, `areInSection`,
-`haveSubsection`, and `haveSection` with a `depth`) is scanned whatever the rule examined: a heading
+`haveSubsection`, `haveSection` with a `depth`, and the section predicate `haveSection`'s
+`satisfying` option takes) is scanned whatever the rule examined: a heading
 that misses a string name only by case or spacing, a heading of the name inside a container, and, for a
 name read at a depth, a document that has it only at other depths, each in the documents the rule can
 see: those its `inDocuments` scopes admit (for `docs()`, those its own predicates select). A heading in

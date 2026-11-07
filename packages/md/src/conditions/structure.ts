@@ -1,10 +1,22 @@
-import type { ArchViolation, Condition, ConditionContext, Undecided } from '@nielspeter/eess'
+import type {
+  ArchViolation,
+  Condition,
+  ConditionContext,
+  Predicate,
+  Undecided,
+} from '@nielspeter/eess'
 import { undecidedViolations } from '@nielspeter/eess/internal'
 import type { MdDocument, MdTable } from '../model/document.js'
 import { mdViolation } from '../model/violation.js'
 import { hasSection, tableInSection } from '../model/query.js'
 import { checkDepth } from '../model/name-match.js'
-import { headingNotes, sectionsOf, titleFault, type HaveSectionOptions } from '../model/sections.js'
+import {
+  headingNotes,
+  sectionsOf,
+  titleFault,
+  type HaveSectionOptions,
+  type MdSectionElement,
+} from '../model/sections.js'
 import { satisfyingReader, satisfyingText } from '../model/section-any.js'
 import {
   citesHeadings,
@@ -49,12 +61,14 @@ export function haveSection(
     }
     return declared.length === 0 ? condition : declaresSections(condition, declared)
   }
-  // Plan 0582: at least one section of the name satisfies `p`. Each document's cause is its own
-  // finding: no such section (line 1, as without the option); sections that none satisfies (one
-  // finding per section, at its heading); or, when none satisfies and one cannot be judged, only
-  // the causes, since the verdict depends on them (ADR-021).
+  // Plan 0582: at least one section of the name satisfies `p`. Each document's cause is one
+  // finding: no such section (line 1, as without the option); sections that none satisfies (at the
+  // first, naming every one); or, when none satisfies and one cannot be judged, only the causes,
+  // since the verdict depends on them (ADR-021).
   const read = satisfyingReader(name, options.depth, p)
   const satisfying = satisfyingText(p)
+  const REMEDY = (q: Predicate<MdSectionElement>): string =>
+    `make any one of these sections satisfy "${q.description}"; renaming or removing the heading only moves the document out of a rule that selects it by the section`
   const condition: Condition<MdDocument> = {
     description: `have a section "${String(name)}"${at}${satisfying}`,
     evaluate: (docs, ctx) => {
@@ -71,21 +85,25 @@ export function haveSection(
           causes.push(...membership)
           continue
         }
-        for (const s of matching) {
-          found.push(
-            citesHeadings(
-              mdViolation({
-                element: `${d.relPath}:${String(s.line)}`,
-                file: d.file,
-                line: s.line,
-                message: `section "${s.name}" does not satisfy "${p.description}", and no section "${String(name)}"${at} in this document does`,
-                sourceText: d.text,
-                context: ctx,
-              }),
-              [s.line],
-            ),
-          )
-        }
+        // One cause, one finding (ADR-009 rule 2): keyed by the document, as "missing section" is, at
+        // the first section of the name, naming every one, any of which is the fix.
+        const lines = matching.map((s) => s.line)
+        const [first] = lines
+        found.push(
+          citesHeadings(
+            mdViolation({
+              element: d.relPath,
+              file: d.file,
+              line: first ?? 1,
+              message:
+                `no section "${String(name)}"${at} satisfies "${p.description}" ` +
+                `(${matching.length === 1 ? 'the section at line' : 'the sections at lines'} ${lines.join(', ')})`,
+              sourceText: d.text,
+              context: { ...ctx, suggestion: ctx.suggestion ?? REMEDY(p) },
+            }),
+            lines,
+          ),
+        )
       }
       return [...found, ...undecidedViolations(causes, ctx, found)]
     },

@@ -80,7 +80,10 @@ export class DocsRuleBuilder extends CorpusRuleBuilder<MdDocument> {
   /**
    * Dual-use: predicate after `.that()`, condition after `.should()`. With `depth` (plan 0496), only
    * a heading at that level counts, a heading of the name at another level is named in the finding,
-   * and the name is scanned for a heading this rule cannot read (`SectionRuleBuilder`'s scan).
+   * and the name is scanned for a heading this rule cannot read (`SectionRuleBuilder`'s scan). With
+   * `satisfying` (plan 0582), at least one section of the name must satisfy a section predicate, such
+   * as `sectionsWithCodePointer()`: one finding per document, at the first such section, naming
+   * every one; a section the predicate cannot judge is reported at its own line (ADR-021).
    */
   haveSection(name: string | RegExp, options: HaveSectionOptions = {}): this {
     if (this._phase === 'condition') {

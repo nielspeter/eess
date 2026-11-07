@@ -49,11 +49,11 @@ describe('a Relations section cites code', () => {
     expect(v.map((x) => x.message)).toEqual([expect.stringMatching(/examined zero/)])
   })
 
-  it('violating-links-only: a record whose only Relations section links but cites no code is reported at the section', () => {
+  it('violating-links-only: a record whose Relations section links, and which cites code only under another heading, is reported', () => {
     const cwd = fixture(NAME, 'violating-links-only')
     const v = conditional(cwd).violations()
     expect(v.map((x) => `${x.element}: ${x.message.split('\n')[0] ?? ''}`)).toEqual([
-      'records/search.md:3: section "Relations" does not satisfy "hold a code pointer", and no section "Relations" in this document does',
+      'records/search.md: no section "Relations" satisfies "hold a code pointer" (the section at line 3)',
     ])
     expect(strict(cwd).violations()).toHaveLength(1)
   })
