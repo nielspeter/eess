@@ -67,6 +67,17 @@ the ts copy, which honours the flag; `eess-md` ships no CLI at all, and
 **latent** — a real defect with no current trigger, which is why this record
 stays open at Medium rather than closing.
 
+_2026-11-07: no longer latent._ [Bug 0577](./fixed/0577-a-preset-under-report-warn-exits-0-on-a-configuration-finding.md)'s fix makes a kernel preset under `report: 'warn'`
+throw every configuration finding after printing it (`finishPreset`, `packages/core/src/report.ts`).
+Under `eess-ts check`, a rule file calling `adrCitationsResolve(…, { dir: 'docs/none/**',
+expectNonEmpty: true, report: 'warn' })` printed the `.expectNonEmpty()` finding twice: once from
+`finishPreset` ("Architecture Violation [1 of 1]"), once from the CLI off the throw ("[1 of 2]").
+Exit 1, so not a false green (measured 0.6 s by that fix's enforcement review). Before the fix that
+path printed once and exited 0. eess-ts's own `deliver()` handles an aggregating caller only for
+`'throw'` (`packages/ts/src/presets/shared.ts`), so its presets under `warn` are probably affected
+too; not measured. Beside it, the warn doors still differ in format: `finishPreset` writes GitHub
+annotations as `'error'` and JSON to stdout, `executeWarn` `'warning'` and stderr.
+
 What has **not** changed is the second half of this bug, and it is the half the
 severity was argued from: [ADR-008](../../adr/008-caller-owns-reporting.md)'s Enforcement row still claims `gated` over a
 mechanism that does not cover this path. The row is now additionally misleading,

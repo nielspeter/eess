@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { portableSubjectOf, type ArchViolation } from './violation.js'
+import { ArchRuleError } from './errors.js'
 import { discoverIdentityRoot, normalizeIdentityText } from './identity-root.js'
 import { writeStderr } from './stderr.js'
 
@@ -189,6 +190,15 @@ export function withBaseline(baselinePath: string): Baseline {
 /**
  * Generate a baseline file from a list of violations.
  *
+ * A configuration finding (`bypassFilters`) is never baselined: it reports that a rule's instrument
+ * is broken. The baseline is written for every other finding, then each configuration finding is
+ * printed to stderr and the call throws an `ArchRuleError` carrying them (bug 0595), as
+ * `eess-ts baseline` prints them and exits 1. Over findings that are all configuration findings this
+ * still overwrites `outputPath`, with `count: 0`: what it accepted before then reads as new, which
+ * fails the next `check`, not passes it.
+ *
+ * @throws ArchRuleError when `violations` holds a configuration finding, after writing the file.
+ *
  * Call this to create/update the baseline:
  * ```typescript
  * const violations = collectAllViolations(rules)
@@ -204,6 +214,7 @@ export function generateBaseline(violations: ArchViolation[], outputPath: string
   // become "known, pre-existing debt" — it means the rule's own instrument
   // is broken right now. Recording it would let a future run of `check
   // --baseline` silently treat a dead selector as already-accepted.
+  const refused = violations.filter((v) => v.bypassFilters === true)
   const entries: BaselineEntry[] = violations
     .filter((v) => v.bypassFilters !== true)
     .map((v) => ({
@@ -227,6 +238,25 @@ export function generateBaseline(violations: ArchViolation[], outputPath: string
 
   fs.mkdirSync(path.dirname(resolved), { recursive: true })
   fs.writeFileSync(resolved, JSON.stringify(baseline, null, 2) + '\n')
+
+  // Bug 0595: what was left out is said, and fails the call, as `eess-ts baseline` writes what can
+  // be accepted, prints what it refused and exits 1. A run whose instrument is broken does not end
+  // as if its rules had passed.
+  if (refused.length > 0) {
+    for (const v of refused) {
+      writeStderr(
+        `not baselined, ${v.file === '' ? '(no file)' : `${v.file}:${String(v.line)}`} ` +
+          `[${v.ruleId ?? v.rule}]: ${v.message}` +
+          (v.suggestion === undefined ? '' : `\n  Fix: ${v.suggestion}`) +
+          '\n',
+      )
+    }
+    throw new ArchRuleError(
+      refused,
+      `${String(refused.length)} configuration finding(s) not baselined: each reports that a rule's ` +
+        'instrument is broken, which no baseline can accept. The baseline was written for the rest',
+    )
+  }
 }
 
 /**

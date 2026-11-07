@@ -183,7 +183,7 @@ are calling it:
 | --------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | **a rule file** (`arch.rules.ts`) | `{ report: 'builders' }` | returns the builders **without running them**, so the CLI runs them, reports once, and applies `--baseline` / `--changed` |
 | a test, or your own runner        | `{ report: 'return' }`   | runs the rules and hands you `ArchViolation[]` to assert on                                                               |
-| anywhere, advisory                | `{ report: 'warn' }`     | reports without failing                                                                                                   |
+| anywhere, advisory                | `{ report: 'warn' }`     | reports without failing, except a configuration finding, which fails it                                                   |
 |                                   | `{ format: 'json' }`     | machine-readable output                                                                                                   |
 
 **`'return'` in a rule file does not work.** A rule file spreads its presets into

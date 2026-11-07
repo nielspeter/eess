@@ -1,4 +1,4 @@
-import type { ArchViolation } from './violation.js'
+import { severityFor, type ArchViolation } from './violation.js'
 import { type CollectResult, collectResult, hasEvidence } from './collect-result.js'
 import {
   isEmitterFinding,
@@ -281,7 +281,8 @@ export function readReportMode<E extends string = never>(
  * Finish a preset: deliver its aggregated violations per the requested mode
  * (plan 0070). `throw` (default) emits then throws; `return` hands the
  * violations back untouched (the caller owns emission and control flow);
- * `warn` emits without throwing. Always returns the violations, so a caller can
+ * `warn` emits, and throws only the configuration findings (`bypassFilters`),
+ * as a builder's `.warn()` does. Always returns the violations, so a caller can
  * inspect them regardless of mode.
  */
 export function finishPreset(
@@ -304,7 +305,6 @@ export function finishPreset(
   // The gate runs before the mode is read, so every door carries the finding.
   const gated = withEvidenceGate(declared)
   if (mode === 'return') return gated
-  const emitterFinding = gated.some((v) => isEmitterFinding(v))
   if (gated.length > 0) {
     violationsEmitted += gated.length
     const format: OutputFormat = options.format ?? 'terminal'
@@ -316,11 +316,15 @@ export function finishPreset(
       process.stderr.write(formatViolations(gated, options.reason) + '\n')
     }
   }
+  if (mode === 'throw' && gated.length > 0) throw new ArchRuleError(gated, options.reason)
   // §5 again: `warn` prints without failing for ordinary violations, but an
   // unsuppressable configuration finding printed above a zero exit is exactly
-  // the silent green this ADR closes.
-  if ((mode === 'throw' && gated.length > 0) || emitterFinding) {
-    throw new ArchRuleError(gated, options.reason)
-  }
+  // the silent green this ADR closes. Every finding `severityFor` escalates
+  // fails here, as it fails a builder's `.warn()` (`executeWarn`): one rule for
+  // both warn doors (bug 0577). The emitter's own findings are among them, since
+  // each carries `bypassFilters`. Only the escalated ones ride the throw; the
+  // ordinary ones were printed above, which is where they are reported.
+  const escalated = gated.filter((v) => severityFor(v, 'warn') === 'error')
+  if (escalated.length > 0) throw new ArchRuleError(escalated, options.reason)
   return gated
 }

@@ -356,7 +356,7 @@ export interface PresetBaseOptions<TRuleId extends string = string> {
    *
    * - omitted / `'throw'` → run, emit once, then throw if anything failed;
    * - `'return'` → run every rule and return the violations, emitting nothing;
-   * - `'warn'` → run and emit, without throwing;
+   * - `'warn'` → run and emit, throwing only a configuration finding (`bypassFilters`), as `.warn()` does;
    * - `'builders'` → build the rules and run **nothing**, returning them for the
    *   caller to run (pair with `checkAll()`).
    *
