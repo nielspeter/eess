@@ -20,7 +20,7 @@ default. That is right in a test and wrong in a rule file, so presets take a
 | --------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | **a rule file** (`arch.rules.ts`) | `{ report: 'builders' }` | returns the builders **unrun**, so the CLI runs them, reports once, and applies `--baseline` and `--changed` |
 | a test, or your own runner        | `{ report: 'return' }`   | runs them and returns `ArchViolation[]` for you to assert on                                                 |
-| advisory, anywhere                | `{ report: 'warn' }`     | reports without failing the run                                                                              |
+| advisory, anywhere                | `{ report: 'warn' }`     | reports without failing the run, except a configuration finding, which fails it as `.warn()` does            |
 | _(omitted)_                       | —                        | runs them and **throws** on the first error-severity violation                                               |
 
 > **`'builders'` is an `eess-ts` value, not a family-wide one.** `'return'`,

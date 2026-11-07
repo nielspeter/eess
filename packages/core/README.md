@@ -46,7 +46,7 @@ section covers the supporting types you will meet in signatures.
 
 A preset never emits on its own — the caller owns emission (ADR-008).
 
-- **`ReportMode`** — `'throw' | 'return' | 'warn'`. What a finisher does with findings: raise an `ArchRuleError`, hand them back, or print them as advisory and continue.
+- **`ReportMode`** — `'throw' | 'return' | 'warn'`. What a finisher does with findings: raise an `ArchRuleError`, hand them back, or print them as advisory and continue (a configuration finding, `bypassFilters`, still raises under `warn`).
 - **`ReportOptions`** — the emission controls: `format` (terminal/json/github) and `reason`, the rationale threaded into the output.
 - **`RuleSeverity`** — `'error' | 'warn' | 'off'`, the value of a per-rule override.
 - **`PresetBaseOptions`** — what every preset accepts: an `overrides` map of rule id → `RuleSeverity`, plus the reporting controls. Extend it when you write a preset so `{ report: 'return' }` works without your own plumbing.
