@@ -69,7 +69,7 @@ output prints each rule's id, and `eess-crossvalidate` 0.12.0 needs this release
 | [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.11.x |
 | [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.15.x |
 | [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.9.x  |
-| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.17.x |
+| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.18.x |
 | [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.8.x  |
 | [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.13.x |
 
