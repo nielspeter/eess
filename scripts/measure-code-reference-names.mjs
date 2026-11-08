@@ -60,7 +60,13 @@ const resolvePath = (p) => {
 
 /** `name()` → `name`, `.name` → `name`, `a.b.c` → `c`; undefined when it is not an identifier. */
 function cleanName(raw) {
-  const s = raw.trim().replace(/\(\)$/, '').replace(/^\./, '')
+  // Spike 0646: a backticked path or file name is not a name (it was paired as `ts`, `md`), and a
+  // name written with its arguments (`readFields(doc, options)`) is the name.
+  if (/[/\\]|\.(ts|tsx|mts|cts|js|mjs|cjs|jsx|md|json|ya?ml|vue)\b/.test(raw)) return undefined
+  const s = raw
+    .trim()
+    .replace(/\(.*\)$/, '')
+    .replace(/^\./, '')
   const last = s.split('.').pop() ?? ''
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(last) && last.length >= 2 ? last : undefined
 }
@@ -136,7 +142,11 @@ const DECL = (n) =>
   Node.isGetAccessorDeclaration(n) ||
   Node.isSetAccessorDeclaration(n) ||
   Node.isModuleDeclaration(n) ||
-  Node.isEnumMember(n)
+  Node.isEnumMember(n) ||
+  Node.isParameterDeclaration(n) ||
+  Node.isBindingElement(n) ||
+  Node.isTypeParameterDeclaration(n) ||
+  ((Node.isFunctionExpression(n) || Node.isClassExpression(n)) && n.getNameNode() !== undefined)
 
 /** Per file: name → { decls: [{start,end,nameLine}], occ: Map<line, Set<kind>> }. */
 function astOf(rel) {
@@ -149,6 +159,9 @@ function astOf(rel) {
     },
   )
   const index = new Map()
+  // Every declaration in the file, any name, with its span: for the innermost enclosing declaration.
+  const allDecls = []
+  index.set('\u0000all', allDecls)
   const entry = (n) => {
     if (!index.has(n)) index.set(n, { decls: [], occ: new Map() })
     return index.get(n)
@@ -165,11 +178,39 @@ function astOf(rel) {
       const owner = Node.isVariableDeclaration(parent)
         ? (parent.getVariableStatement() ?? parent)
         : parent
-      entry(name).decls.push({
+      const container =
+        Node.isClassDeclaration(parent) ||
+        Node.isClassExpression(parent) ||
+        Node.isInterfaceDeclaration(parent) ||
+        Node.isModuleDeclaration(parent) ||
+        Node.isEnumDeclaration(parent)
+      // Scope: module (a top-level statement), member (of a class, interface or type literal), or
+      // local (anything inside a function body, a parameter, an object-literal key).
+      let scope = 'local'
+      if (owner.getParent() !== undefined && Node.isSourceFile(owner.getParent())) scope = 'module'
+      else if (Node.isVariableStatement(owner) && Node.isSourceFile(owner.getParent()))
+        scope = 'module'
+      else if (
+        Node.isMethodDeclaration(parent) ||
+        Node.isPropertyDeclaration(parent) ||
+        Node.isMethodSignature(parent) ||
+        Node.isPropertySignature(parent) ||
+        Node.isGetAccessorDeclaration(parent) ||
+        Node.isSetAccessorDeclaration(parent) ||
+        Node.isEnumMember(parent)
+      )
+        scope = 'member'
+      const d = {
+        name,
         start: owner.getStartLineNumber(),
+        docStart: owner.getStartLineNumber(true),
         end: owner.getEndLineNumber(),
         nameLine: line,
-      })
+        container,
+        scope,
+      }
+      entry(name).decls.push(d)
+      allDecls.push(d)
     } else if (
       parent &&
       (Node.isImportSpecifier(parent) ||
@@ -224,6 +265,22 @@ for (const { p, form, name, ext } of pairs) {
       row.decls = e ? e.decls.length : 0
       row.declLines = e ? e.decls.map((d) => d.nameLine) : []
       row.inDeclSpan = e ? e.decls.some((d) => d.start <= p.startLine && p.endLine <= d.end) : false
+      // Spike 0646: the span with its JSDoc comment; the named declaration that holds the cited lines,
+      // its size and kind; and the innermost declaration of any name enclosing the first cited line.
+      const holding = e
+        ? e.decls.filter((d) => d.docStart <= p.startLine && p.endLine <= d.end)
+        : []
+      row.inDocSpan = holding.length > 0
+      row.inDocOnly = holding.length > 0 && !row.inDeclSpan
+      const tightest = holding.sort((x, y) => x.end - x.start - (y.end - y.start))[0]
+      row.spanSize = tightest ? tightest.end - tightest.start + 1 : 0
+      row.spanContainer = tightest ? tightest.container : false
+      const enclosing = (astOf(rel).get('\u0000all') ?? [])
+        .filter((d) => d.docStart <= p.startLine && p.startLine <= d.end)
+        .sort((x, y) => x.end - x.docStart - (y.end - y.docStart))[0]
+      row.innermost = enclosing ? enclosing.name : ''
+      row.innermostIsNamed = enclosing ? enclosing.name === name : false
+      row.declScopes = e ? [...new Set(e.decls.map((d) => d.scope))].sort() : []
       row.onDeclLine = e
         ? e.decls.some((d) => d.nameLine >= p.startLine && d.nameLine <= p.endLine)
         : false
@@ -233,8 +290,10 @@ for (const { p, form, name, ext } of pairs) {
           for (const k of e.occ.get(l) ?? []) kinds.add(k)
       if (lineHolds && kinds.size === 0) kinds.add('text-only')
       row.kinds = [...kinds].sort()
-    } catch {
+    } catch (err) {
+      // Spike 0646: a parse failure is counted, not passed off as "no parser".
       row.ast = false
+      row.parseError = String(err).slice(0, 120)
     }
   }
   rows.push(row)
@@ -276,6 +335,28 @@ const summary = {
     missesNotDeclaredInFile: count((r) => r.ast && !r.lineHolds && r.decls === 0),
     namesDeclaredMoreThanOnceInFile: count((r) => r.ast && r.decls > 1),
   },
+  // Spike 0646: the span clause's greens, and what each container rule would leave green.
+  spanGreens: {
+    total: count((r) => r.ast && !r.lineHolds && r.inDocSpan),
+    live: count((r) => r.ast && !r.lineHolds && r.inDocSpan && r.live),
+    bodyOnly: count((r) => r.ast && !r.lineHolds && r.inDeclSpan),
+    docCommentOnly: count((r) => r.ast && !r.lineHolds && r.inDocOnly),
+    inContainer: count((r) => r.ast && !r.lineHolds && r.inDocSpan && r.spanContainer),
+    over100Lines: count((r) => r.ast && !r.lineHolds && r.inDocSpan && r.spanSize > 100),
+    innermostIsNamed: count((r) => r.ast && !r.lineHolds && r.inDocSpan && r.innermostIsNamed),
+  },
+  pairedTwice: (() => {
+    const seen = new Map()
+    for (const r of rows)
+      seen.set(r.doc + '\u0000' + r.pointer, (seen.get(r.doc + '\u0000' + r.pointer) ?? 0) + 1)
+    return [...seen.values()].filter((n) => n > 1).length
+  })(),
+  parseErrors: count((r) => r.parseError !== undefined),
+  singleDeclarationScopes: {
+    module: count((r) => r.ast && r.decls === 1 && r.declScopes.includes('module')),
+    member: count((r) => r.ast && r.decls === 1 && r.declScopes.includes('member')),
+    local: count((r) => r.ast && r.decls === 1 && r.declScopes.includes('local')),
+  },
   unpairedPointersByExtension: unpairedByExt,
   ms: Date.now() - started,
 }
@@ -301,15 +382,19 @@ if (SAMPLE > 0) {
   const pool =
     which === 'misses'
       ? rows.filter((r) => !r.lineHolds && r.ast && !r.inDeclSpan && r.decls === 1)
-      : rows.filter((r) => r.lineHolds)
+      : which === 'span'
+        ? rows.filter((r) => !r.lineHolds && r.ast && r.inDocSpan)
+        : rows.filter((r) => r.lineHolds)
   const drawn = []
   const left = [...pool]
   while (drawn.length < Math.min(SAMPLE, pool.length))
     drawn.push(left.splice(Math.floor(rand() * left.length), 1)[0])
-  process.stderr.write('id\tdoc\tname\tpointer\tfile\tkinds\tonDeclLine\tdeclLines\tlive\n')
+  process.stderr.write(
+    'id\tdoc\tname\tpointer\tfile\tkinds\tonDeclLine\tdeclLines\tlive\tspanSize\tcontainer\tinnermost\n',
+  )
   drawn.forEach((r, i) =>
     process.stderr.write(
-      `${which === 'misses' ? 'm' : 'h'}${String(i + 1).padStart(2, '0')}\t${r.doc}\t${r.name}\t${r.pointer}\t${r.file}\t${(r.kinds ?? ['n/a']).join(',')}\t${String(r.onDeclLine ?? 'n/a')}\t${(r.declLines ?? []).join(',')}\t${String(r.live)}\n`,
+      `${which === 'misses' ? 'm' : which === 'span' ? 's' : 'h'}${String(i + 1).padStart(2, '0')}\t${r.doc}\t${r.name}\t${r.pointer}\t${r.file}\t${(r.kinds ?? ['n/a']).join(',')}\t${String(r.onDeclLine ?? 'n/a')}\t${(r.declLines ?? []).join(',')}\t${String(r.live)}\t${String(r.spanSize ?? '')}\t${String(r.spanContainer ?? '')}\t${r.innermost ?? ''}\n`,
     ),
   )
 }
