@@ -1,6 +1,6 @@
 # Proposal 021 — a code reference that names its code is checked against the code
 
-**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asks for a re-review of ask A alone. Asks B and C stay held, as the review disposed them. The first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
+**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asked for a re-review of ask A alone. **Re-reviewed 2026-11-08, Split and sequence** (see the second Review): ask A is split into A1 (eess-md) and A2 (the TypeScript code facts), both held behind one spike. Asks B and C stay held. The first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
 **Priority:** High — unchanged. The records cite code as evidence, a check that the line exists is all the gate gives, and a consuming project has now hit the same defect.
 **Origin:** self-found · the maintainer, 2026-10-27: "if we in the md link to code in our codebase,
 the link needs to be real and work; this way we can catch wrong or old code refs". 2026-11-08: a
@@ -356,6 +356,167 @@ eess-md release does not wait on the records.
 **Recommended next step:** rewrite this proposal against this review. Settle [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s fork and
 criterion 1 from the measurements, run the judged sample of the holders, and commit the instrument.
 Then re-review ask A alone. No plan until A is unheld.
+
+## Review — 2026-11-08, ask A, after the rewrite
+
+**Ruling: Split and sequence**
+
+Re-reviewed by the architect, product and enforcement lenses, ask A only, each on its own survey;
+asks B and C were not re-reviewed and stay `Held`. All three reran the instrument and got every
+count in the rewrite exactly (9.4–9.8 s at `6eaf0122`); the enforcement lens also redrew both seeded
+samples and matched Appendix B row for row. They agree the case holds, the kernel stays untouched,
+the code facts arrive as a `Selection` (the `beLinked` precedent), and checking against the AST
+rather than text is right. They also agree ask A is not ready to plan: the reading it sketches
+examines nothing, its new green side was counted and never judged, and it holds two shippable
+things. So ask A is split into A1 and A2, both `Held` behind one spike.
+
+### Existing code survey, corrected
+
+- `mentions()` (`packages/md/src/builders/mentions.ts:233`) and `beLinked({ fix })`'s `Selection`
+  (`packages/md/src/conditions/be-linked.ts`) are as the survey said. crossvalidate's reads through
+  eess-ts are at `md-ts.ts:116` and `gherkin-ts.ts:92`.
+- **`mentions()` cannot read the reference the instrument measured, as built.** It joins inline code
+  without its backticks (`packages/md/src/model/phrasing.ts:171-172`), so the rewrite's `NAMED`
+  pattern, anchored on backticks, examines 0 references: measured by two lenses independently, on a
+  `corpusFromText` corpus and on this repository's (where it failed red, by the zero-examined
+  finding, so the evidence floor did its job). Without backticks a pattern pairs prose words (2,108
+  matches here, names like `type`, `that`, `in`). `inCode` says only that some part of the match is
+  code, so a caller cannot require the name to be. A match that crosses an inline-code edge has no
+  source span (`packages/md/src/model/mentions.ts:193-207`), so ask C could not write a fix from it.
+- **Nothing in eess-ts gives the code facts.** It selects classes, functions (arrow functions
+  assigned to `const`s among them) and types, not plain variables, members, identifier occurrences
+  or doc-comment spans. Genuinely new.
+- **The join that fits exists:** `matchSelections` keyed on file and name, with the line and span
+  test inside the condition. `correspondence()` does not fit, as the rewrite said.
+
+### Placement
+
+- **A1, in eess-md, additive:** the reading, the condition, and a contract for the code facts,
+  usable from any language with hand-built facts. Nothing in the kernel.
+- **A2, the TypeScript code facts.** Open question 1 stays the author's, with a constraint both
+  lenses measured: [ADR-007](../../adr/007-isolate-ast-engine-boundary.md) confines ts-morph to
+  eess-ts, and eess-ts's public API exposes none of the facts, so a crossvalidate helper can only be
+  built over something eess-ts newly exposes. The architect would put the producer in eess-ts (a
+  builder with `.select()`, an eess-ts minor); the product lens would put it in
+  `@nielspeter/eess-crossvalidate/md-ts` beside `adrCitationsResolve`, promoting it when a second
+  consumer appears. Either way the kernel does not move.
+
+### Critical (settled in a spike before any plan)
+
+1. **The reading.** Choose and measure it against the instrument's 649 pairs: an opt-in `mentions()`
+   reading that keeps inline-code delimiters (`MdMentionLink.text` is the precedent) and gives each
+   named group a source offset, or a name read around a `pointers()` element. The default reading
+   must not change, or every existing `mentions()` caller breaks. Measured today, the sketched
+   pattern and the instrument agree on 294 of 649 rows: the counts the rewrite rests on, and its 336
+   to migrate, describe a population the sketch would not examine.
+2. **The span clause is an unjudged green side, and it fails open in containers.** It turns 94 of 497
+   AST misses green (54 live): 41 by the body and 53 by the doc comment. The rewrite said 5 for the
+   latter, which is the sample's count, not the corpus's. None of the 94 was in a judged pool (the
+   misses pool excluded them by construction). The enforcement lens hand-checked 16 of the 41 and
+   found 3 or 4 drifted inside the container they name, which the rule passes. One is a live ADR:
+   [ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md) line 15 cites `fs.readFileSync` in `applyFilters` at `packages/core/src/execute-rule.ts:150`, now line 184. A class or a
+   300-line function is green on every line of its body: `RuleBuilder` spans 49–524. Needed: a
+   seeded, judged sample of the span-greens; a rule for containers (the innermost enclosing
+   declaration, a member name for a class or interface, or a bound); and the guarantee stated as it
+   is, "the cited lines lie inside `X`".
+3. **The code facts' contract.** A kernel `Selection` cannot say which files it covers, so a covered
+   file where the name is absent looks like an uncovered one, and a source that knows declarations
+   but not uses (ctags, for a project without TypeScript) reds every use line (10 of the 26 correct
+   holders). Needed: an eess-md contract type, defined consumer-side as `MentionFix` is, carrying the
+   symbols and what each file is covered for; and a facts input that loaded nothing as one finding
+   that outranks `.expectEmpty()`, the [spike 0640](../spikes/0640-an-input-side-loaded-nothing.md) shape.
+4. **Non-vacuity under `.warn()`.** A condition that examines every reference and returns nothing
+   stays green in `check:corpus` (a warning never reds) and in `check:nonvacuity` (its one named row
+   is zero-examined). `scripts/check-nonvacuity.mjs:1583-1589` already records this trap. Needed:
+   rows that plant a drifted, a text-only and a renamed reference and assert each finding by rule id,
+   message and severity, the drifted one its "declared at line N", and a row whose facts load
+   nothing.
+
+### Important
+
+- **"Wrong 2 in 60" is a hand tally.** The rule run over Appendix B disagrees with the judge on 6
+  rows (h30 and m24 false red; h01 not judged, which [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) makes red; m10, m22 and m02 green while
+  judged drifted, m02 being the judge's error, inside `fencesInHtml`'s own doc comment). So 3 to 5
+  against 11 for text: still a clear improvement, computed and stated over two of five strata only.
+  The not-declared stratum (189) is mostly pairing artefacts of the `after` form (5 of 8
+  spot-checked).
+- **"Not judged"** is one finding per cause, unsuppressable and failing `.warn()` ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)
+  clause 5), not one per reference; it reds this repository even while drift warns. With the package
+  tsconfigs it reaches 33 live pairs (`scripts/`, root files, `.github/`, `package.json`), not 6. A
+  pattern that leaves them out is an exclusion, declared and counted ("K judged, U not judged, E left
+  out").
+- **One resolver and the precedence.** Paths resolve as `pointers().resolve()` resolves them (the
+  kernel's `pathSuffixIndex` over the corpus's file index), then look up the facts; resolving against
+  the facts' file list can judge an ambiguous suffix against the wrong file (`execute-rule.ts` is in
+  two packages). Broken, ambiguous, past the end, then drifted, one finding per pointer.
+- **"Declared at line N" can name a local or an object key** (16 of the 230 single declarations), so
+  following it can land on the wrong declaration and go green: [bug 0363](../bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md)'s class, in AST form. Name a
+  line only for a module-scope declaration or a class or interface member, carry the enclosing name
+  from the first release (58 pairs name something declared more than once), and say "imported at
+  line N, declared elsewhere" for an imported name.
+- **A doc comment needs a definition.** Only `/** */` attaches; `{@link X}` is an identifier under
+  one AST walk and not another, which would turn the text-only red green. Pin that JSDoc identifiers
+  are not code, and which clause wins when a mention sits in `X`'s own doc comment.
+- **An optional capture group switches the verdict.** Whether `line` captured decides between "the
+  lines hold it" and "the file declares it once", so a pattern whose line group fails to capture gets
+  the weaker check silently. Make the form explicit (an option, or two conditions). The product lens
+  would keep one pattern with an optional line and drop `` `path#name` `` (a fragment, and
+  `beLinked`'s writer refuses `#` in a path); the architect would defer name-alone. The author
+  decides.
+- **The `.warn()` stance has no exit.** Ask C is `Held` with no home, so drift would be caught only by
+  a human here. Only in-file drift is coupled to `prettier`; a rename, a move and a text-only mention
+  are not. Gate those at error, and the name-alone form, which cannot drift; give the warning a dated
+  home.
+- **Cost in `check:fast`.** Parsing every file is 1.55 s and 360 MB here (1,290 files, no type
+  checker); `check:corpus` loads no TypeScript project today and runs in `check:fast` and in many
+  `check:nonvacuity` rows. The plan states the measured delta.
+- **Ranges** (92 pairs): decide "a range wider than its declaration" and add a fixture.
+- **The consuming project's case:** say which break class it is in, and whether A1 reds it (green, if
+  the named function is still on its line). Its names (`judgeTargets`, line 492) are the consumer's,
+  so the sketch should use this repository's own cases, as PROPOSALS.md asks.
+
+### Minor
+
+- Naming: reject `holdTheirCode` (a mention holds no code). Candidates: `.should().resolveAgainst(code)`
+  (reusing `fields().resolveAgainst()`'s word), or `nameWhatTheyCite`; `codeSymbols(project)` for the
+  facts, keeping the kinds `declaration | import | use`.
+- A pattern without a `name` or `path` group fails when the rule is configured. Findings on one line
+  collide on `relPath:line` (52 lines carry more than one pair): put the name and pointer in
+  `element`. The stock pattern ships under `examples/md/` with hand-built facts
+  (`arch.rules.ts:192-199` lets it import only eess-md); the TypeScript wiring in
+  `examples/cross-dialect.md-ts.test.ts`.
+- One sentence on [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)'s
+  scope: accepting an import or a use differs from its "an exact name resolves to a declaration".
+- Arithmetic: 660 paired, 649 resolved, so 457 + 192 counts the resolved; 93/8/23/22 sums to 146 and
+  41/230/37/189 to 497, the AST pairs. "Any difference is explained" cannot fail; make it a count
+  reconciliation with a listed delta. The file's slug still says "points at the code it names".
+- Instrument defects for the spike to fix: a backticked path paired as the name `ts` or `md` (14
+  rows); a name written with arguments dropped; 39 pointers paired twice; a silent `catch` that
+  would reclassify a parse failure; `DECL` omits parameters, binding elements, named function and
+  class expressions and type parameters.
+
+### Corrections the rewrite committed in itself
+
+- It chose `mentions()` without measuring it, though the review had asked it to choose between that
+  and `pointers()`: the sketch examines nothing.
+- It gave the doc-comment greens as 5, the sample's count, not the corpus's 53, and called the 41
+  body-span greens "measured" when they were counted and never judged.
+- Its "wrong 2 in 60" was a tally, not the rule run over the rows.
+- Its sketch used the consuming project's names.
+- It counted the forms over the resolved pairs and gave the total as 660.
+
+### Disposition
+
+| Ask                                                              | Disposition | What would unhold it                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **A1** — the reading and the condition, in eess-md, any language | `Held`      | One time-boxed spike settles critical items 1–4: the reading chosen and measured against the 649 pairs; a judged sample of the span-greens and a container rule; the facts contract with coverage and an empty-input finding; the `.warn()` non-vacuity rows named. Then a re-review of A1 |
+| **A2** — the TypeScript code facts                               | `Held`      | Open question 1 decided under [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s constraint, with the element shape (enclosing name, module scope, JSDoc span) and the measured `check:corpus` cost                                                                                 |
+| **B** — a link into code carries a line                          | `Held`      | Unchanged from the first review                                                                                                                                                                                                                                                            |
+| **C** — a fix for a drifted reference                            | `Held`      | Unchanged; it now also needs A1's group offsets                                                                                                                                                                                                                                            |
+
+**Recommended next step:** a spike, about an hour, on the four critical items, with the instrument's
+defects fixed. Then re-review A1, and A2 once open question 1 is decided. No plan until A1 is
+unheld; A1 and A2 then release together as one adopter batch.
 
 ## Appendix A — first submission (superseded 2026-11-08)
 
