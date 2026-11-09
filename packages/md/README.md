@@ -541,9 +541,10 @@ when exactly one record holds its key and no other project is named around it. S
 [the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the join, the fix,
 the keys that let a record name itself, and what a mention rule cannot see.
 
-`mentions(c, { pattern, keepBackticks: true })` reads inline code with its backticks kept, so a
-pattern can require a name to be written as code, and gives each mention `codeGroups`: the groups
-whose whole capture lies inside one inline-code span. Off by default.
+`mentions(c, { pattern, keepBackticks: true })` reads inline code with its backticks kept, and gives
+each mention `codeGroups`: the groups whose whole capture lies inside one inline-code span. A pattern
+can still match a prose word an escaped backtick dresses as code, so check `codeGroups` before you
+trust a group as code. Off by default.
 
 ## Every page claimed once: `notExist()`
 

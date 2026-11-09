@@ -156,6 +156,16 @@ describe('plan 0647: a mention reading that keeps backticks', () => {
     expect(said.some((m) => m.includes('`beta`') && m.includes('HTML'))).toBe(true)
   })
 
+  it('an <a> that holds another link is searched with backticks kept, and reported unread', () => {
+    const c = corpusFromText({
+      'a.md': '# A\n\nSee <a href="x">`gamma` (`c.ts:3`) and [y](./y.md)</a> here.\n',
+    })
+    const said = mentions(c, { pattern: named(), keepBackticks: true })
+      .violations()
+      .map((v) => v.message)
+    expect(said.some((m) => m.includes('`gamma`') && m.includes('HTML'))).toBe(true)
+  })
+
   it('collectMentions takes the same opt-in', () => {
     const root = fromMarkdown(REFERENCE)
     expect(collectMentions(root, named()).mentions).toEqual([])

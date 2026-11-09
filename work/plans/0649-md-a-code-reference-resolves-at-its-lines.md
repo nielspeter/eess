@@ -5,7 +5,7 @@
 - **State:** Draft — authored 2026-11-09 from
   [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
   ruled in its fourth Review. It is the third of three plans that own A1, and is built after plans
-  [0647](./0647-md-a-mention-reading-that-keeps-backticks.md) and
+  [0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md) and
   [0648](./0648-md-a-code-reference-still-appears-in-its-file.md).
 - **Implements:** [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)
   (ask A1: the line condition and the contract)
@@ -52,7 +52,7 @@ The type's doc states the producer's obligations:
 
 - **The registry.** `resolveAtTheirLines(code)` registers `code` on itself, in a registry shaped
   like `declaresSections` (`packages/md/src/model/section-declarations.ts:24`).
-- **The read.** `MentionRuleBuilder.collectViolations` (`packages/md/src/builders/mentions.ts:131`)
+- **The read.** `MentionRuleBuilder.collectViolations` (`packages/md/src/builders/mentions.ts:141`)
   reads the registered facts.
 - **An empty `coverage`** is reported once, in the two-branch shape at
   `packages/core/src/correspondence.ts:165-170`. Over nothing examined, the receipt carries

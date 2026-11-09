@@ -1062,12 +1062,16 @@ const NAMED =
 const named = mentions(corpus({ roots: ['docs/**'] }), { pattern: NAMED, keepBackticks: true })
 ```
 
-A group missing from `codeGroups` is not code where it was matched. A backtick escaped in the prose
-(`` \` ``) can make a pattern written with backticks match a word that is not in a code span; its
-group is then left out. A group that spans two code spans, or code and prose, is left out too, and
-so is a group that did not capture. A match that holds a backtick crosses a code edge, so it has no
-`span` for a fix. Without the opt-in `codeGroups` is absent, and every existing rule reads as before.
-`collectMentions(root, pattern, { keepBackticks: true })` reads the same way.
+A group missing from `codeGroups` is not code where it was matched. The pattern still matches: a
+backtick escaped in the prose (`` \` ``), or a backslash that ends a code span early, can make a
+pattern written with backticks match a word that is not in a code span, and only `codeGroups` tells
+you. Check it before you trust a group as code. A group that spans two code spans, or code and prose,
+is left out too, and so is a group that did not capture, or one whose capture includes its own
+backticks. A match that runs across a code span's edge has no `span` for a fix; a backtick that is
+prose does not cost a match its span. Text this reading cannot see (a reference-style link's text,
+an HTML link it cannot follow) is searched with the backticks kept too, so a mention there is still
+reported as unread. Without the opt-in `codeGroups` is absent, and every existing rule reads as
+before. `collectMentions(root, pattern, { keepBackticks: true })` reads the same way.
 
 ## The shape of a document, built from blocks
 
