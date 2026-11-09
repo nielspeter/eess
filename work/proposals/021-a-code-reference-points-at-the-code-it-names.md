@@ -1,6 +1,6 @@
 # Proposal 021 — a code reference that names its code is checked against the code
 
-**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asked for a re-review of ask A alone. **Re-reviewed 2026-11-08, Split and sequence** (see the second Review): ask A is split into A1 (eess-md) and A2 (the TypeScript code facts), both held behind one spike. **Spiked 2026-11-08** ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)): it decides the four critical items for A1, so they can be overruled: an opt-in `mentions()` reading that keeps inline-code delimiters (467 of 485 before-form pairs), only the named declaration's doc comment green and never its body (16 of 16 right, 8 of 14 body greens wrong), an eess-md `CodeFacts` contract with coverage per file and the kernel's `sourceEmpty`, and named `.warn()` non-vacuity rows. A1 awaits its re-review. Asks B and C stay held. The first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
+**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asked for a re-review of ask A alone. **Re-reviewed 2026-11-08, Split and sequence** (see the second Review): ask A is split into A1 (eess-md) and A2 (the TypeScript code facts), both held behind one spike. **Spiked 2026-11-08** ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)): it decides the four critical items for A1, so they can be overruled: an opt-in `mentions()` reading that keeps inline-code delimiters (467 of 485 before-form pairs), only the named declaration's doc comment green and never its body (16 of 16 right, 8 of 14 body greens wrong), an eess-md `CodeFacts` contract with coverage per file and the kernel's `sourceEmpty`, and named `.warn()` non-vacuity rows. **Re-reviewed 2026-11-08, Rewrite needed** (see the third Review): the direction holds, but the severity split and the empty-facts finding cannot be built as decided, the contract misses doc-comment coverage and the declaration's end, and A1's plan could not close as scoped; ask A1's section is to be rewritten with those decided, then re-reviewed. Asks B and C stay held. The first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
 **Priority:** High — unchanged. The records cite code as evidence, a check that the line exists is all the gate gives, and a consuming project has now hit the same defect.
 **Origin:** self-found · the maintainer, 2026-10-27: "if we in the md link to code in our codebase,
 the link needs to be real and work; this way we can catch wrong or old code refs". 2026-11-08: a
@@ -517,6 +517,203 @@ things. So ask A is split into A1 and A2, both `Held` behind one spike.
 **Recommended next step:** a spike, about an hour, on the four critical items, with the instrument's
 defects fixed. Then re-review A1, and A2 once open question 1 is decided. No plan until A1 is
 unheld; A1 and A2 then release together as one adopter batch.
+
+## Review — 2026-11-08, ask A1, after its spike
+
+**Ruling: Rewrite needed**
+
+The architect, product and enforcement lenses re-reviewed ask A1 against
+[spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md), each with its own
+survey. Ask A2 was argued, not settled, and asks B and C were not reviewed. Two lenses reran the
+instrument and got the spike's counts (10.5 to 11.1 s a run); the enforcement lens redrew the span
+sample row for row. All three agree on the direction:
+
+- **R1 over R2.** Reading through `mentions()` needs no second scanner.
+- **S2 is well judged.** The judged sample supports making only the named declaration's doc
+  comment green.
+- **Placement.** The kernel does not move, and the contract is consumer-side in eess-md.
+
+All three also agree A1 is not ready to plan. Two decisions cannot be built as written, and the
+contract misses facts its own verdicts depend on. None of this needs a new spike: the author
+decides it in this proposal's text, against the numbers below. The proposal's Ask and Acceptance
+criteria also still describe the rule [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md) rejected (body lines green, lines 161-162), and
+the plan would build from that text. So the ruling is a rewrite of ask A1's section.
+
+### Existing code survey, corrected
+
+- **Severity belongs to the rule, not the finding.** `.check()` throws on any finding
+  (`packages/core/src/execute-rule.ts:403`). `.warn()` escalates only a `bypassFilters` finding
+  (`packages/core/src/execute-rule.ts:440-442`, through `severityFor` at
+  `packages/core/src/violation.ts:166-171`).
+- **A condition never runs over an empty selection.** `evaluateConditions` returns at
+  `packages/core/src/condition.ts:117`. eess-md's way for a builder to read a condition's own
+  declaration is its condition registry (`declaresSections`), read in its corpus rule builder,
+  merged with `mergeCollectResults`.
+- **A match cannot cross a table cell.** Each cell is its own run
+  (`packages/md/src/model/phrasing.ts:279`). Inline-code segments carry no source offsets
+  (`packages/md/src/model/phrasing.ts:171-172`).
+- **The pointer resolver is inline in `pointerResolves`, not a function to reuse.** It lives in
+  `packages/md/src/conditions/pointer-resolve.ts`, with its `externalRoots` skip.
+- **`.excluding()` refuses to drop a `bypassFilters` finding.** So "declare an exclusion" has no
+  API today.
+- **eess-ts cannot import eess-md.** The `eess/ts-isolated` arch rule forbids it, so an eess-ts
+  producer cannot name a concrete eess-md type.
+
+### Critical (decided in this proposal before any plan)
+
+1. **The severity split has no mechanism.** Decision 5 of the spike (rename, move and text-only at
+   error, drift at warning) cannot come from one rule (all three lenses). Its classes are also not
+   defined in terms the condition can compute, and its premise fails.
+   - **The premise.** "None of them comes from `prettier`" is false: 8 of the 46 live error
+     findings have the name as code within 3 lines of the cited line (the enforcement lens).
+     Appendix B's text-only rows h02 and h20 are line drift too.
+   - **The classes.** Keyed on "not declared in the file", about 59 of the 86 not-declared misses
+     would go to error, though the name is imported or used in that file (the product lens).
+   - **What to decide:**
+     - two conditions, or one option naming the classes, each with its own rule id and severity;
+     - the classes defined by what the facts say about the file (renamed: no fact of the name in
+       the file; drifted: a fact elsewhere in it), re-counted with the instrument;
+     - which rule carries the "not judged" findings, so none reports twice.
+   - **What not to do.** Per-finding severity in the kernel, or content findings marked
+     `bypassFilters`, would each be a binding decision taken for one dialect condition. The
+     proposal says neither is taken.
+2. **The empty-facts finding cannot come from a condition** (the architect lens). With nothing
+   selected, the condition does not run. With anything selected, `.expectEmpty()` is already red as
+   an expired declaration. So [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s non-vacuity row 4 cannot fire as written.
+   - **The builder reads the facts' emptiness**, through eess-md's condition registry, merged with
+     `mergeCollectResults`: [spike 0640](../spikes/0640-an-input-side-loaded-nothing.md)'s shape.
+     Or the proposal says that with zero references the facts' emptiness is not this rule's
+     finding.
+   - **"No cited file is covered" is its own configuration finding**, with its own message. It
+     must not be relabelled as source-empty, and it must not fire over zero references under
+     `.expectEmpty()` (the architect and enforcement lenses). Its precedence over the per-file
+     not-judged findings is written down.
+3. **A1's plan cannot close as scoped.** At HEAD the decided rule gives this repository 46 live
+   error findings, 12 per-file not-judged findings (unsuppressable, failing `.warn()`) and 99
+   warnings, and `check-corpus.mjs` has no warning channel (the enforcement lens). The facts also
+   cost `check:corpus` 3.0 s on 8.6 s (+35% in `check:fast`). `check:corpus` runs about 52 times
+   in `check:nonvacuity`, which comes to roughly 2.5 minutes a shard, on shards near their limit.
+   - **Decide where A1 closes:** on package tests plus an `examples/md/` test with hand-built facts
+     (the product lens), with this repository's wiring and its `check:nonvacuity` rows moved to
+     the plan that brings A2's facts; or A1 and A2 land together.
+   - **Either way, the wiring is a separate gate**, so its cost stays in its own rows.
+4. **The contract misses three facts its verdicts depend on.**
+   - **Doc comments need a coverage kind.** `covers()` knows declarations, imports and uses, not doc
+     comments. A producer without them (ctags, a regex) reds every correct doc-comment citation as
+     drift: 61 of 103 span-greens here, 35 of them live (the product and enforcement lenses). Add
+     the kind.
+   - **The declaration needs its end line.** Without it, a message cannot tell a correct citation
+     into a body from drift, so the remedy [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md) promises cannot be offered (the product
+     lens).
+   - **`docComment` is free-form, so it can bring S1 back.** The instrument's own span runs from
+     the doc comment to the end of the body, and ts-morph attaches a file-header `/** */` to the
+     first declaration (the enforcement lens). The condition refuses a doc comment that ends at or
+     after its declaration's line.
+
+   Also decided in the contract:
+   - `covers` becomes data, not a function, so it can be listed and checked;
+   - one emptiness signal, not two (the architect lens);
+   - paths are relative to the corpus root;
+   - the shape is generic, as `MentionFix<R>` is, or held by a typecheck in crossvalidate or the
+     caller's rule file, because eess-ts cannot import it (the architect lens; this does not settle
+     A2);
+   - the producer's obligations are in the type's doc: `{@link X}` is never a use, `line` is the
+     name's line, and `member` never means an object-literal key.
+
+### Important
+
+- **The reading was measured through a stand-in.** The 467 of 485 is a regex over raw lines.
+  Through eess-md's actual walk it is 455 of 485 (234 of 246 live); the 14 it misses are table rows
+  with the name and pointer in adjacent cells (the architect lens). [Spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s 18-row gap is
+  mostly 13 member or chained calls the stock pattern cannot read (`.expectEmpty()`,
+  `.select({…})`), not line breaks (the enforcement lens). The rewrite gives the walk's number and
+  says how table rows are treated.
+- **A kept backtick can be forged.** 1 of 472 matches, in
+  [bug 0608](../bugs/0608-an-emitter-finding-prints-its-message-twice.md) at line 25, has both
+  groups in prose: an escaped backtick earlier in the paragraph shifts the code spans. The
+  condition needs to know, per group, that it lies inside one inline-code span; `inCode` for the
+  whole match is not enough (the architect lens).
+- **Drop the group offsets and the name-alone form from A1.** Per-group source offsets need the
+  walk changed (the `d` flag; inline code's value is not its source) and serve only ask C, so they
+  move there. The name-alone form is used 0 times here. A pattern must carry a `line` group, and
+  one without it is refused at configuration (all three lenses).
+- **Excluding a file has no API.** "Declare it as an exclusion, and count it" cannot use
+  `.excluding()`. This repository needs it on day one for 20 uncovered live pairs in 12 files. The
+  rewrite defines it at the selection and says who prints the count (all three lenses).
+- **Extract the resolver.** Write one shared path classifier out of `pointerResolves`, with its
+  external-roots skip becoming a not-judged cause. A broken named pointer then reports under two
+  ids; the rewrite says which, and the changeset says old `corpus/pointers-resolve` waivers return
+  (the architect and product lenses).
+- **Two remedies send the author to a line that goes green while still wrong**,
+  [bug 0363](../bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md)'s class
+  (the enforcement lens). "Imported at line N" brings back the first review's critical 4. "Declared
+  at line N" for a drifted use must not be worded "move the pointer to N".
+- **The range rule hides drift.** 12 of the 21 ranges that hold do so only on a line after the
+  first. None was judged, and one hidden drift was found: `SIBLING_NOT_CONSTRUCTORS` cited at
+  `scripts/vacuity-matrix.mjs:562-569`, declared at line 428 (the enforcement lens). Decision 3 is
+  reopened: judge a sample of ranges, or hold a range to its first line.
+- **The four non-vacuity rows leave three emptied mechanisms green** (the enforcement lens):
+  - a coverage check that silently passes an uncovered file;
+  - the doc-comment clause widened back to the whole declaration;
+  - a pattern that examines nothing, which this proposal requires.
+
+  The text-only row is meaningful only with A2's real producer: `getDescendants()` counts
+  `{@link X}` as an identifier and `forEachDescendant()` does not.
+
+- **"Never a red" contradicts [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md).** For a declarations-only producer, [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md) makes a use
+  line "a cause the condition cannot judge, never a red", but a not-judged finding fails `.warn()`
+  ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5). A line
+  without the name's token can also still be judged from text (the product lens). The not-judged
+  finding is [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s and [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s kind, raised by a condition, not [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md)'s predicate
+  machinery (the architect lens). It is marked `bypassFilters` (the enforcement lens).
+- **A dotted name has no rule.** About 20 pairs name `a.b` ([ADR-024](../../adr/024-a-claimed-files-waivers-are-read-from-its-registered-text.md)'s `fs.readFileSync` among
+  them). The rewrite says how a qualified name matches through `container` (the architect and
+  product lenses).
+- **The consuming project's case is still the consumer's.** Lines 96-97 and 124 still carry its
+  `judgeTargets` and line 492 of its ledger module, and the case is not placed in a break class (the product
+  lens).
+
+### Minor
+
+- **Names, pinned once published** (the product lens):
+  - the condition `.should().resolveAgainst(code)`, as `fields().resolveAgainst()`;
+  - `coverage` for `covers`;
+  - `CodeName` for `CodeSymbol` (a use is not a symbol);
+  - an opt-in worded like its precedent (`keepBackticks: true`);
+  - "stale" for a range past the end, the word the family already uses.
+
+  `holdTheirCode` is still a placeholder in the proposal.
+
+- Findings on one line carry the pointer and name in `element`, as `pointerResolves` does.
+- "Before form only" describes the example's pattern, not the condition.
+- The [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)
+  scope sentence is still owed.
+- No decision in the spike needs an ADR. The two ways of building it that would (per-finding
+  severity in the kernel, a dialect-to-dialect type) are named above as not taken.
+
+### Corrections [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md) committed in itself
+
+- Its 467 of 485 was measured over raw lines, not through `mentions()`. Its gap was attributed to
+  line breaks, but it is mostly member and chained calls.
+- Its "16 of 16" leaves out a conflict. Rows s14 and s28 are Appendix B's m22 and m10, which the
+  earlier judge called drifted (a doc comment's closing line, its declaration on the next line).
+  Read as about 20 of 22, with two disputed.
+- Its "none of them comes from `prettier`" was asserted, not measured. It is false on 8 of 46.
+- Its "never a red" for a declarations-only producer contradicts [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5.
+- Its non-vacuity row 4 cannot fire from a condition.
+
+### Disposition
+
+| Ask                                                              | Disposition | What would unhold it                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A1** — the reading and the condition, in eess-md, any language | `Held`      | The rewrite of ask A1's section decides critical items 1–4 against the numbers above, folds the important items in as named requirements, and replaces the Ask and Acceptance text that still describes the rejected rule. Then a re-review of those decisions only. No spike |
+| **A2** — the TypeScript code facts                               | `Held`      | Unchanged: open question 1, decided under [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s constraint and the `eess/ts-isolated` rule, with the element shape and the measured cost                                                                                  |
+| **B** — a link into code carries a line                          | `Held`      | Unchanged from the first review                                                                                                                                                                                                                                               |
+| **C** — a fix for a drifted reference                            | `Held`      | Unchanged; it now also owns the per-group source offsets                                                                                                                                                                                                                      |
+
+**Recommended next step:** rewrite ask A1's section of this proposal, about an hour against these
+numbers, with critical items 1–4 decided. Then re-review those decisions only. No plan until A1 is
+unheld.
 
 ## Appendix A — first submission (superseded 2026-11-08)
 

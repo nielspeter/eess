@@ -235,3 +235,16 @@ question 1 stays the author's.
 
 - **The reading's agreement was measured over the before form (485 pairs), not the review's 649.**
   The after form is dropped by decision 1, so measuring the reading against it would count noise.
+
+**At the re-review, 2026-11-08** (architect, product, enforcement; recorded in
+[proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s third Review):
+
+- **The 467 of 485 was measured over raw lines, not through `mentions()`.** Through eess-md's own
+  walk it is 455, and the 14 it misses are table rows with the name and pointer in adjacent cells.
+  The 18-row gap is mostly member and chained calls, not line breaks.
+- **"16 of 16" leaves out a conflict.** Rows s14 and s28 are Appendix B's m22 and m10, which the
+  earlier judge called drifted.
+- **Decision 5's "none of them comes from `prettier`" was asserted, not measured.** It is false on
+  8 of 46 live error findings. The split also cannot be made by one rule: severity is the rule's.
+- **Decision 4's "never a red" contradicts [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5.** Also, decision 6's fourth row
+  cannot fire from a condition, which never runs over an empty selection.
