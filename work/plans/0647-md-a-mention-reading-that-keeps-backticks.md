@@ -96,8 +96,6 @@ export interface MdMentionMatch {
 - `packages/md/src/model/mentions.ts`
 - `packages/md/src/builders/mentions.ts`
 - `packages/md/tests/builders/mentions-keep-backticks.test.ts` (new)
-- `examples/md/a-mention-names-its-code.test.ts` (new)
-- `scripts/check-nonvacuity.mjs`
 - `docs/markdown.md`
 - `packages/md/README.md`
 - `.changeset/`
@@ -125,30 +123,48 @@ Under the opt-in the joined text reads `` `alpha` (`a.ts:1`) ``, so the stock pa
 
 ## Test inventory
 
-Through the public root, as an adopter calls it:
+Through the public root, as an adopter calls it, in
+`packages/md/tests/builders/mentions-keep-backticks.test.ts` (11 tests):
 
-- [ ] `` `pathSuffixIndex` (`packages/core/src/path-suffix.ts:48`) ``, read with the stock pattern
+- [x] `` `pathSuffixIndex` (`packages/core/src/path-suffix.ts:48`) ``, read with the stock pattern
       under `keepBackticks`, yields one mention whose `groups` hold the name, path and line, and
       whose `codeGroups` holds `name`, `path` and `line`.
-- [ ] The same text without the opt-in: the stock pattern yields no mention, and `codeGroups` is
+- [x] The same text without the opt-in: the stock pattern yields no mention, and `codeGroups` is
       absent from every mention another pattern finds.
-- [ ] The forged case: a paragraph with an escaped backtick before `` `name` `path:1` `` (the
-      shape of [bug 0608](../bugs/0608-an-emitter-finding-prints-its-message-twice.md) at line 25)
-      yields a match whose `name` group is in prose. `codeGroups` leaves `name` out.
-- [ ] A code span holding a backtick (``` `` a`b `` ```) counts as one code span, by its
-      interior.
-- [ ] A group that did not capture is absent from `codeGroups`.
-- [ ] A match across a soft break, and a match inside a link's text, keep `codeGroups` right.
-- [ ] Every existing `mentions()` test passes unchanged.
-- [ ] Two `check:nonvacuity` rows against `check:examples`, in the shape of
-      `examples/md-mention-fix-exactly-one` (`scripts/check-nonvacuity.mjs:1313`). Each sabotages
-      the built `dist` and asserts that a named test in the new example goes red:
-  - `examples/md-keep-backticks-is-read`: the opt-in ignored, so the backticks are dropped. The
-    test that counts one mention goes red.
-  - `examples/md-code-groups-exclude-a-forged-span`: the inside-one-span test widened to "touches
-    a code span". The forged-case test goes red.
-- [ ] The sabotage matrix, run in a worktree with its own install, one mutant at a time against the
-      new test files.
+- [x] The forged case, as frozen above: `codeGroups` holds `path` and `line`, not `name`.
+- [x] A code span holding a backtick counts as one code span, by its interior. Added at build: a
+      group that straddles a code span and prose is left out.
+- [x] A group that did not capture is absent from `codeGroups`. Added at build: a group spanning
+      two code spans is left out.
+- [x] A match across a soft break, and a match inside a link's text, keep `codeGroups` right.
+      Added at build: a match that opens on a link's first backtick keeps `link.offset` 0, pinned
+      after the matrix's third mutant fired nothing (below).
+- [x] `collectMentions` takes the same opt-in (added at the freeze).
+- [x] Every existing `mentions()` test passes unchanged: the whole eess-md suite, 76 files and 1,276
+      tests, 13 s.
+- [ ] deferred→[plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md) The example
+      under `examples/md/` and its two `check:nonvacuity` rows. An `examples/md/` test must carry
+      `clean` and `violating-*` fixtures that a rule judges, and this plan adds no rule. The rows
+      sabotage this plan's reading and go red through plan 0648's first condition, which refuses a
+      reading without the opt-in and reports a name outside code: there they are load-bearing.
+- [x] The sabotage matrix, 2026-11-09, on 0c3b48bb in a worktree with its own `npm ci` (6 s) and
+      kernel build (1 s), one mutant at a time against the new test file (about 1 s each). The
+      restored tree red 0 before and after; every mutant red:
+
+      | mutant | tests red |
+      | --- | --- |
+      | the opt-in ignored in the reading | 10 |
+      | code groups by touch, not by inside | 2 |
+      | a segment's region opens after its backtick | 1 |
+      | the builder drops the opt-in | 9 |
+      | `collectMentions` drops the opt-in | 1 |
+      | `codeGroups` given without the opt-in | 1 |
+
+      _The third mutant first red 0: no test opened a match on a link's first backtick. The test
+      above was added, and it reds 1._
+
+Deferred: [plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md) (the example and
+its two rows).
 
 ## Out of scope
 

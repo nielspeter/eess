@@ -87,6 +87,8 @@ Shared by both conditions:
 - a pinned reference, red, whose remedy clause is asserted;
 - a broken pointer;
 - a pattern without its `line` group, refused;
+- a name forged from escaped backticks, as frozen in
+  [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md);
 - a reading without the opt-in, refused.
 
 The README and `docs/markdown.md` say three things:
@@ -130,6 +132,12 @@ Each finding is asserted by its cause, a message fragment, never by rule id and 
     red on "no longer appears".
   - `examples/md-a-failed-capture-is-a-finding`: the capture check removed. The case goes red on
     "did not capture".
+- [ ] Two more rows, deferred here from
+      [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md), which sabotage its reading:
+  - `examples/md-keep-backticks-is-read`: the reading's opt-in ignored, so the backticks are
+    dropped. The case that holds goes red, since the pattern then examines nothing.
+  - `examples/md-code-groups-exclude-a-forged-span`: `codeGroups` widened to "touches a code span".
+    A forged-name case goes red on "each in its own code span".
 - [ ] The sabotage matrix, in a worktree with its own install, one mutant at a time.
 
 ## Out of scope

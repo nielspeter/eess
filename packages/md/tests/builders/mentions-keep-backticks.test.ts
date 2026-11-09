@@ -93,6 +93,13 @@ describe('plan 0647: a mention reading that keeps backticks', () => {
     expect([...(found[0]?.codeGroups ?? [])].sort()).toEqual(['line', 'name', 'path'])
   })
 
+  it("a match that opens on a link's first backtick is placed in that link", () => {
+    const found = read('# A\n\nSee [`alpha` (`a.ts:1`)](./b.md) here.\n', true)
+    expect(found).toHaveLength(1)
+    expect(found[0]?.link?.text).toBe('`alpha` (`a.ts:1`)')
+    expect(found[0]?.link?.offset).toBe(0)
+  })
+
   it('a match that crosses a code edge has no source span', () => {
     expect(read(REFERENCE, true)[0]).not.toHaveProperty('span')
   })
