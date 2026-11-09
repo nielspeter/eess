@@ -310,8 +310,11 @@ export function findMentions(
   }
   const unread: UnreadMentionRef[] = []
   for (const u of unreadText) {
-    for (const m of matches(u.text, pattern, owner)) {
-      const before = u.text.slice(0, m.index ?? 0)
+    // Under the opt-in the unread text is read as the runs are, backticks kept, so a pattern written
+    // with backticks still finds the mention it must report (plan 0647's build review).
+    const text = keep ? (u.delimited ?? u.text) : u.text
+    for (const m of matches(text, pattern, owner)) {
+      const before = text.slice(0, m.index ?? 0)
       unread.push({
         line: u.line + (before.match(/\n/g)?.length ?? 0),
         text: m[0],

@@ -70,6 +70,7 @@ describe('plan 0647: a mention reading that keeps backticks', () => {
   it('a group that spans two code spans, or code and prose, is not in codeGroups', () => {
     const found = read('# A\n\nSee `one` and `two` here.\n', true, /(?<both>`one` and `two`)/g)
     expect(found).toHaveLength(1)
+    expect(found[0]?.groups.both).toBe('`one` and `two`')
     expect(found[0]?.codeGroups).toEqual([])
   })
 
@@ -100,13 +101,65 @@ describe('plan 0647: a mention reading that keeps backticks', () => {
     expect(found[0]?.link?.offset).toBe(0)
   })
 
-  it('a match that crosses a code edge has no source span', () => {
-    expect(read(REFERENCE, true)[0]).not.toHaveProperty('span')
+  it('a match that runs from prose onto code has no source span; one in prose keeps it', () => {
+    const doc = '# A\n\nsee `foo` and a lone \\` tick here.\n'
+    const onto = read(doc, true, /see `foo`/g)
+    expect(onto).toHaveLength(1)
+    expect(onto[0]).not.toHaveProperty('span')
+    const prose = read(doc, true, /a lone/g)
+    expect(prose[0]?.span).toBeDefined()
+  })
+
+  it('the shape of bug 0608: a backslash inside a code span shifts the spans; the name is not code', () => {
+    // bug 0608, lines 23-26, by value. The code span `suggestion: \` ends at its backslash, so the
+    // backticks after it pair differently, and the stock pattern matches across the shifted spans.
+    const paragraph =
+      'Every `emitter/*` finding is built by `emitterFinding` with `suggestion: \\`${message} ${UNSUPPRESSABLE}\\``\n(`packages/core/src/emitter-findings.ts:142`). The formatters skip a `Fix:` line only when the\nsuggestion equals the message (`remedyRepeatsMessage`, `packages/core/src/violation.ts:189-191`).\nA suggestion that starts with the message is not caught. The docstring above it\n'
+    const found = read(`# A\n\n${paragraph}`, true)
+    expect(found.length).toBeGreaterThan(0)
+    for (const m of found) expect(m.codeGroups).not.toContain('name')
+  })
+
+  it('a group whose capture includes its own backticks is not in codeGroups', () => {
+    const found = read(REFERENCE, true, /(?<ticked>`pathSuffixIndex`)/g)
+    expect(found).toHaveLength(1)
+    expect(found[0]?.codeGroups).toEqual([])
+  })
+
+  it('a match that opens on the backtick of a code span holding a line break keeps its line', () => {
+    const found = read('# A\n\nSee `one\ntwo` (`a.ts:1`).\n', true, /`one[\s\S]*?`/g)
+    expect(found).toHaveLength(1)
+    expect(found[0]?.line).toBe(3)
+  })
+
+  it("a caller's pattern that already carries the d flag reads under the opt-in", () => {
+    const found = read(REFERENCE, true, new RegExp(named().source, 'gd'))
+    expect(found).toHaveLength(1)
+    expect([...(found[0]?.codeGroups ?? [])].sort()).toEqual(['line', 'name', 'path'])
+  })
+
+  it('one RegExp object read first without the opt-in, then with it, gives the right codeGroups', () => {
+    const shared = named()
+    expect(read(REFERENCE, false, shared)).toEqual([])
+    const found = read(REFERENCE, true, shared)
+    expect([...(found[0]?.codeGroups ?? [])].sort()).toEqual(['line', 'name', 'path'])
+  })
+
+  it('text the reading cannot see is still searched with backticks kept, and reported unread', () => {
+    const c = corpusFromText({
+      'a.md':
+        '# A\n\nSee [`alpha` (`a.ts:1`)][r] and <a href="x">`beta` (`b.ts:2`) here.\n\n[r]: ./r.md\n',
+    })
+    const rule = mentions(c, { pattern: named(), keepBackticks: true })
+    const said = rule.violations().map((v) => v.message)
+    expect(said.some((m) => m.includes('`alpha`') && m.includes('reference-style link'))).toBe(true)
+    expect(said.some((m) => m.includes('`beta`') && m.includes('HTML'))).toBe(true)
   })
 
   it('collectMentions takes the same opt-in', () => {
     const root = fromMarkdown(REFERENCE)
     expect(collectMentions(root, named()).mentions).toEqual([])
+    expect(collectMentions(root, /pathSuffixIndex/g).mentions[0]).not.toHaveProperty('codeGroups')
     const { mentions: found } = collectMentions(root, named(), { keepBackticks: true })
     expect(found).toHaveLength(1)
     expect([...(found[0]?.codeGroups ?? [])].sort()).toEqual(['line', 'name', 'path'])
