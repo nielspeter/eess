@@ -1,13 +1,13 @@
 # Proposal 021 — a code reference that names its code is checked against the code
 
-**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asked for a re-review of ask A alone. **Re-reviewed 2026-11-08, Split and sequence** (see the second Review): ask A is split into A1 (eess-md) and A2 (the TypeScript code facts), both held behind one spike. **Spiked 2026-11-08** ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)): it decides the four critical items for A1, so they can be overruled: an opt-in `mentions()` reading that keeps inline-code delimiters (467 of 485 before-form pairs), only the named declaration's doc comment green and never its body (16 of 16 right, 8 of 14 body greens wrong), an eess-md `CodeFacts` contract with coverage per file and the kernel's `sourceEmpty`, and named `.warn()` non-vacuity rows. **Re-reviewed 2026-11-08, Rewrite needed** (see the third Review): the direction holds, but the severity split and the empty-facts finding cannot be built as decided, the contract misses doc-comment coverage and the declaration's end, and A1's plan could not close as scoped; ask A1's section is to be rewritten with those decided, then re-reviewed. Asks B and C stay held. The first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
-**Priority:** High — unchanged. The records cite code as evidence, a check that the line exists is all the gate gives, and a consuming project has now hit the same defect.
+**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asked for a re-review of ask A alone. **Re-reviewed 2026-11-08, Split and sequence** (see the second Review): ask A is split into A1 (eess-md) and A2 (the TypeScript code facts), both held behind one spike. **Spiked 2026-11-08** ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)): it decides the four critical items for A1, so they can be overruled: an opt-in `mentions()` reading that keeps inline-code delimiters (467 of 485 before-form pairs), only the named declaration's doc comment green and never its body (16 of 16 right, 8 of 14 body greens wrong), an eess-md `CodeFacts` contract with coverage per file and the kernel's `sourceEmpty`, and named `.warn()` non-vacuity rows. **Re-reviewed 2026-11-08, Rewrite needed** (see the third Review): the direction holds, but the severity split and the empty-facts finding cannot be built as decided, the contract misses doc-comment coverage and the declaration's end, and A1's plan could not close as scoped; ask A1's section is to be rewritten with those decided, then re-reviewed. **A1 rewritten 2026-11-09** ("Ask A1, rewritten 2026-11-09"): two conditions, each its own rule (`appearInTheirFile` for a rename or a move, `resolveAtTheirLines` for drift; named `resolveAgainst` and `holdAtTheirLines` at the rewrite); the facts' emptiness read by the builder; A1 closing on package tests and `check:examples` rows, with this repository's wiring moved to A2's plan; a `CodeFacts` contract with doc-comment coverage and the declaration's end. **Re-reviewed 2026-11-09, Split and sequence** (see the fourth Review): two lenses found it ready, enforcement found three criticals; each was closed in the text by narrowing (the rename rule reads the file's text, covered means covered for every kind, each row asserts its cause), and the rename rule's 27 reds were judged (7 right), so A1's example runs both rules at `.warn()`. A1 stays `Held`, accepted in substance, until its Draft plan is filed. Asks B and C stay held. The 2026-11-08 text of ask A is kept as Appendix C; the first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
+**Priority:** High — unchanged. The records cite code as evidence, and a check that the line exists is all the gate gives. A consuming project has now hit the same class of defect; A1 catches a rename or a drift of the named code, while that project's own case, prose that no longer describes a function still on its line, stays a Tier-4 review.
 **Origin:** self-found · the maintainer, 2026-10-27: "if we in the md link to code in our codebase,
 the link needs to be real and work; this way we can catch wrong or old code refs". 2026-11-08: a
 consuming project reported the same defect (below).
-**Affects:** `@nielspeter/eess-md` (a condition over `mentions()`), and the source of the code facts
-it reads (eess-ts, or a helper beside `adrCitationsResolve` in `@nielspeter/eess-crossvalidate`;
-open question 1).
+**Affects:** `@nielspeter/eess-md` (ask A1: an opt-in `mentions()` reading, two conditions and the
+`CodeFacts` contract, a minor), and the source of the code facts it reads (ask A2: eess-ts, or a
+helper beside `adrCitationsResolve` in `@nielspeter/eess-crossvalidate`; open question 1).
 
 ## Problem
 
@@ -18,7 +18,7 @@ becomes, if it is accepted.
 
 **A consuming project's case, 2026-11-08** (unnamed, as this lane does). A README entry cited a
 function by name with a `path:line` pointer. The file and the line resolved, so its gate was green;
-the code the entry described had moved into another function, at line 492 of the same file. Only a
+the code the entry described had moved into another function further down the same file. Only a
 human review caught it.
 
 **Measured over this repository at `f5b5469d` (v0.22.0), 2026-11-08,** by
@@ -58,144 +58,462 @@ corpus, 6 of 30 in the sample). The first submission's 221 / 87 came from an ins
 kept and a substring match (Appendix A); the review's reconstruction gave 215 / 81. These counts
 replace both, from an instrument anyone can rerun.
 
-## What the measurement settles (the review's critical items)
+## Ask A1, rewritten 2026-11-09
 
-1. **The relation to [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), and its
-   fork: the name is the anchor, the line is where it is cited.** A reference that names its code is
-   checked against the code by that name; a pointer that names nothing is checked as today. Both of
-   the fork's forms are kept, and each is checked for what it says:
-   - **a line and a name** (`` `name` (`path:line`) ``): the cited lines must hold the name as code,
-     or lie inside the named declaration (rule below). It drifts when code moves, `prettier`
-     included, and is red then. That couples code and records, and it is stated, not hidden: under
-     the review's critical 1 this repository runs the check under `.warn()` until ask C's fix exists,
-     and an adopter chooses.
-   - **a name alone** (a pointer the caller's pattern reads with no line, such as
-     `` `path#name` `` or a name beside a bare path): the file must declare the name exactly once. It
-     cannot drift under formatting; it reds on a rename or a move, which is the one change it must
-     catch. Measured: 16 of the 26 correct holders cite the declaration itself, and could be written
-     this way.
-2. **Criterion 1 is restated against the AST, not text** (the review's critical 2). The verdict reads
-   the declaration's span and the occurrences of the name as code. A reference whose sentence cites a
-   neighbouring thing and names something else (the sample's one in 30) is red, and its remedy is to
-   reword: name the thing cited, or leave the name out of the reference form. That is a Tier-1 check
-   with an honest remedy, not a Tier-4 judgment of what the sentence meant.
-3. **The green side has break classes and a rule** (critical 3). A reference holds when either:
-   - the cited lines hold the name **as code**: an identifier occurrence, a declaration, an import or a
-     use, as the AST reads it; a name only in a comment or a string does not hold (the 3 wrong
-     holders); or
-   - the cited lines lie **inside the named declaration's span, its leading doc comment included**
-     (the 41 body lines the instrument measured, and the 5 doc-comment rows as the judge read them;
-     the instrument's span starts at the declaration, so it did not count those 5).
+This section replaces the 2026-11-08 text from "What the measurement settles" to "Open questions".
+That text is kept as Appendix C. This section decides the third review's four critical items and
+folds its important items in as named requirements, each decided so it can be overruled.
 
-   On the samples this rule is wrong twice in 60, both false reds (a correct pointer at a text line,
-   and one at a check inside a neighbouring function), against 10 for a text check (4 false greens, 6
-   false reds). The match is the AST's identifier, never a substring, never a `RegExp` built from a
-   name.
+It was amended the same day after the fourth review. That review read the text at 96d41f41, and
+its "Amended after this review" list says what changed.
 
-4. **No text-found "now at"** (critical 4). The finding names where the code is only from the AST,
-   and only when the name is declared exactly once in the file: "`judgeTargets` is declared at line
-   492". Declared more than once, or not at all, it names no line and says which. A line the finding
-   names is the declaration's, so an author who follows it cannot land on an import or a call.
-5. **Its own rule id and denominator** (critical 5). The condition counts named references, not
-   pointers; zero examined is a finding unless `.expectEmpty()` is declared; a `check:nonvacuity`
-   row empties the caller's pattern and reds `check:corpus`. This repository's id is
-   `corpus/code-references-hold`, so the existing `eess-exclude corpus/pointers-resolve` waivers do
-   not silently cover drift. The gate's summary says "K references name their code", never "all
-   ground in code".
+The figures come from [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s
+instrument run at `main` f17759a6 (481 before-form AST pairs, 244 live). Figures marked "(the fourth
+review)" were recomputed by its enforcement lens under this section's own rules.
 
-**A file the code facts do not cover is not judged by text** ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md),
-[ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)): a reference into a
-file in no project, or in a language with no parser, is reported as one it cannot judge, never
-passed. Here that is 6 of 649 pairs, in files with no parser here; the caller's pattern can leave them
-out on purpose.
+### What A1 is
 
-## Ask A, reshaped
+A1 is an eess-md minor, and nothing else moves:
 
-**A — a reference that names its code is checked against the code.** The reading is the caller's,
-as [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) requires: a `mentions()`
-pattern with named groups `name`, `path` and, optionally, `line` and `end`. The check is one opt-in
-eess-md condition on that selection, which takes the code facts as a kernel `Selection` from the
-caller's rule file, as `beLinked({ fix })` takes its targets, so eess-md never imports eess-ts:
+- an opt-in reading on `mentions()`;
+- two conditions over the mentions it reads;
+- a consumer-side contract for the code facts that one of those conditions is given.
+
+The facts' TypeScript producer is A2, and the wiring of this repository's own gate goes with it.
+The kernel does not move. `pointers().resolve()` does not change either; its existing tests pin it.
+
+### The reading
+
+- **The opt-in.** `mentions(corpus, { pattern, keepBackticks: true })` runs the caller's pattern
+  over the run's text with inline code's backticks kept, as `MdMentionLink.text` already keeps them
+  (`packages/md/src/model/mentions.ts:43-47`). The default reading does not change.
+- **Each mention says which groups are code.** Under the opt-in, a mention carries
+  `codeGroups: readonly string[]`, the names of the pattern's groups that lie wholly inside one
+  inline-code span. The reading computes it from the joined text's segments and the `d` flag's group
+  offsets, so it needs no source offsets. This is new public API on `MdMention`.
+  - The reading reports nothing about it. A caller's prose-name form ("the function parseConfig in
+    src/config.ts line 40") is read as before. eess-md fixes no reference shape
+    ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)).
+- **What the conditions require of a mention.** Both conditions require `name` and `path` among
+  `codeGroups`, and `name`, `path` and `line` all captured.
+  - A mention that falls short is one finding under the condition's id, naming the cause. The
+    remedies are "write the name and the pointer each in its own code span", and "the pattern's
+    `line` group did not capture here; make it required".
+  - This closes the forged-backtick case (1 in 472): an escaped backtick earlier in the paragraph
+    shifts the code spans, and `inCode` alone cannot catch it. It also closes an optional
+    `(?<line>…)?` that captures nothing.
+  - A pattern without those groups, or a rule over a reading without `keepBackticks`, is refused at
+    configuration. So the stock pattern used without the opt-in names its cause instead of
+    examining nothing.
+- **Per-group source offsets move to ask C**, their only consumer. The walk's inline code carries
+  none (`packages/md/src/model/phrasing.ts:171-172`).
+- **What the reading finds.** Through eess-md's own walk the stock pattern finds about 455 of the
+  485 before-form pairs (234 of 246 live). The third review counted 455 and the fourth 454.
+  - The 14 it misses have the name and the pointer in adjacent table cells, and a match does not
+    cross a cell (`packages/md/src/model/phrasing.ts:279`). Those pointers stay checked by
+    `pointers().resolve()` as today, and the stock pattern's documentation says so.
+  - The rest are mostly member and chained calls the pattern does not read (`.expectEmpty()`,
+    `.select({…})`).
+- **Dotted names.** A `name` group of `a.b.c` is judged as its last segment, `c`, and the message
+  says so. `fs.readFileSync` is judged as `readFileSync`; the qualifier is not checked.
+- **The stock pattern ships under `examples/md/`**, never in eess-md's root. This is its shape,
+  over this repository's own reference form:
 
 ```ts
-import { corpus, mentions } from '@nielspeter/eess-md'
+import {
+  corpus,
+  mentions,
+  not,
+  predicateHaveTextMatching,
+  type CodeFacts,
+} from '@nielspeter/eess-md'
 
 const c = corpus({ roots: ['docs/**'] })
-// A name, then its pointer: `judgeTargets` (`src/ledger.ts:492`). The caller's pattern, not eess's.
+// A name, then its pointer: `pathSuffixIndex` (`packages/core/src/path-suffix.ts:48`).
 const NAMED =
-  /`(?<name>[A-Za-z_$][\w$]*)(?:\(\))?`\s*(?:\(|at\s+)?`(?<path>[\w./-]+):(?<line>\d+)(?:-(?<end>\d+))?`/g
-mentions(c, { pattern: NAMED })
+  /`(?<name>[A-Za-z_$][\w$.]*)(?:\([^`)]*\))?`(?<gap>[^`\n]{0,12})`(?<path>[\w./@-]+\.[A-Za-z]+):(?<line>\d+)(?:-(?<end>\d+))?`/
+declare const code: CodeFacts // hand-built here; eess-ts's producer is ask A2
+
+// The cited file still holds the name: a rename or a move. Needs no code facts, any language.
+// At .warn() until a corpus's own rate is measured: 7 of 27 right here (below).
+mentions(c, { pattern: NAMED, keepBackticks: true })
   .should()
-  .holdTheirCode({ code: codeNames(project('tsconfig.json')) })
-  .rule({ id: 'docs/code-references-hold' })
-  .check()
+  .appearInTheirFile()
+  .rule({ id: 'docs/code-names-appear' })
+  .warn()
+
+// The cited line still holds it: drift. The caller picks its severity.
+mentions(c, { pattern: NAMED, keepBackticks: true })
+  .that()
+  .satisfy(not(predicateHaveTextMatching(/`scripts\/release\.mjs:/))) // left out, by name
+  .should()
+  .resolveAtTheirLines(code)
+  .rule({ id: 'docs/code-lines-resolve' })
+  .warn()
 ```
 
-`holdTheirCode` and `codeNames` are placeholder names for the review. `codeNames(project)` is a
-`Selection` of each declaration and each occurrence of a name as code, per file: `{ file, name, line,
-kind: 'declaration' | 'import' | 'use', span? }`, the span on a declaration only, from its leading doc
-comment to its last line. Its home is open question 1.
+### Critical 1: two conditions, each its own rule
 
-**What the finding says**, one per reference:
+Severity belongs to the rule, not the finding. `.check()` throws on any finding
+(`packages/core/src/execute-rule.ts:403`), and `.warn()` escalates only a configuration finding
+(`packages/core/src/execute-rule.ts:440-442`). So the split is two conditions, and the caller gives
+each rule its own id and severity. A kernel per-finding severity, or content findings marked
+`bypassFilters`, would each be a binding decision taken for one dialect; neither is taken.
 
-- the cited lines do not hold `X` as code and lie outside its declaration; `X` is declared at line N
-  (declared once), or declared K times (lines …), or not declared in the file;
-- `X` is not declared in the file (a name-alone reference);
-- the file is outside the code facts the rule was given: not judged.
+- **`appearInTheirFile()`**, the file condition. A reference holds when its cited file's text
+  holds the name as a whole token. It reads the file as the pointer check already reads it for its
+  line count (`readCorpusFile`, `packages/md/src/conditions/pointer-resolve.ts:102`), and it takes
+  no code facts.
+  - **Red** when the token is absent: a rename, a removal, or a move to another file. A formatter
+    cannot cause it.
+  - **Measured: 27 such references (9 live)**, which the fourth review reproduced. A judge on a
+    different model read all 27 (2026-11-09):
+    - 7 are right, renames (2 of the 9 live);
+    - 9 are pinned to an old commit or to code "as shipped" (3 live);
+    - 6 are pairing artefacts (2 live);
+    - 5 are sentences that say the name is absent or removed (2 live).
 
-**Out of ask A**, as the review disposed: ask B (a link's `#L` anchor) and ask C (a fix that rewrites
-the line) stay `Held`. Ask C is what makes the line-and-name form livable under `prettier`; until it
-exists, the form runs under `.warn()` here.
+    The token's absence proves only that the name is not in the file, never that the sentence
+    claims it is. At that rate the stock example runs this rule at `.warn()`, like the line rule.
+    No rule in A1's example is at error.
+
+  - **Who sets the severity.** Severity is the caller's: a corpus whose references are not pinned
+    or historical can run it at `.check()`. Five of the 9 pinned rows write `` on `<commit>` ``
+    after the pointer, and the stock pattern skips such a pointer with a lookahead; the plan
+    measures what that leaves. This repository's severity is decided in A2's plan, over its own
+    rate.
+  - **What it does not claim.** It does not claim the name is code: a name that survives a rename
+    only in a comment stays green here, and the line condition reds it as text-only.
+  - **Why text and not facts.** The fourth review measured "no fact" (the earlier definition) at 53
+    (25 live). The 26 extra include correct citations of a string value (Appendix B's h30, `HEAD`
+    in a template string) and words no producer lists (`catch`, `this`, `true`). At error, those
+    would be false reds.
+
+- **`resolveAtTheirLines(code)`**, the line condition. A reference holds when the first cited line
+  holds the name as code (a declaration, an import or a use), or lies in the named declaration's
+  own doc comment ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s
+  S2).
+  - **A body line is never green.** Every other line is red, as drifted or text-only. Text-only
+    means the line holds the name only in a comment or a string.
+  - **Both classes are line drift**, so both can come from a formatter. Of the old split's 46 live
+    error findings, 8 had the name as code within 3 lines, and Appendix B's text-only h02 and h20
+    are drift. So both share one rule and one severity.
+  - **Measured under this rule** (the fourth review): 105 hold as code, 64 lie in the doc comment
+    and 285 are red; 62, 35 and 138 live.
+- **Each condition is complete on its own.** Used alone, neither passes what it cannot judge, and a
+  rename is red under both. Used together, a rename reports under both ids, each true of its own
+  claim. The README says so.
+  - The not-judged causes belong to the line condition alone, since the file condition needs no
+    facts. So the third review's "none reports twice" holds.
+  - Each finding's rule id is left to the terminal's stamp (`packages/core/src/execute-rule.ts:126`).
+  - A rule that chains both conditions reports a rename twice under one id. The README advises one
+    condition per rule.
+
+**The consuming project's case, placed.** Its entry named a function with a `path:line`, and the
+code described had moved into another function in the same file.
+
+- If the named function is still on its line, both rules are green. Whether the prose still
+  describes it is a Tier-4 judgement and stays out of scope.
+- If the named function itself moved, `resolveAtTheirLines` reds it.
+- If it was renamed or removed, `appearInTheirFile` reds it.
+
+### Critical 2: the empty facts are the builder's finding
+
+A condition never runs over an empty selection (`packages/core/src/condition.ts:117`), and with
+anything selected `.expectEmpty()` is already red. So the line condition's facts are read by the
+builder, in [spike 0640](../spikes/0640-an-input-side-loaded-nothing.md)'s shape:
+
+- **The builder reads the facts from its conditions.** `resolveAtTheirLines` registers its facts on
+  itself, as `declaresSections` registers a section declaration
+  (`packages/md/src/model/section-declarations.ts:24`). `MentionRuleBuilder` reads them in its own
+  `collectViolations` override (`packages/md/src/builders/mentions.ts:131`).
+- **Facts that loaded nothing** (an empty `coverage`) are reported once, in the two-branch shape at
+  `packages/core/src/correspondence.ts:165-170`:
+  - over nothing examined, the receipt itself carries `sourceEmpty` and the terminal reports it
+    under the rule;
+  - beside a non-zero `examined`, it is a `{ examined: 0, sourceEmpty: true }` member, merged by
+    `mergeCollectResults`.
+
+  Either way it is one unsuppressable finding, outranking `.expectEmpty()`. A row reds a build that
+  always merges.
+  - The finding is the kernel's generic one and cannot yet name its source:
+    [bug 0641](../bugs/0641-the-empty-source-finding-names-no-source.md). `CodeFacts.label` reaches
+    it when that bug is fixed.
+
+- **Precedence.** Empty facts report only the source-empty finding. When the facts loaded
+  something, two more findings follow:
+  - **"None of the cited files is covered"**, a configuration finding: "the code facts
+    (`label`) cover none of the N files these references cite". It fires only when at least one
+    reference is examined, and it replaces that rule's per-file not-judged findings.
+  - **A covered file the facts hold no name for**, one configuration finding per file. It is
+    reported instead of a red for that file's references.
+
+### Critical 3: where A1 closes
+
+A1 closes on eess-md's package tests plus tests under `examples/md/` with hand-built facts. Its
+`check:nonvacuity` rows run against `check:examples`, which already carries an eess-md row of this
+kind (`examples/md-mention-fix-exactly-one`, `scripts/check-nonvacuity.mjs:6317-6320`).
+
+Each row sabotages one mechanism and asserts that the test naming the finding's **cause** goes red.
+A test passes only on the exact cause, by a message fragment, as the test at
+`scripts/check-nonvacuity.mjs:1313-1363` tells causes apart. Rule id and severity alone do not
+separate a text-only finding from a drifted one, or an uncovered file from a rename (the trap at
+`scripts/check-nonvacuity.mjs:1583-1589`).
+
+1. A renamed reference: `appearInTheirFile`, "no longer appears".
+2. A drifted reference: `resolveAtTheirLines`, "declared at line N".
+3. A text-only reference: `resolveAtTheirLines`, "only in a comment or a string".
+4. The doc-comment clause widened to the whole declaration: a body citation must stay red, "inside
+   `X`'s body".
+5. The coverage check emptied: a reference into an uncovered file gives "not in the code facts'
+   coverage".
+6. Facts that loaded nothing: the source-empty finding under `.expectEmpty()`, once; a build that
+   always merges reds it.
+7. The reading's opt-in ignored, so backticks are dropped: the zero-examined finding.
+8. A forged backtick: "each in its own code span".
+9. The range rule widened back to any line: a range whose name is on a later line only stays red.
+10. "None of the cited files is covered", emptied: the finding must appear.
+11. The `doc`-span refusal removed: a span ending after its declaration's line must be refused.
+12. A failed `line` capture: "did not capture".
+
+Unit tests in eess-md, named in the plan, pin three more:
+
+- broken, ambiguous and stale pointers, per condition;
+- a covered file with no names;
+- the precedence above.
+
+The text-only fixture uses hand-built facts that list no use on the line. Whether a real producer
+counts `{@link X}` as a use is A2's fixture: `getDescendants()` counts it, and `forEachDescendant()`
+does not.
+
+**This repository's wiring is not A1.** The plan that brings A2's facts adds it as its own gate
+(`check:code-references`), outside `check:corpus` and `check:fast`, with its own `check:nonvacuity`
+rows. The facts cost 3.0 s against `check:corpus`'s 8.6 s, and `check:nonvacuity` runs
+`check:corpus` about 52 times.
+
+At HEAD that gate would report, by these rules:
+
+- 9 live rename findings (2 of them right, as judged above), at warning;
+- about 138 live drifted or text-only references at warning (the fourth review);
+- not-judged findings for 12 files (20 live pairs), until they are left out or covered.
+
+The migration is owned there, with
+[bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s deferred boxes. So is the
+warning's exit: the date `resolveAtTheirLines` turns to error here, or the reason it does not,
+decided when ask C is. That gate's 138 warnings are argued there against
+[ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1's migration corollary.
+
+### Critical 4: the contract
+
+The contract lives in eess-md, defined on the consumer side as `MentionFix` is
+(`packages/md/src/conditions/be-linked.ts:30`). Only the line condition takes it.
+
+```ts
+export interface CodeFacts {
+  /** For messages: "the code facts from tsconfig.json". */
+  readonly label: string
+  /**
+   * The files these facts cover: paths relative to the corpus's `cwd`, POSIX, as the corpus's file
+   * index writes them. A covered file lists every declaration, import and use of a name in it, and
+   * each declaration's attached documentation. Empty when the facts loaded nothing.
+   */
+  readonly coverage: ReadonlySet<string>
+  readonly names: readonly CodeName[]
+}
+
+/** Lines are 1-based. */
+export type CodeName =
+  | {
+      readonly kind: 'declaration'
+      readonly file: string
+      readonly name: string
+      /** The line of the name itself; a decorator's line is not it. */
+      readonly line: number
+      /** The declaration's last line. */
+      readonly end: number
+      /** `member` is a class or interface member, never an object-literal key. */
+      readonly scope: 'module' | 'member' | 'local'
+      /** The enclosing declaration's name; `null` at module scope. */
+      readonly container: string | null
+      /** The documentation attached to it, ending before `line`; `null` when it has none. */
+      readonly doc: { readonly start: number; readonly end: number } | null
+    }
+  | {
+      readonly kind: 'import' | 'use'
+      readonly file: string
+      readonly name: string
+      readonly line: number
+    }
+```
+
+- **Data, not a `Selection` or a function.** The facts are not one side of a join, and a
+  `Selection.sourceEmpty` beside `coverage` would be two truths about emptiness. This departs from
+  the second review's "a `Selection`, the `beLinked` precedent", and is recorded as such.
+- **Covered means covered for everything.** A file is in `coverage` only when the producer lists
+  every declaration, import, use and doc comment in it.
+  - A producer that cannot (ctags, a regex) leaves the file out, so its references are not judged:
+    one finding per file, never a pass.
+  - The third review's per-kind coverage, and the token rule that came with it, are dropped. Each
+    brought a false red: a correct import or use read as a rename, and a correct doc-comment
+    citation read as drift (the fourth review's C3).
+  - Such a project still has `appearInTheirFile`, which needs no facts. That is the generic
+    offering for any language.
+- **The declaration's fields are required.** `end`, `scope`, `container` and `doc` are required
+  keys (`null` where absent), so a producer that misspells one (`docSpan`) does not compile against
+  the type.
+- **A `doc` span that does not end before its declaration's line** is a configuration finding of the
+  facts, once per name. This blocks a whole-declaration span from bringing the body-green rule back.
+  - It does not catch a file-header `/** */` that ts-morph attaches to the first declaration: that
+    span ends before the name's line. Excluding it is a producer obligation, pinned by A2's fixture.
+- **Kind of finding.** A not-judged finding is one per cause per rule, as
+  [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5 counts, which
+  states its departure from [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)'s
+  per-instrument count. It is marked `bypassFilters`, so `.excluding()` cannot drop it
+  (`packages/core/src/execute-rule.ts:60-68`).
+- **No eess-ts import.** eess-ts cannot import eess-md (the `eess/ts-isolated` rule in
+  `arch.rules.ts`), so A2's producer satisfies the shape structurally.
+  - A typecheck binds the two: `examples/cross-dialect.md-ts.test.ts` assigns the producer's output
+    to `CodeFacts`, and it compiles under `check:examples`.
+  - If open question 1 puts A2 in eess-ts, `CodeFacts` becomes the family's first data contract
+    between two dialects, held only structurally. That is an ADR before A2's plan. If A2 lands in
+    eess-crossvalidate, a direct import binds it.
+- **The producer's obligations**, written in the type's doc and pinned by A2's fixtures:
+  - `{@link X}` is never a use;
+  - `doc` is the attached doc comment only, never leading trivia or a file header;
+  - `line` is the name's own line;
+  - `member` never means an object-literal key.
+
+### Important items, decided
+
+- **Paths resolve once, as the pointer gate resolves them.** A1 extracts one shared path
+  classifier out of `pointerResolves` (`packages/md/src/conditions/pointer-resolve.ts`).
+  `pointerResolves` keeps its documented `externalRoots` skip unchanged.
+  - Both conditions take the same `externalRoots` option. `appearInTheirFile` reads a file under an
+    external root, as the pointer check reads its line count (line 180). `resolveAtTheirLines`
+    judges it only if the facts cover it, and otherwise reports it as not judged.
+  - The external-root fixture is built with `corpus()` over a fixture tree under
+    `examples/fixtures/`, since `corpusFromText` refuses `externalRoots`
+    (`packages/md/src/conditions/pointer-resolve.ts:82-89`).
+  - A pointer that is broken, ambiguous or stale (past the end; the family's existing word) is
+    reported by each condition under its own id, so a condition used alone never passes it. Beside
+    `pointers().resolve()` that is a second report under a second id. The changeset says so, and
+    says that existing `corpus/pointers-resolve` waivers do not cover the new ids.
+  - Precedence on one reference: broken, ambiguous, stale, then the condition's own verdict. One
+    finding per reference per rule. The element carries the name and the pointer, so findings on
+    one line do not collide (52 lines here carry more than one pair).
+- **Every class has a remedy, and no remedy sends the author to a line that goes green while
+  wrong** ([bug 0363](../bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md)'s
+  class):
+  - **Renamed or moved** (`appearInTheirFile`): "`X` no longer appears in F. If it was renamed,
+    write its new name; if it moved, cite the file it moved to. If the sentence says `X` is gone,
+    historical or at an old commit, take the name or the pointer out of the reference form." That
+    last clause is the one that clears the 5 rows saying the name is absent and the 9 pinned ones.
+  - **No fact of `X` in a covered file** (`resolveAtTheirLines` alone): the same remedy, since it is
+    a rename seen by the line rule.
+  - **Declared once, at `module` or `member` scope:** "the cited line does not hold `X`; `X` is
+    declared at line N. Cite line N if the sentence means the declaration, or the line of the use it
+    means." Never "move the pointer to N".
+  - **Imported in the file, not declared:** "`X` is imported here and declared in another file;
+    cite that file, or the line of the use the sentence means". No line is named.
+  - **Used, neither declared nor imported** (a member access, a global, a builtin): "`X` is used in
+    F but declared in none of the covered files cited; cite the line of the use the sentence
+    means". No line is named.
+  - **Declared more than once, or only as a local:** "declared K times (in `container`…)" or
+    "declared only inside `container`". No line is named.
+  - **Text-only:** "line N holds `X` only in a comment or a string; cite the code the sentence
+    means".
+  - **A body line:** "the cited line lies inside `X`'s body (lines N–M); name the inner thing, or
+    cite line N". This uses the declaration's `end`.
+  - **A range whose first line misses:** "the range starts at a line that does not hold `X`. `X` is
+    declared at line N, and appears inside the range at line M. Start the range at the line the
+    sentence means." For `SIBLING_NOT_CONSTRUCTORS` (`scripts/vacuity-matrix.mjs:562-569`, declared
+    at line 428), this names both lines, not only the use at line 568.
+  - **Not judged:** "F is not in the code facts' coverage. Cover it, or leave its references out
+    with `.that()`; `.excluding()` cannot drop this finding."
+- **A range is judged by its first line**, where a reader lands. This reopens
+  [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s decision 3, whose
+  "any line" hides drift (the `SIBLING_NOT_CONSTRUCTORS` case above).
+  - Under the rule as stated, 9 ranges newly red (the fourth review). The section's earlier "15"
+    counted tokens, not the rule.
+  - One of the 9 was judged correct: Appendix B's h05 (`FAULT_ADVICE`, cited at
+    `packages/ts/src/core/diagnose.ts:614-623`). It is a known false red. Its judge read the
+    sentence as meaning the use inside the range, which the two-way remedy names.
+- **Leaving a file out is a selection, by name.** A caller leaves out references into a file the
+  facts do not cover with `.that().satisfy(not(predicateHaveTextMatching(…)))` over the match's
+  text. `predicateHaveTextMatching` (`packages/md/src/predicates/text.ts:13`) already composes with
+  the kernel's `not()`. The rule's `examined` then shrinks honestly.
+  - No new predicate, condition option or receipt field is added.
+  - The stock example lists each left-out file explicitly, and never derives the list from
+    `code.coverage`: a copied derivation would silence every not-judged finding for its adopter.
+  - A residual, recorded: such a leave-out never expires when the file later gains coverage.
+- **The disputed doc-comment rows stay green.** Rows s14 and s28 of
+  [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md) (Appendix B's m22 and
+  m10) cite a doc comment's closing line, with the declaration on the next line. S2 makes them
+  green by its stated guarantee, "lies in `X`'s own doc comment", which is what the rule claims and
+  all it claims. The judged figure is about 20 of 22, with two disputed.
+- **Tier.** Both conditions are Tier 1 (static). They prove that a file holds a name, or that a
+  line holds it as code. Neither proves that the sentence describes it.
 
 ## Acceptance criteria
 
-- **Break class (drift):** a reference whose name is declared once elsewhere in the file and whose
-  cited lines neither hold it as code nor lie inside its declaration is red, naming the declaration's
-  line. The sample's 23 drifted rows are fixtures.
-- **Break class (text only):** a reference whose cited line mentions the name only in a comment or a
-  string is red. The sample's 3 wrong holders are fixtures.
-- **Break class (rename):** a name-alone reference whose name the file no longer declares is red.
-- **Break class (not judged):** a reference into a file outside the code facts is reported as not
-  judged, never passed.
-- **Green side:** a reference whose lines hold the name as a declaration, an import or a use is
-  green; one whose lines lie inside the named declaration, its doc comment included, is green. The
-  sample's 26 correct holders and 5 doc-comment rows are fixtures, each asserting green.
-- **Evidence:** `examined` counts named references; zero examined is a finding unless declared; a
-  `check:nonvacuity` row empties the pattern and reds `check:corpus`.
-- **Fixtures are frozen:** the samples' rows become fixtures through `corpusFromText`
-  ([plan 0455](../plans/completed/0455-a-corpus-built-from-text.md)) and a fixture code tree, so the
-  dogfood migration cannot heal them.
-- **The instrument agrees:** run over this repository, the built condition's counts are reconciled
-  with `scripts/measure-code-reference-names.mjs`'s, and any difference is explained.
-- **Dogfood:** this repository's live named references (336 resolved pairs by the instrument) are
-  migrated in a plan of their own, as [plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)
-  was for mentions; the eess-md release does not wait on the records.
+- **Break classes, at their rule's severity, each asserted by its cause in the example's test:**
+  - a rename and a move: `appearInTheirFile`;
+  - drift, text-only, a body line, and a range whose first line misses: `resolveAtTheirLines`;
+  - broken, ambiguous and stale pointers: each condition, under its own id.
+- **Not judged**, one finding per cause per rule, failing `.warn()`:
+  - an uncovered file;
+  - a file under an external root that the facts do not cover.
+- **Configuration findings:**
+  - facts that loaded nothing, outranking `.expectEmpty()` and reported once;
+  - facts that cover none of the cited files;
+  - a covered file with no names;
+  - a `doc` span that does not end before its declaration;
+  - a pattern without the `name`, `path` or `line` group;
+  - a rule over a reading without `keepBackticks`.
+- **Per-mention findings:**
+  - `name` or `path` outside one code span;
+  - a group that did not capture.
+- **The green side as fixtures:**
+  - Appendix B's correct holders, less h30 and h05;
+  - the 16 doc-comment rows of
+    [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s sample, the two
+    disputed ones recorded as such;
+  - an import line and a use line.
+
+  h30 (a string value) is red under `resolveAtTheirLines` as text-only, and green under
+  `appearInTheirFile`. h05 is the range above. Both are fixtures asserting their red, each with its
+  remedy.
+
+- **Evidence:** `examined` counts the references read, and zero examined is a finding unless
+  declared.
+- **Non-vacuity:** the twelve `check:examples` rows above, each asserting its cause.
+- **Fixtures are frozen:** built through `corpusFromText`
+  ([plan 0455](../plans/completed/0455-a-corpus-built-from-text.md)) with hand-built facts, so no
+  migration can heal them. The external-root fixture is the one exception, a fixture tree under
+  `examples/fixtures/`.
+- **The instrument reconciles.** Over this repository, the built conditions' counts per class equal
+  the instrument's. The facts are hand-built from the instrument's own AST read, with the doc span
+  from the attached comment only. Every difference is listed as a count and a reason.
 
 ## Open questions
 
-1. **Where the code facts come from.** eess-ts selects classes, functions and types, not variables;
-   the review found 5 of its 26 drifted targets were `const`s and 4 sat in `.mjs` or root files, and
-   `check:corpus` loads no TypeScript project. Either eess-ts gains a selection of every declaration
-   and occurrence (`codeNames`), or a helper beside `adrCitationsResolve` in eess-crossvalidate reads
-   them through eess-ts's public API. Either way ts-morph stays behind eess-ts
-   ([ADR-007](../../adr/007-isolate-ast-engine-boundary.md)), and this repository's dogfood needs a
-   project that covers `scripts/` and root files.
-2. **The name-alone form's syntax.** `` `path#name` `` reads like a link fragment and may collide
-   with ask B's `#L` if B is ever built; a name beside a bare path is the caller's pattern either way.
-3. **A range.** The rule reads "the cited lines": a range holds when any line in it holds the name as
-   code, or when it lies inside the declaration. The review flagged that fail-open concentrates in
-   ranges; a range wider than the declaration it names may need its own finding.
-4. **Overloads, methods of the same name across classes, re-exports:** "declared once" needs a rule
-   for each before a finding may name one line.
+1. **Where the code facts come from (A2)** stays the author's, as before. A1 adds two constraints:
+   - the producer is held to `CodeFacts` by a typecheck in `examples/`;
+   - an eess-ts home needs an ADR first, as recorded above.
+2. **The names** are this rewrite's choices, made from the family's vocabulary so they can be
+   overruled before they are pinned:
+   - `keepBackticks` and `codeGroups`;
+   - `appearInTheirFile` and `resolveAtTheirLines`;
+   - `CodeFacts`, `CodeName` and `coverage`.
 
 ## Out of scope
 
-- Asks B and C, held (above and the review's disposition).
-- Whether the prose describes the code correctly: a reference that names the function still on its
-  line, while the sentence describes behaviour that moved elsewhere, is green. That is a Tier-4
-  judgment and stays human review, as it was in the consuming project's case if its README had named
-  the old function.
-- Rewriting this repository's pointers into either form: a migration plan, after the check exists.
+- Asks B and C, held. C now also owns the per-group source offsets.
+- The name-alone form, deferred, and references in adjacent table cells, which are not read.
+- Partial coverage, where a producer knows only some kinds of fact for a file. Such a file is not
+  covered.
+- Whether the prose describes the code: Tier 4, human review.
+- This repository's wiring and migration, which belong to the plan that brings A2's facts.
 
 ## Review — 2026-10-27
 
@@ -715,6 +1033,133 @@ the plan would build from that text. So the ruling is a rewrite of ask A1's sect
 numbers, with critical items 1–4 decided. Then re-review those decisions only. No plan until A1 is
 unheld.
 
+## Review — 2026-11-09, ask A1, after its rewrite
+
+**Ruling: Split and sequence**
+
+The architect, product and enforcement lenses re-reviewed "Ask A1, rewritten 2026-11-09" at
+96d41f41, each on its own reading of the code. The scope was only whether that text decides the
+third review's items, and whether each decision can be built and can go red. Ask A2 was argued,
+not settled; asks B and C were not reviewed.
+
+The lenses split:
+
+- **Architect: ready for a Draft plan**, with eight important corrections and no critical.
+- **Product: ready for a Draft plan**, with five important gaps and no critical.
+- **Enforcement: not ready**, with three criticals, each fixable in the text.
+
+All three found the direction settled and every third-review item addressed:
+
+- severity per rule;
+- the facts' emptiness read by the builder;
+- A1 closing without this repository's wiring;
+- a contract with a `doc` kind and the declaration's end.
+
+The coordinator verified each critical against the code. All three were real, and each was closed
+in the text in this PR by narrowing, not by a new mechanism. The enforcement lens then checked the
+amendment at c1060963: C1 and C3 closed, and C2 open on one claim, closed by judging all 27 of the
+narrowed rule's reds (below). That was done under the house rule that a review
+round's findings cut scope rather than add rounds. Every important item is decided in the amended
+text or recorded as a requirement of the plan. So the ruling keeps `Split and sequence`, and ask A1
+stays `Held`: accepted in substance, unheld when its Draft plan is filed, as
+[proposal 020](./020-a-fix-dry-run-a-reader-can-review.md)'s ask A was.
+
+### Critical (enforcement), and how each was closed
+
+1. **Rows 3 and 5 could not go red.** A text-only and a drifted finding share a rule id and a
+   severity, and so do an uncovered file and a rename. Each row now asserts its cause by a message
+   fragment, as the test at `scripts/check-nonvacuity.mjs:1313-1363` tells causes apart.
+2. **The file condition's reds were half unmeasured, and the acceptance criteria contradicted the
+   rules.**
+   - "No fact in the file" gives 53 (25 live), not the 27 (9 live) the text counted. The 26 extra
+     include a correct citation of a string value (h30) and words no producer lists.
+   - Closed by narrowing: the file condition (now `appearInTheirFile`) reads the cited file's text
+     for the name as a whole token, needs no facts, and is exactly the 27 that were counted. A
+     correct citation cannot fail it.
+   - h30 and h05 are now fixtures asserting their red, each with its remedy, not green holders.
+   - **Then judged, at the enforcement lens's follow-up.** The narrowed text claimed "a correct
+     citation cannot fail it", and the 27 had never been judged. A judge on a different model read
+     all 27 (Appendix B): 7 are renames (2 of 9 live); the rest are pinned to an old commit (9),
+     pairing artefacts (6), or sentences saying the name is absent (5). The claim is replaced by
+     that rate. The stock example runs the rule at `.warn()`, and the rename remedy gains the clause
+     that clears an absent or pinned name. So nothing in A1's example is at error; this
+     repository's severity is A2's plan's, over its own rate.
+3. **The declarations-only token rule could bring back the 61 doc-comment reds** that the `doc`
+   kind was added to stop. Closed by narrowing: a file is covered only for every kind of fact, and
+   per-kind coverage and the token rule are dropped. A project whose producer cannot cover a file
+   still has `appearInTheirFile`.
+
+### Important, decided in the amended text
+
+- **Reported twice over zero references.** The empty-facts finding uses [spike 0640](../spikes/0640-an-input-side-loaded-nothing.md)'s two-branch
+  shape (`packages/core/src/correspondence.ts:165-170`), with a row that reds a build that always
+  merges (architect).
+- **Precedence.** Empty facts report alone; "none covered" replaces the per-file findings
+  (architect).
+- **The code-span test.** It is computed by the reading as `MdMention.codeGroups`, new public API,
+  and required by the conditions, so the reading fixes no reference shape (architect, product).
+- **Required keys.** `CodeName` is a discriminated union, so a misspelt field does not compile
+  (architect).
+- **Leaving a file out** goes through `not(predicateHaveTextMatching(…))`, the existing public
+  predicate, since `eess/examples-md-no-hand-built-rules` bars a hand-built one. Files are listed
+  explicitly, never derived from coverage (architect).
+- **External roots.** `pointers().resolve()` is unchanged. The conditions take `externalRoots`, and
+  the fixture uses a disk tree, since `corpusFromText` refuses the option (architect, product).
+- **The counting cites [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5**, not [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md). The terminal stamps `ruleId` (architect).
+- **Remedies.** There is one for every class, the import-only and use-only causes are split, and
+  the range remedy names the declaration and the use, not only the use (enforcement, product).
+- **Counts restated under the stated rules** (enforcement):
+  - 105, 64 and 285 (62, 35 and 138 live);
+  - 9 newly red ranges, not 15, and h05 among them was judged.
+- **Rows** for the range rule, "none covered", the `doc`-span refusal and a failed capture; unit
+  tests for the rest (enforcement).
+- **A failed capture** and **a reading without `keepBackticks`** are findings (enforcement,
+  product).
+- **The source-empty finding names no source** yet: [bug 0641](../bugs/0641-the-empty-source-finding-names-no-source.md)
+  (enforcement).
+- **A file-header doc comment** is the producer's obligation, pinned by A2's fixture (enforcement).
+- **The live text** no longer carries the consuming project's line, and the Priority line no longer
+  implies A1 catches that project's Tier-4 case (product).
+- **The ADR trigger, recorded.** If A2 lands in eess-ts, `CodeFacts` becomes a structural contract
+  between two dialects, and that needs an ADR first (architect).
+- **Names:** `holdAtTheirLines` became `resolveAtTheirLines` (product).
+- **A rename the line rule sees alone** gets the rename remedy (enforcement, follow-up).
+- **h05's note** now names the use its judge read, as the two-way remedy does (enforcement,
+  follow-up).
+
+### Plan detail, carried to the plan
+
+- the unit tests named for the pointer classes, an empty covered file, and the precedence;
+- the README lines on double reporting and on one condition per rule;
+- the residual that a leave-out never expires: a left-out file that later gains coverage stays
+  unjudged. A finding when a left-out file is in `code.coverage` is the plan's to weigh, since the
+  condition does not see the selection (enforcement, follow-up);
+- the stock pattern's lookahead for a commit-pinned pointer, and the rate it leaves;
+- the 138 live warnings argued against [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1's migration corollary, in A2's plan.
+
+### Corrections the rewrite committed in itself
+
+- Its 27 counted token absence, while its rule said "no fact". The two differ by 26.
+- Its 117/61/276 were measured under the "any line" range rule it rejected.
+- Its "15 newly red ranges, none judged" counted tokens, and h05 was judged.
+- Its acceptance criteria held h30 and h05 green against its own rules.
+- Its citation for `collectViolations` named the inherited method; `MentionRuleBuilder` overrides
+  it (`packages/md/src/builders/mentions.ts:131`).
+- Its "check the facts' roots" named something `CodeFacts` does not have.
+- Its amendment claimed "a correct citation cannot fail" the file rule before its 27 reds were
+  judged; 20 of them were wrong.
+
+### Disposition
+
+| Ask                                                               | Disposition | What would unhold it                                                                                                                                                               |
+| ----------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A1** — the reading and two conditions, in eess-md, any language | `Held`      | Accepted in substance with the amendments in this PR. Unheld when its Draft plan is filed, declaring `**Implements:** proposal 021` and carrying the plan-detail items above       |
+| **A2** — the TypeScript code facts                                | `Held`      | Unchanged: open question 1, decided under [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s constraint and the `eess/ts-isolated` rule. An eess-ts home needs an ADR first |
+| **B** — a link into code carries a line                           | `Held`      | Unchanged from the first review                                                                                                                                                    |
+| **C** — a fix for a drifted reference                             | `Held`      | Unchanged; it also owns the per-group source offsets                                                                                                                               |
+
+**Recommended next step:** file A1's Draft plan (`/plan`). That is the maintainer's call.
+
 ## Appendix A — first submission (superseded 2026-11-08)
 
 > Preserved below the review rather than edited away, per the lane's rule (the shape
@@ -975,3 +1420,181 @@ m28	work/proposals/017-md-blocks-to-check-a-documents-shape.md:325	scenarioCitat
 m29	work/bugs/fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md:57	isDoneItem	packages/md/src/rules/ledger.ts:200-208	declared at 546	drifted	Docblock for a label regex; isDoneItem at 546.
 m30	work/proposals/017-md-blocks-to-check-a-documents-shape.md:709	DEFAULT_FROZEN	packages/md/src/corpus.ts:53	declared at 78	drifted	Comment in options docs; DEFAULT_FROZEN at 78.
 ```
+
+### The rename sample, 2026-11-09
+
+Every before-form pair whose name is not a token anywhere in its cited file (27, at f17759a6): the references `appearInTheirFile` would red. All of them, not a sample, judged by a judge on a different model from the one that wrote the rule. Fenced, so no gate reads it.
+
+```tsv
+id	live	doc	name	pointer	verdict	reason
+r01	True	work/bugs/0128-enforcement-status-is-the-cell-nothing-derives.md:90	testDefinesIt	packages/md/src/rules/adr.ts:47	renamed	testDefinesIt was removed when bug 0111 made adrEnforcement stop resolving test titles; line 47 is now a comment.
+r02	True	work/bugs/0319-a-killed-runs-leftovers-in-tests-generated-red-lint-and-nothing-names-them.md:22	__generated__	eslint.config.ts:7	absent-on-purpose	The sentence states that the ignores do not name __generated__.
+r03	True	work/bugs/0619-ledger-findings-carry-no-rule-id.md:14	ruleId	packages/md/src/rules/ledger.ts:731	absent-on-purpose	The sentence states that ruleId is unset at that finding.
+r04	False	work/bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md:110	isFrontMatter	packages/md/src/model/prose.ts:48	renamed	isFrontMatter no longer exists in prose.ts; front-matter logic is now notFrontMatterBecause and related functions.
+r05	False	work/bugs/fixed/0104-it-title-capture-stops-at-any-quote.md:103	IT_NAME_RE	gherkin-ts.ts:46	pinned	The cite says "as shipped" for a historical gherkin-ts.ts line; IT_NAME_RE is gone and the file is now under packages/crossvalidate/src.
+r06	False	work/bugs/fixed/0136-link-fragments-are-never-checked.md:26	resolveTargets	resolve.ts:39-51	pinned	The bug record says these resolve.ts line references predate plan 0404 and are kept as history.
+r07	False	work/bugs/fixed/0136-link-fragments-are-never-checked.md:98	resolveTargets	resolve.ts:39-51	renamed	resolveTargets was replaced by the one link resolver in plan 0404 and no longer exists anywhere.
+r08	False	work/bugs/fixed/0236-the-compose-path-for-a-custom-citation-form-is-undocumented.md:22	IT_CITE_RE	packages/md/src/rules/adr.ts:44	pairing	IT_CITE_RE is the second of two named constants; the sentence lists PATH_RE at :43 and the title regex was dropped, so only the path check remains at that location.
+r09	False	work/plans/completed/0088-fold-ts-archunit-into-eess.md:232	dependencies	packages/core/src/index.ts:5	absent-on-purpose	dependencies is named as a package.json field the kernel does not have; the pointer is for the identity comment.
+r10	False	work/plans/completed/0237-eess-runtime-use-only-in-rule-files.md:527	GlobSite	identity.ts:83	renamed	GlobSite is no longer in an identity.ts at that location; the sentence cites a stamp site in packages/ts/src/predicates/identity.ts that has moved.
+r11	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:45	modules	conditions/function.ts:56	pairing	modules() belongs to the structural.ts builder list; function.ts:56 is the pointer for the function implementation.
+r12	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:298	ruleId	packages/ts/src/conditions/function.ts:56-73	absent-on-purpose	The sentence says the function.ts copy has no ruleId.
+r13	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:358	codeBlocks	packages/md/src/builders/docs.ts:24	pairing	codeBlocks() is the subject of code-blocks.ts:91; docs.ts:24 is the pointer for docs().
+r14	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:523	onDocument	code-blocks.ts:21	absent-on-purpose	The plan says onDocument is to be replaced by inDocuments (plan 0457).
+r15	False	work/plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md:51	onDocument	packages/md/src/builders/code-blocks.ts:21	renamed	onDocument was replaced by inDocuments in code-blocks.ts by plan 0457.
+r16	False	work/plans/completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md:214	Condition	packages/core/src/predicate.ts:7	pairing	Condition is defined in condition.ts:77; predicate.ts:7 is the pointer for Predicate.
+r17	False	work/plans/completed/0496-sections-as-elements.md:49	statesAcceptanceCriteria	scripts/check-corpus.mjs:916-917	pinned	The sentence places the code "on main after PR #245"; statesAcceptanceCriteria has since gone from check-corpus.mjs.
+r18	False	work/plans/completed/0580-md-a-raw-html-link-is-resolved.md:29	OPENS_A	packages/md/src/model/phrasing.ts:64	pinned	The pointer is stated "on 6bcd35e6" and OPENS_A has since moved into the html-attributes owner.
+r19	False	work/plans/completed/0580-md-a-raw-html-link-is-resolved.md:153	ONE_COMMENT	packages/md/src/model/phrasing.ts:63	pinned	The pointer is stated "on 6bcd35e6" and ONE_COMMENT has since been replaced.
+r20	False	work/plans/completed/0580-md-a-raw-html-link-is-resolved.md:202	CLOSES_A	packages/md/src/model/phrasing.ts:64-65	pinned	The pointer is stated "on 6bcd35e6" and the sentence says OPENS_A/CLOSES_A move to the owner.
+r21	False	work/plans/completed/0632-a-text-corpus-honours-its-waivers.md:35	refuseWaivers	packages/md/src/corpus.ts:330	renamed	refuseWaivers no longer exists in corpus.ts after plan 0632 made a text corpus honour waivers.
+r22	True	work/proposals/001-md-corpus-rule-coverage.md:395	headerRegion	rules/ledger.ts:70	renamed	headerRegion was removed from rules/ledger.ts (and the path is relative to packages/md/src).
+r23	True	work/proposals/006-mermaid-beyond-classdiagram.md:569	declaredKind	packages/crossvalidate/src/md-mermaid.ts:47	pinned	The sentence says "when written" and notes the function moved to eess-mermaid as diagramKind.
+r24	True	work/proposals/promoted/004-corpus-content-explain.md:107	fileIndex	packages/gherkin/src/load.ts:18-20	pairing	fileIndex belongs to the corpus.ts:36-40 pointer; load.ts:18-20 is the pointer for features() and scenarios().
+r25	True	work/proposals/promoted/022-md-a-raw-html-link-is-resolved.md:156	mentions	packages/md/src/model/phrasing.ts:203	pinned	The pointer is stated "on 6bcd35e6" and mentions() is the subject of the second pointer; the file has since changed.
+r26	True	work/proposals/promoted/022-md-a-raw-html-link-is-resolved.md:212	ONE_COMMENT	packages/md/src/model/phrasing.ts:63	pinned	The pointer is stated "on 6bcd35e6" and ONE_COMMENT has since been replaced.
+r27	True	work/proposals/promoted/026-md-a-document-has-a-section-that-satisfies-a-predicate.md:333	haveContent	packages/md/src/model/section-holds.ts:14-19	pairing	haveContent() is in builders/sections.ts; section-holds.ts:14-19 is the pointer for the SectionHolding type's content kind.
+```
+
+## Appendix C — ask A as written on 2026-11-08 (superseded 2026-11-09)
+
+The sections of the 2026-11-08 rewrite that "Ask A1, rewritten 2026-11-09" replaces, kept as they were. The second and third Reviews judged this text.
+
+### What the measurement settles (the review's critical items)
+
+1. **The relation to [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), and its
+   fork: the name is the anchor, the line is where it is cited.** A reference that names its code is
+   checked against the code by that name; a pointer that names nothing is checked as today. Both of
+   the fork's forms are kept, and each is checked for what it says:
+   - **a line and a name** (`` `name` (`path:line`) ``): the cited lines must hold the name as code,
+     or lie inside the named declaration (rule below). It drifts when code moves, `prettier`
+     included, and is red then. That couples code and records, and it is stated, not hidden: under
+     the review's critical 1 this repository runs the check under `.warn()` until ask C's fix exists,
+     and an adopter chooses.
+   - **a name alone** (a pointer the caller's pattern reads with no line, such as
+     `` `path#name` `` or a name beside a bare path): the file must declare the name exactly once. It
+     cannot drift under formatting; it reds on a rename or a move, which is the one change it must
+     catch. Measured: 16 of the 26 correct holders cite the declaration itself, and could be written
+     this way.
+2. **Criterion 1 is restated against the AST, not text** (the review's critical 2). The verdict reads
+   the declaration's span and the occurrences of the name as code. A reference whose sentence cites a
+   neighbouring thing and names something else (the sample's one in 30) is red, and its remedy is to
+   reword: name the thing cited, or leave the name out of the reference form. That is a Tier-1 check
+   with an honest remedy, not a Tier-4 judgment of what the sentence meant.
+3. **The green side has break classes and a rule** (critical 3). A reference holds when either:
+   - the cited lines hold the name **as code**: an identifier occurrence, a declaration, an import or a
+     use, as the AST reads it; a name only in a comment or a string does not hold (the 3 wrong
+     holders); or
+   - the cited lines lie **inside the named declaration's span, its leading doc comment included**
+     (the 41 body lines the instrument measured, and the 5 doc-comment rows as the judge read them;
+     the instrument's span starts at the declaration, so it did not count those 5).
+
+   On the samples this rule is wrong twice in 60, both false reds (a correct pointer at a text line,
+   and one at a check inside a neighbouring function), against 10 for a text check (4 false greens, 6
+   false reds). The match is the AST's identifier, never a substring, never a `RegExp` built from a
+   name.
+
+4. **No text-found "now at"** (critical 4). The finding names where the code is only from the AST,
+   and only when the name is declared exactly once in the file: "`judgeTargets` is declared at line
+   492". Declared more than once, or not at all, it names no line and says which. A line the finding
+   names is the declaration's, so an author who follows it cannot land on an import or a call.
+5. **Its own rule id and denominator** (critical 5). The condition counts named references, not
+   pointers; zero examined is a finding unless `.expectEmpty()` is declared; a `check:nonvacuity`
+   row empties the caller's pattern and reds `check:corpus`. This repository's id is
+   `corpus/code-references-hold`, so the existing `eess-exclude corpus/pointers-resolve` waivers do
+   not silently cover drift. The gate's summary says "K references name their code", never "all
+   ground in code".
+
+**A file the code facts do not cover is not judged by text** ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md),
+[ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)): a reference into a
+file in no project, or in a language with no parser, is reported as one it cannot judge, never
+passed. Here that is 6 of 649 pairs, in files with no parser here; the caller's pattern can leave them
+out on purpose.
+
+### Ask A, reshaped
+
+**A — a reference that names its code is checked against the code.** The reading is the caller's,
+as [ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md) requires: a `mentions()`
+pattern with named groups `name`, `path` and, optionally, `line` and `end`. The check is one opt-in
+eess-md condition on that selection, which takes the code facts as a kernel `Selection` from the
+caller's rule file, as `beLinked({ fix })` takes its targets, so eess-md never imports eess-ts:
+
+```ts
+import { corpus, mentions } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['docs/**'] })
+// A name, then its pointer: `judgeTargets` (`src/ledger.ts:492`). The caller's pattern, not eess's.
+const NAMED =
+  /`(?<name>[A-Za-z_$][\w$]*)(?:\(\))?`\s*(?:\(|at\s+)?`(?<path>[\w./-]+):(?<line>\d+)(?:-(?<end>\d+))?`/g
+mentions(c, { pattern: NAMED })
+  .should()
+  .holdTheirCode({ code: codeNames(project('tsconfig.json')) })
+  .rule({ id: 'docs/code-references-hold' })
+  .check()
+```
+
+`holdTheirCode` and `codeNames` are placeholder names for the review. `codeNames(project)` is a
+`Selection` of each declaration and each occurrence of a name as code, per file: `{ file, name, line,
+kind: 'declaration' | 'import' | 'use', span? }`, the span on a declaration only, from its leading doc
+comment to its last line. Its home is open question 1.
+
+**What the finding says**, one per reference:
+
+- the cited lines do not hold `X` as code and lie outside its declaration; `X` is declared at line N
+  (declared once), or declared K times (lines …), or not declared in the file;
+- `X` is not declared in the file (a name-alone reference);
+- the file is outside the code facts the rule was given: not judged.
+
+**Out of ask A**, as the review disposed: ask B (a link's `#L` anchor) and ask C (a fix that rewrites
+the line) stay `Held`. Ask C is what makes the line-and-name form livable under `prettier`; until it
+exists, the form runs under `.warn()` here.
+
+### Acceptance criteria
+
+- **Break class (drift):** a reference whose name is declared once elsewhere in the file and whose
+  cited lines neither hold it as code nor lie inside its declaration is red, naming the declaration's
+  line. The sample's 23 drifted rows are fixtures.
+- **Break class (text only):** a reference whose cited line mentions the name only in a comment or a
+  string is red. The sample's 3 wrong holders are fixtures.
+- **Break class (rename):** a name-alone reference whose name the file no longer declares is red.
+- **Break class (not judged):** a reference into a file outside the code facts is reported as not
+  judged, never passed.
+- **Green side:** a reference whose lines hold the name as a declaration, an import or a use is
+  green; one whose lines lie inside the named declaration, its doc comment included, is green. The
+  sample's 26 correct holders and 5 doc-comment rows are fixtures, each asserting green.
+- **Evidence:** `examined` counts named references; zero examined is a finding unless declared; a
+  `check:nonvacuity` row empties the pattern and reds `check:corpus`.
+- **Fixtures are frozen:** the samples' rows become fixtures through `corpusFromText`
+  ([plan 0455](../plans/completed/0455-a-corpus-built-from-text.md)) and a fixture code tree, so the
+  dogfood migration cannot heal them.
+- **The instrument agrees:** run over this repository, the built condition's counts are reconciled
+  with `scripts/measure-code-reference-names.mjs`'s, and any difference is explained.
+- **Dogfood:** this repository's live named references (336 resolved pairs by the instrument) are
+  migrated in a plan of their own, as [plan 0542](../plans/completed/0542-this-repositorys-record-mentions-are-migrated.md)
+  was for mentions; the eess-md release does not wait on the records.
+
+### Open questions
+
+1. **Where the code facts come from.** eess-ts selects classes, functions and types, not variables;
+   the review found 5 of its 26 drifted targets were `const`s and 4 sat in `.mjs` or root files, and
+   `check:corpus` loads no TypeScript project. Either eess-ts gains a selection of every declaration
+   and occurrence (`codeNames`), or a helper beside `adrCitationsResolve` in eess-crossvalidate reads
+   them through eess-ts's public API. Either way ts-morph stays behind eess-ts
+   ([ADR-007](../../adr/007-isolate-ast-engine-boundary.md)), and this repository's dogfood needs a
+   project that covers `scripts/` and root files.
+2. **The name-alone form's syntax.** `` `path#name` `` reads like a link fragment and may collide
+   with ask B's `#L` if B is ever built; a name beside a bare path is the caller's pattern either way.
+3. **A range.** The rule reads "the cited lines": a range holds when any line in it holds the name as
+   code, or when it lies inside the declaration. The review flagged that fail-open concentrates in
+   ranges; a range wider than the declaration it names may need its own finding.
+4. **Overloads, methods of the same name across classes, re-exports:** "declared once" needs a rule
+   for each before a finding may name one line.
+
+### Out of scope
+
+- Asks B and C, held (above and the review's disposition).
+- Whether the prose describes the code correctly: a reference that names the function still on its
+  line, while the sentence describes behaviour that moved elsewhere, is green. That is a Tier-4
+  judgment and stays human review, as it was in the consuming project's case if its README had named
+  the old function.
+- Rewriting this repository's pointers into either form: a migration plan, after the check exists.
