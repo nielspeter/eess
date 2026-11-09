@@ -33,6 +33,12 @@ export interface MentionOptions {
    * so a corpus with extensionless links does not read every link as `missing`.
    */
   readonly resolve?: LinkResolveOptions
+  /**
+   * Run the pattern over the text with inline code's backticks kept, as `MdMentionLink.text` reads a
+   * link's text, and give each mention `codeGroups`: the pattern's named groups that lie wholly
+   * inside one inline-code span (plan 0647). Off by default, so every existing rule reads as before.
+   */
+  readonly keepBackticks?: boolean
 }
 
 type Found = { readonly mentions: MdMentionRef[]; readonly unread: UnreadMentionRef[] }
@@ -74,6 +80,7 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
 
   private readonly pattern: RegExp
   private readonly resolve: LinkResolveOptions
+  private readonly keepBackticks: boolean
 
   /** One walk per document per builder: a document is built once and never mutated. */
   private readonly found = new WeakMap<MdDocument, Found>()
@@ -83,13 +90,16 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
     validateMentionPattern(options.pattern, 'mentions')
     this.pattern = options.pattern
     this.resolve = options.resolve ?? {}
+    this.keepBackticks = options.keepBackticks === true
   }
 
   /** The document's mentions, each link resolved once from the document's own path. */
   private foundIn(doc: MdDocument): Found {
     const known = this.found.get(doc)
     if (known !== undefined) return known
-    const { mentions: raw, unread } = findMentions(doc.root, this.pattern, doc.text)
+    const { mentions: raw, unread } = findMentions(doc.root, this.pattern, doc.text, {
+      keepBackticks: this.keepBackticks,
+    })
     const targets = new Map<PhrasingLink, LinkTarget>()
     const targetOf = (link: PhrasingLink): LinkTarget => {
       let target = targets.get(link)

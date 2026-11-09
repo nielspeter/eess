@@ -28,6 +28,21 @@ export interface MdMentionMatch {
   readonly inCode: boolean
   /** The link holding the match's last character, if any. */
   readonly link?: { readonly url: string }
+  /**
+   * Under `keepBackticks` (plan 0647): the names of the pattern's groups whose whole capture lies
+   * inside one inline-code span, between its backticks. Absent without the opt-in, so a reading that
+   * did not ask cannot be mistaken for one in which no group is code.
+   */
+  readonly codeGroups?: readonly string[]
+}
+
+/** How a document's text is read for mentions (plan 0647). */
+export interface MentionReading {
+  /**
+   * Run the pattern over the text with inline code's backticks kept, as `MdMentionLink.text` reads
+   * a link's text, and say which groups lie wholly inside one code span (`codeGroups`).
+   */
+  readonly keepBackticks?: boolean
 }
 
 /** Where a mention sits in its document's source, as 0-based offsets, end exclusive (plan 0550). */
@@ -82,17 +97,21 @@ export interface UnreadMentionRef {
 export type MdUnreadMention = UnreadMentionRef & { readonly doc: MdDocument }
 
 const GLOBAL = new WeakMap<RegExp, RegExp>()
+/** The same copy with the `d` flag, for a reading that needs each group's range (plan 0647). */
+const GLOBAL_INDICES = new WeakMap<RegExp, RegExp>()
 
 /**
  * A private global copy of the caller's pattern, made once per pattern, so `matchAll` reads every
  * match and no `lastIndex` is shared with the caller's object. `y` is dropped: a sticky match
  * anchored at each run's start is not what a mention is.
  */
-function globalCopy(re: RegExp): RegExp {
-  const known = GLOBAL.get(re)
+function globalCopy(re: RegExp, indices = false): RegExp {
+  const cache = indices ? GLOBAL_INDICES : GLOBAL
+  const known = cache.get(re)
   if (known !== undefined) return known
-  const copy = new RegExp(re.source, re.flags.replace(/[gy]/g, '') + 'g')
-  GLOBAL.set(re, copy)
+  const flags = re.flags.replace(/[gyd]/g, '') + 'g' + (indices ? 'd' : '')
+  const copy = new RegExp(re.source, flags)
+  cache.set(re, copy)
   return copy
 }
 
@@ -114,8 +133,13 @@ function groupsOf(m: RegExpMatchArray): Record<string, string> {
   return out
 }
 
-function* matches(text: string, re: RegExp, owner: string): Generator<RegExpMatchArray> {
-  for (const m of text.matchAll(globalCopy(re))) {
+function* matches(
+  text: string,
+  re: RegExp,
+  owner: string,
+  indices = false,
+): Generator<RegExpMatchArray> {
+  for (const m of text.matchAll(globalCopy(re, indices))) {
     if (m[0].length === 0) {
       throw new ArchConfigError(
         owner,
@@ -139,8 +163,9 @@ type FoundMention = Omit<MdMentionMatch, 'link'> & {
 export function collectMentions(
   root: Root,
   pattern: RegExp,
+  reading: MentionReading = {},
 ): { readonly mentions: MdMentionMatch[]; readonly unread: UnreadMentionRef[] } {
-  const { mentions, unread } = findMentions(root, pattern, undefined)
+  const { mentions, unread } = findMentions(root, pattern, undefined, reading)
   return {
     mentions: mentions.map((m) => ({
       line: m.line,
@@ -148,6 +173,7 @@ export function collectMentions(
       groups: m.groups,
       inCode: m.inCode,
       ...(m.link ? { link: { url: m.link.url } } : {}),
+      ...(m.codeGroups ? { codeGroups: m.codeGroups } : {}),
     })),
     unread,
   }
@@ -206,39 +232,70 @@ function spanOf(
   return source.slice(start, end) === text ? { start, end } : undefined
 }
 
+/**
+ * The names of the match's groups whose whole capture lies inside one code segment's text, between
+ * its backticks (plan 0647). Read from the `d` flag's ranges; a group that did not capture has none.
+ */
+function groupsInCode(
+  m: RegExpMatchArray,
+  segs: readonly PhrasingSegment[],
+  starts: readonly number[],
+): string[] {
+  const out: string[] = []
+  for (const [name, range] of Object.entries(m.indices?.groups ?? {})) {
+    if (range === undefined) continue
+    const [from, to] = range
+    const inside = segs.some((seg, i) => {
+      const start = starts[i]
+      return seg.inCode && start !== undefined && from >= start && to <= start + seg.text.length
+    })
+    if (inside) out.push(name)
+  }
+  return out
+}
+
 /** Every mention of `pattern` in one document, each with its link, its place in the link's text and in `source`. */
 export function findMentions(
   root: Root,
   pattern: RegExp,
   source: string | undefined,
+  reading: MentionReading = {},
 ): { readonly mentions: FoundMention[]; readonly unread: UnreadMentionRef[] } {
   const owner = 'mentions'
+  const keep = reading.keepBackticks === true
   const { runs, unread: unreadText } = phrasingOf(root, source)
   const mentions: FoundMention[] = []
   for (const run of runs) {
     const segs = run.segments
     let joined = ''
+    // `begins`: where each segment's region opens in `joined`, its opening backtick included under
+    // `keepBackticks`, so a match is placed in the segment it starts in. `starts`: where its text
+    // opens, which every offset below is measured from, as in the default reading.
+    const begins: number[] = []
     const starts: number[] = []
     for (const s of segs) {
-      starts.push(joined.length)
-      joined += s.text
+      const tick = keep && s.inCode ? '`' : ''
+      begins.push(joined.length)
+      starts.push(joined.length + tick.length)
+      joined += tick + s.text + tick
     }
     const at = (offset: number): number => {
       let i = 0
-      while (i + 1 < starts.length && (starts[i + 1] ?? Infinity) <= offset) i++
+      while (i + 1 < begins.length && (begins[i + 1] ?? Infinity) <= offset) i++
       return i
     }
-    for (const m of matches(joined, pattern, owner)) {
+    for (const m of matches(joined, pattern, owner, keep)) {
       const index = m.index ?? 0
       const a = at(index)
       const b = at(index + m[0].length - 1)
       const first = segs[a]
       const last = segs[b]
       if (first === undefined || last === undefined) continue
-      const before = first.text.slice(0, index - (starts[a] ?? 0))
+      const before = first.text.slice(0, Math.max(0, index - (starts[a] ?? 0)))
       const line = first.line + (before.match(/\n/g)?.length ?? 0)
       const offset = offsetInLink(segs, starts, a, b, index)
       const span = spanOf(first, a === b, index - (starts[a] ?? 0), m[0], source)
+      const codeGroups = keep ? groupsInCode(m, segs, starts) : undefined
       mentions.push({
         line,
         text: m[0],
@@ -247,6 +304,7 @@ export function findMentions(
         ...(last.link ? { link: last.link } : {}),
         ...(offset !== undefined ? { offset } : {}),
         ...(span !== undefined ? { span } : {}),
+        ...(codeGroups !== undefined ? { codeGroups } : {}),
       })
     }
   }

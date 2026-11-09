@@ -1044,6 +1044,31 @@ are; two records sharing a file name share a group. A grouping by record, from t
   suppression on a green run; a rule run from your own script is not told
   ([bug 0537](../work/bugs/0537-eess-md-alone-has-no-run-level-services.md)).
 
+### Reading inline code with its backticks: `keepBackticks`
+
+By default a mention's text drops inline code's backticks, so a pattern cannot tell a name written
+as code from the same word in prose. `mentions(c, { pattern, keepBackticks: true })` runs your
+pattern over the text with the backticks kept, as a link's `text` already keeps them, and gives each
+mention `codeGroups`: the names of your pattern's groups whose whole capture lies inside one
+inline-code span, between its backticks.
+
+```ts
+import { corpus, mentions } from '@nielspeter/eess-md'
+
+// A name, then its pointer, each in its own code span.
+const NAMED =
+  /`(?<name>[A-Za-z_$][\w$.]*)`[^`\n]{0,12}`(?<path>[\w./@-]+\.[A-Za-z]+):(?<line>\d+)`/g
+
+const named = mentions(corpus({ roots: ['docs/**'] }), { pattern: NAMED, keepBackticks: true })
+```
+
+A group missing from `codeGroups` is not code where it was matched. A backtick escaped in the prose
+(`` \` ``) can make a pattern written with backticks match a word that is not in a code span; its
+group is then left out. A group that spans two code spans, or code and prose, is left out too, and
+so is a group that did not capture. A match that holds a backtick crosses a code edge, so it has no
+`span` for a fix. Without the opt-in `codeGroups` is absent, and every existing rule reads as before.
+`collectMentions(root, pattern, { keepBackticks: true })` reads the same way.
+
 ## The shape of a document, built from blocks
 
 A rule about what a kind of document must hold is written with the blocks above, in your own words.

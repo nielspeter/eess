@@ -157,6 +157,7 @@ export type {
   MdMentionMatch,
   MdMentionRef,
   MdMentionSpan,
+  MentionReading,
   UnreadMentionRef,
 } from './model/mentions.js'
 export type { UnreadCause } from './model/phrasing.js'

@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — authored 2026-11-09 from
+- **State:** Ready — frozen 2026-11-09 against `main` 22eae08d, at the maintainer's "build plan
+  0647", with no separate review: the design is the proposal's, reviewed four times. Authored the
+  same day from
   [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
   ruled in its fourth Review. It is the first of three plans that own A1 between them; plans
   [0648](./0648-md-a-code-reference-still-appears-in-its-file.md) and
@@ -26,6 +28,12 @@
     `codeGroups`** on each mention, as [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md) names them.
   - **`codeGroups` is computed only under the opt-in.** Without it the field is absent, so a
     reading that did not ask for it cannot be mistaken for one in which no group is code.
+  - **The ranges are computed where the run's text is joined**, in `findMentions`
+    (`packages/md/src/model/mentions.ts`), decided at the freeze. The walk in `phrasing.ts` does not
+    change: its segments already say which text is code (`inCode`).
+  - **`collectMentions`**, the public lower-level reader (`packages/md/src/index.ts:154`), takes the
+    same opt-in as an optional third argument `{ keepBackticks }`, decided at the freeze, so the two
+    public readers cannot disagree.
 
 ## Problem
 
@@ -77,12 +85,14 @@ export interface MdMentionMatch {
 - **The span.** `MdMentionRef.span`, the source offsets for a fix, stays as today: present only when
   the match sits inside one segment. Under the opt-in a match that holds a backtick crosses a code
   edge, so it has no span. Per-group source offsets are ask C's, as the proposal records.
+- **A link's text offset.** `offsetInLink` maps a match into its link's text, which is already
+  joined with backticks. Under the opt-in, the segment starts it reads must be the backticked join's,
+  so a mention inside a link keeps its `link.at` right. A test pins it.
 - **The default reading is untouched.** Every existing test of `mentions()` passes without a
   change; that is the regression gate.
 
 ## Files changed
 
-- `packages/md/src/model/phrasing.ts` (if the code-segment ranges come from the walk)
 - `packages/md/src/model/mentions.ts`
 - `packages/md/src/builders/mentions.ts`
 - `packages/md/tests/builders/mentions-keep-backticks.test.ts` (new)
@@ -91,6 +101,27 @@ export interface MdMentionMatch {
 - `docs/markdown.md`
 - `packages/md/README.md`
 - `.changeset/`
+
+## Frozen inputs (by value, 2026-11-09)
+
+The stock pattern, from [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s
+"Ask A1, rewritten 2026-11-09":
+
+```js
+const NAMED =
+  /`(?<name>[A-Za-z_$][\w$.]*)(?:\([^`)]*\))?`(?<gap>[^`\n]{0,12})`(?<path>[\w./@-]+\.[A-Za-z]+):(?<line>\d+)(?:-(?<end>\d+))?`/
+```
+
+The forged case, minimal and in the shape of
+[bug 0608](../bugs/0608-an-emitter-finding-prints-its-message-twice.md)'s line 25. Each
+backtick around `alpha` is escaped, so `alpha` is prose, while the pointer is a real code span:
+
+```md
+A literal \`alpha\` (`a.ts:1`) stands here.
+```
+
+Under the opt-in the joined text reads `` `alpha` (`a.ts:1`) ``, so the stock pattern matches.
+`codeGroups` holds `path` and `line`, and not `name`.
 
 ## Test inventory
 
