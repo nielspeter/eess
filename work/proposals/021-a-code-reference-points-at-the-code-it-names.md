@@ -1,6 +1,6 @@
 # Proposal 021 — a code reference that names its code is checked against the code
 
-**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asked for a re-review of ask A alone. **Re-reviewed 2026-11-08, Split and sequence** (see the second Review): ask A is split into A1 (eess-md) and A2 (the TypeScript code facts), both held behind one spike. **Spiked 2026-11-08** ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)): it decides the four critical items for A1, so they can be overruled: an opt-in `mentions()` reading that keeps inline-code delimiters (467 of 485 before-form pairs), only the named declaration's doc comment green and never its body (16 of 16 right, 8 of 14 body greens wrong), an eess-md `CodeFacts` contract with coverage per file and the kernel's `sourceEmpty`, and named `.warn()` non-vacuity rows. **Re-reviewed 2026-11-08, Rewrite needed** (see the third Review): the direction holds, but the severity split and the empty-facts finding cannot be built as decided, the contract misses doc-comment coverage and the declaration's end, and A1's plan could not close as scoped; ask A1's section is to be rewritten with those decided, then re-reviewed. **A1 rewritten 2026-11-09** ("Ask A1, rewritten 2026-11-09"): two conditions, each its own rule (`resolveAgainst` for a rename or a move, `holdAtTheirLines` for drift); the facts' emptiness read by the builder; A1 closing on package tests and `check:examples` rows, with this repository's wiring moved to A2's plan; a `CodeFacts` contract with doc-comment coverage and the declaration's end. It asks for a re-review of those decisions only. Asks B and C stay held. The 2026-11-08 text of ask A is kept as Appendix C; the first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
+**State:** Draft — filed 2026-10-27 from dogfooding [plan 0550](../plans/completed/0550-a-plain-mention-is-fixed-to-the-one-record-it-names.md)'s fix on this repository; reviewed 2026-10-27, Split and sequence, all three asks held (see Review). **Rewritten 2026-11-08 against that review, by the coordinator session, at the maintainer's request** ("rewrite Proposal 021"): it settles the review's five critical items from a committed instrument and two judged samples, and asked for a re-review of ask A alone. **Re-reviewed 2026-11-08, Split and sequence** (see the second Review): ask A is split into A1 (eess-md) and A2 (the TypeScript code facts), both held behind one spike. **Spiked 2026-11-08** ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)): it decides the four critical items for A1, so they can be overruled: an opt-in `mentions()` reading that keeps inline-code delimiters (467 of 485 before-form pairs), only the named declaration's doc comment green and never its body (16 of 16 right, 8 of 14 body greens wrong), an eess-md `CodeFacts` contract with coverage per file and the kernel's `sourceEmpty`, and named `.warn()` non-vacuity rows. **Re-reviewed 2026-11-08, Rewrite needed** (see the third Review): the direction holds, but the severity split and the empty-facts finding cannot be built as decided, the contract misses doc-comment coverage and the declaration's end, and A1's plan could not close as scoped; ask A1's section is to be rewritten with those decided, then re-reviewed. **A1 rewritten 2026-11-09** ("Ask A1, rewritten 2026-11-09"): two conditions, each its own rule (`appearInTheirFile` for a rename or a move, `resolveAtTheirLines` for drift; named `resolveAgainst` and `holdAtTheirLines` at the rewrite); the facts' emptiness read by the builder; A1 closing on package tests and `check:examples` rows, with this repository's wiring moved to A2's plan; a `CodeFacts` contract with doc-comment coverage and the declaration's end. **Re-reviewed 2026-11-09, Split and sequence** (see the fourth Review): two lenses found it ready, enforcement found three criticals; each was closed in the text by narrowing (the rename rule reads the file's text, covered means covered for every kind, each row asserts its cause), and the rename rule's 27 reds were judged (7 right), so A1's example runs both rules at `.warn()`. A1 stays `Held`, accepted in substance, until its Draft plan is filed. Asks B and C stay held. The 2026-11-08 text of ask A is kept as Appendix C; the first submission is preserved as Appendix A; the judged samples are recorded by value in Appendix B.
 **Priority:** High — unchanged. The records cite code as evidence, and a check that the line exists is all the gate gives. A consuming project has now hit the same class of defect; A1 catches a rename or a drift of the named code, while that project's own case, prose that no longer describes a function still on its line, stays a Tier-4 review.
 **Origin:** self-found · the maintainer, 2026-10-27: "if we in the md link to code in our codebase,
 the link needs to be real and work; this way we can catch wrong or old code refs". 2026-11-08: a
@@ -135,11 +135,12 @@ const NAMED =
 declare const code: CodeFacts // hand-built here; eess-ts's producer is ask A2
 
 // The cited file still holds the name: a rename or a move. Needs no code facts, any language.
+// At .warn() until a corpus's own rate is measured: 7 of 27 right here (below).
 mentions(c, { pattern: NAMED, keepBackticks: true })
   .should()
   .appearInTheirFile()
   .rule({ id: 'docs/code-names-appear' })
-  .check()
+  .warn()
 
 // The cited line still holds it: drift. The caller picks its severity.
 mentions(c, { pattern: NAMED, keepBackticks: true })
@@ -164,14 +165,30 @@ each rule its own id and severity. A kernel per-finding severity, or content fin
   line count (`readCorpusFile`, `packages/md/src/conditions/pointer-resolve.ts:102`), and it takes
   no code facts.
   - **Red** when the token is absent: a rename, a removal, or a move to another file. A formatter
-    cannot cause it, and a correct citation cannot fail it.
-  - **Measured: 27 such references (9 live)**, which the fourth review reproduced.
+    cannot cause it.
+  - **Measured: 27 such references (9 live)**, which the fourth review reproduced. A judge on a
+    different model read all 27 (2026-11-09):
+    - 7 are right, renames (2 of the 9 live);
+    - 9 are pinned to an old commit or to code "as shipped" (3 live);
+    - 6 are pairing artefacts (2 live);
+    - 5 are sentences that say the name is absent or removed (2 live).
+
+    The token's absence proves only that the name is not in the file, never that the sentence
+    claims it is. At that rate the stock example runs this rule at `.warn()`, like the line rule.
+    No rule in A1's example is at error.
+
+  - **Who sets the severity.** Severity is the caller's: a corpus whose references are not pinned
+    or historical can run it at `.check()`. Five of the 9 pinned rows write `` on `<commit>` ``
+    after the pointer, and the stock pattern skips such a pointer with a lookahead; the plan
+    measures what that leaves. This repository's severity is decided in A2's plan, over its own
+    rate.
   - **What it does not claim.** It does not claim the name is code: a name that survives a rename
     only in a comment stays green here, and the line condition reds it as text-only.
   - **Why text and not facts.** The fourth review measured "no fact" (the earlier definition) at 53
     (25 live). The 26 extra include correct citations of a string value (Appendix B's h30, `HEAD`
     in a template string) and words no producer lists (`catch`, `this`, `true`). At error, those
     would be false reds.
+
 - **`resolveAtTheirLines(code)`**, the line condition. A reference holds when the first cited line
   holds the name as code (a declaration, an import or a use), or lies in the named declaration's
   own doc comment ([spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s
@@ -276,7 +293,7 @@ rows. The facts cost 3.0 s against `check:corpus`'s 8.6 s, and `check:nonvacuity
 
 At HEAD that gate would report, by these rules:
 
-- 9 live renames at error;
+- 9 live rename findings (2 of them right, as judged above), at warning;
 - about 138 live drifted or text-only references at warning (the fourth review);
 - not-judged findings for 12 files (20 live pairs), until they are left out or covered.
 
@@ -388,7 +405,11 @@ export type CodeName =
   wrong** ([bug 0363](../bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md)'s
   class):
   - **Renamed or moved** (`appearInTheirFile`): "`X` no longer appears in F. If it was renamed,
-    write its new name; if it moved, cite the file it moved to."
+    write its new name; if it moved, cite the file it moved to. If the sentence says `X` is gone,
+    historical or at an old commit, take the name or the pointer out of the reference form." That
+    last clause is the one that clears the 5 rows saying the name is absent and the 9 pinned ones.
+  - **No fact of `X` in a covered file** (`resolveAtTheirLines` alone): the same remedy, since it is
+    a rename seen by the line rule.
   - **Declared once, at `module` or `member` scope:** "the cited line does not hold `X`; `X` is
     declared at line N. Cite line N if the sentence means the declaration, or the line of the use it
     means." Never "move the pointer to N".
@@ -415,8 +436,8 @@ export type CodeName =
   - Under the rule as stated, 9 ranges newly red (the fourth review). The section's earlier "15"
     counted tokens, not the rule.
   - One of the 9 was judged correct: Appendix B's h05 (`FAULT_ADVICE`, cited at
-    `packages/ts/src/core/diagnose.ts:614-623`). It is a known false red, and its remedy is to
-    start the range at the declaration.
+    `packages/ts/src/core/diagnose.ts:614-623`). It is a known false red. Its judge read the
+    sentence as meaning the use inside the range, which the two-way remedy names.
 - **Leaving a file out is a selection, by name.** A caller leaves out references into a file the
   facts do not cover with `.that().satisfy(not(predicateHaveTextMatching(…)))` over the match's
   text. `predicateHaveTextMatching` (`packages/md/src/predicates/text.ts:13`) already composes with
@@ -1012,6 +1033,133 @@ the plan would build from that text. So the ruling is a rewrite of ask A1's sect
 numbers, with critical items 1–4 decided. Then re-review those decisions only. No plan until A1 is
 unheld.
 
+## Review — 2026-11-09, ask A1, after its rewrite
+
+**Ruling: Split and sequence**
+
+The architect, product and enforcement lenses re-reviewed "Ask A1, rewritten 2026-11-09" at
+96d41f41, each on its own reading of the code. The scope was only whether that text decides the
+third review's items, and whether each decision can be built and can go red. Ask A2 was argued,
+not settled; asks B and C were not reviewed.
+
+The lenses split:
+
+- **Architect: ready for a Draft plan**, with eight important corrections and no critical.
+- **Product: ready for a Draft plan**, with five important gaps and no critical.
+- **Enforcement: not ready**, with three criticals, each fixable in the text.
+
+All three found the direction settled and every third-review item addressed:
+
+- severity per rule;
+- the facts' emptiness read by the builder;
+- A1 closing without this repository's wiring;
+- a contract with a `doc` kind and the declaration's end.
+
+The coordinator verified each critical against the code. All three were real, and each was closed
+in the text in this PR by narrowing, not by a new mechanism. The enforcement lens then checked the
+amendment at c1060963: C1 and C3 closed, and C2 open on one claim, closed by judging all 27 of the
+narrowed rule's reds (below). That was done under the house rule that a review
+round's findings cut scope rather than add rounds. Every important item is decided in the amended
+text or recorded as a requirement of the plan. So the ruling keeps `Split and sequence`, and ask A1
+stays `Held`: accepted in substance, unheld when its Draft plan is filed, as
+[proposal 020](./020-a-fix-dry-run-a-reader-can-review.md)'s ask A was.
+
+### Critical (enforcement), and how each was closed
+
+1. **Rows 3 and 5 could not go red.** A text-only and a drifted finding share a rule id and a
+   severity, and so do an uncovered file and a rename. Each row now asserts its cause by a message
+   fragment, as the test at `scripts/check-nonvacuity.mjs:1313-1363` tells causes apart.
+2. **The file condition's reds were half unmeasured, and the acceptance criteria contradicted the
+   rules.**
+   - "No fact in the file" gives 53 (25 live), not the 27 (9 live) the text counted. The 26 extra
+     include a correct citation of a string value (h30) and words no producer lists.
+   - Closed by narrowing: the file condition (now `appearInTheirFile`) reads the cited file's text
+     for the name as a whole token, needs no facts, and is exactly the 27 that were counted. A
+     correct citation cannot fail it.
+   - h30 and h05 are now fixtures asserting their red, each with its remedy, not green holders.
+   - **Then judged, at the enforcement lens's follow-up.** The narrowed text claimed "a correct
+     citation cannot fail it", and the 27 had never been judged. A judge on a different model read
+     all 27 (Appendix B): 7 are renames (2 of 9 live); the rest are pinned to an old commit (9),
+     pairing artefacts (6), or sentences saying the name is absent (5). The claim is replaced by
+     that rate. The stock example runs the rule at `.warn()`, and the rename remedy gains the clause
+     that clears an absent or pinned name. So nothing in A1's example is at error; this
+     repository's severity is A2's plan's, over its own rate.
+3. **The declarations-only token rule could bring back the 61 doc-comment reds** that the `doc`
+   kind was added to stop. Closed by narrowing: a file is covered only for every kind of fact, and
+   per-kind coverage and the token rule are dropped. A project whose producer cannot cover a file
+   still has `appearInTheirFile`.
+
+### Important, decided in the amended text
+
+- **Reported twice over zero references.** The empty-facts finding uses [spike 0640](../spikes/0640-an-input-side-loaded-nothing.md)'s two-branch
+  shape (`packages/core/src/correspondence.ts:165-170`), with a row that reds a build that always
+  merges (architect).
+- **Precedence.** Empty facts report alone; "none covered" replaces the per-file findings
+  (architect).
+- **The code-span test.** It is computed by the reading as `MdMention.codeGroups`, new public API,
+  and required by the conditions, so the reading fixes no reference shape (architect, product).
+- **Required keys.** `CodeName` is a discriminated union, so a misspelt field does not compile
+  (architect).
+- **Leaving a file out** goes through `not(predicateHaveTextMatching(…))`, the existing public
+  predicate, since `eess/examples-md-no-hand-built-rules` bars a hand-built one. Files are listed
+  explicitly, never derived from coverage (architect).
+- **External roots.** `pointers().resolve()` is unchanged. The conditions take `externalRoots`, and
+  the fixture uses a disk tree, since `corpusFromText` refuses the option (architect, product).
+- **The counting cites [ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5**, not [ADR-016](../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md). The terminal stamps `ruleId` (architect).
+- **Remedies.** There is one for every class, the import-only and use-only causes are split, and
+  the range remedy names the declaration and the use, not only the use (enforcement, product).
+- **Counts restated under the stated rules** (enforcement):
+  - 105, 64 and 285 (62, 35 and 138 live);
+  - 9 newly red ranges, not 15, and h05 among them was judged.
+- **Rows** for the range rule, "none covered", the `doc`-span refusal and a failed capture; unit
+  tests for the rest (enforcement).
+- **A failed capture** and **a reading without `keepBackticks`** are findings (enforcement,
+  product).
+- **The source-empty finding names no source** yet: [bug 0641](../bugs/0641-the-empty-source-finding-names-no-source.md)
+  (enforcement).
+- **A file-header doc comment** is the producer's obligation, pinned by A2's fixture (enforcement).
+- **The live text** no longer carries the consuming project's line, and the Priority line no longer
+  implies A1 catches that project's Tier-4 case (product).
+- **The ADR trigger, recorded.** If A2 lands in eess-ts, `CodeFacts` becomes a structural contract
+  between two dialects, and that needs an ADR first (architect).
+- **Names:** `holdAtTheirLines` became `resolveAtTheirLines` (product).
+- **A rename the line rule sees alone** gets the rename remedy (enforcement, follow-up).
+- **h05's note** now names the use its judge read, as the two-way remedy does (enforcement,
+  follow-up).
+
+### Plan detail, carried to the plan
+
+- the unit tests named for the pointer classes, an empty covered file, and the precedence;
+- the README lines on double reporting and on one condition per rule;
+- the residual that a leave-out never expires: a left-out file that later gains coverage stays
+  unjudged. A finding when a left-out file is in `code.coverage` is the plan's to weigh, since the
+  condition does not see the selection (enforcement, follow-up);
+- the stock pattern's lookahead for a commit-pinned pointer, and the rate it leaves;
+- the 138 live warnings argued against [ADR-009](../../adr/009-agent-first-failure-surfaces.md) rule 1's migration corollary, in A2's plan.
+
+### Corrections the rewrite committed in itself
+
+- Its 27 counted token absence, while its rule said "no fact". The two differ by 26.
+- Its 117/61/276 were measured under the "any line" range rule it rejected.
+- Its "15 newly red ranges, none judged" counted tokens, and h05 was judged.
+- Its acceptance criteria held h30 and h05 green against its own rules.
+- Its citation for `collectViolations` named the inherited method; `MentionRuleBuilder` overrides
+  it (`packages/md/src/builders/mentions.ts:131`).
+- Its "check the facts' roots" named something `CodeFacts` does not have.
+- Its amendment claimed "a correct citation cannot fail" the file rule before its 27 reds were
+  judged; 20 of them were wrong.
+
+### Disposition
+
+| Ask                                                               | Disposition | What would unhold it                                                                                                                                                               |
+| ----------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A1** — the reading and two conditions, in eess-md, any language | `Held`      | Accepted in substance with the amendments in this PR. Unheld when its Draft plan is filed, declaring `**Implements:** proposal 021` and carrying the plan-detail items above       |
+| **A2** — the TypeScript code facts                                | `Held`      | Unchanged: open question 1, decided under [ADR-007](../../adr/007-isolate-ast-engine-boundary.md)'s constraint and the `eess/ts-isolated` rule. An eess-ts home needs an ADR first |
+| **B** — a link into code carries a line                           | `Held`      | Unchanged from the first review                                                                                                                                                    |
+| **C** — a fix for a drifted reference                             | `Held`      | Unchanged; it also owns the per-group source offsets                                                                                                                               |
+
+**Recommended next step:** file A1's Draft plan (`/plan`). That is the maintainer's call.
+
 ## Appendix A — first submission (superseded 2026-11-08)
 
 > Preserved below the review rather than edited away, per the lane's rule (the shape
@@ -1271,6 +1419,41 @@ m27	work/bugs/0447-adr-enforcement-reads-a-dotted-name-as-a-file.md:14	PATH_RE	p
 m28	work/proposals/017-md-blocks-to-check-a-documents-shape.md:325	scenarioCitationsResolve	packages/crossvalidate/src/md-gherkin.ts:104	declared at 110	in-body	Inside the function docblock, six lines above declaration.
 m29	work/bugs/fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md:57	isDoneItem	packages/md/src/rules/ledger.ts:200-208	declared at 546	drifted	Docblock for a label regex; isDoneItem at 546.
 m30	work/proposals/017-md-blocks-to-check-a-documents-shape.md:709	DEFAULT_FROZEN	packages/md/src/corpus.ts:53	declared at 78	drifted	Comment in options docs; DEFAULT_FROZEN at 78.
+```
+
+### The rename sample, 2026-11-09
+
+Every before-form pair whose name is not a token anywhere in its cited file (27, at f17759a6): the references `appearInTheirFile` would red. All of them, not a sample, judged by a judge on a different model from the one that wrote the rule. Fenced, so no gate reads it.
+
+```tsv
+id	live	doc	name	pointer	verdict	reason
+r01	True	work/bugs/0128-enforcement-status-is-the-cell-nothing-derives.md:90	testDefinesIt	packages/md/src/rules/adr.ts:47	renamed	testDefinesIt was removed when bug 0111 made adrEnforcement stop resolving test titles; line 47 is now a comment.
+r02	True	work/bugs/0319-a-killed-runs-leftovers-in-tests-generated-red-lint-and-nothing-names-them.md:22	__generated__	eslint.config.ts:7	absent-on-purpose	The sentence states that the ignores do not name __generated__.
+r03	True	work/bugs/0619-ledger-findings-carry-no-rule-id.md:14	ruleId	packages/md/src/rules/ledger.ts:731	absent-on-purpose	The sentence states that ruleId is unset at that finding.
+r04	False	work/bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md:110	isFrontMatter	packages/md/src/model/prose.ts:48	renamed	isFrontMatter no longer exists in prose.ts; front-matter logic is now notFrontMatterBecause and related functions.
+r05	False	work/bugs/fixed/0104-it-title-capture-stops-at-any-quote.md:103	IT_NAME_RE	gherkin-ts.ts:46	pinned	The cite says "as shipped" for a historical gherkin-ts.ts line; IT_NAME_RE is gone and the file is now under packages/crossvalidate/src.
+r06	False	work/bugs/fixed/0136-link-fragments-are-never-checked.md:26	resolveTargets	resolve.ts:39-51	pinned	The bug record says these resolve.ts line references predate plan 0404 and are kept as history.
+r07	False	work/bugs/fixed/0136-link-fragments-are-never-checked.md:98	resolveTargets	resolve.ts:39-51	renamed	resolveTargets was replaced by the one link resolver in plan 0404 and no longer exists anywhere.
+r08	False	work/bugs/fixed/0236-the-compose-path-for-a-custom-citation-form-is-undocumented.md:22	IT_CITE_RE	packages/md/src/rules/adr.ts:44	pairing	IT_CITE_RE is the second of two named constants; the sentence lists PATH_RE at :43 and the title regex was dropped, so only the path check remains at that location.
+r09	False	work/plans/completed/0088-fold-ts-archunit-into-eess.md:232	dependencies	packages/core/src/index.ts:5	absent-on-purpose	dependencies is named as a package.json field the kernel does not have; the pointer is for the identity comment.
+r10	False	work/plans/completed/0237-eess-runtime-use-only-in-rule-files.md:527	GlobSite	identity.ts:83	renamed	GlobSite is no longer in an identity.ts at that location; the sentence cites a stamp site in packages/ts/src/predicates/identity.ts that has moved.
+r11	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:45	modules	conditions/function.ts:56	pairing	modules() belongs to the structural.ts builder list; function.ts:56 is the pointer for the function implementation.
+r12	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:298	ruleId	packages/ts/src/conditions/function.ts:56-73	absent-on-purpose	The sentence says the function.ts copy has no ruleId.
+r13	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:358	codeBlocks	packages/md/src/builders/docs.ts:24	pairing	codeBlocks() is the subject of code-blocks.ts:91; docs.ts:24 is the pointer for docs().
+r14	False	work/plans/completed/0456-kernel-notexist-and-dead-glob.md:523	onDocument	code-blocks.ts:21	absent-on-purpose	The plan says onDocument is to be replaced by inDocuments (plan 0457).
+r15	False	work/plans/completed/0457-a-rule-limited-to-the-documents-the-caller-chooses.md:51	onDocument	packages/md/src/builders/code-blocks.ts:21	renamed	onDocument was replaced by inDocuments in code-blocks.ts by plan 0457.
+r16	False	work/plans/completed/0458-the-examples-gate-a-document-shape-from-public-blocks-only.md:214	Condition	packages/core/src/predicate.ts:7	pairing	Condition is defined in condition.ts:77; predicate.ts:7 is the pointer for Predicate.
+r17	False	work/plans/completed/0496-sections-as-elements.md:49	statesAcceptanceCriteria	scripts/check-corpus.mjs:916-917	pinned	The sentence places the code "on main after PR #245"; statesAcceptanceCriteria has since gone from check-corpus.mjs.
+r18	False	work/plans/completed/0580-md-a-raw-html-link-is-resolved.md:29	OPENS_A	packages/md/src/model/phrasing.ts:64	pinned	The pointer is stated "on 6bcd35e6" and OPENS_A has since moved into the html-attributes owner.
+r19	False	work/plans/completed/0580-md-a-raw-html-link-is-resolved.md:153	ONE_COMMENT	packages/md/src/model/phrasing.ts:63	pinned	The pointer is stated "on 6bcd35e6" and ONE_COMMENT has since been replaced.
+r20	False	work/plans/completed/0580-md-a-raw-html-link-is-resolved.md:202	CLOSES_A	packages/md/src/model/phrasing.ts:64-65	pinned	The pointer is stated "on 6bcd35e6" and the sentence says OPENS_A/CLOSES_A move to the owner.
+r21	False	work/plans/completed/0632-a-text-corpus-honours-its-waivers.md:35	refuseWaivers	packages/md/src/corpus.ts:330	renamed	refuseWaivers no longer exists in corpus.ts after plan 0632 made a text corpus honour waivers.
+r22	True	work/proposals/001-md-corpus-rule-coverage.md:395	headerRegion	rules/ledger.ts:70	renamed	headerRegion was removed from rules/ledger.ts (and the path is relative to packages/md/src).
+r23	True	work/proposals/006-mermaid-beyond-classdiagram.md:569	declaredKind	packages/crossvalidate/src/md-mermaid.ts:47	pinned	The sentence says "when written" and notes the function moved to eess-mermaid as diagramKind.
+r24	True	work/proposals/promoted/004-corpus-content-explain.md:107	fileIndex	packages/gherkin/src/load.ts:18-20	pairing	fileIndex belongs to the corpus.ts:36-40 pointer; load.ts:18-20 is the pointer for features() and scenarios().
+r25	True	work/proposals/promoted/022-md-a-raw-html-link-is-resolved.md:156	mentions	packages/md/src/model/phrasing.ts:203	pinned	The pointer is stated "on 6bcd35e6" and mentions() is the subject of the second pointer; the file has since changed.
+r26	True	work/proposals/promoted/022-md-a-raw-html-link-is-resolved.md:212	ONE_COMMENT	packages/md/src/model/phrasing.ts:63	pinned	The pointer is stated "on 6bcd35e6" and ONE_COMMENT has since been replaced.
+r27	True	work/proposals/promoted/026-md-a-document-has-a-section-that-satisfies-a-predicate.md:333	haveContent	packages/md/src/model/section-holds.ts:14-19	pairing	haveContent() is in builders/sections.ts; section-holds.ts:14-19 is the pointer for the SectionHolding type's content kind.
 ```
 
 ## Appendix C — ask A as written on 2026-11-08 (superseded 2026-11-09)
