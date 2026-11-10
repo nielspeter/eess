@@ -50,7 +50,7 @@ The type's doc states the producer's obligations:
 
 ## Phase 2 — the facts' emptiness and coverage, read by the builder
 
-- **The registry.** `resolveAtTheirLines(code)` registers `code` on itself, in a registry shaped
+- **The registry.** `resolveAtTheCitedLines(code)` registers `code` on itself, in a registry shaped
   like `declaresSections` (`packages/md/src/model/section-declarations.ts:24`).
 - **The read.** `MentionRuleBuilder.collectViolations` (`packages/md/src/builders/mentions.ts:141`)
   reads the registered facts.
