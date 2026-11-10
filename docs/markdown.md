@@ -1075,7 +1075,7 @@ before. `collectMentions(root, pattern, { keepBackticks: true })` reads the same
 
 ### A named code reference's name is in the cited file: `appearInTheCitedFile()`
 
-A sentence that names code and points at a file, `` `pathSuffixIndex` (`src/index.ts:1`) ``, keeps
+A sentence that names code and points at a file, `` `pathSuffixIndex` (`packages/core/src/path-suffix.ts:48`) ``, keeps
 passing `pointers().resolve()` after the function is renamed: the file and the line still exist.
 `appearInTheCitedFile()` reds such a reference when the cited file no longer holds the name at all.
 It needs no code facts, so it serves any language whose names are ASCII identifiers.

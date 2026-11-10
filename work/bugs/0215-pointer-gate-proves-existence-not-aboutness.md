@@ -264,7 +264,7 @@ an unsettled design is the phantom this corpus's own lane guards forbid. So this
 mechanism is described, and whoever wants it has the design fork written down. Re-file as a
 plan when the fork is decided.
 
-**Carried in, 2026-11-10,** from [plan 0648](../plans/0648-md-a-code-reference-still-appears-in-its-file.md)'s
+**Carried in, 2026-11-10,** from [plan 0648](../plans/completed/0648-md-a-code-reference-still-appears-in-its-file.md)'s
 review, for when this repository is wired to
 [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s conditions:
 

@@ -2,46 +2,47 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-11-10 against `main` 3d15b27a, at the maintainer's "go" after
+- **State:** Done — built 2026-11-10 on `build/0648-appear-in-the-cited-file` and closed in the
+  same PR, after a build review recorded in the ledger below. Previously read: Ready — frozen 2026-11-10 against `main` 3d15b27a, at the maintainer's "go" after
   the revision (PR #336); the design was reviewed by four lenses and re-checked by two, so the
   freeze adds no decision. Its pointers into `pointer-resolve.ts` give the lines as built in
   Phase 1. Authored 2026-11-09 from
-  [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
+  [proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
   ruled in its fourth Review, and revised 2026-11-10 after its own review by the architect,
   enforcement, method and product lenses (the "Review, 2026-11-10" section below). It is the second
   of three plans that own A1, and is built after
-  [plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md).
-- **Implements:** [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)
+  [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md).
+- **Implements:** [proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md)
   (ask A1: the file condition)
 - **Priority:** High. It reds a named reference whose cited file no longer holds the name at all,
   which is a rename or a removal, or a move out of the file without the name being imported back.
   It works in any language whose names are ASCII identifiers, and needs no code facts.
 - **Effort:** Large, about four hours: Phase 1 is a refactor of a path other code relies on, and
-  lands as its own commit. [Plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md), estimated at an hour, closed with 19 tests, 15 mutants and a
+  lands as its own commit. [Plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md), estimated at an hour, closed with 19 tests, 15 mutants and a
   build review, so this estimate is not a promise.
 - **Created:** 2026-11-09
 - **Decided, each overrulable** (the departures from the proposal are marked):
   - **The condition is `mentions(…).should().appearInTheCitedFile()`.** _Renamed at review_ from
     the proposal's `appearInTheirFile`: on the same builder, `resideInFile` means the document
     that holds the mention, so "their file" read as that document. Plan
-    [0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s twin is renamed to
+    [0649](../0649-md-a-code-reference-resolves-at-its-lines.md)'s twin is renamed to
     `resolveAtTheCitedLines` to match.
   - **It requires only the `name` and `path` groups.** _A departure:_ the proposal required `line`
     for both conditions, so that an optional group could not switch a check silently. This
     condition never reads a line, so nothing switches, and a reference that names only a file
     (`` `x` in `src/a.ts` ``) is judged too. A `line` or `end` group, if present, is ignored: a
-    stale line is `pointers().resolve()`'s finding and [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s.
+    stale line is `pointers().resolve()`'s finding and [plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md)'s.
   - **It takes no `externalRoots`.** _A departure:_ the proposal gave both conditions the option. A
     path the corpus does not hold is broken, a finding, never a skip. The pointer gate's skip for an
     absent root is safe only because its caller prints the roots it found, which a rule file
     cannot. Reading external roots is left out of A1 here; an adopter who needs it brings it as a
     proposal.
   - **The commit-pinned lookahead in the stock pattern is not this plan's.** Its home is
-    [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), which owns the defect
+    [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), which owns the defect
     and gains an open box for it in this PR: it is measured over this repository's own references
     when this repository is wired, not in eess-md's example.
   - **The shared parts are built here and reused by
-    [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md):** the path classifier, the
+    [plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md):** the path classifier, the
     mention requirements, the name rule and the refusals.
   - **The stock example runs it at `.warn()`.** The judged rate is 7 right of 27 (2 of 9 live), and
     it is published only after the reconciliation in the Test inventory. Severity is the caller's.
@@ -50,11 +51,11 @@
 
 A pointer that resolves to a file and a line in range is green under `pointers().resolve()`,
 whatever the sentence names. When the named function is renamed or removed, the reference still
-passes ([bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)).
+passes ([bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)).
 
 `scripts/measure-code-reference-names.mjs` measures this. At f17759a6 it counted 27 before-form
 pairs (9 live) whose name is not a token anywhere in the cited file. A judge on a different model
-read all 27 ([proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md),
+read all 27 ([proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md),
 Appendix B):
 
 - 7 are renames (2 of the 9 live);
@@ -63,7 +64,7 @@ Appendix B):
 - 5 are sentences saying the name is absent.
 
 At 2aa45855 the instrument counts 28 (9 live). The extra pair is the forged example quoted in
-[plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md), whose `a.ts:1` resolves
+[plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md), whose `a.ts:1` resolves
 by suffix to a test fixture. These are the instrument's counts, not the rule's: the reconciliation
 below states the rule's own.
 
@@ -110,7 +111,7 @@ export function citedPaths(corpus: Corpus, mode: 'suffix' | 'exact'): (wanted: s
 the pattern and the opt-in:
 
 - a pattern without one of the groups its condition requires: `name` and `path` here, and `name`,
-  `path` and `line` for [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s. The shared check takes the list. The groups are listed with
+  `path` and `line` for [plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md)'s. The shared check takes the list. The groups are listed with
   `new RegExp('(?:' + source + ')|', flags).exec('').groups`, with the caller's flags less `g` and
   `y` (so a pattern that needs `u` or `v` compiles), never by searching the source for `(?<`;
 - a rule over a reading without `keepBackticks`. The message names the option.
@@ -124,7 +125,7 @@ applies is the only one reported:
 1. **`name` or `path` did not capture:** "the pattern's `<group>` group did not capture here; make
    it required".
 2. **`name` or `path` is not inside one code span** (missing from `codeGroups`): "write the name and
-   the path each in its own code span". This catches the forged name of [plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md).
+   the path each in its own code span". This catches the forged name of [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md).
 3. **The judged name is not an identifier.** The name rule: the last `.`-separated segment of the
    `name` group must match `^[A-Za-z_$][\w$]+$`, an identifier of at least two characters, so
    `` `foo.` `` (an empty segment) and `` `x` `` (a token in nearly any file) never become a token,
@@ -132,7 +133,7 @@ applies is the only one reported:
    A dotted name `a.b.c` is judged as `c`, and the message says so. **A known limit:** a file name
    the pattern captures as a name (`` `config.ts` ``) is judged as `ts`, an identifier, and holds
    wherever `ts` is a token, such as `'./x.ts'` in an import. eess-md keeps no list of extensions
-   ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)); the caller's pattern
+   ([ADR-022](../../../adr/022-eess-mds-root-fixes-no-documents-shape.md)); the caller's pattern
    excludes file names, the stock pattern's documentation says so, and the reconciliation counts
    what remains.
 4. **The path is ambiguous.** This one is not judged: it is marked `bypassFilters`, fails `.warn()`
@@ -141,7 +142,7 @@ applies is the only one reported:
 
 **Kinds of finding.** One finding per mention: each mention is its own cause, as eess-md's unread
 findings are. Findings 1–4 are "cannot judge", marked `bypassFilters`
-([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5), so a rule
+([ADR-021](../../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5), so a rule
 that judged nothing never exits 0 under `.warn()`. A test drives `.warn()` itself, since
 `.violations()` cannot see the flag.
 
@@ -181,7 +182,7 @@ contract (`scripts/check-nonvacuity.mjs:1155-1158`): `fixtures/<name>/clean/` an
 `fixtures/<name>/violating-<judgement>/` per judgement.
 
 It uses the stock pattern, frozen by value in
-[plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md):
+[plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md):
 
 ```js
 const NAMED =
@@ -230,7 +231,8 @@ sit in frozen records.
 - `packages/md/tests/model/code-path.test.ts` (new)
 - `packages/md/tests/conditions/appear-in-the-cited-file.test.ts` (new)
 - `examples/md/a-named-code-reference-appears-in-the-cited-file.test.ts` (new)
-- `examples/md/fixtures/a-named-code-reference-appears-in-the-cited-file/` (new)
+- `examples/md/fixtures/a-named-code-reference-appears-in-the-cited-file/` (new; its code files are
+  Python)
 - `scripts/check-nonvacuity.mjs` (four rows, and their ids in `GATE_FOR['check:examples']`)
 - `docs/markdown.md`
 - `packages/md/README.md`
@@ -241,72 +243,111 @@ sit in frozen records.
 ## Test inventory
 
 Each finding is asserted by its cause, a message fragment, never by rule id and severity alone.
+Built 2026-11-10 in five commits on `build/0648-appear-in-the-cited-file`: Phase 1 alone
+(1422068b), Phases 2–3 (45356d76), Phase 4 (c94448a7), and a test the matrix asked for (b33c84c2).
 
-- [ ] **Phase 1:** the classifier's three outcomes, each with its data; a `../` path is broken; one
-      read per file across many references; in `exact` mode a suffix-only match is broken, with
-      `unique` set for one match.
-- [ ] **The name rule's limit:** `` `config.ts` `` in a sentence citing a file that imports
-      `'./x.ts'` holds, pinned as the stated limit. Every existing `pointers().resolve()` test passes
-      unchanged.
-- [ ] **Phase 2, through the public root:**
-  - each refusal;
-  - each per-mention finding;
-  - the order: a forged name whose group also failed to capture reports "did not capture" only;
-  - the `bypassFilters` flag, through a `.warn()` run that must throw.
-- [ ] **Phase 3:**
-  - broken;
-  - resolved and holds;
-  - resolved and misses;
-  - a name present only in a comment holds, the rule's stated limit;
-  - `pathSuffix` does not hold where the file has only `pathSuffixIndex`;
-  - two red references on one line give two findings, and the element's format is pinned.
-- [ ] **The unread wording:** a `beLinked` rule and an `appearInTheCitedFile` rule over the same
-      reference-style link both read "this rule cannot judge it".
-- [ ] **Zero examined** is the kernel's finding unless declared; with `.expectEmpty()` over no
-      reference, green.
-- [ ] **The reconciliation.**
-  - **Run.** The built condition, with the stock pattern, over this repository's corpus
-    (`check:corpus`'s roots and frozen globs) at the build commit.
-  - **Compare.** Its red count per document is set against the instrument's no-token rows at the
-    same commit.
-  - **Count every class**, the four that cannot be waived too (a failed capture, a name outside a
-    code span, a name the rule cannot look for, an ambiguous path): they fail even under `.warn()`
-    and no `eess-exclude` drops them (`packages/core/src/execute-rule.ts:68`), and an ambiguous
-    suffix has been real here before. The docs say so.
-  - **Record.** Every difference goes in this ledger, with a count and a reason; 18 pattern-only or
-    instrument-only pairs are expected from
-    [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md). The rate the
-    docs publish is the rule's, from this run, with the judged sample's verdicts carried over where
-    the pairs agree.
-- [ ] **Four `check:nonvacuity` rows against `check:examples`.**
-  - Each row names the built file it edits, the `from` string, and the test that must go red by its
-    cause.
-  - Each row has a control: a `refuses:` test in the same file that must stay passed, so a red
-    caused elsewhere does not count.
-  - `examples/md-a-renamed-reference-is-red`: the token check made always true. The test
-    `violating-renamed:` reds on "is not in".
-  - `examples/md-an-empty-name-is-not-judged`: the name rule removed. The test
-    `violating-empty-name:` reds on "is not a name this rule can look for".
-  - `examples/md-keep-backticks-is-read`, deferred from [plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md): the reading's opt-in ignored in
-    `findMentions`. The `clean:` test reds on its examined count, which drops to zero.
-  - `examples/md-code-groups-exclude-a-forged-span`, deferred from [plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md): `codeGroups` made to
-    list every captured group. The test `violating-forged-name:` reds on "each in its own code
-    span".
-- [ ] **The sabotage matrix**, in a worktree with its own install, one mutant at a time, against the
-      new test files and the example:
-  - every check in Phases 1–3;
-  - [plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md)'s mutants M1 (a caller's `d` flag), M3 (one cache for both copies), M4 (a group
-    including its backticks), M5 (the line clamp) and M8 (a span across segments), run against
-    this plan's example. Each is expected to survive the example, since the example does not
-    exercise it. Each survivor is recorded as covered by [plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md)'s package tests only.
+- [x] **Phase 1** (`packages/md/tests/model/code-path.test.ts`, 6 tests): the classifier's three
+      outcomes with their data; a `../` path is broken; `exact` mode's suffix match is broken with
+      `unique`; one cache per corpus and mode. Every existing `pointers().resolve()` test passed
+      unchanged (the whole eess-md suite, 76 files and 1,284 tests, 13 s, on 1422068b), and
+      `check:corpus` read this repository's 1,204 live pointers alike, its one finding being this
+      plan's own pointer into the file the refactor shortened, refreshed at the freeze.
+- [x] done-otherwise — the `resolved` outcome carries only `rel`; the file's text, line count and
+      tokens come from the classifier object (`text`, `lines`, `tokens`), so a pointer that needs
+      only its line count never builds a token set.
+- [x] **The name rule's limit:** `` `config.ts` `` citing a file that imports `"./x.ts"` holds,
+      pinned as the stated limit.
+- [x] **Phase 2, through the public root** (`packages/md/tests/conditions/appear-in-the-cited-file.test.ts`,
+      18 tests): each refusal, its message asserted; each per-mention finding; the order (a group
+      that did not capture is reported alone); `bypassFilters` through a `.warn()` run that throws,
+      beside a plain miss that does not. done-otherwise — the flags test uses a `v` pattern, since a
+      `u` one compiles without its flag and pinned nothing (the matrix's survivor, below).
+- [x] **Phase 3:** broken; resolved and holds; resolved and misses, with its four remedies; a name
+      left only in a comment holds; `pathSuffix` does not hold where the file has only
+      `pathSuffixIndex`; two reds on one line are two findings, their element format pinned; an
+      ambiguous path, not judged.
+- [x] **The unread wording:** a `beLinked` rule and an `appearInTheCitedFile` rule over one
+      reference-style link both read "so this rule cannot judge it".
+- [x] **Zero examined** is the kernel's finding unless declared; with `.expectEmpty()`, green.
+- [x] **The reconciliation**, at 45356d76, the built condition over `check:corpus`'s roots and frozen
+      globs with the stock pattern: 482 references examined in 0.23 s.
+  - **"Is not in": 30 (10 live).** The instrument counts 29 (10 live) no-token before-form pairs
+    at the same commit, and all 29 are among the 30. The one more is the stated limit:
+    `` `mentions.ts` `` at `work/plans/completed/0580-md-a-raw-html-link-is-resolved.md:259`,
+    judged as `ts`, which its cited file does not hold; the instrument's name filter drops file
+    names.
+  - **Cannot be judged: 7**, each correct, each failing `.warn()`:
+    - 2 names of one character (`P` in [bug 0396](../../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md),
+      `g` in [proposal 019](../../proposals/019-md-a-mention-is-a-link-built-from-blocks.md)), both live;
+    - 1 name outside a code span: [bug 0608](../../bugs/0608-an-emitter-finding-prints-its-message-twice.md)'s
+      line 25, the shifted-span shape [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md) pinned, live;
+    - 4 ambiguous paths (`rule-builder.ts` twice, `cli/index.ts`, `project.ts`), all in frozen
+      records.
+  - **The published rate** is the judged sample's (27 at f17759a6, 7 renames), whose rows are among
+    the 29; the docs quote it as such.
+- [x] **Four `check:nonvacuity` rows against `check:examples`**, sharing one helper
+      (`gateCodeReference` in `scripts/check-nonvacuity.mjs`), each naming its built file and
+      `from` string, reading its target and its control (`refuses: a reading without
+keepBackticks, when the rule is built`) by title. Each was run by hand the way the row runs
+      it, 2026-11-10: unsabotaged, target and control passed; sabotaged, target failed and control
+      passed.
+  - `examples/md-a-renamed-reference-is-red`: the token check made always true.
+  - `examples/md-an-empty-name-is-not-judged`: the name rule removed.
+  - `examples/md-keep-backticks-is-read` (from [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md)): the reading's opt-in ignored;
+    the `clean:` test fails on its examined count.
+  - `examples/md-code-groups-exclude-a-forged-span` (from [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md)): every captured group
+    listed as code.
+- [x] **The examples' fixture contract:** each of the four `violating-*` swaps fails exactly its own
+      tests and passes the rest, and the reverse swap fails `clean:` and passes every `violating-*`
+      test, checked by hand with `EESS_EXAMPLE_SWAP`. Added at build: the fixtures' code files are
+      Python (`src/index.py`), since `eess/examples-md-uses-a-block` reads a `.ts` file under
+      `examples/md/` as an example that imports nothing from eess-md; it also shows the rule
+      outside TypeScript.
+- [x] **The sabotage matrix**, 2026-11-10, on c94448a7 and b33c84c2 in a worktree with its own
+      `npm ci` and builds, one mutant at a time, against the two new package test files with
+      `autofix.test.ts` and `pointers.test.ts` (43 s for the run). Restored, 0 red before and after.
+      Every one of the 21 mutants of this plan's code red at least one test:
+
+      | mutant | tests red |
+      | --- | --- |
+      | `exact` mode: a unique suffix resolves | 1 |
+      | `exact` mode: `broken` carries no `unique` | 1 |
+      | `suffix` mode: ambiguous read as broken | 1 |
+      | an empty token kept | 1 |
+      | one cache for both modes | 1 |
+      | a leading `./` kept | 1 |
+      | the capture check removed | 1 |
+      | the code-span check removed | 2 |
+      | the name rule removed | 2 |
+      | one character is a name | 2 |
+      | a dotted name judged whole | 3 |
+      | cannot-judge findings waivable | 4 |
+      | the `keepBackticks` refusal removed | 1 |
+      | the group refusal removed | 1 |
+      | the group listing drops the caller's flags | 1 |
+      | the name rule checked before the capture | 2 |
+      | an ambiguous path judged | 1 |
+      | a broken path passes | 1 |
+      | the token check always true | 4 |
+      | the builder passes the wrong opt-in | 1 |
+      | the unread wording reverted | 1 |
+
+      [Plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md)'s reading mutants M1, M3, M4, M5 and M8, run against this plan's example
+      after a rebuild, each red 0 there, as expected: the example does not exercise them. They
+      stay covered by plan 0647's package tests only.
+
+      _The first run had three faults: a mutant whose text prettier had reformatted did not apply;
+      "the builder skips the refusals" still called it and proved nothing, replaced by "passes the
+      wrong opt-in"; and "the group listing drops the caller's flags" survived, since the `u`
+      pattern compiled without its flag. A `v` pattern, which does not, now pins it._
 
 ## Out of scope
 
 - The line condition, the `CodeFacts` contract and the facts' emptiness: plan
-  [0649](./0649-md-a-code-reference-resolves-at-its-lines.md).
+  [0649](../0649-md-a-code-reference-resolves-at-its-lines.md).
 - External roots, and a stale line or range (see Decided).
 - This repository's wiring, its severity and the commit-pinned lookahead: with
-  [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s deferred boxes.
+  [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s deferred boxes.
 - Names beyond ASCII identifiers (`::`, `#`, `->` and non-ASCII names). The rule judges the last
   `.`-segment only, and says so.
 
@@ -345,11 +386,11 @@ them.
   still open, now answered:
   - the `broken` outcome carries the autofix's `unique`;
   - the name rule's claim about `config.ts` is replaced by a stated limit;
-  - [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md) records the same departures;
+  - [plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md) records the same departures;
   - names of one character are refused too, as the instrument refused them;
   - the reconciliation counts the classes that cannot be waived, and the docs say they fail at
     `.warn()`;
-  - the lookahead's home is [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), with an open box, since that bug files no wiring plan.
+  - the lookahead's home is [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), with an open box, since that bug files no wiring plan.
 - **Not taken:**
   - a "one pointer resolver" arch rule, which the architect lens noted as a consideration;
   - the `paths: 'exact'` option for the new condition, which always uses `suffix`.

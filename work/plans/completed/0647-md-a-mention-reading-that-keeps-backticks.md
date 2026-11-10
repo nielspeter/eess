@@ -10,7 +10,7 @@
   the same day from
   [proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
   ruled in its fourth Review. It is the first of three plans that own A1 between them; plans
-  [0648](../0648-md-a-code-reference-still-appears-in-its-file.md) and
+  [0648](./0648-md-a-code-reference-still-appears-in-its-file.md) and
   [0649](../0649-md-a-code-reference-resolves-at-its-lines.md) build on it.
 - **Implements:** [proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md)
   (ask A1: the reading)
@@ -163,7 +163,7 @@ Through the public root, as an adopter calls it, in
       object read first without the opt-in and then with it.
 - [x] Every existing `mentions()` test passes unchanged: the whole eess-md suite, 76 files and 1,284
       tests in 13 s, on the close commit's tree (the testing lens counted 1,277 in 14 s on 00461cb1).
-- [ ] deferred→[plan 0648](../0648-md-a-code-reference-still-appears-in-its-file.md) The example
+- [ ] deferred→[plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md) The example
       under `examples/md/` and its two `check:nonvacuity` rows. An example would duplicate that
       plan's first condition, which is where a rule first judges this reading. Until 0648 lands, no
       `check:nonvacuity` row covers this reading; the package tests and the matrix below do.
@@ -195,13 +195,13 @@ Through the public root, as an adopter calls it, in
       whole suite. Its counts were taken on the 11-test file, not on 0c3b48bb's 10 as first written
       (method review I1). The rows above add those mutants and the unread-text fix's three._
 
-Deferred: [plan 0648](../0648-md-a-code-reference-still-appears-in-its-file.md) (the example and
+Deferred: [plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md) (the example and
 its two rows).
 
 ## Out of scope
 
 - The two conditions and the `CodeFacts` contract: plans
-  [0648](../0648-md-a-code-reference-still-appears-in-its-file.md) and
+  [0648](./0648-md-a-code-reference-still-appears-in-its-file.md) and
   [0649](../0649-md-a-code-reference-resolves-at-its-lines.md).
 - Per-group source offsets, for ask C's fix.
 - A match across table cells, which a run cannot cross (`packages/md/src/model/phrasing.ts:279`).

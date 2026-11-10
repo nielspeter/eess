@@ -6,7 +6,7 @@
   [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
   ruled in its fourth Review. It is the third of three plans that own A1, and is built after plans
   [0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md) and
-  [0648](./0648-md-a-code-reference-still-appears-in-its-file.md).
+  [0648](./completed/0648-md-a-code-reference-still-appears-in-its-file.md).
 - **Implements:** [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)
   (ask A1: the line condition and the contract)
 - **Priority:** High. It catches a cited line that has drifted off the code it names, and a line
@@ -17,12 +17,12 @@
 - **Decided, each overrulable:** the contract and the rules are [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s section "Ask A1,
   rewritten 2026-11-09", as amended after its fourth review. This plan copies what it builds from
   that section and does not reopen it, except for what
-  [plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md)'s review changed (2026-11-10):
+  [plan 0648](./completed/0648-md-a-code-reference-still-appears-in-its-file.md)'s review changed (2026-11-10):
   - **No `externalRoots`.** The shared classifier is in-corpus only, so a cited path the corpus does
     not hold is broken under this condition too, a finding, never a skip. [Proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s acceptance
     criterion for an external file not covered by the facts falls away with it.
   - **The required groups are `name`, `path` and `line`.** The shared requirement check takes the
-    list of groups its condition needs; [plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md)'s file condition needs only `name` and `path`.
+    list of groups its condition needs; [plan 0648](./completed/0648-md-a-code-reference-still-appears-in-its-file.md)'s file condition needs only `name` and `path`.
   - **The condition is `resolveAtTheCitedLines`**, renamed from `resolveAtTheirLines`.
 
 ## Problem
@@ -74,7 +74,7 @@ The type's doc states the producer's obligations:
 
 ## Phase 3 — the condition
 
-Each mention is checked as in [plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md):
+Each mention is checked as in [plan 0648](./completed/0648-md-a-code-reference-still-appears-in-its-file.md):
 its requirements and the path classifier come first. Then:
 
 - **Not judged.** A cited file outside `coverage` gets one not-judged
