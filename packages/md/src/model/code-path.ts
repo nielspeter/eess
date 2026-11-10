@@ -23,8 +23,6 @@ type CitedPath =
 interface CitedPaths {
   /** Where `path` lands. A leading `./` or `/` is not part of the path. */
   classify(path: string): CitedPath
-  /** A resolved file's text. */
-  text(rel: string): string
   /** A resolved file's line count, as `lineCount` counts it. */
   lines(rel: string): number
   /** A resolved file's tokens: its text split on every character outside `[A-Za-z0-9_$]`. */
@@ -39,8 +37,9 @@ export function wantedPath(path: string): string {
 const CACHE = new WeakMap<Corpus, Map<'suffix' | 'exact', CitedPaths>>()
 
 /**
- * The corpus's cited paths under one resolution mode, made once per corpus and mode, so every rule
- * over the same corpus shares one index and one read of each file.
+ * The corpus's cited paths under one resolution mode, made once per corpus and mode: every rule over
+ * the same corpus and mode shares one index and one read of each file. A file is read when first
+ * asked for and kept, as a corpus keeps its documents and file index from when it was built.
  *
  * - `suffix`: the exact repo-relative path, else the one file whose path ends with it on a `/`
  *   boundary; several such files are `ambiguous`.
@@ -85,7 +84,6 @@ export function citedPaths(corpus: Corpus, mode: 'suffix' | 'exact'): CitedPaths
         ? { kind: 'broken', wanted, unique: match.file }
         : { kind: 'broken', wanted }
     },
-    text,
     lines(rel: string): number {
       let n = lineCounts.get(rel)
       if (n === undefined) {

@@ -11,12 +11,13 @@
  * condition's.
  *
  * The mentions are read with inline code's backticks kept, and the name and the path must each sit
- * in its own code span: a pattern can match a prose word dressed in escaped backticks, and that
+ * inside a code span: a pattern can match a prose word dressed in escaped backticks, and that
  * mention is reported, not judged. A finding the rule cannot judge fails even under `.warn()`.
  *
- * Over this repository the instrument behind it counted 27 such reds, of which a judge found 7 to be
- * real renames; the rest cited old code on purpose, paired a name with another name's pointer, or
- * said the name was gone. So this example runs it at `.warn()`. Each finding's remedy names all four.
+ * Over eess's own records, at f17759a6, the instrument behind it counted 27 such reds, and a judge
+ * found 7 of them to be real renames; the rest cited old code on purpose, paired a name with
+ * another name's pointer, or said the name was gone. So a rule built from this belongs at
+ * `.warn()`, and each finding's remedy names all four. This test reads the findings directly.
  */
 import { corpusFromText, mentions, type ArchViolation } from '@nielspeter/eess-md'
 import { describe, expect, it } from 'vitest'

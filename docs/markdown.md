@@ -1098,13 +1098,20 @@ mentions(corpus({ roots: ['docs/**'] }), { pattern: NAMED, keepBackticks: true }
 
 **The contract.** The mentions are read with `keepBackticks: true`, and the pattern has a `name`
 and a `path` group; a rule built otherwise is refused, naming what is missing. The name and the path
-must each sit inside its own code span. A link into code (`[x](src/a.ts)`) is not read.
+must each sit inside a code span: a quoted example inside one double-backtick span is judged too. A
+link into code (`[x](src/a.ts)`) is not read.
 
 **What it claims.** The cited file holds the name as a whole token, in code or in text. Not that a
 cited line holds it, and not that the name is code there: a name left only in a comment holds. The
-line is `pointers().resolve()`'s to check. A dotted name `a.b.c` is judged by its last segment, `c`;
-a file name the pattern captures as a name (`` `config.ts` ``) is judged as `ts`, so keep file names
-out of the pattern.
+line is `pointers().resolve()`'s to check. Its limits:
+
+- A dotted name `a.b.c` is judged by its last segment, `c`. So a file name the pattern captures as a
+  name (`` `config.ts` ``, which the pattern above does capture) is judged as `ts`, which holds in
+  most files.
+- A token is a run of ASCII letters, digits, `_` and `$`: `foo` holds in a file that has `fooébar` or
+  `foo-bar`, and a keyword (`function`) holds almost anywhere.
+- A reference that cites the document it sits in cannot be judged, since its own text holds the
+  name; it is reported as such.
 
 **What it reports.**
 
@@ -1114,12 +1121,14 @@ out of the pattern.
   27 judged, 7 were renames (2 of 9 in live documents), 9 cited old code, 6 paired a name with
   another name's pointer, and 5 were sentences saying the name was gone. That is why the snippet
   runs it at `.warn()` over live documents.
-- **A path the corpus does not hold.** `pointers().resolve()` reports the same pointer under its own
-  id, and its waivers do not cover this rule.
-- **What it cannot judge**: a group that did not capture, a name or path outside one code span (a
+- **A path the corpus does not hold.** A `pointers().resolve()` rule over the same corpus, if you
+  run one, reports the same pointer under its own id, and its waivers do not cover this rule.
+- **What it cannot judge**: a group that did not capture, a name or path outside a code span (a
   prose word dressed in escaped backticks), a name that is not an identifier of two or more
-  characters, and a path that matches several files. Each fails even under `.warn()`, and no
-  exclusion drops it: a rule that judged nothing must not read as clean.
+  characters, a path that matches several files, and a reference to its own document. Each fails
+  even under `.warn()`, and no exclusion drops it: a rule that judged nothing must not read as clean.
+  Over eess's own live documents the snippet above fails `.warn()` on three such findings: two
+  one-letter names and one name a backslash pushed out of its code span.
 
 ## The shape of a document, built from blocks
 

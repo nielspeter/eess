@@ -162,7 +162,10 @@ each rule its own id and severity. A kernel per-finding severity, or content fin
 
 - **`appearInTheirFile()`**, the file condition. A reference holds when its cited file's text
   holds the name as a whole token. It reads the file as the pointer check already reads it for its
-  line count (`readCorpusFile`, `packages/md/src/conditions/pointer-resolve.ts:102`), and it takes
+  line count (`readCorpusFile`, `packages/md/src/model/code-path.ts:66` since
+  [plan 0648](../plans/completed/0648-md-a-code-reference-still-appears-in-its-file.md) moved it
+  there; it was `pointer-resolve.ts:102`, and the built rule's first catch here was that stale
+  citation), and it takes
   no code facts.
   - **Red** when the token is absent: a rename, a removal, or a move to another file. A formatter
     cannot cause it.

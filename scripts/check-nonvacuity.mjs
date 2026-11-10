@@ -1374,10 +1374,16 @@ function gateMentionFixExactlyOne() {
  * `refuses:` test that reads the same modules, must stay passed, so a sabotage that broke loading
  * proves nothing (the trap recorded at the `.asSeverity('warn')` row).
  */
-function gateCodeReference({ built, from, to, title, what }) {
+function gateCodeReference({ built, from, to, title, what, alsoControls = [] }) {
   const started = Date.now()
   const file = join(repoRoot, 'packages', 'md', 'dist', ...built.split('/'))
-  const control = 'refuses: a reading without keepBackticks, when the rule is built'
+  // The refusal proves the modules load; `alsoControls` (the `clean:` test, where the sabotage
+  // leaves it green) proves the condition still runs, so a sabotage that only makes it throw
+  // cannot pass for the mechanism going red (plan 0648's build review).
+  const controls = [
+    'refuses: a reading without keepBackticks, when the rule is built',
+    ...alsoControls,
+  ]
   const vitest = join(repoRoot, 'node_modules', '.bin', 'vitest')
   const tmp = mkdtempSync(join(tmpdir(), 'eess-code-reference-'))
   const report = join(tmp, 'report.json')
@@ -1394,7 +1400,11 @@ function gateCodeReference({ built, from, to, title, what }) {
       const parsed = JSON.parse(readFileSync(report, 'utf8'))
       const results = (parsed.testResults ?? []).flatMap((t) => t.assertionResults ?? [])
       const of = (t) => results.find((r) => r.title === t)?.status ?? 'missing'
-      return { target: of(title), control: of(control) }
+      const failing = controls.filter((t) => of(t) !== 'passed')
+      return {
+        target: of(title),
+        control: failing.length === 0 ? 'passed' : `${failing.join('; ')} not passed`,
+      }
     } catch {
       return { target: 'no report', control: 'no report' }
     } finally {
@@ -1437,6 +1447,9 @@ const gateARenamedReferenceIsRed = () =>
     to: 'true',
     title: 'violating-renamed: a name the cited file no longer holds is red, with four remedies',
     what: 'the token check made always true',
+    alsoControls: [
+      'clean: every named reference names code its file holds, a dotted one by its last segment',
+    ],
   })
 
 const gateAnEmptyNameIsNotJudged = () =>
@@ -1446,6 +1459,9 @@ const gateAnEmptyNameIsNotJudged = () =>
     to: 'false',
     title: 'violating-empty-name: a name with nothing after its last dot is reported, never passed',
     what: 'the name rule removed',
+    alsoControls: [
+      'clean: every named reference names code its file holds, a dotted one by its last segment',
+    ],
   })
 
 const gateKeepBackticksIsRead = () =>
@@ -1465,6 +1481,9 @@ const gateCodeGroupsExcludeAForgedSpan = () =>
     to: 'if (true)',
     title: 'violating-forged-name: a name dressed in escaped backticks is reported, not judged',
     what: 'codeGroups made to list every captured group',
+    alsoControls: [
+      'clean: every named reference names code its file holds, a dotted one by its last segment',
+    ],
   })
 
 function gateExamplesMdLoadBearing() {

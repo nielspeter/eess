@@ -18,6 +18,7 @@ describe('plan 0648: citedPaths', () => {
     const paths = citedPaths(corpusFromText(FILES), 'suffix')
     expect(paths.classify('src/solo.ts')).toEqual({ kind: 'resolved', rel: 'src/solo.ts' })
     expect(paths.classify('./src/solo.ts')).toEqual({ kind: 'resolved', rel: 'src/solo.ts' })
+    expect(paths.classify('/src/solo.ts')).toEqual({ kind: 'resolved', rel: 'src/solo.ts' })
     expect(paths.classify('solo.ts')).toEqual({ kind: 'resolved', rel: 'src/solo.ts' })
     expect(paths.classify('one/util.ts')).toEqual({ kind: 'resolved', rel: 'src/one/util.ts' })
   })
@@ -50,7 +51,6 @@ describe('plan 0648: citedPaths', () => {
   it("gives a file's text, lines and identifier tokens, with no empty token", () => {
     const paths = citedPaths(corpusFromText(FILES), 'suffix')
     expect(paths.lines('src/solo.ts')).toBe(2)
-    expect(paths.text('src/solo.ts')).toBe('// solo\nconst x = 1\n')
     const tokens = paths.tokens('src/one/util.ts')
     expect([...tokens].sort()).toEqual([
       '$go',
@@ -62,6 +62,12 @@ describe('plan 0648: citedPaths', () => {
     ])
     expect(tokens.has('')).toBe(false)
     expect(paths.tokens('src/solo.ts').has('')).toBe(false)
+  })
+
+  it("works out a file's tokens and lines once, however often they are asked for", () => {
+    const paths = citedPaths(corpusFromText(FILES), 'suffix')
+    expect(paths.tokens('src/solo.ts')).toBe(paths.tokens('src/solo.ts'))
+    expect(paths.lines('src/solo.ts')).toBe(paths.lines('src/solo.ts'))
   })
 
   it('is made once per corpus and mode, so every rule shares one read of each file', () => {

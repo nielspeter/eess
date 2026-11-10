@@ -43,9 +43,24 @@ export function appearInTheCitedFile(corpus: Corpus): Condition<MdMention> {
               m,
               ctx,
               `\`${name}\`: "${path}" does not exist in this corpus, so \`${judged}\` cannot appear in it`,
-              "Cite the file's path as it is in the corpus. pointers().resolve() reports the same " +
-                'pointer under its own id; its waivers do not cover this rule.',
+              "Cite the file's path as it is in the corpus. A pointers().resolve() rule over the same " +
+                'corpus, if you run one, reports this pointer too, under its own id; its waivers do not ' +
+                'cover this rule.',
               false,
+            ),
+          ]
+        }
+        if (cited.rel === m.doc.relPath) {
+          // The document the reference sits in holds the name in that very reference, so the
+          // check could never fail: not judged, rather than a pass (plan 0648's build review).
+          return [
+            referenceFinding(
+              m,
+              ctx,
+              `\`${name}\`: "${path}" is the document this reference sits in, whose own text holds ` +
+                'the name, so this rule cannot judge it',
+              'Cite the code the sentence means, not the document itself.',
+              true,
             ),
           ]
         }

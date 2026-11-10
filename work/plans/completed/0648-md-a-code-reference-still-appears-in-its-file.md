@@ -346,8 +346,11 @@ keepBackticks, when the rule is built`) by title. Each was run by hand the way t
 - The line condition, the `CodeFacts` contract and the facts' emptiness: plan
   [0649](../0649-md-a-code-reference-resolves-at-its-lines.md).
 - External roots, and a stale line or range (see Decided).
-- This repository's wiring, its severity and the commit-pinned lookahead: with
-  [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s deferred boxes.
+- This repository's wiring and its severity: the plan that brings ask A2's facts, as plan
+  [0649](../0649-md-a-code-reference-resolves-at-its-lines.md) and proposal 021's A2 row say. The
+  commit-pinned lookahead: an open box in
+  [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), which also records
+  what this rule found here.
 - Names beyond ASCII identifiers (`::`, `#`, `->` and non-ASCII names). The rule judges the last
   `.`-segment only, and says so.
 

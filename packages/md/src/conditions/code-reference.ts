@@ -1,5 +1,6 @@
 import { ArchConfigError, type ConditionContext } from '@nielspeter/eess'
 import type { MdMention } from '../model/mentions.js'
+import { namedGroups } from '../model/named-groups.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 
 /**
@@ -12,16 +13,6 @@ import { mdViolation, type ArchViolation } from '../model/violation.js'
 interface CodeReferenceReading {
   readonly pattern: RegExp
   readonly keepBackticks: boolean
-}
-
-/**
- * The pattern's named groups, listed by compiling it as an alternative of the empty string, so a
- * lookbehind or an escaped `\(?<` in the source is never mistaken for a group. The caller's flags
- * are kept, less `g` and `y`, so a pattern that needs `u` or `v` compiles.
- */
-function namedGroups(pattern: RegExp): readonly string[] {
-  const probe = new RegExp(`(?:${pattern.source})|`, pattern.flags.replace(/[gy]/g, ''))
-  return Object.keys(probe.exec('')?.groups ?? {})
 }
 
 /**

@@ -108,6 +108,86 @@ describe('plan 0648: appearInTheCitedFile', () => {
     expect(v?.bypassFilters).toBe(true)
   })
 
+  it('a path forged from escaped backticks is not judged either', () => {
+    const [v, ...rest] = findings('See `pathSuffixIndex` (\\`src/index.ts:1\\`) here.')
+    expect(rest).toEqual([])
+    expect(v?.message).toContain('the path is not inside one code span')
+    expect(v?.bypassFilters).toBe(true)
+  })
+
+  it('a name group that did not capture is reported, naming the group', () => {
+    const optionalName = /(?:`(?<name>\w+)`)? ?\(`(?<path>[\w./]+):\d+`\)/g
+    expect(said('See (`src/index.ts:1`).', optionalName)).toEqual([
+      '" (`src/index.ts:1`)": the pattern\'s "name" group did not capture here, so this rule cannot judge it',
+    ])
+  })
+
+  it('the judged name must be a whole identifier: no leading digit, no stray character', () => {
+    expect(said('See `a.1ab` (`src/index.ts:1`).')[0]).toContain(
+      'is not a name this rule can look for',
+    )
+    const hyphen = /`(?<name>[\w-]+)`(?<gap>[^`\n]{0,12})`(?<path>[\w./]+):\d+`/g
+    expect(said('See `ab-cd` (`src/index.ts:1`).', hyphen)[0]).toContain(
+      'is not a name this rule can look for',
+    )
+  })
+
+  it('a dotted miss says which segment was judged', () => {
+    expect(said('See `a.b.gone` (`src/index.ts:2`).')).toEqual([
+      '`gone` is not in src/index.ts, as code or as text (judged as the last segment of `a.b.gone`)',
+    ])
+  })
+
+  it("the remedy's waiver names the rule's own id", () => {
+    const [v] = [
+      ...rule('See `renamedAway` (`src/index.ts:1`).').rule({ id: 'docs/names' }).violations(),
+    ]
+    expect(v?.suggestion).toContain('<!-- eess-exclude docs/names: <reason> -->')
+  })
+
+  it('a waiver drops a plain miss and a broken path, and none of what it cannot judge', () => {
+    const waived = (line: string): string[] =>
+      [
+        ...mentions(
+          corpusFromText({
+            ...CODE,
+            'docs/a.md': `# A\n\n<!-- eess-exclude docs/names: cited on purpose -->\n${line}\n`,
+          }),
+          { pattern: named(), keepBackticks: true },
+        )
+          .should()
+          .appearInTheCitedFile()
+          .rule({ id: 'docs/names' })
+          .violations(),
+      ].map((v) => v.message)
+    expect(waived('See `renamedAway` (`src/index.ts:1`).')).toEqual([])
+    expect(waived('See `pathSuffixIndex` (`src/gone.ts:1`).')).toEqual([])
+    expect(waived('A literal \\`pathSuffixIndex\\` (`src/index.ts:1`).')[0]).toContain(
+      'not inside one code span',
+    )
+    expect(waived('See `uu` (`util.ts:1`).')[0]).toContain('cannot judge which file')
+    expect(waived('See `x` (`src/index.ts:1`).')[0]).toContain('is not a name')
+  })
+
+  it("an image's unread remedies name no link", () => {
+    const c = corpusFromText({
+      'docs/a.md': '# A\n\n![see pathSuffixIndex](./i.png "see pathSuffixIndex")\n',
+    })
+    const unread = [
+      ...mentions(c, { pattern: /pathSuffixIndex/g })
+        .should()
+        .beLinked()
+        .violations(),
+    ]
+    expect(
+      unread.map((v) => v.message.includes('alt text') || v.message.includes('title')),
+    ).toEqual([true, true])
+    for (const v of unread) {
+      expect(v.suggestion).toContain('name it beside the image.')
+      expect(v.suggestion).not.toContain('as a link')
+    }
+  })
+
   it('a group that did not capture is reported first, alone', () => {
     const optional = /`(?<name>\w+)`(?: \(`(?<path>[\w./]+):\d+`\))?/g
     const [v, ...rest] = findings('A literal \\`alpha\\` stands alone.', optional)
@@ -148,10 +228,14 @@ describe('plan 0648: appearInTheCitedFile', () => {
 
   it("lists a pattern's groups with its flags, so a pattern that needs v compiles", () => {
     // `[\p{L}--\p{Lu}]` (a letter that is not upper case) compiles only with the v flag.
-    const setNotation =
-      /`(?<name>[\p{L}--\p{Lu}][\w$]*)`(?<gap>[^`\n]{0,12})`(?<path>[\w.\/]+):\d+`/gv
+    const setNotation = new RegExp(
+      '`(?<name>[\\p{L}--\\p{Lu}][\\w$]*)`(?<gap>[^`\\n]{0,12})`(?<path>[\\w.\\/]+):\\d+`',
+      'gv',
+    )
     expect(findings('See `pathSuffixIndex` (`src/index.ts:1`).', setNotation)).toEqual([])
-    expect(findings('See `renamedAway` (`src/index.ts:1`).', setNotation)).toHaveLength(1)
+    expect(said('See `renamedAway` (`src/index.ts:1`).', setNotation)).toEqual([
+      '`renamedAway` is not in src/index.ts, as code or as text',
+    ])
   })
 
   it('a finding it cannot judge fails .warn(); a plain miss does not', () => {
@@ -163,8 +247,26 @@ describe('plan 0648: appearInTheCitedFile', () => {
   })
 
   it('zero examined is a finding unless declared', () => {
-    expect(() => rule('No reference here.').check()).toThrow()
-    expect(() => rule('No reference here.').expectEmpty().check()).not.toThrow()
+    const zero = thrownBy(() => rule('No reference here.').check())
+    expect(zero).toHaveLength(1)
+    expect(zero[0]?.message).toMatch(/examined|matched no/i)
+    expect(thrownBy(() => rule('No reference here.').expectEmpty().check())).toEqual([])
+  })
+
+  it('a reference that cites the document it sits in is not judged, never a pass', () => {
+    const c = corpusFromText({
+      ...CODE,
+      'docs/a.md': '# A\n\nSee `nowhereAtAll` (`docs/a.md:1`).\n',
+    })
+    const [v, ...rest] = [
+      ...mentions(c, { pattern: named(), keepBackticks: true })
+        .should()
+        .appearInTheCitedFile()
+        .violations(),
+    ]
+    expect(rest).toEqual([])
+    expect(v?.message).toContain('is the document this reference sits in')
+    expect(v?.bypassFilters).toBe(true)
   })
 
   it('the unread wording names no condition: a reference-style link cannot be judged', () => {
