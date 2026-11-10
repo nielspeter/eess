@@ -172,28 +172,28 @@ Through the public root, as an adopter calls it, in
       fifteenth row ran after the nineteenth test was added). The restored tree red 0 before and
       after; every mutant red:
 
-      | mutant | tests red |
-      | --- | --- |
-      | the opt-in ignored in the reading | 16 |
-      | code groups by touch, not by inside | 3 |
-      | a segment's region opens after its backtick | 1 |
-      | the builder drops the opt-in | 15 |
-      | `collectMentions` drops the opt-in | 1 |
-      | `codeGroups` given without the opt-in | 2 |
-      | a caller's `d` flag not stripped | 1 |
-      | one cache for both copies | 1 |
-      | a group may include its own backticks | 1 |
-      | the line clamp removed | 1 |
-      | a span given across segments | 1 |
-      | unread text read without backticks | 1 |
-      | a reference link keeps no backticked text | 1 |
-      | an unclosed `<a>` keeps no backticked text | 1 |
-      | an `<a>` holding another link keeps no backticked text | 1 |
+  | mutant                                                 | tests red |
+  | ------------------------------------------------------ | --------- |
+  | the opt-in ignored in the reading                      | 16        |
+  | code groups by touch, not by inside                    | 3         |
+  | a segment's region opens after its backtick            | 1         |
+  | the builder drops the opt-in                           | 15        |
+  | `collectMentions` drops the opt-in                     | 1         |
+  | `codeGroups` given without the opt-in                  | 2         |
+  | a caller's `d` flag not stripped                       | 1         |
+  | one cache for both copies                              | 1         |
+  | a group may include its own backticks                  | 1         |
+  | the line clamp removed                                 | 1         |
+  | a span given across segments                           | 1         |
+  | unread text read without backticks                     | 1         |
+  | a reference link keeps no backticked text              | 1         |
+  | an unclosed `<a>` keeps no backticked text             | 1         |
+  | an `<a>` holding another link keeps no backticked text | 1         |
 
-      _The build's first matrix had six rows and was enumerated from intent: its third mutant first
-      red 0, and the testing review found five more lines in the diff whose mutants survived the
-      whole suite. Its counts were taken on the 11-test file, not on 0c3b48bb's 10 as first written
-      (method review I1). The rows above add those mutants and the unread-text fix's three._
+  _The build's first matrix had six rows and was enumerated from intent: its third mutant first
+  red 0, and the testing review found five more lines in the diff whose mutants survived the
+  whole suite. Its counts were taken on the 11-test file, not on 0c3b48bb's 10 as first written
+  (method review I1). The rows above add those mutants and the unread-text fix's three._
 
 Deferred: [plan 0648](./0648-md-a-code-reference-still-appears-in-its-file.md) (the example and
 its two rows).

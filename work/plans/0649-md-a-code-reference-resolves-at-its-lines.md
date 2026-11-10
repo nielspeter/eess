@@ -77,6 +77,17 @@ The type's doc states the producer's obligations:
 Each mention is checked as in [plan 0648](./completed/0648-md-a-code-reference-still-appears-in-its-file.md):
 its requirements and the path classifier come first. Then:
 
+_Noted at [plan 0648](./completed/0648-md-a-code-reference-still-appears-in-its-file.md)'s build review (architect), for this phase:_
+
+- **Move, do not copy.** The ambiguous, broken and self-citation findings are built inline in
+  `packages/md/src/conditions/appear-in-the-cited-file.ts`; this condition needs them too, so they
+  move into `packages/md/src/conditions/code-reference.ts` first.
+- **The code-span requirement is fixed to `name` and `path`** (`readReference`); this condition also
+  needs `line` inside a code span, so the list becomes the caller's, as the required groups already
+  are.
+- **The parsed reference carries no line**, and `referenceFinding` builds a per-mention finding;
+  this condition needs the cited line, and a per-file finding for an uncovered file.
+
 - **Not judged.** A cited file outside `coverage` gets one not-judged
   finding per file per rule, marked `bypassFilters` and failing `.warn()`
   ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5). Its

@@ -3,7 +3,8 @@
 ## Status
 
 - **State:** Done — built 2026-11-10 on `build/0648-appear-in-the-cited-file` and closed in the
-  same PR, after a build review recorded in the ledger below. Previously read: Ready — frozen 2026-11-10 against `main` 3d15b27a, at the maintainer's "go" after
+  same PR, after a build review by the enforcement, testing, architect and method lenses, recorded
+  in "Build review, 2026-11-10" below. Previously read: Ready — frozen 2026-11-10 against `main` 3d15b27a, at the maintainer's "go" after
   the revision (PR #336); the design was reviewed by four lenses and re-checked by two, so the
   freeze adds no decision. Its pointers into `pointer-resolve.ts` give the lines as built in
   Phase 1. Authored 2026-11-09 from
@@ -147,7 +148,7 @@ that judged nothing never exits 0 under `.warn()`. A test drives `.warn()` itsel
 `.violations()` cannot see the flag.
 
 **The unread-mention wording.** The builder's unread finding
-(`packages/md/src/builders/mentions.ts:232-233`) says a mention "can be judged neither linked nor
+(`packages/md/src/builders/mentions.ts:232-233` at 3d15b27a; 254 as built) says a mention "can be judged neither linked nor
 not", and two remedies end "as a link". Those are `beLinked`'s words. They become
 condition-neutral: "so this rule cannot judge it", with the "as a link" ending dropped. A
 `beLinked` rule still reads correctly. The changeset names the wording change.
@@ -243,13 +244,15 @@ sit in frozen records.
 ## Test inventory
 
 Each finding is asserted by its cause, a message fragment, never by rule id and severity alone.
-Built 2026-11-10 in five commits on `build/0648-appear-in-the-cited-file`: Phase 1 alone
-(1422068b), Phases 2–3 (45356d76), Phase 4 (c94448a7), and a test the matrix asked for (b33c84c2).
+Built 2026-11-10 on `build/0648-appear-in-the-cited-file`: Phase 1 alone (1422068b), Phases 2–3
+(45356d76), Phase 4 (c94448a7), a test the matrix asked for (b33c84c2), the ledger and close
+(ffdf4175), and the build review's fixes (bb9718b0 and the commit after it).
 
 - [x] **Phase 1** (`packages/md/tests/model/code-path.test.ts`, 6 tests): the classifier's three
       outcomes with their data; a `../` path is broken; `exact` mode's suffix match is broken with
       `unique`; one cache per corpus and mode. Every existing `pointers().resolve()` test passed
-      unchanged (the whole eess-md suite, 76 files and 1,284 tests, 13 s, on 1422068b), and
+      unchanged (the whole eess-md suite, 76 files and 1,284 tests, 13 s, on the refactored tree before
+      `code-path.test.ts` was added; on 1422068b itself the suite is 77 files and 1,290 tests), and
       `check:corpus` read this repository's 1,204 live pointers alike, its one finding being this
       plan's own pointer into the file the refactor shortened, refreshed at the freeze.
 - [x] done-otherwise — the `resolved` outcome carries only `rel`; the file's text, line count and
@@ -283,6 +286,14 @@ Built 2026-11-10 in five commits on `build/0648-appear-in-the-cited-file`: Phase
       line 25, the shifted-span shape [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md) pinned, live;
     - 4 ambiguous paths (`rule-builder.ts` twice, `cli/index.ts`, `project.ts`), all in frozen
       records.
+  - **The step from 28 to 29** in the instrument's count (28 at 2aa45855, 29 here) is a citation this
+    build made stale: [proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md)
+    cited `readCorpusFile` at `pointer-resolve.ts:102`, which Phase 1 moved into `code-path.ts`. The
+    rule's first catch here was its own build's; the build review found it, and the citation now
+    names `code-path.ts`.
+  - **What was narrowed, done-otherwise:** the reds were compared, not every pair, so [spike 0646](../../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md)'s 18
+    pattern-only or instrument-only pairs are not restated here; no broken path was reported; the
+    docs quote the judged sample's rate, which is the rule's for the 27 rows they share.
   - **The published rate** is the judged sample's (27 at f17759a6, 7 renames), whose rows are among
     the 29; the docs quote it as such.
 - [x] **Four `check:nonvacuity` rows against `check:examples`**, sharing one helper
@@ -305,41 +316,95 @@ keepBackticks, when the rule is built`) by title. Each was run by hand the way t
       outside TypeScript.
 - [x] **The sabotage matrix**, 2026-11-10, on c94448a7 and b33c84c2 in a worktree with its own
       `npm ci` and builds, one mutant at a time, against the two new package test files with
-      `autofix.test.ts` and `pointers.test.ts` (43 s for the run). Restored, 0 red before and after.
+      `autofix.test.ts` and `pointers.test.ts` (43 s for the run). done-otherwise — the mutants ran
+      against the package tests, not the example, and were chosen from the phases, not enumerated
+      from the diff; the testing lens's own run found the lines this left unpinned (below). Restored, 0 red before and after.
       Every one of the 21 mutants of this plan's code red at least one test:
 
-      | mutant | tests red |
-      | --- | --- |
-      | `exact` mode: a unique suffix resolves | 1 |
-      | `exact` mode: `broken` carries no `unique` | 1 |
-      | `suffix` mode: ambiguous read as broken | 1 |
-      | an empty token kept | 1 |
-      | one cache for both modes | 1 |
-      | a leading `./` kept | 1 |
-      | the capture check removed | 1 |
-      | the code-span check removed | 2 |
-      | the name rule removed | 2 |
-      | one character is a name | 2 |
-      | a dotted name judged whole | 3 |
-      | cannot-judge findings waivable | 4 |
-      | the `keepBackticks` refusal removed | 1 |
-      | the group refusal removed | 1 |
-      | the group listing drops the caller's flags | 1 |
-      | the name rule checked before the capture | 2 |
-      | an ambiguous path judged | 1 |
-      | a broken path passes | 1 |
-      | the token check always true | 4 |
-      | the builder passes the wrong opt-in | 1 |
-      | the unread wording reverted | 1 |
+  | mutant                                     | tests red |
+  | ------------------------------------------ | --------- |
+  | `exact` mode: a unique suffix resolves     | 1         |
+  | `exact` mode: `broken` carries no `unique` | 1         |
+  | `suffix` mode: ambiguous read as broken    | 1         |
+  | an empty token kept                        | 1         |
+  | one cache for both modes                   | 1         |
+  | a leading `./` kept                        | 1         |
+  | the capture check removed                  | 1         |
+  | the code-span check removed                | 2         |
+  | the name rule removed                      | 2         |
+  | one character is a name                    | 2         |
+  | a dotted name judged whole                 | 3         |
+  | cannot-judge findings waivable             | 4         |
+  | the `keepBackticks` refusal removed        | 1         |
+  | the group refusal removed                  | 1         |
+  | the group listing drops the caller's flags | 1         |
+  | the name rule checked before the capture   | 2         |
+  | an ambiguous path judged                   | 1         |
+  | a broken path passes                       | 1         |
+  | the token check always true                | 4         |
+  | the builder passes the wrong opt-in        | 1         |
+  | the unread wording reverted                | 1         |
 
-      [Plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md)'s reading mutants M1, M3, M4, M5 and M8, run against this plan's example
-      after a rebuild, each red 0 there, as expected: the example does not exercise them. They
-      stay covered by plan 0647's package tests only.
+  [Plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md)'s reading mutants M1, M3, M4, M5 and M8, run against this plan's example
+  after a rebuild, each red 0 there, as expected: the example does not exercise them. They
+  stay covered by [plan 0647](./0647-md-a-mention-reading-that-keeps-backticks.md)'s package tests only.
 
-      _The first run had three faults: a mutant whose text prettier had reformatted did not apply;
-      "the builder skips the refusals" still called it and proved nothing, replaced by "passes the
-      wrong opt-in"; and "the group listing drops the caller's flags" survived, since the `u`
-      pattern compiled without its flag. A `v` pattern, which does not, now pins it._
+  _The first run had three faults: a mutant whose text prettier had reformatted did not apply;
+  "the builder skips the refusals" still called it and proved nothing, replaced by "passes the
+  wrong opt-in"; and "the group listing drops the caller's flags" survived, since the `u`
+  pattern compiled without its flag. A `v` pattern, which does not, now pins it._
+
+## Build review, 2026-11-10
+
+The enforcement, testing, architect and method lenses reviewed ffdf4175; the full reviews were
+written to the session's scratchpad. None found a critical defect. Each important finding is fixed
+in this PR unless marked otherwise.
+
+- **A self-citation could never go red** (enforcement). A reference whose cited file is the document
+  it sits in found the name in its own text and passed. It is now a finding the rule cannot judge.
+- **Half of a guard was unpinned** (testing). Removing `path` from the code-span check reddened
+  nothing, so a path written in prose passed as judged. A forged-path test now pins it, with tests
+  for every other line the testing lens's own matrix found unpinned: the identifier's anchors, the
+  `name` capture, the dotted note, the rule id in the remedy, a real `eess-exclude` waiver, the image
+  remedies, and a leading `/`.
+- **One group probe, written twice** (architect). `namedGroups` is now `packages/md/src/model/named-groups.ts`,
+  used by `code-reference.ts` and by `agree-with-path.ts`'s `hasValueGroup`.
+- **The records** (method): the build review was claimed before it existed; the 1,284 was not
+  1422068b's count; this build made a live citation stale and the reconciliation did not say so;
+  the wiring's home was split; the matrix table rendered as a code block. Each is corrected above.
+  The wiring is A2's plan's; [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)
+  holds the lookahead and records what the rule found here.
+- **Docs and wording:** "inside a code span", not "its own" (a quoted example in one double-backtick
+  span is judged); the ASCII and keyword limits; the three live findings it cannot judge, which fail
+  the snippet's `.warn()`; a second report only "if you run one"; `text()` dropped from the
+  classifier's interface; the cache's lifetime stated.
+- **Rows:** the three rows whose sabotage leaves `clean:` green now also require it to stay passed,
+  so a sabotage that only makes the condition throw cannot pass for its mechanism going red. Re-run
+  by hand: each target failed, each control passed.
+- **A follow-up matrix**, 2026-11-10 on bb9718b0 in a worktree with its own `npm ci`, against the
+  whole eess-md suite (2 min 44 s). Restored, 0 red before and after; every mutant red:
+
+  | mutant                                       | tests red |
+  | -------------------------------------------- | --------- |
+  | a self-citation judged                       | 1         |
+  | the path half of the code-span check removed | 1         |
+  | the name anchor `^` dropped                  | 1         |
+  | the name anchor `$` dropped                  | 1         |
+  | a name may start with a digit                | 1         |
+  | the dotted note dropped                      | 1         |
+  | the remedy names no rule id                  | 1         |
+  | a leading `/` kept                           | 1         |
+  | the shared group probe lists nothing         | 24        |
+  | the alt remedy names a link again            | 1         |
+
+- **Recorded, not fixed here:** `corpusFromText` reads a code file from the caller's live map
+  (architect), [bug 0650](../../bugs/0650-a-text-corpus-reads-a-code-file-from-the-callers-live-map.md).
+  Three notes for plan [0649](../0649-md-a-code-reference-resolves-at-its-lines.md)'s Phase 3 are
+  written there.
+- **Not taken:** a fixture and a row for the ambiguous path (enforcement; package tests pin it); a
+  `kind` field and an options object in `code-reference.ts` (architect, style); one finding per
+  mention when an optional group fails often (enforcement: each mention is its own cause); the
+  matrix's mutant text in the record (method).
 
 ## Out of scope
 
@@ -347,7 +412,7 @@ keepBackticks, when the rule is built`) by title. Each was run by hand the way t
   [0649](../0649-md-a-code-reference-resolves-at-its-lines.md).
 - External roots, and a stale line or range (see Decided).
 - This repository's wiring and its severity: the plan that brings ask A2's facts, as plan
-  [0649](../0649-md-a-code-reference-resolves-at-its-lines.md) and proposal 021's A2 row say. The
+  [0649](../0649-md-a-code-reference-resolves-at-its-lines.md) and [proposal 021](../../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s A2 row say. The
   commit-pinned lookahead: an open box in
   [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), which also records
   what this rule found here.
@@ -361,7 +426,8 @@ written to the session's scratchpad. All four said not ready to freeze, and this
 them.
 
 - **Critical, raised by three lenses.** An external root absent from disk would have passed
-  silently, since the pointer gate's skip (`return []` in `pointerResolves`' external-roots branch) has no outcome in a five-class
+  silently, since the pointer gate's skip (`return []` in `pointerResolves`' external-roots branch; this citation was a line number at
+  the review, rewritten at the freeze because Phase 1 moved the line) has no outcome in a five-class
   classifier. Resolved by taking no `externalRoots` here.
 - **Critical, raised by two lenses.** An empty last segment (`` `foo.` ``) would always pass: the
   instrument's boundary check finds `""` in most files, and the instrument's name filter was not
