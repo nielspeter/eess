@@ -506,6 +506,13 @@ export type CodeName =
    - `appearInTheirFile` and `resolveAtTheirLines`;
    - `CodeFacts`, `CodeName` and `coverage`.
 
+   **Renamed 2026-11-10** at [plan 0648](../plans/0648-md-a-code-reference-still-appears-in-its-file.md)'s
+   review: `appearInTheirFile` became `appearInTheCitedFile`, and `resolveAtTheirLines` became
+   `resolveAtTheCitedLines`, since on the same builder `resideInFile` means the document that holds
+   the mention. The text above keeps the names as they were reviewed. The same review moved three
+   things out of the file condition, each recorded in that plan: the `line` group requirement,
+   `externalRoots`, and the commit-pinned lookahead.
+
 ## Out of scope
 
 - Asks B and C, held. C now also owns the per-group source offsets.
