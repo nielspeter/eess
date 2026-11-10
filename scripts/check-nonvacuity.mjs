@@ -1366,6 +1366,107 @@ function gateMentionFixExactlyOne() {
   }
 }
 
+/**
+ * Plan 0648: one row per mechanism of `appearInTheCitedFile` and of plan 0647's reading. Each
+ * sabotages the built `dist` the example imports, and reads two tests of
+ * `examples/md/a-named-code-reference-appears-in-the-cited-file.test.ts` by title from vitest's
+ * JSON report, never the exit code: the target must go from passed to failed, and the control, a
+ * `refuses:` test that reads the same modules, must stay passed, so a sabotage that broke loading
+ * proves nothing (the trap recorded at the `.asSeverity('warn')` row).
+ */
+function gateCodeReference({ built, from, to, title, what }) {
+  const started = Date.now()
+  const file = join(repoRoot, 'packages', 'md', 'dist', ...built.split('/'))
+  const control = 'refuses: a reading without keepBackticks, when the rule is built'
+  const vitest = join(repoRoot, 'node_modules', '.bin', 'vitest')
+  const tmp = mkdtempSync(join(tmpdir(), 'eess-code-reference-'))
+  const report = join(tmp, 'report.json')
+  const statuses = () => {
+    sh(vitest, [
+      'run',
+      '--root',
+      'examples',
+      'md/a-named-code-reference-appears-in-the-cited-file.test.ts',
+      '--reporter=json',
+      `--outputFile=${report}`,
+    ])
+    try {
+      const parsed = JSON.parse(readFileSync(report, 'utf8'))
+      const results = (parsed.testResults ?? []).flatMap((t) => t.assertionResults ?? [])
+      const of = (t) => results.find((r) => r.title === t)?.status ?? 'missing'
+      return { target: of(title), control: of(control) }
+    } catch {
+      return { target: 'no report', control: 'no report' }
+    } finally {
+      rmSync(report, { force: true })
+    }
+  }
+  try {
+    const before = statuses()
+    if (before.target !== 'passed' || before.control !== 'passed') {
+      return {
+        ok: false,
+        detail: `unsabotaged, "${title}" is ${before.target} and the control is ${before.control}, so the row proves nothing`,
+      }
+    }
+    const after = withRewrittenFile(
+      file,
+      (text) => {
+        if (!text.includes(from)) {
+          throw new Error(
+            `non-vacuity: ${file} no longer holds "${from}" — rebuild, or fix the row`,
+          )
+        }
+        return text.replace(from, to)
+      },
+      statuses,
+    )
+    return {
+      ok: after.target === 'failed' && after.control === 'passed',
+      detail: `${what} in dist: "${title}" is ${after.target}, the control is ${after.control} (${String(Date.now() - started)} ms)`,
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
+const gateARenamedReferenceIsRed = () =>
+  gateCodeReference({
+    built: 'conditions/appear-in-the-cited-file.js',
+    from: 'paths.tokens(cited.rel).has(judged)',
+    to: 'true',
+    title: 'violating-renamed: a name the cited file no longer holds is red, with four remedies',
+    what: 'the token check made always true',
+  })
+
+const gateAnEmptyNameIsNotJudged = () =>
+  gateCodeReference({
+    built: 'conditions/code-reference.js',
+    from: '!IDENTIFIER.test(judged)',
+    to: 'false',
+    title: 'violating-empty-name: a name with nothing after its last dot is reported, never passed',
+    what: 'the name rule removed',
+  })
+
+const gateKeepBackticksIsRead = () =>
+  gateCodeReference({
+    built: 'model/mentions.js',
+    from: 'const keep = reading.keepBackticks === true',
+    to: 'const keep = false',
+    title:
+      'clean: every named reference names code its file holds, a dotted one by its last segment',
+    what: "the reading's opt-in ignored",
+  })
+
+const gateCodeGroupsExcludeAForgedSpan = () =>
+  gateCodeReference({
+    built: 'model/mentions.js',
+    from: 'if (inside)',
+    to: 'if (true)',
+    title: 'violating-forged-name: a name dressed in escaped backticks is reported, not judged',
+    what: 'codeGroups made to list every captured group',
+  })
+
 function gateExamplesMdLoadBearing() {
   const { ok, detail } = examplesMdLoadBearing()
   return { ok, detail }
@@ -5834,6 +5935,10 @@ const gates = [
   ],
   ['examples/md-fixtures-are-load-bearing', gateExamplesMdLoadBearing],
   ['examples/md-mention-fix-exactly-one', gateMentionFixExactlyOne],
+  ['examples/md-a-renamed-reference-is-red', gateARenamedReferenceIsRed],
+  ['examples/md-an-empty-name-is-not-judged', gateAnEmptyNameIsNotJudged],
+  ['examples/md-keep-backticks-is-read', gateKeepBackticksIsRead],
+  ['examples/md-code-groups-exclude-a-forged-span', gateCodeGroupsExcludeAForgedSpan],
   ['examples/md-load-bearing-reds-on-a-cross-read', gateExamplesMdLoadBearingRedsOnCrossRead],
   [
     'examples/md-load-bearing-reds-on-an-orphan-folder',
@@ -6318,6 +6423,10 @@ const GATE_FOR = {
     'examples/does-not-compile',
     'examples/md-fixtures-are-load-bearing',
     'examples/md-mention-fix-exactly-one',
+    'examples/md-a-renamed-reference-is-red',
+    'examples/md-an-empty-name-is-not-judged',
+    'examples/md-keep-backticks-is-read',
+    'examples/md-code-groups-exclude-a-forged-span',
     'examples/md-load-bearing-reds-on-a-cross-read',
     'examples/md-load-bearing-reds-on-an-orphan-folder',
     'examples/md-load-bearing-reds-on-a-weak-clean-test',

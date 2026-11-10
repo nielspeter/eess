@@ -9,7 +9,7 @@ import { lineCount } from './line-count.js'
  * way under the next (bug 0257's lesson). In-corpus only: a path the corpus does not hold is
  * `broken`, never skipped. External roots stay with `pointerResolves`, whose caller reports them.
  */
-export type CitedPath =
+type CitedPath =
   | { readonly kind: 'resolved'; readonly rel: string }
   /**
    * `unique`: the one file whose path ends with the cited one, which a pointer fix may rewrite to.
@@ -20,7 +20,7 @@ export type CitedPath =
   | { readonly kind: 'ambiguous'; readonly wanted: string; readonly candidates: readonly string[] }
 
 /** A corpus's cited paths, each file read once and its lines and tokens worked out once. */
-export interface CitedPaths {
+interface CitedPaths {
   /** Where `path` lands. A leading `./` or `/` is not part of the path. */
   classify(path: string): CitedPath
   /** A resolved file's text. */

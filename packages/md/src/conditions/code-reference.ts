@@ -9,7 +9,7 @@ import { mdViolation, type ArchViolation } from '../model/violation.js'
  */
 
 /** The builder's reading, which a condition cannot see from its elements. */
-export interface CodeReferenceReading {
+interface CodeReferenceReading {
   readonly pattern: RegExp
   readonly keepBackticks: boolean
 }
@@ -19,7 +19,7 @@ export interface CodeReferenceReading {
  * lookbehind or an escaped `\(?<` in the source is never mistaken for a group. The caller's flags
  * are kept, less `g` and `y`, so a pattern that needs `u` or `v` compiles.
  */
-export function namedGroups(pattern: RegExp): readonly string[] {
+function namedGroups(pattern: RegExp): readonly string[] {
   const probe = new RegExp(`(?:${pattern.source})|`, pattern.flags.replace(/[gy]/g, ''))
   return Object.keys(probe.exec('')?.groups ?? {})
 }
@@ -57,7 +57,7 @@ export function refuseCodeReferenceReading(
 const IDENTIFIER = /^[A-Za-z_$][\w$]+$/
 
 /** A mention that passed the requirements: the name as written, the name judged, and the path. */
-export interface CodeReference {
+interface CodeReference {
   readonly mention: MdMention
   readonly name: string
   /** The last `.`-segment of `name`, the token this rule looks for. */
@@ -66,7 +66,7 @@ export interface CodeReference {
 }
 
 /** The element a finding names: the document, then the name and the path as written. */
-export function referenceElement(m: MdMention): string {
+function referenceElement(m: MdMention): string {
   return `${m.doc.relPath} → \`${m.groups['name'] ?? ''}\` \`${m.groups['path'] ?? ''}\``
 }
 
