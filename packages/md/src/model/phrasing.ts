@@ -56,9 +56,22 @@ export type UnreadCause =
 /** Text a reader sees that no run holds. */
 interface UnreadText {
   readonly text: string
+  /**
+   * The same text with inline code in backticks, for a reading that keeps them (plan 0647); absent
+   * where the text holds no inline code, so it equals `text`.
+   */
+  readonly delimited?: string
   readonly line: number
   readonly cause: UnreadCause
 }
+
+/** `delimited`, when it differs from the text: the field is absent where no inline code is held. */
+const withDelimited = (text: string, delimited: string): { delimited?: string } =>
+  delimited === text ? {} : { delimited }
+
+/** A segment's text, in backticks when it is inline code (plan 0647). */
+const delimitedOf = (segs: readonly PhrasingSegment[]): string =>
+  segs.map((g) => (g.inCode ? '`' + g.text + '`' : g.text)).join('')
 
 /** A link with no target is not a link to anything: `[x]()` and `[x](#)`. */
 const pointsNowhere = (url: string): boolean => url.trim() === '' || url.trim() === '#'
@@ -199,11 +212,15 @@ export function phrasingOf(
         case 'linkReference':
           if (htmlLink !== undefined) htmlLink.mixed = true
           // Its target is a definition elsewhere; the text is reported, not read as linked or not.
-          unread.push({
-            text: node.children.map(visibleTextOf).join(''),
-            line: lineOf(node),
-            cause: 'reference-link',
-          })
+          {
+            const text = node.children.map((c) => visibleTextOf(c)).join('')
+            unread.push({
+              text,
+              ...withDelimited(text, node.children.map((c) => visibleTextOf(c, true)).join('')),
+              line: lineOf(node),
+              cause: 'reference-link',
+            })
+          }
           return
         case 'image':
           if (node.alt) unread.push({ text: node.alt, line: lineOf(node), cause: 'image-alt' })
@@ -237,8 +254,10 @@ export function phrasingOf(
               const held = htmlLink
               htmlLink = undefined
               if (held.mixed) {
+                const text = held.segments.map((g) => g.text).join('')
                 unread.push({
-                  text: held.segments.map((g) => g.text).join(''),
+                  text,
+                  ...withDelimited(text, delimitedOf(held.segments)),
                   line: held.line,
                   cause: 'html-link',
                 })
@@ -259,7 +278,12 @@ export function phrasingOf(
     for (const child of children) inline(child, undefined)
     if (htmlLink !== undefined) {
       const text = htmlLink.segments.map((g) => g.text).join('')
-      unread.push({ text, line: htmlLink.line, cause: 'html-link' })
+      unread.push({
+        text,
+        ...withDelimited(text, delimitedOf(htmlLink.segments)),
+        line: htmlLink.line,
+        cause: 'html-link',
+      })
     }
     return [{ segments: out }, ...titles]
   }
@@ -291,8 +315,9 @@ export function phrasingOf(
  * The text a reader sees in an inline node: text and inline code, never raw HTML. Not
  * `model/text-of.ts`'s `textOf`, which keeps every string value, an HTML tag's included.
  */
-function visibleTextOf(node: Nodes): string {
-  if (node.type === 'text' || node.type === 'inlineCode') return node.value
-  if ('children' in node) return node.children.map(visibleTextOf).join('')
+function visibleTextOf(node: Nodes, delimited = false): string {
+  if (node.type === 'text') return node.value
+  if (node.type === 'inlineCode') return delimited ? '`' + node.value + '`' : node.value
+  if ('children' in node) return node.children.map((c) => visibleTextOf(c, delimited)).join('')
   return ''
 }
