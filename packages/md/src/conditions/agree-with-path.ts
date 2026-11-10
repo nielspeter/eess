@@ -4,6 +4,7 @@ import { stateless } from '../model/name-match.js'
 import { sectionsOf, titleFault, titleOf } from '../model/sections.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 import { declarationViolation, type Agreement } from './agreement.js'
+import { namedGroups } from '../model/named-groups.js'
 
 /** What `agreeWithPath` asks of a document (plan 0556, proposal 017 block 16). */
 export interface AgreeWithPathOptions {
@@ -20,10 +21,7 @@ export interface AgreeWithPathOptions {
 
 /** True when `re` declares a named group `value`, in any branch. */
 function hasValueGroup(re: RegExp): boolean {
-  // An empty alternative makes the pattern match `''`, so `exec` reports every named group it has.
-  const probe = new RegExp(`(?:${re.source})|`, re.flags.replace(/[gy]/g, ''))
-  const groups = probe.exec('')?.groups
-  return groups !== undefined && Object.hasOwn(groups, 'value')
+  return namedGroups(re).includes('value')
 }
 
 /** The configuration refusals, at the call (an `ArchConfigError` naming the option, ADR-009). */

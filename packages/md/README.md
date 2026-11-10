@@ -546,6 +546,18 @@ each mention `codeGroups`: the groups whose whole capture lies inside one inline
 can still match a prose word an escaped backtick dresses as code, so check `codeGroups` before you
 trust a group as code. Off by default.
 
+`mentions(…).should().appearInTheCitedFile()` reds a named code reference, `` `pathSuffixIndex`
+(`src/index.ts:1`) ``, whose cited file no longer holds the name: a rename, a removal, or a move out
+of the file. It needs `keepBackticks` and a pattern with `name` and `path` groups, each matched
+inside a code span, and no code facts. It claims the file holds the name, in code or in text,
+not that a cited line does. A reference it cannot judge (a group that did not capture, a name or path
+outside a code span, a name that is not an identifier, a path matching several files, a reference to
+its own document) fails even under `.warn()`. A token is a run of ASCII letters, digits, `_` and `$`,
+so a keyword or a name inside a non-ASCII word holds. A broken path is reported by it, and by a
+`pointers().resolve()` rule if you run one, each under its own id. See
+[the guide](https://github.com/nielspeter/eess/blob/main/docs/markdown.md) for the contract and the
+rate over eess's own records.
+
 ## Every page claimed once: `notExist()`
 
 Every builder over a corpus (`docs`, `links`, `mentions`, `pointers`, `rows`, `terms`, `taskItems`, and

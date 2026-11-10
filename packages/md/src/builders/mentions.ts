@@ -19,7 +19,12 @@ import type { UnreadCause } from '../model/phrasing.js'
 import { atLine, type MdLocation } from '../conditions/not-exist.js'
 import { resideInFile, resideInFolder } from '../predicates/document.js'
 import { liftToDocument } from '../predicates/in-documents.js'
+import {
+  APPEAR_IN_THE_CITED_FILE_GROUPS,
+  appearInTheCitedFile,
+} from '../conditions/appear-in-the-cited-file.js'
 import { beLinked, type BeLinkedOptions } from '../conditions/be-linked.js'
+import { refuseCodeReferenceReading } from '../conditions/code-reference.js'
 import { CorpusRuleBuilder } from './corpus-rule-builder.js'
 import { reachedUnread, UNKNOWN, unreadFinding, withUnread } from './unread.js'
 
@@ -65,9 +70,9 @@ const REMEDY: Record<UnreadCause, string> = {
     "Write the link inline, `[text](url)`: a reference-style link's target is a definition elsewhere, which this rule does not read.",
   'definition-title': "Take the text out of the definition's title.",
   'image-alt':
-    'Take the text out of the alt text; if it names something, name it beside the image, as a link.',
+    'Take the text out of the alt text; if it names something, name it beside the image.',
   'image-title':
-    "Take the text out of the image's title; if it names something, name it beside the image, as a link.",
+    "Take the text out of the image's title; if it names something, name it beside the image.",
 }
 
 /**
@@ -195,6 +200,22 @@ export class MentionRuleBuilder extends CorpusRuleBuilder<MdMention> {
   beLinked<R>(options: BeLinkedOptions<R> = {}): this {
     return this.addCondition(beLinked(options))
   }
+
+  /**
+   * Every selected mention names code that appears in the file it cites (plan 0648): the pattern's
+   * `name` group, as a whole token, in the file its `path` group resolves to, in code or in text. It
+   * claims the file holds the name, not that a cited line does. Needs the mentions read with
+   * `keepBackticks`, and `name` and `path` each inside one code span; refused when the rule is
+   * built otherwise. A mention it cannot judge is a finding that fails `.warn()`.
+   */
+  appearInTheCitedFile(): this {
+    refuseCodeReferenceReading(
+      'appearInTheCitedFile',
+      { pattern: this.pattern, keepBackticks: this.keepBackticks },
+      APPEAR_IN_THE_CITED_FILE_GROUPS,
+    )
+    return this.addCondition(appearInTheCitedFile(this.project))
+  }
 }
 
 /** An unread mention as a predicate sees it: everything known, and `link` and `inCode` unknowable. */
@@ -230,7 +251,7 @@ function unreadFindings(
       line: u.line,
       message:
         `"${u.text.replace(/\s+/g, ' ')}" sits in ${WHERE[u.cause]}, which this rule does not read, ` +
-        `so it can be judged neither linked nor not.${why}`,
+        `so this rule cannot judge it.${why}`,
       suggestion: REMEDY[u.cause],
     }),
   )

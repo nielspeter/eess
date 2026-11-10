@@ -1073,6 +1073,63 @@ an HTML link it cannot follow) is searched with the backticks kept too, so a men
 reported as unread. Without the opt-in `codeGroups` is absent, and every existing rule reads as
 before. `collectMentions(root, pattern, { keepBackticks: true })` reads the same way.
 
+### A named code reference's name is in the cited file: `appearInTheCitedFile()`
+
+A sentence that names code and points at a file, `` `pathSuffixIndex` (`packages/core/src/path-suffix.ts:48`) ``, keeps
+passing `pointers().resolve()` after the function is renamed: the file and the line still exist.
+`appearInTheCitedFile()` reds such a reference when the cited file no longer holds the name at all.
+It needs no code facts, so it serves any language whose names are ASCII identifiers.
+
+```ts
+import { areLive, corpus, inDocuments, mentions } from '@nielspeter/eess-md'
+
+// A name, then its pointer, each in its own code span.
+const NAMED =
+  /`(?<name>[A-Za-z_$][\w$.]*)(?:\([^`)]*\))?`(?<gap>[^`\n]{0,12})`(?<path>[\w./@-]+\.[A-Za-z]+):(?<line>\d+)(?:-(?<end>\d+))?`/g
+
+mentions(corpus({ roots: ['docs/**'] }), { pattern: NAMED, keepBackticks: true })
+  .that()
+  .satisfy(inDocuments(areLive()))
+  .should()
+  .appearInTheCitedFile()
+  .rule({ id: 'docs/code-names-appear' })
+  .warn()
+```
+
+**The contract.** The mentions are read with `keepBackticks: true`, and the pattern has a `name`
+and a `path` group; a rule built otherwise is refused, naming what is missing. The name and the path
+must each sit inside a code span: a quoted example inside one double-backtick span is judged too. A
+link into code (`[x](src/a.ts)`) is not read.
+
+**What it claims.** The cited file holds the name as a whole token, in code or in text. Not that a
+cited line holds it, and not that the name is code there: a name left only in a comment holds. The
+line is `pointers().resolve()`'s to check. Its limits:
+
+- A dotted name `a.b.c` is judged by its last segment, `c`. So a file name the pattern captures as a
+  name (`` `config.ts` ``, which the pattern above does capture) is judged as `ts`, which holds in
+  most files.
+- A token is a run of ASCII letters, digits, `_` and `$`: `foo` holds in a file that has `fooébar` or
+  `foo-bar`, and a keyword (`function`) holds almost anywhere.
+- A reference that cites the document it sits in cannot be judged, since its own text holds the
+  name; it is reported as such.
+
+**What it reports.**
+
+- **A name the file does not hold**, with four remedies: write the new name; cite the file it moved
+  to; reword when the name belongs to another pointer in the sentence; or waive a reference that
+  cites old code on purpose. Over eess's own records the reds were mostly the last three kinds: of
+  27 judged, 7 were renames (2 of 9 in live documents), 9 cited old code, 6 paired a name with
+  another name's pointer, and 5 were sentences saying the name was gone. That is why the snippet
+  runs it at `.warn()` over live documents.
+- **A path the corpus does not hold.** A `pointers().resolve()` rule over the same corpus, if you
+  run one, reports the same pointer under its own id, and its waivers do not cover this rule.
+- **What it cannot judge**: a group that did not capture, a name or path outside a code span (a
+  prose word dressed in escaped backticks), a name that is not an identifier of two or more
+  characters, a path that matches several files, and a reference to its own document. Each fails
+  even under `.warn()`, and no exclusion drops it: a rule that judged nothing must not read as clean.
+  Over eess's own live documents the snippet above fails `.warn()` on three such findings: two
+  one-letter names and one name a backslash pushed out of its code span.
+
 ## The shape of a document, built from blocks
 
 A rule about what a kind of document must hold is written with the blocks above, in your own words.

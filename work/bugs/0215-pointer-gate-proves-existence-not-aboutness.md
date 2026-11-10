@@ -264,9 +264,16 @@ an unsettled design is the phantom this corpus's own lane guards forbid. So this
 mechanism is described, and whoever wants it has the design fork written down. Re-file as a
 plan when the fork is decided.
 
-**Carried in, 2026-11-10,** from [plan 0648](../plans/0648-md-a-code-reference-still-appears-in-its-file.md)'s
+**Carried in, 2026-11-10,** from [plan 0648](../plans/completed/0648-md-a-code-reference-still-appears-in-its-file.md)'s
 review, for when this repository is wired to
 [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s conditions:
+
+**The condition exists, 2026-11-10:** eess-md's `appearInTheCitedFile()`
+([plan 0648](../plans/completed/0648-md-a-code-reference-still-appears-in-its-file.md)) reds a named
+reference whose cited file no longer holds the name. Over this repository's records it reported 30
+such references (10 in live records), and 7 it cannot judge; this repository does not run it yet,
+which is the plan that brings [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s
+ask A2. Its first catch was a citation its own build made stale.
 
 - [ ] The stock pattern's lookahead for a commit-pinned pointer (`` on `<commit>` `` after the
       pointer, 5 of the 9 pinned rows in the proposal's judged sample), measured over this
