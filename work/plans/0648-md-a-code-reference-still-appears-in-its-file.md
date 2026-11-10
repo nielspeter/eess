@@ -33,9 +33,10 @@
     absent root is safe only because its caller prints the roots it found, which a rule file
     cannot. Reading external roots is left out of A1 here; an adopter who needs it brings it as a
     proposal.
-  - **The commit-pinned lookahead in the stock pattern is not this plan's.** It moves with
-    [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s deferred boxes to the
-    plan that wires this repository, which must measure it over this repository's own references.
+  - **The commit-pinned lookahead in the stock pattern is not this plan's.** Its home is
+    [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), which owns the defect
+    and gains an open box for it in this PR: it is measured over this repository's own references
+    when this repository is wired, not in eess-md's example.
   - **The shared parts are built here and reused by
     [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md):** the path classifier, the
     mention requirements, the name rule and the refusals.
@@ -69,15 +70,27 @@ below states the rule's own.
 
 ```ts
 export type CitedPath =
-  | { readonly kind: 'resolved'; readonly rel: string; readonly text: string }
-  | { readonly kind: 'broken'; readonly wanted: string }
+  | {
+      readonly kind: 'resolved'
+      readonly rel: string
+      readonly text: string
+      readonly lines: number
+    }
+  /** `unique`: in `exact` mode, the one file that matches by suffix, which the pointer fix rewrites to. */
+  | { readonly kind: 'broken'; readonly wanted: string; readonly unique?: string }
   | { readonly kind: 'ambiguous'; readonly wanted: string; readonly candidates: readonly string[] }
 
 export function citedPaths(corpus: Corpus, mode: 'suffix' | 'exact'): (wanted: string) => CitedPath
 ```
 
-- **One index and one text cache.** The path index is built once, the text is read once per file
-  (`readCorpusFile`), and a file's token set is built once, when it is first asked for.
+- **One index and one text cache, keyed by corpus and mode.** The path index is built once, the text
+  and its line count are read once per file (`readCorpusFile`; `pointerResolves` keeps counting a
+  file's lines once, not once per pointer), and a file's token set is built once, when it is first
+  asked for.
+- **What it carries over from `pointerResolves`:** the stripping of a leading `./`
+  (`pointer-resolve.ts:111`) happens inside it, and in `exact` mode a path that matches only by
+  suffix, even several times, is `broken`, never `ambiguous` (`:139-142`), with `unique` set when one
+  file matches, so the autofix (`:225-234`, pinned by `autofix.test.ts`) needs no second resolution.
 - **In-corpus resolution only.** `pointerResolves`
   (`packages/md/src/conditions/pointer-resolve.ts:107-264`) calls it for its in-repo step and keeps
   everything else as it is: the line checks, the external-roots branch with its documented skip
@@ -93,8 +106,10 @@ export function citedPaths(corpus: Corpus, mode: 'suffix' | 'exact'): (wanted: s
 **Refused when the rule is built**, as an `ArchConfigError` from the builder's method, which holds
 the pattern and the opt-in:
 
-- a pattern without a `name` or a `path` group. The groups are listed with
-  `new RegExp('(?:' + source + ')|').exec('').groups`, never by searching the source for `(?<`;
+- a pattern without one of the groups its condition requires: `name` and `path` here, and `name`,
+  `path` and `line` for [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s. The shared check takes the list. The groups are listed with
+  `new RegExp('(?:' + source + ')|', flags).exec('').groups`, with the caller's flags less `g` and
+  `y` (so a pattern that needs `u` or `v` compiles), never by searching the source for `(?<`;
 - a rule over a reading without `keepBackticks`. The message names the option.
 
 The condition is reached only through the builder's method; eess-md exports no standalone
@@ -108,14 +123,21 @@ applies is the only one reported:
 2. **`name` or `path` is not inside one code span** (missing from `codeGroups`): "write the name and
    the path each in its own code span". This catches the forged name of [plan 0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md).
 3. **The judged name is not an identifier.** The name rule: the last `.`-separated segment of the
-   `name` group must match `^[A-Za-z_$][\w$]*$`, so `` `foo.` `` (an empty segment) and
-   `` `config.ts` `` (judged as `ts`) never become a token. The finding reads "`X` is not a name this
-   rule can look for; write the identifier itself". A dotted name `a.b.c` is judged as `c`, and the
-   message says so.
+   `name` group must match `^[A-Za-z_$][\w$]+$`, an identifier of at least two characters, so
+   `` `foo.` `` (an empty segment) and `` `x` `` (a token in nearly any file) never become a token,
+   as the instrument's own name filter refused them (`scripts/measure-code-reference-names.mjs:62-72`). The finding reads "`X` is not a name this rule can look for; write the identifier itself".
+   A dotted name `a.b.c` is judged as `c`, and the message says so. **A known limit:** a file name
+   the pattern captures as a name (`` `config.ts` ``) is judged as `ts`, an identifier, and holds
+   wherever `ts` is a token, such as `'./x.ts'` in an import. eess-md keeps no list of extensions
+   ([ADR-022](../../adr/022-eess-mds-root-fixes-no-documents-shape.md)); the caller's pattern
+   excludes file names, the stock pattern's documentation says so, and the reconciliation counts
+   what remains.
 4. **The path is ambiguous.** This one is not judged: it is marked `bypassFilters`, fails `.warn()`
-   and cannot be excluded, since the rule cannot tell which file is cited.
+   and cannot be excluded, since the rule cannot tell which file is cited. Its remedy: "F matches
+   N files (…); write enough of the path to name one".
 
-**Kinds of finding.** Findings 1–4 are "cannot judge", marked `bypassFilters`
+**Kinds of finding.** One finding per mention: each mention is its own cause, as eess-md's unread
+findings are. Findings 1–4 are "cannot judge", marked `bypassFilters`
 ([ADR-021](../../adr/021-a-predicate-that-cannot-judge-a-subject-says-so.md) clause 5), so a rule
 that judged nothing never exits 0 under `.warn()`. A test drives `.warn()` itself, since
 `.violations()` cannot see the flag.
@@ -218,7 +240,10 @@ sit in frozen records.
 Each finding is asserted by its cause, a message fragment, never by rule id and severity alone.
 
 - [ ] **Phase 1:** the classifier's three outcomes, each with its data; a `../` path is broken; one
-      read per file across many references. Every existing `pointers().resolve()` test passes
+      read per file across many references; in `exact` mode a suffix-only match is broken, with
+      `unique` set for one match.
+- [ ] **The name rule's limit:** `` `config.ts` `` in a sentence citing a file that imports
+      `'./x.ts'` holds, pinned as the stated limit. Every existing `pointers().resolve()` test passes
       unchanged.
 - [ ] **Phase 2, through the public root:**
   - each refusal;
@@ -241,6 +266,10 @@ Each finding is asserted by its cause, a message fragment, never by rule id and 
     (`check:corpus`'s roots and frozen globs) at the build commit.
   - **Compare.** Its red count per document is set against the instrument's no-token rows at the
     same commit.
+  - **Count every class**, the four that cannot be waived too (a failed capture, a name outside a
+    code span, a name the rule cannot look for, an ambiguous path): they fail even under `.warn()`
+    and no `eess-exclude` drops them (`packages/core/src/execute-rule.ts:68`), and an ambiguous
+    suffix has been real here before. The docs say so.
   - **Record.** Every difference goes in this ledger, with a count and a reason; 18 pattern-only or
     instrument-only pairs are expected from
     [spike 0646](../spikes/0646-what-ask-a1-of-proposal-021-reads-and-judges.md). The rate the
@@ -308,6 +337,16 @@ them.
 
   Each is decided above.
 
+- **Re-checked the same day** by the architect and enforcement lenses, on the revision (40a7c441).
+  Both found both criticals closed and all four rows able to go red. Five important items were
+  still open, now answered:
+  - the `broken` outcome carries the autofix's `unique`;
+  - the name rule's claim about `config.ts` is replaced by a stated limit;
+  - [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md) records the same departures;
+  - names of one character are refused too, as the instrument refused them;
+  - the reconciliation counts the classes that cannot be waived, and the docs say they fail at
+    `.warn()`;
+  - the lookahead's home is [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md), with an open box, since that bug files no wiring plan.
 - **Not taken:**
   - a "one pointer resolver" arch rule, which the architect lens noted as a consideration;
   - the `paths: 'exact'` option for the new condition, which always uses `suffix`.
