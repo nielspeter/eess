@@ -146,9 +146,12 @@ describe('plan 0648: appearInTheCitedFile', () => {
     expect(String(thrown)).toContain('has no "path"')
   })
 
-  it("lists a pattern's groups with its flags, so a pattern that needs u compiles", () => {
-    const unicode = /`(?<name>\p{L}[\p{L}\d]*)`(?<gap>[^`\n]{0,12})`(?<path>[\w./]+):\d+`/gu
-    expect(findings('See `pathSuffixIndex` (`src/index.ts:1`).', unicode)).toEqual([])
+  it("lists a pattern's groups with its flags, so a pattern that needs v compiles", () => {
+    // `[\p{L}--\p{Lu}]` (a letter that is not upper case) compiles only with the v flag.
+    const setNotation =
+      /`(?<name>[\p{L}--\p{Lu}][\w$]*)`(?<gap>[^`\n]{0,12})`(?<path>[\w.\/]+):\d+`/gv
+    expect(findings('See `pathSuffixIndex` (`src/index.ts:1`).', setNotation)).toEqual([])
+    expect(findings('See `renamedAway` (`src/index.ts:1`).', setNotation)).toHaveLength(1)
   })
 
   it('a finding it cannot judge fails .warn(); a plain miss does not', () => {
