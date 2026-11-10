@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Draft — authored 2026-11-09 from
+- **State:** Ready — frozen 2026-11-10 against `main` 3d15b27a, at the maintainer's "go" after
+  the revision (PR #336); the design was reviewed by four lenses and re-checked by two, so the
+  freeze adds no decision. Its pointers into `pointer-resolve.ts` give the lines as built in
+  Phase 1. Authored 2026-11-09 from
   [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
   ruled in its fourth Review, and revised 2026-11-10 after its own review by the architect,
   enforcement, method and product lenses (the "Review, 2026-11-10" section below). It is the second
@@ -88,13 +91,13 @@ export function citedPaths(corpus: Corpus, mode: 'suffix' | 'exact'): (wanted: s
   file's lines once, not once per pointer), and a file's token set is built once, when it is first
   asked for.
 - **What it carries over from `pointerResolves`:** the stripping of a leading `./`
-  (`pointer-resolve.ts:111`) happens inside it, and in `exact` mode a path that matches only by
-  suffix, even several times, is `broken`, never `ambiguous` (`:139-142`), with `unique` set when one
-  file matches, so the autofix (`:225-234`, pinned by `autofix.test.ts`) needs no second resolution.
+  (`wantedPath`, `packages/md/src/model/code-path.ts:35`) happens inside it, and in `exact` mode a path that matches only by
+  suffix, even several times, is `broken`, never `ambiguous`, with `unique` set when one
+  file matches, so the autofix (`packages/md/src/conditions/pointer-resolve.ts:215-225`, pinned by `autofix.test.ts`) needs no second resolution.
 - **In-corpus resolution only.** `pointerResolves`
-  (`packages/md/src/conditions/pointer-resolve.ts:107-264`) calls it for its in-repo step and keeps
+  (`packages/md/src/conditions/pointer-resolve.ts:103-256`, lines as built) calls it for its in-repo step and keeps
   everything else as it is: the line checks, the external-roots branch with its documented skip
-  (`:166-175`), the refusal of `externalRoots` over a `corpusFromText` corpus (`:79-89`), and its
+  (`:156-165`), the refusal of `externalRoots` over a `corpusFromText` corpus (`:82-89`), and its
   messages and fix.
 - **The new condition always uses `suffix`**, as `pointers().resolve()` does by default.
 - **A path that resolves outside the corpus** (a captured `../`) is `broken`.
@@ -314,7 +317,7 @@ written to the session's scratchpad. All four said not ready to freeze, and this
 them.
 
 - **Critical, raised by three lenses.** An external root absent from disk would have passed
-  silently, since the pointer gate's skip (`pointer-resolve.ts:174`) has no outcome in a five-class
+  silently, since the pointer gate's skip (`return []` in `pointerResolves`' external-roots branch) has no outcome in a five-class
   classifier. Resolved by taking no `externalRoots` here.
 - **Critical, raised by two lenses.** An empty last segment (`` `foo.` ``) would always pass: the
   instrument's boundary check finds `""` in most files, and the instrument's name filter was not

@@ -1,10 +1,10 @@
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { ArchConfigError, type Condition } from '@nielspeter/eess'
-import { pathSuffixIndex } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import type { MdPointer } from '../model/pointers.js'
-import { isTextCorpus, readCorpusFile } from '../model/corpus-internals.js'
+import { isTextCorpus } from '../model/corpus-internals.js'
+import { citedPaths, wantedPath } from '../model/code-path.js'
 import { lineCount } from '../model/line-count.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
 
@@ -90,26 +90,20 @@ export function pointerResolves(
   // Bug 0257: one resolver, shared with `eess-crossvalidate`. This file used to
   // carry its own basename index and its own three-way match type; both were the
   // kernel's `pathSuffixIndex` written a second time, down to the exact-wins
-  // precedence. What stays here is the POLICY — what a `none` means, whether an
+  // precedence. Plan 0648 moved the in-repo step into `citedPaths`, which the
+  // code-reference conditions share, so the two cannot resolve one pointer two
+  // ways. What stays here is the POLICY — what a `none` means, whether an
   // `ambiguous` fails, when to consult external roots — which is genuinely this
-  // dialect's and differs from crossvalidate's.
-  const paths = pathSuffixIndex(corpus.fileIndex)
-
-  const lineCountCache = new Map<string, number>()
-  const linesOf = (rel: string): number => {
-    const cached = lineCountCache.get(rel)
-    if (cached !== undefined) return cached
-    const n = lineCount(readCorpusFile(corpus, rel))
-    lineCountCache.set(rel, n)
-    return n
-  }
+  // dialect's and differs from crossvalidate's. Each file's lines are counted
+  // once, in `citedPaths`, not once per pointer.
+  const paths = citedPaths(corpus, mode)
 
   return {
     description: 'resolve to a real file and line',
     evaluate: (pointers, ctx) =>
       pointers.flatMap((p) => {
-        const wanted = p.path.replace(/^\.?\//, '')
-        const match = paths.resolve(wanted)
+        const wanted = wantedPath(p.path)
+        const cited = paths.classify(p.path)
 
         let targetRel: string | null = null
         // Bug 0254: an ambiguous suffix used to `return []` here, commented
@@ -131,15 +125,11 @@ export function pointerResolves(
         // pointer is in the repo twice, and it discards the candidates and the
         // remedy. `ambiguousViolation()` below is now the fallback on every exit
         // that would otherwise skip or misreport.
+        // The exact repo-relative path is preferred in both modes, and it beats an
+        // ambiguity it is itself part of; `citedPaths` decides that.
         let ambiguousWith: readonly string[] = []
-        if (match.kind === 'exact') {
-          // Exact repo-relative path — preferred in both modes, and it beats an
-          // ambiguity it is itself part of.
-          targetRel = match.file
-        } else if (mode === 'suffix') {
-          if (match.kind === 'ambiguous') ambiguousWith = match.files
-          targetRel = match.kind === 'unique' ? match.file : null
-        }
+        if (cited.kind === 'resolved') targetRel = cited.rel
+        else if (cited.kind === 'ambiguous') ambiguousWith = cited.candidates
 
         /**
          * The ambiguous finding, built once and used at every exit that would
@@ -222,14 +212,15 @@ export function pointerResolves(
           // Broken. If exactly one file uniquely resolves the shortened path, the
           // repair is deterministic — attach an autofix that expands it to the
           // full repo-relative path (plan 0066). Ambiguous → no fix.
+          const unique = cited.kind === 'broken' ? cited.unique : undefined
           const fix =
-            match.kind === 'unique' && match.file !== wanted
+            unique !== undefined && unique !== wanted
               ? {
                   file: p.doc.file,
                   start: p.pathStart,
                   end: p.pathEnd,
-                  replacement: match.file,
-                  describe: `rewrite pointer "${p.path}" → "${match.file}"`,
+                  replacement: unique,
+                  describe: `rewrite pointer "${p.path}" → "${unique}"`,
                 }
               : undefined
           return [
@@ -245,7 +236,7 @@ export function pointerResolves(
           ]
         }
 
-        const lines = linesOf(targetRel)
+        const lines = paths.lines(targetRel)
         if (Math.max(p.startLine, p.endLine) > lines) {
           return [
             mdViolation({
