@@ -503,6 +503,17 @@ export type CodeName =
 1. **Where the code facts come from (A2)** stays the author's, as before. A1 adds two constraints:
    - the producer is held to `CodeFacts` by a typecheck in `examples/`;
    - an eess-ts home needs an ADR first, as recorded above.
+
+   **Decided 2026-11-14, overrulable** ([spike 0651](../spikes/0651-where-the-typescript-code-facts-come-from.md)): eess-ts walks and crossvalidate binds.
+   - eess-ts gains a names element in `ArchCall`'s pattern, with its walk bounded to the files it
+     is asked for.
+   - eess-crossvalidate's `md-ts` maps it to `CodeFacts` by a real import of both dialects, and
+     offers the preset.
+   - No structural contract crosses two dialects, so no ADR.
+
+   Measured: the rule on facts from eess-ts's own project reproduces every judged verdict, and
+   bounding the walk to the cited files takes it from 4.1 s to 0.13 s here.
+
 2. **The names** are this rewrite's choices, made from the family's vocabulary so they can be
    overruled before they are pinned:
    - `keepBackticks` and `codeGroups`;
