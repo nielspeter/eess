@@ -62,10 +62,9 @@ The type's doc states the producer's obligations:
   like `declaresSections` (`packages/md/src/model/section-declarations.ts:24`).
 - **The read.** `MentionRuleBuilder.collectViolations` (`packages/md/src/builders/mentions.ts:141`)
   reads the registered facts.
-- **An empty `coverage`** is reported once, in the two-branch shape at
-  `packages/core/src/correspondence.ts:165-170`. Over nothing examined, the receipt carries
-  `sourceEmpty`. Beside a non-zero `examined`, a `{ examined: 0, sourceEmpty: true }` member joins
-  through `mergeCollectResults`. It outranks `.expectEmpty()`.
+- **An empty `coverage`** is reported once, by the kernel's `withSourceEmpty` (`@nielspeter/eess/internal`,
+  [plan 0652](./completed/0652-the-empty-source-helper-moves-into-the-kernel.md)), never a third copy
+  of its two branches. It outranks `.expectEmpty()`.
 - **When the facts loaded something**, two configuration findings can follow:
   - "the code facts (`label`) cover none of the N files these references cite", when at least one
     reference is examined. It replaces that rule's per-file not-judged findings.

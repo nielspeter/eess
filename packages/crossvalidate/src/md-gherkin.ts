@@ -5,8 +5,8 @@ import {
   featurePaths,
   featuresLoadedNothing,
   violationsFor,
-  withEmptySource,
 } from './shared.js'
+import { withSourceEmpty } from '@nielspeter/eess/internal'
 import {
   finishPreset,
   type ArchViolation,
@@ -159,7 +159,7 @@ export function scenarioCitationsResolve(
 
   // Bug 0642: a corpus or a feature set that loaded nothing is reported, not resolved over nothing.
   return finishPreset(
-    withEmptySource(
+    withSourceEmpty(
       corpusLoadedNothing(corpus) || featuresLoadedNothing(set),
       collectResult(violations, { examined }),
     ),

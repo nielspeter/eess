@@ -25,7 +25,7 @@ member's `undecided` count never reaches the merged receipt.
 
 A second place drops it on the preset path: `finishPreset`'s `expectEmpty` rewrite and
 `withEvidenceGate` rebuild the receipt without it (`packages/core/src/report.ts:114-178`, `:296-303`),
-measured by the same review's enforcement lens. Plan 0652's helper keeps the count where nothing was
+measured by the same review's enforcement lens. [Plan 0652](../plans/0652-the-empty-source-helper-moves-into-the-kernel.md)'s helper keeps the count where nothing was
 examined and adds nothing to the merge, so this bug owns the merge for every caller.
 
 ## Fix

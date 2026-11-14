@@ -8,7 +8,7 @@
   [spike 0651](../spikes/0651-where-the-typescript-code-facts-come-from.md) set. Revised the same
   day after its own review by the architect, enforcement and method lenses ("Review, 2026-11-14"
   below).
-- **Priority:** Medium. There is no false green today. Plan 0649 would write a third copy of a rule
+- **Priority:** Medium. There is no false green today. [Plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md) would write a third copy of a rule
   the kernel owns, and its builder's receipt will carry an `undecided` count that the copies lose.
 - **Effort:** Small. An estimate of about an hour, not measured.
 - **Created:** 2026-11-14
@@ -24,7 +24,7 @@ receipt)`. It is family plumbing that the dialects need and consumers do not
     `RuleBuilder` already drops it (`packages/core/src/rule-builder.ts:404`).
   - **On the branch beside a non-zero `examined`, the result is exactly what
     `mergeCollectResults` returns.** The helper adds no field of its own, so the merge stays the one
-    owner of its rules (ADR-014 §7). That the merge drops `undecided` is
+    owner of its rules ([ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §7). That the merge drops `undecided` is
     [bug 0653](../bugs/0653-the-merge-drops-the-undecided-count.md)'s, for every merge.
   - **The release:** the kernel takes a minor, since `/internal` is a published, versioned contract
     and crossvalidate's built code will import the new symbol. Crossvalidate takes a patch. This
@@ -46,7 +46,7 @@ The rule is written twice:
 - as `withEmptySource` in eess-crossvalidate (`packages/crossvalidate/src/shared.ts:126-130`), with
   four call sites serving six presets (`gherkin-ts.ts`'s `withInputs` serves three).
 
-Plan 0649 would need it a third time in eess-md, which cannot import crossvalidate.
+[Plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md) would need it a third time in eess-md, which cannot import crossvalidate.
 
 **Why no behaviour changes, measured by the review:**
 
@@ -56,14 +56,14 @@ Plan 0649 would need it a third time in eess-md, which cannot import crossvalida
 - **One empty member and two report alike.** The merge reports one finding whatever the number of
   empty members, since it finds the first (`packages/core/src/collect-result.ts:189-191`).
 
-The loss is latent until plan 0649's builder.
+The loss is latent until [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s builder.
 
 ## Phase 1 — the helper
 
 ```ts
 // packages/core/src/source-empty.ts
 /**
- * Spike 0640: an input that loaded nothing, reported once beside a receipt (ADR-014 §4). Over
+ * Spike 0640: an input that loaded nothing, reported once beside a receipt ([ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §4). Over
  * nothing examined, the receipt keeps its violations and evidence and says `sourceEmpty` itself,
  * and the terminal or a preset's gate reports it; beside a non-zero `examined` that flag would
  * contradict, so the input is a member of its own, and the merge reports `emitter/source-empty`.
@@ -74,7 +74,7 @@ export function withSourceEmpty(loadedNothing: boolean, receipt: CollectResult):
 Its doc links name the ADRs from `packages/core/src/`, as `../../../adr/…`.
 
 - **Export.** It is exported from `packages/core/src/internal.ts` and forwarded by no dialect
-  (ADR-011 §2).
+  ([ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) §2).
 - **`correspondence()`** calls it with "a side carries `sourceEmpty`".
 - **Crossvalidate.** Its four call sites call it in place of `withEmptySource`, which is deleted
   along with the imports only it used (`collectResult` and `mergeCollectResults` in `shared.ts`).
@@ -136,7 +136,7 @@ Each assertion is exact: the whole list of finding ids, with `toEqual`.
   [bug 0653](../bugs/0653-the-merge-drops-the-undecided-count.md).
 - Naming the source in the finding:
   [bug 0641](../bugs/0641-the-empty-source-finding-names-no-source.md).
-- eess-md's use of the helper, which is plan 0649's.
+- eess-md's use of the helper, which is [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s.
 
 ## Review, 2026-11-14
 
@@ -157,8 +157,8 @@ its own worktree (crossvalidate 170 tests, core 442).
 - **Minor, folded in:**
   - the doc-link depth;
   - the rename's reason;
-  - bug 0645's mention of the old name;
+  - [bug 0645](../bugs/0645-the-vacuity-matrix-probes-no-preset-under-expect-empty.md)'s mention of the old name;
   - the unused imports left in `shared.ts`;
-  - plan 0649's third-copy instruction;
+  - [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s third-copy instruction;
   - the board's "Blocked on" cell;
-  - the boolean losing which side loaded nothing (bug 0641).
+  - the boolean losing which side loaded nothing ([bug 0641](../bugs/0641-the-empty-source-finding-names-no-source.md)).

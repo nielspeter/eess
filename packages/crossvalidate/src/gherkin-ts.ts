@@ -10,8 +10,8 @@ import {
   featuresLoadedNothing,
   projectLoadedNothing,
   violationsFor,
-  withEmptySource,
 } from './shared.js'
+import { withSourceEmpty } from '@nielspeter/eess/internal'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
 import path from 'node:path'
@@ -195,7 +195,7 @@ export function scenarioTestsResolve(
  * that loaded no feature file, is an empty input, reported once beside the receipt.
  */
 const withInputs = (project: ArchProject, set: FeatureSet, receipt: CollectResult): CollectResult =>
-  withEmptySource(projectLoadedNothing(project) || featuresLoadedNothing(set), receipt)
+  withSourceEmpty(projectLoadedNothing(project) || featuresLoadedNothing(set), receipt)
 
 const COVER_RULE = 'every scenario should be proven by a citing test'
 

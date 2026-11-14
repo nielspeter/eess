@@ -74,6 +74,8 @@ export { globTextFault, repoRelativeCorrection } from './glob-syntax.js'
 export type { TextBase, GlobTextFault } from './glob-syntax.js'
 export { marksOwnEmptyDiscovery, ownsEmptyDiscovery } from './owns-empty-discovery.js'
 export { matchSelections } from './matching.js'
+// Plan 0652: the empty-source rule's one owner, for the dialects' own receipts.
+export { withSourceEmpty } from './source-empty.js'
 export {
   recordEdgeCoverage,
   untestedRules,
