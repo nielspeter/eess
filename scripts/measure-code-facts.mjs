@@ -174,9 +174,10 @@ const c = corpus({
 })
 const NAMED =
   /`(?<name>[A-Za-z_$][\w$.]*)(?:\([^`)]*\))?`(?<gap>[^`\n]{0,12})`(?<path>[\w./@-]+\.[A-Za-z]+):(?<line>\d+)(?:-(?<end>\d+))?`/g
-const refs = mentions(c, { pattern: NAMED, keepBackticks: true })
-  .select({ label: 'm', identify: (m) => ({ name: m.text }) })
-  .elements
+const refs = mentions(c, { pattern: NAMED, keepBackticks: true }).select({
+  label: 'm',
+  identify: (m) => ({ name: m.text }),
+}).elements
 const index = pathSuffixIndex(c.fileIndex)
 const FROZEN = /\/(completed|wont-do|fixed|archived)\/|^work\/spikes\//
 
@@ -281,8 +282,9 @@ const result = {
     names: names.length,
     byKind: tally(names.map((n) => ({ cls: n.kind }))),
     declarationsWithDoc: names.filter((n) => n.kind === 'declaration' && n.doc !== null).length,
-    docEndingAtOrAfterLine: names.filter((n) => n.kind === 'declaration' && n.doc !== null && n.doc.end >= n.line)
-      .length,
+    docEndingAtOrAfterLine: names.filter(
+      (n) => n.kind === 'declaration' && n.doc !== null && n.doc.end >= n.line,
+    ).length,
   },
   references: { examined: rows.length, all: tally(rows), live: tally(rows.filter((r) => r.live)) },
   ...(samples ? { samples } : {}),
