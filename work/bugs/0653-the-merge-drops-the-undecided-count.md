@@ -6,8 +6,12 @@
   [plan 0652](../plans/0652-the-empty-source-helper-moves-into-the-kernel.md), after
   [plan 0649](../plans/0649-md-a-code-reference-resolves-at-its-lines.md)'s review (the architect
   lens) found one empty-source helper dropping it; no change yet.
-- **Severity:** Low — no false green known. A merged receipt carries no `undecided` count, so a
-  reader of the receipt (a gate's summary, the terminal's checks that read it) sees none.
+- **Severity:** Low — no false green. A merged receipt reports nothing undecided while its own
+  violations include the undecided findings. No reader in the repository acts on a merged count
+  today: the terminal reads a rule's own receipt before any merge
+  (`packages/core/src/terminal-builder.ts:269`), and `check-corpus.mjs` reads one member
+  (`scripts/check-corpus.mjs:1806`). Both measured by
+  [plan 0652](../plans/0652-the-empty-source-helper-moves-into-the-kernel.md)'s review.
 - **Origin:** self-found · reading `mergeCollectResults` for [plan 0652](../plans/0652-the-empty-source-helper-moves-into-the-kernel.md), 2026-11-14.
 - **Reported:** 2026-11-14
 
@@ -19,8 +23,10 @@ subject could not be judged. `mergeCollectResults` (`packages/core/src/collect-r
 builds its result on every path from `examined`, `sourceEmpty` and `declaredEmpty` only, so a
 member's `undecided` count never reaches the merged receipt.
 
-Not yet measured: which merged receipts in the family carry an `undecided` member today, and
-whether any reader acts on the merged count.
+A second place drops it on the preset path: `finishPreset`'s `expectEmpty` rewrite and
+`withEvidenceGate` rebuild the receipt without it (`packages/core/src/report.ts:114-178`, `:296-303`),
+measured by the same review's enforcement lens. Plan 0652's helper keeps the count where nothing was
+examined and adds nothing to the merge, so this bug owns the merge for every caller.
 
 ## Fix
 
