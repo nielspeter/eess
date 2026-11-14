@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — authored 2026-11-09 from
+- **State:** Draft — held 2026-11-14 by its review (below), to be rewritten once A2's plan exists;
+  authored 2026-11-09 from
   [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s ask A1, as
   ruled in its fourth Review. It is the third of three plans that own A1, and is built after plans
   [0647](./completed/0647-md-a-mention-reading-that-keeps-backticks.md) and
@@ -167,6 +168,36 @@ Each finding is asserted by its cause, a message fragment, never by rule id and 
   - "none covered" emptied;
   - the `doc`-span refusal removed.
 - [ ] The sabotage matrix, in a worktree with its own install, one mutant at a time.
+
+## Review, 2026-11-14
+
+Reviewed as a Draft by the architect, enforcement, method and product lenses, at 9a7a16ad. All four
+held it; no build should start from this text.
+
+- **Criticals:**
+  - stale code facts pass drift green; the fix is to require the name as a token on the cited line
+    (enforcement);
+  - the contract has no user until a producer exists, and no adopter can build it from what is
+    documented: "use" is undefined, and there is no guide and no non-TypeScript test (product);
+  - the plan points at the proposal instead of copying it (method);
+  - its reconciliation cannot be met against the instrument (method).
+- **Important, across the lenses:**
+  - the emptiness helper already exists twice (`withEmptySource` in crossvalidate, and
+    `correspondence.ts`), and it drops the `undecided` count;
+  - several checks belong in the condition, not the builder;
+  - facts read from JSON need a runtime shape check ([ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md));
+  - per-file findings need a place;
+  - stale pointers need a class;
+  - the dropped row 12 and the leave-out residual need dispositions;
+  - the figures are stale (117, 58 and 288 at HEAD);
+  - the citation of `MentionRuleBuilder.collectViolations` has drifted from line 141 to 146;
+  - the file names use the old condition name;
+  - the effort is understated.
+
+Where the producer lives was decided by
+[spike 0651](../spikes/0651-where-the-typescript-code-facts-come-from.md): eess-ts walks and
+crossvalidate binds. That spike also measured the reconciliation this plan could not do. The rewrite
+follows A2's plan and folds in every finding above.
 
 ## Out of scope
 
