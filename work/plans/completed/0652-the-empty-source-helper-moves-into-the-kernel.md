@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Done — built 2026-11-14 on `plan/0652-lift-the-empty-source-helper` (43a16af0) and closed in the same PR. Previously read: Ready — frozen 2026-11-14 at the maintainer's "go", after its review below; the freeze added no decision. Before that: Draft — authored 2026-11-14, from
+- **State:** Done — built 2026-11-14 on `plan/0652-lift-the-empty-source-helper` (43a16af0) and closed in the same PR, after a build review by the enforcement and method lenses (below). It went from Draft to Done in one commit: the freeze to Ready was given orally, at the maintainer's "go", and never committed, which the method lens recorded at the build review. Before that: Draft — authored 2026-11-14, from
   [plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md)'s review (the architect lens), as
   the first step of the sequence that
   [spike 0651](../../spikes/0651-where-the-typescript-code-facts-come-from.md) set. Revised the same
@@ -41,9 +41,9 @@ nothing is reported once.
 
 The rule is written twice:
 
-- inline in `correspondence()` (`packages/core/src/correspondence.ts:165-171`), with one empty member
-  per empty side;
-- as `withEmptySource` in eess-crossvalidate (`packages/crossvalidate/src/shared.ts:126-130`), with
+- inline in `correspondence()` (`correspondence.ts` lines 165-171 at bc3349a6, before this plan), with
+  one empty member per empty side;
+- as `withEmptySource` in eess-crossvalidate (`shared.ts` lines 126-130 at bc3349a6), with
   four call sites serving six presets (`gherkin-ts.ts`'s `withInputs` serves three).
 
 [Plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md) would need it a third time in eess-md, which cannot import crossvalidate.
@@ -52,7 +52,7 @@ The rule is written twice:
 
 - **No current receipt carries what the copies drop.** All six presets build their receipt as
   `collectResult(violations, { examined })`, and `correspondence()` refuses an undecided subject
-  (`packages/core/src/correspondence.ts:331`, `:364`).
+  (`correspondence.ts` lines 331 and 364 at bc3349a6).
 - **One empty member and two report alike.** The merge reports one finding whatever the number of
   empty members, since it finds the first (`packages/core/src/collect-result.ts:189-191`).
 
@@ -101,7 +101,8 @@ Its doc links name the ADRs from `packages/core/src/`, as `../../../adr/…`.
 
 ## Test inventory
 
-Each assertion is exact: the whole list of finding ids, with `toEqual`.
+Each assertion is exact: the whole list of finding ids, with `toEqual`. The `notRun` test first
+asserted no finding list; it was made exact at the build review.
 
 - [x] **Over zero examined**, a receipt with a violation, `undecided: 1`, `declaredEmpty` and a
       `deadGlob`: the result holds that violation only, `examined: 0`, `sourceEmpty`, `undecided: 1`,
@@ -113,24 +114,65 @@ Each assertion is exact: the whole list of finding ids, with `toEqual`.
 - [x] **Two empty sides beside a non-zero `examined`** in `correspondence()`: one
       `emitter/source-empty` (`packages/core/tests/correspondence-source-empty.test.ts`).
 - [x] **Existing tests pass unchanged:** the whole kernel suite (47 files, 447 tests, the 5 new
-      ones among them) and the whole crossvalidate suite (14 files, 170 tests), 2026-11-14.
-- [x] **`check:family`, `check:arch`, `check:surface` and lint** are green.
+      ones among them) and the whole crossvalidate suite (14 files, 170 tests), on 43a16af0, 2026-11-14.
+- [x] **The gates**, on 43a16af0: `check:family` (1 rule across 1 file, 1.39 s), `check:arch` (41
+      rules across 2 files, 18.9 s), `check:surface` (101 kernel root exports documented, 0.15 s),
+      and lint over every changed file, each green.
 - [x] **The sabotage matrix**, 2026-11-14, on 43a16af0 in a worktree with its own `npm ci` and
       builds, one break at a time, against the three kernel test files and the whole crossvalidate
-      suite (1 min 45 s). Restored, 0 red before and after. Every break red its named test:
+      suite (1 min 45 s; re-run on 4f0622ab, 1 min 54 s, see the correction below). Restored, 0
+      red before and after. Every break red its named test:
 
-  | break                                                | kernel tests red | crossvalidate tests red |
-  | ---------------------------------------------------- | ---------------- | ----------------------- |
-  | the zero branch drops the receipt's violations       | 1                | 0                       |
-  | the zero branch drops `undecided`                    | 1                | 0                       |
-  | the zero branch always merges                        | 2                | 3                       |
-  | the merge branch merges an empty copy of the receipt | 1                | 0                       |
-  | the merge branch stamps `sourceEmpty`                | 1                | 1                       |
-  | `loadedNothing` ignored                              | 1                | 5                       |
-  | `correspondence()` stops calling it                  | 4                | 3                       |
+  | break                                                                       | kernel tests red | crossvalidate tests red |
+  | --------------------------------------------------------------------------- | ---------------- | ----------------------- |
+  | the zero branch drops the receipt's violations                              | 1                | 0                       |
+  | the zero branch drops `undecided`                                           | 1                | 0                       |
+  | the zero branch always merges                                               | 4                | 3                       |
+  | the merge branch merges an empty copy of the receipt                        | 1                | 0                       |
+  | the merge branch stamps `sourceEmpty`                                       | 1                | 1                       |
+  | the merge branch re-stamps the receipt's fields (added at the build review) | 1                | 0                       |
+  | `loadedNothing` ignored                                                     | 25               | 82                      |
+  | `correspondence()` stops calling it                                         | 4                | 3                       |
 
   _The two breaks that drop findings red only the new exact tests, as the review predicted: every
   existing suite stays green under them._
+
+  _Corrected 2026-11-14 at the build review (method lens): the table first recorded 2 and 1 kernel
+  reds, and 5 crossvalidate reds, for rows 3 and 7. The harness's counter took the first "N failed"
+  anywhere in vitest's output, which is not the "Tests" line, so it recorded something other than
+  the number of tests. Whether each break red was right, since a clean run prints no "failed"; the
+  counts were not. Re-run on 4f0622ab with a counter that reads the "Tests" line (1 min 54 s); the
+  method lens, by another route, measured 4 and 28 for those kernel cells and 82 for row 7's
+  crossvalidate cell. The same counter recorded the matrices of plans
+  [0647](./0647-md-a-mention-reading-that-keeps-backticks.md) and
+  [0648](./0648-md-a-code-reference-still-appears-in-its-file.md); each carries its own correction._
+
+## Build review, 2026-11-14
+
+The enforcement and method lenses reviewed the build at aeb3d83d. Neither found a critical defect,
+and no verdict or receipt changes for an existing caller: the enforcement lens compared main's
+copies with the helper over 13 receipt shapes, each read six ways.
+
+- **The merge branch was not pinned field for field** (enforcement). A helper re-stamping the
+  receipt's fields onto the merge's result left every test green. The test now compares each field
+  with `mergeCollectResults` computed in the test, and a new matrix row shows it reds.
+- **Two matrix rows did not reproduce** (method). The harness's counter was wrong; the table above
+  is corrected and re-run.
+- **The State claimed a committed freeze** that never happened (method); corrected above.
+- **Minor, folded in:**
+  - pointers into code the build changed, now pinned to bc3349a6;
+  - the counts and gates pinned to their commit;
+  - the `notRun` test made exact;
+  - the helper's doc on a receipt that already contradicts itself;
+  - the board row;
+  - [plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md)'s review pointed at this plan and [bug 0653](../../bugs/0653-the-merge-drops-the-undecided-count.md).
+- **Recorded, not fixed here:**
+  - nothing gates that eess-md calls the helper rather than a third copy; [plan 0649](../0649-md-a-code-reference-resolves-at-its-lines.md) says to call
+    it;
+  - the merge does not see an expired `declaredEmpty` on a member,
+    [bug 0654](../../bugs/0654-the-merge-loses-an-expired-declaration-on-a-member.md);
+  - the kernel minor also patch-bumps the dialects that depend on it, which the changeset does not
+    name, as changesets does on its own.
 
 ## Out of scope
 
@@ -143,7 +185,7 @@ Each assertion is exact: the whole list of finding ids, with `toEqual`.
 ## Review, 2026-11-14
 
 Reviewed as a Draft by the architect, enforcement and method lenses; the full reviews were written
-to the session's scratchpad. No verdict changes under the lift; the enforcement lens measured it in
+to the session's scratchpad and are not kept in the repository; what they found is recorded here. No verdict changes under the lift; the enforcement lens measured it in
 its own worktree (crossvalidate 170 tests, core 442).
 
 - **Critical (architect, method):** "keeps `undecided` on both branches" contradicted the plan's own

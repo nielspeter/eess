@@ -182,7 +182,10 @@ held it; no build should start from this text.
   - its reconciliation cannot be met against the instrument (method).
 - **Important, across the lenses:**
   - the emptiness helper already exists twice (`withEmptySource` in crossvalidate, and
-    `correspondence.ts`), and it drops the `undecided` count;
+    `correspondence.ts`), and it drops the `undecided` count. Done by
+    [plan 0652](./completed/0652-the-empty-source-helper-moves-into-the-kernel.md) (one owner,
+    `withSourceEmpty`); the merge's own loss is
+    [bug 0653](../bugs/0653-the-merge-drops-the-undecided-count.md);
   - several checks belong in the condition, not the builder;
   - facts read from JSON need a runtime shape check ([ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md));
   - per-file findings need a place;

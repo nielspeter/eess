@@ -406,6 +406,12 @@ in this PR unless marked otherwise.
   mention when an optional group fails often (enforcement: each mention is its own cause); the
   matrix's mutant text in the record (method).
 
+_Corrected 2026-11-14, at [plan 0652](./0652-the-empty-source-helper-moves-into-the-kernel.md)'s build
+review: the "tests red" counts in this record's matrix tables came from a harness counter that took
+the first "N failed" anywhere in vitest's output, not the "Tests" line, so they are not test counts.
+Whether each mutant red was read correctly, since a clean run prints no "failed": every row above
+did red, and the restored tree red 0. The counts themselves are not re-measured._
+
 ## Out of scope
 
 - The line condition, the `CodeFacts` contract and the facts' emptiness: plan
