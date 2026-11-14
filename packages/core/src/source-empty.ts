@@ -10,7 +10,9 @@ import { collectResult, mergeCollectResults, type CollectResult } from './collec
  *
  * One owner for the rule `correspondence()` and eess-crossvalidate's presets each wrote (plan 0652).
  * `deadGlob` is not kept: over an empty source a glob that matched nothing says nothing, as
- * `RuleBuilder` already drops it.
+ * `RuleBuilder` already drops it. A receipt that already contradicts itself (`notRun` beside
+ * findings) keeps its contradiction, so the gate names that cause rather than the empty source; no
+ * caller makes one, and either way the build fails.
  */
 export function withSourceEmpty(loadedNothing: boolean, receipt: CollectResult): CollectResult {
   if (!loadedNothing) return receipt

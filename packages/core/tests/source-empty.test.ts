@@ -4,7 +4,7 @@
  * finding: every existing suite stayed green under that break).
  */
 import { describe, expect, it } from 'vitest'
-import { collectResult, type ArchViolation } from '../src/index.js'
+import { collectResult, mergeCollectResults, type ArchViolation } from '../src/index.js'
 import { withSourceEmpty } from '../src/internal.js'
 
 const finding = (ruleId: string): ArchViolation => ({
@@ -33,18 +33,40 @@ describe('plan 0652: withSourceEmpty', () => {
     expect(r.deadGlob).toBeUndefined()
   })
 
-  it('keeps notRun over zero examined', () => {
+  it('keeps notRun over zero examined, exactly', () => {
     const r = withSourceEmpty(true, collectResult([], { examined: 0, notRun: true }))
+    expect(r.map((v) => v.ruleId)).toEqual([])
+    expect(r.examined).toBe(0)
     expect(r.notRun).toBe(true)
     expect(r.sourceEmpty).toBe(true)
   })
 
-  it("beside a non-zero examined, returns the merge's result: the receipt's findings and one emitter/source-empty", () => {
-    const receipt = collectResult([finding('demo/one')], { examined: 3 })
+  it("beside a non-zero examined, returns the merge's result field for field, adding none of its own", () => {
+    const receipt = collectResult([finding('demo/one')], {
+      examined: 3,
+      undecided: 1,
+      declaredEmpty: true,
+      notRun: false,
+    })
     const r = withSourceEmpty(true, receipt)
+    const merged = mergeCollectResults([
+      collectResult([], { examined: 0, sourceEmpty: true }),
+      receipt,
+    ])
     expect(r.map((v) => v.ruleId)).toEqual(['demo/one', 'emitter/source-empty'])
-    expect(r.examined).toBe(3)
-    expect(r.sourceEmpty).toBeUndefined()
+    expect(r.map((v) => v.ruleId)).toEqual(merged.map((v) => v.ruleId))
+    for (const field of [
+      'examined',
+      'sourceEmpty',
+      'declaredEmpty',
+      'notRun',
+      'deadGlob',
+      'undecided',
+    ] as const) {
+      expect(r[field]).toEqual(merged[field])
+    }
+    // The merge drops `undecided` today (bug 0653); the helper must not re-stamp it here.
+    expect(r.undecided).toBeUndefined()
   })
 
   it('when the source loaded something, returns the receipt itself', () => {
