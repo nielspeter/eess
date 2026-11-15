@@ -12,8 +12,8 @@ import {
   grammarGapRemedy,
   asClause,
   corpusLoadedNothing,
-  withEmptySource,
 } from './shared.js'
+import { withSourceEmpty } from '@nielspeter/eess/internal'
 import { isMermaidTag } from './mermaid-tag.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import {
@@ -197,7 +197,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Coll
 
   // Bug 0642: a corpus that loaded nothing is reported, not compared over nothing.
   return finishPreset(
-    withEmptySource(corpusLoadedNothing(corpus), collectResult(violations, { examined })),
+    withSourceEmpty(corpusLoadedNothing(corpus), collectResult(violations, { examined })),
     options,
   )
 }

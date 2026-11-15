@@ -62,10 +62,9 @@ The type's doc states the producer's obligations:
   like `declaresSections` (`packages/md/src/model/section-declarations.ts:24`).
 - **The read.** `MentionRuleBuilder.collectViolations` (`packages/md/src/builders/mentions.ts:141`)
   reads the registered facts.
-- **An empty `coverage`** is reported once, in the two-branch shape at
-  `packages/core/src/correspondence.ts:165-170`. Over nothing examined, the receipt carries
-  `sourceEmpty`. Beside a non-zero `examined`, a `{ examined: 0, sourceEmpty: true }` member joins
-  through `mergeCollectResults`. It outranks `.expectEmpty()`.
+- **An empty `coverage`** is reported once, by the kernel's `withSourceEmpty` (`@nielspeter/eess/internal`,
+  [plan 0652](./completed/0652-the-empty-source-helper-moves-into-the-kernel.md)), never a third copy
+  of its two branches. It outranks `.expectEmpty()`.
 - **When the facts loaded something**, two configuration findings can follow:
   - "the code facts (`label`) cover none of the N files these references cite", when at least one
     reference is examined. It replaces that rule's per-file not-judged findings.
@@ -183,7 +182,10 @@ held it; no build should start from this text.
   - its reconciliation cannot be met against the instrument (method).
 - **Important, across the lenses:**
   - the emptiness helper already exists twice (`withEmptySource` in crossvalidate, and
-    `correspondence.ts`), and it drops the `undecided` count;
+    `correspondence.ts`), and it drops the `undecided` count. Done by
+    [plan 0652](./completed/0652-the-empty-source-helper-moves-into-the-kernel.md) (one owner,
+    `withSourceEmpty`); the merge's own loss is
+    [bug 0653](../bugs/0653-the-merge-drops-the-undecided-count.md);
   - several checks belong in the condition, not the builder;
   - facts read from JSON need a runtime shape check ([ADR-015](../../adr/015-the-kernel-extends-resolution-never-execution.md));
   - per-file findings need a place;

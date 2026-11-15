@@ -39,6 +39,11 @@ Not designed. A `Selection` and a receipt member could carry the source's name b
 `sourceEmpty` (the side's label, a tsconfig path), and the finding name it, without a second finding
 id.
 
+Noted 2026-11-14: the kernel's one helper,
+[plan 0652](../plans/completed/0652-the-empty-source-helper-moves-into-the-kernel.md)'s `withSourceEmpty`,
+takes a boolean, so it drops which side loaded nothing, as the two copies it replaced already did.
+A fix here would widen its parameter to name the source.
+
 ## Verification
 
 - [ ] Red first: the finding over an empty project names its tsconfig.

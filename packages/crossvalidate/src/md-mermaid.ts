@@ -15,9 +15,9 @@ import {
   GRAMMAR_GAP,
   grammarGapRemedy,
   asClause,
-  withEmptySource,
   corpusLoadedNothing,
 } from './shared.js'
+import { withSourceEmpty } from '@nielspeter/eess/internal'
 import { isMermaidTag } from './mermaid-tag.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
@@ -149,7 +149,7 @@ export function embeddedDiagramsMatchCode(
     }
   }
   return finishPreset(
-    withEmptySource(
+    withSourceEmpty(
       projectEmpty === true || corpusLoadedNothing(corpus),
       collectResult(violations, { examined }),
     ),

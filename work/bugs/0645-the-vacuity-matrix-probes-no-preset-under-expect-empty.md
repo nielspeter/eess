@@ -4,7 +4,7 @@
 
 - **State:** Draft — found 2026-11-07 by the enforcement review of [bug 0642](./fixed/0642-other-doors-pass-over-an-input-that-loaded-nothing.md)'s fix; no change yet.
 - **Severity:** Medium — no false green of its own, but the gate that exists to catch a check that
-  cannot fail does not see this class: removing `withEmptySource` from a preset is caught only by
+  cannot fail does not see this class: removing `withEmptySource` (since [plan 0652](../plans/completed/0652-the-empty-source-helper-moves-into-the-kernel.md), the kernel's `withSourceEmpty`) from a preset is caught only by
   that preset's unit test.
 - **Origin:** self-found · the build review of [bug 0642](./fixed/0642-other-doors-pass-over-an-input-that-loaded-nothing.md)'s fix, 2026-11-07.
 - **Reported:** 2026-11-07
@@ -23,4 +23,4 @@ A second probe per preset under `expectEmpty: true` over empty inputs, required 
 
 ## Verification
 
-- [ ] Red first: removing `withEmptySource` from one preset reds `check:vacuity`.
+- [ ] Red first: removing `withSourceEmpty` from one preset reds `check:vacuity`.

@@ -48,6 +48,12 @@ describe('a correspondence over a side whose source loaded nothing (spike 0640)'
     expect(v.examined).toBeGreaterThan(0)
   })
 
+  it('both sides flagged empty beside a non-zero examined: one emitter/source-empty, not two (plan 0652)', () => {
+    const v = join(side([{ name: 'a' }], 'l', true), side([{ name: 'a' }], 'r', true))
+    expect(v.examined).toBeGreaterThan(0)
+    expect(v.map((x) => x.ruleId)).toEqual(['emitter/source-empty'])
+  })
+
   it('the LEFT side empty from an empty source, read one way, is reported under the rule', () => {
     const v = correspondence({
       left: side([], 'l', true),

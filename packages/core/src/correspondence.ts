@@ -1,5 +1,6 @@
 import type { ArchViolation } from './violation.js'
-import { collectResult, mergeCollectResults } from './collect-result.js'
+import { collectResult } from './collect-result.js'
+import { withSourceEmpty } from './source-empty.js'
 import type { Predicate } from './predicate.js'
 import { partition, refuseUndecided, type Door } from './undecided.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
@@ -159,16 +160,12 @@ export class CorrespondenceBuilder<L, R> extends TerminalBuilder {
       { examined },
     )
     // Spike 0640 (bug 0477): a side whose source loaded nothing outranks everything the join
-    // examined (ADR-014 §4), reported once. Over nothing examined, the receipt says so itself and the
-    // terminal reports it under this rule; beside a non-zero `examined` that flag would contradict,
-    // so the side is a member of its own and the merge reports it.
-    const empty = [this.opts.left, this.opts.right].filter((side) => side.sourceEmpty === true)
-    if (empty.length === 0) return joined
-    if (examined === 0) return collectResult(joined, { examined: 0, sourceEmpty: true })
-    return mergeCollectResults([
-      ...empty.map(() => collectResult([], { examined: 0, sourceEmpty: true })),
+    // examined (ADR-014 §4), reported once, by the rule's one owner (plan 0652). One empty side or
+    // two report alike: the merge reports the first empty member it finds.
+    return withSourceEmpty(
+      this.opts.left.sourceEmpty === true || this.opts.right.sourceEmpty === true,
       joined,
-    ])
+    )
   }
 
   /**
