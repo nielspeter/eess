@@ -747,10 +747,7 @@ function gateArch() {
   // unrelated ADR-002 violation elsewhere would have satisfied the old check
   // (bug 0110).
   const ok = bad.code === 1 && firedOn(bad, 'eess/adr002-no-raw-typescript', '__nonvacuity_probe__')
-  // Clean direction is a bonus proof that the gate is not always-red (informational).
-  const clean = sh(EESS_TS, ['check', 'arch.rules.ts'])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
-  return { ok, detail: `bad → exit ${bad.code} (eess/adr002-no-raw-typescript) · ${cleanNote}` }
+  return { ok, detail: `bad → exit ${bad.code} (eess/adr002-no-raw-typescript)` }
 }
 
 // --- Gate: arch/md-one-link-resolver (plan 0404) ---
@@ -772,14 +769,12 @@ function gateArchOneLinkResolver() {
     return { spec, code: bad.code, fired }
   })
   const ok = probes.every((p) => p.fired)
-  const clean = sh(EESS_TS, ['check', 'arch.rules.ts'])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   const probeNote = probes
     .map((p) => `'${p.spec}' → exit ${p.code}${p.fired ? '' : ' (did not fire)'}`)
     .join(' · ')
   return {
     ok,
-    detail: `${probeNote} (eess/md-one-link-resolver on conditions/resolve.ts) · ${cleanNote}`,
+    detail: `${probeNote} (eess/md-one-link-resolver on conditions/resolve.ts)`,
   }
 }
 
@@ -1667,12 +1662,7 @@ function gateInternalArch() {
   // to have fired ON THE PROBE — one record with both. Was a grep for the rule's
   // rendered description, which any rewording would have broken (bug 0110).
   const ok = bad.code === 1 && firedOn(bad, 'eess/no-silent-catch', '__nonvacuity_probe_catch__')
-  const clean = sh(EESS_TS, ['check', 'arch.internal.rules.ts'])
-  const cleanNote =
-    clean.code === 0
-      ? 'clean → green (both directions proven)'
-      : 'clean → in-flight (other agents still fixing violations)'
-  return { ok, detail: `bad → exit ${bad.code} (eess/no-silent-catch on probe) · ${cleanNote}` }
+  return { ok, detail: `bad → exit ${bad.code} (eess/no-silent-catch on probe)` }
 }
 
 /**
@@ -1791,11 +1781,9 @@ function gateFamilyReExportIndex() {
   const ok =
     bad.code === 1 &&
     firedNamingPayload(bad, 'family/re-export-complete', 'md/src/index.ts', 'collectViolations')
-  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
     ok,
-    detail: `bad → exit ${bad.code} (family/re-export-complete on md/src/index.ts naming 'collectViolations') · ${cleanNote}`,
+    detail: `bad → exit ${bad.code} (family/re-export-complete on md/src/index.ts naming 'collectViolations')`,
   }
 }
 
@@ -1812,11 +1800,9 @@ function gateFamilyReExportCrossvalidate() {
   const ok =
     bad.code === 1 &&
     firedNamingPayload(bad, 'family/re-export-complete', 'crossvalidate/src/files.ts', 'diffAware')
-  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
     ok,
-    detail: `bad → exit ${bad.code} (family/re-export-complete on crossvalidate/src/files.ts naming 'diffAware') · ${cleanNote}`,
+    detail: `bad → exit ${bad.code} (family/re-export-complete on crossvalidate/src/files.ts naming 'diffAware')`,
   }
 }
 
@@ -1867,11 +1853,9 @@ function gateFamilyKernelImportsEmptied() {
     bad.code === 1 &&
     firedOn(bad, 'family/re-export-complete', 'gherkin/src/index.ts') &&
     /imports NOTHING from @nielspeter\/eess/.test(bad.stdout + bad.stderr)
-  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
     ok,
-    detail: `bad → exit ${bad.code} (gherkin's whole src emptied of kernel imports) · ${cleanNote}`,
+    detail: `bad → exit ${bad.code} (gherkin's whole src emptied of kernel imports)`,
   }
 }
 
@@ -2036,13 +2020,11 @@ function gateFamilyReExportAggregation() {
     PAYLOAD,
   )
   const ok = bad.code === 1 && namesPayload
-  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
     ok,
     detail:
       `bad → exit ${bad.code} (family/re-export-complete named on md/src/index.ts ` +
-      `and naming '${PAYLOAD}': ${String(namesPayload)}, injected in model/document.ts) · ${cleanNote}`,
+      `and naming '${PAYLOAD}': ${String(namesPayload)}, injected in model/document.ts)`,
   }
 }
 
@@ -2063,17 +2045,12 @@ function gateBaseline() {
   // had no --format flag; it now has one (bug 0110), so no gate keys on prose.
   const ok =
     bad.code === 1 && firedOn(bad, 'preset/recommended/no-eval', '__nonvacuity_probe_eval__')
-  // Clean direction is a bonus proof the gate is not always-red, and it is
-  // DELIBERATELY informational: `cleanNote` never enters `ok`, so a genuine
-  // `recommended` violation in packages/*/src leaves this row green. That is
-  // correct division of labour and stated rather than discovered (bug 0129) —
-  // this row's job is "the gate can fail"; catching a real violation is
-  // `check:baseline`'s, and that runs in CI as of 0129's fix.
-  const clean = sh(process.execPath, [join('scripts', 'check-baseline.mjs')])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code}`
+  // No clean run here (bug 0656): this row's job is "the gate can fail". The clean tree is
+  // `check:baseline`'s own run in CI's `test` job, which must be green to merge, so a second
+  // run here decided nothing (it never entered `ok`, bug 0129) and cost a whole gate run.
   return {
     ok,
-    detail: `bad → exit ${bad.code} (preset/recommended/no-eval on probe) · ${cleanNote}`,
+    detail: `bad → exit ${bad.code} (preset/recommended/no-eval on probe)`,
   }
 }
 
