@@ -168,8 +168,8 @@ function parseFresh(text: string): Root {
   return notFrontMatterBecause(first, whole) === undefined ? root : whole
 }
 
-// Bug 0547: one parse per distinct text per process; the master tree never leaves this module, and
-// `parseMarkdown` hands each caller a copy (`./parse-memo.ts`). 2^24 characters is about 210 MB of
+// Bug 0547: one parse per distinct text per process; since bug 0657 `parseMarkdown` hands out the
+// frozen master itself (`./parse-memo.ts`). 2^24 characters is about 210 MB of
 // trees, twice this repository's corpus (spike 0546).
 const memo: ParseMemo = createParseMemo(2 ** 24, parseFresh)
 registerCacheReset(() => memo.reset())

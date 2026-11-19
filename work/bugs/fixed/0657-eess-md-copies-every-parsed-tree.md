@@ -36,7 +36,12 @@ writes to `doc.root`.
   `continuesListItem` reads only the tree.
 - `MdDocument.root`'s doc comment and the parse memo's say so.
 - A `minor` changeset for `@nielspeter/eess-md`, marked breaking, with the remedy:
-  `structuredClone(doc.root)` before writing.
+  `structuredClone(doc.root)` before writing, and that two documents may share one `root`.
+  `docs/markdown.md` and the eess-md README say the same.
+- Not taken: an option to keep the copy, or a copy made only when `root` is first read. Nothing in
+  the family writes to a tree, a write throws loudly rather than changing a verdict, and the
+  remedy is one line, so an option would serve no measured caller. Neither was measured; either can
+  be added if an adopter asks, through a proposal.
 
 ## Verification
 
