@@ -140,9 +140,13 @@ export function otherReading(text: string, picked: Root): Root | undefined {
  * A line-1 `---` block that is not front matter by `notFrontMatterBecause` is read as Markdown instead,
  * so it fails closed: every reader sees what it holds. Text-line readers — `terms()`, `pointers()`,
  * the ledger — see front-matter lines either way, since only code blocks are set aside.
+ *
+ * The tree is the memo's master, deep-frozen and shared by every caller of one text: a write to it
+ * throws `TypeError`. It was copied for each caller until bug 0657, which measured the copy as the
+ * largest part of eess-md's own time in a corpus check.
  */
 export function parseMarkdown(text: string): Root {
-  return structuredClone(memo.master(text))
+  return memo.master(text)
 }
 
 /**

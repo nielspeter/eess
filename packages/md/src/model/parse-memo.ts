@@ -6,10 +6,9 @@ import { createHash } from 'node:crypto'
  * read it and by every reader not handed its tree — 1,946 parses for 502 texts in one `check:ledger`
  * run (spike 0546). The parse is a function of the text alone, so a held tree cannot go stale.
  *
- * The tree kept is the **master**, deep-frozen, and it never leaves `./prose.ts`: the readers there read
- * it, and `parseMarkdown` hands each caller its own copy, so every `MdDocument` owns a mutable tree as
- * before and two documents of one text share no node. A reader that wrote to the master would change
- * every later verdict for that text; frozen, it throws instead.
+ * The tree kept is the **master**, deep-frozen. The readers in `./prose.ts` read it, and since bug 0657
+ * `parseMarkdown` hands it out too, so every `MdDocument` of one text shares it. A reader that wrote to
+ * the master would change every later verdict for that text; frozen, it throws instead.
  *
  * Keyed by a hash of the text and then the text compared, so a collision is a miss: V8 hashes a long
  * string by its length, and a `Map` on the text itself was measured at 3 ms a lookup. Bounded by the
@@ -20,7 +19,7 @@ import { createHash } from 'node:crypto'
  * kept, and a parse that throws keeps nothing.
  */
 export interface ParseMemo {
-  /** The frozen master tree for `text`, parsed if not held. Never hand it to a caller. */
+  /** The frozen master tree for `text`, parsed if not held. */
   master(text: string): Root
   reset(): void
 }
