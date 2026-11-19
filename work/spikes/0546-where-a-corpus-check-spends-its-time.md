@@ -166,3 +166,13 @@ recorded here, since this record is what outlives them.
   leaving it out cheap.
 - Whether the corpus checks' growth since [spike 0366](./0366-where-validate-spends-its-time.md) is
   the corpus's size or the gates added: measured on different machines, so not compared here.
+
+## Corrections
+
+- **2026-11-19, [bug 0657](../bugs/fixed/0657-eess-md-copies-every-parsed-tree.md):** "Sharing
+  frozen trees was refused" is overruled. `parseMarkdown` hands out the frozen master and documents of
+  one text may share it. The bug answers the three reasons one by one: no node-keyed set or map exists
+  in the family (pinned by a test), the sloppy-mode silent write is narrow and stated, and the break
+  is marked. Measured: building several corpora over the same files about 21% faster, one corpus
+  about 6%. The "Not decided here" item, a deep-readonly type across every dialect's element model,
+  stays open.

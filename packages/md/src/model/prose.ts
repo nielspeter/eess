@@ -140,9 +140,13 @@ export function otherReading(text: string, picked: Root): Root | undefined {
  * A line-1 `---` block that is not front matter by `notFrontMatterBecause` is read as Markdown instead,
  * so it fails closed: every reader sees what it holds. Text-line readers — `terms()`, `pointers()`,
  * the ledger — see front-matter lines either way, since only code blocks are set aside.
+ *
+ * The tree is the memo's master, deep-frozen and shared by every caller of one text: a write to it
+ * throws `TypeError`. It was copied for each caller until bug 0657, which measured the copy as the
+ * largest part of eess-md's own time in a corpus check.
  */
 export function parseMarkdown(text: string): Root {
-  return structuredClone(memo.master(text))
+  return memo.master(text)
 }
 
 /**
@@ -164,8 +168,8 @@ function parseFresh(text: string): Root {
   return notFrontMatterBecause(first, whole) === undefined ? root : whole
 }
 
-// Bug 0547: one parse per distinct text per process; the master tree never leaves this module, and
-// `parseMarkdown` hands each caller a copy (`./parse-memo.ts`). 2^24 characters is about 210 MB of
+// Bug 0547: one parse per distinct text per process; since bug 0657 `parseMarkdown` hands out the
+// frozen master itself (`./parse-memo.ts`). 2^24 characters is about 210 MB of
 // trees, twice this repository's corpus (spike 0546).
 const memo: ParseMemo = createParseMemo(2 ** 24, parseFresh)
 registerCacheReset(() => memo.reset())

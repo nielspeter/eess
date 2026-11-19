@@ -9,9 +9,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Root } from 'mdast'
 import { describe, expect, it } from 'vitest'
-import { corpus, corpusFromText, taskItems, type MdDocument } from '../src/index.js'
+import { corpus, corpusFromText, links, taskItems, type MdDocument } from '../src/index.js'
 import { createParseMemo } from '../src/model/parse-memo.js'
-import { parseMarkdown, proseText } from '../src/model/prose.js'
+import { parseUncached, proseText } from '../src/model/prose.js'
 import { findState } from '../src/rules/ledger.js'
 
 const kinds = (root: Root): string[] => root.children.map((n) => n.type)
@@ -76,26 +76,40 @@ describe('a text is parsed once per process, and no verdict depends on it', () =
     expect(findState('**State:** Done\n', ['Done'])?.state).toBe('Done')
   })
 
-  it('two documents of one text get their own trees, and editing one changes nothing else', () => {
+  it('two documents of one text share one frozen tree, and a write to it throws and changes nothing', () => {
     const text = '# Title\n\n```js\ncode\n```\n'
     const docs = corpusFromText({ 'a.md': text, 'b.md': text }).documents()
     const a = docAt(docs, 'a.md')
     const b = docAt(docs, 'b.md')
-    expect(a.root).not.toBe(b.root)
+    expect(a.root).toBe(b.root)
+    expect(unfrozen(a.root)).toEqual([])
     const before = structuredClone(b.root)
-    a.root.children.splice(1)
+    expect(() => a.root.children.splice(1)).toThrow(TypeError)
     const heading = a.root.children[0]
     if (heading?.type !== 'heading') throw new Error('the first block is not the heading')
-    heading.depth = 3
+    expect(() => {
+      heading.depth = 3
+    }).toThrow(TypeError)
     expect(b.root).toEqual(before)
     expect(docAt(corpusFromText({ 'c.md': text }).documents(), 'c.md').root).toEqual(before)
     expect(proseText(text, 'code-blocks')).toBe('# Title\n\n\n\n\n')
+  })
+
+  it('two documents sharing one tree each report their own broken link', () => {
+    const text = '# Twin\n\n[gone](./gone.md)\n'
+    const c = corpusFromText({ 'a.md': text, 'b.md': text })
+    expect(docAt(c.documents(), 'a.md').root).toBe(docAt(c.documents(), 'b.md').root)
+    const v = links(c).that().areInternal().should().resolve().violations()
+    expect(v.map((x) => [x.file.endsWith('a.md') ? 'a.md' : 'b.md', x.line]).sort()).toEqual([
+      ['a.md', 3],
+      ['b.md', 3],
+    ])
   })
 })
 
 describe('the memo', () => {
   it('hands the same master back for a text it holds, frozen to its leaves', () => {
-    const memo = createParseMemo(1000, parseMarkdown)
+    const memo = createParseMemo(1000, parseUncached)
     const tree = memo.master('# A *b*\n\n- [ ] [c](./c.md)\n')
     expect(memo.master('# A *b*\n\n- [ ] [c](./c.md)\n')).toBe(tree)
     expect(kinds(tree)).toEqual(['heading', 'list'])
@@ -104,14 +118,14 @@ describe('the memo', () => {
   })
 
   it('a key two texts share gives each text its own tree', () => {
-    const memo = createParseMemo(1000, parseMarkdown, () => 'one key')
+    const memo = createParseMemo(1000, parseUncached, () => 'one key')
     expect(kinds(memo.master('# A\n'))).toEqual(['heading'])
     expect(kinds(memo.master('- A\n'))).toEqual(['list'])
     expect(kinds(memo.master('# A\n'))).toEqual(['heading'])
   })
 
   it('holds texts up to its bound exactly, and evicts the least recently used, not the oldest', () => {
-    const memo = createParseMemo(20, parseMarkdown)
+    const memo = createParseMemo(20, parseUncached)
     const a = '# Aaaaaaa\n'
     const b = '# Bbbbbbb\n'
     const c = '# Ccccccc\n'
@@ -129,7 +143,7 @@ describe('the memo', () => {
   })
 
   it('a reset memo forgets every text and holds a full bound again', () => {
-    const memo = createParseMemo(20, parseMarkdown)
+    const memo = createParseMemo(20, parseUncached)
     const a = '# Aaaaaaa\n'
     const b = '# Bbbbbbb\n'
     const before = memo.master(a)
@@ -143,7 +157,7 @@ describe('the memo', () => {
   })
 
   it('parses a text longer than its bound whole, and does not keep it', () => {
-    const memo = createParseMemo(8, parseMarkdown)
+    const memo = createParseMemo(8, parseUncached)
     const text = '# A heading longer than the bound\n\n- a list\n'
     const tree = memo.master(text)
     expect(kinds(tree)).toEqual(['heading', 'list'])

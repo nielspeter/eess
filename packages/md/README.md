@@ -63,7 +63,10 @@ console.log(c.fileIndex.size) // every file under that root — what link/pointe
 
 Each `MdDocument` carries `relPath`, `file`, `frozen`, `text`, `sections`, `tables`,
 `codeBlocks` and the raw mdast `root`, so a one-off question about the corpus is a loop,
-not a new rule.
+not a new rule. The `root` is read-only: it is deep-frozen, so a write to it, or an mdast utility that
+transforms a tree in place, throws `TypeError`. Copy it first to transform it:
+`structuredClone(doc.root)`. Documents of the same text may share one `root` object, or may not,
+so key a per-document cache by the document, never by its `root`.
 
 Two things worth knowing:
 
