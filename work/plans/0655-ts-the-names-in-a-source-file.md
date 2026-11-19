@@ -103,18 +103,24 @@ string.
 
 **Declarations**, per kind:
 
-| declaration                                                  | `scope`                                               | is a container                                              | `end` is the end of    | its doc is attached to |
-| ------------------------------------------------------------ | ----------------------------------------------------- | ----------------------------------------------------------- | ---------------------- | ---------------------- |
-| a function, class, interface, type alias, enum, or namespace | `module` if its statement is the file's, else `local` | yes                                                         | the declaration        | the declaration        |
-| a variable, by its identifier                                | `module` if its statement is the file's, else `local` | yes                                                         | the variable statement | the variable statement |
-| a destructured variable's binding element                    | as its statement                                      | no: the walk continues upward                               | the variable statement | the variable statement |
-| a class member (method, property, accessor, constructor)     | `member`                                              | methods, accessors and constructors are; properties are not | the member             | the member             |
-| a constructor parameter property (`private x`)               | `member`, with its class as the container             | no                                                          | the parameter          | none                   |
-| an interface or type-literal member, or an enum member       | `member`                                              | no                                                          | the member             | the member             |
-| a declaration directly in a namespace body                   | `member`, with the namespace as the container         | as its kind                                                 | as its kind            | as its kind            |
-| an object-literal property, method or accessor               | `local`                                               | methods and accessors are                                   | the property           | the property           |
-| a parameter, a type parameter, a catch binding               | `local`                                               | no                                                          | the parameter          | none                   |
-| a named function or class expression                         | `local`                                               | yes                                                         | the expression         | none                   |
+| declaration                                                                                                                     | `scope`                                               | is a container                                          | `end` is the end of    | its doc is attached to |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------- | ---------------------- | ---------------------- |
+| a function, class, interface, type alias, enum, or namespace                                                                    | `module` if its statement is the file's, else `local` | yes, when it has an identifier name                     | the declaration        | the declaration        |
+| a variable in a variable statement, by its identifier                                                                           | `module` if its statement is the file's, else `local` | yes                                                     | the variable statement | the variable statement |
+| a destructured variable's binding element, in a variable statement                                                              | as its statement                                      | no: the walk continues upward                           | the variable statement | the variable statement |
+| a variable with no variable statement (`for…of`, `for…in`, `for`, `catch`), and a binding element under it or under a parameter | `local`                                               | no                                                      | the declaration        | none                   |
+| a class member (method, property, accessor)                                                                                     | `member`                                              | methods and accessors are; properties are not           | the member             | the member             |
+| a class constructor                                                                                                             | `member`                                              | no: it has no name, and the walk continues to its class | the constructor        | the constructor        |
+| a constructor parameter property (`private x`)                                                                                  | `member`, with its class as the container             | no                                                      | the parameter          | none                   |
+| an interface or type-literal member, or an enum member                                                                          | `member`                                              | no                                                      | the member             | the member             |
+| a declaration directly in a namespace body                                                                                      | `member`, with the namespace as the container         | as its kind                                             | as its kind            | as its kind            |
+| an object-literal property, method or accessor                                                                                  | `local`                                               | methods and accessors are                               | the property           | none                   |
+| a parameter, a type parameter                                                                                                   | `local`                                               | no                                                      | the declaration        | none                   |
+| a named function or class expression                                                                                            | `local`                                               | yes                                                     | the expression         | none                   |
+
+**Any declaration the table does not name** is `local`, its `end` and doc owner the declaration
+itself, and it is no container. A string-named module (`declare module 'x'`) is in `unnamed` and is
+no container.
 
 `container` is the name of the nearest enclosing declaration that is a container, or `null` at
 module scope. A destructured variable never contributes its pattern text.
@@ -127,21 +133,30 @@ module scope. A destructured variable never contributes its pattern text.
   citation of that comment (whose remedy is to cite the declaration's line). A header it kept would
   green a drifted one.
 - **When the block is detached:** the doc owner's first token, its decorators and `export`
-  included, is at least two lines below the block's last line. This is the TypeScript emitter's own
-  rule for detached comments (`emitDetachedComments`).
+  included, is at least two lines below the last comment of the run of adjacent comments that holds
+  the block. Comments of any kind count in the run. This is the TypeScript emitter's own rule for
+  detached comments (`emitDetachedComments`), which measures from the run's last comment, not from
+  the block. So a JSDoc followed directly by a `// eess-exclude …` line, then the declaration, keeps
+  its doc: this repository's waiver pattern (`packages/core/src/stderr.ts:71`,
+  `packages/ts/src/builders/cross-layer-builder.ts:142`), 25 docs here, measured by the architect
+  lens at the re-check.
 
 A block mid-file that sits directly above its declaration stays the doc, including after the
 imports.
 
 **Using it.** The cost is the walk of the files asked for. The project's load is the caller's.
-Coverage is the caller's claim: the extractor answers for the text the project holds now.
+Coverage is the caller's claim: the extractor answers for the text the project holds now. The map's
+keys are the absolute paths as the project holds them; each input path is resolved first, so two
+spellings of one file give one entry. `parseErrors` reads the program's syntactic diagnostics for
+the file (`getProgram().getSyntacticDiagnostics(file)`, about 0 ms here).
 
 ## Files changed
 
 - `packages/ts/src/models/collected-name.ts` (new)
 - `packages/ts/src/index.ts` (`collectNames`, `CollectedName`, `FileNames`)
-- `arch.internal.rules.ts` (an `eess/no-unused-exports` waiver for the new root exports, if the
-  build finds the rule flags them: [bug 0168](../bugs/0168-no-unused-exports-misses-barrel-re-exports-and-inline-type-imports.md)'s known gap)
+- an inline `// eess-exclude eess/no-unused-exports` at each new root export, the house waiver for
+  [bug 0168](../bugs/0168-no-unused-exports-misses-barrel-re-exports-and-inline-type-imports.md)'s
+  known gap, if the build finds the rule flags them
 - `packages/ts/tests/models/collected-name.test.ts` (new)
 - `packages/ts/tests/fixtures/collected-names/` (new: `tsconfig.json` with `allowJs` and `jsx`, a
   `.ts`, a `.tsx` and a `.js` file)
@@ -157,7 +172,8 @@ Coverage is the caller's claim: the extractor answers for the text the project h
 Each test drives the public root, `collectNames(project(fixtureTsconfig), paths)`, and asserts exact
 values: the whole `CollectedName` for each name it names, with `toEqual`.
 
-- [ ] **Each table row**, one fixture line per kind: `kind`, `line`, `end`, `scope`, `container`
+- [ ] **Each table row**, and the fallback, one fixture line per kind (a `for…of` variable, a
+      `catch` binding and a constructor among them): `kind`, `line`, `end`, `scope`, `container`
       and `doc`, exactly. That includes an object-literal method (`local`), a type-literal member
       (`member`), a parameter property (`member` of its class), a namespace export (`member` of
       the namespace), and a top-level destructuring (`module`, `end` its statement, no pattern
@@ -167,6 +183,8 @@ values: the whole `CollectedName` for each name it names, with `toEqual`.
   - a file-opening block above the first declaration, with no blank line: `null`;
   - a file-opening block, a blank line, then the declaration's own JSDoc: the own JSDoc;
   - a mid-file JSDoc, a blank line, then a declaration: `null` (detached);
+  - a JSDoc, then a `// eess-exclude …` line, then the declaration: the doc (the run's last comment
+    is the waiver line);
   - a mid-file JSDoc directly above, after the imports: the doc;
   - a decorator between the JSDoc and the name, with no blank line: the doc;
   - a `//` comment: never a doc.
@@ -197,6 +215,7 @@ values: the whole `CollectedName` for each name it names, with `toEqual`.
   - the doc spans from the first block to the last;
   - the file-opening rule removed;
   - the detached rule removed;
+  - the detached rule measured from the JSDoc block instead of the run's last comment;
   - `line` taken with leading trivia;
   - `end` narrowed to the name's line;
   - an object-literal method scoped `member`;
