@@ -78,7 +78,7 @@ export interface FileNames {
   readonly names: readonly CollectedName[]
   /** Declarations whose name is not an identifier: a string literal or a computed name. */
   readonly unnamed: readonly { readonly line: number; readonly text: string }[]
-  /** The file had syntax errors, so names after them may be missing. */
+  /** The file had syntax errors (syntactic diagnostics only), so names after them may be missing. */
   readonly parseErrors: boolean
 }
 
@@ -117,6 +117,9 @@ string.
 | an object-literal property, method or accessor                                                                                  | `local`                                               | methods and accessors are                               | the property           | none                   |
 | a parameter, a type parameter                                                                                                   | `local`                                               | no                                                      | the declaration        | none                   |
 | a named function or class expression                                                                                            | `local`                                               | yes                                                     | the expression         | none                   |
+
+**Precedence.** A declaration directly in a namespace body takes that row's `scope` and
+`container` over its kind's row; otherwise exactly one row applies.
 
 **Any declaration the table does not name** is `local`, its `end` and doc owner the declaration
 itself, and it is no container. A string-named module (`declare module 'x'`) is in `unnamed` and is
@@ -185,6 +188,7 @@ values: the whole `CollectedName` for each name it names, with `toEqual`.
   - a mid-file JSDoc, a blank line, then a declaration: `null` (detached);
   - a JSDoc, then a `// eess-exclude …` line, then the declaration: the doc (the run's last comment
     is the waiver line);
+  - a JSDoc, then `// eslint-disable-next-line`, a blank line, then the declaration: `null`;
   - a mid-file JSDoc directly above, after the imports: the doc;
   - a decorator between the JSDoc and the name, with no blank line: the doc;
   - a `//` comment: never a doc.
@@ -203,10 +207,15 @@ values: the whole `CollectedName` for each name it names, with `toEqual`.
     `collectNames`'s, fact for fact (`kind`, `name`, `line`, `end`, `scope`, `container`, `doc`),
     per file;
   - every difference from the untransformed prototype counted per category;
-  - the 488 references' classes under [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s rule, before and after, with every change listed.
+  - the classes of every reference the stock pattern reads at that commit, under
+    [plan 0649](./0649-md-a-code-reference-resolves-at-its-lines.md)'s rule, before and after,
+    with every change listed.
 
-  The review's counts at c03dc8fd are the expected scale: 135 object-literal members, 1,027
-  pattern containers, 143 docs from the last block, 3 to 55 docs from the header rule. The result
+  The reviews' counts are the expected scale: 135 object-literal members, 1,027 pattern containers
+  and 143 docs from the last block (at c03dc8fd); 55 docs dropped by the file-opening rule and 16 by
+  the detached rule (at 5933e84c). None of them changes a verdict over the references the stock
+  pattern read then (487); the doc rules' cost is latent, a future correct citation of a dropped
+  comment. The result
   is recorded by value in this ledger and in [spike 0651](../spikes/0651-where-the-typescript-code-facts-come-from.md)'s corrections. Afterwards the script calls
   `collectNames`, so the walk has one owner.
 
@@ -224,7 +233,8 @@ values: the whole `CollectedName` for each name it names, with `toEqual`.
   - the walk entering JSDoc;
   - an import specifier counted as a use;
   - an unnamed declaration dropped from `unnamed`;
-  - a path the project does not hold mapped to an empty result.
+  - a path the project does not hold mapped to an empty result;
+  - `parseErrors` always `false`.
 
 ## Out of scope
 
@@ -234,6 +244,8 @@ values: the whole `CollectedName` for each name it names, with `toEqual`.
   depends on these facts there.
 - A `names(project)` builder: when a consumer asks for one, through a proposal.
 - Judging a citation of a string-named member: the binder decides what an `unnamed` entry means.
+- JSDoc type annotations in a `.js` file, which the walk does not enter: such a file's types are
+  not names here.
 
 ## Review, 2026-11-19
 
@@ -261,5 +273,16 @@ found is recorded here. All four held the draft; this rewrite answers them.
   - the release coupling, [proposal 021](../proposals/021-a-code-reference-points-at-the-code-it-names.md)'s A2 row and the plan's `Implements` line (method,
     product);
   - definitions written for a README (product).
+- **Re-checked the same day** by the architect and enforcement lenses, at 5933e84c. Both
+  criticals are closed. Folded in after the re-check:
+  - the declarations the table left out (variables with no statement, constructors, string-named
+    modules) and a fallback for any it does not name;
+  - the detached rule restated as the emitter's, measured from the run's last comment, which keeps
+    the repository's waiver pattern as a doc;
+  - row precedence;
+  - the map's keys;
+  - the `parseErrors` call and a matrix row for it;
+  - the measured scale (55 and 16 docs dropped, 0 verdicts changed);
+  - object-literal members carry no doc.
 - **Not taken:** keeping the export off the root (product's option), since eess-ts has no internal
   entry and the extractor has a use of its own.
