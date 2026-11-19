@@ -6,8 +6,9 @@
 - **Severity:** Low — no false green and no false red; only CI time. Measured locally on
   2026-11-19: the eight passes cost about 31 s per full `check:nonvacuity` run
   (`arch.internal.rules.ts` 16 s, `arch.rules.ts` 3.4 s twice, `family.rules.ts` 1.6 s four times,
-  `check-baseline.mjs` 2 s), so roughly 50 s of runner time on CI's slower runners, about 12 s per
-  shard. A prior estimate of "several minutes" read the arch rows' whole time (112 s for three rows
+  `check-baseline.mjs` 2 s). On CI, from PR #339's shard logs (measured by the enforcement review),
+  they were about 43 s of runner time, split about 8, 7.5, 25 and 2 s across shards 1 to 4; the
+  slowest shard there, shard 2, saves about 7.5 s of wall-clock. A prior estimate of "several minutes" read the arch rows' whole time (112 s for three rows
   in shard 2 of PR #339's run), which is mostly the sabotaged run that stays.
 - **Origin:** self-found · reading `scripts/check-nonvacuity.mjs` while looking for CI time,
   2026-11-19.

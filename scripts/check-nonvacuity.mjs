@@ -45,9 +45,8 @@
  *                 claims (`href`, `src`, `<a`, `<\/a`) and a quiet one → the rule
  *                 fires on exactly lines 1 to 4.
  *   internal arch packages/core/src/__nonvacuity_probe_catch__.ts has a silent
- *                 `catch {}` → eess/no-silent-catch. (This gate has in-flight
- *                 violations from other agents; the clean direction is reported
- *                 informationally, not asserted.)
+ *                 `catch {}` → eess/no-silent-catch. (The clean direction is
+ *                 `check:arch`'s own run in CI's `test` job, bug 0656.)
  *   baseline      packages/core/src/__nonvacuity_probe_eval__.ts has a function
  *                 calling `eval()` → preset/recommended/no-eval (the shipped
  *                 `recommended` preset run against our source by check:baseline).
@@ -1658,8 +1657,8 @@ function gateInternalArch() {
     "export function probe() {\n  try {\n    JSON.parse('x')\n  } catch {}\n}\n",
     () => sh(EESS_TS, ['check', 'arch.internal.rules.ts', '--format', 'json']),
   )
-  // Exit 1 alone is weak here (in-flight violations exist), so require the rule
-  // to have fired ON THE PROBE — one record with both. Was a grep for the rule's
+  // Exit 1 alone would not say which finding caused it, so require the rule to
+  // have fired ON THE PROBE — one record with both. Was a grep for the rule's
   // rendered description, which any rewording would have broken (bug 0110).
   const ok = bad.code === 1 && firedOn(bad, 'eess/no-silent-catch', '__nonvacuity_probe_catch__')
   return { ok, detail: `bad → exit ${bad.code} (eess/no-silent-catch on probe)` }
