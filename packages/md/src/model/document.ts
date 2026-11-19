@@ -65,7 +65,11 @@ export interface MdDocument {
    * in a list item or a blockquote, whose `value` has the container's markers removed.
    */
   readonly codeBlocks: readonly MdCodeBlock[]
-  /** mdast root (internal / advanced): deep-frozen and shared by every document of the same text, so a write throws `TypeError` (bug 0657) */
+  /**
+   * mdast root (internal / advanced): read-only. Deep-frozen, so a write throws `TypeError` in strict
+   * code, and it may be the same object as another document's of the same text, so key per-document
+   * state by the document, never by its `root` (bug 0657).
+   */
   readonly root: Root
 }
 

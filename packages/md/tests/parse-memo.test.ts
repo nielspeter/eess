@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Root } from 'mdast'
 import { describe, expect, it } from 'vitest'
-import { corpus, corpusFromText, taskItems, type MdDocument } from '../src/index.js'
+import { corpus, corpusFromText, links, taskItems, type MdDocument } from '../src/index.js'
 import { createParseMemo } from '../src/model/parse-memo.js'
 import { parseUncached, proseText } from '../src/model/prose.js'
 import { findState } from '../src/rules/ledger.js'
@@ -93,6 +93,17 @@ describe('a text is parsed once per process, and no verdict depends on it', () =
     expect(b.root).toEqual(before)
     expect(docAt(corpusFromText({ 'c.md': text }).documents(), 'c.md').root).toEqual(before)
     expect(proseText(text, 'code-blocks')).toBe('# Title\n\n\n\n\n')
+  })
+
+  it('two documents sharing one tree each report their own broken link', () => {
+    const text = '# Twin\n\n[gone](./gone.md)\n'
+    const c = corpusFromText({ 'a.md': text, 'b.md': text })
+    expect(docAt(c.documents(), 'a.md').root).toBe(docAt(c.documents(), 'b.md').root)
+    const v = links(c).that().areInternal().should().resolve().violations()
+    expect(v.map((x) => [x.file.endsWith('a.md') ? 'a.md' : 'b.md', x.line]).sort()).toEqual([
+      ['a.md', 3],
+      ['b.md', 3],
+    ])
   })
 })
 

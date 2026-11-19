@@ -8,7 +8,9 @@ import { createHash } from 'node:crypto'
  *
  * The tree kept is the **master**, deep-frozen. The readers in `./prose.ts` read it, and since bug 0657
  * `parseMarkdown` hands it out too, so every `MdDocument` of one text shares it. A reader that wrote to
- * the master would change every later verdict for that text; frozen, it throws instead.
+ * the master would change every later verdict for that text; frozen, it throws instead. A cache keyed by
+ * a tree (`collectLinkBlocks`'s walk, the ledger's list-item lines) now lives as long as the memo holds
+ * the master: memory, never a verdict, since each is a function of the tree and its text.
  *
  * Keyed by a hash of the text and then the text compared, so a collision is a miss: V8 hashes a long
  * string by its length, and a `Map` on the text itself was measured at 3 ms a lookup. Bounded by the
