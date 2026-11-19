@@ -197,4 +197,24 @@ requirement, not an optimisation.
 
 ## Corrections
 
-None yet.
+**2026-11-19, at [plan 0655](../plans/0655-ts-the-names-in-a-source-file.md)'s review** (architect,
+enforcement, method, product):
+
+- **Not a builder.** The decision "selected by a builder, its walk bounded to the files its file
+  predicates select" is overruled. [Plan 0655](../plans/0655-ts-the-names-in-a-source-file.md) makes the eess-ts part an extractor in the `collect*`
+  family, `collectNames(project, filePaths)`: the binder asks for the cited files, so no builder has
+  to bound its walk. [Proposal 010](../proposals/010-ts-performance-at-scale.md)'s ask A, the family's
+  pre-selection mechanism, was `Rejected` on 2026-09-06, so a bounded builder would have had no
+  mechanism to use.
+- **Releasing together, narrowed.** The line rule and the binder release together. The extractor,
+  a building block with a use of its own, may release before them.
+- **The prototype's doc span** runs from the first attached JSDoc block to the last
+  (`scripts/measure-code-facts.mjs`, `docOf`): 141 declarations widened by 2,084 lines here, measured
+  by the enforcement lens. Its `scope` and `container` also differ from any contract: 135
+  object-literal members scoped `member`, and 1,027 containers that are a destructuring pattern's
+  text, measured by the architect lens. The verdicts above do not depend on these. All four doc
+  variants the enforcement lens ran changed 0 of 488 verdicts. They are not the definitions that
+  [plan 0655](../plans/0655-ts-the-names-in-a-source-file.md) builds.
+- **The figures are stale.** At c03dc8fd the same walk covers 1,322 files and 50,651 declarations,
+  and the stock pattern reads 488 references, against this record's 1,342, 51,330 and 484 at
+  9a7a16ad. [Plan 0655](../plans/0655-ts-the-names-in-a-source-file.md)'s reconciliation runs both walks at one commit.
