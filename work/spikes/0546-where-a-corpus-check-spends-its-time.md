@@ -153,7 +153,7 @@ recorded here, since this record is what outlives them.
   hand-kept list, not from the receipt the JSON exit reads, so only the per-row terminal run proves
   each rule reaches the exit CI judges ([bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)).
   Halving the rows needs that exit derived from the receipt first:
-  [bug 0548](../bugs/0548-check-corpus-exits-on-a-second-list.md).
+  [bug 0548](../bugs/fixed/0548-check-corpus-exits-on-a-second-list.md).
 - **C** stays a proposal's to raise, if an adopter's single corpus is too slow: a breaking change to
   `corpus()`.
 
@@ -176,3 +176,8 @@ recorded here, since this record is what outlives them.
   is marked. Measured: building several corpora over the same files about 21% faster, one corpus
   about 6%. The "Not decided here" item, a deep-readonly type across every dialect's element model,
   stays open.
+- **2026-11-27, [bug 0548](../bugs/fixed/0548-check-corpus-exits-on-a-second-list.md):** "B: keep
+  both runs per corpus row" is done with. Both of `check-corpus.mjs`'s exits read one verdict, so the
+  corpus rows run the json path once, and two rows, `corpus/terminal-exit` and
+  `corpus/adr-production`, prove the terminal exit: 46 fewer runs of the gate per full
+  `check:nonvacuity` run, 3 added.
