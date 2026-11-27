@@ -69,7 +69,10 @@ corpus rows can run once, with JSON, halving their cost
     heading and asserts `adr/enforcement-declared` on that file in the json run and exit 1 under the
     ADR heading on the terminal run. The ADR findings are the ones the terminal's violation list
     leaves out, so this row also reds a terminal exit computed from that list again, which
-    `corpus/terminal-exit` does not (also measured by the review).
+    `corpus/terminal-exit` does not (also measured by the review). It also asserts that every finding in its json run
+    is an `adr/*` one: a finding the terminal lists, such as a broken link to the renamed heading's
+    anchor, would keep a list-computed exit at 1 and the row green (the review's re-check; no such
+    link exists today).
 - The terminal's ADR heading and its summary line read the verdict's ADR findings, not the raw
   `adrViolations`, so the display cannot print an ADR finding the exit does not count. The summary's
   count is the verdict's length, so each ADR finding counts once (it counted as 1 for all before),

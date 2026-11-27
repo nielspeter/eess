@@ -2123,9 +2123,13 @@ function gateCorpusAdrProduction() {
     '001-toolchain-node-vitest-eslint-prettier.md',
   )
   const headed = terminal.stderr.includes('ADR enforcement failed:')
+  // Only ADR findings, or the terminal run stops proving the exit: a finding of a rule the terminal
+  // lists (a broken link to the renamed heading's anchor, say) would keep a terminal exit computed
+  // from that list at 1 (the enforcement review's re-check of bug 0548).
+  const onlyAdr = violationsOf(json).every((v) => String(v?.ruleId ?? '').startsWith('adr/'))
   return {
-    ok: json.code === 1 && fired && terminal.code === 1 && headed,
-    detail: `bad → json exit ${json.code}, adr/enforcement-declared on ADR-001: ${fired}; terminal exit ${terminal.code}, under its ADR heading: ${headed}`,
+    ok: json.code === 1 && fired && onlyAdr && terminal.code === 1 && headed,
+    detail: `bad → json exit ${json.code}, adr/enforcement-declared on ADR-001: ${fired}, only ADR findings: ${onlyAdr}; terminal exit ${terminal.code}, under its ADR heading: ${headed}`,
   }
 }
 
