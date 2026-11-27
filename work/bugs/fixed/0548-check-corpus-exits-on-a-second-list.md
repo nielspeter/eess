@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Fixed — both exits read one verdict, and the corpus rows run the json path once.
+- **State:** Fixed — both exits read one verdict, the corpus rows run the json path once, and the ADR
+  check has a production row.
   Found 2026-10-25 by the architect's and the enforcement review of
   [spike 0546](../../spikes/0546-where-a-corpus-check-spends-its-time.md); fixed 2026-11-27.
 - **Severity:** Medium — no rule is known to escape today; every receipt member is also in the
@@ -14,6 +15,7 @@
 
 ## Symptom
 
+As of 2026-10-25 (the line pointers in this section are that day's):
 `scripts/check-corpus.mjs` decides its exit twice. With `--format json` it exits on the receipt it
 builds for the emitter (`scripts/check-corpus.mjs:1266`). Without it, the command CI runs, it
 exits on `failed` (`scripts/check-corpus.mjs:1444`), computed at `scripts/check-corpus.mjs:1425`
@@ -39,23 +41,47 @@ corpus rows can run once, with JSON, halving their cost
   format branch. The json path emits it and exits on it; the terminal path lists it (every finding
   but the ADR check's, printed under its own heading, and the emitter's) and exits on it. The
   hand-kept `problems` array is gone: what the terminal lists is derived from the verdict.
-- `scripts/check-nonvacuity.mjs`: the 14 places that ran the terminal path only for its exit code
-  run the json path alone, so 30 runs of `check-corpus.mjs` per full `check:nonvacuity` run are
-  gone (`gateCorpusProbe`'s 9 rows, `gateCorpusProbeDir`'s 2, `gateBoardRewrite`'s 4,
-  `gateProposalProbe`'s 4, `gateCorpusFragment`'s 2 and 9 single rows).
-  - `gateCorpusProbeDir` read the probe's message off the terminal run, so a probe that reds
-    another rule could not borrow its exit; it now reads it off the rule's own json finding, which
-    is stricter.
-  - Three rows keep a terminal run, for what only the terminal prints:
-    `corpus/links/fragment-reach` (the "not judged" count), the one-dead-check row (the emitter's
-    finding beside healthy counts) and the inert-exclusion row (the diagnostic).
-  - A new row, `corpus/terminal-exit`, runs the command CI runs over one broken link and asserts
-    exit 1, the finding listed and the red summary: the one row per production script that proves
-    the terminal exit statement.
+- `scripts/check-nonvacuity.mjs`: every terminal run that asserted only an exit code is gone, 46
+  runs of `check-corpus.mjs` per full `check:nonvacuity` run from 19 sites, found under the three
+  spellings the harness uses for the no-flags run (the literal path, the `CORPUS_TERM` constant and
+  `runCorpusScript([])`):
+  - 30 runs from 14 sites: `gateCorpusProbe`'s 9 rows, `gateCorpusProbeDir`'s 2, `gateBoardRewrite`'s
+    4, `gateProposalProbe`'s 4, `gateCorpusFragment`'s 2, and 9 single rows;
+  - 7 runs from 4 sites: `corpusSabotage`'s 4 rows and the three `**Extends:**` rows (found by the
+    method review; the first commit missed them, since they spell the run `CORPUS_TERM`);
+  - 9 runs from 1 site: `mentionRedThenGreen`'s green-direction terminal run, in the 9 rows that
+    write a remedy in, which asserted exit 0 only.
+
+  Every terminal run left asserts text only the terminal prints: the record-mention rows (each
+  finding's message and remedy as printed), the fragment-reach row (the "not judged" count), the
+  one-dead-check row (the emitter's finding beside healthy counts), the inert-exclusion row (the
+  diagnostic), and the skipped, title, committed and left-out rows. `gateCorpusProbeDir` read the
+  probe's message off the terminal run, so a probe that reds another rule could not borrow its exit;
+  it now reads it off the rule's own json finding, which is stricter.
+
+- Two new rows, appended so no other row changes shard:
+  - `corpus/terminal-exit` runs the command CI runs over one broken link and asserts exit 1, the
+    finding listed and the red summary: the row that exists for the terminal exit statement (the
+    terminal-text rows red too if it is deleted).
+  - `corpus/adr-production`, from the enforcement review: the ADR check through the production
+    script. Before it, the only ADR row ran a fixture, so deleting the receipt member that adds the
+    ADR findings left both exits green, measured by the review. It renames [ADR-001](../../../adr/001-toolchain-node-vitest-eslint-prettier.md)'s `## Enforcement`
+    heading and asserts `adr/enforcement-declared` on that file in the json run and exit 1 under the
+    ADR heading on the terminal run. The ADR findings are the ones the terminal's violation list
+    leaves out, so this row also reds a terminal exit computed from that list again, which
+    `corpus/terminal-exit` does not (also measured by the review).
+- The terminal's ADR heading and its summary line read the verdict's ADR findings, not the raw
+  `adrViolations`, so the display cannot print an ADR finding the exit does not count. The summary's
+  count is the verdict's length, so each ADR finding counts once (it counted as 1 for all before),
+  and the list prints in receipt order.
 - The same two-list exit in `scripts/check-ledger.mjs` is recorded, not fixed:
   [bug 0661](../0661-check-ledger-exits-on-a-second-list.md).
 
 ## Verification
+
+The boxes as filed on 2026-10-25 were: a red test; both exits read one receipt; one terminal row per
+production script, the corpus rows' second run removed, and the shard time measured before and after.
+They are kept below, each answered by what was measured.
 
 - [x] Red first, on the code before the fix: a copy of `check-corpus.mjs` with `broken` left out of
       `problems`, one broken link planted in `docs/`: json exit 1; terminal exit 0, printing
@@ -66,6 +92,18 @@ corpus rows can run once, with JSON, halving their cost
 - [x] One terminal row per production script: `corpus/terminal-exit`. On a scratch copy of the gate
       with `if (failed) process.exit(1)` deleted, its probe exits 0, which reds the row; on the fixed
       gate it exits 1 with the finding listed and the red summary.
-- [x] The corpus rows' second run removed: 30 runs per full run.
-- [x] Shard time before, from [PR #342](https://github.com/nielspeter/eess/pull/342)'s last CI run
-      (44520402832): 13m59s, 10m52s, 14m14s, 10m46s. After: this PR's CI run, recorded in the PR.
+- [x] The corpus rows' second run removed: 46 runs per full run, from 19 sites, against 3 the new
+      rows add.
+- [x] `corpus/adr-production` on scratch copies of the gate, [ADR-001](../../../adr/001-toolchain-node-vitest-eslint-prettier.md)'s heading renamed: the fixed
+      gate passes it (json 1 and the finding on [ADR-001](../../../adr/001-toolchain-node-vitest-eslint-prettier.md), terminal 1 under the ADR heading); with the
+      ADR receipt member deleted both exits are 0, which reds it; with the terminal exiting on its
+      violation list again, the terminal exits 0, which reds it.
+- [x] Shard time before and after, as CI job durations (setup and install included), one run each: - before, [PR #342](https://github.com/nielspeter/eess/pull/342)'s last run (44520402832), whose
+      tree is this PR's parent: 13m59s, 10m52s, 14m14s, 10m46s; - after the first 30 runs' removal, this PR's first run (45966439726): 13m26s, 11m44s, 9m07s,
+      11m13s. In all 45.5 minutes against 49.9, about 4.4 less; shard by shard it is mixed, which
+      is runner variance. The other 16 runs, removed after the review, and the 3 runs the two new
+      rows add (net 43 fewer in all) are measured by the final commit's own CI run, not here.
+
+      One run on each side is not a trend against the 1.6x runner variance
+      [bug 0552](../0552-nonvacuity-shard-3-runs-near-its-timeout.md) measured; that bug's own
+      five-run criterion stays its own.

@@ -178,5 +178,6 @@ recorded here, since this record is what outlives them.
   stays open.
 - **2026-11-27, [bug 0548](../bugs/fixed/0548-check-corpus-exits-on-a-second-list.md):** "B: keep
   both runs per corpus row" is done with. Both of `check-corpus.mjs`'s exits read one verdict, so the
-  corpus rows run the json path once, and one row, `corpus/terminal-exit`, proves the terminal exit:
-  30 fewer runs of the gate per full `check:nonvacuity` run.
+  corpus rows run the json path once, and two rows, `corpus/terminal-exit` and
+  `corpus/adr-production`, prove the terminal exit: 46 fewer runs of the gate per full
+  `check:nonvacuity` run, 3 added.

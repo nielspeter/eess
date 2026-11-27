@@ -19,12 +19,13 @@ runs, it exits on `violations` (`:151`), a hand-kept list of the same findings, 
 
 ## Fix
 
-[Bug 0548](./fixed/0548-check-corpus-exits-on-a-second-list.md)'s: one verdict read by both exits, the terminal list derived from it, and the ledger rows
-in `scripts/check-nonvacuity.mjs` that run the terminal path only for its exit code run once, with
-one row proving the terminal exit statement.
+[Bug 0548](./fixed/0548-check-corpus-exits-on-a-second-list.md)'s: one verdict read by both exits,
+the terminal list derived from it, and a production row whose terminal run proves the exit. No
+ledger row in `scripts/check-nonvacuity.mjs` runs the terminal path only for its exit code (measured
+by the method review of [bug 0548](./fixed/0548-check-corpus-exits-on-a-second-list.md)), so this fix saves no CI time; it closes a fail-open path.
 
 ## Verification
 
 - [ ] Red first: a receipt member left out of `violations` exits 0 on the terminal path.
 - [ ] Both exits read one verdict.
-- [ ] The ledger rows' second run removed where it asserts only the exit, with one terminal row.
+- [ ] A row whose terminal run reds the terminal exit computed from `violations` again.

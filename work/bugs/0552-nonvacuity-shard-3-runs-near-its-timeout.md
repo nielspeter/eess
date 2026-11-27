@@ -84,7 +84,7 @@ about 11.7 minutes each, and 1.6x variance puts that near 19. Candidates to meas
   of each shard on #268). The examples row is one row: no assignment can put less than its 213 s on
   the shard that gets it.
 - **Assign by cost.** Each shard's report already carries per-fixture `durations`
-  (`scripts/check-nonvacuity.mjs:5997-6033`), kept one day (`retention-days: 1`); the logs carry
+  (`scripts/check-nonvacuity.mjs:6769-6805` as of 2026-11-27), kept one day (`retention-days: 1`); the logs carry
   per-row times for 90 days. It keeps [plan 0509](../plans/completed/0509-shard-check-nonvacuity-in-ci.md)'s first property (the merge checks the partition from
   what each shard reports it ran, so a wrong assignment is red, never green) and weakens its second
   ("nothing is kept by hand"): a cost table is a second list, a fixture with no recorded cost needs a
@@ -95,6 +95,12 @@ about 11.7 minutes each, and 1.6x variance puts that near 19. Candidates to meas
 
 [Spike 0546](../spikes/0546-where-a-corpus-check-spends-its-time.md) measured where a corpus check
 spends its time and is the starting point.
+
+**2026-11-27:** [bug 0548](./fixed/0548-check-corpus-exits-on-a-second-list.md)'s fix landed in
+[PR #344](https://github.com/nielspeter/eess/pull/344): 46 terminal runs of `check-corpus.mjs` that
+asserted only an exit are gone. One run each side, as job durations: 13m59s, 10m52s, 14m14s, 10m46s
+before; 13m26s, 11m44s, 9m07s, 11m13s with the first 30 removed. One run is not this bug's five-run
+criterion, so it stays Draft; the candidates above stand, less the first one's corpus half.
 
 ## Evidence
 

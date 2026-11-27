@@ -347,7 +347,6 @@ const stale = pointerRule.violations()
 // report: 'return' — the preset emits nothing; this script owns reporting
 // (no double render — plan 0070 / ADR-008).
 const adrViolations = adrEnforcement(c, { dir: 'adr/**', report: 'return' })
-const adrError = adrViolations.length > 0
 
 // Plan 0406 — an ADR that declares `**Extends:** [ADR-NNN](…)` is answered by a
 // link back from the ADR it extends (an `**Extended by:**` line). Its own corpus
@@ -1763,6 +1762,12 @@ const receipt = mergeCollectResults([
 // Measured before the fix: `broken` left out of the list, one broken link
 // planted, json exit 1, terminal exit 0 under "✓ corpus integrity".
 const verdict = finishPreset(receipt, { report: 'return' })
+// The terminal's display reads the verdict too, so it cannot print a finding the exit does not
+// count, nor hide one it does. The ADR findings are told apart by object identity: the receipt and
+// `finishPreset` carry the very objects `adrEnforcement` returned, and each prints once, measured.
+const isEmitterFinding = (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/')
+const adrFindings = new Set(adrViolations)
+const adrInVerdict = verdict.filter((v) => adrFindings.has(v))
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
@@ -1797,7 +1802,7 @@ line(
 )
 line(
   'ADRs',
-  `${adrDocs.length} enforced · ${adrError ? '✗ invalid' : '✓ tables + citations resolve'}`,
+  `${adrDocs.length} enforced · ${adrInVerdict.length > 0 ? '✗ invalid' : '✓ tables + citations resolve'}`,
 )
 line(
   'states',
@@ -1906,8 +1911,6 @@ line(
 
 // What the terminal lists, derived from the verdict (bug 0548): every finding but
 // the ADR check's, printed under its own heading below, and the emitter's.
-const isEmitterFinding = (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/')
-const adrFindings = new Set(adrViolations)
 const problems = verdict.filter((v) => !isEmitterFinding(v) && !adrFindings.has(v))
 if (problems.length > 0) {
   console.error('')
@@ -1918,10 +1921,10 @@ if (problems.length > 0) {
     if (v.suggestion) console.error(`      Fix: ${v.suggestion}`)
   }
 }
-if (adrError) {
+if (adrInVerdict.length > 0) {
   console.error('')
   console.error('  ADR enforcement failed:')
-  for (const v of adrViolations)
+  for (const v of adrInVerdict)
     console.error(`    ${relTo(v.file)}:${v.line}  ${v.message.split('\n')[0]}`)
 }
 

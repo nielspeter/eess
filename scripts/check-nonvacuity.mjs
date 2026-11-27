@@ -130,20 +130,20 @@
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
  *                 a probe planted under docs/ and under work/bugs/ respectively
  *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
- *                 is run BOTH ways — `--format json` for `firedOn`'s rule+file
- *                 identity, and the real no-flags invocation CI runs, asserted
- *                 on its exit code too (not just the JSON branch's own separate
- *                 exit) — → corpus/broken-links, one row per routing region bug
- *                 0086 split `broken` into.
+ *                 is run with `--format json` for `firedOn`'s rule+file identity
+ *                 → corpus/broken-links, one row per routing region bug 0086 split
+ *                 `broken` into. Since bug 0548 both of the gate's exits read one
+ *                 verdict, so the json run is the exit CI judges too, and
+ *                 corpus/terminal-exit proves the no-flags exit statement itself.
  *   corpus/pointers (production script — bug 0127)
  *                 a probe cites a line that does not exist and the PRODUCTION
- *                 `scripts/check-corpus.mjs` is run both ways, same as above →
+ *                 `scripts/check-corpus.mjs` is run as above →
  *                 corpus/pointers-resolve.
  *   corpus/proposal-plan-linkage, corpus/proposal-ruling-unparseable,
  *   corpus/proposal-implements-discriminates, corpus/plan-implements-unparseable,
  *   corpus/plan-implements-unresolved (production script — bug 0141 / plan 0142)
  *                 ephemeral probes under work/proposals/ and work/plans/, the
- *                 real `scripts/check-corpus.mjs` run both ways, same shape as
+ *                 real `scripts/check-corpus.mjs` run as
  *                 corpus/links/pointers above → corpus/accepted-proposal-uncited,
  *                 corpus/proposal-ruling-unparseable, the prose-vs-declared
  *                 discrimination, corpus/plan-implements-unparseable,
@@ -162,8 +162,8 @@
  *   (production script — proposal 005 / plan 0145)
  *                 a throwaway specs/ directory per scenario, the real
  *                 `scripts/check-crossval.mjs` pointed at it via
- *                 EESS_CROSSVAL_GHERKIN_ROOT and run both ways, same shape as
- *                 corpus/links/pointers above → crossval/scenario-exemption-stale,
+ *                 EESS_CROSSVAL_GHERKIN_ROOT and run both ways, json and the
+ *                 no-flags invocation → crossval/scenario-exemption-stale,
  *                 crossval/scenarios-covered (closing one of bug 0112's three
  *                 named rows).
  *   review-harness  scripts/nonvacuity/bad-review-harness/ carries foreign-project
@@ -2081,8 +2081,9 @@ function gateSpec() {
 
 // --- Gate: corpus/terminal-exit (bug 0548) ---
 // The command CI runs, with no flags, on a corpus with one broken link: it must exit 1, list the
-// finding and print the red summary. Deleting the terminal path's exit statement leaves this row
-// the one that reds; that both exits read one verdict is the script's own construction.
+// finding and print the red summary. Deleting the terminal path's exit statement reds this row (and
+// the rows that assert terminal-only text). A terminal exit computed from the violation list again,
+// which leaves the ADR findings out, does not: `corpus/adr-production` is the row that reds it.
 function gateCorpusTerminalExit() {
   const probe = PROBE_CORPUS_TERMINAL_EXIT
   const terminal = withProbe(
@@ -2095,6 +2096,36 @@ function gateCorpusTerminalExit() {
   return {
     ok: terminal.code === 1 && listed && red,
     detail: `terminal exit ${terminal.code}, finding listed: ${listed}, red summary: ${red}`,
+  }
+}
+
+// --- Gate: corpus/adr-production (bug 0548) ---
+// The ADR check through the production script. `corpus/adr` runs the `bad-adr.mjs` fixture, so
+// nothing tied an ADR finding to `check-corpus.mjs`'s exits: deleting the receipt member that adds
+// the ADR findings left both exits green (measured by the enforcement review of bug 0548). A real
+// ADR's `## Enforcement` heading renamed away must fire `adr/enforcement-declared` on that file in
+// the json run, and the command CI runs must exit 1 under its ADR heading. The ADR findings are the
+// ones the terminal's violation list leaves out, so this row's terminal run is also the one that
+// reds a terminal exit computed from that list again: bug 0548's own shape.
+function gateCorpusAdrProduction() {
+  const adr = join(repoRoot, 'adr', '001-toolchain-node-vitest-eslint-prettier.md')
+  const { json, terminal } = withRewrittenFile(
+    adr,
+    (t) => t.replace(/^## Enforcement$/m, '## Enforcement, renamed away'),
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const fired = firedOn(
+    json,
+    'adr/enforcement-declared',
+    '001-toolchain-node-vitest-eslint-prettier.md',
+  )
+  const headed = terminal.stderr.includes('ADR enforcement failed:')
+  return {
+    ok: json.code === 1 && fired && terminal.code === 1 && headed,
+    detail: `bad → json exit ${json.code}, adr/enforcement-declared on ADR-001: ${fired}; terminal exit ${terminal.code}, under its ADR heading: ${headed}`,
   }
 }
 
@@ -2115,8 +2146,8 @@ function gateCorpusTerminalExit() {
 // inert-exclusion row (the diagnostic).
 //
 // Two runs, not one — found on THIS fix by three independent reviewers,
-// 2026-08-14. `--format json` returns through its own early exit
-// (`check-corpus.mjs:141-145`); the terminal path CI actually runs
+// 2026-08-14 (the line pointers in this paragraph are that day's). `--format
+// json` returns through its own early exit (`check-corpus.mjs:141-145`); the terminal path CI actually runs
 // (`"check:corpus": "node scripts/check-corpus.mjs"`, no flags) computes
 // failure separately and exits at `:201`. A gate that only ever passes
 // `--format json` proves the violation-collection logic, never the exit
@@ -2326,7 +2357,6 @@ function mentionRedThenGreen({ files, expected, remedied, extra }) {
         (sug === undefined || terminal.stderr.includes(sug)),
     )
     let greenJson
-    let greenTerminal
     if (remedied !== undefined) {
       for (const [rel, text] of Object.entries(remedied)) {
         if (!isMentionProbe(rel))
@@ -2339,12 +2369,10 @@ function mentionRedThenGreen({ files, expected, remedied, extra }) {
           )
       }
       greenJson = runCorpusScript(['--format', 'json'])
-      greenTerminal = runCorpusScript([])
     }
     const green =
-      remedied === undefined ||
-      (greenJson.code === 0 && greenTerminal.code === 0 && exactMentionFindings(greenJson, []))
-    const more = extra === undefined ? true : extra({ json, terminal, greenTerminal })
+      remedied === undefined || (greenJson.code === 0 && exactMentionFindings(greenJson, []))
+    const more = extra === undefined ? true : extra({ json, terminal })
     return {
       ok: json.code === 1 && terminal.code === 1 && exact && says && green && more !== false,
       detail:
@@ -2352,7 +2380,7 @@ function mentionRedThenGreen({ files, expected, remedied, extra }) {
         `terminal prints each: ${says}` +
         (remedied === undefined
           ? ''
-          : `; remedy written in → exit ${String(greenJson.code)}/${String(greenTerminal.code)}, ` +
+          : `; remedy written in → exit ${String(greenJson.code)}, ` +
             `none of the rule's findings: ${green}`) +
         (extra === undefined ? '' : `; ${String(more)}`),
     }
@@ -4013,7 +4041,7 @@ function spliceBoardRow(text, row) {
 const BOARD_MD = join(repoRoot, 'work', 'proposals', 'PROPOSALS.md')
 const BOARD_REL = 'work/proposals/PROPOSALS.md'
 
-/** Rewrite the real board, run the production script both ways, assert one rule. */
+/** Rewrite the real board, run the production script (json), assert one rule. */
 function gateBoardRewrite(ruleId, rewrite, elementFragment, fileFragment = BOARD_REL) {
   const { json } = withRewrittenFile(BOARD_MD, rewrite, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
@@ -4022,7 +4050,7 @@ function gateBoardRewrite(ruleId, rewrite, elementFragment, fileFragment = BOARD
   return { ok, detail: `bad → json exit ${json.code} (${ruleId})` }
 }
 
-/** Plant a proposal file, run the production script both ways, assert one rule. */
+/** Plant a proposal file, run the production script (json), assert one rule. */
 function gateProposalProbe(probePath, contents, ruleId, elementFragment) {
   const { json } = withProbe(probePath, contents, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
@@ -4233,17 +4261,13 @@ function gateCorpusAcceptedDenominatorEmpty() {
 // that cost an earlier version of this plan a `.gitignore` line, a sweep change
 // and a destructive-cleanup bug. `withRewrittenFile` restores on any exit and
 // fails closed when its pattern stops matching.
+// One run, json, since bug 0548: both of the gate's exits read one verdict.
 const CORPUS_JSON = [join('scripts', 'check-corpus.mjs'), '--format', 'json']
-const CORPUS_TERM = [join('scripts', 'check-corpus.mjs')]
 
 function corpusSabotage(path, rewrite, ruleId, elementFragment) {
-  const { json, terminal } = withRewrittenFile(path, rewrite, () => ({
-    json: sh(process.execPath, CORPUS_JSON),
-    terminal: sh(process.execPath, CORPUS_TERM),
-  }))
-  const ok =
-    json.code === 1 && firedOn(json, ruleId, undefined, elementFragment) && terminal.code === 1
-  return { ok, detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId})` }
+  const json = withRewrittenFile(path, rewrite, () => sh(process.execPath, CORPUS_JSON))
+  const ok = json.code === 1 && firedOn(json, ruleId, undefined, elementFragment)
+  return { ok, detail: `bad → json exit ${json.code} (${ruleId})` }
 }
 
 const P006 = join(repoRoot, 'work', 'proposals', '006-mermaid-beyond-classdiagram.md')
@@ -4625,13 +4649,11 @@ function gateCorpusExtendsOneWay() {
     }
     return next
   }
-  const { json, terminal } = withRewrittenFile(ADR_010, rewrite, () => ({
+  const { json } = withRewrittenFile(ADR_010, rewrite, () => ({
     json: sh(process.execPath, CORPUS_JSON),
-    terminal: sh(process.execPath, CORPUS_TERM),
   }))
   const ok =
     json.code === 1 &&
-    terminal.code === 1 &&
     firedNamingPayload(
       json,
       'corpus/adr-extends-linked-back',
@@ -4640,7 +4662,7 @@ function gateCorpusExtendsOneWay() {
     )
   return {
     ok,
-    detail: `ADR-010 stops linking ADR-014 → json exit ${json.code}, terminal exit ${terminal.code}`,
+    detail: `ADR-010 stops linking ADR-014 → json exit ${json.code}`,
   }
 }
 
@@ -4660,13 +4682,11 @@ function gateCorpusExtendsListItem() {
     }
     return next
   }
-  const { json, terminal } = withRewrittenFile(ADR_009, rewrite, () => ({
+  const { json } = withRewrittenFile(ADR_009, rewrite, () => ({
     json: sh(process.execPath, CORPUS_JSON),
-    terminal: sh(process.execPath, CORPUS_TERM),
   }))
   const ok =
     json.code === 1 &&
-    terminal.code === 1 &&
     firedNamingPayload(
       json,
       'corpus/adr-extends-linked-back',
@@ -4675,7 +4695,7 @@ function gateCorpusExtendsListItem() {
     )
   return {
     ok,
-    detail: `ADR-009 stops linking ADR-016 → json exit ${json.code}, terminal exit ${terminal.code}`,
+    detail: `ADR-009 stops linking ADR-016 → json exit ${json.code}`,
   }
 }
 
@@ -4692,16 +4712,15 @@ function gateCorpusExtendsEveryLabelRemoved() {
     .filter((f) => EXTENDS_LINE.test(readFileSync(f, 'utf8')))
   const run = (files) =>
     files.length === 0
-      ? { json: sh(process.execPath, CORPUS_JSON), terminal: sh(process.execPath, CORPUS_TERM) }
+      ? { json: sh(process.execPath, CORPUS_JSON) }
       : withRewrittenFile(files[0], drop, () => run(files.slice(1)))
-  const { json, terminal } = run(declaring)
+  const { json } = run(declaring)
   const ok =
     json.code === 1 &&
-    terminal.code === 1 &&
     firedNamingPayload(json, 'corpus/adr-extends-linked-back', '', 'examined zero units')
   return {
     ok: ok && declaring.length >= 2,
-    detail: `no Extends label left in ${declaring.length} ADR(s) → json exit ${json.code}, terminal exit ${terminal.code}`,
+    detail: `no Extends label left in ${declaring.length} ADR(s) → json exit ${json.code}`,
   }
 }
 
@@ -6055,6 +6074,8 @@ const gates = [
   // Bug 0548: the one row that proves `check:corpus`'s terminal exit statement, now that the corpus
   // rows run the json path alone. Appended so no other fixture changes shard.
   ['corpus/terminal-exit', gateCorpusTerminalExit],
+  // Bug 0548's review: the ADR check through the production script. Appended for the same reason.
+  ['corpus/adr-production', gateCorpusAdrProduction],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -6203,6 +6224,7 @@ const GATE_FOR = {
     'corpus/links/fragment-repo',
     'corpus/links/fragment-reach',
     'corpus/terminal-exit',
+    'corpus/adr-production',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',
