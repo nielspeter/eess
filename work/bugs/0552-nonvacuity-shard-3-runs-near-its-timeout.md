@@ -79,7 +79,7 @@ question: what keeps every shard well under its limit as rows are added and grow
 variance? Totals frame it: #268's fixtures sum to 2,810 s, so a perfect split over four shards is
 about 11.7 minutes each, and 1.6x variance puts that near 19. Candidates to measure, not choose:
 
-- **Make the heavy rows cheaper or split them.** [Bug 0548](./0548-check-corpus-exits-on-a-second-list.md)'s
+- **Make the heavy rows cheaper or split them.** [Bug 0548](./fixed/0548-check-corpus-exits-on-a-second-list.md)'s
   fix runs `check-corpus.mjs` once per corpus row instead of twice, about half their cost (372–567 s
   of each shard on #268). The examples row is one row: no assignment can put less than its 213 s on
   the shard that gets it.
@@ -108,5 +108,5 @@ Runs (`gh api repos/nielspeter/eess/actions/runs/<id>/jobs`): main 40176679421, 
       decision (an assignment, cheaper rows, or both).
 - [ ] The chosen fix keeps the slowest shard, over at least five CI runs, below a share of its timeout
       the spike states; the workflow's comment states the measured slowest time. If the fix is
-      [bug 0548](./0548-check-corpus-exits-on-a-second-list.md)'s, this bug closes on that record's
+      [bug 0548](./fixed/0548-check-corpus-exits-on-a-second-list.md)'s, this bug closes on that record's
       before-and-after shard measurement.

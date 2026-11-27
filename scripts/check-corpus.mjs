@@ -1756,12 +1756,18 @@ const receipt = mergeCollectResults([
 // under `report: 'return'` there. The machine-readable path DOES emit, because
 // that is what `--format json` is for.
 // --format json/github — emit all violations machine-readable, then exit (plan 0070).
+//
+// Bug 0548: ONE verdict, read by both exits. The terminal path used to exit on a
+// hand-kept list of the same findings, so a check added to the receipt and not
+// to that list exited 1 under `--format json` and 0 on the command CI runs.
+// Measured before the fix: `broken` left out of the list, one broken link
+// planted, json exit 1, terminal exit 0 under "✓ corpus integrity".
+const verdict = finishPreset(receipt, { report: 'return' })
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
-  const emitted = finishPreset(receipt, { report: 'return' })
-  reportViolations(emitted, { format })
-  process.exit(emitted.length > 0 ? 1 : 0)
+  reportViolations(verdict, { format })
+  process.exit(verdict.length > 0 ? 1 : 0)
 }
 
 // ---------- report ----------
@@ -1898,31 +1904,11 @@ line(
     }`,
 )
 
-const problems = [
-  ...recordMentionFindings,
-  ...joinFindings,
-  ...skippedFindings,
-  ...statePresent,
-  ...closedLive,
-  ...recordNumbers,
-  ...numberInTitleFindings,
-  ...doneFolderViolations,
-  ...stateViolations,
-  ...broken,
-  ...stale,
-  ...proposalPlanViolations,
-  ...boardRulingViolations,
-  ...promotedViolations,
-  ...acceptedDenominatorViolations,
-  ...criteriaViolations,
-  ...criteriaContentViolations,
-  ...docsOnlyOwnerViolations,
-  ...unparseableRulingViolations,
-  ...unparseableImplementsViolations,
-  ...danglingImplementsViolations,
-  ...laneViolations,
-  ...extendsViolations,
-]
+// What the terminal lists, derived from the verdict (bug 0548): every finding but
+// the ADR check's, printed under its own heading below, and the emitter's.
+const isEmitterFinding = (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/')
+const adrFindings = new Set(adrViolations)
+const problems = verdict.filter((v) => !isEmitterFinding(v) && !adrFindings.has(v))
 if (problems.length > 0) {
   console.error('')
   console.error(`  ${problems.length} violation(s):`)
@@ -1939,12 +1925,7 @@ if (adrError) {
     console.error(`    ${relTo(v.file)}:${v.line}  ${v.message.split('\n')[0]}`)
 }
 
-// The same receipt the machine-readable path used, so the two exits cannot
-// disagree about what was examined.
-const verdict = finishPreset(receipt, { report: 'return' })
-const emitterFindings = verdict.filter(
-  (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),
-)
+const emitterFindings = verdict.filter(isEmitterFinding)
 if (emitterFindings.length > 0) {
   console.error('')
   console.error('  evidence:')
@@ -1952,7 +1933,8 @@ if (emitterFindings.length > 0) {
 }
 
 const totalChecked = verdict.examined
-const failed = problems.length > 0 || adrError || emitterFindings.length > 0
+// The exit reads the verdict, as the machine-readable path's does (bug 0548).
+const failed = verdict.length > 0
 // Emitter findings count toward the number below. Without this the line read
 // `✗ corpus integrity — 0 violation(s)` beside a red exit — the summary
 // contradicting the verdict. Found by an architect review of plan 0263 Phase 1,
@@ -1964,7 +1946,7 @@ if (!failed) {
     `  ✓ corpus integrity — ${totalChecked} checks across ${liveDocs.length} documents, 0 violations (${elapsed()})`,
   )
 } else {
-  const n = problems.length + (adrError ? 1 : 0) + emitterFindings.length
+  const n = verdict.length
   console.error(
     `  ✗ corpus integrity — ${n} violation(s) across ${totalChecked} checks (${elapsed()})`,
   )

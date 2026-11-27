@@ -357,6 +357,8 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 // probes are never co-present, a fact three separate reviewers independently
 // flagged as circumstantial rather than structural.
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
+// Bug 0548: the terminal-exit row's probe, its own file so no other row's probe is touched.
+const PROBE_CORPUS_TERMINAL_EXIT = join(repoRoot, 'docs', '__nonvacuity_probe_terminal_exit__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
 // Bug 0108's Lanes binding. The forward direction plants a DIRECTORY (a lane the
@@ -718,6 +720,7 @@ rmSync(PROBE_CATCH, { force: true })
 rmSync(PROBE_REGISTRY, { force: true })
 rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
+rmSync(PROBE_CORPUS_TERMINAL_EXIT, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
 rmSync(PROBE_CORPUS_WORK_ROOT, { force: true })
@@ -2076,12 +2079,40 @@ function gateSpec() {
   return { ok, detail: `exit ${r.code} (spec/nonvacuity-probe)` }
 }
 
+// --- Gate: corpus/terminal-exit (bug 0548) ---
+// The command CI runs, with no flags, on a corpus with one broken link: it must exit 1, list the
+// finding and print the red summary. Deleting the terminal path's exit statement leaves this row
+// the one that reds; that both exits read one verdict is the script's own construction.
+function gateCorpusTerminalExit() {
+  const probe = PROBE_CORPUS_TERMINAL_EXIT
+  const terminal = withProbe(
+    probe,
+    '# Non-vacuity probe\n\n[gone](./__nonvacuity_terminal_exit_gone__.md)\n',
+    () => sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  )
+  const listed = terminal.stderr.includes('__nonvacuity_terminal_exit_gone__.md')
+  const red = /✗ corpus integrity — \d+ violation\(s\)/.test(terminal.stderr)
+  return {
+    ok: terminal.code === 1 && listed && red,
+    detail: `terminal exit ${terminal.code}, finding listed: ${listed}, red summary: ${red}`,
+  }
+}
+
 // --- Gate: corpus/links (both regions) and corpus/pointers ---
 // Bug 0127: `bad-links.mjs`/`bad-pointers.mjs` rebuilt their own rule with
 // their own id, proving only that the underlying condition fires over a
 // fixture corpus built by hand — nothing bound it to the production script.
 // These plant a probe in the real corpus and run `scripts/check-corpus.mjs`
 // itself.
+//
+// One run since bug 0548. The two paragraphs below are why there were two: the
+// terminal path exited on its own list, so only a terminal run proved a rule
+// reached CI's exit. Since bug 0548 both exits read one verdict, so a json exit
+// of 1 is the terminal exit too, and one row, `corpus/terminal-exit`, proves the
+// terminal exit statement itself. Three rows still run the terminal path for
+// what only it prints: `corpus/links/fragment-reach` (the "not judged" count),
+// the one-dead-check row (the emitter's finding beside healthy counts) and the
+// inert-exclusion row (the diagnostic).
 //
 // Two runs, not one — found on THIS fix by three independent reviewers,
 // 2026-08-14. `--format json` returns through its own early exit
@@ -2098,36 +2129,31 @@ function gateSpec() {
 // — it replaces the old purely-informational `clean` direction, since a
 // second real assertion is worth more than a decorative one.
 function gateCorpusProbe(probePath, probeContent, ruleId, fileFragment) {
-  const { json, terminal } = withProbe(probePath, probeContent, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
-  }))
-  const ok = json.code === 1 && firedOn(json, ruleId, fileFragment) && terminal.code === 1
-  return {
-    ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId}, ${fileFragment})`,
-  }
+  const json = withProbe(probePath, probeContent, () =>
+    sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+  )
+  const ok = json.code === 1 && firedOn(json, ruleId, fileFragment)
+  return { ok, detail: `bad → json exit ${json.code} (${ruleId}, ${fileFragment})` }
 }
 
 /**
  * `gateCorpusProbe` for a probe that needs its own directory (`withProbeDir`), asserting the rule
- * fired on EVERY fragment, so a rule that fires on the probe alone cannot pass (plan 0459). The
- * terminal run must also print `terminalSays`: a probe directory under `work/` can red another rule
- * (the Lanes table reads `work/`'s directories), and exit 1 alone would then be borrowed.
+ * fired on EVERY fragment, so a rule that fires on the probe alone cannot pass (plan 0459), and
+ * that one of its findings says `says`. It used to read `says` off a second, terminal run, because
+ * a probe directory under `work/` can red another rule and a bare exit would be borrowed; the rule's
+ * own finding saying it is the stricter form (bug 0548).
  */
-function gateCorpusProbeDir(dir, probePath, probeContent, ruleId, fileFragments, terminalSays) {
-  const { json, terminal } = withProbeDir(dir, probePath, probeContent, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
-  }))
-  const ok =
-    json.code === 1 &&
-    fileFragments.every((f) => firedOn(json, ruleId, f)) &&
-    terminal.code === 1 &&
-    terminal.stderr.includes(terminalSays)
+function gateCorpusProbeDir(dir, probePath, probeContent, ruleId, fileFragments, says) {
+  const json = withProbeDir(dir, probePath, probeContent, () =>
+    sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+  )
+  const said = violationsOf(json).some(
+    (v) => v?.ruleId === ruleId && String(v?.message ?? '').includes(says),
+  )
+  const ok = json.code === 1 && fileFragments.every((f) => firedOn(json, ruleId, f)) && said
   return {
     ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId}, ${fileFragments.join(' + ')})`,
+    detail: `bad → json exit ${json.code} (${ruleId}, ${fileFragments.join(' + ')}), says "${says}": ${said}`,
   }
 }
 
@@ -2973,9 +2999,8 @@ const CORPUS_PROBE_HTML_LINKS_MD = [
 ].join('\n')
 
 function gateCorpusHtmlLinks() {
-  const { json, terminal } = withProbe(PROBE_CORPUS_LINK_SITE, CORPUS_PROBE_HTML_LINKS_MD, () => ({
+  const { json } = withProbe(PROBE_CORPUS_LINK_SITE, CORPUS_PROBE_HTML_LINKS_MD, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
   const probe = '__nonvacuity_probe_site__'
   const sites = {
@@ -2983,11 +3008,11 @@ function gateCorpusHtmlLinks() {
     unquoted: firedNamingPayload(json, 'md/unread-link', probe, 'reads its tag as text'),
     unterminated: firedNamingPayload(json, 'md/unread-link', probe, 'never closes'),
   }
-  const ok = json.code === 1 && terminal.code === 1 && Object.values(sites).every(Boolean)
+  const ok = json.code === 1 && Object.values(sites).every(Boolean)
   return {
     ok,
     detail:
-      `bad → json exit ${json.code}, terminal exit ${terminal.code}; ` +
+      `bad → json exit ${json.code}; ` +
       Object.entries(sites)
         .map(([k, v]) => `${k}: ${v ? 'fired' : 'MISSING'}`)
         .join(' · '),
@@ -3018,14 +3043,13 @@ function gateCorpusFragment(region) {
           '__nonvacuity_probe_repo__',
           '"#__nonvacuity_no_such_anchor__" is no heading or anchor in work/bugs/BUGS.md under the GitHub anchor rule',
         ]
-  const { json, terminal } = withProbe(path, content, () => ({
+  const { json } = withProbe(path, content, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
   const fired = firedNamingPayload(json, 'corpus/broken-links', file, payload)
   return {
-    ok: json.code === 1 && terminal.code === 1 && fired,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code}; ${region} fragment: ${fired ? 'fired' : 'MISSING'}`,
+    ok: json.code === 1 && fired,
+    detail: `bad → json exit ${json.code}; ${region} fragment: ${fired ? 'fired' : 'MISSING'}`,
   }
 }
 
@@ -3155,22 +3179,18 @@ function gateCorpusLinksRepoNative() {
  * `proposals/` and `spikes/` existed, and nothing noticed for a month.
  */
 function gateCorpusLaneMissingRow() {
-  const { json, terminal } = withProbeDir(
+  const { json } = withProbeDir(
     PROBE_LANE_DIR,
     PROBE_LANE_FILE,
     '# a lane the map does not list\n',
     () => ({
       json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
     }),
   )
-  const ok =
-    json.code === 1 &&
-    terminal.code === 1 &&
-    firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
+  const ok = json.code === 1 && firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
   return {
     ok,
-    detail: `unlisted lane → json exit ${json.code}, terminal exit ${terminal.code} (corpus/lanes-match-directories, forward)`,
+    detail: `unlisted lane → json exit ${json.code} (corpus/lanes-match-directories, forward)`,
   }
 }
 
@@ -3193,17 +3213,13 @@ function gateCorpusLaneRowUnresolved() {
       /^\| \[`spikes\/`\]/m,
       '| [`__nonvacuity_probe_ghost__/`](./x) | probe | none | none |\n| [`spikes/`]',
     )
-  const { json, terminal } = withRewrittenFile(readme, rewrite, () => ({
+  const { json } = withRewrittenFile(readme, rewrite, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
-  const ok =
-    json.code === 1 &&
-    terminal.code === 1 &&
-    firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
+  const ok = json.code === 1 && firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
   return {
     ok,
-    detail: `row for an absent lane → json exit ${json.code}, terminal exit ${terminal.code} (corpus/lanes-match-directories, reverse)`,
+    detail: `row for an absent lane → json exit ${json.code} (corpus/lanes-match-directories, reverse)`,
   }
 }
 
@@ -3234,19 +3250,18 @@ function gateCorpusLaneDecoyTable() {
     const gutted = text.replace(/^\| \[`[a-z]+\/`\].*\n/gm, '')
     return `${gutted}\n## __nonvacuity_probe_scratch__\n\n| Lane | Note |\n| ---- | ---- |\n| plans | x |\n| bugs | x |\n| proposals | x |\n| spikes | x |\n`
   }
-  const { json, terminal } = withRewrittenFile(readme, rewrite, () => ({
+  const { json } = withRewrittenFile(readme, rewrite, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
   const namedTheInstrument = firedOn(json, 'corpus/lane-table-unreadable', 'work/README.md')
   // The decoy must NOT have been read as the map: if it had, the join would be
   // satisfied and this id would never fire.
   const blamedNoDirectory = !firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
-  const ok = json.code === 1 && terminal.code === 1 && namedTheInstrument && blamedNoDirectory
+  const ok = json.code === 1 && namedTheInstrument && blamedNoDirectory
   return {
     ok,
     detail:
-      `decoy Lane table + emptied map → json exit ${json.code}, terminal exit ${terminal.code}, ` +
+      `decoy Lane table + emptied map → json exit ${json.code}, ` +
       `named the unreadable table: ${namedTheInstrument}, blamed no directory: ${blamedNoDirectory}`,
   }
 }
@@ -3779,12 +3794,11 @@ function gateCorpusInertExclusion() {
 }
 
 function gateCorpusPointerAmbiguous() {
-  const { json, terminal } = withProbe(
+  const { json } = withProbe(
     PROBE_CORPUS_POINTER_AMBIGUOUS,
     '# Non-vacuity probe\n\nA bare filename two packages both have: `rule-builder.ts:1`\n',
     () => ({
       json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
     }),
   )
   const file = 'docs/__nonvacuity_probe_pointer_ambiguous__.md'
@@ -3804,8 +3818,8 @@ function gateCorpusPointerAmbiguous() {
     void err // unparseable output is a failure, reported by the flags below
   }
   return {
-    ok: json.code === 1 && terminal.code === 1 && saidAmbiguous && namedBoth,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code}, classed ambiguous: ${saidAmbiguous}, named both candidates: ${namedBoth}`,
+    ok: json.code === 1 && saidAmbiguous && namedBoth,
+    detail: `bad → json exit ${json.code}, classed ambiguous: ${saidAmbiguous}, named both candidates: ${namedBoth}`,
   }
 }
 
@@ -3852,7 +3866,7 @@ function gateCorpusWorkPointer() {
   // newline, which a `split('\n').length` count let pass. The row asserts its stale finding and
   // the file's real line count, so the count regressing reds the row as surely as the root does.
   const twoLines = join(PROBE_CORPUS_WORK_POINTER_DIR, 'two-lines.ts')
-  const { json, terminal } = withProbeDir(
+  const { json } = withProbeDir(
     PROBE_CORPUS_WORK_POINTER_DIR,
     PROBE_CORPUS_WORK_POINTER,
     '# Non-vacuity probe\n\nA live claim about code that does not exist: `src/__nonvacuity_does_not_exist__.ts:12`\n\n' +
@@ -3861,7 +3875,6 @@ function gateCorpusWorkPointer() {
       writeFileSync(twoLines, 'export const a = 1\nexport const b = 2\n')
       return {
         json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-        terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
       }
     },
   )
@@ -3884,14 +3897,10 @@ function gateCorpusWorkPointer() {
       ),
   )
   const ok =
-    json.code === 1 &&
-    firedOn(json, 'corpus/pointers-resolve', file) &&
-    missing &&
-    pastTheEnd &&
-    terminal.code === 1
+    json.code === 1 && firedOn(json, 'corpus/pointers-resolve', file) && missing && pastTheEnd
   return {
     ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/pointers-resolve, ${file}), missing file broken: ${missing}, one past the end stale with 2 lines: ${pastTheEnd}`,
+    detail: `bad → json exit ${json.code} (corpus/pointers-resolve, ${file}), missing file broken: ${missing}, one past the end stale with 2 lines: ${pastTheEnd}`,
   }
 }
 
@@ -4006,24 +4015,20 @@ const BOARD_REL = 'work/proposals/PROPOSALS.md'
 
 /** Rewrite the real board, run the production script both ways, assert one rule. */
 function gateBoardRewrite(ruleId, rewrite, elementFragment, fileFragment = BOARD_REL) {
-  const { json, terminal } = withRewrittenFile(BOARD_MD, rewrite, () => ({
+  const { json } = withRewrittenFile(BOARD_MD, rewrite, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
-  const ok =
-    json.code === 1 && firedOn(json, ruleId, fileFragment, elementFragment) && terminal.code === 1
-  return { ok, detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId})` }
+  const ok = json.code === 1 && firedOn(json, ruleId, fileFragment, elementFragment)
+  return { ok, detail: `bad → json exit ${json.code} (${ruleId})` }
 }
 
 /** Plant a proposal file, run the production script both ways, assert one rule. */
 function gateProposalProbe(probePath, contents, ruleId, elementFragment) {
-  const { json, terminal } = withProbe(probePath, contents, () => ({
+  const { json } = withProbe(probePath, contents, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
-  const ok =
-    json.code === 1 && firedOn(json, ruleId, undefined, elementFragment) && terminal.code === 1
-  return { ok, detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId})` }
+  const ok = json.code === 1 && firedOn(json, ruleId, undefined, elementFragment)
+  return { ok, detail: `bad → json exit ${json.code} (${ruleId})` }
 }
 
 // --- board: the drift the rule exists for -----------------------------------
@@ -4034,7 +4039,7 @@ function gateCorpusProposalBoardRuling() {
   const row =
     '| [998 — non-vacuity probe](./__nonvacuity_probe_998-board__.md) | Low | 🔵 Reviewed | ' +
     'Reject | self-found | — |'
-  const { json, terminal } = withProbe(
+  const { json } = withProbe(
     PROBE_CORPUS_BOARD_PROPOSAL,
     '# Proposal 998 — non-vacuity probe\n\n**State:** Draft — probe.\n\n' +
       '## Review — 2026-01-01\n\n**Ruling: Rewrite needed**\n\n' +
@@ -4045,17 +4050,15 @@ function gateCorpusProposalBoardRuling() {
         (t) => spliceBoardRow(t, row),
         () => ({
           json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-          terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
         }),
       ),
   )
   const ok =
     json.code === 1 &&
-    firedOn(json, 'corpus/proposal-board-ruling-drift', 'work/proposals/PROPOSALS.md', '998') &&
-    terminal.code === 1
+    firedOn(json, 'corpus/proposal-board-ruling-drift', 'work/proposals/PROPOSALS.md', '998')
   return {
     ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/proposal-board-ruling-drift)`,
+    detail: `bad → json exit ${json.code} (corpus/proposal-board-ruling-drift)`,
   }
 }
 
@@ -4064,15 +4067,13 @@ function gateCorpusProposalBoardRuling() {
 // enforcement review both measured printing an affirmative "board agrees with
 // each file" over zero rows.
 function gateCorpusBoardMissing() {
-  const { json, terminal } = withRemovedFile(BOARD_MD, () => ({
+  const { json } = withRemovedFile(BOARD_MD, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
-  const ok =
-    json.code === 1 && firedOn(json, 'corpus/proposal-board-missing') && terminal.code === 1
+  const ok = json.code === 1 && firedOn(json, 'corpus/proposal-board-missing')
   return {
     ok,
-    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/proposal-board-missing)`,
+    detail: `bad → json exit ${json.code} (corpus/proposal-board-missing)`,
   }
 }
 
@@ -4208,21 +4209,19 @@ function gateCorpusAcceptedDenominatorEmpty() {
         'if none does, the ruling reader is what to check',
     }
   }
-  const { json, terminal, remaining } = withRewrittenFiles(accepted, demoteOperativeRuling, () => ({
+  const { json, remaining } = withRewrittenFiles(accepted, demoteOperativeRuling, () => ({
     remaining: acceptedProposalFiles().length,
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
   }))
   const ok =
     remaining === 0 &&
     json.code === 1 &&
-    firedOn(json, 'corpus/accepted-proposal-denominator-empty') &&
-    terminal.code === 1
+    firedOn(json, 'corpus/accepted-proposal-denominator-empty')
   return {
     ok,
     detail:
       `demoted ${String(accepted.length)} accepted proposal(s), ${String(remaining)} left accepted; ` +
-      `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/accepted-proposal-denominator-empty)`,
+      `bad → json exit ${json.code} (corpus/accepted-proposal-denominator-empty)`,
   }
 }
 
@@ -6053,6 +6052,9 @@ const gates = [
     'source-text/registered-waiver-read',
     () => gateNode('bad-text-corpus-waiver.mjs', 'source-text/registered-waiver-read'),
   ],
+  // Bug 0548: the one row that proves `check:corpus`'s terminal exit statement, now that the corpus
+  // rows run the json path alone. Appended so no other fixture changes shard.
+  ['corpus/terminal-exit', gateCorpusTerminalExit],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -6200,6 +6202,7 @@ const GATE_FOR = {
     'corpus/links/fragment-site',
     'corpus/links/fragment-repo',
     'corpus/links/fragment-reach',
+    'corpus/terminal-exit',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',
