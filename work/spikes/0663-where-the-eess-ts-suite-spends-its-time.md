@@ -50,7 +50,9 @@ Measured from CI run 45969038139's job and step times:
 - Locally, under `taskset -c 0-3`, to match CI's four vCPUs (vitest uses 11 workers here and 3
   there), before and after interleaved, recording wall time, CPU time and peak memory.
 - A lever keeps a test's proof only if the JSON reporter's sets of passed, skipped and failed tests are
-  identical by name, before and after. A failure, explained or not, rejects the lever. Each run also
+  identical by name, before and after, including the nested run in
+  `packages/ts/tests/core/warn-survives-the-test-runner.test.ts`, which a compile-cache variable or
+  setup file also reaches. A failure, explained or not, rejects the lever. Each run also
   records the slowest test's headroom against the 30 s timeout.
 - One CI run confirms whatever is recommended, since local timing does not answer CI's worker count.
 
@@ -58,14 +60,23 @@ Measured from CI run 45969038139's job and step times:
 
 1. **The job's layout.** The eess-ts suite in its own job, or split by `vitest --shard`, running from
    the start instead of after the gates, and the small suites beside it. Measured from the step times
-   above and one CI run. It changes no test. It costs runner slots, which is the maintainer's call
+   above and one CI run. It changes no test, but it can stop the suite gating a merge: the `main`
+   ruleset requires only the checks named `test`, `nonvacuity` and `bun-load`, and the check that a
+   CI step is not dropped looks only for the text `npm run test` in `ci.yml`
+   (`scripts/check-nonvacuity.mjs:6519-6540`), so a new job that is removed, skipped or marked
+   `continue-on-error` would stay green (the testing review's re-check). A plan for it keeps the
+   suite under the required `test` name, or adds a required job that checks every shard ran, passed
+   and together covered every test file, as the nonvacuity merge job does for its shards
+   (`scripts/lib/nonvacuity-shards.mjs:186-199`), with a sabotage row: one shard dropped reds the
+   required check. It costs runner slots, which is the maintainer's call
    ([spike 0631](./0631-where-ci-time-goes.md) recorded the same trade).
 2. **Node's compile cache.** `NODE_COMPILE_CACHE` alone saved nothing in the testing review's trial,
    since vitest's workers never write the cache. Calling `module.flushCompileCache()` in a setup
    file's `afterAll` cut ts-morph's load from 203 ms to 95 ms there. Measured for the whole suite. It
    cannot change a result: V8 refuses a cache whose source changed.
 3. **The pool and the worker count**: `threads` against `forks`, on CI's four vCPUs. `process.chdir`
-   throws under threads, which the measurement checks first.
+   throws under threads, which the measurement checks first; the kernel's one-time loader hook and the
+   `globalThis` source-text registry exist once per thread, harmless while `isolate: true` holds.
 4. **Projects built once per file where a test builds one per test.** `project()` already builds each
    fixture once per file. The targets are loaders that build per test, such as `loadSource()` in
    `packages/ts/tests/core/every-config-finding-is-classified.test.ts:241`, which loads the whole package
@@ -102,6 +113,9 @@ session's scratchpad. The testing review held it with one critical finding.
   - CI's four vCPUs, comparison by test name, timeout headroom, and a profile first (testing);
   - two hours could not hold five levers (testing): four hours, four levers, profile first;
   - "loaded again for each file" was a hypothesis filed as known (method): moved to the method.
+- **Re-check, the same day (testing):** the critical finding and all eight important ones closed.
+  New, folded in: lever 1 can stop the suite gating a merge unless its plan keeps it required (now in
+  lever 1); the per-thread hook and registry (lever 3); the nested run in the by-name comparison.
 - Minor: the commit pointers stand at, where the config edits happen, the links to
   [spike 0631](./0631-where-ci-time-goes.md) and [spike 0366](./0366-where-validate-spends-its-time.md),
   and this section's place for corrections.
