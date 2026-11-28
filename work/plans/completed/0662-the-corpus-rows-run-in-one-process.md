@@ -268,9 +268,11 @@ build (45 s, 7 s), never in the main tree.
       is taken out (from the rows this PR did not touch). The projection was 26%: the shard-end
       agreement check and the two new rows add about 57 s a shard on a slow runner, and a converted
       row runs the gate more than once. Shard 1, with the 4-minute examples row, sets the slowest
-      time: 12m40s on a runner 45% slower than before. The merge job failed on that run: the harness
-      imported the gate statically, and the merge runs on Node builtins alone; fixed by a lazy import
-      outside merge mode, checked by running merge mode in a copy with no `node_modules`.
+      time: 12m40s on a runner 45% slower than before. The merge job failed on that run, and on the next: the harness loaded the gate
+      at the top (first statically, then by a top-level import skipped only in merge mode), while the
+      merge job, and the shard runs its own tests start, run on Node builtins alone. Fixed by loading the
+      gate the first time a row runs it (`require` of the ES module); checked by running the shard
+      tests (22) and merge mode in a copy with no `node_modules`, and the in-process rows in a worktree.
 
 ## Out of scope
 
