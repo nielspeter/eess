@@ -1,6 +1,7 @@
 # Spike 0663: where the eess-ts suite spends its time
 
-Not run yet: authored 2026-11-27 as the second half of cutting a PR's wait, beside
+Run 2026-11-28, about two hours; measured below, with a recommendation for the maintainer's decision
+("Decided" is theirs). Authored 2026-11-27 as the second half of cutting a PR's wait, beside
 [plan 0662](../plans/completed/0662-the-corpus-rows-run-in-one-process.md), then rewritten the same day against
 the testing and method reviews ("Review, 2026-11-27" below). Time-boxed to about four hours. It brings
 back a design for the maintainer's decision and changes no test, no config and no source. Code
@@ -90,6 +91,62 @@ would then miss the copy a test reads. Also ruled out: isolation turned off for 
 for the reasons under "What is known". That question, if it is reopened, is a spike of its own: it
 needs a static check of what each file imports and a leak-detecting setup as standing guards, since
 shuffled order cannot catch a test that passes on state another file left behind.
+
+## Measured, 2026-11-28
+
+In a worktree at `main` 3562cad7 with its own `npm ci` and build, the eess-ts suite under
+`taskset -c 0-3`, JSON reporter, compared by test name. **Every run passed all 3,984 tests, identical
+by name to the first; the slowest test took at most 12.1 s against the 30 s timeout.** The machine was
+shared: another session compiled Rust on the same cores (load average 7 to 11), and two baselines a
+run apart differed by 20% with nothing changed, its CPU time rising with it. So each lever is judged
+against the baseline run beside it, and a gain inside that drift is no gain.
+
+**The profile.** One run, 252 s wall (CI's suite on run 45969038139: 255.5 s). vitest sums 301 s of
+import and 408 s of tests across workers, 887 s of CPU: about 0.92 s of import a file, and about three
+busy workers on four cores. 229 of the 327 files take under a second; the 20 slowest are 45% of test
+time, the slowest 17.6 s (`tests/conditions/verbatim-module-syntax.test.ts`). No file dominates.
+
+| lever                                                                                     | runs, interleaved                                              | result                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2. compile cache (`flushCompileCache` in a setup file's `afterAll`, `NODE_COMPILE_CACHE`) | base 256 s · cold 270 s · base 308 s · cold 306 s · warm 313 s | **rejected**: 5% slower in one pair, 1% faster in the other; its import saving (343 against 367 s) is inside the drift                                                                                                                                                             |
+| 3. the pool and the worker count                                                          | base 331 s · 4 workers 329 s · base 311 s · 4 workers 327 s    | **rejected**: no gain, more CPU (1,208–1,216 s against 1,088–1,158 s); `threads` would break the two tests that call `process.chdir`                                                                                                                                               |
+| 4. projects built once per file                                                           | read, not run                                                  | **rejected**: no file builds a project in `beforeEach`; the repeat builders are `createInMemoryProject` (36 calls, each its own small source), `loadSource` (8 calls, in a 14.4 s file) and `createNonStrictProject` (5): seconds of CPU, against a shared project's mutation risk |
+| 1. the job's layout                                                                       | CI, below                                                      | **the one real gain**                                                                                                                                                                                                                                                              |
+
+**Lever 1, from CI.** On run 46114864604 (PR #346, a normal-speed runner) the `test` job's steps sum
+to 445 s: the eess-ts suite 237 s, the other five suites 50 s, everything else 156 s. Then one CI run of
+the layout, on a throwaway draft PR (#347, closed unmerged), run 46133547096: the eess-ts suite in its
+own job, two `vitest --shard` halves beside `test`:
+
+| job                               | time                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `test-ts (1)`                     | 4m48s (1,892 tests, suite 203 s)                                              |
+| `test-ts (2)`                     | 3m24s (2,092 tests, suite 138 s)                                              |
+| `test`, without the eess-ts suite | 6m27s (steps 383 s: `npm ci` 66 s, the small suites 83 s, the gates the rest) |
+| nonvacuity shards                 | 14m12s, 6m45s, 5m37s, 7m44s                                                   |
+
+The two halves ran all 3,984 tests. That run's runner was a slow one (`npm ci` 66 s against 12 s, the
+small suites 83 s against 50 s), so the `test` job without the suite is about 3.5 minutes on a normal
+runner and 6.4 on a slow one, against 7.4 to 12 with it. One run each way; the direction is what it
+measures.
+
+**What it found besides.** With the suite moved, the `test` job no longer sets a PR's wait:
+**nonvacuity shard 1 does**, in every recent run (12m40s, 7m53s, 13m01s, 14m12s). It holds the
+four-minute `examples/md-fixtures-are-load-bearing` row, and the round-robin assignment puts it beside
+other heavy rows. That is [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s
+"assign by cost" candidate, now the largest lever on the wait.
+
+## Recommended, for the maintainer's decision
+
+1. **The eess-ts suite in its own job, split in two by `vitest --shard`,** as its own closable plan. It
+   changes no test. It costs two runner slots a run. The plan must keep the suite gating a merge: the
+   ruleset requires only `test`, `nonvacuity` and `bun-load`, so either the shards report under a
+   required name, or a required job checks that each shard ran and passed and that together they ran
+   every test file, as the nonvacuity merge does, with a sabotage row (a shard dropped reds it). This
+   cuts the `test` job, but not the wait, until the next item lands.
+2. **Assign the nonvacuity rows to shards by measured cost**, [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md)'s
+   candidate, so the examples row does not sit with other heavy ones. That is what sets the wait now.
+3. Levers 2, 3 and 4: not taken, for the measured reasons above.
 
 ## What it brings back
 
