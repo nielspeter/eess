@@ -257,16 +257,18 @@ import {
   parseShard,
   selectShard,
 } from './lib/nonvacuity-shards.mjs'
-// Plan 0662: the gate and the kernel are loaded only outside the merge, which runs on Node builtins
-// alone, with no `npm ci` (`.github/workflows/ci.yml`, the `nonvacuity` job). A static import made
-// the merge fail to start (PR #346's first CI run).
-const { runCheckCorpus, resetCommentSuppression } =
-  process.env[MERGE_ENV] === undefined
-    ? {
-        ...(await import('./check-corpus.mjs')),
-        ...(await import('@nielspeter/eess/internal')),
-      }
-    : { runCheckCorpus: undefined, resetCommentSuppression: undefined }
+// Plan 0662: the gate is loaded the first time a row runs it, synchronously (`require` of an ES
+// module, Node 24), never at the top. The merge job, and the shard runs its own tests start, run on
+// Node builtins alone with no `npm ci` (`.github/workflows/ci.yml`, the `nonvacuity` job): a load at
+// the top made both fail to start (PR #346's first two CI runs).
+const requireHere = createRequire(import.meta.url)
+let corpusGate
+function gateModule() {
+  corpusGate ??= requireHere('./check-corpus.mjs')
+  return corpusGate
+}
+const runCheckCorpus = (argv, options) => gateModule().runCheckCorpus(argv, options)
+const resetCommentSuppression = () => gateModule().resetCommentSuppression()
 const SHARD_TESTS_LINK = 'node --test scripts/lib/nonvacuity-shards.test.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')

@@ -61,7 +61,7 @@ import {
   parseExclusionComments,
   reportViolations,
 } from '@nielspeter/eess'
-import { matchSelections } from '@nielspeter/eess/internal'
+import { matchSelections, resetCommentSuppression } from '@nielspeter/eess/internal'
 import { isRepoNativeLink, siteOptsAreSafe, unclassifiedRoots } from './lib/corpus-link-routing.mjs'
 import { vitepressAnchors } from './lib/vitepress-anchors.mjs'
 import {
@@ -103,6 +103,10 @@ import { recordKeyOfPath } from './lib/record-key.mjs'
  * `gate` replaces the gate's body, for the one non-vacuity row that proves a throw escapes and the
  * streams come back (`corpus/in-process-throw-is-harness-error`); nothing else passes it.
  */
+// For `scripts/check-nonvacuity.mjs`, which loads only this file, synchronously and only when a row
+// first runs the gate: the kernel's `/internal` entry cannot be `require`d (plan 0662).
+export { resetCommentSuppression }
+
 export function runCheckCorpus(argv, { gate: run = gate } = {}) {
   const chunks = []
   const streams = [process.stdout, process.stderr]
