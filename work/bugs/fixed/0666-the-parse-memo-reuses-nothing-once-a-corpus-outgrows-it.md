@@ -140,8 +140,9 @@ good. Growing the bound to the corpus reuses all of a large scan and still moves
   itself never prints ([ADR-008](../../../adr/008-caller-owns-reporting.md)).
 - `check:nonvacuity`'s shard-end agreement check also requires the memo warm: across its in-process
   runs at most 5 texts parsed. A new row, `corpus/in-process-memo-warm`, is its falsifier, through the
-  shard end's own judgement (`corpusAgreementResult`): with the caches cleared it must judge COLD, and
-  again it must judge warm.
+  shard end's own judgement (`corpusAgreementResult`), judging one in-process gate run: with the
+  caches cleared it must judge COLD, and again it must judge warm. Plan 0662's leak row goes through
+  the same judgement for its agreement half, so a judgement weakened in either half reds a row.
 
 **What it does not cover,** measured by the build review: two corpora that each fit but together do
 not, built alternately, still reuse nothing, and nothing says so unless one of them alone overran the
@@ -219,3 +220,16 @@ path never stores, and the memo never holds more than its cap. Its three importa
 answered above (the notice, the cap's guard, the falsifier's path). Minor, answered: the test that
 claimed an order now claims only the reservation; the margin's comment says what it is; the COLD line
 names its causes; the limits above are stated.
+
+**Re-checked the same day** by the same lens, at 8d77ff71: all three findings closed, nothing new
+critical. Two new minor findings, answered:
+
+- **N1:** a comment said both falsifier rows call the judgement; the leak row called the comparison
+  beneath it, so dropping the agreement half from the judgement reddened no row (a gap from plan
+  0662). The leak row now goes through the judgement too. Sabotage, the agreement half dropped: the
+  leak row FAILED.
+- **N2:** the memo row ran the gate eight times, four in fresh processes: about 50 s locally (the
+  harness with it 78–84 s, with `corpus/links/site` 31–32 s). It now judges one in-process run each
+  time, since its warm half needs only the parse count: 33.2 s with it against 34.4 s with
+  `corpus/links/site`. Sabotage, `warm` forced true, and the warm half dropped: the memo row FAILED
+  both times.
