@@ -2162,20 +2162,18 @@ function gateCorpusInProcessThrowIsHarnessError() {
 }
 
 // --- Gate: corpus/in-process-memo-warm (bug 0666) ---
-// The falsifier of the shard-end check's warm half: the memo cleared, an in-process run must parse
-// more than the warm limit (the counts see a cold memo); run again, it must parse at most that limit
-// (the memo held the corpus). Past the memo's bound, the second half reds.
+// The falsifier of the shard-end check's warm half, through the shard end's own judgement,
+// `corpusAgreementResult`: with the caches cleared it must fail as COLD (the counts see a cold memo,
+// and the judgement reads them), and run again it must pass, warm (the memo held the corpus). If the
+// judgement ignored the memo, or the memo stopped holding the corpus, this row reds.
 function gateCorpusInProcessMemoWarm() {
   clearRegisteredCaches()
-  const p0 = parseMemoStats().parses
-  corpusInProcess([])
-  const cold = parseMemoStats().parses - p0
-  corpusInProcess([])
-  const warm = parseMemoStats().parses - p0 - cold
-  const ok = cold > WARM_PARSES && warm <= WARM_PARSES
+  const cold = corpusAgreementResult()
+  const warm = corpusAgreementResult()
+  const ok = !cold.ok && !cold.warm && warm.ok && warm.warm
   return {
     ok,
-    detail: `cleared: ${String(cold)} text(s) parsed; again: ${String(warm)}, at most ${String(WARM_PARSES)}`,
+    detail: `caches cleared: judged ${cold.ok ? 'OK' : 'FAILED'}, ${String(cold.parsed)} text(s) parsed; again: judged ${warm.ok ? 'OK' : 'FAILED'}, ${String(warm.parsed)} parsed, at most ${String(WARM_PARSES)}`,
   }
 }
 
@@ -2461,6 +2459,29 @@ function corpusAgreementCompare({ reset = true } = {}) {
   }
 }
 
+/**
+ * The shard-end check's judgement, printing nothing (plan 0662, Design 5; bug 0666): the agreement
+ * of in-process and fresh output, and the parse memo warm across the in-process runs it makes. The
+ * shard end and its two falsifier rows all call this one function, so a check weakened here reds them.
+ */
+function corpusAgreementResult() {
+  const parsesBefore = parseMemoStats().parses
+  const r = corpusAgreementCompare()
+  const parsed = parseMemoStats().parses - parsesBefore
+  const warm = parsed <= WARM_PARSES
+  const ok = r.agree && r.probeLive && warm
+  const line =
+    `clean tree ${r.cleanDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.cleanDiff}`}, ` +
+    `probe ${r.probeDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.probeDiff}`}` +
+    (r.probeLive ? '' : '; the probe did not red with both its links, so nothing was compared') +
+    `; the parse memo ${warm ? 'warm' : 'COLD'}: ${String(parsed)} text(s) parsed in process, at most ` +
+    `${String(WARM_PARSES)}` +
+    (warm
+      ? ''
+      : ' (the corpus outgrew the memo cap in packages/md/src/model/prose.ts, or the caches were cleared between runs; bug 0666)')
+  return { ok, warm, parsed, line }
+}
+
 /** The shard-end check (plan 0662, Design 5): prints on every run, and reds on a disagreement. */
 function corpusInProcessAgreement() {
   const before = { ...corpusRuns }
@@ -2471,20 +2492,13 @@ function corpusInProcessAgreement() {
     )
     return true
   }
-  const parsesBefore = parseMemoStats().parses
-  const r = corpusAgreementCompare()
-  const parsed = parseMemoStats().parses - parsesBefore
-  const warm = parsed <= WARM_PARSES
-  const ok = r.agree && r.probeLive && warm
+  const r = corpusAgreementResult()
   console.log(
-    `nonvacuity: corpus in-process agreement — ${ok ? 'OK' : 'FAILED'} · after ` +
+    `nonvacuity: corpus in-process agreement — ${r.ok ? 'OK' : 'FAILED'} · after ` +
       `${String(before.inProcess)} in-process run(s) of check-corpus.mjs and ${String(before.fresh)} ` +
-      `sent to a fresh process: clean tree ${r.cleanDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.cleanDiff}`}, ` +
-      `probe ${r.probeDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.probeDiff}`}` +
-      (r.probeLive ? '' : '; the probe did not red with both its links, so nothing was compared') +
-      `; the parse memo ${warm ? 'warm' : 'COLD'}: ${String(parsed)} text(s) parsed in process, at most ${String(WARM_PARSES)} (bug 0666)`,
+      `sent to a fresh process: ${r.line}`,
   )
-  return ok
+  return r.ok
 }
 
 /** `scripts/check-corpus.mjs` from the main tree, in `cwd`. */

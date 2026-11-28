@@ -11,7 +11,14 @@ import type { Root } from 'mdast'
 import { describe, expect, it } from 'vitest'
 import { corpus, corpusFromText, links, taskItems, type MdDocument } from '../src/index.js'
 import { createParseMemo } from '../src/model/parse-memo.js'
-import { parseMemoStats, parseUncached, proseText } from '../src/model/prose.js'
+import {
+  parseMemoNotice,
+  parseMemoStats,
+  parseUncached,
+  proseText,
+  reserveParseMemo,
+} from '../src/model/prose.js'
+import { clearRegisteredCaches } from '@nielspeter/eess/internal'
 import { findState } from '../src/rules/ledger.js'
 
 const kinds = (root: Root): string[] => root.children.map((n) => n.type)
@@ -250,7 +257,7 @@ describe('the memo, over a corpus larger than its bound (bug 0666)', () => {
     expect(memo.stats().hits).toBe(80)
   })
 
-  it('corpusFromText reserves the text of every document it will parse before parsing one', () => {
+  it('corpusFromText reserves the text of every document it parses', () => {
     const files = {
       'a.md': '# A\n'.repeat(50),
       'b.md': '# B\n'.repeat(70),
@@ -258,5 +265,19 @@ describe('the memo, over a corpus larger than its bound (bug 0666)', () => {
     }
     corpusFromText(files)
     expect(parseMemoStats().reserved).toBe(files['a.md'].length + files['b.md'].length)
+  })
+
+  it('the module memo grows to 2^25 characters and no further, and says so for the largest corpus', () => {
+    try {
+      reserveParseMemo(2 ** 26)
+      expect(parseMemoStats().bound).toBe(2 ** 25)
+      // A smaller corpus after it does not hide the one that did not fit.
+      reserveParseMemo(10)
+      expect(parseMemoNotice()).toMatch(/67\.1 M characters and the parse memo holds 33\.6 M/)
+    } finally {
+      clearRegisteredCaches()
+    }
+    expect(parseMemoNotice()).toBeUndefined()
+    expect(parseMemoStats().bound).toBe(2 ** 24)
   })
 })

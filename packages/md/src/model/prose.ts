@@ -186,17 +186,19 @@ export function parseMemoStats(): ParseMemoStats {
 }
 
 /**
- * A sentence when the last corpus to reserve was larger than the memo can hold, else `undefined`: a
+ * A sentence when a corpus since the last reset was larger than the memo can hold, else `undefined`: a
  * corpus built over it again parses what did not fit. A fact for the caller to print (ADR-008); it
  * costs time, never a verdict, so it is no finding (spike 0546).
  */
 export function parseMemoNotice(): string | undefined {
-  const { reserved, bound } = memo.stats()
-  if (reserved <= bound) return undefined
+  // The largest corpus since the last reset, not the last: a gate builds several corpora, and the
+  // last is often the smallest (the build review of bug 0666).
+  const { largestReserved, bound, refused } = memo.stats()
+  if (largestReserved <= bound && refused === 0) return undefined
   const m = (n: number): string => `${(n / 1e6).toFixed(1)} M`
   return (
-    `eess-md: a corpus read ${m(reserved)} characters and the parse memo holds ${m(bound)}, so a ` +
-    `corpus built over the same files again parses what did not fit (bug 0666).`
+    `eess-md: a corpus read ${m(largestReserved)} characters and the parse memo holds ${m(bound)}, so ` +
+    `a corpus built over the same files again parses what did not fit (bug 0666).`
   )
 }
 

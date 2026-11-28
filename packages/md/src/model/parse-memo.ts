@@ -44,6 +44,8 @@ export interface ParseMemoStats {
   readonly held: number
   readonly bound: number
   readonly reserved: number
+  /** The largest reservation since the last reset: a gate that built several corpora reads this. */
+  readonly largestReserved: number
 }
 
 const sha1 = (text: string): string => createHash('sha1').update(text).digest('base64')
@@ -63,6 +65,7 @@ export function createParseMemo(
   let held = 0
   let bound = limit
   let reserved = 0
+  let largestReserved = 0
   // A reservation larger than the bound: least recently used would keep nothing of a repeated scan.
   let overBound = false
   const counts = { parses: 0, hits: 0, evictions: 0, refused: 0 }
@@ -105,18 +108,21 @@ export function createParseMemo(
     },
     reserve(chars) {
       reserved = chars
-      // 5% over what the corpus reads, so a document grown since it was counted still fits.
+      largestReserved = Math.max(largestReserved, chars)
+      // 5% over the corpus, so a few texts parsed beside it (another, small corpus) still fit. A
+      // margin, not a guarantee: more than 5% of other texts beside a corpus at the bound evicts it.
       bound = Math.max(bound, Math.min(cap, Math.ceil(chars * 1.05)))
       overBound = chars > bound
     },
     stats() {
-      return { ...counts, held, bound, reserved }
+      return { ...counts, held, bound, reserved, largestReserved }
     },
     reset() {
       entries = new Map()
       held = 0
       bound = limit
       reserved = 0
+      largestReserved = 0
       overBound = false
       counts.parses = 0
       counts.hits = 0
