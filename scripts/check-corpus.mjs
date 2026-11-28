@@ -61,7 +61,12 @@ import {
   parseExclusionComments,
   reportViolations,
 } from '@nielspeter/eess'
-import { matchSelections, resetCommentSuppression } from '@nielspeter/eess/internal'
+import {
+  clearRegisteredCaches,
+  matchSelections,
+  resetCommentSuppression,
+} from '@nielspeter/eess/internal'
+import { parseMemoNotice, parseMemoStats } from '@nielspeter/eess-md/internal'
 import { isRepoNativeLink, siteOptsAreSafe, unclassifiedRoots } from './lib/corpus-link-routing.mjs'
 import { vitepressAnchors } from './lib/vitepress-anchors.mjs'
 import {
@@ -105,7 +110,7 @@ import { recordKeyOfPath } from './lib/record-key.mjs'
  */
 // For `scripts/check-nonvacuity.mjs`, which loads only this file, synchronously and only when a row
 // first runs the gate: the kernel's `/internal` entry cannot be `require`d (plan 0662).
-export { resetCommentSuppression }
+export { clearRegisteredCaches, parseMemoStats, resetCommentSuppression }
 
 export function runCheckCorpus(argv, { gate: run = gate } = {}) {
   const chunks = []
@@ -2021,6 +2026,9 @@ function gate(argv) {
       `  ✗ corpus integrity — ${n} violation(s) across ${totalChecked} checks (${elapsed()})`,
     )
   }
+  // Bug 0666: said when the corpus did not fit in the parse memo; it costs time, never a verdict.
+  const memoNotice = parseMemoNotice()
+  if (memoNotice !== undefined) console.error(`  ${memoNotice}`)
   console.error('')
 
   return failed ? 1 : 0

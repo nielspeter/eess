@@ -6,7 +6,7 @@ import { frontmatter } from 'micromark-extension-frontmatter'
 import { frontmatterFromMarkdown } from 'mdast-util-frontmatter'
 import { isMap, parseDocument } from 'yaml'
 import { registerCacheReset } from '@nielspeter/eess/internal'
-import { createParseMemo, type ParseMemo } from './parse-memo.js'
+import { createParseMemo, type ParseMemo, type ParseMemoStats } from './parse-memo.js'
 import { definitionsOf } from './definitions.js'
 import { EXTERNAL_RE } from './external.js'
 
@@ -169,10 +169,38 @@ function parseFresh(text: string): Root {
 }
 
 // Bug 0547: one parse per distinct text per process; since bug 0657 `parseMarkdown` hands out the
-// frozen master itself (`./parse-memo.ts`). 2^24 characters is about 210 MB of
-// trees, twice this repository's corpus (spike 0546).
-const memo: ParseMemo = createParseMemo(2 ** 24, parseFresh)
+// frozen master itself (`./parse-memo.ts`). The bound starts at 2^24 characters and grows to hold the
+// largest corpus that reserves its size, up to 2^25 (bug 0666): about 14 bytes of retained trees a
+// character, measured, so about 470 MB at the cap. A corpus larger than the cap keeps what fits.
+const memo: ParseMemo = createParseMemo(2 ** 24, parseFresh, undefined, { cap: 2 ** 25 })
 registerCacheReset(() => memo.reset())
+
+/** Bug 0666: the total length of the texts a corpus is about to parse, before it parses one. */
+export function reserveParseMemo(chars: number): void {
+  memo.reserve(chars)
+}
+
+/** What the process-wide parse memo has done since its last reset (bug 0666). */
+export function parseMemoStats(): ParseMemoStats {
+  return memo.stats()
+}
+
+/**
+ * A sentence when a corpus since the last reset was larger than the memo can hold, else `undefined`: a
+ * corpus built over it again parses what did not fit. A fact for the caller to print (ADR-008); it
+ * costs time, never a verdict, so it is no finding (spike 0546).
+ */
+export function parseMemoNotice(): string | undefined {
+  // The largest corpus since the last reset, not the last: a gate builds several corpora, and the
+  // last is often the smallest (the build review of bug 0666).
+  const { largestReserved, bound, refused } = memo.stats()
+  if (largestReserved <= bound && refused === 0) return undefined
+  const m = (n: number): string => `${(n / 1e6).toFixed(1)} M`
+  return (
+    `eess-md: a corpus read ${m(largestReserved)} characters and the parse memo holds ${m(bound)}, so ` +
+    `a corpus built over the same files again parses what did not fit (bug 0666).`
+  )
+}
 
 /**
  * A node's last line. A position's end is exclusive, so a block its container closes ends at column 1 of

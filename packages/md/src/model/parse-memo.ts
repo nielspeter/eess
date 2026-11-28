@@ -23,24 +23,58 @@ import { createHash } from 'node:crypto'
 export interface ParseMemo {
   /** The frozen master tree for `text`, parsed if not held. */
   master(text: string): Root
+  /**
+   * Bug 0666: the total length of the texts a corpus is about to read, before it reads them. The
+   * bound grows to hold them, up to the cap; past the cap the memo keeps what it holds and stores no
+   * more until the next reservation, so a repeated scan in one order reuses what fits instead of
+   * nothing.
+   */
+  reserve(chars: number): void
+  /** What the memo has done since its last reset, for the gates that must see it stay warm. */
+  stats(): ParseMemoStats
   reset(): void
+}
+
+/** Counts since the last reset; `bound` and `reserved` are the current bound and last reservation. */
+export interface ParseMemoStats {
+  readonly parses: number
+  readonly hits: number
+  readonly evictions: number
+  readonly refused: number
+  readonly held: number
+  readonly bound: number
+  readonly reserved: number
+  /** The largest reservation since the last reset: a gate that built several corpora reads this. */
+  readonly largestReserved: number
 }
 
 const sha1 = (text: string): string => createHash('sha1').update(text).digest('base64')
 
-/** A memo of `parse` holding up to `limit` characters of text; `keyOf` is a parameter for the tests. */
+/**
+ * A memo of `parse` holding up to `limit` characters of text, or up to `cap` when a corpus reserves
+ * more; `keyOf` is a parameter for the tests. With no reservation it is least recently used within
+ * `limit`, as before bug 0666.
+ */
 export function createParseMemo(
   limit: number,
   parse: (text: string) => Root,
   keyOf: (text: string) => string = sha1,
+  { cap = limit }: { readonly cap?: number } = {},
 ): ParseMemo {
   let entries = new Map<string, { readonly text: string; readonly tree: Root }>()
   let held = 0
+  let bound = limit
+  let reserved = 0
+  let largestReserved = 0
+  // A reservation larger than the bound: least recently used would keep nothing of a repeated scan.
+  let overBound = false
+  const counts = { parses: 0, hits: 0, evictions: 0, refused: 0 }
   const drop = (key: string): void => {
     const entry = entries.get(key)
     if (entry === undefined) return
     entries.delete(key)
     held -= entry.text.length
+    counts.evictions++
   }
   return {
     master(text) {
@@ -49,23 +83,51 @@ export function createParseMemo(
       if (entry?.text === text) {
         entries.delete(key)
         entries.set(key, entry)
+        counts.hits++
         return entry.tree
       }
       const tree = parse(text)
+      counts.parses++
       deepFreeze(tree)
-      if (text.length > limit) return tree
-      drop(key)
+      if (text.length > bound) return tree
+      if (overBound && entries.get(key) === undefined && held + text.length > bound) {
+        counts.refused++
+        return tree
+      }
+      if (entries.has(key)) {
+        drop(key)
+        counts.evictions--
+      }
       for (const oldest of entries.keys()) {
-        if (held + text.length <= limit) break
+        if (held + text.length <= bound) break
         drop(oldest)
       }
       entries.set(key, { text, tree })
       held += text.length
       return tree
     },
+    reserve(chars) {
+      reserved = chars
+      largestReserved = Math.max(largestReserved, chars)
+      // 5% over the corpus, so a few texts parsed beside it (another, small corpus) still fit. A
+      // margin, not a guarantee: more than 5% of other texts beside a corpus at the bound evicts it.
+      bound = Math.max(bound, Math.min(cap, Math.ceil(chars * 1.05)))
+      overBound = chars > bound
+    },
+    stats() {
+      return { ...counts, held, bound, reserved, largestReserved }
+    },
     reset() {
       entries = new Map()
       held = 0
+      bound = limit
+      reserved = 0
+      largestReserved = 0
+      overBound = false
+      counts.parses = 0
+      counts.hits = 0
+      counts.evictions = 0
+      counts.refused = 0
     },
   }
 }

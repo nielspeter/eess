@@ -269,6 +269,11 @@ function gateModule() {
 }
 const runCheckCorpus = (argv, options) => gateModule().runCheckCorpus(argv, options)
 const resetCommentSuppression = () => gateModule().resetCommentSuppression()
+const parseMemoStats = () => gateModule().parseMemoStats()
+const clearRegisteredCaches = () => gateModule().clearRegisteredCaches()
+// Bug 0666: how many texts a warm in-process corpus run may parse. The agreement check's probe adds
+// one document; a cold memo parses the whole corpus, some 700.
+const WARM_PARSES = 5
 const SHARD_TESTS_LINK = 'node --test scripts/lib/nonvacuity-shards.test.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -2115,20 +2120,19 @@ function gateCorpusTerminalExit() {
 }
 
 // --- Gate: corpus/in-process-leak-caught (plan 0662) ---
-// The falsifier of the shard-end agreement check: the same comparison, `corpusAgreementCompare`, run
-// with the per-run reset left out after one warm run, must disagree (the kernel's comment
-// suppressions accumulate into `commentSuppressed`), and run with the reset must agree. If the
-// comparison were made blind (exit codes only, or all text masked), the first half would agree and
-// this row would red.
+// The falsifier of the shard-end check's agreement half, through the shard end's own judgement,
+// `corpusAgreementResult`: its comparison run with the per-run reset left out, after one warm run,
+// must be judged FAILED on agreement (the kernel's comment suppressions accumulate into
+// `commentSuppressed`) while the memo stays warm, and run with the reset must be judged OK. If the
+// comparison were made blind, or the judgement ignored it, the first half would pass and this row red.
 function gateCorpusInProcessLeakCaught() {
   corpusInProcess(['--format', 'json'], { reset: false })
-  const leaked = corpusAgreementCompare({ reset: false })
-  const cleaned = corpusAgreementCompare()
-  const seen = leaked.probeLive && !leaked.agree && leaked.probeDiff !== undefined
-  const removed = cleaned.probeLive && cleaned.agree
+  const leaked = corpusAgreementResult({ compare: () => corpusAgreementCompare({ reset: false }) })
+  const cleaned = corpusAgreementResult()
+  const seen = !leaked.ok && leaked.warm
   return {
-    ok: seen && removed,
-    detail: `without the reset the comparison disagrees: ${seen} (${leaked.probeDiff ?? 'no difference'}); with it, it agrees: ${removed}`,
+    ok: seen && cleaned.ok,
+    detail: `without the reset, judged ${leaked.ok ? 'OK' : 'FAILED'} (${leaked.line}); with it, judged ${cleaned.ok ? 'OK' : 'FAILED'}`,
   }
 }
 
@@ -2153,6 +2157,26 @@ function gateCorpusInProcessThrowIsHarnessError() {
   return {
     ok: r.code === 2 && named && restored,
     detail: `exit ${r.code}, the throw named: ${named}, both streams restored: ${restored}`,
+  }
+}
+
+// --- Gate: corpus/in-process-memo-warm (bug 0666) ---
+// The falsifier of the shard-end check's warm half, through the shard end's own judgement,
+// `corpusAgreementResult`, judging one in-process gate run (the agreement half is the leak row's):
+// with the caches cleared it must be judged COLD, and run again it must be judged warm. If the
+// judgement ignored the memo, or the memo stopped holding the corpus, this row reds.
+function gateCorpusInProcessMemoWarm() {
+  const once = () => {
+    corpusInProcess([])
+    return { agree: true, probeLive: true, cleanDiff: undefined, probeDiff: undefined }
+  }
+  clearRegisteredCaches()
+  const cold = corpusAgreementResult({ compare: once })
+  const warm = corpusAgreementResult({ compare: once })
+  const ok = !cold.ok && !cold.warm && warm.ok && warm.warm
+  return {
+    ok,
+    detail: `caches cleared: judged ${cold.ok ? 'OK' : 'FAILED'}, ${String(cold.parsed)} text(s) parsed; again: judged ${warm.ok ? 'OK' : 'FAILED'}, ${String(warm.parsed)} parsed, at most ${String(WARM_PARSES)}`,
   }
 }
 
@@ -2438,6 +2462,32 @@ function corpusAgreementCompare({ reset = true } = {}) {
   }
 }
 
+/**
+ * The shard-end check's judgement, printing nothing (plan 0662, Design 5; bug 0666): the agreement
+ * of in-process and fresh output, and the parse memo warm across the in-process runs it makes. The
+ * shard end and both falsifier rows call this one function, so a judgement weakened here reds a row:
+ * `corpus/in-process-leak-caught` its agreement half, `corpus/in-process-memo-warm` its warm half.
+ * `compare` is the comparison it judges; the memo row passes one that runs the gate once in process
+ * and agrees, since its warm half needs only the parse count, not eight gate runs.
+ */
+function corpusAgreementResult({ compare = corpusAgreementCompare } = {}) {
+  const parsesBefore = parseMemoStats().parses
+  const r = compare()
+  const parsed = parseMemoStats().parses - parsesBefore
+  const warm = parsed <= WARM_PARSES
+  const ok = r.agree && r.probeLive && warm
+  const line =
+    `clean tree ${r.cleanDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.cleanDiff}`}, ` +
+    `probe ${r.probeDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.probeDiff}`}` +
+    (r.probeLive ? '' : '; the probe did not red with both its links, so nothing was compared') +
+    `; the parse memo ${warm ? 'warm' : 'COLD'}: ${String(parsed)} text(s) parsed in process, at most ` +
+    `${String(WARM_PARSES)}` +
+    (warm
+      ? ''
+      : ' (the corpus outgrew the memo cap in packages/md/src/model/prose.ts, or the caches were cleared between runs; bug 0666)')
+  return { ok, warm, parsed, line }
+}
+
 /** The shard-end check (plan 0662, Design 5): prints on every run, and reds on a disagreement. */
 function corpusInProcessAgreement() {
   const before = { ...corpusRuns }
@@ -2448,16 +2498,13 @@ function corpusInProcessAgreement() {
     )
     return true
   }
-  const r = corpusAgreementCompare()
-  const ok = r.agree && r.probeLive
+  const r = corpusAgreementResult()
   console.log(
-    `nonvacuity: corpus in-process agreement — ${ok ? 'OK' : 'FAILED'} · after ` +
+    `nonvacuity: corpus in-process agreement — ${r.ok ? 'OK' : 'FAILED'} · after ` +
       `${String(before.inProcess)} in-process run(s) of check-corpus.mjs and ${String(before.fresh)} ` +
-      `sent to a fresh process: clean tree ${r.cleanDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.cleanDiff}`}, ` +
-      `probe ${r.probeDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.probeDiff}`}` +
-      (r.probeLive ? '' : '; the probe did not red with both its links, so nothing was compared'),
+      `sent to a fresh process: ${r.line}`,
   )
-  return ok
+  return r.ok
 }
 
 /** `scripts/check-corpus.mjs` from the main tree, in `cwd`. */
@@ -6267,6 +6314,8 @@ const gates = [
   // Plan 0662: the in-process corpus runs' two falsifiers. Appended for the same reason.
   ['corpus/in-process-leak-caught', gateCorpusInProcessLeakCaught],
   ['corpus/in-process-throw-is-harness-error', gateCorpusInProcessThrowIsHarnessError],
+  // Bug 0666: the parse memo stays warm across in-process runs. Appended for the same reason.
+  ['corpus/in-process-memo-warm', gateCorpusInProcessMemoWarm],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -6418,6 +6467,7 @@ const GATE_FOR = {
     'corpus/adr-production',
     'corpus/in-process-leak-caught',
     'corpus/in-process-throw-is-harness-error',
+    'corpus/in-process-memo-warm',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',
