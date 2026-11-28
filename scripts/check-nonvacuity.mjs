@@ -246,6 +246,8 @@ import { dirname, join, posix } from 'node:path'
 import { KERNEL_INTERNAL, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './lib/kernel-surface.mjs'
 import { ALLOWLIST } from './lib/family-re-exports.mjs'
 import { BUN_BREAKS, checkBunLoadJob } from './check-bun-load.mjs'
+import { runCheckCorpus } from './check-corpus.mjs'
+import { resetCommentSuppression } from '@nielspeter/eess/internal'
 import {
   MERGE_ENV,
   REPORT_ENV,
@@ -359,6 +361,8 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 // Bug 0548: the terminal-exit row's probe, its own file so no other row's probe is touched.
 const PROBE_CORPUS_TERMINAL_EXIT = join(repoRoot, 'docs', '__nonvacuity_probe_terminal_exit__.md')
+// Plan 0662: the in-process agreement check's probe.
+const PROBE_CORPUS_AGREEMENT = join(repoRoot, 'docs', '__nonvacuity_probe_agreement__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
 // Bug 0108's Lanes binding. The forward direction plants a DIRECTORY (a lane the
@@ -721,6 +725,7 @@ rmSync(PROBE_REGISTRY, { force: true })
 rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_TERMINAL_EXIT, { force: true })
+rmSync(PROBE_CORPUS_AGREEMENT, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
 rmSync(PROBE_CORPUS_WORK_ROOT, { force: true })
@@ -2164,9 +2169,7 @@ function gateCorpusAdrProduction() {
 // — it replaces the old purely-informational `clean` direction, since a
 // second real assertion is worth more than a decorative one.
 function gateCorpusProbe(probePath, probeContent, ruleId, fileFragment) {
-  const json = withProbe(probePath, probeContent, () =>
-    sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-  )
+  const json = withProbe(probePath, probeContent, () => corpusInProcess(['--format', 'json']))
   const ok = json.code === 1 && firedOn(json, ruleId, fileFragment)
   return { ok, detail: `bad → json exit ${json.code} (${ruleId}, ${fileFragment})` }
 }
@@ -2180,7 +2183,7 @@ function gateCorpusProbe(probePath, probeContent, ruleId, fileFragment) {
  */
 function gateCorpusProbeDir(dir, probePath, probeContent, ruleId, fileFragments, says) {
   const json = withProbeDir(dir, probePath, probeContent, () =>
-    sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    corpusInProcess(['--format', 'json']),
   )
   const said = violationsOf(json).some(
     (v) => v?.ruleId === ruleId && String(v?.message ?? '').includes(says),
@@ -2265,6 +2268,105 @@ function gitIn(cwd, args, env, input) {
   })
   if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${(r.stderr ?? '').trim()}`)
   return (r.stdout ?? '').trim()
+}
+
+/** How many times `corpusInProcess` ran the gate in this process, and how many it sent to a fresh one. */
+const corpusRuns = { inProcess: 0, fresh: 0 }
+
+/**
+ * `scripts/check-corpus.mjs` run in this process (plan 0662), returning what `sh()` returns for the
+ * same command, so no row's assertion changes. The parse memo stays warm between calls, so a row
+ * re-parses only what it changed.
+ *
+ * - **A rewritten module goes to a fresh process.** A loaded module does not see its file rewritten,
+ *   so while any code file is pending restore (`pendingRestores`), the gate runs as a child, as before.
+ *   `emitter/one-dead-check` rewrites the gate itself.
+ * - **The environment is the child's.** `sh()` strips `GITHUB_ACTIONS` and `CI` so the output cannot
+ *   switch to annotations; this does the same for the call, and restores them.
+ * - **State one run leaves for the next is reset:** the kernel's comment suppressions, the one entry
+ *   of plan 0662's inventory decided "reset". Everything else is kept, each for the reason the plan
+ *   records.
+ * - **A throw is the harness's error, exit 2**, never the gate's exit 1.
+ */
+function corpusInProcess(args) {
+  if (process.cwd() !== repoRoot) {
+    throw new Error(`corpusInProcess: the working directory is ${process.cwd()}, not ${repoRoot}`)
+  }
+  const rewrittenCode = [...pendingRestores.keys()].filter((path) =>
+    /\.(?:mjs|cjs|js|ts)$/.test(path),
+  )
+  if (rewrittenCode.length > 0) {
+    corpusRuns.fresh++
+    return sh(process.execPath, [join('scripts', 'check-corpus.mjs'), ...args])
+  }
+  corpusRuns.inProcess++
+  const saved = { GITHUB_ACTIONS: process.env.GITHUB_ACTIONS, CI: process.env.CI }
+  delete process.env.GITHUB_ACTIONS
+  delete process.env.CI
+  try {
+    resetCommentSuppression()
+    const r = runCheckCorpus([
+      process.execPath,
+      join(repoRoot, 'scripts', 'check-corpus.mjs'),
+      ...args,
+    ])
+    return { code: r.code, out: r.stdout + r.stderr, stdout: r.stdout, stderr: r.stderr }
+  } catch (err) {
+    const message = err instanceof Error ? (err.stack ?? err.message) : String(err)
+    return {
+      code: 2,
+      out: message,
+      stdout: '',
+      stderr: `check-corpus threw in process: ${message}`,
+    }
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
+}
+
+/**
+ * Plan 0662, Design 5: after the rows, the gate run in this process and in a fresh one must agree.
+ * On the clean tree, the whole terminal output, elapsed times masked: every per-check count, not
+ * only the exit code. With one planted broken link, the full `--format json` output. It sees state
+ * that survives to the end and changes what the gate prints; a leak that flips one row mid-run and
+ * is gone by the end is not seen here, which is why each mutable state is reset per run.
+ */
+function corpusInProcessAgreement() {
+  const before = { ...corpusRuns }
+  if (before.inProcess === 0) return true
+  const mask = (text) => text.replace(/\(\d+(?:\.\d+)?m?s\)/g, '(T)')
+  const fresh = (args) => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), ...args])
+  const cleanIn = corpusInProcess([])
+  const cleanFresh = fresh([])
+  const { probeIn, probeFresh } = withProbe(
+    PROBE_CORPUS_AGREEMENT,
+    '# Non-vacuity probe\n\n[gone](./__nonvacuity_agreement_gone__.md)\n',
+    () => ({
+      probeIn: corpusInProcess(['--format', 'json']),
+      probeFresh: fresh(['--format', 'json']),
+    }),
+  )
+  const clean =
+    cleanIn.code === 0 &&
+    cleanIn.code === cleanFresh.code &&
+    cleanIn.stdout === cleanFresh.stdout &&
+    mask(cleanIn.stderr) === mask(cleanFresh.stderr)
+  const probe =
+    probeIn.code === 1 &&
+    probeIn.code === probeFresh.code &&
+    probeIn.stdout === probeFresh.stdout &&
+    probeIn.stdout.includes('__nonvacuity_agreement_gone__')
+  const ok = clean && probe
+  console.log(
+    `nonvacuity: corpus in-process agreement — ${ok ? 'OK' : 'FAILED'} · after ` +
+      `${String(before.inProcess)} in-process run(s) of check-corpus.mjs and ${String(before.fresh)} ` +
+      `sent to a fresh process: clean tree ${clean ? 'identical' : `DIFFERS (exit ${String(cleanIn.code)}/${String(cleanFresh.code)})`}, ` +
+      `one broken link ${probe ? 'identical' : `DIFFERS (exit ${String(probeIn.code)}/${String(probeFresh.code)})`}`,
+  )
+  return ok
 }
 
 /** `scripts/check-corpus.mjs` from the main tree, in `cwd`. */
@@ -2352,8 +2454,8 @@ function withMentionProbes(files, fn) {
  */
 function mentionRedThenGreen({ files, expected, remedied, extra }) {
   return withMentionProbes(files, () => {
-    const json = runCorpusScript(['--format', 'json'])
-    const terminal = runCorpusScript([])
+    const json = corpusInProcess(['--format', 'json'])
+    const terminal = corpusInProcess([])
     const exact = exactMentionFindings(json, expected)
     const says = expected.every(
       ([, , m, sug]) =>
@@ -2372,7 +2474,7 @@ function mentionRedThenGreen({ files, expected, remedied, extra }) {
             titledProbe(rel, typeof text === 'function' ? text(json) : text),
           )
       }
-      greenJson = runCorpusScript(['--format', 'json'])
+      greenJson = corpusInProcess(['--format', 'json'])
     }
     const green =
       remedied === undefined || (greenJson.code === 0 && exactMentionFindings(greenJson, []))
@@ -2765,7 +2867,7 @@ function gateRecordMentionTargetTitleLink() {
   const row = (text) => probeRecord(`See [0997 — ${text}](./0997-probe.md).`)
   const exempt = withMentionProbes(
     { [target]: titled, [PROBE_998]: row('the probe quotes ADR-016') },
-    () => runCorpusScript(['--format', 'json']),
+    () => corpusInProcess(['--format', 'json']),
   )
   const exemptGreen = exempt.code === 0 && exactMentionFindings(exempt, [])
   const judged = mentionRedThenGreen({
@@ -2849,8 +2951,8 @@ function gateRecordNumberInTitle(
   try {
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(repoRoot, rel), text)
-    const json = runCorpusScript(['--format', 'json'])
-    const terminal = runCorpusScript([])
+    const json = corpusInProcess(['--format', 'json'])
+    const terminal = corpusInProcess([])
     const fired =
       firedOn(json, id, rel) &&
       violationsOf(json).some(
@@ -2890,7 +2992,7 @@ const skippedCount = (r) => {
  * past the range, after either form, is red (Phase 9): a skip that ignored the range reds the row.
  */
 function gateRecordMentionTsArchunit() {
-  const before = skippedCount(runCorpusScript([]))
+  const before = skippedCount(corpusInProcess([]))
   const forms = (list) => list.map((m) => `ts-archunit ${m} and ts-archunit's ${m}.`).join('\n\n')
   return mentionRedThenGreen({
     files: {
@@ -3032,7 +3134,7 @@ const CORPUS_PROBE_HTML_LINKS_MD = [
 
 function gateCorpusHtmlLinks() {
   const { json } = withProbe(PROBE_CORPUS_LINK_SITE, CORPUS_PROBE_HTML_LINKS_MD, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const probe = '__nonvacuity_probe_site__'
   const sites = {
@@ -3076,7 +3178,7 @@ function gateCorpusFragment(region) {
           '"#__nonvacuity_no_such_anchor__" is no heading or anchor in work/bugs/BUGS.md under the GitHub anchor rule',
         ]
   const { json } = withProbe(path, content, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const fired = firedNamingPayload(json, 'corpus/broken-links', file, payload)
   return {
@@ -3122,8 +3224,8 @@ function gateCorpusFragmentReach() {
     PROBE_CORPUS_LINK_REPO,
     CORPUS_PROBE_FRAGMENT_REACH_MD,
     () => ({
-      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+      json: corpusInProcess(['--format', 'json']),
+      terminal: corpusInProcess([]),
     }),
   )
   const sites = Object.fromEntries(
@@ -3216,7 +3318,7 @@ function gateCorpusLaneMissingRow() {
     PROBE_LANE_FILE,
     '# a lane the map does not list\n',
     () => ({
-      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      json: corpusInProcess(['--format', 'json']),
     }),
   )
   const ok = json.code === 1 && firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
@@ -3246,7 +3348,7 @@ function gateCorpusLaneRowUnresolved() {
       '| [`__nonvacuity_probe_ghost__/`](./x) | probe | none | none |\n| [`spikes/`]',
     )
   const { json } = withRewrittenFile(readme, rewrite, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const ok = json.code === 1 && firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
   return {
@@ -3283,7 +3385,7 @@ function gateCorpusLaneDecoyTable() {
     return `${gutted}\n## __nonvacuity_probe_scratch__\n\n| Lane | Note |\n| ---- | ---- |\n| plans | x |\n| bugs | x |\n| proposals | x |\n| spikes | x |\n`
   }
   const { json } = withRewrittenFile(readme, rewrite, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const namedTheInstrument = firedOn(json, 'corpus/lane-table-unreadable', 'work/README.md')
   // The decoy must NOT have been read as the map: if it had, the join would be
@@ -3331,8 +3433,8 @@ function gateCorpusOneDeadCheck() {
       '$1const linksChecked = 0 // non-vacuity probe: this check examines nothing',
     )
   const { json, terminal } = withRewrittenFile(script, rewrite, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    json: corpusInProcess(['--format', 'json']),
+    terminal: corpusInProcess([]),
   }))
   const named = terminal.stderr.includes('emitter/pass-without-evidence')
   // The other checks must still have examined real units — otherwise this proves
@@ -3357,9 +3459,7 @@ function gateCorpusOneDeadCheck() {
  */
 function gateCorpusStateProbe(lane, file, lines, ruleId, payload) {
   const probe = join(repoRoot, 'work', lane, file)
-  const r = withProbe(probe, [...lines, ''].join('\n'), () =>
-    sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-  )
+  const r = withProbe(probe, [...lines, ''].join('\n'), () => corpusInProcess(['--format', 'json']))
   const named = firedNamingPayload(r, ruleId, file, payload)
   return {
     ok: r.code === 1 && named,
@@ -3803,8 +3903,8 @@ function gateCorpusInertExclusion() {
       '| a | `src/__nonvacuity_does_not_exist__.ts:12` ' +
       '<!-- eess-exclude corpus/pointers-resolve: in a table cell, so it cannot reach --> | x |\n',
     () => ({
-      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+      json: corpusInProcess(['--format', 'json']),
+      terminal: corpusInProcess([]),
     }),
   )
   const said = `${terminal.stdout}${terminal.stderr}`
@@ -3831,7 +3931,7 @@ function gateCorpusPointerAmbiguous() {
     PROBE_CORPUS_POINTER_AMBIGUOUS,
     '# Non-vacuity probe\n\nA bare filename two packages both have: `rule-builder.ts:1`\n',
     () => ({
-      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      json: corpusInProcess(['--format', 'json']),
     }),
   )
   const file = 'docs/__nonvacuity_probe_pointer_ambiguous__.md'
@@ -3907,7 +4007,7 @@ function gateCorpusWorkPointer() {
     () => {
       writeFileSync(twoLines, 'export const a = 1\nexport const b = 2\n')
       return {
-        json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+        json: corpusInProcess(['--format', 'json']),
       }
     },
   )
@@ -4049,7 +4149,7 @@ const BOARD_REL = 'work/proposals/PROPOSALS.md'
 /** Rewrite the real board, run the production script (json), assert one rule. */
 function gateBoardRewrite(ruleId, rewrite, elementFragment, fileFragment = BOARD_REL) {
   const { json } = withRewrittenFile(BOARD_MD, rewrite, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const ok = json.code === 1 && firedOn(json, ruleId, fileFragment, elementFragment)
   return { ok, detail: `bad → json exit ${json.code} (${ruleId})` }
@@ -4058,7 +4158,7 @@ function gateBoardRewrite(ruleId, rewrite, elementFragment, fileFragment = BOARD
 /** Plant a proposal file, run the production script (json), assert one rule. */
 function gateProposalProbe(probePath, contents, ruleId, elementFragment) {
   const { json } = withProbe(probePath, contents, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const ok = json.code === 1 && firedOn(json, ruleId, undefined, elementFragment)
   return { ok, detail: `bad → json exit ${json.code} (${ruleId})` }
@@ -4082,7 +4182,7 @@ function gateCorpusProposalBoardRuling() {
         BOARD_MD,
         (t) => spliceBoardRow(t, row),
         () => ({
-          json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+          json: corpusInProcess(['--format', 'json']),
         }),
       ),
   )
@@ -4101,7 +4201,7 @@ function gateCorpusProposalBoardRuling() {
 // each file" over zero rows.
 function gateCorpusBoardMissing() {
   const { json } = withRemovedFile(BOARD_MD, () => ({
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const ok = json.code === 1 && firedOn(json, 'corpus/proposal-board-missing')
   return {
@@ -4244,7 +4344,7 @@ function gateCorpusAcceptedDenominatorEmpty() {
   }
   const { json, remaining } = withRewrittenFiles(accepted, demoteOperativeRuling, () => ({
     remaining: acceptedProposalFiles().length,
-    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const ok =
     remaining === 0 &&
@@ -4260,17 +4360,9 @@ function gateCorpusAcceptedDenominatorEmpty() {
 
 // --- plan 0218: proposal content -------------------------------------------
 //
-// All three sabotage REAL files rather than planting probes. The subjects are
-// live proposals and the records that own them, so a probe would need to be
-// visible to these rules and invisible to the board — which is a naming problem
-// that cost an earlier version of this plan a `.gitignore` line, a sweep change
-// and a destructive-cleanup bug. `withRewrittenFile` restores on any exit and
-// fails closed when its pattern stops matching.
-// One run, json, since bug 0548: both of the gate's exits read one verdict.
-const CORPUS_JSON = [join('scripts', 'check-corpus.mjs'), '--format', 'json']
 
 function corpusSabotage(path, rewrite, ruleId, elementFragment) {
-  const json = withRewrittenFile(path, rewrite, () => sh(process.execPath, CORPUS_JSON))
+  const json = withRewrittenFile(path, rewrite, () => corpusInProcess(['--format', 'json']))
   const ok = json.code === 1 && firedOn(json, ruleId, undefined, elementFragment)
   return { ok, detail: `bad → json exit ${json.code} (${ruleId})` }
 }
@@ -4416,11 +4508,11 @@ function gateCorpusProposalImplementsDiscriminates() {
   try {
     writeFileSync(PROBE_CORPUS_PROPOSAL_MATCHED, proposalMd)
     writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, proseOnlyPlanMd)
-    const prose = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+    const prose = corpusInProcess(['--format', 'json'])
     const proseFired = prose.code === 1 && firedOn(prose, UNCITED, PROBE_FILE, '9001')
 
     writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, declaredPlanMd)
-    const declared = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+    const declared = corpusInProcess(['--format', 'json'])
     const declaredSilent = !firedOn(declared, UNCITED, PROBE_FILE, '9001')
 
     // `!firedOn(...)` ALONE would be fail-open: `violationsOf` returns [] for
@@ -4655,7 +4747,7 @@ function gateCorpusExtendsOneWay() {
     return next
   }
   const { json } = withRewrittenFile(ADR_010, rewrite, () => ({
-    json: sh(process.execPath, CORPUS_JSON),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const ok =
     json.code === 1 &&
@@ -4688,7 +4780,7 @@ function gateCorpusExtendsListItem() {
     return next
   }
   const { json } = withRewrittenFile(ADR_009, rewrite, () => ({
-    json: sh(process.execPath, CORPUS_JSON),
+    json: corpusInProcess(['--format', 'json']),
   }))
   const ok =
     json.code === 1 &&
@@ -4717,7 +4809,7 @@ function gateCorpusExtendsEveryLabelRemoved() {
     .filter((f) => EXTENDS_LINE.test(readFileSync(f, 'utf8')))
   const run = (files) =>
     files.length === 0
-      ? { json: sh(process.execPath, CORPUS_JSON) }
+      ? { json: corpusInProcess(['--format', 'json']) }
       : withRewrittenFile(files[0], drop, () => run(files.slice(1)))
   const { json } = run(declaring)
   const ok =
@@ -6816,6 +6908,7 @@ if (SHARD_SPEC !== undefined) {
     if (!runGate(name, runs.get(name))) failed.push(name)
     durations[name] = Date.now() - t0
   }
+  if (!corpusInProcessAgreement()) allOk = false
   const ran = [...RAN]
   const durationMs = Date.now() - started
   const notRun = selected.filter((n) => !ran.includes(n))
@@ -6891,6 +6984,7 @@ if (MERGE_DIR !== undefined) {
     if (QA_ONLY && !QA_ONLY.includes(name)) continue
     runGate(name, run)
   }
+  if (!corpusInProcessAgreement()) allOk = false
 }
 
 function jsonFilesUnder(dir) {
