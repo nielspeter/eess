@@ -2120,20 +2120,19 @@ function gateCorpusTerminalExit() {
 }
 
 // --- Gate: corpus/in-process-leak-caught (plan 0662) ---
-// The falsifier of the shard-end agreement check: the same comparison, `corpusAgreementCompare`, run
-// with the per-run reset left out after one warm run, must disagree (the kernel's comment
-// suppressions accumulate into `commentSuppressed`), and run with the reset must agree. If the
-// comparison were made blind (exit codes only, or all text masked), the first half would agree and
-// this row would red.
+// The falsifier of the shard-end check's agreement half, through the shard end's own judgement,
+// `corpusAgreementResult`: its comparison run with the per-run reset left out, after one warm run,
+// must be judged FAILED on agreement (the kernel's comment suppressions accumulate into
+// `commentSuppressed`) while the memo stays warm, and run with the reset must be judged OK. If the
+// comparison were made blind, or the judgement ignored it, the first half would pass and this row red.
 function gateCorpusInProcessLeakCaught() {
   corpusInProcess(['--format', 'json'], { reset: false })
-  const leaked = corpusAgreementCompare({ reset: false })
-  const cleaned = corpusAgreementCompare()
-  const seen = leaked.probeLive && !leaked.agree && leaked.probeDiff !== undefined
-  const removed = cleaned.probeLive && cleaned.agree
+  const leaked = corpusAgreementResult({ compare: () => corpusAgreementCompare({ reset: false }) })
+  const cleaned = corpusAgreementResult()
+  const seen = !leaked.ok && leaked.warm
   return {
-    ok: seen && removed,
-    detail: `without the reset the comparison disagrees: ${seen} (${leaked.probeDiff ?? 'no difference'}); with it, it agrees: ${removed}`,
+    ok: seen && cleaned.ok,
+    detail: `without the reset, judged ${leaked.ok ? 'OK' : 'FAILED'} (${leaked.line}); with it, judged ${cleaned.ok ? 'OK' : 'FAILED'}`,
   }
 }
 
@@ -2163,13 +2162,17 @@ function gateCorpusInProcessThrowIsHarnessError() {
 
 // --- Gate: corpus/in-process-memo-warm (bug 0666) ---
 // The falsifier of the shard-end check's warm half, through the shard end's own judgement,
-// `corpusAgreementResult`: with the caches cleared it must fail as COLD (the counts see a cold memo,
-// and the judgement reads them), and run again it must pass, warm (the memo held the corpus). If the
+// `corpusAgreementResult`, judging one in-process gate run (the agreement half is the leak row's):
+// with the caches cleared it must be judged COLD, and run again it must be judged warm. If the
 // judgement ignored the memo, or the memo stopped holding the corpus, this row reds.
 function gateCorpusInProcessMemoWarm() {
+  const once = () => {
+    corpusInProcess([])
+    return { agree: true, probeLive: true, cleanDiff: undefined, probeDiff: undefined }
+  }
   clearRegisteredCaches()
-  const cold = corpusAgreementResult()
-  const warm = corpusAgreementResult()
+  const cold = corpusAgreementResult({ compare: once })
+  const warm = corpusAgreementResult({ compare: once })
   const ok = !cold.ok && !cold.warm && warm.ok && warm.warm
   return {
     ok,
@@ -2462,11 +2465,14 @@ function corpusAgreementCompare({ reset = true } = {}) {
 /**
  * The shard-end check's judgement, printing nothing (plan 0662, Design 5; bug 0666): the agreement
  * of in-process and fresh output, and the parse memo warm across the in-process runs it makes. The
- * shard end and its two falsifier rows all call this one function, so a check weakened here reds them.
+ * shard end and both falsifier rows call this one function, so a judgement weakened here reds a row:
+ * `corpus/in-process-leak-caught` its agreement half, `corpus/in-process-memo-warm` its warm half.
+ * `compare` is the comparison it judges; the memo row passes one that runs the gate once in process
+ * and agrees, since its warm half needs only the parse count, not eight gate runs.
  */
-function corpusAgreementResult() {
+function corpusAgreementResult({ compare = corpusAgreementCompare } = {}) {
   const parsesBefore = parseMemoStats().parses
-  const r = corpusAgreementCompare()
+  const r = compare()
   const parsed = parseMemoStats().parses - parsesBefore
   const warm = parsed <= WARM_PARSES
   const ok = r.agree && r.probeLive && warm
