@@ -240,6 +240,16 @@ describe('the memo, over a corpus larger than its bound (bug 0666)', () => {
     expect(memo.stats().reserved).toBe(0)
   })
 
+  it('identical texts within one pass are parsed once, over the bound as under it', () => {
+    const c = counting()
+    const memo = createParseMemo(100_000, c.parse, undefined, { cap: 100_000 })
+    const twice = [...texts(80, 'a'), ...texts(80, 'a')]
+    memo.reserve(160_000)
+    pass(memo, twice)
+    expect(c.parses()).toBe(80)
+    expect(memo.stats().hits).toBe(80)
+  })
+
   it('corpusFromText reserves the text of every document it will parse before parsing one', () => {
     const files = {
       'a.md': '# A\n'.repeat(50),

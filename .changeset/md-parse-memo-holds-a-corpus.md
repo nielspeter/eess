@@ -1,0 +1,5 @@
+---
+'@nielspeter/eess-md': patch
+---
+
+The parse memo holds a corpus larger than 2^24 characters (bug 0666). A corpus read its documents in one order every time, and the memo dropped the least recently used entry, so once a corpus outgrew the memo a second corpus over the same files parsed every document again: 13.3 s again for a 25 M-character corpus, where it should cost almost nothing. `corpus()` and `corpusFromText()` now tell the memo how much text they are about to read; the memo grows to hold it, up to 2^25 characters (about 470 MB of trees at the 14 bytes a character measured). A corpus larger than that keeps what fits and parses only the rest again. Measured on a synthetic 25.1 M-character corpus: the second and third builds parse 0 documents, 0.8 s each, against 13.3 s before, and peak memory falls from 1.18 GB to 0.76 GB. Nothing a rule reports changes. `@nielspeter/eess-md/internal` gains `parseMemoStats()` and `parseMemoNotice()` for gates that rely on the memo staying warm.
