@@ -18,3 +18,7 @@
 
 export { proseText, unclosedFences, unterminatedFence, type SetAside } from './model/prose.js'
 export { tagIsLanguage } from './model/code-block-tag.js'
+// Bug 0666: what the process-wide parse memo has done, and the sentence a gate prints when a corpus
+// did not fit in it, so a gate that relies on the memo staying warm can see when it does not.
+export { parseMemoStats, parseMemoNotice } from './model/prose.js'
+export type { ParseMemoStats } from './model/parse-memo.js'

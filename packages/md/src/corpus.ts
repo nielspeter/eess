@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { join, posix, sep } from 'node:path'
 import picomatch from 'picomatch'
 import { buildDocument, type MdDocument } from './model/document.js'
-import { parseMarkdown } from './model/prose.js'
+import { parseMarkdown, reserveParseMemo } from './model/prose.js'
 import { registerCorpusInternals } from './model/corpus-internals.js'
 import { repoRelativeTextProblem } from './model/selector-fault.js'
 
@@ -152,19 +152,22 @@ function assembleCorpus(
     )
   }
 
-  const documents: MdDocument[] = paths
+  // Bug 0666: every text is read before any is parsed, and their total reserved, so the parse memo
+  // can hold the whole corpus and a corpus built over it again parses nothing.
+  const texts = paths
     .filter((rel) => rel.endsWith('.md') && matchesRoot(rel) && !matchesIgnore(rel))
-    .map((rel) => {
-      const text = read(rel)
-      const tree = parseMarkdown(text)
-      return buildDocument({
-        file: join(root, rel),
-        relPath: rel,
-        frozen: matchesFrozen(rel),
-        text,
-        root: tree,
-      })
+    .map((rel) => ({ rel, text: read(rel) }))
+  reserveParseMemo(texts.reduce((n, { text }) => n + text.length, 0))
+  const documents: MdDocument[] = texts.map(({ rel, text }) => {
+    const tree = parseMarkdown(text)
+    return buildDocument({
+      file: join(root, rel),
+      relPath: rel,
+      frozen: matchesFrozen(rel),
+      text,
+      root: tree,
     })
+  })
 
   // Bug 0499: the frozen globs were judged nowhere, and `areFrozen()` carries no
   // globs for the selector-fault check to read, so a broken one emptied

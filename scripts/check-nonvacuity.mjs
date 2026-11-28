@@ -269,6 +269,11 @@ function gateModule() {
 }
 const runCheckCorpus = (argv, options) => gateModule().runCheckCorpus(argv, options)
 const resetCommentSuppression = () => gateModule().resetCommentSuppression()
+const parseMemoStats = () => gateModule().parseMemoStats()
+const clearRegisteredCaches = () => gateModule().clearRegisteredCaches()
+// Bug 0666: how many texts a warm in-process corpus run may parse. The agreement check's probe adds
+// one document; a cold memo parses the whole corpus, some 700.
+const WARM_PARSES = 5
 const SHARD_TESTS_LINK = 'node --test scripts/lib/nonvacuity-shards.test.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -2156,6 +2161,24 @@ function gateCorpusInProcessThrowIsHarnessError() {
   }
 }
 
+// --- Gate: corpus/in-process-memo-warm (bug 0666) ---
+// The falsifier of the shard-end check's warm half: the memo cleared, an in-process run must parse
+// more than the warm limit (the counts see a cold memo); run again, it must parse at most that limit
+// (the memo held the corpus). Past the memo's bound, the second half reds.
+function gateCorpusInProcessMemoWarm() {
+  clearRegisteredCaches()
+  const p0 = parseMemoStats().parses
+  corpusInProcess([])
+  const cold = parseMemoStats().parses - p0
+  corpusInProcess([])
+  const warm = parseMemoStats().parses - p0 - cold
+  const ok = cold > WARM_PARSES && warm <= WARM_PARSES
+  return {
+    ok,
+    detail: `cleared: ${String(cold)} text(s) parsed; again: ${String(warm)}, at most ${String(WARM_PARSES)}`,
+  }
+}
+
 // --- Gate: corpus/adr-production (bug 0548) ---
 // The ADR check through the production script. `corpus/adr` runs the `bad-adr.mjs` fixture, so
 // nothing tied an ADR finding to `check-corpus.mjs`'s exits: deleting the receipt member that adds
@@ -2448,14 +2471,18 @@ function corpusInProcessAgreement() {
     )
     return true
   }
+  const parsesBefore = parseMemoStats().parses
   const r = corpusAgreementCompare()
-  const ok = r.agree && r.probeLive
+  const parsed = parseMemoStats().parses - parsesBefore
+  const warm = parsed <= WARM_PARSES
+  const ok = r.agree && r.probeLive && warm
   console.log(
     `nonvacuity: corpus in-process agreement — ${ok ? 'OK' : 'FAILED'} · after ` +
       `${String(before.inProcess)} in-process run(s) of check-corpus.mjs and ${String(before.fresh)} ` +
       `sent to a fresh process: clean tree ${r.cleanDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.cleanDiff}`}, ` +
       `probe ${r.probeDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.probeDiff}`}` +
-      (r.probeLive ? '' : '; the probe did not red with both its links, so nothing was compared'),
+      (r.probeLive ? '' : '; the probe did not red with both its links, so nothing was compared') +
+      `; the parse memo ${warm ? 'warm' : 'COLD'}: ${String(parsed)} text(s) parsed in process, at most ${String(WARM_PARSES)} (bug 0666)`,
   )
   return ok
 }
@@ -6267,6 +6294,8 @@ const gates = [
   // Plan 0662: the in-process corpus runs' two falsifiers. Appended for the same reason.
   ['corpus/in-process-leak-caught', gateCorpusInProcessLeakCaught],
   ['corpus/in-process-throw-is-harness-error', gateCorpusInProcessThrowIsHarnessError],
+  // Bug 0666: the parse memo stays warm across in-process runs. Appended for the same reason.
+  ['corpus/in-process-memo-warm', gateCorpusInProcessMemoWarm],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -6418,6 +6447,7 @@ const GATE_FOR = {
     'corpus/adr-production',
     'corpus/in-process-leak-caught',
     'corpus/in-process-throw-is-harness-error',
+    'corpus/in-process-memo-warm',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',

@@ -11,7 +11,7 @@ import type { Root } from 'mdast'
 import { describe, expect, it } from 'vitest'
 import { corpus, corpusFromText, links, taskItems, type MdDocument } from '../src/index.js'
 import { createParseMemo } from '../src/model/parse-memo.js'
-import { parseUncached, proseText } from '../src/model/prose.js'
+import { parseMemoStats, parseUncached, proseText } from '../src/model/prose.js'
 import { findState } from '../src/rules/ledger.js'
 
 const kinds = (root: Root): string[] => root.children.map((n) => n.type)
@@ -162,5 +162,91 @@ describe('the memo', () => {
     const tree = memo.master(text)
     expect(kinds(tree)).toEqual(['heading', 'list'])
     expect(memo.master(text)).not.toBe(tree)
+  })
+})
+
+// Bug 0666: a corpus read again in the same order, larger than the bound, reused nothing.
+describe('the memo, over a corpus larger than its bound (bug 0666)', () => {
+  const counting = (): { parse: (text: string) => Root; parses: () => number } => {
+    let n = 0
+    return {
+      parse: () => {
+        n++
+        const root: Root = { type: 'root', children: [] }
+        return root
+      },
+      parses: () => n,
+    }
+  }
+  const texts = (count: number, seed: string): string[] =>
+    Array.from({ length: count }, (_, i) => `${seed}${String(i)}`.padEnd(1000, '.'))
+  const pass = (memo: ReturnType<typeof createParseMemo>, corpus: readonly string[]): void => {
+    for (const text of corpus) memo.master(text)
+  }
+
+  it('without a reservation, a second pass at 1.01 times the bound parses every text again', () => {
+    const c = counting()
+    const memo = createParseMemo(100_000, c.parse)
+    const corpus = texts(101, 'a')
+    pass(memo, corpus)
+    pass(memo, corpus)
+    expect(c.parses()).toBe(202)
+  })
+
+  it('a corpus whose size is reserved is held whole, so a second pass parses nothing', () => {
+    const c = counting()
+    const memo = createParseMemo(100_000, c.parse, undefined, { cap: 400_000 })
+    const corpus = texts(150, 'a')
+    memo.reserve(150_000)
+    pass(memo, corpus)
+    pass(memo, corpus)
+    expect(c.parses()).toBe(150)
+    expect(memo.stats().hits).toBe(150)
+  })
+
+  it('past the cap, the memo keeps what it holds, so a second pass parses only what did not fit', () => {
+    const c = counting()
+    const memo = createParseMemo(100_000, c.parse, undefined, { cap: 100_000 })
+    const corpus = texts(150, 'a')
+    memo.reserve(150_000)
+    pass(memo, corpus)
+    pass(memo, corpus)
+    expect(c.parses()).toBe(150 + 50)
+    expect(memo.stats().refused).toBe(100)
+    expect(memo.stats().evictions).toBe(0)
+  })
+
+  it('a corpus that fits still replaces the one before it, least recently used first', () => {
+    const c = counting()
+    const memo = createParseMemo(100_000, c.parse, undefined, { cap: 100_000 })
+    const first = texts(60, 'a')
+    const second = texts(60, 'b')
+    memo.reserve(60_000)
+    pass(memo, first)
+    memo.reserve(60_000)
+    pass(memo, second)
+    pass(memo, second)
+    expect(c.parses()).toBe(120)
+    expect(memo.stats().evictions).toBe(20)
+  })
+
+  it('a reset returns the bound to its limit and forgets the reservation', () => {
+    const c = counting()
+    const memo = createParseMemo(100_000, c.parse, undefined, { cap: 400_000 })
+    memo.reserve(150_000)
+    expect(memo.stats().bound).toBeGreaterThanOrEqual(150_000)
+    memo.reset()
+    expect(memo.stats().bound).toBe(100_000)
+    expect(memo.stats().reserved).toBe(0)
+  })
+
+  it('corpusFromText reserves the text of every document it will parse before parsing one', () => {
+    const files = {
+      'a.md': '# A\n'.repeat(50),
+      'b.md': '# B\n'.repeat(70),
+      'c.txt': 'not a document',
+    }
+    corpusFromText(files)
+    expect(parseMemoStats().reserved).toBe(files['a.md'].length + files['b.md'].length)
   })
 })
