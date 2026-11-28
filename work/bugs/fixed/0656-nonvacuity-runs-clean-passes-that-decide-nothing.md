@@ -39,7 +39,7 @@ row's comment says where the clean direction is gated now.
 
 ## Corrections
 
-- **2026-11-28, [plan 0662](../../plans/0662-the-corpus-rows-run-in-one-process.md)'s build:** "the
+- **2026-11-28, [plan 0662](../../plans/completed/0662-the-corpus-rows-run-in-one-process.md)'s build:** "the
   harness has no row filter" is false. `QA_ONLY=row,row` runs the named rows, unsharded
   (`scripts/check-nonvacuity.mjs`, the `QA_ONLY` constant). The rows this bug changed could have been
   run locally; CI's four shards ran them instead, green.

@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=24.2.0"
   },
   "scripts": {
     "build": "npm run build -w @nielspeter/eess && npm run build -w @nielspeter/eess-ts -w @nielspeter/eess-md -w @nielspeter/eess-mermaid -w @nielspeter/eess-gherkin && npm run build -w @nielspeter/eess-crossvalidate",

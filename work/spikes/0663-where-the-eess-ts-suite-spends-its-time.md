@@ -1,7 +1,7 @@
 # Spike 0663: where the eess-ts suite spends its time
 
 Not run yet: authored 2026-11-27 as the second half of cutting a PR's wait, beside
-[plan 0662](../plans/0662-the-corpus-rows-run-in-one-process.md), then rewritten the same day against
+[plan 0662](../plans/completed/0662-the-corpus-rows-run-in-one-process.md), then rewritten the same day against
 the testing and method reviews ("Review, 2026-11-27" below). Time-boxed to about four hours. It brings
 back a design for the maintainer's decision and changes no test, no config and no source. Code
 pointers are as at `main` 8f3569ee. It follows [spike 0631](./0631-where-ci-time-goes.md), which
@@ -10,7 +10,7 @@ which measured the local `validate` chain.
 
 ## The question
 
-[Plan 0662](../plans/0662-the-corpus-rows-run-in-one-process.md) projects the slowest nonvacuity
+[Plan 0662](../plans/completed/0662-the-corpus-rows-run-in-one-process.md) projects the slowest nonvacuity
 shard at about 7.3 minutes, a projection it has yet to measure. CI's `test` job then sets a PR's
 wait. What can make that job, which ran 8m16s on CI run 45969038139 (PR #344's final commit), finish
 within that target, without weakening a test?

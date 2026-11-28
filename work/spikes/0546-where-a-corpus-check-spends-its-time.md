@@ -181,3 +181,7 @@ recorded here, since this record is what outlives them.
   corpus rows run the json path once, and two rows, `corpus/terminal-exit` and
   `corpus/adr-production`, prove the terminal exit: 46 fewer runs of the gate per full
   `check:nonvacuity` run, 3 added.
+- **2026-11-28, [plan 0662](../plans/completed/0662-the-corpus-rows-run-in-one-process.md):** "Each non-vacuity row starts a fresh process, so its
+  saving is the within-process repeats only" no longer holds for the corpus rows: they run
+  `check-corpus.mjs` in the harness's process, and the memo keeps every tree between rows. Measured in
+  CI: the corpus rows fell from 1,343 to 599 s across the four shards.

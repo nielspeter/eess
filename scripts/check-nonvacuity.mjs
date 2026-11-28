@@ -246,8 +246,6 @@ import { dirname, join, posix } from 'node:path'
 import { KERNEL_INTERNAL, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './lib/kernel-surface.mjs'
 import { ALLOWLIST } from './lib/family-re-exports.mjs'
 import { BUN_BREAKS, checkBunLoadJob } from './check-bun-load.mjs'
-import { runCheckCorpus } from './check-corpus.mjs'
-import { resetCommentSuppression } from '@nielspeter/eess/internal'
 import {
   MERGE_ENV,
   REPORT_ENV,
@@ -259,6 +257,16 @@ import {
   parseShard,
   selectShard,
 } from './lib/nonvacuity-shards.mjs'
+// Plan 0662: the gate and the kernel are loaded only outside the merge, which runs on Node builtins
+// alone, with no `npm ci` (`.github/workflows/ci.yml`, the `nonvacuity` job). A static import made
+// the merge fail to start (PR #346's first CI run).
+const { runCheckCorpus, resetCommentSuppression } =
+  process.env[MERGE_ENV] === undefined
+    ? {
+        ...(await import('./check-corpus.mjs')),
+        ...(await import('@nielspeter/eess/internal')),
+      }
+    : { runCheckCorpus: undefined, resetCommentSuppression: undefined }
 const SHARD_TESTS_LINK = 'node --test scripts/lib/nonvacuity-shards.test.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -2105,42 +2113,45 @@ function gateCorpusTerminalExit() {
 }
 
 // --- Gate: corpus/in-process-leak-caught (plan 0662) ---
-// The agreement check's json comparison is what sees state one in-process run leaves for the next.
-// With one broken link planted, two in-process runs without the per-run reset must differ from a
-// fresh run (the kernel's comment suppressions accumulate into `commentSuppressed`), and one run
-// with the reset must equal it again: the leak is visible, and the reset is what removes it.
+// The falsifier of the shard-end agreement check: the same comparison, `corpusAgreementCompare`, run
+// with the per-run reset left out after one warm run, must disagree (the kernel's comment
+// suppressions accumulate into `commentSuppressed`), and run with the reset must agree. If the
+// comparison were made blind (exit codes only, or all text masked), the first half would agree and
+// this row would red.
 function gateCorpusInProcessLeakCaught() {
-  const { fresh, leaked, cleaned } = withProbe(
-    PROBE_CORPUS_AGREEMENT,
-    '# Non-vacuity probe\n\n[gone](./__nonvacuity_agreement_gone__.md)\n',
-    () => {
-      const fresh = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
-      corpusInProcess(['--format', 'json'], { reset: false })
-      const leaked = corpusInProcess(['--format', 'json'], { reset: false })
-      const cleaned = corpusInProcess(['--format', 'json'])
-      return { fresh, leaked, cleaned }
-    },
-  )
-  const visible = fresh.code === 1 && leaked.code === 1 && leaked.stdout !== fresh.stdout
-  const removed = cleaned.stdout === fresh.stdout
+  corpusInProcess(['--format', 'json'], { reset: false })
+  const leaked = corpusAgreementCompare({ reset: false })
+  const cleaned = corpusAgreementCompare()
+  const seen = leaked.probeLive && !leaked.agree && leaked.probeDiff !== undefined
+  const removed = cleaned.probeLive && cleaned.agree
   return {
-    ok: visible && removed,
-    detail: `fresh exit ${fresh.code}; two runs without the reset differ from it: ${visible}; one run with the reset equals it: ${removed}`,
+    ok: seen && removed,
+    detail: `without the reset the comparison disagrees: ${seen} (${leaked.probeDiff ?? 'no difference'}); with it, it agrees: ${removed}`,
   }
 }
 
 // --- Gate: corpus/in-process-throw-is-harness-error (plan 0662) ---
-// A gate that throws in process is the harness's error, exit 2, never the gate's exit 1: an
-// uncaught throw exiting 1 once carried a verdict nothing had decided (`check-corpus.mjs`'s json
-// branch, found by this plan's build).
+// Through the real `runCheckCorpus`, its body replaced by one that writes and then throws: the throw
+// must escape it (the harness's exit 2, never the gate's 1), and both write functions must be the
+// ones the harness had before. A catch-all in `runCheckCorpus` would make it exit 1, and a missing
+// `finally` would leave the harness's output captured; either reds this row.
 function gateCorpusInProcessThrowIsHarnessError() {
+  const writes = [process.stdout.write, process.stderr.write]
   const r = corpusInProcess(['--format', 'json'], {
-    run: () => {
-      throw new Error('non-vacuity probe: the gate threw')
-    },
+    run: (argv) =>
+      runCheckCorpus(argv, {
+        gate: () => {
+          process.stderr.write('written before the throw\n')
+          throw new Error('non-vacuity probe: the gate threw')
+        },
+      }),
   })
+  const restored = process.stdout.write === writes[0] && process.stderr.write === writes[1]
   const named = r.stderr.includes('non-vacuity probe: the gate threw')
-  return { ok: r.code === 2 && named, detail: `exit ${r.code}, the throw named: ${named}` }
+  return {
+    ok: r.code === 2 && named && restored,
+    detail: `exit ${r.code}, the throw named: ${named}, both streams restored: ${restored}`,
+  }
 }
 
 // --- Gate: corpus/adr-production (bug 0548) ---
@@ -2335,7 +2346,7 @@ function corpusInProcess(args, { run = runCheckCorpus, reset = true } = {}) {
     throw new Error(`corpusInProcess: the working directory is ${process.cwd()}, not ${repoRoot}`)
   }
   const rewrittenCode = [...pendingRestores.keys()].filter((path) =>
-    /\.(?:mjs|cjs|js|ts)$/.test(path),
+    /\.(?:mjs|cjs|js|ts|mts|cts|json)$/.test(path),
   )
   if (rewrittenCode.length > 0) {
     corpusRuns.fresh++
@@ -2351,6 +2362,9 @@ function corpusInProcess(args, { run = runCheckCorpus, reset = true } = {}) {
     return { code: r.code, out: r.stdout + r.stderr, stdout: r.stdout, stderr: r.stderr }
   } catch (err) {
     const message = err instanceof Error ? (err.stack ?? err.message) : String(err)
+    console.log(
+      `nonvacuity: check-corpus.mjs threw in process (the harness's error, exit 2):\n${message}`,
+    )
     return {
       code: 2,
       out: message,
@@ -2365,44 +2379,81 @@ function corpusInProcess(args, { run = runCheckCorpus, reset = true } = {}) {
   }
 }
 
+/** The first line two texts differ at, for a finding that says where, or `undefined` when equal. */
+function firstDifference(a, b) {
+  const x = a.split('\n')
+  const y = b.split('\n')
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if (x[i] !== y[i])
+      return `line ${String(i + 1)}: in process "${x[i] ?? ''}", fresh "${y[i] ?? ''}"`
+  }
+  return undefined
+}
+
 /**
- * Plan 0662, Design 5: after the rows, the gate run in this process and in a fresh one must agree.
- * On the clean tree, the whole terminal output, elapsed times masked: every per-check count, not
- * only the exit code. With one planted broken link, the full `--format json` output. It sees state
- * that survives to the end and changes what the gate prints; a leak that flips one row mid-run and
- * is gone by the end is not seen here, which is why each mutable state is reset per run.
+ * Plan 0662, Design 5: the gate run in this process and in a fresh one must agree. On the clean
+ * tree, the whole terminal output, elapsed times masked: every per-check count, not only the exit
+ * code. With a probe planted (one broken link, and one waived, so the kernel records a comment
+ * suppression), the full `--format json` output. `reset: false` runs the in-process side without
+ * the per-run reset, for the row that proves this comparison sees a leak. It sees state that
+ * survives to the end and changes what the gate prints; a leak that flips one row mid-run and is
+ * gone by the end is not seen here, which is why each mutable state is reset per run.
  */
-function corpusInProcessAgreement() {
-  const before = { ...corpusRuns }
-  if (before.inProcess === 0) return true
+function corpusAgreementCompare({ reset = true } = {}) {
   const mask = (text) => text.replace(/\(\d+(?:\.\d+)?m?s\)/g, '(T)')
   const fresh = (args) => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), ...args])
-  const cleanIn = corpusInProcess([])
+  const cleanIn = corpusInProcess([], { reset })
   const cleanFresh = fresh([])
   const { probeIn, probeFresh } = withProbe(
     PROBE_CORPUS_AGREEMENT,
-    '# Non-vacuity probe\n\n[gone](./__nonvacuity_agreement_gone__.md)\n',
+    '# Non-vacuity probe\n\n[gone](./__nonvacuity_agreement_gone__.md)\n\n' +
+      '<!-- eess-exclude corpus/broken-links: the agreement probe needs one comment suppression -->\n' +
+      '[waived](./__nonvacuity_agreement_waived__.md)\n',
     () => ({
-      probeIn: corpusInProcess(['--format', 'json']),
+      probeIn: corpusInProcess(['--format', 'json'], { reset }),
       probeFresh: fresh(['--format', 'json']),
     }),
   )
-  const clean =
-    cleanIn.code === 0 &&
-    cleanIn.code === cleanFresh.code &&
-    cleanIn.stdout === cleanFresh.stdout &&
-    mask(cleanIn.stderr) === mask(cleanFresh.stderr)
-  const probe =
-    probeIn.code === 1 &&
-    probeIn.code === probeFresh.code &&
-    probeIn.stdout === probeFresh.stdout &&
-    probeIn.stdout.includes('__nonvacuity_agreement_gone__')
-  const ok = clean && probe
+  const cleanDiff =
+    cleanIn.code !== cleanFresh.code
+      ? `exit ${String(cleanIn.code)} in process, ${String(cleanFresh.code)} fresh`
+      : (firstDifference(cleanIn.stdout, cleanFresh.stdout) ??
+        firstDifference(mask(cleanIn.stderr), mask(cleanFresh.stderr)))
+  const probeDiff =
+    probeIn.code !== probeFresh.code
+      ? `exit ${String(probeIn.code)} in process, ${String(probeFresh.code)} fresh`
+      : firstDifference(probeIn.stdout, probeFresh.stdout)
+  // The probe must red, name itself and carry a suppression, or the comparison judged nothing.
+  const probeLive =
+    probeFresh.code === 1 &&
+    probeFresh.stdout.includes('__nonvacuity_agreement_gone__') &&
+    probeFresh.stdout.includes('__nonvacuity_agreement_waived__')
+  return {
+    agree: cleanDiff === undefined && probeDiff === undefined,
+    probeLive,
+    cleanDiff,
+    probeDiff,
+  }
+}
+
+/** The shard-end check (plan 0662, Design 5): prints on every run, and reds on a disagreement. */
+function corpusInProcessAgreement() {
+  const before = { ...corpusRuns }
+  if (before.inProcess === 0) {
+    console.log(
+      `nonvacuity: corpus in-process agreement — not run · no in-process run of check-corpus.mjs ` +
+        `(${String(before.fresh)} sent to a fresh process)`,
+    )
+    return true
+  }
+  const r = corpusAgreementCompare()
+  const ok = r.agree && r.probeLive
   console.log(
     `nonvacuity: corpus in-process agreement — ${ok ? 'OK' : 'FAILED'} · after ` +
       `${String(before.inProcess)} in-process run(s) of check-corpus.mjs and ${String(before.fresh)} ` +
-      `sent to a fresh process: clean tree ${clean ? 'identical' : `DIFFERS (exit ${String(cleanIn.code)}/${String(cleanFresh.code)})`}, ` +
-      `one broken link ${probe ? 'identical' : `DIFFERS (exit ${String(probeIn.code)}/${String(probeFresh.code)})`}`,
+      `sent to a fresh process: clean tree ${r.cleanDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.cleanDiff}`}, ` +
+      `probe ${r.probeDiff === undefined ? 'identical' : `in process and fresh DIFFER at ${r.probeDiff}`}` +
+      (r.probeLive ? '' : '; the probe did not red with both its links, so nothing was compared'),
   )
   return ok
 }

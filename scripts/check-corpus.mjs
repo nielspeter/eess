@@ -100,8 +100,10 @@ import { recordKeyOfPath } from './lib/record-key.mjs'
  * and keep eess-md's parse memo warm between rows. It returns the exit code the command would use,
  * computed from the verdict as before, and everything the gate wrote, in the order it wrote it. The
  * streams are restored in a `finally`, and a throw escapes: it is the caller's error, never a verdict.
+ * `gate` replaces the gate's body, for the one non-vacuity row that proves a throw escapes and the
+ * streams come back (`corpus/in-process-throw-is-harness-error`); nothing else passes it.
  */
-export function runCheckCorpus(argv) {
+export function runCheckCorpus(argv, { gate: run = gate } = {}) {
   const chunks = []
   const streams = [process.stdout, process.stderr]
   const writes = streams.map((stream) => stream.write)
@@ -112,12 +114,12 @@ export function runCheckCorpus(argv) {
         text: typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString(),
       })
       const done = typeof encoding === 'function' ? encoding : callback
-      if (typeof done === 'function') done()
+      if (typeof done === 'function') done(null)
       return true
     }
   })
   try {
-    const code = gate(argv)
+    const code = run(argv)
     const text = (i) =>
       chunks
         .filter((c) => c.stream === i)
@@ -2028,7 +2030,14 @@ if (typeof import.meta.main !== 'boolean') {
 }
 if (import.meta.main) {
   const result = runCheckCorpus(process.argv)
-  for (const { stream, text } of result.chunks)
-    (stream === 0 ? process.stdout : process.stderr).write(text)
-  process.exit(result.code)
+  if (result.code !== 0 && result.code !== 1) {
+    throw new Error(`check-corpus.mjs: the gate returned ${String(result.code)}, not an exit code`)
+  }
+  for (const { stream, text } of result.chunks) {
+    ;(stream === 0 ? process.stdout : process.stderr).write(text)
+  }
+  // `exitCode`, not `exit()`: an exit straight after a large write cuts it through a pipe, about
+  // 128 KiB on Linux (measured by plan 0662's enforcement review; bug 0517). Node exits once the
+  // writes drain.
+  process.exitCode = result.code
 }
