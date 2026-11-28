@@ -141,7 +141,7 @@ good. Growing the bound to the corpus reuses all of a large scan and still moves
 - `check:nonvacuity`'s shard-end agreement check also requires the memo warm: across its in-process
   runs at most 5 texts parsed. A new row, `corpus/in-process-memo-warm`, is its falsifier, through the
   shard end's own judgement (`corpusAgreementResult`), judging one in-process gate run: with the
-  caches cleared it must judge COLD, and again it must judge warm. Plan 0662's leak row goes through
+  caches cleared it must judge COLD, and again it must judge warm. [Plan 0662](../../plans/completed/0662-the-corpus-rows-run-in-one-process.md)'s leak row goes through
   the same judgement for its agreement half, so a judgement weakened in either half reds a row.
 
 **What it does not cover,** measured by the build review: two corpora that each fit but together do
