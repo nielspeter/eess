@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — authored 2026-11-27 from a measurement the same day, then rewritten the same day
-  against its review by the enforcement, testing and method lenses ("Review, 2026-11-27" below).
+- **State:** Ready — frozen 2026-11-28 for its build; authored 2026-11-27 from a measurement the same
+  day, then rewritten the same day against its review by the enforcement, testing and method lenses
+  ("Review, 2026-11-27" below). Design 1 changed at the freeze ("Decided at the freeze").
 - **Priority:** High.
 - **Effort:** Medium to large. An estimate of about two days, not measured: the gate's split, output
   capture, a reset per mutable state the inventory finds, and five sabotage rows.
@@ -62,13 +63,12 @@ The command CI runs is proven end to end by the two rows
 `check:corpus` stays a fresh process, so a leak between in-process runs can make only a harness row
 wrong, never the gate CI judges.
 
-1. **The gate becomes a library and a command, with no guard.** The body moves to
-   `scripts/lib/check-corpus-run.mjs`, exporting `runCheckCorpus(argv)`, which returns
-   `{ code, stdout, stderr }`. `code` is computed from the verdict, as today; nothing defaults to 1.
-   `scripts/check-corpus.mjs` keeps the command and nothing else: it calls the function, writes the
-   captured output and exits with its code. No "am I the main module" guard: the repository's
-   existing one (`scripts/check-bun-load.mjs:869`) exits 0 silently when called through a symlinked
-   absolute path, which the enforcement review measured.
+1. **The gate becomes a function and a command.** _Changed at the freeze, below._ The body was to move
+   to `scripts/lib/check-corpus-run.mjs`, exporting `runCheckCorpus(argv)`, which returns
+   `{ code, stdout, stderr }`, `code` computed from the verdict as today, nothing defaulting to 1;
+   `scripts/check-corpus.mjs` keeping the command alone. No guard of the repository's existing shape
+   (`scripts/check-bun-load.mjs:869`), which exits 0 silently when called through a symlinked absolute
+   path, as the enforcement review measured.
 2. **A throw is a harness error, never a verdict.** The function restores the captured streams in a
    `finally` and lets a throw escape. In-process, the harness reports a throw as its own error (exit
    2), never as the gate's exit 1. Today an uncaught throw exits 1, and `check-corpus.mjs:1701-1705`
@@ -123,6 +123,20 @@ wrong, never the gate CI judges.
    It prints how many in-process runs preceded it. It sees state that survives to the shard's end and
    changes what the gate prints. A leak that flips a row mid-shard and is gone by the end is not seen
    by it; the defence there is Design 4's reset per mutable state, each with a sabotage row.
+
+## Decided at the freeze, 2026-11-28
+
+**Design 1 keeps the body in `scripts/check-corpus.mjs`.** Moving it to `scripts/lib/` would leave
+the command file a few lines long, and 30 live `file:line` pointers in 21 records, two of them in
+[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md), cite lines of that file:
+each would point past its end and red `check:corpus`. So the body stays where it is, wrapped in an
+exported `runCheckCorpus(argv)`, and the command runs when `import.meta.main` is true, the other form
+the enforcement review named. `import.meta.main` is `true` for this file run directly and through a
+symlinked path (measured under Node 24.22.0; CI's `node-version: 24`). Below Node 24.2 it is
+`undefined`, so the file throws when it is not a boolean: an old runtime fails closed rather than
+exiting 0 with no output. Lines move by the wrapper's few lines, which the pointer gate, judging only
+that a line exists, does not see ([bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md)'s
+known gap, unchanged).
 
 ## Phases
 

@@ -3325,9 +3325,10 @@ function gateCorpusOneDeadCheck() {
   // The honest mistake, per ADR-014 §2: the loop reaches its assertion zero
   // times while everything it would have examined is still loaded.
   const rewrite = (text) =>
+    // Indented since plan 0662 wrapped the gate's body in a function.
     text.replace(
-      /^const linksChecked = .*$/m,
-      'const linksChecked = 0 // non-vacuity probe: this check examines nothing',
+      /^(\s*)const linksChecked = .*$/m,
+      '$1const linksChecked = 0 // non-vacuity probe: this check examines nothing',
     )
   const { json, terminal } = withRewrittenFile(script, rewrite, () => ({
     json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
