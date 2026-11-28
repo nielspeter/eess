@@ -102,6 +102,13 @@ asserted only an exit are gone. One run each side, as job durations: 13m59s, 10m
 before; 13m26s, 11m44s, 9m07s, 11m13s with the first 30 removed. One run is not this bug's five-run
 criterion, so it stays Draft; the candidates above stand, less the first one's corpus half.
 
+**2026-11-28:** [plan 0662](../plans/completed/0662-the-corpus-rows-run-in-one-process.md) runs the corpus rows in the harness's process
+([PR #346](https://github.com/nielspeter/eess/pull/346)). One run each side, as job durations:
+10.4, 7.6, 9.8, 11.1 minutes before (run 45969038139); 12m40s, 7m06s, 8m07s, 7m06s after (run
+46112549103), shard 1 on a runner 45% slower than before. The corpus rows fell from 1,343 to 599 s.
+The "cheaper rows" candidate's corpus half is done; the examples row (four minutes on shard 1) is now
+the largest single row. One run is not this bug's five-run criterion, so it stays Draft.
+
 ## Evidence
 
 Runs (`gh api repos/nielspeter/eess/actions/runs/<id>/jobs`): main 40176679421, 40205617787,

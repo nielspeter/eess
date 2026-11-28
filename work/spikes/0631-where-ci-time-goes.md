@@ -115,4 +115,6 @@ measured.
 
 ## Corrections
 
-None yet.
+- **2026-11-28:** option C ("make nonvacuity cheaper") is decided for the corpus rows by
+  [plan 0662](../plans/completed/0662-the-corpus-rows-run-in-one-process.md), which runs them in the harness's process; the other rows are
+  [plan 0665](../plans/0665-the-other-gate-rows-run-in-one-process.md)'s.

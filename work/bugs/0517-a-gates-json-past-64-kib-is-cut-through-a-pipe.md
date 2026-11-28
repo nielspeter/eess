@@ -62,6 +62,12 @@ Undecided. Two candidates: set `process.exitCode` and return instead of calling 
 after the JSON write (the CLIs' shape), or exit in the write's callback. Either is per gate, so a
 shared helper for "write the JSON, then exit" may be the one place to fix it.
 
+**2026-11-28, from [plan 0662](../plans/completed/0662-the-corpus-rows-run-in-one-process.md)'s build review:** the cut is live on Linux too. Measured
+there with Node v24.22.0: one large write followed by `process.exit` delivered 131,072 bytes through a
+shell pipe and 146,176 through `spawnSync`, on stdout and stderr alike; with `process.exitCode`
+instead, all 3,000,000. `scripts/check-corpus.mjs`'s command now sets `process.exitCode`. The other
+gates this record lists are unchanged.
+
 ## Verification
 
 - [ ] Red test written first: a gate's `--format json` output past 64 KiB, read through a pipe,
