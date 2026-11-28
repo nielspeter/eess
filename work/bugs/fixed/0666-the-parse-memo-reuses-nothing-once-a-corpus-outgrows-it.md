@@ -132,14 +132,23 @@ good. Growing the bound to the corpus reuses all of a large scan and still moves
   such a corpus reuses about cap ÷ size of a repeated pass instead of nothing.
 - With no reservation the memo is least recently used within its limit, as before, so its existing
   tests hold unchanged.
-- Counts (`parses`, `hits`, `evictions`, `refused`, `held`, `bound`, `reserved`) on
-  `@nielspeter/eess-md/internal` as `parseMemoStats()`, and `parseMemoNotice()`, a sentence when the last
-  corpus did not fit, which `check-corpus.mjs` prints. It is no finding: running out costs time, never a
+- Counts (`parses`, `hits`, `evictions`, `refused`, `held`, `bound`, `reserved`, `largestReserved`) on
+  `@nielspeter/eess-md/internal` as `parseMemoStats()`, and `parseMemoNotice()`, a sentence when a corpus
+  since the last reset did not fit (the largest, not the last: a gate builds several, and the last is
+  often the smallest), which `check-corpus.mjs` prints. It is no finding: running out costs time, never a
   verdict, as [spike 0546](../../spikes/0546-where-a-corpus-check-spends-its-time.md) ruled, and the memo
   itself never prints ([ADR-008](../../../adr/008-caller-owns-reporting.md)).
 - `check:nonvacuity`'s shard-end agreement check also requires the memo warm: across its in-process
-  runs at most 5 texts parsed. A new row, `corpus/in-process-memo-warm`, is its falsifier: with the
-  caches cleared an in-process run parses the whole corpus, and again it parses at most 5.
+  runs at most 5 texts parsed. A new row, `corpus/in-process-memo-warm`, is its falsifier, through the
+  shard end's own judgement (`corpusAgreementResult`): with the caches cleared it must judge COLD, and
+  again it must judge warm.
+
+**What it does not cover,** measured by the build review: two corpora that each fit but together do
+not, built alternately, still reuse nothing, and nothing says so unless one of them alone overran the
+memo; more than 5% of other texts parsed beside a corpus at its bound evicts that corpus; the bound only
+grows within a process, so a long-lived process keeps up to the cap, about 470 MB, until its caches
+are reset; the warm check counts texts, not their size; a cache reset inside its window would make it
+read warm, which nothing does today.
 
 **Measured after,** same machine, the synthetic 25.1 M corpus built three times through
 `corpusFromText`:
@@ -172,6 +181,17 @@ good. Growing the bound to the corpus reuses all of a large scan and still moves
       and [bug 0547](./0547-eess-md-parses-a-text-more-than-once-per-process.md)'s M13 mutant keep their meaning. A new case covers identical texts within one pass:
       parsed once.
 
+- [x] Its build review's three findings, answered and measured in a worktree:
+  - the notice could not fire in `check-corpus.mjs`, which builds three corpora and reads the notice
+    after the smallest: now judged on the largest since reset; with the built memo's cap at 2^22, below
+    this repository's 10.4 M, the gate printed "a corpus read 10.4 M characters and the parse memo holds
+    4.2 M";
+  - nothing guarded the cap: a test reserves 2^26 on the module's memo and requires a bound of 2^25,
+    and the notice for the larger corpus after a smaller one;
+  - the row did not go through the check it falsifies: it now calls the shard end's judgement.
+    Sabotage, `warm` forced true: FAILED; the warm half dropped from the judgement: FAILED.
+    Unsabotaged: cleared, judged FAILED with 705 parsed; again, judged OK with 0.
+
 ## Review, 2026-11-28
 
 Reviewed by the architect and method lenses ([PR #349](https://github.com/nielspeter/eess/pull/349));
@@ -190,3 +210,12 @@ reproduced the table. Answered in this revision:
 - **Verification was partly unfalsifiable** (method): each item now names a number or a red.
 - **Unsourced figures** (method): 11.5 M replaced by the gates' own corpus, and what the adopter table
   does not record is said.
+
+## Review of the fix, 2026-11-28
+
+The fix was reviewed by the enforcement lens; its full review was written to the session's
+scratchpad. No critical finding: a hit requires the stored text to equal the asked one, the refused
+path never stores, and the memo never holds more than its cap. Its three important findings are
+answered above (the notice, the cap's guard, the falsifier's path). Minor, answered: the test that
+claimed an order now claims only the reservation; the margin's comment says what it is; the COLD line
+names its causes; the limits above are stated.
