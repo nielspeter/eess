@@ -225,8 +225,8 @@ names its causes; the limits above are stated.
 critical. Two new minor findings, answered:
 
 - **N1:** a comment said both falsifier rows call the judgement; the leak row called the comparison
-  beneath it, so dropping the agreement half from the judgement reddened no row (a gap from plan
-  0662). The leak row now goes through the judgement too. Sabotage, the agreement half dropped: the
+  beneath it, so dropping the agreement half from the judgement reddened no row (a gap from
+  [plan 0662](../../plans/completed/0662-the-corpus-rows-run-in-one-process.md)). The leak row now goes through the judgement too. Sabotage, the agreement half dropped: the
   leak row FAILED.
 - **N2:** the memo row ran the gate eight times, four in fresh processes: about 50 s locally (the
   harness with it 78–84 s, with `corpus/links/site` 31–32 s). It now judges one in-process run each
