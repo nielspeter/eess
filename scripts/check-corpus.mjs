@@ -56,6 +56,7 @@ import {
   collectResult,
   definePredicate,
   finishPreset,
+  isArchRuleError,
   mergeCollectResults,
   parseExclusionComments,
   reportViolations,
@@ -1821,7 +1822,17 @@ function gate(argv) {
   const fmtArg = argv.indexOf('--format')
   const format = fmtArg >= 0 ? argv[fmtArg + 1] : undefined
   if (format === 'json' || format === 'github') {
-    reportViolations(verdict, { format })
+    // `reportViolations` escalates an unsuppressable finding to a throw after it has written the
+    // output, as `check-ledger.mjs` records. That throw is this gate failing, so it is exit 1. Before
+    // plan 0662 it went uncaught and exited 1 only because Node exits 1 on an uncaught throw: a
+    // verdict carried by the default, found when the gate first ran in process. Any other throw is
+    // not a verdict and escapes.
+    try {
+      reportViolations(verdict, { format })
+    } catch (err) {
+      if (isArchRuleError(err)) return 1
+      throw err
+    }
     return verdict.length > 0 ? 1 : 0
   }
 

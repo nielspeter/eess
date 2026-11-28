@@ -2104,6 +2104,45 @@ function gateCorpusTerminalExit() {
   }
 }
 
+// --- Gate: corpus/in-process-leak-caught (plan 0662) ---
+// The agreement check's json comparison is what sees state one in-process run leaves for the next.
+// With one broken link planted, two in-process runs without the per-run reset must differ from a
+// fresh run (the kernel's comment suppressions accumulate into `commentSuppressed`), and one run
+// with the reset must equal it again: the leak is visible, and the reset is what removes it.
+function gateCorpusInProcessLeakCaught() {
+  const { fresh, leaked, cleaned } = withProbe(
+    PROBE_CORPUS_AGREEMENT,
+    '# Non-vacuity probe\n\n[gone](./__nonvacuity_agreement_gone__.md)\n',
+    () => {
+      const fresh = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+      corpusInProcess(['--format', 'json'], { reset: false })
+      const leaked = corpusInProcess(['--format', 'json'], { reset: false })
+      const cleaned = corpusInProcess(['--format', 'json'])
+      return { fresh, leaked, cleaned }
+    },
+  )
+  const visible = fresh.code === 1 && leaked.code === 1 && leaked.stdout !== fresh.stdout
+  const removed = cleaned.stdout === fresh.stdout
+  return {
+    ok: visible && removed,
+    detail: `fresh exit ${fresh.code}; two runs without the reset differ from it: ${visible}; one run with the reset equals it: ${removed}`,
+  }
+}
+
+// --- Gate: corpus/in-process-throw-is-harness-error (plan 0662) ---
+// A gate that throws in process is the harness's error, exit 2, never the gate's exit 1: an
+// uncaught throw exiting 1 once carried a verdict nothing had decided (`check-corpus.mjs`'s json
+// branch, found by this plan's build).
+function gateCorpusInProcessThrowIsHarnessError() {
+  const r = corpusInProcess(['--format', 'json'], {
+    run: () => {
+      throw new Error('non-vacuity probe: the gate threw')
+    },
+  })
+  const named = r.stderr.includes('non-vacuity probe: the gate threw')
+  return { ok: r.code === 2 && named, detail: `exit ${r.code}, the throw named: ${named}` }
+}
+
 // --- Gate: corpus/adr-production (bug 0548) ---
 // The ADR check through the production script. `corpus/adr` runs the `bad-adr.mjs` fixture, so
 // nothing tied an ADR finding to `check-corpus.mjs`'s exits: deleting the receipt member that adds
@@ -2287,8 +2326,11 @@ const corpusRuns = { inProcess: 0, fresh: 0 }
  *   of plan 0662's inventory decided "reset". Everything else is kept, each for the reason the plan
  *   records.
  * - **A throw is the harness's error, exit 2**, never the gate's exit 1.
+ *
+ * `run` and `reset` exist for the two rows that prove the last two points; every other caller
+ * passes neither.
  */
-function corpusInProcess(args) {
+function corpusInProcess(args, { run = runCheckCorpus, reset = true } = {}) {
   if (process.cwd() !== repoRoot) {
     throw new Error(`corpusInProcess: the working directory is ${process.cwd()}, not ${repoRoot}`)
   }
@@ -2304,12 +2346,8 @@ function corpusInProcess(args) {
   delete process.env.GITHUB_ACTIONS
   delete process.env.CI
   try {
-    resetCommentSuppression()
-    const r = runCheckCorpus([
-      process.execPath,
-      join(repoRoot, 'scripts', 'check-corpus.mjs'),
-      ...args,
-    ])
+    if (reset) resetCommentSuppression()
+    const r = run([process.execPath, join(repoRoot, 'scripts', 'check-corpus.mjs'), ...args])
     return { code: r.code, out: r.stdout + r.stderr, stdout: r.stdout, stderr: r.stderr }
   } catch (err) {
     const message = err instanceof Error ? (err.stack ?? err.message) : String(err)
@@ -6173,6 +6211,9 @@ const gates = [
   ['corpus/terminal-exit', gateCorpusTerminalExit],
   // Bug 0548's review: the ADR check through the production script. Appended for the same reason.
   ['corpus/adr-production', gateCorpusAdrProduction],
+  // Plan 0662: the in-process corpus runs' two falsifiers. Appended for the same reason.
+  ['corpus/in-process-leak-caught', gateCorpusInProcessLeakCaught],
+  ['corpus/in-process-throw-is-harness-error', gateCorpusInProcessThrowIsHarnessError],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -6322,6 +6363,8 @@ const GATE_FOR = {
     'corpus/links/fragment-reach',
     'corpus/terminal-exit',
     'corpus/adr-production',
+    'corpus/in-process-leak-caught',
+    'corpus/in-process-throw-is-harness-error',
     'corpus/links/repo-native',
     'corpus/links/work-root',
     'corpus/link-routing',

@@ -36,3 +36,10 @@ row's comment says where the clean direction is gated now.
       list and so the shard assignment are unchanged.
 - [x] No local nonvacuity run: the harness has no row filter, and the full run is CI's four shards,
       which must pass for this to merge.
+
+## Corrections
+
+- **2026-11-28, [plan 0662](../../plans/0662-the-corpus-rows-run-in-one-process.md)'s build:** "the
+  harness has no row filter" is false. `QA_ONLY=row,row` runs the named rows, unsharded
+  (`scripts/check-nonvacuity.mjs`, the `QA_ONLY` constant). The rows this bug changed could have been
+  run locally; CI's four shards ran them instead, green.

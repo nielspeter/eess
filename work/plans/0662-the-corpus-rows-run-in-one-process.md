@@ -149,6 +149,27 @@ known gap, unchanged).
 3. `corpusInProcess`, the conversion and the shard-end check (Design 3, 5).
 4. The sabotage rows, then CI's shard times before and after, recorded by value.
 
+## The inventory, measured 2026-11-28
+
+At 3562cad7, by two searches over `packages/core/src`, `packages/md/src` and the nine `scripts/lib`
+modules `check-corpus.mjs` imports: every module-level `let`; every module-level `Map`, `Set`,
+`WeakMap` and `WeakSet`; every module-level array assigned `[]`; every value made by a `create…`
+factory; every `globalThis` access. 41 and 10 lines. Each, decided:
+
+| state                                                                                                                        | decision                                      | why                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `comment-suppression.ts:50` `suppressions`                                                                                   | **reset per run** (`resetCommentSuppression`) | grows by run and reaches `--format json`'s `commentSuppressed`                                                                                      |
+| `prose.ts:174` the parse memo                                                                                                | kept                                          | the saving; keyed by the text, confirmed by an exact compare                                                                                        |
+| `proposal-ruling.mjs:108-109` `readings`, `openFences`                                                                       | kept                                          | memos of pure functions, keyed by the text                                                                                                          |
+| `packages/md/src/model/links.ts:151` `walked`, `ledger.ts:368` `itemContinuations`                                           | kept                                          | keyed by a tree the memo shares across runs; each a function of the tree and its text                                                               |
+| `diff-disclosure.ts:92` `noticed`                                                                                            | kept                                          | set only under a `diff` option (`packages/core/src/execute-rule.ts:390-394`); the gate passes none                                                  |
+| `packages/core/src/violation.ts:348` identity collisions, `edge-coverage.ts:72`, `report.ts:72` the emitted count            | kept                                          | read only by eess-ts's CLI (`identityCollisions`, `violationsEmittedCount`), never by this gate                                                     |
+| `stderr.ts:45`, `cli-config.ts:188`                                                                                          | kept                                          | one-time flags; setting them again changes nothing                                                                                                  |
+| `source-roots.ts:54` the source-text registry on `globalThis`                                                                | kept                                          | written only by `corpusFromText`; the gate reads the disk through `corpus()`                                                                        |
+| `selection-memo.ts`, the eess-md `WeakMap`s keyed by a `Corpus`, an `MdDocument`, a violation, an `AnchorRule` or a `RegExp` | kept                                          | keyed by objects a run builds anew, or derived from a constant pattern                                                                              |
+| `packages/md/src/model/section-declarations.ts:21`, `packages/md/src/predicates/in-documents.ts:81`, `:112`                  | kept, with a sabotage row                     | keyed by a predicate or builder: safe while each is built inside the gate's function; a predicate built at module scope would be shared across runs |
+| the `WeakSet` markers (`cardinality.ts:40`, `owns-empty-discovery.ts:67`, `code-block-parse.ts:110`) and the constant `Set`s | kept                                          | adding an object again, or reading a constant, changes nothing                                                                                      |
+
 ## Files changed
 
 - `scripts/check-corpus.mjs` and the new `scripts/lib/check-corpus-run.mjs`
@@ -164,18 +185,46 @@ known gap, unchanged).
 
 ## Test inventory
 
-- [ ] Phase 1's output identity, on the eight inputs listed there.
-- [ ] Every converted row passes in-process and reds against its rule's sabotage, as it does today:
-      the full `check:nonvacuity` in CI, all four shards.
-- [ ] **Sabotage, an accumulating state:** comment suppressions not reset between runs; the shard-end
-      check's json comparison reds.
-- [ ] **Sabotage, a hoisted predicate:** an eess-md predicate built once outside the function; a named
-      row reds.
-- [ ] **Sabotage, a throw:** the gate throws mid-run; the harness reports exit 2, not the gate's 1.
-- [ ] **Sabotage, a rewritten module run in-process:** `corpusInProcess`'s refusal removed;
-      `emitter/one-dead-check` reds.
-- [ ] **Sabotage, the command:** its exit deleted reds `corpus/terminal-exit`; its output not written
-      reds `corpus/adr-production`.
+Measured 2026-11-28 in a detached worktree at c7a99d1a and its follow-ups, with its own `npm ci` and
+build (45 s, 7 s), never in the main tree.
+
+- [x] Phase 1's output identity: the gate before the change (a reference copy) and after, the elapsed
+      time masked, on a clean tree in terminal, `--format json` and `--format github`; a planted broken
+      link in terminal and json; each of the three early exits, triggered by the same edit to both
+      copies; an injected throw (both exit 1 and name it; only the stack's length differs). All eight
+      output cases byte-identical in exit code, stdout and stderr. Importing the file runs nothing
+      (0.12 s); a symlinked path runs the gate.
+- [x] The converted rows, locally: `QA_ONLY` over every `corpus/` and `emitter/` row and the rows
+      the converted helpers back, 167 names, in 448 s. 163 passed. The agreement check passed after
+      100 in-process runs and 2 sent to a fresh process. The failures:
+  - `corpus/accepted-denominator-empty` returned exit 2, the harness's code for a throw. The gate's
+    json branch let `reportViolations`'s escalation throw go uncaught: on `main` the row's exit 1 was
+    Node's exit for an uncaught throw. Fixed in the gate: an `ArchRuleError` from `reportViolations`
+    is exit 1, any other throw escapes. The row then passed in process.
+  - `emitter/bare-builder-reds-the-cli` and `emitter/mermaid-bare-builder-reds-the-cli` fail the
+    same way at `main` (3562cad7) in the same worktree: an environment difference, not this change.
+    CI runs them green.
+  - "rule-id coverage" fails under any `QA_ONLY` subset, since it audits every fixture.
+
+  The whole set is CI's four shards on this PR.
+
+- [x] **Sabotage, an accumulating state:** a standing row, `corpus/in-process-leak-caught`. Two
+      in-process runs without the reset differ from a fresh run, and one with it equals it: passes.
+- [x] done-otherwise **Sabotage, a hoisted predicate:** not built as a synthetic row, because the case
+      exists in production. `notLeftOut` (`scripts/lib/record-mention.mjs:168`) is an `inDocuments(…)`
+      predicate built once at module scope, so every in-process run shares it. Its per-run memo is keyed
+      by `MdDocument`, which each run builds anew, and every mention row passed with the agreement check
+      identical after 100 in-process runs.
+- [x] **Sabotage, a throw:** a standing row, `corpus/in-process-throw-is-harness-error`: exit 2, the
+      throw named. A throw injected into the gate's body leaves both streams restored (measured
+      directly).
+- [x] **Sabotage, a rewritten module run in-process:** `corpusInProcess`'s refusal replaced by
+      `if (false)`: `emitter/one-dead-check` FAILED (json exit 0, terminal exit 0). With the refusal it
+      passes, sent to a fresh process.
+- [x] **Sabotage, the command:** its output not written: `corpus/terminal-exit` FAILED (finding listed
+      false, red summary false) and `corpus/adr-production` FAILED (the ADR finding not seen). Its exit
+      deleted reds `corpus/terminal-exit`, measured by
+      [bug 0548](../bugs/fixed/0548-check-corpus-exits-on-a-second-list.md).
 - [ ] Shard times, as CI job durations, before (run 45969038139) and after, recorded by value, with
       the caveat of one run each side against the 1.6x variance
       [bug 0552](../bugs/0552-nonvacuity-shard-3-runs-near-its-timeout.md) measured.
